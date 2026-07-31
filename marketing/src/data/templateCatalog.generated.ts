@@ -24,6 +24,74 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Generate and edit images on the canvas — concept art, product shots, posters, and batch pipelines.",
     "templates": [
       {
+        "slug": "a-gradient-card-as-png",
+        "name": "A Gradient Card as PNG",
+        "description": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "a-poster-in-portrait",
+        "name": "A Poster in Portrait",
+        "description": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "a-repeating-texture-tile",
+        "name": "A Repeating Texture Tile",
+        "description": "A seamless tile for backgrounds. Prompting for the tiling explicitly matters — an unseamed texture is visibly wrong the moment it repeats.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "ad-loop-from-a-product-photo",
+        "name": "Ad Loop from a Product Photo",
+        "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+        "tags": [
+          "image",
+          "video",
+          "marketing"
+        ]
+      },
+      {
+        "slug": "album-art-from-a-mood",
+        "name": "Album Art from a Mood",
+        "description": "Square cover art. The aspect ratio is the requirement here — every platform crops to it, so generating anything else creates work.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "black-and-white-hard",
+        "name": "Black and White, Hard",
+        "description": "Grayscale first, then a soft-edged threshold. Thresholding colour directly gives you the luminance of whichever channel happens to dominate, which is rarely what you want.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "blur-a-channel",
+        "name": "Blur a Channel",
+        "description": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "blur-an-image",
+        "name": "Blur an Image",
+        "description": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
         "slug": "brand-asset-generator",
         "name": "Brand Asset Generator",
         "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once — a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
@@ -35,12 +103,129 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "bring-a-still-to-life",
+        "name": "Bring a Still to Life",
+        "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
+        "tags": [
+          "image",
+          "video"
+        ]
+      },
+      {
+        "slug": "circles-and-lines",
+        "name": "Circles and Lines",
+        "description": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "slug": "concept-art-iteration-board",
         "name": "Concept Art Iteration Board",
         "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
         "tags": [
           "concept-art",
           "planning"
+        ]
+      },
+      {
+        "slug": "concept-art-then-a-moving-version",
+        "name": "Concept Art, Then a Moving Version",
+        "description": "Design the frame first, then animate the one you kept. Committing to a still before paying for video is the cheapest way to work — video calls cost many times an image.",
+        "tags": [
+          "image",
+          "video"
+        ]
+      },
+      {
+        "slug": "crop-an-image",
+        "name": "Crop an Image",
+        "description": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "crop-then-fit",
+        "name": "Crop then Fit",
+        "description": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "cut-out-the-subject",
+        "name": "Cut Out the Subject",
+        "description": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "cut-a-product-out-of-its-background",
+        "name": "Cut a Product Out of Its Background",
+        "description": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "draw-a-badge-in-svg",
+        "name": "Draw a Badge in SVG",
+        "description": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "edit-a-still-with-words",
+        "name": "Edit a Still with Words",
+        "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "editorial-still-from-a-line",
+        "name": "Editorial Still from a Line",
+        "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "emboss-a-still",
+        "name": "Emboss a Still",
+        "description": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "find-the-edges",
+        "name": "Find the Edges",
+        "description": "Canny edge detection with the two thresholds it actually turns on: the low one decides what counts as a weak edge, the high one what counts as certain.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "fit-an-image",
+        "name": "Fit an Image",
+        "description": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "generate-then-upscale-a-poster",
+        "name": "Generate then Upscale a Poster",
+        "description": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
+        "tags": [
+          "image"
         ]
       },
       {
@@ -72,11 +257,36 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "invert-a-still",
+        "name": "Invert a Still",
+        "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "moodboard-frame-from-a-theme",
+        "name": "Moodboard Frame from a Theme",
+        "description": "One frame of a moodboard, generated from a described direction. Cheap enough to run a dozen times and pick, which is how moodboards actually get made.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "slug": "movie-posters",
         "name": "Movie Posters",
         "description": "Turn a title, genre, and visual style into finished theatrical one-sheet posters. An art-direction agent first writes a key-art brief (positioning, palette, typography), which drives every generated poster — the differentiator is the agent-authored creative strategy, not a raw prompt.",
         "tags": [
           "image"
+        ]
+      },
+      {
+        "slug": "pad-a-canvas",
+        "name": "Pad a Canvas",
+        "description": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
+        "tags": [
+          "image",
+          "utility"
         ]
       },
       {
@@ -90,6 +300,30 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "pixelate-a-still",
+        "name": "Pixelate a Still",
+        "description": "Cell size is the whole control. Useful for redaction, and the one filter where a bigger number is more privacy rather than more effect.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "poster-on-kie",
+        "name": "Poster on Kie",
+        "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "posterize-to-four-bits",
+        "name": "Posterize to Four Bits",
+        "description": "Reduce the bits per channel and the image collapses into flat bands — a screenprint look, and a quick way to see banding before it bites you.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
         "slug": "product-mockup-generator",
         "name": "Product Mockup Generator",
         "description": "Turn one product photo into a whole set of polished lifestyle mockups. An LLM art-director designs a varied shot list from your product description, then each scene is rendered with FLUX and finished with a brightness/contrast polish. Differentiator: the model invents the scenes, so a single input fans out into a coordinated mockup set — not one prompt, one image.",
@@ -97,6 +331,165 @@ export const templateCatalog: CatalogCategory[] = [
           "product-mockup",
           "mockup",
           "design"
+        ]
+      },
+      {
+        "slug": "product-spot-from-text",
+        "name": "Product Spot from Text",
+        "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+        "tags": [
+          "image",
+          "video"
+        ]
+      },
+      {
+        "slug": "pull-a-still-from-a-clip",
+        "name": "Pull a Still from a Clip",
+        "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+        "tags": [
+          "video",
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "put-a-product-on-a-studio-backdrop",
+        "name": "Put a Product on a Studio Backdrop",
+        "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "relight-a-portrait",
+        "name": "Relight a Portrait",
+        "description": "Change where the light comes from after the shot. The subject and framing stay put while the lighting is re-rendered from a description.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "relight-a-product-for-a-seasonal-campaign",
+        "name": "Relight a Product for a Seasonal Campaign",
+        "description": "Same product, different season, no reshoot. Relighting keeps the geometry and materials and changes only where the light comes from.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "restyle-a-photo-as-an-illustration",
+        "name": "Restyle a Photo as an Illustration",
+        "description": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "restyle-a-still-with-flux-dev",
+        "name": "Restyle a Still with FLUX Dev",
+        "description": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "solarize-a-still",
+        "name": "Solarize a Still",
+        "description": "Invert only the tones above a threshold — the darkroom accident that became a look.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "split-a-channel",
+        "name": "Split a Channel",
+        "description": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
+        "tags": [
+          "image",
+          "utility"
+        ]
+      },
+      {
+        "slug": "still-on-replicate",
+        "name": "Still on Replicate",
+        "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "take-a-product-shot-to-print-resolution",
+        "name": "Take a Product Shot to Print Resolution",
+        "description": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "turn-a-logo-into-print-ready-vector",
+        "name": "Turn a Logo into Print-Ready Vector",
+        "description": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "upscale-a-still",
+        "name": "Upscale a Still",
+        "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "vectorize-a-generated-logo",
+        "name": "Vectorize a Generated Logo",
+        "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "vectorize-a-photo-you-provide",
+        "name": "Vectorize a Photo You Provide",
+        "description": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "video-restyle-studio",
+        "name": "Video Restyle Studio",
+        "description": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
+        "tags": [
+          "video",
+          "design"
+        ]
+      },
+      {
+        "slug": "vignette-a-portrait",
+        "name": "Vignette a Portrait",
+        "description": "Darken the corners to pull the eye inward. Radius sets where the falloff starts, softness how abruptly it arrives.",
+        "tags": [
+          "image"
+        ]
+      },
+      {
+        "slug": "write-a-listing-from-the-product-photo",
+        "name": "Write a Listing from the Product Photo",
+        "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
+        "tags": [
+          "text",
+          "image"
+        ]
+      },
+      {
+        "slug": "write-the-prompt-then-make-the-image",
+        "name": "Write the Prompt, Then Make the Image",
+        "description": "The model writes its own image prompt from a plain description. Useful when the person with the idea does not want to learn prompt craft — and the intermediate prompt stays visible, so it can be corrected rather than guessed at.",
+        "tags": [
+          "image",
+          "text"
         ]
       }
     ]
@@ -106,6 +499,16 @@ export const templateCatalog: CatalogCategory[] = [
     "label": "Video Generation",
     "description": "Turn prompts, images, and briefs into video — trailers, product spots, animations, and music visuals.",
     "templates": [
+      {
+        "slug": "ai-spokesperson",
+        "name": "AI Spokesperson",
+        "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+        "tags": [
+          "video",
+          "audio",
+          "marketing"
+        ]
+      },
       {
         "slug": "ad-creative-factory",
         "name": "Ad Creative Factory",
@@ -119,11 +522,54 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "b-roll-reel-from-a-brief",
+        "name": "B-Roll Reel from a Brief",
+        "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
+        "tags": [
+          "video",
+          "content"
+        ]
+      },
+      {
+        "slug": "boost-saturation",
+        "name": "Boost Saturation",
+        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "clip-on-kie",
+        "name": "Clip on Kie",
+        "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "slug": "color-boost-video",
         "name": "Color Boost Video",
         "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
         "tags": [
           "video"
+        ]
+      },
+      {
+        "slug": "cut-a-landscape-clip-for-vertical",
+        "name": "Cut a Landscape Clip for Vertical",
+        "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "denoise-footage",
+        "name": "Denoise Footage",
+        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
         ]
       },
       {
@@ -138,6 +584,42 @@ export const templateCatalog: CatalogCategory[] = [
           "creative",
           "director",
           "storyboard"
+        ]
+      },
+      {
+        "slug": "explainer-clip-from-a-paragraph",
+        "name": "Explainer Clip from a Paragraph",
+        "description": "A paragraph of explanation becomes narration and a matching visual. The agent writes the shot description, so the picture follows the words rather than being prompted separately and drifting from them.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "fade-audio-in-and-out",
+        "name": "Fade Audio In and Out",
+        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "tags": [
+          "audio",
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "inspect-a-clip",
+        "name": "Inspect a Clip",
+        "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+        "tags": [
+          "video",
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "key-out-a-green-screen",
+        "name": "Key Out a Green Screen",
+        "description": "Chroma key with the two dials that matter: similarity decides how much of the colour range goes transparent, blend softens the edge.",
+        "tags": [
+          "video"
         ]
       },
       {
@@ -165,6 +647,25 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "normalize-a-clips-audio",
+        "name": "Normalize a Clip's Audio",
+        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "tags": [
+          "audio",
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "picture-in-picture",
+        "name": "Picture in Picture",
+        "description": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
         "slug": "product-video-generator",
         "name": "Product Video Generator",
         "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
@@ -172,6 +673,79 @@ export const templateCatalog: CatalogCategory[] = [
           "business",
           "data",
           "video"
+        ]
+      },
+      {
+        "slug": "read-a-clips-frame-rate",
+        "name": "Read a Clip's Frame Rate",
+        "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "resize-for-vertical",
+        "name": "Resize for Vertical",
+        "description": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "reverse-audio",
+        "name": "Reverse Audio",
+        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "tags": [
+          "audio",
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "reverse-a-clip",
+        "name": "Reverse a Clip",
+        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "rotate-footage",
+        "name": "Rotate Footage",
+        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "score-a-clip-from-its-own-mood",
+        "name": "Score a Clip from Its Own Mood",
+        "description": "The agent watches nothing — it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
+        "tags": [
+          "video",
+          "audio"
+        ]
+      },
+      {
+        "slug": "score-a-silent-clip",
+        "name": "Score a Silent Clip",
+        "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+        "tags": [
+          "video",
+          "audio",
+          "music"
+        ]
+      },
+      {
+        "slug": "script-to-narrated-clip",
+        "name": "Script to Narrated Clip",
+        "description": "The smallest complete video pipeline: a written line becomes a voice, and a described scene becomes footage, then the two are married. Generating the voice and the picture separately is what lets you re-record one without paying for the other.",
+        "tags": [
+          "video",
+          "audio"
         ]
       },
       {
@@ -187,6 +761,84 @@ export const templateCatalog: CatalogCategory[] = [
           "director",
           "storyboard"
         ]
+      },
+      {
+        "slug": "sharpen-footage",
+        "name": "Sharpen Footage",
+        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "shot-list-from-a-synopsis",
+        "name": "Shot List from a Synopsis",
+        "description": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",
+        "tags": [
+          "text",
+          "video"
+        ]
+      },
+      {
+        "slug": "single-shot-from-a-line",
+        "name": "Single Shot from a Line",
+        "description": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "soften-a-plate",
+        "name": "Soften a Plate",
+        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "spin-a-packshot-into-a-turntable-clip",
+        "name": "Spin a Packshot into a Turntable Clip",
+        "description": "A still becomes motion for the product page. Image-to-video keeps the product identical and adds only the camera move, which a text-to-video model would not.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
+        "slug": "stabilize-handheld",
+        "name": "Stabilize Handheld",
+        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "trailer-beats-from-a-premise",
+        "name": "Trailer Beats from a Premise",
+        "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+        "tags": [
+          "text",
+          "video"
+        ]
+      },
+      {
+        "slug": "trim-a-clip",
+        "name": "Trim a Clip",
+        "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "tags": [
+          "video",
+          "utility"
+        ]
+      },
+      {
+        "slug": "warm-up-a-cold-clip",
+        "name": "Warm Up a Cold Clip",
+        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+        "tags": [
+          "video"
+        ]
       }
     ]
   },
@@ -196,6 +848,110 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Transcribe, summarize, and generate audio — podcasts, voiceovers, and music-driven pipelines.",
     "templates": [
       {
+        "slug": "action-items-from-a-meeting-recording",
+        "name": "Action Items from a Meeting Recording",
+        "description": "A recording becomes a list of commitments with owners. Anything without a clear owner is listed separately rather than assigned to someone the model guessed at.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "add-reverb-to-a-voice",
+        "name": "Add Reverb to a Voice",
+        "description": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "chapter-markers-for-a-long-recording",
+        "name": "Chapter Markers for a Long Recording",
+        "description": "Long audio is unnavigable without chapters. The model proposes the topic boundaries; you keep the ones that match how the conversation actually moved.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "clean-up-a-rough-voice-recording",
+        "name": "Clean Up a Rough Voice Recording",
+        "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "crush-it-to-8-bits",
+        "name": "Crush It to 8 Bits",
+        "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "fade-audio-out",
+        "name": "Fade Audio Out",
+        "description": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
+        "tags": [
+          "audio",
+          "utility"
+        ]
+      },
+      {
+        "slug": "gate-out-the-room-noise",
+        "name": "Gate Out the Room Noise",
+        "description": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "generate-a-silent-bed",
+        "name": "Generate a Silent Bed",
+        "description": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
+        "tags": [
+          "audio",
+          "utility"
+        ]
+      },
+      {
+        "slug": "how-long-is-this-transcript",
+        "name": "How Long Is This Transcript",
+        "description": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "inspect-a-clips-audio",
+        "name": "Inspect a Clip's Audio",
+        "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+        "tags": [
+          "audio",
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "localise-a-script-and-revoice-it",
+        "name": "Localise a Script and Revoice It",
+        "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+        "tags": [
+          "text",
+          "audio"
+        ]
+      },
+      {
+        "slug": "master-a-voice-track",
+        "name": "Master a Voice Track",
+        "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
         "slug": "meeting-transcript-summarizer",
         "name": "Meeting Transcript Summarizer",
         "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
@@ -203,6 +959,48 @@ export const templateCatalog: CatalogCategory[] = [
           "audio",
           "llm",
           "dataframe"
+        ]
+      },
+      {
+        "slug": "name-a-file-from-its-narration",
+        "name": "Name a File from Its Narration",
+        "description": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "narrate-a-script",
+        "name": "Narrate a Script",
+        "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "narration-with-a-music-bed",
+        "name": "Narration with a Music Bed",
+        "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "pitch-a-voice-up",
+        "name": "Pitch a Voice Up",
+        "description": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "podcast-episode-to-show-notes",
+        "name": "Podcast Episode to Show Notes",
+        "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+        "tags": [
+          "audio",
+          "text"
         ]
       },
       {
@@ -218,12 +1016,130 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "pull-the-quotable-lines-out-of-an-interview",
+        "name": "Pull the Quotable Lines Out of an Interview",
+        "description": "Five verbatim quotes, chosen for standing alone. Insisting on verbatim is what makes the output usable — a paraphrased quote is worse than none.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "put-a-voice-over-a-music-bed",
+        "name": "Put a Voice Over a Music Bed",
+        "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "slow-a-clip-without-dropping-pitch",
+        "name": "Slow a Clip Without Dropping Pitch",
+        "description": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "speak-a-line-then-trim-the-silence",
+        "name": "Speak a Line, Then Trim the Silence",
+        "description": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "subtitle-text-from-a-recording",
+        "name": "Subtitle Text from a Recording",
+        "description": "Transcribe, then break into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "summarise-a-recorded-call",
+        "name": "Summarise a Recorded Call",
+        "description": "The summary someone reads instead of listening again: what was decided, what is open, what happens next.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "swirl-and-echo",
+        "name": "Swirl and Echo",
+        "description": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "take-the-first-few-seconds-of-a-bed",
+        "name": "Take the First Few Seconds of a Bed",
+        "description": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "telephone-voice",
+        "name": "Telephone Voice",
+        "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
         "slug": "transcribe-audio",
         "name": "Transcribe Audio",
         "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
         "tags": [
           "audio",
           "asr"
+        ]
+      },
+      {
+        "slug": "transcribe-a-clip",
+        "name": "Transcribe a Clip",
+        "description": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
+        "tags": [
+          "audio",
+          "data"
+        ]
+      },
+      {
+        "slug": "trim-audio-to-a-range",
+        "name": "Trim Audio to a Range",
+        "description": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
+        "tags": [
+          "audio",
+          "utility"
+        ]
+      },
+      {
+        "slug": "turn-a-talk-into-a-blog-post",
+        "name": "Turn a Talk into a Blog Post",
+        "description": "Spoken delivery and written prose are different registers. The instruction to restructure rather than transcribe is what stops the output reading like a transcript with paragraphs.",
+        "tags": [
+          "audio",
+          "text"
+        ]
+      },
+      {
+        "slug": "voice-a-script-in-two-voices",
+        "name": "Voice a Script in Two Voices",
+        "description": "A two-hander needs two voices. Synthesising each part separately and joining them is what lets you re-record one line without re-rendering the whole exchange.",
+        "tags": [
+          "audio"
+        ]
+      },
+      {
+        "slug": "widen-a-mono-voice",
+        "name": "Widen a Mono Voice",
+        "description": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
+        "tags": [
+          "audio"
         ]
       }
     ]
@@ -325,12 +1241,56 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Campaign assets and content at scale — ad creative, social calendars, SEO copy, and outreach.",
     "templates": [
       {
+        "slug": "a-boolean-constant",
+        "name": "A Boolean Constant",
+        "description": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
+        "tags": []
+      },
+      {
+        "slug": "a-campaign-concept-from-a-brief",
+        "name": "A Campaign Concept from a Brief",
+        "description": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "a-fixed-point-in-time",
+        "name": "A Fixed Point in Time",
+        "description": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
+        "tags": []
+      },
+      {
+        "slug": "ad-copy-in-three-registers",
+        "name": "Ad Copy in Three Registers",
+        "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "audio-to-image",
         "name": "Audio To Image",
         "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
         "tags": [
           "huggingface",
           "multimodal"
+        ]
+      },
+      {
+        "slug": "blog-post-to-social-thread",
+        "name": "Blog Post to Social Thread",
+        "description": "One long piece becomes a numbered thread. The constraint that each post stand alone is what stops the model producing a summary chopped into pieces.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "bullet-points-to-press-release",
+        "name": "Bullet Points to Press Release",
+        "description": "Facts in, a structured release out — headline, dateline, body, boilerplate. Keeping the quote attributable to a named role stops the model inventing a spokesperson.",
+        "tags": [
+          "text"
         ]
       },
       {
@@ -354,11 +1314,113 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "count-and-measure",
+        "name": "Count and Measure",
+        "description": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
+        "tags": []
+      },
+      {
+        "slug": "does-this-text-mention-the-deadline",
+        "name": "Does This Text Mention the Deadline",
+        "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "draft-answers-for-an-faq",
+        "name": "Draft Answers for an FAQ",
+        "description": "Questions in, answers out, each short enough to survive being pasted into a help centre without editing.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "drop-the-first-few",
+        "name": "Drop the First Few",
+        "description": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
+        "tags": []
+      },
+      {
+        "slug": "every-combination",
+        "name": "Every Combination",
+        "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
+        "tags": []
+      },
+      {
+        "slug": "executive-summary-of-a-long-document",
+        "name": "Executive Summary of a Long Document",
+        "description": "One page for someone who will not read twelve. Leading with the decision required is what makes it a briefing rather than a précis.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "extract-the-claims-worth-checking",
+        "name": "Extract the Claims Worth Checking",
+        "description": "Separates the factual claims from the opinions, and rates how checkable each one is — the triage step before any verification work.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "find-every-number-in-a-sentence",
+        "name": "Find Every Number in a Sentence",
+        "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "five-headlines-for-a-landing-page",
+        "name": "Five Headlines for a Landing Page",
+        "description": "Headline variants for a test. Asking for a stated angle per line makes the set genuinely different rather than five rewordings of the first idea.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "how-long-is-this-string",
+        "name": "How Long Is This String",
+        "description": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "image-to-audio-story",
         "name": "Image To Audio Story",
         "description": "Upload any photo and a vision agent narrates a spoken story about it — one image in, one audio clip out",
         "tags": [
           "multimodal"
+        ]
+      },
+      {
+        "slug": "keep-only-the-matches",
+        "name": "Keep Only the Matches",
+        "description": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
+        "tags": []
+      },
+      {
+        "slug": "last-one-wins",
+        "name": "Last One Wins",
+        "description": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
+        "tags": []
+      },
+      {
+        "slug": "localise-a-product-listing",
+        "name": "Localise a Product Listing",
+        "description": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "one-tagline-six-markets",
+        "name": "One Tagline, Six Markets",
+        "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
+        "tags": [
+          "text"
         ]
       },
       {
@@ -390,6 +1452,75 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "read-stderr-from-code",
+        "name": "Read Stderr from Code",
+        "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
+        "tags": [
+          "code",
+          "utility"
+        ]
+      },
+      {
+        "slug": "redact-email-addresses",
+        "name": "Redact Email Addresses",
+        "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "rewrite-this-so-a-customer-understands-it",
+        "name": "Rewrite This So a Customer Understands It",
+        "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "run-javascript-in-a-sandbox",
+        "name": "Run JavaScript in a Sandbox",
+        "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
+        "tags": [
+          "code",
+          "utility"
+        ]
+      },
+      {
+        "slug": "run-lua-in-a-sandbox",
+        "name": "Run Lua in a Sandbox",
+        "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
+        "tags": [
+          "code",
+          "utility"
+        ]
+      },
+      {
+        "slug": "run-python-in-a-sandbox",
+        "name": "Run Python in a Sandbox",
+        "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
+        "tags": [
+          "code",
+          "utility"
+        ]
+      },
+      {
+        "slug": "run-a-shell-command",
+        "name": "Run a Shell Command",
+        "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
+        "tags": [
+          "code",
+          "utility"
+        ]
+      },
+      {
+        "slug": "seo-title-and-meta-description",
+        "name": "SEO Title and Meta Description",
+        "description": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "social-media-calendar-filler",
         "name": "Social Media Calendar Filler",
         "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
@@ -401,10 +1532,120 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "split-a-log-into-records",
+        "name": "Split a Log into Records",
+        "description": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "strip-accents-for-a-search-key",
+        "name": "Strip Accents for a Search Key",
+        "description": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "subject-lines-worth-testing",
+        "name": "Subject Lines Worth Testing",
+        "description": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "summarize-rss",
         "name": "Summarize RSS",
         "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
         "tags": []
+      },
+      {
+        "slug": "take-while-the-numbers-are-small",
+        "name": "Take While the Numbers Are Small",
+        "description": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
+        "tags": []
+      },
+      {
+        "slug": "themes-across-customer-feedback",
+        "name": "Themes Across Customer Feedback",
+        "description": "Raw feedback becomes named themes with counts and a representative verbatim each. The verbatim is what makes the theme arguable rather than asserted.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "tidy-up-messy-text",
+        "name": "Tidy Up Messy Text",
+        "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "title-case-a-heading",
+        "name": "Title Case a Heading",
+        "description": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "translate-marketing-copy-to-german",
+        "name": "Translate Marketing Copy to German",
+        "description": "Marketing copy translated for effect rather than word-for-word, with the formal/informal choice stated. That decision is the one that most often gets a translation rejected.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "trim-a-blurb-to-length",
+        "name": "Trim a Blurb to Length",
+        "description": "Cap text at a character budget with an ellipsis. The everyday fix for a card or preview that must not overflow.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "turn-specs-into-product-copy",
+        "name": "Turn Specs into Product Copy",
+        "description": "Paste a spec sheet, get copy. The system prompt forbids inventing anything not in the input, which is the difference between usable product text and a liability.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "turn-a-changelog-into-release-notes",
+        "name": "Turn a Changelog into Release Notes",
+        "description": "Commit messages are written for engineers; release notes are read by customers. Grouping by what changed for the user is the whole translation.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "turn-a-support-thread-into-a-bug-report",
+        "name": "Turn a Support Thread into a Bug Report",
+        "description": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "validate-a-postcode-shape",
+        "name": "Validate a Postcode Shape",
+        "description": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "wrap-a-value-in-quotes",
+        "name": "Wrap a Value in Quotes",
+        "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
+        "tags": [
+          "text"
+        ]
       }
     ]
   },
@@ -413,6 +1654,130 @@ export const templateCatalog: CatalogCategory[] = [
     "label": "Learning & Data",
     "description": "Study aids and data workflows — flashcards, learning paths, summaries, and structured generation.",
     "templates": [
+      {
+        "slug": "a-constant-dictionary",
+        "name": "A Constant Dictionary",
+        "description": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "a-fixed-date",
+        "name": "A Fixed Date",
+        "description": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "add-a-computed-column",
+        "name": "Add a Computed Column",
+        "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "average-by-column",
+        "name": "Average by Column",
+        "description": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "batch-a-list",
+        "name": "Batch a List",
+        "description": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "clean-and-rank-a-table",
+        "name": "Clean and Rank a Table",
+        "description": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "count-a-list",
+        "name": "Count a List",
+        "description": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "describe-a-table",
+        "name": "Describe a Table",
+        "description": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "drop-duplicate-rows",
+        "name": "Drop Duplicate Rows",
+        "description": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "drop-duplicates",
+        "name": "Drop Duplicates",
+        "description": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "drop-the-incomplete-rows",
+        "name": "Drop the Incomplete Rows",
+        "description": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "fill-a-template",
+        "name": "Fill a Template",
+        "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "fill-the-gaps-instead",
+        "name": "Fill the Gaps Instead",
+        "description": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "find-and-replace",
+        "name": "Find and Replace",
+        "description": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
       {
         "slug": "flashcard-generator",
         "name": "Flashcard Generator",
@@ -423,6 +1788,182 @@ export const templateCatalog: CatalogCategory[] = [
           "ai",
           "flashcards",
           "learning"
+        ]
+      },
+      {
+        "slug": "generate-a-table-in-code",
+        "name": "Generate a Table in Code",
+        "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
+        "tags": [
+          "code",
+          "data"
+        ]
+      },
+      {
+        "slug": "json-to-a-table",
+        "name": "JSON to a Table",
+        "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "javascript-to-a-table",
+        "name": "JavaScript to a Table",
+        "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
+        "tags": [
+          "code",
+          "data"
+        ]
+      },
+      {
+        "slug": "join-two-tables-on-a-key",
+        "name": "Join Two Tables on a Key",
+        "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "load-a-csv",
+        "name": "Load a CSV",
+        "description": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "merge-two-tables-side-by-side",
+        "name": "Merge Two Tables Side by Side",
+        "description": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "narrow-then-order",
+        "name": "Narrow then Order",
+        "description": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "pick-columns",
+        "name": "Pick Columns",
+        "description": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "pull-a-field-out-of-json-text",
+        "name": "Pull a Field out of JSON Text",
+        "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+        "tags": [
+          "text",
+          "data"
+        ]
+      },
+      {
+        "slug": "re-delimit-a-list",
+        "name": "Re-delimit a List",
+        "description": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "rename-the-columns",
+        "name": "Rename the Columns",
+        "description": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "slice-rows",
+        "name": "Slice Rows",
+        "description": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "slice-text",
+        "name": "Slice Text",
+        "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "sort-a-table",
+        "name": "Sort a Table",
+        "description": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "stack-rows-from-two-batches",
+        "name": "Stack Rows from Two Batches",
+        "description": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "summarise-by-group",
+        "name": "Summarise by Group",
+        "description": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "table-to-list",
+        "name": "Table to List",
+        "description": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "table-to-rows-to-count",
+        "name": "Table to Rows to Count",
+        "description": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "take-the-first-few",
+        "name": "Take the First Few",
+        "description": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
+        "tags": [
+          "data",
+          "utility"
+        ]
+      },
+      {
+        "slug": "turn-research-notes-into-a-comparison-table",
+        "name": "Turn Research Notes into a Comparison Table",
+        "description": "Messy notes become a markdown table with one row per option. Unknown cells are marked as unknown rather than filled in, which is the entire value of the exercise.",
+        "tags": [
+          "text",
+          "data"
         ]
       }
     ]

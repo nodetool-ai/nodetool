@@ -20,9 +20,15 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
+    // This budget covers a full production build, not just server startup. The
+    // site prerenders 658 pages — one per template, mini-app, comparison and
+    // use case — and that took past the old 180s ceiling, so every run failed
+    // on the build rather than on anything a test asserted. Sized against a
+    // ~3m30s local build with headroom for a slower CI runner; raise it again
+    // if the page count grows rather than trimming what gets prerendered.
     command: `npx next build && npx next start -p ${PORT}`,
     url: `http://localhost:${PORT}`,
-    timeout: 180_000,
+    timeout: 600_000,
     reuseExistingServer: !process.env.CI,
   },
 });

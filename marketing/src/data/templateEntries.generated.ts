@@ -4,6 +4,938 @@ import type { TemplateEntry } from "./templates";
 
 export const templateEntries: TemplateEntry[] = [
   {
+    "route": "/templates/a-boolean-constant",
+    "title": "A Boolean Constant — NodeTool AI Workflow Template",
+    "description": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-boolean-constant",
+    "name": "A Boolean Constant",
+    "summary": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Bool",
+        "label": "Bool",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/a-boolean-constant.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "c",
+          "type": "nodetool.constant.Bool",
+          "title": "Bool",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "c",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-campaign-concept-from-a-brief",
+    "title": "A Campaign Concept from a Brief — NodeTool AI Workflow Template",
+    "description": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-campaign-concept-from-a-brief",
+    "name": "A Campaign Concept from a Brief",
+    "summary": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/a-campaign-concept-from-a-brief.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-constant-dictionary",
+    "title": "A Constant Dictionary — NodeTool AI Workflow Template",
+    "description": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-constant-dictionary",
+    "name": "A Constant Dictionary",
+    "summary": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Dict",
+        "label": "Dict",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/a-constant-dictionary.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "d",
+          "type": "nodetool.constant.Dict",
+          "title": "Dict",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 420,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "d",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-fixed-date",
+    "title": "A Fixed Date — NodeTool AI Workflow Template",
+    "description": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-fixed-date",
+    "name": "A Fixed Date",
+    "summary": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Date",
+        "label": "Date",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/a-fixed-date.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "d",
+          "type": "nodetool.constant.Date",
+          "title": "Date",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 360,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "d",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-fixed-point-in-time",
+    "title": "A Fixed Point in Time — NodeTool AI Workflow Template",
+    "description": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-fixed-point-in-time",
+    "name": "A Fixed Point in Time",
+    "summary": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.DateTime",
+        "label": "Date Time",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/a-fixed-point-in-time.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "d",
+          "type": "nodetool.constant.DateTime",
+          "title": "Date Time",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "d",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-gradient-card-as-png",
+    "title": "A Gradient Card as PNG — NodeTool AI Workflow Template",
+    "description": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-gradient-card-as-png",
+    "name": "A Gradient Card as PNG",
+    "summary": "Build vector art, then rasterise it. SVGToImage is the bridge: author resolution-independently, hand a PNG to anything that needs pixels.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.svg.Gradient",
+        "label": "Gradient",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Rect",
+        "label": "Rect",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.SVGToImage",
+        "label": "SVG To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/a-gradient-card-as-png.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "g",
+          "type": "lib.svg.Gradient",
+          "title": "Gradient",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "r",
+          "type": "lib.svg.Rect",
+          "title": "Rect",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "img",
+          "type": "lib.svg.SVGToImage",
+          "title": "SVG To Image",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "g",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "r",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "img",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "img",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-poster-in-portrait",
+    "title": "A Poster in Portrait — NodeTool AI Workflow Template",
+    "description": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-poster-in-portrait",
+    "name": "A Poster in Portrait",
+    "summary": "A 3:4 print-oriented frame. Generating at the final aspect ratio avoids the crop that otherwise loses whichever edge the composition needed.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/a-poster-in-portrait.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "travel poster, mid-century screenprint, limited palette, strong flat shapes, dramatic diagonal composition"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-repeating-texture-tile",
+    "title": "A Repeating Texture Tile — NodeTool AI Workflow Template",
+    "description": "A seamless tile for backgrounds. Prompting for the tiling explicitly matters — an unseamed texture is visibly wrong the moment it repeats.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "a-repeating-texture-tile",
+    "name": "A Repeating Texture Tile",
+    "summary": "A seamless tile for backgrounds. Prompting for the tiling explicitly matters — an unseamed texture is visibly wrong the moment it repeats.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/a-repeating-texture-tile.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "seamless repeating texture, hand-made paper with visible fibres, soft even lighting, tileable, no seams, top-down"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/ai-spokesperson",
+    "title": "AI Spokesperson — NodeTool AI Workflow Template",
+    "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ai-spokesperson",
+    "name": "AI Spokesperson",
+    "summary": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
+    "tags": [
+      "video",
+      "audio",
+      "marketing",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.LipSync",
+        "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/ai-spokesperson.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "Our spring release ships today. Faster renders, sharper output, and a price that did not move."
+        },
+        {
+          "id": "speech",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 380,
+          "y": 380,
+          "width": 280,
+          "subtitle": "inworld/realtime-tts-1.5-max"
+        },
+        {
+          "id": "sync",
+          "type": "nodetool.video.LipSync",
+          "title": "Lip Sync",
+          "x": 760,
+          "y": 300,
+          "width": 280,
+          "subtitle": "fal-ai/sync-lipsync/v2/pro"
+        },
+        {
+          "id": "output-clip",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1120,
+          "y": 320,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-script",
+          "sourceHandle": "output",
+          "target": "speech",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "in-clip",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "speech",
+          "sourceHandle": "audio",
+          "target": "sync",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "sync",
+          "sourceHandle": "output",
+          "target": "output-clip",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/action-items-from-a-meeting-recording",
+    "title": "Action Items from a Meeting Recording — NodeTool AI Workflow Template",
+    "description": "A recording becomes a list of commitments with owners. Anything without a clear owner is listed separately rather than assigned to someone the model guessed at.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "action-items-from-a-meeting-recording",
+    "name": "Action Items from a Meeting Recording",
+    "summary": "A recording becomes a list of commitments with owners. Anything without a clear owner is listed separately rather than assigned to someone the model guessed at.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/action-items-from-a-meeting-recording.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/ad-copy-in-three-registers",
+    "title": "Ad Copy in Three Registers — NodeTool AI Workflow Template",
+    "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ad-copy-in-three-registers",
+    "name": "Ad Copy in Three Registers",
+    "summary": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/ad-copy-in-three-registers.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/ad-creative-factory",
     "title": "Ad Creative Factory — NodeTool AI Workflow Template",
     "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
@@ -431,6 +1363,399 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/ad-loop-from-a-product-photo",
+    "title": "Ad Loop from a Product Photo — NodeTool AI Workflow Template",
+    "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "ad-loop-from-a-product-photo",
+    "name": "Ad Loop from a Product Photo",
+    "summary": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
+    "tags": [
+      "image",
+      "video",
+      "marketing",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.SetSpeed",
+        "label": "Set Speed",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/ad-loop-from-a-product-photo.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-motion",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "Slow orbit around the product as a soft highlight travels across its surface"
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 380,
+          "y": 380,
+          "width": 320,
+          "subtitle": "Animate this product photo into a looping hero shot. Motion: {{ motion }} Keep the product's shape, colour, materials and label exactly as…"
+        },
+        {
+          "id": "animate",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 760,
+          "y": 300,
+          "width": 280,
+          "subtitle": "kling-2.6/image-to-video"
+        },
+        {
+          "id": "slow",
+          "type": "nodetool.video.SetSpeed",
+          "title": "Set Speed",
+          "x": 1100,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "output-loop",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1440,
+          "y": 360,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-motion",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "motion",
+          "color": "any"
+        },
+        {
+          "source": "in-photo",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "animate",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "animate",
+          "sourceHandle": "output",
+          "target": "slow",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "slow",
+          "sourceHandle": "output",
+          "target": "output-loop",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/add-reverb-to-a-voice",
+    "title": "Add Reverb to a Voice — NodeTool AI Workflow Template",
+    "description": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "add-reverb-to-a-voice",
+    "name": "Add Reverb to a Voice",
+    "summary": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Reverb",
+        "label": "Reverb",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/add-reverb-to-a-voice.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fx",
+          "type": "lib.audio.Reverb",
+          "title": "Reverb",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "fx",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fx",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/add-a-computed-column",
+    "title": "Add a Computed Column — NodeTool AI Workflow Template",
+    "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "add-a-computed-column",
+    "name": "Add a Computed Column",
+    "summary": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.AddColumn",
+        "label": "Add Column",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/add-a-computed-column.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "add",
+          "type": "nodetool.data.AddColumn",
+          "title": "Add Column",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "add",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "add",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/album-art-from-a-mood",
+    "title": "Album Art from a Mood — NodeTool AI Workflow Template",
+    "description": "Square cover art. The aspect ratio is the requirement here — every platform crops to it, so generating anything else creates work.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "album-art-from-a-mood",
+    "name": "Album Art from a Mood",
+    "summary": "Square cover art. The aspect ratio is the requirement here — every platform crops to it, so generating anything else creates work.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/album-art-from-a-mood.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "album cover art, a single stark object on a deep colour field, grainy film texture, bold and simple"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/audio-to-image",
     "title": "Audio To Image — NodeTool AI Workflow Template",
     "description": "Speak an image into existence: no keyboard needed. Whisper transcribes your audio, then FLUX renders the description as an image — the whole pipeline runs from a single voice note.",
@@ -536,6 +1861,819 @@ export const templateEntries: TemplateEntry[] = [
           "source": "8b07b1ed-2ce9-4581-993e-efad334ab7a8",
           "sourceHandle": "output",
           "target": "output-image",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/average-by-column",
+    "title": "Average by Column — NodeTool AI Workflow Template",
+    "description": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "average-by-column",
+    "name": "Average by Column",
+    "summary": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.Aggregate",
+        "label": "Aggregate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/average-by-column.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.data.Aggregate",
+          "title": "Aggregate",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/b-roll-reel-from-a-brief",
+    "title": "B-Roll Reel from a Brief — NodeTool AI Workflow Template",
+    "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "b-roll-reel-from-a-brief",
+    "name": "B-Roll Reel from a Brief",
+    "summary": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
+    "tags": [
+      "video",
+      "content",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.video.TextToVideo",
+        "label": "Text To Video",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Transition",
+        "label": "Transition",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": "/templates/b-roll-reel-from-a-brief.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-subject",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 240,
+          "width": 280,
+          "subtitle": "A coastal roastery at first light, steam rising off the drum"
+        },
+        {
+          "id": "in-look",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "handheld documentary, warm morning light, 35mm, shallow depth of field"
+        },
+        {
+          "id": "brief-wide",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 380,
+          "y": 280,
+          "width": 320,
+          "subtitle": "Wide establishing shot. Subject: {{ subject }} Look: {{ look }} Hold the full scene in frame with a slow push-in. Natural motion only. No t…"
+        },
+        {
+          "id": "brief-detail",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 380,
+          "y": 560,
+          "width": 320,
+          "subtitle": "Close detail shot of the same scene. Subject: {{ subject }} Look: {{ look }} Tight on texture and material — hands, surfaces, steam. Shallo…"
+        },
+        {
+          "id": "shot-wide",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 760,
+          "y": 260,
+          "width": 280,
+          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+        },
+        {
+          "id": "shot-detail",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 760,
+          "y": 560,
+          "width": 280,
+          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+        },
+        {
+          "id": "cut",
+          "type": "nodetool.video.Transition",
+          "title": "Transition",
+          "x": 1120,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "output-reel",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1460,
+          "y": 420,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-subject",
+          "sourceHandle": "output",
+          "target": "brief-wide",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "in-look",
+          "sourceHandle": "output",
+          "target": "brief-wide",
+          "targetHandle": "look",
+          "color": "any"
+        },
+        {
+          "source": "in-subject",
+          "sourceHandle": "output",
+          "target": "brief-detail",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "in-look",
+          "sourceHandle": "output",
+          "target": "brief-detail",
+          "targetHandle": "look",
+          "color": "any"
+        },
+        {
+          "source": "brief-wide",
+          "sourceHandle": "output",
+          "target": "shot-wide",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "brief-detail",
+          "sourceHandle": "output",
+          "target": "shot-detail",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "shot-wide",
+          "sourceHandle": "output",
+          "target": "cut",
+          "targetHandle": "video_a",
+          "color": "any"
+        },
+        {
+          "source": "shot-detail",
+          "sourceHandle": "output",
+          "target": "cut",
+          "targetHandle": "video_b",
+          "color": "any"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "output-reel",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/batch-a-list",
+    "title": "Batch a List — NodeTool AI Workflow Template",
+    "description": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "batch-a-list",
+    "name": "Batch a List",
+    "summary": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Chunk",
+        "label": "Chunk",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/batch-a-list.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ch",
+          "type": "nodetool.control.Chunk",
+          "title": "Chunk",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 300,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "ch",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/black-and-white-hard",
+    "title": "Black and White, Hard — NodeTool AI Workflow Template",
+    "description": "Grayscale first, then a soft-edged threshold. Thresholding colour directly gives you the luminance of whichever channel happens to dominate, which is rarely what you want.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "black-and-white-hard",
+    "name": "Black and White, Hard",
+    "summary": "Grayscale first, then a soft-edged threshold. Thresholding colour directly gives you the luminance of whichever channel happens to dominate, which is rarely what you want.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.image.filter.ConvertToGrayscale",
+        "label": "Convert To Grayscale",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Threshold",
+        "label": "Threshold",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/black-and-white-hard.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "g",
+          "type": "lib.image.filter.ConvertToGrayscale",
+          "title": "Convert To Grayscale",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "t",
+          "type": "lib.image.filter.Threshold",
+          "title": "Threshold",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "g",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "g",
+          "sourceHandle": "output",
+          "target": "t",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/blog-post-to-social-thread",
+    "title": "Blog Post to Social Thread — NodeTool AI Workflow Template",
+    "description": "One long piece becomes a numbered thread. The constraint that each post stand alone is what stops the model producing a summary chopped into pieces.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "blog-post-to-social-thread",
+    "name": "Blog Post to Social Thread",
+    "summary": "One long piece becomes a numbered thread. The constraint that each post stand alone is what stops the model producing a summary chopped into pieces.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Marketing & Content",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/blog-post-to-social-thread.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/blur-a-channel",
+    "title": "Blur a Channel — NodeTool AI Workflow Template",
+    "description": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "blur-a-channel",
+    "name": "Blur a Channel",
+    "summary": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Blur",
+        "label": "Blur",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Channels",
+        "label": "Channels",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/blur-a-channel.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ch",
+          "type": "nodetool.image.Channels",
+          "title": "Channels",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "bl",
+          "type": "nodetool.image.Blur",
+          "title": "Blur",
+          "x": 720,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ch",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "bl",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "bl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/blur-an-image",
+    "title": "Blur an Image — NodeTool AI Workflow Template",
+    "description": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "blur-an-image",
+    "name": "Blur an Image",
+    "summary": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Blur",
+        "label": "Blur",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/blur-an-image.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.image.Blur",
+          "title": "Blur",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/boost-saturation",
+    "title": "Boost Saturation — NodeTool AI Workflow Template",
+    "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "boost-saturation",
+    "name": "Boost Saturation",
+    "summary": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Saturation",
+        "label": "Saturation",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/boost-saturation.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Saturation",
+          "title": "Saturation",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -858,6 +2996,330 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/bring-a-still-to-life",
+    "title": "Bring a Still to Life — NodeTool AI Workflow Template",
+    "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "bring-a-still-to-life",
+    "name": "Bring a Still to Life",
+    "summary": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
+    "tags": [
+      "image",
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/bring-a-still-to-life.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "mo",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 340,
+          "width": 280,
+          "subtitle": "Slow push in with a gentle parallax drift"
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 400,
+          "y": 260,
+          "width": 320
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 800,
+          "y": 200,
+          "width": 280,
+          "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1160,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "mo",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "motion",
+          "color": "any"
+        },
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/bullet-points-to-press-release",
+    "title": "Bullet Points to Press Release — NodeTool AI Workflow Template",
+    "description": "Facts in, a structured release out — headline, dateline, body, boilerplate. Keeping the quote attributable to a named role stops the model inventing a spokesperson.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "bullet-points-to-press-release",
+    "name": "Bullet Points to Press Release",
+    "summary": "Facts in, a structured release out — headline, dateline, body, boilerplate. Keeping the quote attributable to a named role stops the model inventing a spokesperson.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/bullet-points-to-press-release.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/chapter-markers-for-a-long-recording",
+    "title": "Chapter Markers for a Long Recording — NodeTool AI Workflow Template",
+    "description": "Long audio is unnavigable without chapters. The model proposes the topic boundaries; you keep the ones that match how the conversation actually moved.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "chapter-markers-for-a-long-recording",
+    "name": "Chapter Markers for a Long Recording",
+    "summary": "Long audio is unnavigable without chapters. The model proposes the topic boundaries; you keep the ones that match how the conversation actually moved.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/chapter-markers-for-a-long-recording.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/chat-with-your-documents",
     "title": "Chat With Your Documents — NodeTool AI Workflow Template",
     "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
@@ -1156,6 +3618,485 @@ export const templateEntries: TemplateEntry[] = [
           "target": "answer_output",
           "targetHandle": "value",
           "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/circles-and-lines",
+    "title": "Circles and Lines — NodeTool AI Workflow Template",
+    "description": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "circles-and-lines",
+    "name": "Circles and Lines",
+    "summary": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.svg.Circle",
+        "label": "Circle",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Document",
+        "label": "Document",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Ellipse",
+        "label": "Ellipse",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Line",
+        "label": "Line",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/circles-and-lines.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "c",
+          "type": "lib.svg.Circle",
+          "title": "Circle",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "e",
+          "type": "lib.svg.Ellipse",
+          "title": "Ellipse",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ln",
+          "type": "lib.svg.Line",
+          "title": "Line",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "doc",
+          "type": "lib.svg.Document",
+          "title": "Document",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "c",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "e",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "ln",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "doc",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "doc",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/clean-up-a-rough-voice-recording",
+    "title": "Clean Up a Rough Voice Recording — NodeTool AI Workflow Template",
+    "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "clean-up-a-rough-voice-recording",
+    "name": "Clean Up a Rough Voice Recording",
+    "summary": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Compress",
+        "label": "Compress",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.HighPassFilter",
+        "label": "High Pass Filter",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Limiter",
+        "label": "Limiter",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.NoiseGate",
+        "label": "Noise Gate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/clean-up-a-rough-voice-recording.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ng",
+          "type": "lib.audio.NoiseGate",
+          "title": "Noise Gate",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "hp",
+          "type": "lib.audio.HighPassFilter",
+          "title": "High Pass Filter",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "cmp",
+          "type": "lib.audio.Compress",
+          "title": "Compress",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "lim",
+          "type": "lib.audio.Limiter",
+          "title": "Limiter",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ng",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ng",
+          "sourceHandle": "output",
+          "target": "hp",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "hp",
+          "sourceHandle": "output",
+          "target": "cmp",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "cmp",
+          "sourceHandle": "output",
+          "target": "lim",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "lim",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/clean-and-rank-a-table",
+    "title": "Clean and Rank a Table — NodeTool AI Workflow Template",
+    "description": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "clean-and-rank-a-table",
+    "name": "Clean and Rank a Table",
+    "summary": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.DropDuplicates",
+        "label": "Drop Duplicates",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.Slice",
+        "label": "Slice",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SortByColumn",
+        "label": "Sort By Column",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/clean-and-rank-a-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "dd",
+          "type": "nodetool.data.DropDuplicates",
+          "title": "Drop Duplicates",
+          "x": 380,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "sort",
+          "type": "nodetool.data.SortByColumn",
+          "title": "Sort By Column",
+          "x": 720,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "sl",
+          "type": "nodetool.data.Slice",
+          "title": "Slice",
+          "x": 1060,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1400,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "dd",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "dd",
+          "sourceHandle": "output",
+          "target": "sort",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "sort",
+          "sourceHandle": "output",
+          "target": "sl",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "sl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/clip-on-kie",
+    "title": "Clip on Kie — NodeTool AI Workflow Template",
+    "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "clip-on-kie",
+    "name": "Clip on Kie",
+    "summary": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.TextToVideo",
+        "label": "Text To Video",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/clip-on-kie.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "A tram crossing an empty city square in heavy rain at night"
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 400,
+          "y": 180,
+          "width": 280,
+          "subtitle": "kling-2.6/text-to-video"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -1770,6 +4711,108 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/concept-art-then-a-moving-version",
+    "title": "Concept Art, Then a Moving Version — NodeTool AI Workflow Template",
+    "description": "Design the frame first, then animate the one you kept. Committing to a still before paying for video is the cheapest way to work — video calls cost many times an image.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "concept-art-then-a-moving-version",
+    "name": "Concept Art, Then a Moving Version",
+    "summary": "Design the frame first, then animate the one you kept. Committing to a still before paying for video is the cheapest way to work — video calls cost many times an image.",
+    "tags": [
+      "image",
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/concept-art-then-a-moving-version.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "slow push in, subtle atmospheric movement, composition holds"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/conditional-logic-engine",
     "title": "Conditional Logic Engine — NodeTool AI Workflow Template",
     "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
@@ -2193,6 +5236,690 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/count-a-list",
+    "title": "Count a List — NodeTool AI Workflow Template",
+    "description": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "count-a-list",
+    "name": "Count a List",
+    "summary": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/count-a-list.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 300,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/count-and-measure",
+    "title": "Count and Measure — NodeTool AI Workflow Template",
+    "description": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "count-and-measure",
+    "name": "Count and Measure",
+    "summary": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.constant.Float",
+        "label": "Float",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.Integer",
+        "label": "Integer",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/count-and-measure.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "i",
+          "type": "nodetool.constant.Integer",
+          "title": "Integer",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "nodetool.constant.Float",
+          "title": "Float",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "oi",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "of",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "i",
+          "sourceHandle": "output",
+          "target": "oi",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "of",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/crop-an-image",
+    "title": "Crop an Image — NodeTool AI Workflow Template",
+    "description": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "crop-an-image",
+    "name": "Crop an Image",
+    "summary": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Crop",
+        "label": "Crop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/crop-an-image.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.image.Crop",
+          "title": "Crop",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/crop-then-fit",
+    "title": "Crop then Fit — NodeTool AI Workflow Template",
+    "description": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "crop-then-fit",
+    "name": "Crop then Fit",
+    "summary": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Crop",
+        "label": "Crop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Fit",
+        "label": "Fit",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/crop-then-fit.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "cr",
+          "type": "nodetool.image.Crop",
+          "title": "Crop",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ft",
+          "type": "nodetool.image.Fit",
+          "title": "Fit",
+          "x": 720,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "cr",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "cr",
+          "sourceHandle": "output",
+          "target": "ft",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "ft",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/crush-it-to-8-bits",
+    "title": "Crush It to 8 Bits — NodeTool AI Workflow Template",
+    "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "crush-it-to-8-bits",
+    "name": "Crush It to 8 Bits",
+    "summary": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Bitcrush",
+        "label": "Bitcrush",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/crush-it-to-8-bits.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "bc",
+          "type": "lib.audio.Bitcrush",
+          "title": "Bitcrush",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "bc",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "bc",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/cut-out-the-subject",
+    "title": "Cut Out the Subject — NodeTool AI Workflow Template",
+    "description": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "cut-out-the-subject",
+    "name": "Cut Out the Subject",
+    "summary": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.RemoveBackground",
+        "label": "Remove Background",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/cut-out-the-subject.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "bg",
+          "type": "nodetool.image.RemoveBackground",
+          "title": "Remove Background",
+          "x": 360,
+          "y": 180,
+          "width": 280,
+          "subtitle": "fal-ai/imageutils/rembg"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "bg",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/cut-a-landscape-clip-for-vertical",
+    "title": "Cut a Landscape Clip for Vertical — NodeTool AI Workflow Template",
+    "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "cut-a-landscape-clip-for-vertical",
+    "name": "Cut a Landscape Clip for Vertical",
+    "summary": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Resize",
+        "label": "Resize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/cut-a-landscape-clip-for-vertical.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "rs",
+          "type": "nodetool.video.Resize",
+          "title": "Resize",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "rs",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "rs",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/cut-a-product-out-of-its-background",
+    "title": "Cut a Product Out of Its Background — NodeTool AI Workflow Template",
+    "description": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "cut-a-product-out-of-its-background",
+    "name": "Cut a Product Out of Its Background",
+    "summary": "The first step of every catalogue pipeline: isolate the product so it can sit on any background the channel requires. Bria returns a real alpha channel rather than a white matte, so the edge survives compositing.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.RemoveBackground",
+        "label": "Remove Background",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/cut-a-product-out-of-its-background.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "bg",
+          "type": "nodetool.image.RemoveBackground",
+          "title": "Remove Background",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/bria/background/remove"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "bg",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/data-generator",
     "title": "Data Generator — NodeTool AI Workflow Template",
     "description": "Turn a one-line topic into a structured dataset — define the columns once, get validated rows back instead of paragraphs of prose.",
@@ -2316,6 +6043,166 @@ export const templateEntries: TemplateEntry[] = [
           "source": "2ed27bde-9299-4088-a169-156b1ea5552f",
           "sourceHandle": "dataframe",
           "target": "data_output",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/denoise-footage",
+    "title": "Denoise Footage — NodeTool AI Workflow Template",
+    "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "denoise-footage",
+    "name": "Denoise Footage",
+    "summary": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.Denoise",
+        "label": "Denoise",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/denoise-footage.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Denoise",
+          "title": "Denoise",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/describe-a-table",
+    "title": "Describe a Table — NodeTool AI Workflow Template",
+    "description": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "describe-a-table",
+    "name": "Describe a Table",
+    "summary": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.Describe",
+        "label": "Describe",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/describe-a-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.Describe",
+          "title": "Describe",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -2541,6 +6428,2168 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/does-this-text-mention-the-deadline",
+    "title": "Does This Text Mention the Deadline — NodeTool AI Workflow Template",
+    "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "does-this-text-mention-the-deadline",
+    "name": "Does This Text Mention the Deadline",
+    "summary": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.Contains",
+        "label": "Contains",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/does-this-text-mention-the-deadline.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Submissions close on the 14th; late entries are not reviewed."
+        },
+        {
+          "id": "c",
+          "type": "nodetool.text.Contains",
+          "title": "Contains",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "c",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "c",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/draft-answers-for-an-faq",
+    "title": "Draft Answers for an FAQ — NodeTool AI Workflow Template",
+    "description": "Questions in, answers out, each short enough to survive being pasted into a help centre without editing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "draft-answers-for-an-faq",
+    "name": "Draft Answers for an FAQ",
+    "summary": "Questions in, answers out, each short enough to survive being pasted into a help centre without editing.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/draft-answers-for-an-faq.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/draw-a-badge-in-svg",
+    "title": "Draw a Badge in SVG — NodeTool AI Workflow Template",
+    "description": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "draw-a-badge-in-svg",
+    "name": "Draw a Badge in SVG",
+    "summary": "Compose a badge from primitives rather than generating one. Every shape is an element you can reposition or recolour later — no regeneration, no resampling.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.svg.Document",
+        "label": "Document",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Rect",
+        "label": "Rect",
+        "count": 1
+      },
+      {
+        "type": "lib.svg.Text",
+        "label": "Text",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/draw-a-badge-in-svg.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "r",
+          "type": "lib.svg.Rect",
+          "title": "Rect",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "t",
+          "type": "lib.svg.Text",
+          "title": "Text",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "doc",
+          "type": "lib.svg.Document",
+          "title": "Document",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "r",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "doc",
+          "targetHandle": "elements",
+          "color": "any"
+        },
+        {
+          "source": "doc",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/drop-duplicate-rows",
+    "title": "Drop Duplicate Rows — NodeTool AI Workflow Template",
+    "description": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "drop-duplicate-rows",
+    "name": "Drop Duplicate Rows",
+    "summary": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.DropDuplicates",
+        "label": "Drop Duplicates",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/drop-duplicate-rows.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.DropDuplicates",
+          "title": "Drop Duplicates",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/drop-duplicates",
+    "title": "Drop Duplicates — NodeTool AI Workflow Template",
+    "description": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "drop-duplicates",
+    "name": "Drop Duplicates",
+    "summary": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Distinct",
+        "label": "Distinct",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/drop-duplicates.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.control.Distinct",
+          "title": "Distinct",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 300,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/drop-the-first-few",
+    "title": "Drop the First Few — NodeTool AI Workflow Template",
+    "description": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "drop-the-first-few",
+    "name": "Drop the First Few",
+    "summary": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Drop",
+        "label": "Drop",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/drop-the-first-few.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "d",
+          "type": "nodetool.control.Drop",
+          "title": "Drop",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 240,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "d",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "d",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/drop-the-incomplete-rows",
+    "title": "Drop the Incomplete Rows — NodeTool AI Workflow Template",
+    "description": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "drop-the-incomplete-rows",
+    "name": "Drop the Incomplete Rows",
+    "summary": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.DropNA",
+        "label": "Drop NA",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/drop-the-incomplete-rows.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "d",
+          "type": "nodetool.data.DropNA",
+          "title": "Drop NA",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "d",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "d",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/edit-a-still-with-words",
+    "title": "Edit a Still with Words — NodeTool AI Workflow Template",
+    "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "edit-a-still-with-words",
+    "name": "Edit a Still with Words",
+    "summary": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/edit-a-still-with-words.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ins",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 340,
+          "width": 280,
+          "subtitle": "Make it golden hour, warm low sun raking across the subject"
+        },
+        {
+          "id": "ed",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 400,
+          "y": 240,
+          "width": 280,
+          "subtitle": "fal-ai/nano-banana/edit"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 260,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ed",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "ins",
+          "sourceHandle": "output",
+          "target": "ed",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ed",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/editorial-still-from-a-line",
+    "title": "Editorial Still from a Line — NodeTool AI Workflow Template",
+    "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "editorial-still-from-a-line",
+    "name": "Editorial Still from a Line",
+    "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/editorial-still-from-a-line.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "A lone lighthouse on a basalt cliff under moving storm light"
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 340,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "img",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 720,
+          "y": 180,
+          "width": 280,
+          "subtitle": "fal-ai/flux-2/klein/9b"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "img",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "img",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/emboss-a-still",
+    "title": "Emboss a Still — NodeTool AI Workflow Template",
+    "description": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "emboss-a-still",
+    "name": "Emboss a Still",
+    "summary": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.image.filter.Emboss",
+        "label": "Emboss",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/emboss-a-still.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Emboss",
+          "title": "Emboss",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/every-combination",
+    "title": "Every Combination — NodeTool AI Workflow Template",
+    "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "every-combination",
+    "name": "Every Combination",
+    "summary": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 2
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Cross",
+        "label": "Cross",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": "/templates/every-combination.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "x",
+          "type": "nodetool.control.Cross",
+          "title": "Cross",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ol",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "orr",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "fanout2",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 480,
+          "y": 240,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "fanout2",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "x",
+          "sourceHandle": "left",
+          "target": "ol",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "x",
+          "sourceHandle": "right",
+          "target": "orr",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "x",
+          "targetHandle": "left",
+          "color": "any"
+        },
+        {
+          "source": "fanout2",
+          "sourceHandle": "output",
+          "target": "x",
+          "targetHandle": "right",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/executive-summary-of-a-long-document",
+    "title": "Executive Summary of a Long Document — NodeTool AI Workflow Template",
+    "description": "One page for someone who will not read twelve. Leading with the decision required is what makes it a briefing rather than a précis.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "executive-summary-of-a-long-document",
+    "name": "Executive Summary of a Long Document",
+    "summary": "One page for someone who will not read twelve. Leading with the decision required is what makes it a briefing rather than a précis.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/executive-summary-of-a-long-document.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/explainer-clip-from-a-paragraph",
+    "title": "Explainer Clip from a Paragraph — NodeTool AI Workflow Template",
+    "description": "A paragraph of explanation becomes narration and a matching visual. The agent writes the shot description, so the picture follows the words rather than being prompted separately and drifting from them.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "explainer-clip-from-a-paragraph",
+    "name": "Explainer Clip from a Paragraph",
+    "summary": "A paragraph of explanation becomes narration and a matching visual. The agent writes the shot description, so the picture follows the words rather than being prompted separately and drifting from them.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.AddAudio",
+        "label": "Add Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.TextToVideo",
+        "label": "Text To Video",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/explainer-clip-from-a-paragraph.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+        },
+        {
+          "id": "mix",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "mix",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "mix",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "mix",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/extract-the-claims-worth-checking",
+    "title": "Extract the Claims Worth Checking — NodeTool AI Workflow Template",
+    "description": "Separates the factual claims from the opinions, and rates how checkable each one is — the triage step before any verification work.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "extract-the-claims-worth-checking",
+    "name": "Extract the Claims Worth Checking",
+    "summary": "Separates the factual claims from the opinions, and rates how checkable each one is — the triage step before any verification work.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/extract-the-claims-worth-checking.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/fade-audio-in-and-out",
+    "title": "Fade Audio In and Out — NodeTool AI Workflow Template",
+    "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "fade-audio-in-and-out",
+    "name": "Fade Audio In and Out",
+    "summary": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "tags": [
+      "audio",
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/fade-audio-in-and-out.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/fade-audio-out",
+    "title": "Fade Audio Out — NodeTool AI Workflow Template",
+    "description": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "fade-audio-out",
+    "name": "Fade Audio Out",
+    "summary": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
+    "tags": [
+      "audio",
+      "utility",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/fade-audio-out.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "fo",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "fo",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fo",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/fill-a-template",
+    "title": "Fill a Template — NodeTool AI Workflow Template",
+    "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "fill-a-template",
+    "name": "Fill a Template",
+    "summary": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/fill-a-template.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "the winter release"
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 340,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/fill-the-gaps-instead",
+    "title": "Fill the Gaps Instead — NodeTool AI Workflow Template",
+    "description": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "fill-the-gaps-instead",
+    "name": "Fill the Gaps Instead",
+    "summary": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.FillNA",
+        "label": "Fill NA",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/fill-the-gaps-instead.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "nodetool.data.FillNA",
+          "title": "Fill NA",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/find-every-number-in-a-sentence",
+    "title": "Find Every Number in a Sentence — NodeTool AI Workflow Template",
+    "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "find-every-number-in-a-sentence",
+    "name": "Find Every Number in a Sentence",
+    "summary": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.FindAllRegex",
+        "label": "Find All Regex",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/find-every-number-in-a-sentence.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Revenue rose from 12 to 47 across 3 regions."
+        },
+        {
+          "id": "fa",
+          "type": "nodetool.text.FindAllRegex",
+          "title": "Find All Regex",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "fa",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "fa",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/find-and-replace",
+    "title": "Find and Replace — NodeTool AI Workflow Template",
+    "description": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "find-and-replace",
+    "name": "Find and Replace",
+    "summary": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Replace",
+        "label": "Replace",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/find-and-replace.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "The quick brown fox jumps over the lazy dog"
+        },
+        {
+          "id": "old",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 340,
+          "width": 280,
+          "subtitle": "lazy"
+        },
+        {
+          "id": "new",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 500,
+          "width": 280,
+          "subtitle": "energetic"
+        },
+        {
+          "id": "rp",
+          "type": "nodetool.text.Replace",
+          "title": "Replace",
+          "x": 400,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 320,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "rp",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "old",
+          "sourceHandle": "output",
+          "target": "rp",
+          "targetHandle": "old",
+          "color": "any"
+        },
+        {
+          "source": "new",
+          "sourceHandle": "output",
+          "target": "rp",
+          "targetHandle": "new_value",
+          "color": "any"
+        },
+        {
+          "source": "rp",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/find-the-edges",
+    "title": "Find the Edges — NodeTool AI Workflow Template",
+    "description": "Canny edge detection with the two thresholds it actually turns on: the low one decides what counts as a weak edge, the high one what counts as certain.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "find-the-edges",
+    "name": "Find the Edges",
+    "summary": "Canny edge detection with the two thresholds it actually turns on: the low one decides what counts as a weak edge, the high one what counts as certain.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "lib.image.filter.Canny",
+        "label": "Canny",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/find-the-edges.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Canny",
+          "title": "Canny",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/fit-an-image",
+    "title": "Fit an Image — NodeTool AI Workflow Template",
+    "description": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "fit-an-image",
+    "name": "Fit an Image",
+    "summary": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Fit",
+        "label": "Fit",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/fit-an-image.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.image.Fit",
+          "title": "Fit",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/five-headlines-for-a-landing-page",
+    "title": "Five Headlines for a Landing Page — NodeTool AI Workflow Template",
+    "description": "Headline variants for a test. Asking for a stated angle per line makes the set genuinely different rather than five rewordings of the first idea.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "five-headlines-for-a-landing-page",
+    "name": "Five Headlines for a Landing Page",
+    "summary": "Headline variants for a test. Asking for a stated angle per line makes the set genuinely different rather than five rewordings of the first idea.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/five-headlines-for-a-landing-page.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
     "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
@@ -2749,6 +8798,327 @@ export const templateEntries: TemplateEntry[] = [
           "source": "generate_flashcards",
           "sourceHandle": "dataframe",
           "target": "flashcards_output",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/gate-out-the-room-noise",
+    "title": "Gate Out the Room Noise — NodeTool AI Workflow Template",
+    "description": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "gate-out-the-room-noise",
+    "name": "Gate Out the Room Noise",
+    "summary": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.NoiseGate",
+        "label": "Noise Gate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/gate-out-the-room-noise.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ng",
+          "type": "lib.audio.NoiseGate",
+          "title": "Noise Gate",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ng",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ng",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/generate-a-silent-bed",
+    "title": "Generate a Silent Bed — NodeTool AI Workflow Template",
+    "description": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "generate-a-silent-bed",
+    "name": "Generate a Silent Bed",
+    "summary": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
+    "tags": [
+      "audio",
+      "utility",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.audio.CreateSilence",
+        "label": "Create Silence",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/generate-a-silent-bed.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "sil",
+          "type": "nodetool.audio.CreateSilence",
+          "title": "Create Silence",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 360,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "sil",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/generate-a-table-in-code",
+    "title": "Generate a Table in Code — NodeTool AI Workflow Template",
+    "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "generate-a-table-in-code",
+    "name": "Generate a Table in Code",
+    "summary": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
+    "tags": [
+      "code",
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecutePython",
+        "label": "Execute Python",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/generate-a-table-in-code.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "py",
+          "type": "nodetool.code.ExecutePython",
+          "title": "Execute Python",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 440,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 800,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "py",
+          "sourceHandle": "stdout",
+          "target": "csv",
+          "targetHandle": "csv_data",
+          "color": "any"
+        },
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/generate-then-upscale-a-poster",
+    "title": "Generate then Upscale a Poster — NodeTool AI Workflow Template",
+    "description": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "generate-then-upscale-a-poster",
+    "name": "Generate then Upscale a Poster",
+    "summary": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Upscale",
+        "label": "Upscale",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/generate-then-upscale-a-poster.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "a retro travel poster of a volcanic coastline, screenprint texture"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "up",
+          "type": "nodetool.image.Upscale",
+          "title": "Upscale",
+          "x": 640,
+          "y": 120,
+          "width": 280,
+          "subtitle": "fal-ai/clarity-upscaler"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "up",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "up",
+          "sourceHandle": "output",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -3132,6 +9502,207 @@ export const templateEntries: TemplateEntry[] = [
           "target": "output_gallery",
           "targetHandle": "value",
           "color": "list"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/how-long-is-this-string",
+    "title": "How Long Is This String — NodeTool AI Workflow Template",
+    "description": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "how-long-is-this-string",
+    "name": "How Long Is This String",
+    "summary": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.Length",
+        "label": "Length",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/how-long-is-this-string.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Measure twice."
+        },
+        {
+          "id": "ln",
+          "type": "nodetool.text.Length",
+          "title": "Length",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "ln",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ln",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/how-long-is-this-transcript",
+    "title": "How Long Is This Transcript — NodeTool AI Workflow Template",
+    "description": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "how-long-is-this-transcript",
+    "name": "How Long Is This Transcript",
+    "summary": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.CountTokens",
+        "label": "Count Tokens",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/how-long-is-this-transcript.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 640,
+          "y": 120,
+          "width": 280,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ct",
+          "type": "nodetool.text.CountTokens",
+          "title": "Count Tokens",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ct",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ct",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -3585,6 +10156,1158 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/inspect-a-clip-s-audio",
+    "title": "Inspect a Clip's Audio — NodeTool AI Workflow Template",
+    "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "inspect-a-clip-s-audio",
+    "name": "Inspect a Clip's Audio",
+    "summary": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
+    "tags": [
+      "audio",
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.GetAudioInfo",
+        "label": "Get Audio Info",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/inspect-a-clip-s-audio.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "info",
+          "type": "nodetool.audio.GetAudioInfo",
+          "title": "Get Audio Info",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "info",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "info",
+          "sourceHandle": "sample_rate",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/inspect-a-clip",
+    "title": "Inspect a Clip — NodeTool AI Workflow Template",
+    "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "inspect-a-clip",
+    "name": "Inspect a Clip",
+    "summary": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
+    "tags": [
+      "video",
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.GetVideoInfo",
+        "label": "Get Video Info",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/inspect-a-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "info",
+          "type": "nodetool.video.GetVideoInfo",
+          "title": "Get Video Info",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "info",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "info",
+          "sourceHandle": "duration",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/invert-a-still",
+    "title": "Invert a Still — NodeTool AI Workflow Template",
+    "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "invert-a-still",
+    "name": "Invert a Still",
+    "summary": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Invert",
+        "label": "Invert",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/invert-a-still.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Invert",
+          "title": "Invert",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/json-to-a-table",
+    "title": "JSON to a Table — NodeTool AI Workflow Template",
+    "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "json-to-a-table",
+    "name": "JSON to a Table",
+    "summary": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.JSONToDataframe",
+        "label": "JSON To Dataframe",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/json-to-a-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "j",
+          "type": "nodetool.data.JSONToDataframe",
+          "title": "JSON To Dataframe",
+          "x": 0,
+          "y": 180,
+          "width": 340
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 420,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "j",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/javascript-to-a-table",
+    "title": "JavaScript to a Table — NodeTool AI Workflow Template",
+    "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "javascript-to-a-table",
+    "name": "JavaScript to a Table",
+    "summary": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
+    "tags": [
+      "code",
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecuteJavaScript",
+        "label": "Execute Java Script",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SortByColumn",
+        "label": "Sort By Column",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/javascript-to-a-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "js",
+          "type": "nodetool.code.ExecuteJavaScript",
+          "title": "Execute Java Script",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 440,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "srt",
+          "type": "nodetool.data.SortByColumn",
+          "title": "Sort By Column",
+          "x": 800,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1160,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "js",
+          "sourceHandle": "stdout",
+          "target": "csv",
+          "targetHandle": "csv_data",
+          "color": "any"
+        },
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "srt",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "srt",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/join-two-tables-on-a-key",
+    "title": "Join Two Tables on a Key — NodeTool AI Workflow Template",
+    "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "join-two-tables-on-a-key",
+    "name": "Join Two Tables on a Key",
+    "summary": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 2
+      },
+      {
+        "type": "nodetool.data.Join",
+        "label": "Join",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/join-two-tables-on-a-key.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "j",
+          "type": "nodetool.data.Join",
+          "title": "Join",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "j",
+          "targetHandle": "dataframe_a",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "j",
+          "targetHandle": "dataframe_b",
+          "color": "any"
+        },
+        {
+          "source": "j",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/keep-only-the-matches",
+    "title": "Keep Only the Matches — NodeTool AI Workflow Template",
+    "description": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "keep-only-the-matches",
+    "name": "Keep Only the Matches",
+    "summary": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.FilterEqual",
+        "label": "Filter Equal",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/keep-only-the-matches.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "nodetool.control.FilterEqual",
+          "title": "Filter Equal",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "ok"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 240,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/key-out-a-green-screen",
+    "title": "Key Out a Green Screen — NodeTool AI Workflow Template",
+    "description": "Chroma key with the two dials that matter: similarity decides how much of the colour range goes transparent, blend softens the edge.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "key-out-a-green-screen",
+    "name": "Key Out a Green Screen",
+    "summary": "Chroma key with the two dials that matter: similarity decides how much of the colour range goes transparent, blend softens the edge.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ChromaKey",
+        "label": "Chroma Key",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/key-out-a-green-screen.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ck",
+          "type": "nodetool.video.ChromaKey",
+          "title": "Chroma Key",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ck",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ck",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/last-one-wins",
+    "title": "Last One Wins — NodeTool AI Workflow Template",
+    "description": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "last-one-wins",
+    "name": "Last One Wins",
+    "summary": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Last",
+        "label": "Last",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/last-one-wins.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "z",
+          "type": "nodetool.control.Last",
+          "title": "Last",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 240,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "z",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "z",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/load-a-csv",
+    "title": "Load a CSV — NodeTool AI Workflow Template",
+    "description": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "load-a-csv",
+    "name": "Load a CSV",
+    "summary": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/load-a-csv.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 400,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/localise-a-product-listing",
+    "title": "Localise a Product Listing — NodeTool AI Workflow Template",
+    "description": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "localise-a-product-listing",
+    "name": "Localise a Product Listing",
+    "summary": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/localise-a-product-listing.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/localise-a-script-and-revoice-it",
+    "title": "Localise a Script and Revoice It — NodeTool AI Workflow Template",
+    "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "localise-a-script-and-revoice-it",
+    "name": "Localise a Script and Revoice It",
+    "summary": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
+    "tags": [
+      "text",
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/localise-a-script-and-revoice-it.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/master-a-voice-track",
+    "title": "Master a Voice Track — NodeTool AI Workflow Template",
+    "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "master-a-voice-track",
+    "name": "Master a Voice Track",
+    "summary": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Compress",
+        "label": "Compress",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Gain",
+        "label": "Gain",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Limiter",
+        "label": "Limiter",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/master-a-voice-track.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "cmp",
+          "type": "lib.audio.Compress",
+          "title": "Compress",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "gain",
+          "type": "lib.audio.Gain",
+          "title": "Gain",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "lim",
+          "type": "lib.audio.Limiter",
+          "title": "Limiter",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "cmp",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "cmp",
+          "sourceHandle": "output",
+          "target": "gain",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "gain",
+          "sourceHandle": "output",
+          "target": "lim",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "lim",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/meeting-transcript-summarizer",
     "title": "Meeting Transcript Summarizer — NodeTool AI Workflow Template",
     "description": "Summarize a meeting from a recording or a pasted transcript — either input works, and action items come back as structured rows instead of another paragraph to scan.",
@@ -3877,6 +11600,100 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/merge-two-tables-side-by-side",
+    "title": "Merge Two Tables Side by Side — NodeTool AI Workflow Template",
+    "description": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "merge-two-tables-side-by-side",
+    "name": "Merge Two Tables Side by Side",
+    "summary": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 2
+      },
+      {
+        "type": "nodetool.data.Merge",
+        "label": "Merge",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/merge-two-tables-side-by-side.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "m",
+          "type": "nodetool.data.Merge",
+          "title": "Merge",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "m",
+          "targetHandle": "dataframe_a",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "m",
+          "targetHandle": "dataframe_b",
+          "color": "any"
+        },
+        {
+          "source": "m",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/model-arena",
     "title": "Model Arena — NodeTool AI Workflow Template",
     "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
@@ -4064,6 +11881,87 @@ export const templateEntries: TemplateEntry[] = [
           "target": "gemini_out",
           "targetHandle": "value",
           "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/moodboard-frame-from-a-theme",
+    "title": "Moodboard Frame from a Theme — NodeTool AI Workflow Template",
+    "description": "One frame of a moodboard, generated from a described direction. Cheap enough to run a dozen times and pick, which is how moodboards actually get made.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "moodboard-frame-from-a-theme",
+    "name": "Moodboard Frame from a Theme",
+    "summary": "One frame of a moodboard, generated from a described direction. Cheap enough to run a dozen times and pick, which is how moodboards actually get made.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/moodboard-frame-from-a-theme.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "editorial photograph, muted earth palette, soft north light, matte finish, generous negative space"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -5022,6 +12920,710 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/name-a-file-from-its-narration",
+    "title": "Name a File from Its Narration — NodeTool AI Workflow Template",
+    "description": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "name-a-file-from-its-narration",
+    "name": "Name a File from Its Narration",
+    "summary": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Slugify",
+        "label": "Slugify",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.TruncateText",
+        "label": "Truncate Text",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/name-a-file-from-its-narration.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 640,
+          "y": 120,
+          "width": 280,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "tr",
+          "type": "nodetool.text.TruncateText",
+          "title": "Truncate Text",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "sl",
+          "type": "nodetool.text.Slugify",
+          "title": "Slugify",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "tr",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tr",
+          "sourceHandle": "output",
+          "target": "sl",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "sl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/narrate-a-script",
+    "title": "Narrate a Script — NodeTool AI Workflow Template",
+    "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "narrate-a-script",
+    "name": "Narrate a Script",
+    "summary": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/narrate-a-script.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "Every frame you see here was generated from a single line of text."
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 400,
+          "y": 180,
+          "width": 280,
+          "subtitle": "fal-ai/elevenlabs/tts/multilingual-v2"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/narration-with-a-music-bed",
+    "title": "Narration with a Music Bed — NodeTool AI Workflow Template",
+    "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "narration-with-a-music-bed",
+    "name": "Narration with a Music Bed",
+    "summary": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.OverlayAudio",
+        "label": "Overlay Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/narration-with-a-music-bed.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "mus",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "calm ambient bed, no percussion, unobtrusive"
+        },
+        {
+          "id": "ov",
+          "type": "nodetool.audio.OverlayAudio",
+          "title": "Overlay Audio",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "script",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "ov",
+          "targetHandle": "a",
+          "color": "any"
+        },
+        {
+          "source": "mus",
+          "sourceHandle": "audio",
+          "target": "ov",
+          "targetHandle": "b",
+          "color": "any"
+        },
+        {
+          "source": "ov",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/narrow-then-order",
+    "title": "Narrow then Order — NodeTool AI Workflow Template",
+    "description": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "narrow-then-order",
+    "name": "Narrow then Order",
+    "summary": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SelectColumn",
+        "label": "Select Column",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SortByColumn",
+        "label": "Sort By Column",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/narrow-then-order.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "sel",
+          "type": "nodetool.data.SelectColumn",
+          "title": "Select Column",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "srt",
+          "type": "nodetool.data.SortByColumn",
+          "title": "Sort By Column",
+          "x": 760,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1120,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "sel",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "sel",
+          "sourceHandle": "output",
+          "target": "srt",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "srt",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/normalize-a-clip-s-audio",
+    "title": "Normalize a Clip's Audio — NodeTool AI Workflow Template",
+    "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "normalize-a-clip-s-audio",
+    "name": "Normalize a Clip's Audio",
+    "summary": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "tags": [
+      "audio",
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/normalize-a-clip-s-audio.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/one-tagline-six-markets",
+    "title": "One Tagline, Six Markets — NodeTool AI Workflow Template",
+    "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "one-tagline-six-markets",
+    "name": "One Tagline, Six Markets",
+    "summary": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/one-tagline-six-markets.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pad-a-canvas",
+    "title": "Pad a Canvas — NodeTool AI Workflow Template",
+    "description": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pad-a-canvas",
+    "name": "Pad a Canvas",
+    "summary": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.CanvasResize",
+        "label": "Canvas Resize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pad-a-canvas.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.image.CanvasResize",
+          "title": "Canvas Resize",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/photo-enhancement-suite",
     "title": "Photo Enhancement Suite — NodeTool AI Workflow Template",
     "description": "Batch-enhance a list of photos through a fixed retouch chain — auto-contrast, color, sharpening, and an AI cinematic-grade pass — with no folder path required, just drop images in.",
@@ -5275,6 +13877,461 @@ export const templateEntries: TemplateEntry[] = [
           "source": "2",
           "sourceHandle": "output",
           "target": "output-enhanced-photos",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pick-columns",
+    "title": "Pick Columns — NodeTool AI Workflow Template",
+    "description": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pick-columns",
+    "name": "Pick Columns",
+    "summary": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SelectColumn",
+        "label": "Select Column",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pick-columns.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.SelectColumn",
+          "title": "Select Column",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/picture-in-picture",
+    "title": "Picture in Picture — NodeTool AI Workflow Template",
+    "description": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "picture-in-picture",
+    "name": "Picture in Picture",
+    "summary": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Overlay",
+        "label": "Overlay",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/picture-in-picture.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "main",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 140,
+          "width": 280
+        },
+        {
+          "id": "pip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 320,
+          "width": 280
+        },
+        {
+          "id": "ov",
+          "type": "nodetool.video.Overlay",
+          "title": "Overlay",
+          "x": 400,
+          "y": 200,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 780,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "main",
+          "sourceHandle": "output",
+          "target": "ov",
+          "targetHandle": "main_video",
+          "color": "any"
+        },
+        {
+          "source": "pip",
+          "sourceHandle": "output",
+          "target": "ov",
+          "targetHandle": "overlay_video",
+          "color": "any"
+        },
+        {
+          "source": "ov",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pitch-a-voice-up",
+    "title": "Pitch a Voice Up — NodeTool AI Workflow Template",
+    "description": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pitch-a-voice-up",
+    "name": "Pitch a Voice Up",
+    "summary": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.PitchShift",
+        "label": "Pitch Shift",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pitch-a-voice-up.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ps",
+          "type": "lib.audio.PitchShift",
+          "title": "Pitch Shift",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ps",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ps",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pixelate-a-still",
+    "title": "Pixelate a Still — NodeTool AI Workflow Template",
+    "description": "Cell size is the whole control. Useful for redaction, and the one filter where a bigger number is more privacy rather than more effect.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pixelate-a-still",
+    "name": "Pixelate a Still",
+    "summary": "Cell size is the whole control. Useful for redaction, and the one filter where a bigger number is more privacy rather than more effect.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Pixelate",
+        "label": "Pixelate",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pixelate-a-still.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Pixelate",
+          "title": "Pixelate",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/podcast-episode-to-show-notes",
+    "title": "Podcast Episode to Show Notes — NodeTool AI Workflow Template",
+    "description": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "podcast-episode-to-show-notes",
+    "name": "Podcast Episode to Show Notes",
+    "summary": "The job every podcast has and nobody enjoys. Transcribe, then write the notes — summary, topics with rough timings, and the links mentioned.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/podcast-episode-to-show-notes.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -5814,6 +14871,166 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/poster-on-kie",
+    "title": "Poster on Kie — NodeTool AI Workflow Template",
+    "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "poster-on-kie",
+    "name": "Poster on Kie",
+    "summary": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/poster-on-kie.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "A brutalist concert hall at dusk, long shadows, single figure on the steps"
+        },
+        {
+          "id": "img",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 400,
+          "y": 180,
+          "width": 280,
+          "subtitle": "seedream/4.5-text-to-image"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "img",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "img",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/posterize-to-four-bits",
+    "title": "Posterize to Four Bits — NodeTool AI Workflow Template",
+    "description": "Reduce the bits per channel and the image collapses into flat bands — a screenprint look, and a quick way to see banding before it bites you.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "posterize-to-four-bits",
+    "name": "Posterize to Four Bits",
+    "summary": "Reduce the bits per channel and the image collapses into flat bands — a screenprint look, and a quick way to see banding before it bites you.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Posterize",
+        "label": "Posterize",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/posterize-to-four-bits.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Posterize",
+          "title": "Posterize",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/private-assistant",
     "title": "Private Assistant — NodeTool AI Workflow Template",
     "description": "Ask questions about your own notes and documents — fully local, no API keys. Runs end-to-end on a local Ollama model, so the text never leaves your machine. Requires Ollama running with a model pulled (default: llama3.2 — run `ollama pull llama3.2`).",
@@ -6288,6 +15505,187 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/product-spot-from-text",
+    "title": "Product Spot from Text — NodeTool AI Workflow Template",
+    "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "product-spot-from-text",
+    "name": "Product Spot from Text",
+    "summary": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
+    "tags": [
+      "image",
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 2
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": "/templates/product-spot-from-text.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-product",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 240,
+          "width": 280,
+          "subtitle": "Matte-black wireless over-ear headphones with a brushed-copper accent ring"
+        },
+        {
+          "id": "in-staging",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "Polished dark concrete pedestal, volumetric rim light, fine dust drifting through a soft teal backlight"
+        },
+        {
+          "id": "in-motion",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 280,
+          "subtitle": "Slow dolly push-in with a gentle rotation, shallow depth of field holding focus on the product"
+        },
+        {
+          "id": "prompt-still",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 340,
+          "y": 320,
+          "width": 320,
+          "subtitle": "Cinematic product photograph for a premium commercial. Product: {{ product }} Staging: {{ staging }} Single hero subject, centered, filling…"
+        },
+        {
+          "id": "still",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 720,
+          "y": 280,
+          "width": 280,
+          "subtitle": "fal-ai/flux-2/klein/9b"
+        },
+        {
+          "id": "prompt-motion",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 720,
+          "y": 600,
+          "width": 320,
+          "subtitle": "Animate the reference still into a short product commercial. Camera: {{ camera_motion }} Preserve the product, its proportions, framing, an…"
+        },
+        {
+          "id": "spot",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 1100,
+          "y": 400,
+          "width": 280,
+          "subtitle": "fal-ai/ltx-2.3/image-to-video/fast"
+        },
+        {
+          "id": "output-spot",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1460,
+          "y": 420,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-product",
+          "sourceHandle": "output",
+          "target": "prompt-still",
+          "targetHandle": "product",
+          "color": "any"
+        },
+        {
+          "source": "in-staging",
+          "sourceHandle": "output",
+          "target": "prompt-still",
+          "targetHandle": "staging",
+          "color": "any"
+        },
+        {
+          "source": "prompt-still",
+          "sourceHandle": "output",
+          "target": "still",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "in-motion",
+          "sourceHandle": "output",
+          "target": "prompt-motion",
+          "targetHandle": "camera_motion",
+          "color": "any"
+        },
+        {
+          "source": "still",
+          "sourceHandle": "output",
+          "target": "spot",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "prompt-motion",
+          "sourceHandle": "output",
+          "target": "spot",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "spot",
+          "sourceHandle": "output",
+          "target": "output-spot",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/product-video-generator",
     "title": "Product Video Generator — NodeTool AI Workflow Template",
     "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then Veo animates the shot. Cost note: Veo is a paid per-second video model, so this run costs noticeably more than an image-only template.",
@@ -6606,6 +16004,1072 @@ export const templateEntries: TemplateEntry[] = [
           "target": "explanation_output",
           "targetHandle": "value",
           "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pull-a-field-out-of-json-text",
+    "title": "Pull a Field out of JSON Text — NodeTool AI Workflow Template",
+    "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pull-a-field-out-of-json-text",
+    "name": "Pull a Field out of JSON Text",
+    "summary": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
+    "tags": [
+      "text",
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.ExtractJSON",
+        "label": "Extract JSON",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pull-a-field-out-of-json-text.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "{\"user\":{\"name\":\"Ada\",\"role\":\"engineer\"},\"active\":true}"
+        },
+        {
+          "id": "ej",
+          "type": "nodetool.text.ExtractJSON",
+          "title": "Extract JSON",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "ej",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ej",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pull-a-still-from-a-clip",
+    "title": "Pull a Still from a Clip — NodeTool AI Workflow Template",
+    "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pull-a-still-from-a-clip",
+    "name": "Pull a Still from a Clip",
+    "summary": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+    "tags": [
+      "video",
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractFrame",
+        "label": "Extract Frame",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/pull-a-still-from-a-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "frame",
+          "type": "nodetool.video.ExtractFrame",
+          "title": "Extract Frame",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "frame",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "frame",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/pull-the-quotable-lines-out-of-an-interview",
+    "title": "Pull the Quotable Lines Out of an Interview — NodeTool AI Workflow Template",
+    "description": "Five verbatim quotes, chosen for standing alone. Insisting on verbatim is what makes the output usable — a paraphrased quote is worse than none.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "pull-the-quotable-lines-out-of-an-interview",
+    "name": "Pull the Quotable Lines Out of an Interview",
+    "summary": "Five verbatim quotes, chosen for standing alone. Insisting on verbatim is what makes the output usable — a paraphrased quote is worse than none.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/pull-the-quotable-lines-out-of-an-interview.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/put-a-product-on-a-studio-backdrop",
+    "title": "Put a Product on a Studio Backdrop — NodeTool AI Workflow Template",
+    "description": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "put-a-product-on-a-studio-backdrop",
+    "name": "Put a Product on a Studio Backdrop",
+    "summary": "Cut the product out, then place it in a described setting. Two steps rather than one prompt, because generating around an existing product is what keeps the product itself unchanged — the thing a customer is actually buying.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.RemoveBackground",
+        "label": "Remove Background",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/put-a-product-on-a-studio-backdrop.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "bg",
+          "type": "nodetool.image.RemoveBackground",
+          "title": "Remove Background",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/bria/background/remove"
+        },
+        {
+          "id": "comp",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "product centred on a warm concrete plinth, soft studio light, shallow depth of field"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "bg",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "bg",
+          "sourceHandle": "output",
+          "target": "comp",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "comp",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/put-a-voice-over-a-music-bed",
+    "title": "Put a Voice Over a Music Bed — NodeTool AI Workflow Template",
+    "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "put-a-voice-over-a-music-bed",
+    "name": "Put a Voice Over a Music Bed",
+    "summary": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.OverlayAudio",
+        "label": "Overlay Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/put-a-voice-over-a-music-bed.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "t",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Built for people who would rather ship than configure."
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "mus",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 640,
+          "y": 120,
+          "width": 280,
+          "subtitle": "calm ambient pad, no drums, soft and unobtrusive"
+        },
+        {
+          "id": "ov",
+          "type": "nodetool.audio.OverlayAudio",
+          "title": "Overlay Audio",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "ov",
+          "targetHandle": "a",
+          "color": "any"
+        },
+        {
+          "source": "mus",
+          "sourceHandle": "audio",
+          "target": "ov",
+          "targetHandle": "b",
+          "color": "any"
+        },
+        {
+          "source": "ov",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/re-delimit-a-list",
+    "title": "Re-delimit a List — NodeTool AI Workflow Template",
+    "description": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "re-delimit-a-list",
+    "name": "Re-delimit a List",
+    "summary": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.Join",
+        "label": "Join",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Split",
+        "label": "Split",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/re-delimit-a-list.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "alpha, beta, gamma, delta"
+        },
+        {
+          "id": "sp",
+          "type": "nodetool.text.Split",
+          "title": "Split",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "jn",
+          "type": "nodetool.text.Join",
+          "title": "Join",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "sp",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "sp",
+          "sourceHandle": "output",
+          "target": "jn",
+          "targetHandle": "strings",
+          "color": "any"
+        },
+        {
+          "source": "jn",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/read-stderr-from-code",
+    "title": "Read Stderr from Code — NodeTool AI Workflow Template",
+    "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "read-stderr-from-code",
+    "name": "Read Stderr from Code",
+    "summary": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
+    "tags": [
+      "code",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecutePython",
+        "label": "Execute Python",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/read-stderr-from-code.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "py",
+          "type": "nodetool.code.ExecutePython",
+          "title": "Execute Python",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 440,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "py",
+          "sourceHandle": "stderr",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/read-a-clip-s-frame-rate",
+    "title": "Read a Clip's Frame Rate — NodeTool AI Workflow Template",
+    "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "read-a-clip-s-frame-rate",
+    "name": "Read a Clip's Frame Rate",
+    "summary": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.Fps",
+        "label": "Fps",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/read-a-clip-s-frame-rate.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "nodetool.video.Fps",
+          "title": "Fps",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/redact-email-addresses",
+    "title": "Redact Email Addresses — NodeTool AI Workflow Template",
+    "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "redact-email-addresses",
+    "name": "Redact Email Addresses",
+    "summary": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.RegexReplace",
+        "label": "Regex Replace",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/redact-email-addresses.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Contact ada@example.com or grace@navy.mil before Friday."
+        },
+        {
+          "id": "rr",
+          "type": "nodetool.text.RegexReplace",
+          "title": "Regex Replace",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "rr",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "rr",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/relight-a-portrait",
+    "title": "Relight a Portrait — NodeTool AI Workflow Template",
+    "description": "Change where the light comes from after the shot. The subject and framing stay put while the lighting is re-rendered from a description.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "relight-a-portrait",
+    "name": "Relight a Portrait",
+    "summary": "Change where the light comes from after the shot. The subject and framing stay put while the lighting is re-rendered from a description.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Relight",
+        "label": "Relight",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/relight-a-portrait.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "rl",
+          "type": "nodetool.image.Relight",
+          "title": "Relight",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "warm rim light from the back left, deep shadows, cinematic"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "rl",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "rl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/relight-a-product-for-a-seasonal-campaign",
+    "title": "Relight a Product for a Seasonal Campaign — NodeTool AI Workflow Template",
+    "description": "Same product, different season, no reshoot. Relighting keeps the geometry and materials and changes only where the light comes from.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "relight-a-product-for-a-seasonal-campaign",
+    "name": "Relight a Product for a Seasonal Campaign",
+    "summary": "Same product, different season, no reshoot. Relighting keeps the geometry and materials and changes only where the light comes from.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Relight",
+        "label": "Relight",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/relight-a-product-for-a-seasonal-campaign.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "rl",
+          "type": "nodetool.image.Relight",
+          "title": "Relight",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "warm low winter sun from the left, long soft shadows"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "rl",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "rl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/rename-the-columns",
+    "title": "Rename the Columns — NodeTool AI Workflow Template",
+    "description": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "rename-the-columns",
+    "name": "Rename the Columns",
+    "summary": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.Rename",
+        "label": "Rename",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/rename-the-columns.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "r",
+          "type": "nodetool.data.Rename",
+          "title": "Rename",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "r",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "r",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -7189,6 +17653,827 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/resize-for-vertical",
+    "title": "Resize for Vertical — NodeTool AI Workflow Template",
+    "description": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "resize-for-vertical",
+    "name": "Resize for Vertical",
+    "summary": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Resize",
+        "label": "Resize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/resize-for-vertical.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Resize",
+          "title": "Resize",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/restyle-a-photo-as-an-illustration",
+    "title": "Restyle a Photo as an Illustration — NodeTool AI Workflow Template",
+    "description": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "restyle-a-photo-as-an-illustration",
+    "name": "Restyle a Photo as an Illustration",
+    "summary": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/restyle-a-photo-as-an-illustration.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "i2i",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "flat vector illustration, bold shapes, limited palette, clean edges"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "i2i",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "i2i",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/restyle-a-still-with-flux-dev",
+    "title": "Restyle a Still with FLUX Dev — NodeTool AI Workflow Template",
+    "description": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "restyle-a-still-with-flux-dev",
+    "name": "Restyle a Still with FLUX Dev",
+    "summary": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/restyle-a-still-with-flux-dev.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "i2i",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "oil painting, visible brush strokes, muted palette"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "i2i",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "i2i",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/reverse-audio",
+    "title": "Reverse Audio — NodeTool AI Workflow Template",
+    "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "reverse-audio",
+    "name": "Reverse Audio",
+    "summary": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "tags": [
+      "audio",
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Reverse",
+        "label": "Reverse",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/reverse-audio.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.audio.Reverse",
+          "title": "Reverse",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/reverse-a-clip",
+    "title": "Reverse a Clip — NodeTool AI Workflow Template",
+    "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "reverse-a-clip",
+    "name": "Reverse a Clip",
+    "summary": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Reverse",
+        "label": "Reverse",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/reverse-a-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Reverse",
+          "title": "Reverse",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/rewrite-this-so-a-customer-understands-it",
+    "title": "Rewrite This So a Customer Understands It — NodeTool AI Workflow Template",
+    "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "rewrite-this-so-a-customer-understands-it",
+    "name": "Rewrite This So a Customer Understands It",
+    "summary": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/rewrite-this-so-a-customer-understands-it.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/rotate-footage",
+    "title": "Rotate Footage — NodeTool AI Workflow Template",
+    "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "rotate-footage",
+    "name": "Rotate Footage",
+    "summary": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Rotate",
+        "label": "Rotate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/rotate-footage.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Rotate",
+          "title": "Rotate",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/run-javascript-in-a-sandbox",
+    "title": "Run JavaScript in a Sandbox — NodeTool AI Workflow Template",
+    "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "run-javascript-in-a-sandbox",
+    "name": "Run JavaScript in a Sandbox",
+    "summary": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
+    "tags": [
+      "code",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecuteJavaScript",
+        "label": "Execute Java Script",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/run-javascript-in-a-sandbox.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "run",
+          "type": "nodetool.code.ExecuteJavaScript",
+          "title": "Execute Java Script",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 440,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "run",
+          "sourceHandle": "stdout",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/run-lua-in-a-sandbox",
+    "title": "Run Lua in a Sandbox — NodeTool AI Workflow Template",
+    "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "run-lua-in-a-sandbox",
+    "name": "Run Lua in a Sandbox",
+    "summary": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
+    "tags": [
+      "code",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecuteLua",
+        "label": "Execute Lua",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/run-lua-in-a-sandbox.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "run",
+          "type": "nodetool.code.ExecuteLua",
+          "title": "Execute Lua",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 440,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "run",
+          "sourceHandle": "stdout",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/run-python-in-a-sandbox",
+    "title": "Run Python in a Sandbox — NodeTool AI Workflow Template",
+    "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "run-python-in-a-sandbox",
+    "name": "Run Python in a Sandbox",
+    "summary": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
+    "tags": [
+      "code",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecutePython",
+        "label": "Execute Python",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/run-python-in-a-sandbox.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "run",
+          "type": "nodetool.code.ExecutePython",
+          "title": "Execute Python",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 440,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "run",
+          "sourceHandle": "stdout",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/run-a-shell-command",
+    "title": "Run a Shell Command — NodeTool AI Workflow Template",
+    "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "run-a-shell-command",
+    "name": "Run a Shell Command",
+    "summary": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
+    "tags": [
+      "code",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.code.ExecuteBash",
+        "label": "Execute Bash",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 2,
+    "thumbnail": "/templates/run-a-shell-command.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "run",
+          "type": "nodetool.code.ExecuteBash",
+          "title": "Execute Bash",
+          "x": 0,
+          "y": 180,
+          "width": 360
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 440,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "run",
+          "sourceHandle": "stdout",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/seo-content-engine",
     "title": "SEO Content Engine — NodeTool AI Workflow Template",
     "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
@@ -7530,6 +18815,497 @@ export const templateEntries: TemplateEntry[] = [
           "target": "preview_heroes",
           "targetHandle": "value",
           "color": "image"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/seo-title-and-meta-description",
+    "title": "SEO Title and Meta Description — NodeTool AI Workflow Template",
+    "description": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "seo-title-and-meta-description",
+    "name": "SEO Title and Meta Description",
+    "summary": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Marketing & Content",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/seo-title-and-meta-description.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/score-a-clip-from-its-own-mood",
+    "title": "Score a Clip from Its Own Mood — NodeTool AI Workflow Template",
+    "description": "The agent watches nothing — it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "score-a-clip-from-its-own-mood",
+    "name": "Score a Clip from Its Own Mood",
+    "summary": "The agent watches nothing — it reads your description of the mood and writes the music prompt. Splitting it this way means you can adjust the mood in words rather than re-describing the music.",
+    "tags": [
+      "video",
+      "audio",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.AddAudio",
+        "label": "Add Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/score-a-clip-from-its-own-mood.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "mood",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "mus",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/stable-audio-25/text-to-audio"
+        },
+        {
+          "id": "mix",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "mood",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "mus",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "clip",
+          "sourceHandle": "output",
+          "target": "mix",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "mus",
+          "sourceHandle": "audio",
+          "target": "mix",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "mix",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/score-a-silent-clip",
+    "title": "Score a Silent Clip — NodeTool AI Workflow Template",
+    "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "score-a-silent-clip",
+    "name": "Score a Silent Clip",
+    "summary": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
+    "tags": [
+      "video",
+      "audio",
+      "music",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.AddAudio",
+        "label": "Add Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/score-a-silent-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-video",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-mood",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "Warm analogue synth bed, slow pulse, hopeful but restrained, no drums"
+        },
+        {
+          "id": "score",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 400,
+          "y": 380,
+          "width": 280,
+          "subtitle": "fal-ai/stable-audio-25/text-to-audio"
+        },
+        {
+          "id": "mix",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 760,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "output-scored",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1120,
+          "y": 320,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-mood",
+          "sourceHandle": "output",
+          "target": "score",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "in-video",
+          "sourceHandle": "output",
+          "target": "mix",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "score",
+          "sourceHandle": "audio",
+          "target": "mix",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "mix",
+          "sourceHandle": "output",
+          "target": "output-scored",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/script-to-narrated-clip",
+    "title": "Script to Narrated Clip — NodeTool AI Workflow Template",
+    "description": "The smallest complete video pipeline: a written line becomes a voice, and a described scene becomes footage, then the two are married. Generating the voice and the picture separately is what lets you re-record one without paying for the other.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "script-to-narrated-clip",
+    "name": "Script to Narrated Clip",
+    "summary": "The smallest complete video pipeline: a written line becomes a voice, and a described scene becomes footage, then the two are married. Generating the voice and the picture separately is what lets you re-record one without paying for the other.",
+    "tags": [
+      "video",
+      "audio",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.video.AddAudio",
+        "label": "Add Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.TextToVideo",
+        "label": "Text To Video",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/script-to-narrated-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "scene",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+        },
+        {
+          "id": "mix",
+          "type": "nodetool.video.AddAudio",
+          "title": "Add Audio",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "script",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "scene",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "mix",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "mix",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "mix",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -8041,6 +19817,508 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/sharpen-footage",
+    "title": "Sharpen Footage — NodeTool AI Workflow Template",
+    "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "sharpen-footage",
+    "name": "Sharpen Footage",
+    "summary": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Sharpness",
+        "label": "Sharpness",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/sharpen-footage.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Sharpness",
+          "title": "Sharpness",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/shot-list-from-a-synopsis",
+    "title": "Shot List from a Synopsis — NodeTool AI Workflow Template",
+    "description": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "shot-list-from-a-synopsis",
+    "name": "Shot List from a Synopsis",
+    "summary": "A synopsis becomes numbered shots with framing and duration — the document a generation pipeline can iterate over, where prose is not.",
+    "tags": [
+      "text",
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/shot-list-from-a-synopsis.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/single-shot-from-a-line",
+    "title": "Single Shot from a Line — NodeTool AI Workflow Template",
+    "description": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "single-shot-from-a-line",
+    "name": "Single Shot from a Line",
+    "summary": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.TextToVideo",
+        "label": "Text To Video",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/single-shot-from-a-line.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "Rain running down a diner window at night, neon bleeding through the glass"
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 340,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.TextToVideo",
+          "title": "Text To Video",
+          "x": 720,
+          "y": 180,
+          "width": 280,
+          "subtitle": "fal-ai/ltx-2.3/text-to-video/fast"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1080,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "shot",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/slice-rows",
+    "title": "Slice Rows — NodeTool AI Workflow Template",
+    "description": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "slice-rows",
+    "name": "Slice Rows",
+    "summary": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.Slice",
+        "label": "Slice",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/slice-rows.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.Slice",
+          "title": "Slice",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/slice-text",
+    "title": "Slice Text — NodeTool AI Workflow Template",
+    "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "slice-text",
+    "name": "Slice Text",
+    "summary": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Slice",
+        "label": "Slice",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/slice-text.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "0123456789abcdefghij"
+        },
+        {
+          "id": "sl",
+          "type": "nodetool.text.Slice",
+          "title": "Slice",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 680,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "sl",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "sl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/slow-a-clip-without-dropping-pitch",
+    "title": "Slow a Clip Without Dropping Pitch — NodeTool AI Workflow Template",
+    "description": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "slow-a-clip-without-dropping-pitch",
+    "name": "Slow a Clip Without Dropping Pitch",
+    "summary": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.TimeStretch",
+        "label": "Time Stretch",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/slow-a-clip-without-dropping-pitch.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ts",
+          "type": "lib.audio.TimeStretch",
+          "title": "Time Stretch",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ts",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ts",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/social-media-calendar-filler",
     "title": "Social Media Calendar Filler — NodeTool AI Workflow Template",
     "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
@@ -8349,6 +20627,1325 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/soften-a-plate",
+    "title": "Soften a Plate — NodeTool AI Workflow Template",
+    "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "soften-a-plate",
+    "name": "Soften a Plate",
+    "summary": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.Blur",
+        "label": "Blur",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/soften-a-plate.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Blur",
+          "title": "Blur",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/solarize-a-still",
+    "title": "Solarize a Still — NodeTool AI Workflow Template",
+    "description": "Invert only the tones above a threshold — the darkroom accident that became a look.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "solarize-a-still",
+    "name": "Solarize a Still",
+    "summary": "Invert only the tones above a threshold — the darkroom accident that became a look.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Solarize",
+        "label": "Solarize",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/solarize-a-still.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Solarize",
+          "title": "Solarize",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/sort-a-table",
+    "title": "Sort a Table — NodeTool AI Workflow Template",
+    "description": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "sort-a-table",
+    "name": "Sort a Table",
+    "summary": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.SortByColumn",
+        "label": "Sort By Column",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/sort-a-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.SortByColumn",
+          "title": "Sort By Column",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "df",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/speak-a-line-then-trim-the-silence",
+    "title": "Speak a Line, Then Trim the Silence — NodeTool AI Workflow Template",
+    "description": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "speak-a-line-then-trim-the-silence",
+    "name": "Speak a Line, Then Trim the Silence",
+    "summary": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.RemoveSilence",
+        "label": "Remove Silence",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/speak-a-line-then-trim-the-silence.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "t",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "The package arrives on Thursday. Someone has to be home to sign for it."
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "rs",
+          "type": "nodetool.audio.RemoveSilence",
+          "title": "Remove Silence",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "rs",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "rs",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/spin-a-packshot-into-a-turntable-clip",
+    "title": "Spin a Packshot into a Turntable Clip — NodeTool AI Workflow Template",
+    "description": "A still becomes motion for the product page. Image-to-video keeps the product identical and adds only the camera move, which a text-to-video model would not.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "spin-a-packshot-into-a-turntable-clip",
+    "name": "Spin a Packshot into a Turntable Clip",
+    "summary": "A still becomes motion for the product page. Image-to-video keeps the product identical and adds only the camera move, which a text-to-video model would not.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/spin-a-packshot-into-a-turntable-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "v",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "slow orbit around the product, fixed lighting, product stays centred"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "v",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "v",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/split-a-channel",
+    "title": "Split a Channel — NodeTool AI Workflow Template",
+    "description": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "split-a-channel",
+    "name": "Split a Channel",
+    "summary": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
+    "tags": [
+      "image",
+      "utility",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.image.Channels",
+        "label": "Channels",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/split-a-channel.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.image.Channels",
+          "title": "Channels",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/split-a-log-into-records",
+    "title": "Split a Log into Records — NodeTool AI Workflow Template",
+    "description": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "split-a-log-into-records",
+    "name": "Split a Log into Records",
+    "summary": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.RegexSplit",
+        "label": "Regex Split",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/split-a-log-into-records.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "2026-01-01 boot 2026-01-02 sync 2026-01-03 purge"
+        },
+        {
+          "id": "rs",
+          "type": "nodetool.text.RegexSplit",
+          "title": "Regex Split",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "rs",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "rs",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/stabilize-handheld",
+    "title": "Stabilize Handheld — NodeTool AI Workflow Template",
+    "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "stabilize-handheld",
+    "name": "Stabilize Handheld",
+    "summary": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Stabilize",
+        "label": "Stabilize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/stabilize-handheld.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Stabilize",
+          "title": "Stabilize",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/stack-rows-from-two-batches",
+    "title": "Stack Rows from Two Batches — NodeTool AI Workflow Template",
+    "description": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "stack-rows-from-two-batches",
+    "name": "Stack Rows from Two Batches",
+    "summary": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 2
+      },
+      {
+        "type": "nodetool.data.Append",
+        "label": "Append",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/stack-rows-from-two-batches.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "p",
+          "type": "nodetool.data.Append",
+          "title": "Append",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "p",
+          "targetHandle": "dataframe_a",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "p",
+          "targetHandle": "dataframe_b",
+          "color": "any"
+        },
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/still-on-replicate",
+    "title": "Still on Replicate — NodeTool AI Workflow Template",
+    "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "still-on-replicate",
+    "name": "Still on Replicate",
+    "summary": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/still-on-replicate.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 180,
+          "width": 280,
+          "subtitle": "A weathered fishing boat hauled onto black sand, cold northern light"
+        },
+        {
+          "id": "img",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 400,
+          "y": 180,
+          "width": 280,
+          "subtitle": "black-forest-labs/flux-2-klein-9b"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "img",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "img",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/strip-accents-for-a-search-key",
+    "title": "Strip Accents for a Search Key — NodeTool AI Workflow Template",
+    "description": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "strip-accents-for-a-search-key",
+    "name": "Strip Accents for a Search Key",
+    "summary": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.StripAccents",
+        "label": "Strip Accents",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/strip-accents-for-a-search-key.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Café Größe Ångström"
+        },
+        {
+          "id": "sa",
+          "type": "nodetool.text.StripAccents",
+          "title": "Strip Accents",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "sa",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "sa",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/subject-lines-worth-testing",
+    "title": "Subject Lines Worth Testing — NodeTool AI Workflow Template",
+    "description": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "subject-lines-worth-testing",
+    "name": "Subject Lines Worth Testing",
+    "summary": "Eight subject lines split between curiosity and clarity — the two strategies that behave differently enough to be worth an A/B, unlike eight variations on one.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/subject-lines-worth-testing.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/subtitle-text-from-a-recording",
+    "title": "Subtitle Text from a Recording — NodeTool AI Workflow Template",
+    "description": "Transcribe, then break into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "subtitle-text-from-a-recording",
+    "name": "Subtitle Text from a Recording",
+    "summary": "Transcribe, then break into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/subtitle-text-from-a-recording.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/summarise-a-recorded-call",
+    "title": "Summarise a Recorded Call — NodeTool AI Workflow Template",
+    "description": "The summary someone reads instead of listening again: what was decided, what is open, what happens next.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "summarise-a-recorded-call",
+    "name": "Summarise a Recorded Call",
+    "summary": "The summary someone reads instead of listening again: what was decided, what is open, what happens next.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/summarise-a-recorded-call.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/summarise-by-group",
+    "title": "Summarise by Group — NodeTool AI Workflow Template",
+    "description": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "summarise-by-group",
+    "name": "Summarise by Group",
+    "summary": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.Aggregate",
+        "label": "Aggregate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/summarise-by-group.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.Aggregate",
+          "title": "Aggregate",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/summarize-rss",
     "title": "Summarize RSS — NodeTool AI Workflow Template",
     "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
@@ -8476,6 +22073,1123 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/swirl-and-echo",
+    "title": "Swirl and Echo — NodeTool AI Workflow Template",
+    "description": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "swirl-and-echo",
+    "name": "Swirl and Echo",
+    "summary": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Delay",
+        "label": "Delay",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Phaser",
+        "label": "Phaser",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/swirl-and-echo.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ph",
+          "type": "lib.audio.Phaser",
+          "title": "Phaser",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "dl",
+          "type": "lib.audio.Delay",
+          "title": "Delay",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ph",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ph",
+          "sourceHandle": "output",
+          "target": "dl",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "dl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/table-to-list",
+    "title": "Table to List — NodeTool AI Workflow Template",
+    "description": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "table-to-list",
+    "name": "Table to List",
+    "summary": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ToList",
+        "label": "To List",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/table-to-list.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "op",
+          "type": "nodetool.data.ToList",
+          "title": "To List",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 760,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/table-to-rows-to-count",
+    "title": "Table to Rows to Count — NodeTool AI Workflow Template",
+    "description": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "table-to-rows-to-count",
+    "name": "Table to Rows to Count",
+    "summary": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ImportCSV",
+        "label": "Import CSV",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.data.ToList",
+        "label": "To List",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/table-to-rows-to-count.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "csv",
+          "type": "nodetool.data.ImportCSV",
+          "title": "Import CSV",
+          "x": 0,
+          "y": 180,
+          "width": 320
+        },
+        {
+          "id": "tl",
+          "type": "nodetool.data.ToList",
+          "title": "To List",
+          "x": 400,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ct",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 760,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1120,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "csv",
+          "sourceHandle": "output",
+          "target": "tl",
+          "targetHandle": "dataframe",
+          "color": "any"
+        },
+        {
+          "source": "tl",
+          "sourceHandle": "output",
+          "target": "ct",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "ct",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/take-while-the-numbers-are-small",
+    "title": "Take While the Numbers Are Small — NodeTool AI Workflow Template",
+    "description": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "take-while-the-numbers-are-small",
+    "name": "Take While the Numbers Are Small",
+    "summary": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
+    "tags": [
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.TakeWhile",
+        "label": "Take While",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/take-while-the-numbers-are-small.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "l",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "t",
+          "type": "nodetool.control.TakeWhile",
+          "title": "Take While",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 240,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "t",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/take-a-product-shot-to-print-resolution",
+    "title": "Take a Product Shot to Print Resolution — NodeTool AI Workflow Template",
+    "description": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "take-a-product-shot-to-print-resolution",
+    "name": "Take a Product Shot to Print Resolution",
+    "summary": "Web assets are rarely big enough for print. Upscaling at the end of the pipeline costs one call, where shooting or generating everything at print size costs it on every draft.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Upscale",
+        "label": "Upscale",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/take-a-product-shot-to-print-resolution.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "up",
+          "type": "nodetool.image.Upscale",
+          "title": "Upscale",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/clarity-upscaler"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "up",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "up",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/take-the-first-few-seconds-of-a-bed",
+    "title": "Take the First Few Seconds of a Bed — NodeTool AI Workflow Template",
+    "description": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "take-the-first-few-seconds-of-a-bed",
+    "name": "Take the First Few Seconds of a Bed",
+    "summary": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.SliceAudio",
+        "label": "Slice Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToMusic",
+        "label": "Text To Music",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/take-the-first-few-seconds-of-a-bed.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "mus",
+          "type": "nodetool.audio.TextToMusic",
+          "title": "Text To Music",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "bright synth arpeggio, upbeat, clean"
+        },
+        {
+          "id": "sl",
+          "type": "nodetool.audio.SliceAudio",
+          "title": "Slice Audio",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "mus",
+          "sourceHandle": "audio",
+          "target": "sl",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "sl",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/take-the-first-few",
+    "title": "Take the First Few — NodeTool AI Workflow Template",
+    "description": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "take-the-first-few",
+    "name": "Take the First Few",
+    "summary": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
+    "tags": [
+      "data",
+      "utility",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Take",
+        "label": "Take",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/take-the-first-few.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.control.Take",
+          "title": "Take",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        },
+        {
+          "id": "fanout1",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 160,
+          "y": 300,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fanout1",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fanout1",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/telephone-voice",
+    "title": "Telephone Voice — NodeTool AI Workflow Template",
+    "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "telephone-voice",
+    "name": "Telephone Voice",
+    "summary": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.Distortion",
+        "label": "Distortion",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.HighPassFilter",
+        "label": "High Pass Filter",
+        "count": 1
+      },
+      {
+        "type": "lib.audio.LowPassFilter",
+        "label": "Low Pass Filter",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/telephone-voice.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "hp",
+          "type": "lib.audio.HighPassFilter",
+          "title": "High Pass Filter",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "lp",
+          "type": "lib.audio.LowPassFilter",
+          "title": "Low Pass Filter",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "dist",
+          "type": "lib.audio.Distortion",
+          "title": "Distortion",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "hp",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "hp",
+          "sourceHandle": "output",
+          "target": "lp",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "lp",
+          "sourceHandle": "output",
+          "target": "dist",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "dist",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/themes-across-customer-feedback",
+    "title": "Themes Across Customer Feedback — NodeTool AI Workflow Template",
+    "description": "Raw feedback becomes named themes with counts and a representative verbatim each. The verbatim is what makes the theme arguable rather than asserted.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "themes-across-customer-feedback",
+    "name": "Themes Across Customer Feedback",
+    "summary": "Raw feedback becomes named themes with counts and a representative verbatim each. The verbatim is what makes the theme arguable rather than asserted.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/themes-across-customer-feedback.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/tidy-up-messy-text",
+    "title": "Tidy Up Messy Text — NodeTool AI Workflow Template",
+    "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "tidy-up-messy-text",
+    "name": "Tidy Up Messy Text",
+    "summary": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.CollapseWhitespace",
+        "label": "Collapse Whitespace",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.RemovePunctuation",
+        "label": "Remove Punctuation",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToLowercase",
+        "label": "To Lowercase",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/tidy-up-messy-text.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "The QUICK, brown --- fox!!"
+        },
+        {
+          "id": "cw",
+          "type": "nodetool.text.CollapseWhitespace",
+          "title": "Collapse Whitespace",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "rp",
+          "type": "nodetool.text.RemovePunctuation",
+          "title": "Remove Punctuation",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "lc",
+          "type": "nodetool.text.ToLowercase",
+          "title": "To Lowercase",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "cw",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "cw",
+          "sourceHandle": "output",
+          "target": "rp",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "rp",
+          "sourceHandle": "output",
+          "target": "lc",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "lc",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/title-case-a-heading",
+    "title": "Title Case a Heading — NodeTool AI Workflow Template",
+    "description": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "title-case-a-heading",
+    "name": "Title Case a Heading",
+    "summary": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToTitlecase",
+        "label": "To Titlecase",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/title-case-a-heading.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "the making of a visual workflow"
+        },
+        {
+          "id": "tc",
+          "type": "nodetool.text.ToTitlecase",
+          "title": "To Titlecase",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "tc",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tc",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/trailer-beats-from-a-premise",
+    "title": "Trailer Beats from a Premise — NodeTool AI Workflow Template",
+    "description": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "trailer-beats-from-a-premise",
+    "name": "Trailer Beats from a Premise",
+    "summary": "The beat structure a trailer needs — hook, escalation, turn, title card — written before any footage is paid for.",
+    "tags": [
+      "text",
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/trailer-beats-from-a-premise.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/transcribe-audio",
     "title": "Transcribe Audio — NodeTool AI Workflow Template",
     "description": "Instant Whisper transcription: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
@@ -8559,6 +23273,1850 @@ export const templateEntries: TemplateEntry[] = [
           "source": "c5191702-2a3c-440d-b3af-2db20e74a369",
           "sourceHandle": "text",
           "target": "output-transcript",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/transcribe-a-clip",
+    "title": "Transcribe a Clip — NodeTool AI Workflow Template",
+    "description": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "transcribe-a-clip",
+    "name": "Transcribe a Clip",
+    "summary": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
+    "tags": [
+      "audio",
+      "data",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/transcribe-a-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 680,
+          "y": 180,
+          "width": 280,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1040,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/translate-marketing-copy-to-german",
+    "title": "Translate Marketing Copy to German — NodeTool AI Workflow Template",
+    "description": "Marketing copy translated for effect rather than word-for-word, with the formal/informal choice stated. That decision is the one that most often gets a translation rejected.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "translate-marketing-copy-to-german",
+    "name": "Translate Marketing Copy to German",
+    "summary": "Marketing copy translated for effect rather than word-for-word, with the formal/informal choice stated. That decision is the one that most often gets a translation rejected.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Marketing & Content",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/translate-marketing-copy-to-german.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/trim-audio-to-a-range",
+    "title": "Trim Audio to a Range — NodeTool AI Workflow Template",
+    "description": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "trim-audio-to-a-range",
+    "name": "Trim Audio to a Range",
+    "summary": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
+    "tags": [
+      "audio",
+      "utility",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Trim",
+        "label": "Trim",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/trim-audio-to-a-range.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 340,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "tr",
+          "type": "nodetool.audio.Trim",
+          "title": "Trim",
+          "x": 680,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1020,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "tr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "tr",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/trim-a-blurb-to-length",
+    "title": "Trim a Blurb to Length — NodeTool AI Workflow Template",
+    "description": "Cap text at a character budget with an ellipsis. The everyday fix for a card or preview that must not overflow.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "trim-a-blurb-to-length",
+    "name": "Trim a Blurb to Length",
+    "summary": "Cap text at a character budget with an ellipsis. The everyday fix for a card or preview that must not overflow.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.TruncateText",
+        "label": "Truncate Text",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/trim-a-blurb-to-length.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "A visual editor for building AI workflows that run locally on your own hardware or against cloud APIs, whichever suits the job."
+        },
+        {
+          "id": "tr",
+          "type": "nodetool.text.TruncateText",
+          "title": "Truncate Text",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "tr",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tr",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/trim-a-clip",
+    "title": "Trim a Clip — NodeTool AI Workflow Template",
+    "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "trim-a-clip",
+    "name": "Trim a Clip",
+    "summary": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "tags": [
+      "video",
+      "utility",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.Trim",
+        "label": "Trim",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/trim-a-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "op",
+          "type": "nodetool.video.Trim",
+          "title": "Trim",
+          "x": 360,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "op",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "op",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-research-notes-into-a-comparison-table",
+    "title": "Turn Research Notes into a Comparison Table — NodeTool AI Workflow Template",
+    "description": "Messy notes become a markdown table with one row per option. Unknown cells are marked as unknown rather than filled in, which is the entire value of the exercise.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-research-notes-into-a-comparison-table",
+    "name": "Turn Research Notes into a Comparison Table",
+    "summary": "Messy notes become a markdown table with one row per option. Unknown cells are marked as unknown rather than filled in, which is the entire value of the exercise.",
+    "tags": [
+      "text",
+      "data",
+      "example"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/turn-research-notes-into-a-comparison-table.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-specs-into-product-copy",
+    "title": "Turn Specs into Product Copy — NodeTool AI Workflow Template",
+    "description": "Paste a spec sheet, get copy. The system prompt forbids inventing anything not in the input, which is the difference between usable product text and a liability.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-specs-into-product-copy",
+    "name": "Turn Specs into Product Copy",
+    "summary": "Paste a spec sheet, get copy. The system prompt forbids inventing anything not in the input, which is the difference between usable product text and a liability.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/turn-specs-into-product-copy.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-a-changelog-into-release-notes",
+    "title": "Turn a Changelog into Release Notes — NodeTool AI Workflow Template",
+    "description": "Commit messages are written for engineers; release notes are read by customers. Grouping by what changed for the user is the whole translation.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-a-changelog-into-release-notes",
+    "name": "Turn a Changelog into Release Notes",
+    "summary": "Commit messages are written for engineers; release notes are read by customers. Grouping by what changed for the user is the whole translation.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/turn-a-changelog-into-release-notes.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-a-logo-into-print-ready-vector",
+    "title": "Turn a Logo into Print-Ready Vector — NodeTool AI Workflow Template",
+    "description": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-a-logo-into-print-ready-vector",
+    "name": "Turn a Logo into Print-Ready Vector",
+    "summary": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Vectorize",
+        "label": "Vectorize",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/turn-a-logo-into-print-ready-vector.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "v",
+          "type": "nodetool.image.Vectorize",
+          "title": "Vectorize",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/recraft/vectorize"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "v",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "v",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-a-support-thread-into-a-bug-report",
+    "title": "Turn a Support Thread into a Bug Report — NodeTool AI Workflow Template",
+    "description": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-a-support-thread-into-a-bug-report",
+    "name": "Turn a Support Thread into a Bug Report",
+    "summary": "A frustrated thread becomes something an engineer can act on: steps, expected, actual, environment — with the missing pieces named as missing.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/turn-a-support-thread-into-a-bug-report.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/turn-a-talk-into-a-blog-post",
+    "title": "Turn a Talk into a Blog Post — NodeTool AI Workflow Template",
+    "description": "Spoken delivery and written prose are different registers. The instruction to restructure rather than transcribe is what stops the output reading like a transcript with paragraphs.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "turn-a-talk-into-a-blog-post",
+    "name": "Turn a Talk into a Blog Post",
+    "summary": "Spoken delivery and written prose are different registers. The instruction to restructure rather than transcribe is what stops the output reading like a transcript with paragraphs.",
+    "tags": [
+      "audio",
+      "text",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/turn-a-talk-into-a-blog-post.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ex",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "asr",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-4o-mini-transcribe"
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ex",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "ex",
+          "sourceHandle": "output",
+          "target": "asr",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "asr",
+          "sourceHandle": "text",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/upscale-a-still",
+    "title": "Upscale a Still — NodeTool AI Workflow Template",
+    "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "upscale-a-still",
+    "name": "Upscale a Still",
+    "summary": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Upscale",
+        "label": "Upscale",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/upscale-a-still.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 180,
+          "width": 280
+        },
+        {
+          "id": "up",
+          "type": "nodetool.image.Upscale",
+          "title": "Upscale",
+          "x": 360,
+          "y": 180,
+          "width": 280,
+          "subtitle": "fal-ai/esrgan"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 720,
+          "y": 200,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "up",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "up",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/validate-a-postcode-shape",
+    "title": "Validate a Postcode Shape — NodeTool AI Workflow Template",
+    "description": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "validate-a-postcode-shape",
+    "name": "Validate a Postcode Shape",
+    "summary": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.RegexValidate",
+        "label": "Regex Validate",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/validate-a-postcode-shape.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "SW1A 1AA"
+        },
+        {
+          "id": "rv",
+          "type": "nodetool.text.RegexValidate",
+          "title": "Regex Validate",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "rv",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "rv",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/vectorize-a-generated-logo",
+    "title": "Vectorize a Generated Logo — NodeTool AI Workflow Template",
+    "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "vectorize-a-generated-logo",
+    "name": "Vectorize a Generated Logo",
+    "summary": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Vectorize",
+        "label": "Vectorize",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/vectorize-a-generated-logo.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "p",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "a flat minimal fox head logo, two colors, thick shapes, solid white background"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "vec",
+          "type": "nodetool.image.Vectorize",
+          "title": "Vectorize",
+          "x": 640,
+          "y": 120,
+          "width": 280,
+          "subtitle": "fal-ai/recraft/vectorize"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "p",
+          "sourceHandle": "output",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "vec",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "vec",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/vectorize-a-photo-you-provide",
+    "title": "Vectorize a Photo You Provide — NodeTool AI Workflow Template",
+    "description": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "vectorize-a-photo-you-provide",
+    "name": "Vectorize a Photo You Provide",
+    "summary": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.Vectorize",
+        "label": "Vectorize",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/vectorize-a-photo-you-provide.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "vec",
+          "type": "nodetool.image.Vectorize",
+          "title": "Vectorize",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "fal-ai/recraft/vectorize"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "vec",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "vec",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/video-restyle-studio",
+    "title": "Video Restyle Studio — NodeTool AI Workflow Template",
+    "description": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "video-restyle-studio",
+    "name": "Video Restyle Studio",
+    "summary": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
+    "tags": [
+      "video",
+      "design",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.VideoToVideo",
+        "label": "Video To Video",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/video-restyle-studio.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-video",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-style",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 400,
+          "width": 280,
+          "subtitle": "1980s anime cel animation, hand-inked outlines, flat gouache colour, visible film grain"
+        },
+        {
+          "id": "in-keep",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 560,
+          "width": 280,
+          "subtitle": "faces, text, and the position of every subject in frame"
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 380,
+          "y": 420,
+          "width": 320,
+          "subtitle": "Restyle this footage. Target style: {{ style }} Preserve exactly: {{ preserve }} Apply the style uniformly across every frame so the look d…"
+        },
+        {
+          "id": "restyle",
+          "type": "nodetool.video.VideoToVideo",
+          "title": "Video To Video",
+          "x": 780,
+          "y": 320,
+          "width": 280,
+          "subtitle": "decart/lucy-edit-2"
+        },
+        {
+          "id": "output-video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1140,
+          "y": 340,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-style",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "in-keep",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "preserve",
+          "color": "any"
+        },
+        {
+          "source": "in-video",
+          "sourceHandle": "output",
+          "target": "restyle",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "restyle",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "restyle",
+          "sourceHandle": "output",
+          "target": "output-video",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/vignette-a-portrait",
+    "title": "Vignette a Portrait — NodeTool AI Workflow Template",
+    "description": "Darken the corners to pull the eye inward. Radius sets where the falloff starts, softness how abruptly it arrives.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "vignette-a-portrait",
+    "name": "Vignette a Portrait",
+    "summary": "Darken the corners to pull the eye inward. Radius sets where the falloff starts, softness how abruptly it arrives.",
+    "tags": [
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "lib.image.filter.Vignette",
+        "label": "Vignette",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/vignette-a-portrait.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "f",
+          "type": "lib.image.filter.Vignette",
+          "title": "Vignette",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "f",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "f",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/voice-a-script-in-two-voices",
+    "title": "Voice a Script in Two Voices — NodeTool AI Workflow Template",
+    "description": "A two-hander needs two voices. Synthesising each part separately and joining them is what lets you re-record one line without re-rendering the whole exchange.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "voice-a-script-in-two-voices",
+    "name": "Voice a Script in Two Voices",
+    "summary": "A two-hander needs two voices. Synthesising each part separately and joining them is what lets you re-record one line without re-rendering the whole exchange.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.Concat",
+        "label": "Concat",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": "/templates/voice-a-script-in-two-voices.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "a",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "b",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ta",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "tb",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 990,
+          "y": 120,
+          "width": 300,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "cat",
+          "type": "nodetool.audio.Concat",
+          "title": "Concat",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "ta",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "tb",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ta",
+          "sourceHandle": "audio",
+          "target": "cat",
+          "targetHandle": "a",
+          "color": "any"
+        },
+        {
+          "source": "tb",
+          "sourceHandle": "audio",
+          "target": "cat",
+          "targetHandle": "b",
+          "color": "any"
+        },
+        {
+          "source": "cat",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/warm-up-a-cold-clip",
+    "title": "Warm Up a Cold Clip — NodeTool AI Workflow Template",
+    "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "warm-up-a-cold-clip",
+    "name": "Warm Up a Cold Clip",
+    "summary": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.video.ColorBalance",
+        "label": "Color Balance",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/warm-up-a-cold-clip.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "cb",
+          "type": "nodetool.video.ColorBalance",
+          "title": "Color Balance",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "cb",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "cb",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/widen-a-mono-voice",
+    "title": "Widen a Mono Voice — NodeTool AI Workflow Template",
+    "description": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "widen-a-mono-voice",
+    "name": "Widen a Mono Voice",
+    "summary": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
+    "tags": [
+      "audio",
+      "example"
+    ],
+    "category": "Audio & Music",
+    "nodeTypes": [
+      {
+        "type": "nodetool.audio.MonoToStereo",
+        "label": "Mono To Stereo",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": "/templates/widen-a-mono-voice.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "t",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Stereo is not louder. It is wider."
+        },
+        {
+          "id": "tts",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "tts-1"
+        },
+        {
+          "id": "ms",
+          "type": "nodetool.audio.MonoToStereo",
+          "title": "Mono To Stereo",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "tts",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tts",
+          "sourceHandle": "audio",
+          "target": "ms",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "ms",
+          "sourceHandle": "output",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -8704,6 +25262,284 @@ export const templateEntries: TemplateEntry[] = [
           "source": "orchestrator",
           "sourceHandle": "text",
           "target": "output-article",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/wrap-a-value-in-quotes",
+    "title": "Wrap a Value in Quotes — NodeTool AI Workflow Template",
+    "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "wrap-a-value-in-quotes",
+    "name": "Wrap a Value in Quotes",
+    "summary": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.SurroundWith",
+        "label": "Surround With",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/wrap-a-value-in-quotes.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "s",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "shipped"
+        },
+        {
+          "id": "sw",
+          "type": "nodetool.text.SurroundWith",
+          "title": "Surround With",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "s",
+          "sourceHandle": "output",
+          "target": "sw",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "sw",
+          "sourceHandle": "output",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/write-a-listing-from-the-product-photo",
+    "title": "Write a Listing from the Product Photo — NodeTool AI Workflow Template",
+    "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "write-a-listing-from-the-product-photo",
+    "name": "Write a Listing from the Product Photo",
+    "summary": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
+    "tags": [
+      "text",
+      "image",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      }
+    ],
+    "nodeCount": 3,
+    "thumbnail": "/templates/write-a-listing-from-the-product-photo.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "Write a product title under 70 characters and a description of about 80 words for the product in this image."
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/write-the-prompt-then-make-the-image",
+    "title": "Write the Prompt, Then Make the Image — NodeTool AI Workflow Template",
+    "description": "The model writes its own image prompt from a plain description. Useful when the person with the idea does not want to learn prompt craft — and the intermediate prompt stays visible, so it can be corrected rather than guessed at.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "write-the-prompt-then-make-the-image",
+    "name": "Write the Prompt, Then Make the Image",
+    "summary": "The model writes its own image prompt from a plain description. Useful when the person with the idea does not want to learn prompt craft — and the intermediate prompt stays visible, so it can be corrected rather than guessed at.",
+    "tags": [
+      "image",
+      "text",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 5,
+    "thumbnail": "/templates/write-the-prompt-then-make-the-image.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "gen",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 660,
+          "y": 120,
+          "width": 300,
+          "subtitle": "fal-ai/flux/schnell"
+        },
+        {
+          "id": "op",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 330,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "gen",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "op",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "gen",
+          "sourceHandle": "output",
+          "target": "out",
           "targetHandle": "value",
           "color": "any"
         }
