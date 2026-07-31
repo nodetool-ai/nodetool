@@ -31,29 +31,40 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1116,
+    "total": 1418,
     "counts": {
-      "3d": 29,
-      "image": 583,
-      "audio": 79,
+      "3d": 48,
+      "image": 691,
+      "audio": 125,
       "text": 15,
-      "video": 410
+      "video": 539
     },
     "topTags": [
       "editing",
-      "video",
       "generation",
-      "transformation",
+      "video",
       "image to image",
       "img2img",
+      "transformation",
       "text to image",
-      "image to video",
-      "txt2img",
       "video to video",
-      "lora",
-      "vid2vid"
+      "vid2vid",
+      "txt2img",
+      "image to video",
+      "img2vid"
     ],
     "models": [
+      {
+        "id": "bria/embed-product",
+        "name": "Embed Product",
+        "kind": "image",
+        "desc": "Seamlessly embed products into any scene with pixel-perfect control, automatic perspective, and natural lighting.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
       {
         "id": "bria/eraser",
         "name": "Bria Eraser",
@@ -63,6 +74,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "image",
           "eraser",
           "removal"
+        ]
+      },
+      {
+        "id": "bria/extract-object",
+        "name": "Extract Object",
+        "kind": "image",
+        "desc": "Bria Extract Object uses text prompts to isolate a selected object from an image and return it as an RGBA PNG with a transparent background.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bria/fibo-bbq-preview/generate",
+        "name": "Fibo Bbq Preview Generate",
+        "kind": "image",
+        "desc": "A preview to the next level of control of Text-to-Image models.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
         ]
       },
       {
@@ -107,6 +140,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "image",
           "editing",
           "bria"
+        ]
+      },
+      {
+        "id": "bria/fibo-edit/edit/structured_instruction",
+        "name": "Bria Fibo Edit Edit Structured instruction",
+        "kind": "image",
+        "desc": "Structured Instructions Generation endpoint for Fibo Edit, Bria's newest editing model.",
+        "tags": [
+          "text",
+          "analysis",
+          "json"
         ]
       },
       {
@@ -209,6 +253,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/fibo-lite/generate/structured_prompt",
+        "name": "Bria Fibo Lite Generate Structured prompt",
+        "kind": "image",
+        "desc": "Structured Prompt Generation endpoint for Fibo-Lite, Bria's SOTA Open source model",
+        "tags": [
+          "text",
+          "analysis",
+          "json"
+        ]
+      },
+      {
         "id": "bria/fibo/generate",
         "name": "Bria Fibo Generate",
         "kind": "image",
@@ -220,14 +275,36 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "bria/reimagine/3.2",
-        "name": "Bria Reimagine32",
+        "id": "bria/fibo/generate/structured_prompt",
+        "name": "Bria Fibo Generate Structured prompt",
         "kind": "image",
-        "desc": "Reimagine",
+        "desc": "Structured Prompt Generation endpoint for Fibo, Bria's SOTA Open source model",
+        "tags": [
+          "text",
+          "analysis",
+          "json"
+        ]
+      },
+      {
+        "id": "bria/genfill/v2",
+        "name": "Genfill V2",
+        "kind": "image",
+        "desc": "The GenFill Route enables the generation of objects by prompt in a specific region of an image.",
         "tags": [
           "editing",
-          "transformation",
-          "image to image"
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bria/product-dimensions",
+        "name": "Product Dimensions",
+        "kind": "image",
+        "desc": "Bria Product Dimensions turns one product photo and its measurements into a marketplace-ready dimension image with callout lines, labels, and weight or capac…",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
         ]
       },
       {
@@ -242,6 +319,61 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "bria/upscale/creative",
+        "name": "Upscale Creative",
+        "kind": "image",
+        "desc": "Professional-grade creative upscaler that doubles resolution up to 10MP, regenerating sharper textures, refined details, and cleaner faces.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/lite/edit",
+        "name": "Seedream V5 Lite Edit",
+        "kind": "image",
+        "desc": "Image editing endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent image editing with multiple inputs.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/lite/text-to-image",
+        "name": "Seedream V5 Lite Text To Image",
+        "kind": "image",
+        "desc": "Text to Image endpoint for the fast Lite version of Seedream 5.0, supporting high quality intelligent text-to-image generation.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/pro/edit",
+        "name": "Seedream V5 Pro Edit",
+        "kind": "image",
+        "desc": "Seedream 5.0 Pro is grounded, region-precise image editing model that changes one element while keeping the rest of the frame intact with layer separation, s…",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "bytedance/seedream/v5/pro/text-to-image",
+        "name": "Seedream V5 Pro Text To Image",
+        "kind": "image",
+        "desc": "ByteDance's Seedream 5.0 Pro is flagship text-to-image model, with deep-thinking prompt understanding, native text in 14 languages, and precise control over…",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
+      {
         "id": "clarityai/crystal-upscaler",
         "name": "Clarityai Crystal Upscaler",
         "kind": "image",
@@ -250,6 +382,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "editing",
           "transformation",
           "image to image"
+        ]
+      },
+      {
+        "id": "decart/lucy-2-5/realtime",
+        "name": "Lucy25 Realtime",
+        "kind": "image",
+        "desc": "Real-time, prompt-driven video editing over WebRTC.",
+        "tags": [
+          "editing",
+          "video to video",
+          "vid2vid"
         ]
       },
       {
@@ -341,157 +484,14 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/birefnet",
-        "name": "Bi Ref Net",
+        "id": "fal-ai/bernini-r/edit-image",
+        "name": "Bernini REdit Image",
         "kind": "image",
-        "desc": "BiRefNet (Bilateral Reference Network) performs high-quality background removal with precise edge detection and detail preservation.",
-        "tags": [
-          "image",
-          "background removal",
-          "segmentation"
-        ]
-      },
-      {
-        "id": "fal-ai/birefnet/v2",
-        "name": "Birefnet V2",
-        "kind": "image",
-        "desc": "bilateral reference framework (BiRefNet) for high-resolution dichotomous image segmentation (DIS)",
+        "desc": "Edit any image with a natural-language instruction using Bernini-R, changing the weather, materials, objects, or style while preserving the original composit…",
         "tags": [
           "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/background/remove",
-        "name": "Bria Background Remove",
-        "kind": "image",
-        "desc": "Bria RMBG 2.0 enables seamless removal of backgrounds from images, ideal for professional editing tasks.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/background/replace",
-        "name": "Bria Background Replace V2",
-        "kind": "image",
-        "desc": "Bria Background Replace allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished results…",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/eraser",
-        "name": "Bria Eraser V2",
-        "kind": "image",
-        "desc": "Bria Eraser enables precise removal of unwanted objects from images while maintaining high-quality outputs.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/expand",
-        "name": "Bria Expand",
-        "kind": "image",
-        "desc": "Bria Expand expands images beyond their borders in high quality.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/genfill",
-        "name": "Bria Genfill",
-        "kind": "image",
-        "desc": "Bria GenFill enables high-quality object addition or visual transformation.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/product-shot",
-        "name": "Bria Product Shot",
-        "kind": "image",
-        "desc": "Place any product in any scenery with just a prompt or reference image while maintaining high integrity of the product.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/reimagine",
-        "name": "Bria Reimagine",
-        "kind": "image",
-        "desc": "Bria",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/text-to-image/base",
-        "name": "Bria Text To Image Base",
-        "kind": "image",
-        "desc": "Bria's Text-to-Image model, trained exclusively on licensed data for safe and risk-free commercial use.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/text-to-image/fast",
-        "name": "Bria Text To Image Fast",
-        "kind": "image",
-        "desc": "Bria's Text-to-Image model with perfect harmony of latency and quality.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "fal-ai/bria/text-to-image/hd",
-        "name": "Bria Text To Image Hd",
-        "kind": "image",
-        "desc": "Bria's Text-to-Image model for HD images.",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/dreamina/v3.1/text-to-image",
-        "name": "Bytedance Dreamina V31 Text To Image",
-        "kind": "image",
-        "desc": "Bytedance",
-        "tags": [
-          "generation",
-          "text to image",
-          "txt2img"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seed3d/image-to-3d",
-        "name": "Bytedance Seed3 DImage To3 D",
-        "kind": "image",
-        "desc": "Bytedance",
-        "tags": [
-          "3d",
-          "generation",
-          "image to 3d"
+          "image to image",
+          "img2img"
         ]
       },
       {
@@ -521,6 +521,39 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Alibaba Happy Horse Text To Video",
         "kind": "video",
         "desc": "Generate videos from text with Alibaba Happy Horse.",
+        "tags": [
+          "generation",
+          "text to video",
+          "txt2vid"
+        ]
+      },
+      {
+        "id": "alibaba/happy-horse/v1.1/image-to-video",
+        "name": "Happy Horse V11 Image To Video",
+        "kind": "video",
+        "desc": "Happy Horse 1.1 is Alibaba's #1-ranked video model.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "alibaba/happy-horse/v1.1/reference-to-video",
+        "name": "Happy Horse V11 Reference To Video",
+        "kind": "video",
+        "desc": "Happy Horse 1.1 is Alibaba's #1-ranked video model.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "alibaba/happy-horse/v1.1/text-to-video",
+        "name": "Happy Horse V11 Text To Video",
+        "kind": "video",
+        "desc": "Happy Horse 1.1 is Alibaba's #1-ranked video model.",
         "tags": [
           "generation",
           "text to video",
@@ -558,6 +591,83 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "video",
           "generation",
           "avatar"
+        ]
+      },
+      {
+        "id": "bria/bria_video_eraser/erase/keypoints",
+        "name": "Bria Video Eraser Keypoints",
+        "kind": "video",
+        "desc": "Bria Video Eraser removes objects from videos using keypoint-based selection.",
+        "tags": [
+          "video",
+          "object removal",
+          "eraser"
+        ]
+      },
+      {
+        "id": "bria/bria_video_eraser/erase/mask",
+        "name": "Bria Video Eraser Mask",
+        "kind": "video",
+        "desc": "Bria Video Eraser removes objects from videos using mask-based selection.",
+        "tags": [
+          "video",
+          "object removal",
+          "eraser"
+        ]
+      },
+      {
+        "id": "bria/bria_video_eraser/erase/prompt",
+        "name": "Bria Video Eraser Prompt",
+        "kind": "video",
+        "desc": "Bria Video Eraser removes objects from videos using text prompt descriptions.",
+        "tags": [
+          "video",
+          "object removal",
+          "eraser"
+        ]
+      },
+      {
+        "id": "bria/video/background-removal/v3",
+        "name": "Video Background Removal V3",
+        "kind": "video",
+        "desc": "Remove backgrounds from any video with Bria's VRMBG 3.0.",
+        "tags": [
+          "editing",
+          "video to video",
+          "vid2vid"
+        ]
+      },
+      {
+        "id": "bria/video/erase/keypoints",
+        "name": "Bria Video Erase Keypoints",
+        "kind": "video",
+        "desc": "Video",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
+        "id": "bria/video/erase/mask",
+        "name": "Bria Video Erase Mask",
+        "kind": "video",
+        "desc": "Video",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
+        "id": "bria/video/erase/prompt",
+        "name": "Bria Video Erase Prompt",
+        "kind": "video",
+        "desc": "Video",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
         ]
       },
       {
@@ -624,6 +734,39 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "generation",
           "image to video",
           "img2vid"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.0/mini/image-to-video",
+        "name": "Seedance20 Mini Image To Video",
+        "kind": "video",
+        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.0/mini/reference-to-video",
+        "name": "Seedance20 Mini Reference To Video",
+        "kind": "video",
+        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+        "tags": [
+          "generation",
+          "image to video",
+          "img2vid"
+        ]
+      },
+      {
+        "id": "bytedance/seedance-2.0/mini/text-to-video",
+        "name": "Seedance20 Mini Text To Video",
+        "kind": "video",
+        "desc": "Seedance 2.0 Mini is a faster version of Seedance 2.0 that brings great performance and high generation speed at a lower cost.",
+        "tags": [
+          "generation",
+          "text to video",
+          "txt2vid"
         ]
       },
       {
@@ -792,146 +935,14 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/animatediff-sparsectrl-lcm",
-        "name": "Animate Diff Sparse Ctrl LCM",
-        "kind": "video",
-        "desc": "AnimateDiff SparseCtrl LCM animates drawings with latent consistency models for fast generation.",
+        "id": "async/tts-pro/v1.0",
+        "name": "Async Tts Pro V10",
+        "kind": "audio",
+        "desc": "Generate professional-quality voiceovers in seconds with Async TTS Pro model text-based control over pauses, emphasis, and timing.",
         "tags": [
-          "video",
           "generation",
-          "animatediff"
-        ]
-      },
-      {
-        "id": "fal-ai/auto-caption",
-        "name": "Auto Caption",
-        "kind": "video",
-        "desc": "Auto Caption automatically generates and adds captions to videos with speech recognition.",
-        "tags": [
-          "video",
-          "captions",
-          "subtitles"
-        ]
-      },
-      {
-        "id": "fal-ai/ben/v2/video",
-        "name": "Ben V2 Video",
-        "kind": "video",
-        "desc": "Ben v2 Video enhances and processes video content with advanced AI techniques.",
-        "tags": [
-          "video",
-          "enhancement",
-          "processing"
-        ]
-      },
-      {
-        "id": "fal-ai/birefnet/v2/video",
-        "name": "Bi Ref Net V2 Video",
-        "kind": "video",
-        "desc": "BiRefNet v2 Video performs background removal from videos with high accuracy.",
-        "tags": [
-          "video",
-          "background removal",
-          "segmentation"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance-upscaler/upscale/video",
-        "name": "Bytedance Upscaler Upscale Video",
-        "kind": "video",
-        "desc": "Bytedance Upscaler",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/omnihuman",
-        "name": "Bytedance Omnihuman",
-        "kind": "video",
-        "desc": "OmniHuman generates video using an image of a human figure paired with an audio file.",
-        "tags": [
-          "video",
-          "animation",
-          "image to video"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/omnihuman/v1.5",
-        "name": "Omni Human V15",
-        "kind": "video",
-        "desc": "OmniHuman v1.5 generates realistic human videos from images.",
-        "tags": [
-          "video",
-          "human",
-          "realistic"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1.5/pro/image-to-video",
-        "name": "See Dance V15 Pro Image To Video",
-        "kind": "video",
-        "desc": "SeeDance v1.5 Pro generates high-quality dance videos from images.",
-        "tags": [
-          "video",
-          "dance",
-          "animation"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1.5/pro/text-to-video",
-        "name": "See Dance V15 Pro Text To Video",
-        "kind": "video",
-        "desc": "SeeDance v1.5 Pro from ByteDance generates high-quality dance videos from text prompts.",
-        "tags": [
-          "video",
-          "generation",
-          "dance"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1/lite/image-to-video",
-        "name": "Bytedance Seedance V1 Lite Image To Video",
-        "kind": "video",
-        "desc": "Seedance 1.0 Lite",
-        "tags": [
-          "video",
-          "animation",
-          "image to video"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1/lite/reference-to-video",
-        "name": "See Dance V1 Lite Reference To Video",
-        "kind": "video",
-        "desc": "SeeDance v1 Lite generates lightweight dance videos using reference images.",
-        "tags": [
-          "video",
-          "dance",
-          "lite"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1/lite/text-to-video",
-        "name": "Bytedance Seedance V1 Lite Text To Video",
-        "kind": "video",
-        "desc": "Seedance 1.0 Lite",
-        "tags": [
-          "video",
-          "generation",
-          "text to video"
-        ]
-      },
-      {
-        "id": "fal-ai/bytedance/seedance/v1/pro/fast/image-to-video",
-        "name": "See Dance V1 Pro Fast Image To Video",
-        "kind": "video",
-        "desc": "SeeDance v1 Pro Fast generates dance videos quickly from images.",
-        "tags": [
-          "video",
-          "dance",
-          "fast"
+          "text to speech",
+          "tts"
         ]
       },
       {
@@ -954,6 +965,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "audio",
           "generation",
           "text to audio"
+        ]
+      },
+      {
+        "id": "bytedance/seed-audio-1.0",
+        "name": "Seed Audio10",
+        "kind": "audio",
+        "desc": "Seed Audio 1.0 is a new audio model from Bytedance that can generate high-quality, natural sounding audio using text, reference audios or an image.",
+        "tags": [
+          "generation",
+          "text to audio",
+          "audio"
         ]
       },
       {
@@ -1031,6 +1053,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "audio",
           "generation",
           "music"
+        ]
+      },
+      {
+        "id": "fal-ai/bytedance/seed-speech/tts/v2",
+        "name": "Bytedance Seed Speech Tts V2",
+        "kind": "audio",
+        "desc": "Seed Speech developed by ByteDance, is a family of large-scale text-to-speech models capable of synthesizing speech that is virtually indistinguishable from…",
+        "tags": [
+          "generation",
+          "text to speech",
+          "tts"
         ]
       },
       {
@@ -1166,36 +1199,47 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/elevenlabs/tts/multilingual-v2",
-        "name": "Eleven Labs TTSMultilingual V2",
-        "kind": "audio",
-        "desc": "ElevenLabs Multilingual TTS v2 generates natural speech in multiple languages.",
+        "id": "fal-ai/hunyuan-3d/v3.1/pro/image-to-3d",
+        "name": "Hunyuan3d V31 Pro Image To3d",
+        "kind": "3d",
+        "desc": "Generate 3D models from images with Hunyuan 3D Pro",
         "tags": [
-          "audio",
-          "tts",
-          "speech"
+          "generation",
+          "image to 3d",
+          "3d"
         ]
       },
       {
-        "id": "fal-ai/elevenlabs/tts/turbo-v2.5",
-        "name": "Elevenlabs Tts Turbo V25",
-        "kind": "audio",
-        "desc": "Generate high-speed text-to-speech audio using ElevenLabs TTS Turbo v2.5.",
+        "id": "fal-ai/hunyuan-3d/v3.1/pro/text-to-3d",
+        "name": "Hunyuan3d V31 Pro Text To3d",
+        "kind": "3d",
+        "desc": "Generate 3D models from text prompts with Hunyuan 3D Pro",
         "tags": [
-          "speech",
-          "synthesis",
-          "text to speech"
+          "generation",
+          "text to 3d",
+          "3d"
         ]
       },
       {
-        "id": "fal-ai/elevenlabs/voice-changer",
-        "name": "Elevenlabs Voice Changer",
-        "kind": "audio",
-        "desc": "ElevenLabs Voice Changer transforms voice characteristics in audio with AI-powered voice conversion.",
+        "id": "fal-ai/hunyuan-3d/v3.1/rapid/image-to-3d",
+        "name": "Hunyuan3d V31 Rapid Image To3d",
+        "kind": "3d",
+        "desc": "Rapidly generate 3D models from images using Hunyuan 3D.",
         "tags": [
-          "audio",
-          "voice change",
-          "elevenlabs"
+          "generation",
+          "image to 3d",
+          "3d"
+        ]
+      },
+      {
+        "id": "fal-ai/hunyuan-3d/v3.1/smart-topology",
+        "name": "Hunyuan3d V31 Smart Topology",
+        "kind": "3d",
+        "desc": "Optimize 3D mesh topology with Hunyuan 3D Smart Topology.",
+        "tags": [
+          "processing",
+          "3d to 3d",
+          "3d"
         ]
       },
       {
@@ -1331,50 +1375,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/meshy/v5/multi-image-to-3d",
-        "name": "Meshy V5 Multi Image To3 D",
-        "kind": "3d",
-        "desc": "Meshy 5 Multi",
-        "tags": [
-          "3d",
-          "generation",
-          "image to 3d"
-        ]
-      },
-      {
-        "id": "fal-ai/meshy/v5/remesh",
-        "name": "Meshy V5 Remesh",
-        "kind": "3d",
-        "desc": "Meshy-5 remesh allows you to remesh and export existing 3D models into various formats",
-        "tags": [
-          "3d",
-          "editing",
-          "transformation"
-        ]
-      },
-      {
-        "id": "fal-ai/meshy/v5/retexture",
-        "name": "Meshy V5 Retexture",
-        "kind": "3d",
-        "desc": "Meshy-5 retexture applies new, high-quality textures to existing 3D models using either text prompts or reference images.",
-        "tags": [
-          "3d",
-          "editing",
-          "transformation"
-        ]
-      },
-      {
-        "id": "fal-ai/meshy/v6-preview/image-to-3d",
-        "name": "Meshy V6 Preview Image To3 D",
-        "kind": "3d",
-        "desc": "Meshy 6 Preview",
-        "tags": [
-          "3d",
-          "generation",
-          "image to 3d"
-        ]
-      },
-      {
         "id": "fal-ai/audio-understanding",
         "name": "Audio Understanding",
         "kind": "text",
@@ -1466,12 +1466,12 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "replicate": {
     "id": "replicate",
-    "total": 403,
+    "total": 655,
     "counts": {
-      "image": 175,
-      "text": 96,
-      "video": 78,
-      "audio": 54
+      "image": 310,
+      "text": 127,
+      "video": 156,
+      "audio": 62
     },
     "topTags": [],
     "models": [
@@ -1480,6 +1480,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Background Remover 851",
         "kind": "image",
         "desc": "Remove backgrounds from images.",
+        "tags": []
+      },
+      {
+        "id": "aaronaftab/mirage-ghibli",
+        "name": "Mirage Ghibli",
+        "kind": "image",
+        "desc": "Ghiblify any image, 10x cheaper/faster than GPT 4o",
         "tags": []
       },
       {
@@ -1504,6 +1511,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "anon987654321/ra2",
+        "name": "Ra2",
+        "kind": "image",
+        "desc": "",
+        "tags": []
+      },
+      {
         "id": "arielreplicate/deoldify_image",
         "name": "Deoldify Image",
         "kind": "image",
@@ -1511,10 +1525,31 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "arthuryeti/dwiss-qwen-2",
+        "name": "Dwiss Qwen 2",
+        "kind": "image",
+        "desc": "",
+        "tags": []
+      },
+      {
         "id": "black-forest-labs/flux-1.1-pro-ultra",
         "name": "Flux 1 1 Pro Ultra",
         "kind": "image",
         "desc": "FLUX1.1 [pro] in ultra and raw modes.",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-1.1-pro-ultra-finetuned",
+        "name": "Flux 1 1 Pro Ultra Finetuned",
+        "kind": "image",
+        "desc": "Inference model for FLUX 1.1 [pro] Ultra using custom `finetune_id`.",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-dev",
+        "name": "Flux 2 Dev",
+        "kind": "image",
+        "desc": "Quality image generation and editing with support for reference images",
         "tags": []
       },
       {
@@ -1529,6 +1564,41 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Flux 2 Klein 4 B",
         "kind": "image",
         "desc": "Very fast image generation and editing model.",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-klein-4b-base",
+        "name": "Flux 2 Klein 4b Base",
+        "kind": "image",
+        "desc": "Un-distilled version of FLUX.2 [klein].",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-klein-4b-base-lora",
+        "name": "Flux 2 Klein 4b Base Lora",
+        "kind": "image",
+        "desc": "A version of FLUX.2 [klein] 4B-base that supports fast fine-tuned lora inference",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-klein-9b",
+        "name": "Flux 2 Klein 9b",
+        "kind": "image",
+        "desc": "4 step distilled version of FLUX.2 [klein].",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-klein-9b-base",
+        "name": "Flux 2 Klein 9b Base",
+        "kind": "image",
+        "desc": "Un-distilled version of FLUX.2 [klein].",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-2-klein-9b-base-lora",
+        "name": "Flux 2 Klein 9b Base Lora",
+        "kind": "image",
+        "desc": "A version of FLUX.2 [klein] 9B-base that supports fast fine-tuned lora inference",
         "tags": []
       },
       {
@@ -1602,6 +1672,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "black-forest-labs/flux-kontext-dev",
+        "name": "Flux Kontext Dev",
+        "kind": "image",
+        "desc": "Open-weight version of FLUX.1 Kontext",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-kontext-dev-lora",
+        "name": "Flux Kontext Dev Lora",
+        "kind": "image",
+        "desc": "FLUX.1 Kontext[dev] image editing model for running lora finetunes",
+        "tags": []
+      },
+      {
         "id": "black-forest-labs/flux-kontext-max",
         "name": "Flux Kontext Max",
         "kind": "image",
@@ -1616,10 +1700,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "black-forest-labs/flux-krea-dev",
+        "name": "Flux Krea Dev",
+        "kind": "image",
+        "desc": "An opinionated text-to-image model from Black Forest Labs in collaboration with Krea that excels in photorealism.",
+        "tags": []
+      },
+      {
         "id": "black-forest-labs/flux-pro",
         "name": "Flux Pro",
         "kind": "image",
         "desc": "State-of-the-art image generation with top of the line prompt following, visual quality, image detail and output diversity.",
+        "tags": []
+      },
+      {
+        "id": "black-forest-labs/flux-pro-finetuned",
+        "name": "Flux Pro Finetuned",
+        "kind": "image",
+        "desc": "Inference model for FLUX.1 [pro] using custom `finetune_id`",
         "tags": []
       },
       {
@@ -1658,108 +1756,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
-        "id": "bria/expand-image",
-        "name": "Expand Image",
-        "kind": "image",
-        "desc": "Bria Expand expands images beyond their borders in high quality.",
-        "tags": []
-      },
-      {
-        "id": "bria/fibo",
-        "name": "Fibo",
-        "kind": "image",
-        "desc": "SOTA Open source model trained on licensed data, transforming intent into structured control for precise, high-quality AI image generation in enterprise and…",
-        "tags": []
-      },
-      {
-        "id": "bria/fibo-edit",
-        "name": "Bria Fibo Edit",
-        "kind": "image",
-        "desc": "FIBO-Edit brings the power of structured prompt generation to image editing",
-        "tags": []
-      },
-      {
-        "id": "bria/generate-background",
-        "name": "Bria Generate Background",
-        "kind": "image",
-        "desc": "Bria Background Generation allows for efficient swapping of backgrounds in images via text prompts or reference image, delivering realistic and polished resu…",
-        "tags": []
-      },
-      {
-        "id": "bria/genfill",
-        "name": "Bria Gen Fill",
-        "kind": "image",
-        "desc": "Bria GenFill enables high-quality object addition or visual transformation.",
-        "tags": []
-      },
-      {
-        "id": "bria/image-3.2",
-        "name": "Bria Image 3 2",
-        "kind": "image",
-        "desc": "Commercial-ready, trained entirely on licensed data, text-to-image model.",
-        "tags": []
-      },
-      {
-        "id": "bria/increase-resolution",
-        "name": "Bria Increase Resolution",
-        "kind": "image",
-        "desc": "Bria Increase resolution upscales the resolution of any image.",
-        "tags": []
-      },
-      {
-        "id": "bria/remove-background",
-        "name": "Bria Remove Background",
-        "kind": "image",
-        "desc": "Bria AI's remove background model",
-        "tags": []
-      },
-      {
-        "id": "bytedance/flux-pulid",
-        "name": "Flux Pu LID",
-        "kind": "image",
-        "desc": "⚡️FLUX PuLID: FLUX-dev based Pure and Lightning ID Customization via Contrastive Alignment🎭",
-        "tags": []
-      },
-      {
-        "id": "bytedance/hyper-flux-8step",
-        "name": "Hyper Flux 8 Step",
-        "kind": "image",
-        "desc": "Hyper FLUX 8-step by ByteDance",
-        "tags": []
-      },
-      {
-        "id": "bytedance/pulid",
-        "name": "Pu LID",
-        "kind": "image",
-        "desc": "📖 PuLID: Pure and Lightning ID Customization via Contrastive Alignment",
-        "tags": []
-      },
-      {
-        "id": "bytedance/sdxl-lightning-4step",
-        "name": "Stable Diffusion XLLightning",
-        "kind": "image",
-        "desc": "SDXL-Lightning by ByteDance: a fast text-to-image model that makes high-quality images in 4 steps",
-        "tags": []
-      },
-      {
-        "id": "bytedance/seedream-3",
-        "name": "Seedream 3",
-        "kind": "image",
-        "desc": "A text-to-image model with support for native high-resolution (2K) image generation",
-        "tags": []
-      },
-      {
-        "id": "bytedance/seedream-4",
-        "name": "Seedream 4",
-        "kind": "image",
-        "desc": "Unified text-to-image generation and precise single-sentence editing at up to 4K resolution",
-        "tags": []
-      },
-      {
         "id": "alibaba/happyhorse-1.0",
         "name": "Happy Horse 1",
         "kind": "video",
         "desc": "Alibaba's Happy Horse 1.0 generates videos from text prompts or animates a single image into video.",
+        "tags": []
+      },
+      {
+        "id": "alibaba/happyhorse-1.1",
+        "name": "Happyhorse 1 1",
+        "kind": "video",
+        "desc": "Alibaba's Happy Horse 1.1 generates videos from text, animates a single image, or builds a video from multiple reference images.",
+        "tags": []
+      },
+      {
+        "id": "andreasjansson/wan-1.3b-inpaint",
+        "name": "Wan 1 3b Inpaint",
+        "kind": "video",
+        "desc": "Inpainting and video2video experiments with Wan 2.1",
         "tags": []
       },
       {
@@ -1784,6 +1798,27 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "bria/video-erase-object",
+        "name": "Video Erase Object",
+        "kind": "video",
+        "desc": "A high-fidelity capability for erasing unwanted objects, people, or visual elements from videos while maintaining aesthetic quality and temporal consistency",
+        "tags": []
+      },
+      {
+        "id": "bria/video-increase-resolution",
+        "name": "Video Increase Resolution",
+        "kind": "video",
+        "desc": "Upscale videos up to 8K output resolution.",
+        "tags": []
+      },
+      {
+        "id": "bria/video-remove-background",
+        "name": "Video Remove Background",
+        "kind": "video",
+        "desc": "Automatically remove backgrounds from videos -perfect for creating clean, professional content without a green screen.",
+        "tags": []
+      },
+      {
         "id": "bytedance/dreamactor-m2.0",
         "name": "Dream Actor M2",
         "kind": "video",
@@ -1802,6 +1837,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Omni Human",
         "kind": "video",
         "desc": "Turns your audio/video/images into professional-quality animated videos",
+        "tags": []
+      },
+      {
+        "id": "bytedance/omni-human-1.5",
+        "name": "Omni Human 1 5",
+        "kind": "video",
+        "desc": "A film-grade digital human model that generates realistic video from a single image, audio clip, and optional text prompt.",
         "tags": []
       },
       {
@@ -1826,10 +1868,45 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "bytedance/seedance-1.5-pro",
+        "name": "Seedance 1 5 Pro",
+        "kind": "video",
+        "desc": "A joint audio-video model that accurately follows complex instructions.",
+        "tags": []
+      },
+      {
         "id": "bytedance/seedance-2.0",
         "name": "Seedance 2",
         "kind": "video",
         "desc": "ByteDance's multimodal video generation model with native audio, multimodal reference inputs, and intelligent duration control.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2.0-fast",
+        "name": "Seedance 2 0 Fast",
+        "kind": "video",
+        "desc": "A faster variant of Seedance 2.0 for quicker video generation with multimodal inputs and native audio.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/seedance-2.0-mini",
+        "name": "Seedance 2 0 Mini",
+        "kind": "video",
+        "desc": "A lower-cost variant of Seedance 2.0 for high-volume video generation with multimodal inputs and native audio.",
+        "tags": []
+      },
+      {
+        "id": "bytedance/video-upscaler",
+        "name": "Video Upscaler",
+        "kind": "video",
+        "desc": "Upscale and enhance video up to 4K at 60fps, with scene-aware presets for AI-generated content, short dramas, UGC, and film restoration.",
+        "tags": []
+      },
+      {
+        "id": "character-ai/ovi-i2v",
+        "name": "Ovi I2v",
+        "kind": "video",
+        "desc": "Ovi: generate videos with audio from image and text inputs",
         "tags": []
       },
       {
@@ -1854,6 +1931,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "decart/lucy-edit-2",
+        "name": "Lucy Edit 2",
+        "kind": "video",
+        "desc": "Edit and transform videos with text prompts and reference images.",
+        "tags": []
+      },
+      {
+        "id": "easel/ai-avatars",
+        "name": "Ai Avatars",
+        "kind": "video",
+        "desc": "Use one or two face images to create AI avatars",
+        "tags": []
+      },
+      {
         "id": "fictions-ai/autocaption",
         "name": "Auto Caption",
         "kind": "video",
@@ -1861,10 +1952,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "flux-kontext-apps/restyle-video-frame",
+        "name": "Restyle Video Frame",
+        "kind": "video",
+        "desc": "Use flux-kontext-pro to change the first or last frame of a video.",
+        "tags": []
+      },
+      {
         "id": "fofr/audio-to-waveform",
         "name": "Audio To Waveform",
         "kind": "video",
         "desc": "Create a waveform video from audio",
+        "tags": []
+      },
+      {
+        "id": "fofr/kontext-ps1",
+        "name": "Kontext Ps1",
+        "kind": "video",
+        "desc": "FLUX Kontext fine-tune that let's you restyle any image as a PS1 or PS2 video game",
         "tags": []
       },
       {
@@ -1896,6 +2001,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "google/veo-3.1-fast",
+        "name": "Veo 3 1 Fast",
+        "kind": "video",
+        "desc": "New and improved version of Veo 3 Fast, with higher-fidelity video, context-aware audio and last frame support",
+        "tags": []
+      },
+      {
         "id": "google/veo-3.1-lite",
         "name": "Veo 3 1 Lite",
         "kind": "video",
@@ -1903,136 +2015,24 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "heygen/avatar-iv",
+        "name": "Avatar Iv",
+        "kind": "video",
+        "desc": "Create realistic talking avatar videos from text with HeyGen's Avatar IV engine",
+        "tags": []
+      },
+      {
+        "id": "heygen/avatar-v",
+        "name": "Avatar V",
+        "kind": "video",
+        "desc": "Create realistic talking avatar videos from text with HeyGen's Avatar V engine — the newest, highest-quality avatar engine with cross-reference-driven animat…",
+        "tags": []
+      },
+      {
         "id": "heygen/lipsync-precision",
         "name": "Hey Gen Lipsync Precision",
         "kind": "video",
         "desc": "High-accuracy lip-sync: replace or dub audio on any video with avatar-inference lip sync",
-        "tags": []
-      },
-      {
-        "id": "heygen/lipsync-speed",
-        "name": "Hey Gen Lipsync Speed",
-        "kind": "video",
-        "desc": "Fast lip-sync: replace or dub audio on any video with quick audio-driven lip sync",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-avatar-v2",
-        "name": "Kling Avatar V2",
-        "kind": "video",
-        "desc": "Create avatar videos with realistic humans, animals, cartoons, or stylized characters",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-lip-sync",
-        "name": "Kling Lip Sync",
-        "kind": "video",
-        "desc": "Add lip-sync to any video with an audio file or text",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-v2.1",
-        "name": "Kling V2 1",
-        "kind": "video",
-        "desc": "Use Kling v2.1 to generate 5s and 10s videos in 720p and 1080p resolution from a starting image (image-to-video)",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-v2.5-turbo-pro",
-        "name": "Kling V2 5 Turbo Pro",
-        "kind": "video",
-        "desc": "Kling 2.5 Turbo Pro: Unlock pro-level text-to-video and image-to-video creation with smooth motion, cinematic depth, and remarkable prompt adherence.",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-v2.6",
-        "name": "Kling V2 6",
-        "kind": "video",
-        "desc": "Kling 2.6 Pro: Top-tier image-to-video with cinematic visuals, fluid motion, and native audio generation",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-v3-omni-video",
-        "name": "Kling V3 Omni Video",
-        "kind": "video",
-        "desc": "Kling Video 3.0 Omni: Unified multimodal video generation with reference images, video editing, native audio, and multi-shot control",
-        "tags": []
-      },
-      {
-        "id": "kwaivgi/kling-v3-video",
-        "name": "Kling V3 Video",
-        "kind": "video",
-        "desc": "Kling Video 3.0: Generate cinematic videos up to 15 seconds with multi-shot control, native audio, and improved consistency",
-        "tags": []
-      },
-      {
-        "id": "lightricks/ltx-video",
-        "name": "LTX Video",
-        "kind": "video",
-        "desc": "LTX-Video is the first DiT-based video generation model capable of generating high-quality videos in real-time.",
-        "tags": []
-      },
-      {
-        "id": "lucataco/hotshot-xl",
-        "name": "Hotshot XL",
-        "kind": "video",
-        "desc": "😊 Hotshot-XL is an AI text-to-GIF model trained to work alongside Stable Diffusion XL",
-        "tags": []
-      },
-      {
-        "id": "lucataco/modelscope-facefusion",
-        "name": "Face Fusion",
-        "kind": "video",
-        "desc": "Auto fuse a user's face onto the template image, with a similar appearance to the user",
-        "tags": []
-      },
-      {
-        "id": "lucataco/real-esrgan-video",
-        "name": "Real Esr Gan Video",
-        "kind": "video",
-        "desc": "Real-ESRGAN Video Upscaler",
-        "tags": []
-      },
-      {
-        "id": "lucataco/rembg-video",
-        "name": "Rembg Video",
-        "kind": "video",
-        "desc": "Video Background Removal",
-        "tags": []
-      },
-      {
-        "id": "luma/modify-video",
-        "name": "Modify Video",
-        "kind": "video",
-        "desc": "Modify a video with style transfer and prompt-based editing",
-        "tags": []
-      },
-      {
-        "id": "luma/ray-2-540p",
-        "name": "Ray 2 540p",
-        "kind": "video",
-        "desc": "Generate 5s and 9s 540p videos",
-        "tags": []
-      },
-      {
-        "id": "luma/ray-2-720p",
-        "name": "Ray 2 720p",
-        "kind": "video",
-        "desc": "Generate 5s and 9s 720p videos",
-        "tags": []
-      },
-      {
-        "id": "luma/ray-flash-2-540p",
-        "name": "Ray Flash 2 540p",
-        "kind": "video",
-        "desc": "Generate 5s and 9s 540p videos, faster and cheaper than Ray 2",
-        "tags": []
-      },
-      {
-        "id": "luma/ray-flash-2-720p",
-        "name": "Ray Flash 2 720p",
-        "kind": "video",
-        "desc": "Generate 5s and 9s 720p videos, faster and cheaper than Ray 2",
         "tags": []
       },
       {
@@ -2134,6 +2134,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "google/lyria-3",
+        "name": "Lyria 3",
+        "kind": "audio",
+        "desc": "Generate 30-second music clips from text prompts or images with Lyria 3, Google's music generation model",
+        "tags": []
+      },
+      {
+        "id": "google/lyria-3-pro",
+        "name": "Lyria 3 Pro",
+        "kind": "audio",
+        "desc": "Generate full-length songs up to 3 minutes from text prompts or images with Lyria 3 Pro, Google's most capable music generation model",
+        "tags": []
+      },
+      {
+        "id": "inworld/realtime-tts-1.5-max",
+        "name": "Realtime Tts 1 5 Max",
+        "kind": "audio",
+        "desc": "Highest-quality realtime text-to-speech with <200ms latency, emotion control, and 15-language support",
+        "tags": []
+      },
+      {
+        "id": "inworld/realtime-tts-1.5-mini",
+        "name": "Realtime Tts 1 5 Mini",
+        "kind": "audio",
+        "desc": "Ultra-fast, cost-efficient realtime text-to-speech with ~120ms latency and 15-language support",
+        "tags": []
+      },
+      {
         "id": "inworld/realtime-tts-2",
         "name": "Inworld Realtime TTS 2",
         "kind": "audio",
@@ -2173,34 +2201,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "CSM 1 B",
         "kind": "audio",
         "desc": "CSM (Conversational Speech Model) is a speech generation model from Sesame that generates RVQ audio codes from text and audio inputs",
-        "tags": []
-      },
-      {
-        "id": "lucataco/magnet",
-        "name": "MAGNe T",
-        "kind": "audio",
-        "desc": "MAGNeT: Masked Audio Generation using a Single Non-Autoregressive Transformer",
-        "tags": []
-      },
-      {
-        "id": "lucataco/orpheus-3b-0.1-ft",
-        "name": "Orpheus 3 B",
-        "kind": "audio",
-        "desc": "Orpheus 3B - high quality, emotive Text to Speech",
-        "tags": []
-      },
-      {
-        "id": "lucataco/xtts-v2",
-        "name": "XTTS V2",
-        "kind": "audio",
-        "desc": "Coqui XTTS-v2: Multilingual Text To Speech Voice Cloning",
-        "tags": []
-      },
-      {
-        "id": "meta/musicgen",
-        "name": "Music Gen",
-        "kind": "audio",
-        "desc": "Generate music from a prompt or melody",
         "tags": []
       },
       {
@@ -2246,17 +2246,17 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "anthropic/claude-3.5-haiku",
+        "name": "Claude 3 5 Haiku",
+        "kind": "text",
+        "desc": "Anthropic's fastest, most cost-effective model, with a 200K token context window (claude-3-5-haiku-20241022)",
+        "tags": []
+      },
+      {
         "id": "anthropic/claude-3.7-sonnet",
         "name": "Claude 3 7 Sonnet",
         "kind": "text",
         "desc": "The most intelligent Claude model and the first hybrid reasoning model on the market (claude-3-7-sonnet-20250219)",
-        "tags": []
-      },
-      {
-        "id": "anthropic/claude-4-sonnet",
-        "name": "Claude 4 Sonnet",
-        "kind": "text",
-        "desc": "Claude Sonnet 4 is a significant upgrade to 3.7, delivering superior coding and reasoning while responding more precisely to your instructions",
         "tags": []
       }
     ]
