@@ -66,7 +66,10 @@ export const CODE_GEN_EVAL_CASES: readonly CodeGenEvalCase[] = [
     ],
     expect: {
       minOutputs: 3,
-      outputTypeKinds: ["float", "int"]
+      // Subtotal, tax and grand total are all money. An earlier version also
+      // demanded an int output, which nothing in the instruction asks for —
+      // the eval was wrong, not the model.
+      outputTypeKinds: ["float"]
     }
   },
   {

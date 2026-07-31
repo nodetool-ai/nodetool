@@ -13,6 +13,7 @@ import type {
   CodeGenSampleValues
 } from "@nodetool-ai/protocol/api-schemas/code-gen.js";
 import { renderSandboxApiReference } from "./sandbox-prompt.js";
+import { CORE_PORT_TYPES } from "./port-types.js";
 import type { SandboxManifest } from "./sandbox-manifest.js";
 
 /** Cap on one rendered sample value so a big payload can't crowd out the task. */
@@ -52,7 +53,12 @@ by returning an object whose keys are exactly the declared outputs.
   for values that persist across runs. A one-shot transformation needs neither.
 - Pass media and asset reference objects through unchanged. They are handles the
   rest of the workflow resolves; never re-encode one as base64 or a data URL.
-- Declare a type per port. Use \`any\` only when the value really is unknown.
+- Declare a type per port, using NodeTool's own names: \`${CORE_PORT_TYPES.join(
+  "`, `"
+)}\`, or an asset/node type. They are not JSON Schema names — an integer is
+  \`int\`, a string is \`str\`, a boolean is \`bool\`, an object is \`dict\`, an
+  array is \`list\`. A port typed with the wrong name will not connect. Use
+  \`any\` only when the value really is unknown.
 - Keep the code readable: no defensive wrappers around values the node is
   already typed for, no comments restating the line below them.`;
 

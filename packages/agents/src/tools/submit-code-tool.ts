@@ -24,6 +24,7 @@ import {
 import { z } from "zod";
 import { Tool } from "./base-tool.js";
 import { analyzeGeneratedCode } from "../code-gen/analyze.js";
+import { checkPortTypes } from "../code-gen/port-types.js";
 
 const PORT_TYPE_SCHEMA = {
   type: "object" as const,
@@ -152,6 +153,16 @@ export class SubmitCodeTool extends Tool {
 
     const submission = parsed.data;
     this.lastCode = submission.code;
+
+    // A port type lands verbatim on the node and decides handle compatibility,
+    // so an `integer` where NodeTool means `int` produces a node that looks
+    // right and will not connect. The transport schema can't catch it — custom
+    // type names are open-ended — but the feedback round can.
+    const typeErrors = checkPortTypes(submission);
+    if (typeErrors.length > 0) {
+      this.lastErrors = typeErrors;
+      return { status: "code_rejected", errors: typeErrors };
+    }
 
     const analysis = analyzeGeneratedCode(
       submission.code,
