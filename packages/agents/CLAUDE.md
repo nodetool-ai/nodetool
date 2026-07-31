@@ -648,7 +648,8 @@ IS_SANDBOX=1 npx tsx packages/agents/scripts/dump-creative-run.ts \
 makes it a CI-priced eval. Pass `--live` and the same tool calls additionally
 hit fal, so the run leaves real stills and clips in
 `nodetool-debug/creative-<case>-media/` without changing a tool contract or a
-predicate. `MediaBackend` is an interface in the bridge; the fal wiring lives in
+predicate. One run's output is checked in at `docs/evals/creative-pipeline/`
+so the suite's media can be inspected without paying for a run. `MediaBackend` is an interface in the bridge; the fal wiring lives in
 the script, because `packages/agents` has no fal dependency and should not grow
 one for an opt-in path.
 
