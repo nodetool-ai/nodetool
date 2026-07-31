@@ -57,6 +57,7 @@ import {
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
 import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import type {
   ProviderTool,
@@ -204,9 +205,7 @@ function shouldValidateOutboundWs(): boolean {
   const override = process.env["NODETOOL_VALIDATE_OUTBOUND_WS"]?.trim();
   if (override === "1" || override === "true") return true;
   if (override === "0" || override === "false") return false;
-  return (
-    process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"])
-  );
+  return process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"]);
 }
 
 /**
@@ -229,7 +228,9 @@ function assertValidOutboundMessage(message: Record<string, unknown>): void {
     throw new Error(
       `Outbound WebSocket message failed protocol validation (type: "${type}"): ` +
         parsed.error.issues
-          .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+          .map(
+            (issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`
+          )
           .join("; ")
     );
   }
@@ -3482,14 +3483,8 @@ export class UnifiedWebSocketRunner {
           0,
           relayCompletedAt - active.timings.kernelStartedAt
         ),
-        terminalDeliveryMs: Math.max(
-          0,
-          terminalDeliveredAt - relayCompletedAt
-        ),
-        totalMs: Math.max(
-          0,
-          terminalDeliveredAt - active.timings.acceptedAt
-        )
+        terminalDeliveryMs: Math.max(0, terminalDeliveredAt - relayCompletedAt),
+        totalMs: Math.max(0, terminalDeliveredAt - active.timings.acceptedAt)
       }
     });
 
@@ -4662,6 +4657,9 @@ export class UnifiedWebSocketRunner {
     }
 
     const serverToolMap = new Map(serverTools.map((t) => [t.name, t]));
+    const workflowDocumentToolNames = new Set<string>(
+      WORKFLOW_DOCUMENT_TOOL_NAMES
+    );
     log.info("Resolved server tools", {
       permissionMode,
       resolved: serverTools.map((t) => t.name)
@@ -4678,6 +4676,7 @@ export class UnifiedWebSocketRunner {
     const clientToolNames = Object.keys(this.clientToolsManifest);
     const clientSchemas: ProviderTool[] = [];
     for (const [name, manifest] of Object.entries(this.clientToolsManifest)) {
+      if (serverToolMap.has(name)) continue;
       // The frontend manifest carries the JSON schema under `parameters`
       // (FrontendToolRegistry.getManifest); accept `inputSchema` too for any
       // client that uses the provider-tool field name.
@@ -4756,6 +4755,7 @@ export class UnifiedWebSocketRunner {
         : tmpdir();
     const ctx = createRuntimeContext({
       jobId: randomUUID(),
+      workflowId,
       threadId: threadId || null,
       userId,
       workspaceDir: chatWorkspaceDir,
@@ -4886,9 +4886,31 @@ export class UnifiedWebSocketRunner {
     ): Promise<string | MessageContent[]> => {
       let toolResult: unknown;
       const serverTool = serverToolMap.get(toolCall.name);
-      if (serverTool) {
+      const preferClientDocumentTool =
+        workflowDocumentToolNames.has(toolCall.name) &&
+        this.clientToolsManifest[toolCall.name] !== undefined;
+      if (preferClientDocumentTool) {
+        // The renderer owns live, potentially unsaved state. Use it when it is
+        // present; the server implementation remains the headless fallback.
+        await this.sendMessage({
+          type: "tool_call",
+          thread_id: threadId,
+          tool_call_id: toolCall.id,
+          name: toolCall.name,
+          args: toolCall.args
+        });
+        const clientResult = await this.toolBridge.createWaiter(
+          toolCall.id,
+          300_000,
+          threadId
+        );
+        toolResult =
+          clientResult.result ?? clientResult.content ?? clientResult;
+      } else if (serverTool) {
         try {
-          toolResult = await serverTool.process(ctx, toolCall.args);
+          toolResult = await Tool.executeTool(serverTool, ctx, toolCall.args, {
+            toolCallId: toolCall.id
+          });
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
           log.error("Tool execution failed", {
@@ -7780,8 +7802,7 @@ export class UnifiedWebSocketRunner {
 
       const msgType = typeof data.type === "string" ? data.type : null;
       if (msgType !== null && msgType in controlMessageInSchemas) {
-        const schema =
-          controlMessageInSchemas[msgType as ControlMessageInType];
+        const schema = controlMessageInSchemas[msgType as ControlMessageInType];
         const parsed = schema.safeParse(data);
         if (!parsed.success) {
           await this.sendMessage({
@@ -7789,7 +7810,10 @@ export class UnifiedWebSocketRunner {
             message:
               `Malformed '${msgType}' frame: ` +
               parsed.error.issues
-                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .map(
+                  (issue) =>
+                    `${issue.path.join(".") || "<root>"}: ${issue.message}`
+                )
                 .join("; ")
           });
           continue;
@@ -7856,7 +7880,10 @@ export class UnifiedWebSocketRunner {
             details:
               "Malformed command envelope: " +
               envelopeParsed.error.issues
-                .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                .map(
+                  (issue) =>
+                    `${issue.path.join(".") || "<root>"}: ${issue.message}`
+                )
                 .join("; ")
           });
           continue;
@@ -7867,14 +7894,19 @@ export class UnifiedWebSocketRunner {
         const dataSchema =
           commandDataSchemas[envelopeParsed.data.command as UnifiedCommandType];
         if (dataSchema) {
-          const dataParsed = dataSchema.safeParse(envelopeParsed.data.data ?? {});
+          const dataParsed = dataSchema.safeParse(
+            envelopeParsed.data.data ?? {}
+          );
           if (!dataParsed.success) {
             await this.sendMessage({
               error: "invalid_command",
               details:
                 `Malformed '${envelopeParsed.data.command}' data: ` +
                 dataParsed.error.issues
-                  .map((issue) => `${issue.path.join(".") || "<root>"}: ${issue.message}`)
+                  .map(
+                    (issue) =>
+                      `${issue.path.join(".") || "<root>"}: ${issue.message}`
+                  )
                   .join("; ")
             });
             continue;

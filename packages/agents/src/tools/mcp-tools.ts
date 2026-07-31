@@ -8,7 +8,7 @@
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
@@ -26,6 +26,14 @@ import {
 } from "./media-tools.js";
 import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { uiToolSchemas } from "@nodetool-ai/protocol";
+import { graph as workflowGraphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import {
+  applyWorkflowDocumentTool,
+  WORKFLOW_DOCUMENT_TOOL_NAMES,
+  type WorkflowDocumentToolName
+} from "@nodetool-ai/node-sdk";
+import { z } from "zod";
 import { GraphPlanner } from "../graph-planner.js";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
@@ -123,9 +131,7 @@ function withAutoLayout(nodes: unknown, edges: unknown): unknown {
   const isRecord = (v: unknown): v is Record<string, unknown> =>
     !!v && typeof v === "object" && !Array.isArray(v);
   const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
-  const ids = nodes
-    .filter(isRecord)
-    .map((node) => String(node["id"] ?? ""));
+  const ids = nodes.filter(isRecord).map((node) => String(node["id"] ?? ""));
   const positions = computeAutoLayout(ids, edgeList);
   return nodes.map((node) => {
     if (!isRecord(node)) return node;
@@ -250,6 +256,24 @@ async function apiPost(
   return res.json();
 }
 
+async function apiPut(
+  context: ProcessingContext,
+  path: string,
+  body: unknown
+): Promise<unknown> {
+  const url = new URL(path, getApiUrl(context));
+  const res = await fetch(url.toString(), {
+    method: "PUT",
+    headers: getHeaders(context),
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    return { error: `API error ${res.status}: ${text}` };
+  }
+  return res.json();
+}
+
 // ============================================================================
 // Workflow Tools
 // ============================================================================
@@ -323,7 +347,9 @@ export class ListWorkflowsTool extends Tool {
       );
       return { examples, user };
     }
-    return lightWorkflowList(await apiGet(context, "/api/workflows/", { limit }));
+    return lightWorkflowList(
+      await apiGet(context, "/api/workflows/", { limit })
+    );
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -359,6 +385,134 @@ export class GetWorkflowTool extends Tool {
   userMessage(params: Record<string, unknown>): string {
     return `Getting workflow ${params["workflow_id"]}`;
   }
+}
+
+export class WorkflowDocumentTool extends Tool {
+  readonly description: string;
+
+  constructor(
+    readonly name: WorkflowDocumentToolName,
+    private readonly registry?: NodeRegistry
+  ) {
+    super();
+    this.description = uiToolSchemas[name].description;
+  }
+
+  override get schema(): z.ZodType {
+    return z.object(uiToolSchemas[this.name].parameters);
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const workflowId =
+      typeof params["workflow_id"] === "string"
+        ? params["workflow_id"]
+        : context.workflowId;
+    if (!workflowId) {
+      return {
+        error: "workflow_id_required",
+        message: "workflow_id is required when no workflow is active."
+      };
+    }
+
+    const response = await apiGet(context, `/api/workflows/${workflowId}`);
+    if (!response || typeof response !== "object" || Array.isArray(response)) {
+      return { error: "Invalid workflow response" };
+    }
+    const workflow = response as Record<string, unknown>;
+    if ("error" in workflow) return workflow;
+    const parsedGraph = workflowGraphSchema.safeParse(workflow["graph"]);
+    if (!parsedGraph.success) {
+      return { error: "Workflow has an invalid graph" };
+    }
+
+    const metadataByType = new Map<string, NodeMetadata>();
+    const loadMetadata = async (nodeType: string): Promise<void> => {
+      const local = this.registry?.resolveMetadata(nodeType);
+      if (local) {
+        metadataByType.set(nodeType, local);
+        return;
+      }
+      const remote = await apiGet(context, "/api/nodes/metadata", {
+        node_type: nodeType
+      });
+      if (
+        remote &&
+        typeof remote === "object" &&
+        !Array.isArray(remote) &&
+        !("error" in remote)
+      ) {
+        metadataByType.set(nodeType, remote as NodeMetadata);
+      }
+    };
+
+    if (this.name === "ui_add_node" && typeof params["type"] === "string") {
+      await loadMetadata(params["type"]);
+    } else if (this.name === "ui_connect_nodes") {
+      const sourceId = String(params["source_node_id"]);
+      const targetId = String(params["target_node_id"]);
+      const source = parsedGraph.data.nodes.find(
+        (node) => node.id === sourceId
+      );
+      const target = parsedGraph.data.nodes.find(
+        (node) => node.id === targetId
+      );
+      await Promise.all(
+        [source?.type, target?.type]
+          .filter((type): type is string => typeof type === "string")
+          .map(loadMetadata)
+      );
+    }
+
+    const applied = applyWorkflowDocumentTool(
+      parsedGraph.data,
+      this.name,
+      params,
+      {
+        workflowId,
+        resolveMetadata: (nodeType) => metadataByType.get(nodeType)
+      }
+    );
+    if (!applied.changed) return applied.result;
+
+    const updated = await apiPut(context, `/api/workflows/${workflowId}`, {
+      name: workflow["name"],
+      access: workflow["access"] ?? "private",
+      graph: applied.graph,
+      tool_name: workflow["tool_name"],
+      description: workflow["description"],
+      tags: workflow["tags"],
+      package_name: workflow["package_name"],
+      thumbnail: workflow["thumbnail"],
+      thumbnail_url: workflow["thumbnail_url"],
+      settings: workflow["settings"],
+      run_mode: workflow["run_mode"],
+      workspace_id: workflow["workspace_id"],
+      html_app: workflow["html_app"],
+      app_doc: workflow["app_doc"],
+      expected_updated_at: workflow["updated_at"]
+    });
+    if (!updated || typeof updated !== "object" || Array.isArray(updated)) {
+      return { error: "Invalid workflow update response" };
+    }
+    const persisted = updated as Record<string, unknown>;
+    if ("error" in persisted) return persisted;
+    return {
+      ...applied.result,
+      updated_at: persisted["updated_at"],
+      etag: persisted["etag"]
+    };
+  }
+}
+
+export function createWorkflowDocumentTools(
+  registry?: NodeRegistry
+): WorkflowDocumentTool[] {
+  return WORKFLOW_DOCUMENT_TOOL_NAMES.map(
+    (name) => new WorkflowDocumentTool(name, registry)
+  );
 }
 
 export class CreateWorkflowTool extends Tool {
@@ -448,8 +602,12 @@ function summarizeWorkflowGraph(workflow: unknown): unknown {
   if (!workflow || typeof workflow !== "object") return workflow;
   const wf = workflow as Record<string, unknown>;
   const graph = (wf.graph ?? wf) as Record<string, unknown>;
-  const nodes = Array.isArray(graph.nodes) ? (graph.nodes as Array<Record<string, unknown>>) : [];
-  const edges = Array.isArray(graph.edges) ? (graph.edges as Array<Record<string, unknown>>) : [];
+  const nodes = Array.isArray(graph.nodes)
+    ? (graph.nodes as Array<Record<string, unknown>>)
+    : [];
+  const edges = Array.isArray(graph.edges)
+    ? (graph.edges as Array<Record<string, unknown>>)
+    : [];
   return {
     id: wf.id,
     name: wf.name,
@@ -480,7 +638,8 @@ export class DebugWorkflowTool extends Tool {
       },
       include_graph: {
         type: "boolean" as const,
-        description: "Include the workflow graph overview in the report (default true)"
+        description:
+          "Include the workflow graph overview in the report (default true)"
       },
       log_limit: {
         type: "number" as const,
@@ -506,7 +665,9 @@ export class DebugWorkflowTool extends Tool {
 
     const jobId = (run as Record<string, unknown>)?.["job_id"];
     if (typeof jobId === "string") {
-      report["job"] = await apiGet(context, `/api/jobs/${jobId}`, { limit: logLimit });
+      report["job"] = await apiGet(context, `/api/jobs/${jobId}`, {
+        limit: logLimit
+      });
     }
     if (includeGraph) {
       const wf = await apiGet(context, `/api/workflows/${workflowId}`);
@@ -533,7 +694,8 @@ export class ValidateWorkflowTool extends Tool {
     properties: {
       workflow_id: {
         type: "string" as const,
-        description: "The ID of a saved workflow to validate (fetched from the API)"
+        description:
+          "The ID of a saved workflow to validate (fetched from the API)"
       },
       graph: {
         type: "object" as const,
@@ -1255,6 +1417,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       new GetNodeInfoTool()
     );
   }
+  tools.push(...createWorkflowDocumentTools(options.registry));
 
   if (options.providers && Object.keys(options.providers).length > 0) {
     tools.push(

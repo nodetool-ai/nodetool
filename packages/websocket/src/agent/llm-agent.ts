@@ -37,6 +37,7 @@ import { processChat } from "@nodetool-ai/chat";
 import {
   GraphPlanner,
   Tool,
+  createWorkflowDocumentTools,
   createDefaultLongTermMemory,
   type LongTermMemory
 } from "@nodetool-ai/agents";
@@ -45,14 +46,18 @@ import {
   ProcessingContext,
   getProvider as getRuntimeProvider,
   isProviderConfigured,
-  listRegisteredProviderIds,
+  listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { BaseProvider, Message, ToolCall } from "@nodetool-ai/runtime";
-import type { GraphData, NodeDescriptor, ProcessingMessage } from "@nodetool-ai/protocol";
+import type {
+  GraphData,
+  NodeDescriptor,
+  ProcessingMessage
+} from "@nodetool-ai/protocol";
 import {
   Message as DbMessage,
   Thread as DbThread,
-  getSecret as getStoredSecret,
+  getSecret as getStoredSecret
 } from "@nodetool-ai/models";
 import type {
   AgentMessage,
@@ -60,14 +65,14 @@ import type {
   AgentModelDescriptor,
   AgentSessionInfoEntry,
   AgentTranscriptMessage,
-  FrontendToolManifest,
+  FrontendToolManifest
 } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 
 import {
   SYSTEM_PROMPT,
   type AgentQuerySession,
-  type AgentSdkProvider,
+  type AgentSdkProvider
 } from "./sdk-provider.js";
 import type { AgentTransport } from "./transport.js";
 
@@ -100,30 +105,29 @@ class UiBridgeTool extends Tool {
   constructor(
     private readonly transport: AgentTransport,
     private readonly sessionId: string,
-    manifest: FrontendToolManifest,
+    manifest: FrontendToolManifest
   ) {
     super();
     this.name = manifest.name;
     this.description = manifest.description;
     // Manifest parameters are already JSON Schema (see toolSchemas.ts and the
     // renderer's frontend tool registration). Pass through unchanged.
-    this.jsonSchema =
-      (manifest.parameters as Record<string, unknown>) ?? {
-        type: "object",
-        properties: {},
-      };
+    this.jsonSchema = (manifest.parameters as Record<string, unknown>) ?? {
+      type: "object",
+      properties: {}
+    };
   }
 
   async process(
     _ctx: ProcessingContext,
-    params: Record<string, unknown>,
+    params: Record<string, unknown>
   ): Promise<unknown> {
     try {
       return await this.transport.executeTool(
         this.sessionId,
         randomUUID(),
         this.name,
-        params,
+        params
       );
     } catch (err) {
       // Tool failures (validation, runtime, etc.) must be returned to the
@@ -142,7 +146,7 @@ class UiBridgeTool extends Tool {
         argsPreview = argsPreview.slice(0, 497) + "...";
       }
       log.warn(
-        `Tool ${this.name} failed in session ${this.sessionId}: ${message} | args=${argsPreview}`,
+        `Tool ${this.name} failed in session ${this.sessionId}: ${message} | args=${argsPreview}`
       );
       return { isError: true, error: message };
     }
@@ -366,7 +370,9 @@ class GraphPlannerUiTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     const objective =
-      typeof params.objective === "string" ? params.objective.slice(0, 80) : "workflow";
+      typeof params.objective === "string"
+        ? params.objective.slice(0, 80)
+        : "workflow";
     return `Planning workflow graph: ${objective}`;
   }
 }
@@ -413,7 +419,7 @@ function dbMessageToConversation(m: DbMessage): Message | null {
       ? (m.tool_calls as unknown as ToolCall[])
       : null,
     toolCallId: typeof m.tool_call_id === "string" ? m.tool_call_id : null,
-    threadId: m.thread_id,
+    threadId: m.thread_id
   };
 }
 
@@ -482,7 +488,7 @@ class LlmAgentSession implements AgentQuerySession {
         // Renderer asked to resume a thread we don't own — refuse loudly so
         // the user gets a clear error instead of a phantom new session.
         throw new Error(
-          `Cannot resume LLM agent session: thread ${this.threadId} not found for user ${this.userId}`,
+          `Cannot resume LLM agent session: thread ${this.threadId} not found for user ${this.userId}`
         );
       }
       const [rows] = await DbMessage.paginate(this.threadId, { limit: 1000 });
@@ -494,7 +500,7 @@ class LlmAgentSession implements AgentQuerySession {
     } else {
       const thread = await DbThread.create({
         user_id: this.userId,
-        title: "",
+        title: ""
       });
       this.threadId = thread.id;
     }
@@ -509,7 +515,7 @@ class LlmAgentSession implements AgentQuerySession {
       // so the ephemeral system message is not re-persisted.
       this.conversation.unshift({
         role: "system",
-        content: this.systemPrompt,
+        content: this.systemPrompt
       } as Message);
       this.persistedCount++;
     }
@@ -543,13 +549,13 @@ class LlmAgentSession implements AgentQuerySession {
           tool_call_id: m.toolCallId ?? null,
           provider: this.chatProviderId,
           model: this.model,
-          agent_execution_id: LLM_AGENT_MARKER,
+          agent_execution_id: LLM_AGENT_MARKER
         });
       } catch (err) {
         log.warn(
           `Failed to persist LLM agent message (thread ${this.threadId}): ${
             err instanceof Error ? err.message : String(err)
-          }`,
+          }`
         );
         // Persistence is best-effort — failing here shouldn't kill the turn.
       }
@@ -568,7 +574,7 @@ class LlmAgentSession implements AgentQuerySession {
     sessionId: string,
     manifest: FrontendToolManifest[],
     onMessage?: (message: AgentMessage) => void,
-    _mcpServerUrl?: string | null,
+    _mcpServerUrl?: string | null
   ): Promise<AgentMessage[]> {
     if (this.closed) {
       throw new Error("Cannot send to a closed session");
@@ -590,10 +596,10 @@ class LlmAgentSession implements AgentQuerySession {
 
     try {
       await this.hydrate();
-      const provider = await getRuntimeProvider(
-        this.chatProviderId,
-        (key) => getStoredSecret(key, this.userId).then((v) => v ?? undefined),
+      const provider = await getRuntimeProvider(this.chatProviderId, (key) =>
+        getStoredSecret(key, this.userId).then((v) => v ?? undefined)
       );
+      const manifestNames = new Set(manifest.map((tool) => tool.name));
       const tools = [
         new GraphPlannerUiTool({
           provider,
@@ -605,6 +611,12 @@ class LlmAgentSession implements AgentQuerySession {
           emit,
           signal: this.abortController.signal
         }),
+        // Prefer the renderer adapter when it exists so commands see unsaved
+        // canvas state. Missing document tools fall back to the persisted
+        // server adapter, which is what makes an empty manifest headless-safe.
+        ...createWorkflowDocumentTools(
+          graphPlannerRegistry ?? undefined
+        ).filter((tool) => !manifestNames.has(tool.name)),
         ...manifest.map((m) => new UiBridgeTool(transport, sessionId, m))
       ];
 
@@ -612,7 +624,7 @@ class LlmAgentSession implements AgentQuerySession {
       // ignores it (the renderer holds all state). A minimal ctx is enough.
       const ctx = new ProcessingContext({
         jobId: `llm-agent-${sessionId}`,
-        userId: this.userId,
+        userId: this.userId
       });
 
       // Best-effort long-term memory. Resolved once per session and cached
@@ -676,7 +688,7 @@ class LlmAgentSession implements AgentQuerySession {
               uuid: currentTextUuid,
               session_id: this.threadId,
               text: currentTextBuffer,
-              content: [{ type: "text", text: currentTextBuffer }],
+              content: [{ type: "text", text: currentTextBuffer }]
             });
           },
           onToolCall: (toolCall) => {
@@ -692,13 +704,13 @@ class LlmAgentSession implements AgentQuerySession {
                   type: "function",
                   function: {
                     name: toolCall.name,
-                    arguments: JSON.stringify(toolCall.args ?? {}),
-                  },
-                },
-              ],
+                    arguments: JSON.stringify(toolCall.args ?? {})
+                  }
+                }
+              ]
             });
-          },
-        },
+          }
+        }
       });
 
       await this.persistNewMessages();
@@ -709,13 +721,13 @@ class LlmAgentSession implements AgentQuerySession {
         session_id: this.threadId,
         text: assistantText,
         is_error: false,
-        subtype: "success",
+        subtype: "success"
       });
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       log.error(
         `LLM agent session ${sessionId} failed`,
-        error instanceof Error ? error : new Error(errMsg),
+        error instanceof Error ? error : new Error(errMsg)
       );
       // Even on failure, save whatever did get appended (e.g. the user message)
       // so the transcript stays consistent across retries.
@@ -730,7 +742,7 @@ class LlmAgentSession implements AgentQuerySession {
         session_id: this.threadId || sessionId,
         subtype: "error",
         is_error: true,
-        errors: [errMsg],
+        errors: [errMsg]
       });
     } finally {
       this.inFlight = false;
@@ -763,7 +775,10 @@ async function getConfiguredProvidersForUser(
     listRegisteredProviderIds().map(async (providerId) => {
       try {
         if (await isProviderConfigured(providerId, getSecret)) {
-          providers[providerId] = await getRuntimeProvider(providerId, getSecret);
+          providers[providerId] = await getRuntimeProvider(
+            providerId,
+            getSecret
+          );
         }
       } catch (error) {
         log.debug("Skipping provider for graph-planner model lookup", {
@@ -785,7 +800,7 @@ async function getConfiguredProvidersForUser(
  * the "llm" agent provider.
  */
 async function listAllToolCapableLanguageModels(
-  userId: string,
+  userId: string
 ): Promise<AgentModelDescriptor[]> {
   const providerIds = listRegisteredProviderIds();
   const out: AgentModelDescriptor[] = [];
@@ -810,11 +825,9 @@ async function listAllToolCapableLanguageModels(
     if (!models || models.length === 0) continue;
 
     const flags = await Promise.all(
-      models.map((m) =>
-        provider
-          .hasToolSupport(m.id)
-          .catch(() => true), // unknown ⇒ assume supported, matches BaseProvider default
-      ),
+      models.map(
+        (m) => provider.hasToolSupport(m.id).catch(() => true) // unknown ⇒ assume supported, matches BaseProvider default
+      )
     );
 
     for (let i = 0; i < models.length; i++) {
@@ -824,7 +837,7 @@ async function listAllToolCapableLanguageModels(
         id: m.id,
         label: `${m.name || m.id} (${providerId})`,
         provider: "llm",
-        chatProviderId: providerId,
+        chatProviderId: providerId
       });
       if (out.length >= MAX_AGGREGATED_MODELS) return out;
     }
@@ -841,7 +854,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
 
   async listModels(
     userId: string,
-    _workspacePath?: string,
+    _workspacePath?: string
   ): Promise<AgentModelDescriptor[]> {
     if (!userId) {
       throw new Error("listModels requires an authenticated userId");
@@ -860,7 +873,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
   }): AgentQuerySession {
     if (!options.chatProviderId) {
       throw new Error(
-        "LLM agent session requires `chatProviderId` (e.g. 'anthropic', 'openai').",
+        "LLM agent session requires `chatProviderId` (e.g. 'anthropic', 'openai')."
       );
     }
     if (!options.userId) {
@@ -874,13 +887,13 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       // The renderer's `resumeSessionId` is our DB thread id — `send()`
       // hydrates from `Message.paginate(threadId)` on first call.
       threadId: options.resumeSessionId,
-      memoryEnabled: options.memoryEnabled,
+      memoryEnabled: options.memoryEnabled
     });
   }
 
   async listSessions(
     options: AgentListSessionsRequest,
-    userId: string,
+    userId: string
   ): Promise<AgentSessionInfoEntry[]> {
     if (!userId) {
       throw new Error("listSessions requires an authenticated userId");
@@ -918,7 +931,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
           firstPrompt:
             typeof first.content === "string" ? first.content : undefined,
           createdAt: Date.parse(thread.created_at) || undefined,
-          provider: "llm",
+          provider: "llm"
         });
 
         if (entries.length >= limit) break;
@@ -928,7 +941,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       log.warn(
         `Failed to list LLM agent sessions: ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
       return [];
     }
@@ -936,12 +949,10 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
 
   async getSessionMessages(
     options: { sessionId: string },
-    userId: string,
+    userId: string
   ): Promise<AgentTranscriptMessage[]> {
     if (!userId) {
-      throw new Error(
-        "getSessionMessages requires an authenticated userId",
-      );
+      throw new Error("getSessionMessages requires an authenticated userId");
     }
     try {
       // Verify ownership before reading messages — Thread.find filters by
@@ -951,7 +962,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       if (!thread) return [];
 
       const [rows] = await DbMessage.paginate(options.sessionId, {
-        limit: 1000,
+        limit: 1000
       });
       const out: AgentTranscriptMessage[] = [];
       for (const row of rows) {
@@ -964,8 +975,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
             : Array.isArray(row.content)
               ? (row.content as Array<Record<string, unknown>>)
                   .filter(
-                    (b) =>
-                      b.type === "text" && typeof b.text === "string",
+                    (b) => b.type === "text" && typeof b.text === "string"
                   )
                   .map((b) => b.text as string)
                   .join("\n")
@@ -975,7 +985,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
           type: row.role as "user" | "assistant",
           uuid: row.id,
           session_id: options.sessionId,
-          text,
+          text
         });
       }
       return out;
@@ -983,7 +993,7 @@ export class LlmAgentSdkProvider implements AgentSdkProvider {
       log.warn(
         `Failed to get LLM agent session messages: ${
           err instanceof Error ? err.message : String(err)
-        }`,
+        }`
       );
       return [];
     }

@@ -13,6 +13,7 @@ export * from "./validation.js";
 export * from "./type-compat.js";
 export * from "./graph-validation.js";
 export * from "./workflow-interface.js";
+export * from "./workflow-document-tools.js";
 export * from "./node-type-inventory.js";
 export * from "./correlation-validation.js";
 export * from "./nodes/test-nodes.js";

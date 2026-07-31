@@ -88,9 +88,7 @@ export const graphNode = z
     data: z.unknown().optional(),
     ui_properties: z.unknown().optional(),
     dynamic_properties: z.record(z.string(), z.unknown()).optional(),
-    dynamic_outputs: z
-      .record(z.string(), dynamicOutputTypeMetadata)
-      .optional()
+    dynamic_outputs: z.record(z.string(), dynamicOutputTypeMetadata).optional()
   })
   .passthrough();
 
@@ -313,7 +311,8 @@ export type CreateInput = z.infer<typeof createInput>;
 // ── update (PUT /api/workflows/:id) ──────────────────────────────────────────
 
 export const updateInput = workflowBody.extend({
-  id: z.string().min(1)
+  id: z.string().min(1),
+  expected_updated_at: z.string().optional()
 });
 export type UpdateInput = z.infer<typeof updateInput>;
 
@@ -361,7 +360,8 @@ export const autosaveInput = z.object({
   save_type: z.string().optional(),
   client_id: z.string().optional(),
   force: z.boolean().optional(),
-  max_versions: z.number().int().optional()
+  max_versions: z.number().int().optional(),
+  expected_updated_at: z.string().optional()
 });
 export type AutosaveInput = z.infer<typeof autosaveInput>;
 
@@ -376,7 +376,8 @@ const versionInfo = z.object({
 export const autosaveOutput = z.object({
   version: versionInfo.nullable(),
   message: z.string(),
-  skipped: z.boolean()
+  skipped: z.boolean(),
+  updated_at: z.string().nullable()
 });
 export type AutosaveOutput = z.infer<typeof autosaveOutput>;
 

@@ -122,7 +122,8 @@ export {
   ListAssetsTool,
   GetAssetTool,
   ListModelsTool,
-  getAllMcpTools
+  getAllMcpTools,
+  createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
 export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
 export {
@@ -472,10 +473,7 @@ export {
   parseJudgeVerdict,
   renderValueForJudge
 } from "./evals/goal-judge.js";
-export type {
-  GoalJudgeVerdict,
-  JudgeGoalOptions
-} from "./evals/goal-judge.js";
+export type { GoalJudgeVerdict, JudgeGoalOptions } from "./evals/goal-judge.js";
 
 // Code node authoring evaluation harness (CodePlanner)
 export {
