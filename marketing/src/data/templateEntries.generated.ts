@@ -7,9 +7,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/a-boolean-constant",
     "title": "A Boolean Constant — NodeTool AI Workflow Template",
     "description": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "a-boolean-constant",
     "name": "A Boolean Constant",
     "summary": "The smallest possible graph, and a real one: a pinned flag feeding a branch, so a switch lives in the workflow rather than in someone's head.",
@@ -30,7 +30,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/a-boolean-constant.jpg",
     "graph": {
       "nodes": [
         {
@@ -145,9 +145,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/a-constant-dictionary",
     "title": "A Constant Dictionary — NodeTool AI Workflow Template",
     "description": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "a-constant-dictionary",
     "name": "A Constant Dictionary",
     "summary": "Emit a fixed key/value map. The usual way to hold configuration a graph reads in several places, so the values live in one node instead of being retyped into three.",
@@ -170,7 +170,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/a-constant-dictionary.jpg",
     "graph": {
       "nodes": [
         {
@@ -205,9 +205,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/a-fixed-date",
     "title": "A Fixed Date — NodeTool AI Workflow Template",
     "description": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "a-fixed-date",
     "name": "A Fixed Date",
     "summary": "Emit a fixed calendar date. Looks trivial and is - it exists so a scheduled workflow can be tested against a known date instead of whatever today happens to be.",
@@ -230,7 +230,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/a-fixed-date.jpg",
     "graph": {
       "nodes": [
         {
@@ -265,9 +265,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/a-fixed-point-in-time",
     "title": "A Fixed Point in Time — NodeTool AI Workflow Template",
     "description": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "a-fixed-point-in-time",
     "name": "A Fixed Point in Time",
     "summary": "A pinned timestamp with an explicit timezone. Anything that has to be reproducible needs the date fixed in the graph rather than read off the clock at run time.",
@@ -288,7 +288,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/a-fixed-point-in-time.jpg",
     "graph": {
       "nodes": [
         {
@@ -604,9 +604,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/ai-spokesperson",
     "title": "AI Spokesperson — NodeTool AI Workflow Template",
     "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ai-spokesperson",
     "name": "AI Spokesperson",
     "summary": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
@@ -645,7 +645,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/ai-spokesperson.jpg",
     "graph": {
       "nodes": [
         {
@@ -1366,9 +1366,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/ad-loop-from-a-product-photo",
     "title": "Ad Loop from a Product Photo — NodeTool AI Workflow Template",
     "description": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "ad-loop-from-a-product-photo",
     "name": "Ad Loop from a Product Photo",
     "summary": "Turn a single product photo into a short looping ad. A prompt node writes the motion brief, Kling 2.6 on Kie animates the still, and a speed pass slows it into a hero loop. Needs a KIE_API_KEY; the video step is billed per generation.",
@@ -1412,7 +1412,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/ad-loop-from-a-product-photo.jpg",
     "graph": {
       "nodes": [
         {
@@ -1519,9 +1519,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/add-reverb-to-a-voice",
     "title": "Add Reverb to a Voice — NodeTool AI Workflow Template",
     "description": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "add-reverb-to-a-voice",
     "name": "Add Reverb to a Voice",
     "summary": "Put a dry vocal in a room. Wet level is the send, dry level the original — keeping both is what makes it sound like a space rather than a wash.",
@@ -1548,7 +1548,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/add-reverb-to-a-voice.jpg",
     "graph": {
       "nodes": [
         {
@@ -1598,9 +1598,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/add-a-computed-column",
     "title": "Add a Computed Column — NodeTool AI Workflow Template",
     "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "add-a-computed-column",
     "name": "Add a Computed Column",
     "summary": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
@@ -1628,7 +1628,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/add-a-computed-column.jpg",
     "graph": {
       "nodes": [
         {
@@ -1871,9 +1871,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/average-by-column",
     "title": "Average by Column — NodeTool AI Workflow Template",
     "description": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "average-by-column",
     "name": "Average by Column",
     "summary": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
@@ -1901,7 +1901,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/average-by-column.jpg",
     "graph": {
       "nodes": [
         {
@@ -1951,9 +1951,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/b-roll-reel-from-a-brief",
     "title": "B-Roll Reel from a Brief — NodeTool AI Workflow Template",
     "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "b-roll-reel-from-a-brief",
     "name": "B-Roll Reel from a Brief",
     "summary": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
@@ -1991,7 +1991,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 8,
-    "thumbnail": null,
+    "thumbnail": "/templates/b-roll-reel-from-a-brief.jpg",
     "graph": {
       "nodes": [
         {
@@ -2145,9 +2145,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/batch-a-list",
     "title": "Batch a List — NodeTool AI Workflow Template",
     "description": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "batch-a-list",
     "name": "Batch a List",
     "summary": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
@@ -2180,7 +2180,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/batch-a-list.jpg",
     "graph": {
       "nodes": [
         {
@@ -2424,9 +2424,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/blur-a-channel",
     "title": "Blur a Channel — NodeTool AI Workflow Template",
     "description": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "blur-a-channel",
     "name": "Blur a Channel",
     "summary": "Pull one colour channel, then blur it. A deliberately odd chain: it exists to check that single-channel output stays a valid image for the next node rather than silently losing its mode.",
@@ -2459,7 +2459,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/blur-a-channel.jpg",
     "graph": {
       "nodes": [
         {
@@ -2524,9 +2524,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/blur-an-image",
     "title": "Blur an Image — NodeTool AI Workflow Template",
     "description": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "blur-an-image",
     "name": "Blur an Image",
     "summary": "Soften an image. Useful for backplates behind text, or for anonymising a background before publishing. Local pixel work - no model, no key, no cost.",
@@ -2554,7 +2554,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/blur-an-image.jpg",
     "graph": {
       "nodes": [
         {
@@ -2604,9 +2604,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/boost-saturation",
     "title": "Boost Saturation — NodeTool AI Workflow Template",
     "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "boost-saturation",
     "name": "Boost Saturation",
     "summary": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -2634,7 +2634,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/boost-saturation.jpg",
     "graph": {
       "nodes": [
         {
@@ -2999,9 +2999,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/bring-a-still-to-life",
     "title": "Bring a Still to Life — NodeTool AI Workflow Template",
     "description": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "bring-a-still-to-life",
     "name": "Bring a Still to Life",
     "summary": "Turn one image into a short moving shot. The brief forbids restyling so the model may move the camera and add atmosphere but not redraw the subject - the same constraint the product templates rely on.",
@@ -3039,7 +3039,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/bring-a-still-to-life.jpg",
     "graph": {
       "nodes": [
         {
@@ -3765,9 +3765,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/clean-up-a-rough-voice-recording",
     "title": "Clean Up a Rough Voice Recording — NodeTool AI Workflow Template",
     "description": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "clean-up-a-rough-voice-recording",
     "name": "Clean Up a Rough Voice Recording",
     "summary": "The repair chain for a recording made in a real room: gate the noise floor, cut the rumble below speech, even out the level, then stop it clipping. Every step is cheap and local — no model involved.",
@@ -3809,7 +3809,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/clean-up-a-rough-voice-recording.jpg",
     "graph": {
       "nodes": [
         {
@@ -3904,9 +3904,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/clean-and-rank-a-table",
     "title": "Clean and Rank a Table — NodeTool AI Workflow Template",
     "description": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "clean-and-rank-a-table",
     "name": "Clean and Rank a Table",
     "summary": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
@@ -3944,7 +3944,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/clean-and-rank-a-table.jpg",
     "graph": {
       "nodes": [
         {
@@ -4024,9 +4024,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/clip-on-kie",
     "title": "Clip on Kie — NodeTool AI Workflow Template",
     "description": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "clip-on-kie",
     "name": "Clip on Kie",
     "summary": "Generate a short clip through Kie's Kling 2.6. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
@@ -4053,7 +4053,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/clip-on-kie.jpg",
     "graph": {
       "nodes": [
         {
@@ -5239,9 +5239,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/count-a-list",
     "title": "Count a List — NodeTool AI Workflow Template",
     "description": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "count-a-list",
     "name": "Count a List",
     "summary": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
@@ -5274,7 +5274,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/count-a-list.jpg",
     "graph": {
       "nodes": [
         {
@@ -5339,9 +5339,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/count-and-measure",
     "title": "Count and Measure — NodeTool AI Workflow Template",
     "description": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "count-and-measure",
     "name": "Count and Measure",
     "summary": "An integer and a float constant side by side — the pinned numbers a workflow reads as settings: how many, and how much.",
@@ -5367,7 +5367,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/count-and-measure.jpg",
     "graph": {
       "nodes": [
         {
@@ -5425,9 +5425,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/crop-an-image",
     "title": "Crop an Image — NodeTool AI Workflow Template",
     "description": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "crop-an-image",
     "name": "Crop an Image",
     "summary": "Cut a rectangle out of an image by pixel bounds. The blunt instrument - use Fit when you want the whole frame at a new size. Local pixel work - no model, no key, no cost.",
@@ -5455,7 +5455,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/crop-an-image.jpg",
     "graph": {
       "nodes": [
         {
@@ -5505,9 +5505,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/crop-then-fit",
     "title": "Crop then Fit — NodeTool AI Workflow Template",
     "description": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "crop-then-fit",
     "name": "Crop then Fit",
     "summary": "Two image steps composed: cut to a region, then scale that region into a thumbnail box. Doing it in this order means the crop decides the subject and the fit only decides the size.",
@@ -5540,7 +5540,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/crop-then-fit.jpg",
     "graph": {
       "nodes": [
         {
@@ -5605,9 +5605,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/crush-it-to-8-bits",
     "title": "Crush It to 8 Bits — NodeTool AI Workflow Template",
     "description": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "crush-it-to-8-bits",
     "name": "Crush It to 8 Bits",
     "summary": "Quantise to fewer bits and decimate the sample rate. Two independent controls: bit depth is the vertical resolution, sample-rate reduction the horizontal.",
@@ -5634,7 +5634,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/crush-it-to-8-bits.jpg",
     "graph": {
       "nodes": [
         {
@@ -5684,9 +5684,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/cut-out-the-subject",
     "title": "Cut Out the Subject — NodeTool AI Workflow Template",
     "description": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "cut-out-the-subject",
     "name": "Cut Out the Subject",
     "summary": "Strip an image down to its subject on transparency, ready to composite over any background. The usual first step for a product cut-out or a cast of characters that has to sit on brand colour.",
@@ -5713,7 +5713,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/cut-out-the-subject.jpg",
     "graph": {
       "nodes": [
         {
@@ -6053,9 +6053,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/denoise-footage",
     "title": "Denoise Footage — NodeTool AI Workflow Template",
     "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "denoise-footage",
     "name": "Denoise Footage",
     "summary": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -6083,7 +6083,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/denoise-footage.jpg",
     "graph": {
       "nodes": [
         {
@@ -6133,9 +6133,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/describe-a-table",
     "title": "Describe a Table — NodeTool AI Workflow Template",
     "description": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "describe-a-table",
     "name": "Describe a Table",
     "summary": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
@@ -6163,7 +6163,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/describe-a-table.jpg",
     "graph": {
       "nodes": [
         {
@@ -6431,9 +6431,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/does-this-text-mention-the-deadline",
     "title": "Does This Text Mention the Deadline — NodeTool AI Workflow Template",
     "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "does-this-text-mention-the-deadline",
     "name": "Does This Text Mention the Deadline",
     "summary": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
@@ -6460,7 +6460,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/does-this-text-mention-the-deadline.jpg",
     "graph": {
       "nodes": [
         {
@@ -6710,9 +6710,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/drop-duplicate-rows",
     "title": "Drop Duplicate Rows — NodeTool AI Workflow Template",
     "description": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "drop-duplicate-rows",
     "name": "Drop Duplicate Rows",
     "summary": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
@@ -6740,7 +6740,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/drop-duplicate-rows.jpg",
     "graph": {
       "nodes": [
         {
@@ -6790,9 +6790,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/drop-duplicates",
     "title": "Drop Duplicates — NodeTool AI Workflow Template",
     "description": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "drop-duplicates",
     "name": "Drop Duplicates",
     "summary": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
@@ -6825,7 +6825,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/drop-duplicates.jpg",
     "graph": {
       "nodes": [
         {
@@ -6890,9 +6890,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/drop-the-first-few",
     "title": "Drop the First Few — NodeTool AI Workflow Template",
     "description": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "drop-the-first-few",
     "name": "Drop the First Few",
     "summary": "Skip a fixed number of items off the front of a stream — the header rows of a feed, or a warm-up you do not want to pay to process.",
@@ -6923,7 +6923,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/drop-the-first-few.jpg",
     "graph": {
       "nodes": [
         {
@@ -6988,9 +6988,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/drop-the-incomplete-rows",
     "title": "Drop the Incomplete Rows — NodeTool AI Workflow Template",
     "description": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "drop-the-incomplete-rows",
     "name": "Drop the Incomplete Rows",
     "summary": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
@@ -7017,7 +7017,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/drop-the-incomplete-rows.jpg",
     "graph": {
       "nodes": [
         {
@@ -7067,9 +7067,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/edit-a-still-with-words",
     "title": "Edit a Still with Words — NodeTool AI Workflow Template",
     "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "edit-a-still-with-words",
     "name": "Edit a Still with Words",
     "summary": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
@@ -7101,7 +7101,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/edit-a-still-with-words.jpg",
     "graph": {
       "nodes": [
         {
@@ -7168,9 +7168,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/editorial-still-from-a-line",
     "title": "Editorial Still from a Line — NodeTool AI Workflow Template",
     "description": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "editorial-still-from-a-line",
     "name": "Editorial Still from a Line",
     "summary": "One line of subject text becomes a finished editorial photograph. A Template node holds the house look so the caller only supplies the subject. Billed per image, but FLUX.2 [klein] at six steps is among the cheapest ways to get a usable frame.",
@@ -7202,7 +7202,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/editorial-still-from-a-line.jpg",
     "graph": {
       "nodes": [
         {
@@ -7348,9 +7348,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/every-combination",
     "title": "Every Combination — NodeTool AI Workflow Template",
     "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "every-combination",
     "name": "Every Combination",
     "summary": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
@@ -7381,7 +7381,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 7,
-    "thumbnail": null,
+    "thumbnail": "/templates/every-combination.jpg",
     "graph": {
       "nodes": [
         {
@@ -7800,9 +7800,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/fade-audio-in-and-out",
     "title": "Fade Audio In and Out — NodeTool AI Workflow Template",
     "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "fade-audio-in-and-out",
     "name": "Fade Audio In and Out",
     "summary": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
@@ -7836,7 +7836,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/fade-audio-in-and-out.jpg",
     "graph": {
       "nodes": [
         {
@@ -7901,9 +7901,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/fade-audio-out",
     "title": "Fade Audio Out — NodeTool AI Workflow Template",
     "description": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "fade-audio-out",
     "name": "Fade Audio Out",
     "summary": "Taper a track to silence over the last few seconds so a cut does not end on an abrupt chop. Set the duration longer than you think - a fade that reads as deliberate is usually slower than it feels while editing.",
@@ -7936,7 +7936,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/fade-audio-out.jpg",
     "graph": {
       "nodes": [
         {
@@ -8001,9 +8001,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/fill-a-template",
     "title": "Fill a Template — NodeTool AI Workflow Template",
     "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "fill-a-template",
     "name": "Fill a Template",
     "summary": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
@@ -8031,7 +8031,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/fill-a-template.jpg",
     "graph": {
       "nodes": [
         {
@@ -8082,9 +8082,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/fill-the-gaps-instead",
     "title": "Fill the Gaps Instead — NodeTool AI Workflow Template",
     "description": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "fill-the-gaps-instead",
     "name": "Fill the Gaps Instead",
     "summary": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
@@ -8111,7 +8111,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/fill-the-gaps-instead.jpg",
     "graph": {
       "nodes": [
         {
@@ -8161,9 +8161,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/find-every-number-in-a-sentence",
     "title": "Find Every Number in a Sentence — NodeTool AI Workflow Template",
     "description": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "find-every-number-in-a-sentence",
     "name": "Find Every Number in a Sentence",
     "summary": "FindAllRegex returns each match rather than the first, which is what you want when pulling figures out of a report.",
@@ -8190,7 +8190,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/find-every-number-in-a-sentence.jpg",
     "graph": {
       "nodes": [
         {
@@ -8241,9 +8241,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/find-and-replace",
     "title": "Find and Replace — NodeTool AI Workflow Template",
     "description": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "find-and-replace",
     "name": "Find and Replace",
     "summary": "Swap one substring for another across a block of text. The find and replace terms are inputs rather than baked into the node, so the same graph can be reused from the API without editing it.",
@@ -8271,7 +8271,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/find-and-replace.jpg",
     "graph": {
       "nodes": [
         {
@@ -8433,9 +8433,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/fit-an-image",
     "title": "Fit an Image — NodeTool AI Workflow Template",
     "description": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "fit-an-image",
     "name": "Fit an Image",
     "summary": "Scale an image to fit a box while keeping its aspect ratio. What you want for thumbnails, where a hard resize would distort. Local pixel work - no model, no key, no cost.",
@@ -8463,7 +8463,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/fit-an-image.jpg",
     "graph": {
       "nodes": [
         {
@@ -8808,9 +8808,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/gate-out-the-room-noise",
     "title": "Gate Out the Room Noise — NodeTool AI Workflow Template",
     "description": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "gate-out-the-room-noise",
     "name": "Gate Out the Room Noise",
     "summary": "Silence anything below the threshold, so the hiss between phrases disappears while the phrases themselves are untouched.",
@@ -8837,7 +8837,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/gate-out-the-room-noise.jpg",
     "graph": {
       "nodes": [
         {
@@ -8887,9 +8887,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/generate-a-silent-bed",
     "title": "Generate a Silent Bed — NodeTool AI Workflow Template",
     "description": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "generate-a-silent-bed",
     "name": "Generate a Silent Bed",
     "summary": "Make a silent audio track of a fixed length. Used as spacing between concatenated takes, or as a placeholder while the real voiceover is still being written.",
@@ -8912,7 +8912,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/generate-a-silent-bed.jpg",
     "graph": {
       "nodes": [
         {
@@ -8947,9 +8947,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/generate-a-table-in-code",
     "title": "Generate a Table in Code — NodeTool AI Workflow Template",
     "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "generate-a-table-in-code",
     "name": "Generate a Table in Code",
     "summary": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
@@ -8977,7 +8977,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/generate-a-table-in-code.jpg",
     "graph": {
       "nodes": [
         {
@@ -9027,9 +9027,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/generate-then-upscale-a-poster",
     "title": "Generate then Upscale a Poster — NodeTool AI Workflow Template",
     "description": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "generate-then-upscale-a-poster",
     "name": "Generate then Upscale a Poster",
     "summary": "Generate small and cheap, then pay for resolution only on the frame you keep. Iterating at 1K and upscaling once at the end costs a fraction of generating every draft at full size.",
@@ -9061,7 +9061,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/generate-then-upscale-a-poster.jpg",
     "graph": {
       "nodes": [
         {
@@ -9510,9 +9510,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/how-long-is-this-string",
     "title": "How Long Is This String — NodeTool AI Workflow Template",
     "description": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "how-long-is-this-string",
     "name": "How Long Is This String",
     "summary": "Character length as a first-class value, so downstream nodes can branch on size without a code node.",
@@ -9539,7 +9539,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/how-long-is-this-string.jpg",
     "graph": {
       "nodes": [
         {
@@ -9590,9 +9590,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/how-long-is-this-transcript",
     "title": "How Long Is This Transcript — NodeTool AI Workflow Template",
     "description": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "how-long-is-this-transcript",
     "name": "How Long Is This Transcript",
     "summary": "Transcribe a clip and count the tokens. Worth knowing before you feed a transcript to a model that bills per token or caps context.",
@@ -9630,7 +9630,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/how-long-is-this-transcript.jpg",
     "graph": {
       "nodes": [
         {
@@ -10159,9 +10159,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/inspect-a-clip-s-audio",
     "title": "Inspect a Clip's Audio — NodeTool AI Workflow Template",
     "description": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "inspect-a-clip-s-audio",
     "name": "Inspect a Clip's Audio",
     "summary": "Read sample rate, channel count, duration and format from a clip's audio track. Worth running before a lip-sync or transcription step, both of which are picky about what they are fed.",
@@ -10195,7 +10195,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/inspect-a-clip-s-audio.jpg",
     "graph": {
       "nodes": [
         {
@@ -10260,9 +10260,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/inspect-a-clip",
     "title": "Inspect a Clip — NodeTool AI Workflow Template",
     "description": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "inspect-a-clip",
     "name": "Inspect a Clip",
     "summary": "Read a clip's duration, dimensions, frame rate and codec straight from its header. Cheap pre-flight before an expensive generation step - check what you actually have before paying to transform it.",
@@ -10291,7 +10291,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/inspect-a-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -10420,9 +10420,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/json-to-a-table",
     "title": "JSON to a Table — NodeTool AI Workflow Template",
     "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "json-to-a-table",
     "name": "JSON to a Table",
     "summary": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
@@ -10445,7 +10445,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/json-to-a-table.jpg",
     "graph": {
       "nodes": [
         {
@@ -10480,9 +10480,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/javascript-to-a-table",
     "title": "JavaScript to a Table — NodeTool AI Workflow Template",
     "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "javascript-to-a-table",
     "name": "JavaScript to a Table",
     "summary": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
@@ -10515,7 +10515,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/javascript-to-a-table.jpg",
     "graph": {
       "nodes": [
         {
@@ -10580,9 +10580,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/join-two-tables-on-a-key",
     "title": "Join Two Tables on a Key — NodeTool AI Workflow Template",
     "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "join-two-tables-on-a-key",
     "name": "Join Two Tables on a Key",
     "summary": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
@@ -10609,7 +10609,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/join-two-tables-on-a-key.jpg",
     "graph": {
       "nodes": [
         {
@@ -10674,9 +10674,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/keep-only-the-matches",
     "title": "Keep Only the Matches — NodeTool AI Workflow Template",
     "description": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "keep-only-the-matches",
     "name": "Keep Only the Matches",
     "summary": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
@@ -10707,7 +10707,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/keep-only-the-matches.jpg",
     "graph": {
       "nodes": [
         {
@@ -10852,9 +10852,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/last-one-wins",
     "title": "Last One Wins — NodeTool AI Workflow Template",
     "description": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "last-one-wins",
     "name": "Last One Wins",
     "summary": "Collapse a stream to its final item. The natural end of a loop that refines a value rather than accumulating one.",
@@ -10885,7 +10885,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/last-one-wins.jpg",
     "graph": {
       "nodes": [
         {
@@ -10950,9 +10950,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/load-a-csv",
     "title": "Load a CSV — NodeTool AI Workflow Template",
     "description": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "load-a-csv",
     "name": "Load a CSV",
     "summary": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
@@ -10975,7 +10975,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/load-a-csv.jpg",
     "graph": {
       "nodes": [
         {
@@ -11090,9 +11090,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/localise-a-script-and-revoice-it",
     "title": "Localise a Script and Revoice It — NodeTool AI Workflow Template",
     "description": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "localise-a-script-and-revoice-it",
     "name": "Localise a Script and Revoice It",
     "summary": "Translation and voice in one pass. The output is audio in the target language, which is what a localised cut actually needs — a translated document still leaves the recording to do.",
@@ -11125,7 +11125,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/localise-a-script-and-revoice-it.jpg",
     "graph": {
       "nodes": [
         {
@@ -11192,9 +11192,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/master-a-voice-track",
     "title": "Master a Voice Track — NodeTool AI Workflow Template",
     "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "master-a-voice-track",
     "name": "Master a Voice Track",
     "summary": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
@@ -11231,7 +11231,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/master-a-voice-track.jpg",
     "graph": {
       "nodes": [
         {
@@ -11603,9 +11603,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/merge-two-tables-side-by-side",
     "title": "Merge Two Tables Side by Side — NodeTool AI Workflow Template",
     "description": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "merge-two-tables-side-by-side",
     "name": "Merge Two Tables Side by Side",
     "summary": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
@@ -11632,7 +11632,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/merge-two-tables-side-by-side.jpg",
     "graph": {
       "nodes": [
         {
@@ -12923,9 +12923,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/name-a-file-from-its-narration",
     "title": "Name a File from Its Narration — NodeTool AI Workflow Template",
     "description": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "name-a-file-from-its-narration",
     "name": "Name a File from Its Narration",
     "summary": "Transcribe a clip and turn the first words into a URL-safe slug. A small chain that shows speech becoming a filename rather than a document.",
@@ -12968,7 +12968,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/name-a-file-from-its-narration.jpg",
     "graph": {
       "nodes": [
         {
@@ -13064,9 +13064,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/narrate-a-script",
     "title": "Narrate a Script — NodeTool AI Workflow Template",
     "description": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "narrate-a-script",
     "name": "Narrate a Script",
     "summary": "Turn written copy into a voice track with ElevenLabs multilingual v2 on fal. Pair it with Score a Silent Clip to build a narrated cut from text alone. Billed per character.",
@@ -13093,7 +13093,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/narrate-a-script.jpg",
     "graph": {
       "nodes": [
         {
@@ -13145,9 +13145,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/narration-with-a-music-bed",
     "title": "Narration with a Music Bed — NodeTool AI Workflow Template",
     "description": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "narration-with-a-music-bed",
     "name": "Narration with a Music Bed",
     "summary": "Voice at full level, music at 0.35 underneath, mixed rather than replaced. The ratio is the entire craft of the thing.",
@@ -13184,7 +13184,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/narration-with-a-music-bed.jpg",
     "graph": {
       "nodes": [
         {
@@ -13266,9 +13266,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/narrow-then-order",
     "title": "Narrow then Order — NodeTool AI Workflow Template",
     "description": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "narrow-then-order",
     "name": "Narrow then Order",
     "summary": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
@@ -13301,7 +13301,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/narrow-then-order.jpg",
     "graph": {
       "nodes": [
         {
@@ -13366,9 +13366,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/normalize-a-clip-s-audio",
     "title": "Normalize a Clip's Audio — NodeTool AI Workflow Template",
     "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "normalize-a-clip-s-audio",
     "name": "Normalize a Clip's Audio",
     "summary": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
@@ -13402,7 +13402,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/normalize-a-clip-s-audio.jpg",
     "graph": {
       "nodes": [
         {
@@ -13547,9 +13547,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/pad-a-canvas",
     "title": "Pad a Canvas — NodeTool AI Workflow Template",
     "description": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pad-a-canvas",
     "name": "Pad a Canvas",
     "summary": "Place an image on a larger canvas without scaling it - the way to letterbox a landscape shot into a square post without cropping the subject. Local pixel work - no model, no key, no cost.",
@@ -13577,7 +13577,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/pad-a-canvas.jpg",
     "graph": {
       "nodes": [
         {
@@ -13887,9 +13887,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/pick-columns",
     "title": "Pick Columns — NodeTool AI Workflow Template",
     "description": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pick-columns",
     "name": "Pick Columns",
     "summary": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
@@ -13917,7 +13917,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/pick-columns.jpg",
     "graph": {
       "nodes": [
         {
@@ -13967,9 +13967,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/picture-in-picture",
     "title": "Picture in Picture — NodeTool AI Workflow Template",
     "description": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "picture-in-picture",
     "name": "Picture in Picture",
     "summary": "Inset one clip over another - a webcam corner over a screen recording, or a reaction shot over the footage being reacted to. The inset's audio is muted by default so the main track stays clean.",
@@ -13997,7 +13997,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/picture-in-picture.jpg",
     "graph": {
       "nodes": [
         {
@@ -14062,9 +14062,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/pitch-a-voice-up",
     "title": "Pitch a Voice Up — NodeTool AI Workflow Template",
     "description": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pitch-a-voice-up",
     "name": "Pitch a Voice Up",
     "summary": "Shift pitch in semitones while duration stays put — the counterpart to time stretch.",
@@ -14091,7 +14091,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/pitch-a-voice-up.jpg",
     "graph": {
       "nodes": [
         {
@@ -14874,9 +14874,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/poster-on-kie",
     "title": "Poster on Kie — NodeTool AI Workflow Template",
     "description": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "poster-on-kie",
     "name": "Poster on Kie",
     "summary": "Generate a poster-style image through Kie's Seedream 4.5. Kie fronts several model families behind one key, so this is the shortest path to checking a Kie credential actually works.",
@@ -14903,7 +14903,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/poster-on-kie.jpg",
     "graph": {
       "nodes": [
         {
@@ -15508,9 +15508,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/product-spot-from-text",
     "title": "Product Spot from Text — NodeTool AI Workflow Template",
     "description": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "product-spot-from-text",
     "name": "Product Spot from Text",
     "summary": "Turn a product description into a short commercial spot — no photo needed. A prompt assembles a studio hero-shot brief, FLUX.2 [klein] renders the still, then LTX-2.3 animates that exact frame following only the camera notes. Cost note: the animation step is billed per second of output, so this costs more per run than an image-only template.",
@@ -15548,7 +15548,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 8,
-    "thumbnail": null,
+    "thumbnail": "/templates/product-spot-from-text.jpg",
     "graph": {
       "nodes": [
         {
@@ -16012,9 +16012,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/pull-a-field-out-of-json-text",
     "title": "Pull a Field out of JSON Text — NodeTool AI Workflow Template",
     "description": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pull-a-field-out-of-json-text",
     "name": "Pull a Field out of JSON Text",
     "summary": "Model output often arrives as JSON inside a string. ExtractJSON reaches into it by path so you do not have to parse it by hand downstream.",
@@ -16042,7 +16042,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/pull-a-field-out-of-json-text.jpg",
     "graph": {
       "nodes": [
         {
@@ -16093,9 +16093,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/pull-a-still-from-a-clip",
     "title": "Pull a Still from a Clip — NodeTool AI Workflow Template",
     "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "pull-a-still-from-a-clip",
     "name": "Pull a Still from a Clip",
     "summary": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
@@ -16124,7 +16124,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/pull-a-still-from-a-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -16397,9 +16397,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/put-a-voice-over-a-music-bed",
     "title": "Put a Voice Over a Music Bed — NodeTool AI Workflow Template",
     "description": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "put-a-voice-over-a-music-bed",
     "name": "Put a Voice Over a Music Bed",
     "summary": "Generate a bed, synthesise a voice, and lay one over the other. Overlay mixes both signals rather than replacing one with the other.",
@@ -16436,7 +16436,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/put-a-voice-over-a-music-bed.jpg",
     "graph": {
       "nodes": [
         {
@@ -16519,9 +16519,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/re-delimit-a-list",
     "title": "Re-delimit a List — NodeTool AI Workflow Template",
     "description": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "re-delimit-a-list",
     "name": "Re-delimit a List",
     "summary": "Split text on one delimiter and rejoin it on another - turning a comma list into a pipe list, or CSV-ish text into newline records. Pure string work: no model, no key, no cost.",
@@ -16554,7 +16554,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/re-delimit-a-list.jpg",
     "graph": {
       "nodes": [
         {
@@ -16620,9 +16620,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/read-stderr-from-code",
     "title": "Read Stderr from Code — NodeTool AI Workflow Template",
     "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "read-stderr-from-code",
     "name": "Read Stderr from Code",
     "summary": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
@@ -16645,7 +16645,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/read-stderr-from-code.jpg",
     "graph": {
       "nodes": [
         {
@@ -16680,9 +16680,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/read-a-clip-s-frame-rate",
     "title": "Read a Clip's Frame Rate — NodeTool AI Workflow Template",
     "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "read-a-clip-s-frame-rate",
     "name": "Read a Clip's Frame Rate",
     "summary": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
@@ -16709,7 +16709,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/read-a-clip-s-frame-rate.jpg",
     "graph": {
       "nodes": [
         {
@@ -16999,9 +16999,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/rename-the-columns",
     "title": "Rename the Columns — NodeTool AI Workflow Template",
     "description": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "rename-the-columns",
     "name": "Rename the Columns",
     "summary": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
@@ -17028,7 +17028,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/rename-the-columns.jpg",
     "graph": {
       "nodes": [
         {
@@ -17656,9 +17656,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/resize-for-vertical",
     "title": "Resize for Vertical — NodeTool AI Workflow Template",
     "description": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "resize-for-vertical",
     "name": "Resize for Vertical",
     "summary": "Rescale footage to a vertical 1080x1920 frame for stories and shorts. This stretches rather than crops, so start from a shot framed with room to lose. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -17686,7 +17686,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/resize-for-vertical.jpg",
     "graph": {
       "nodes": [
         {
@@ -17816,9 +17816,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/restyle-a-still-with-flux-dev",
     "title": "Restyle a Still with FLUX Dev — NodeTool AI Workflow Template",
     "description": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "restyle-a-still-with-flux-dev",
     "name": "Restyle a Still with FLUX Dev",
     "summary": "Image-to-image at moderate strength: keep the composition, change the medium. Strength is the dial — low preserves the original, high redraws it.",
@@ -17845,7 +17845,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/restyle-a-still-with-flux-dev.jpg",
     "graph": {
       "nodes": [
         {
@@ -17896,9 +17896,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/reverse-audio",
     "title": "Reverse Audio — NodeTool AI Workflow Template",
     "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "reverse-audio",
     "name": "Reverse Audio",
     "summary": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
@@ -17932,7 +17932,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/reverse-audio.jpg",
     "graph": {
       "nodes": [
         {
@@ -17997,9 +17997,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/reverse-a-clip",
     "title": "Reverse a Clip — NodeTool AI Workflow Template",
     "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "reverse-a-clip",
     "name": "Reverse a Clip",
     "summary": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -18027,7 +18027,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/reverse-a-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -18157,9 +18157,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/rotate-footage",
     "title": "Rotate Footage — NodeTool AI Workflow Template",
     "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "rotate-footage",
     "name": "Rotate Footage",
     "summary": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -18187,7 +18187,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/rotate-footage.jpg",
     "graph": {
       "nodes": [
         {
@@ -18237,9 +18237,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/run-javascript-in-a-sandbox",
     "title": "Run JavaScript in a Sandbox — NodeTool AI Workflow Template",
     "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "run-javascript-in-a-sandbox",
     "name": "Run JavaScript in a Sandbox",
     "summary": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
@@ -18262,7 +18262,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/run-javascript-in-a-sandbox.jpg",
     "graph": {
       "nodes": [
         {
@@ -18297,9 +18297,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/run-lua-in-a-sandbox",
     "title": "Run Lua in a Sandbox — NodeTool AI Workflow Template",
     "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "run-lua-in-a-sandbox",
     "name": "Run Lua in a Sandbox",
     "summary": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
@@ -18322,7 +18322,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/run-lua-in-a-sandbox.jpg",
     "graph": {
       "nodes": [
         {
@@ -18357,9 +18357,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/run-python-in-a-sandbox",
     "title": "Run Python in a Sandbox — NodeTool AI Workflow Template",
     "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "run-python-in-a-sandbox",
     "name": "Run Python in a Sandbox",
     "summary": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
@@ -18382,7 +18382,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/run-python-in-a-sandbox.jpg",
     "graph": {
       "nodes": [
         {
@@ -18417,9 +18417,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/run-a-shell-command",
     "title": "Run a Shell Command — NodeTool AI Workflow Template",
     "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "run-a-shell-command",
     "name": "Run a Shell Command",
     "summary": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
@@ -18442,7 +18442,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 2,
-    "thumbnail": null,
+    "thumbnail": "/templates/run-a-shell-command.jpg",
     "graph": {
       "nodes": [
         {
@@ -19045,9 +19045,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/score-a-silent-clip",
     "title": "Score a Silent Clip — NodeTool AI Workflow Template",
     "description": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "score-a-silent-clip",
     "name": "Score a Silent Clip",
     "summary": "Give a clip a soundtrack. Describe the mood, Stable Audio on fal.ai writes a bed to match the clip's length, and the mix is laid under the original audio. Cheaper than the video templates — one audio generation per run.",
@@ -19086,7 +19086,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/score-a-silent-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -19820,9 +19820,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/sharpen-footage",
     "title": "Sharpen Footage — NodeTool AI Workflow Template",
     "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "sharpen-footage",
     "name": "Sharpen Footage",
     "summary": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -19850,7 +19850,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/sharpen-footage.jpg",
     "graph": {
       "nodes": [
         {
@@ -19981,9 +19981,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/single-shot-from-a-line",
     "title": "Single Shot from a Line — NodeTool AI Workflow Template",
     "description": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "single-shot-from-a-line",
     "name": "Single Shot from a Line",
     "summary": "The smallest possible text-to-video graph: a line of direction, a template that adds the house look, one render. Useful as a smoke test for video credentials before running a template that bills several generations per run.",
@@ -20015,7 +20015,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/single-shot-from-a-line.jpg",
     "graph": {
       "nodes": [
         {
@@ -20082,9 +20082,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/slice-rows",
     "title": "Slice Rows — NodeTool AI Workflow Template",
     "description": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "slice-rows",
     "name": "Slice Rows",
     "summary": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
@@ -20112,7 +20112,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/slice-rows.jpg",
     "graph": {
       "nodes": [
         {
@@ -20162,9 +20162,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/slice-text",
     "title": "Slice Text — NodeTool AI Workflow Template",
     "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "slice-text",
     "name": "Slice Text",
     "summary": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
@@ -20192,7 +20192,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/slice-text.jpg",
     "graph": {
       "nodes": [
         {
@@ -20243,9 +20243,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/slow-a-clip-without-dropping-pitch",
     "title": "Slow a Clip Without Dropping Pitch — NodeTool AI Workflow Template",
     "description": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "slow-a-clip-without-dropping-pitch",
     "name": "Slow a Clip Without Dropping Pitch",
     "summary": "Time stretch changes duration and leaves pitch alone — which is the whole point. Changing playback speed instead would take the pitch down with it.",
@@ -20272,7 +20272,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/slow-a-clip-without-dropping-pitch.jpg",
     "graph": {
       "nodes": [
         {
@@ -20630,9 +20630,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/soften-a-plate",
     "title": "Soften a Plate — NodeTool AI Workflow Template",
     "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "soften-a-plate",
     "name": "Soften a Plate",
     "summary": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -20660,7 +20660,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/soften-a-plate.jpg",
     "graph": {
       "nodes": [
         {
@@ -20789,9 +20789,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/sort-a-table",
     "title": "Sort a Table — NodeTool AI Workflow Template",
     "description": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "sort-a-table",
     "name": "Sort a Table",
     "summary": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
@@ -20819,7 +20819,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/sort-a-table.jpg",
     "graph": {
       "nodes": [
         {
@@ -20869,9 +20869,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/speak-a-line-then-trim-the-silence",
     "title": "Speak a Line, Then Trim the Silence — NodeTool AI Workflow Template",
     "description": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "speak-a-line-then-trim-the-silence",
     "name": "Speak a Line, Then Trim the Silence",
     "summary": "Synthesise speech and strip the dead air off both ends. TTS often leaves padding; RemoveSilence gives you a tight clip you can drop into a timeline.",
@@ -20903,7 +20903,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/speak-a-line-then-trim-the-silence.jpg",
     "graph": {
       "nodes": [
         {
@@ -21050,9 +21050,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/split-a-channel",
     "title": "Split a Channel — NodeTool AI Workflow Template",
     "description": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "split-a-channel",
     "name": "Split a Channel",
     "summary": "Pull one colour channel out as its own image. A quick way to inspect where an artefact lives, or to build a mask from one channel. Local pixel work - no model, no key, no cost.",
@@ -21080,7 +21080,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/split-a-channel.jpg",
     "graph": {
       "nodes": [
         {
@@ -21210,9 +21210,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/stabilize-handheld",
     "title": "Stabilize Handheld — NodeTool AI Workflow Template",
     "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "stabilize-handheld",
     "name": "Stabilize Handheld",
     "summary": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -21240,7 +21240,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/stabilize-handheld.jpg",
     "graph": {
       "nodes": [
         {
@@ -21290,9 +21290,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/stack-rows-from-two-batches",
     "title": "Stack Rows from Two Batches — NodeTool AI Workflow Template",
     "description": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "stack-rows-from-two-batches",
     "name": "Stack Rows from Two Batches",
     "summary": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
@@ -21319,7 +21319,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/stack-rows-from-two-batches.jpg",
     "graph": {
       "nodes": [
         {
@@ -21384,9 +21384,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/still-on-replicate",
     "title": "Still on Replicate — NodeTool AI Workflow Template",
     "description": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "still-on-replicate",
     "name": "Still on Replicate",
     "summary": "Generate an image through Replicate rather than fal. Same graph shape as the fal and Kie variants - swapping provider is a model-field change, not a rewrite, which is the point worth demonstrating.",
@@ -21413,7 +21413,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/still-on-replicate.jpg",
     "graph": {
       "nodes": [
         {
@@ -21465,9 +21465,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/strip-accents-for-a-search-key",
     "title": "Strip Accents for a Search Key — NodeTool AI Workflow Template",
     "description": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "strip-accents-for-a-search-key",
     "name": "Strip Accents for a Search Key",
     "summary": "Fold accented characters down to ASCII so a lookup key matches regardless of how the name was typed.",
@@ -21494,7 +21494,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/strip-accents-for-a-search-key.jpg",
     "graph": {
       "nodes": [
         {
@@ -21869,9 +21869,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/summarise-by-group",
     "title": "Summarise by Group — NodeTool AI Workflow Template",
     "description": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "summarise-by-group",
     "name": "Summarise by Group",
     "summary": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
@@ -21899,7 +21899,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/summarise-by-group.jpg",
     "graph": {
       "nodes": [
         {
@@ -22076,9 +22076,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/swirl-and-echo",
     "title": "Swirl and Echo — NodeTool AI Workflow Template",
     "description": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "swirl-and-echo",
     "name": "Swirl and Echo",
     "summary": "A phaser sweeping under a feedback delay. Both are mix-based, so the dry signal survives underneath rather than being replaced.",
@@ -22110,7 +22110,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/swirl-and-echo.jpg",
     "graph": {
       "nodes": [
         {
@@ -22175,9 +22175,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/table-to-list",
     "title": "Table to List — NodeTool AI Workflow Template",
     "description": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "table-to-list",
     "name": "Table to List",
     "summary": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
@@ -22205,7 +22205,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/table-to-list.jpg",
     "graph": {
       "nodes": [
         {
@@ -22255,9 +22255,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/table-to-rows-to-count",
     "title": "Table to Rows to Count — NodeTool AI Workflow Template",
     "description": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "table-to-rows-to-count",
     "name": "Table to Rows to Count",
     "summary": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
@@ -22290,7 +22290,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/table-to-rows-to-count.jpg",
     "graph": {
       "nodes": [
         {
@@ -22355,9 +22355,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/take-while-the-numbers-are-small",
     "title": "Take While the Numbers Are Small — NodeTool AI Workflow Template",
     "description": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "take-while-the-numbers-are-small",
     "name": "Take While the Numbers Are Small",
     "summary": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
@@ -22388,7 +22388,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/take-while-the-numbers-are-small.jpg",
     "graph": {
       "nodes": [
         {
@@ -22533,9 +22533,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/take-the-first-few-seconds-of-a-bed",
     "title": "Take the First Few Seconds of a Bed — NodeTool AI Workflow Template",
     "description": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "take-the-first-few-seconds-of-a-bed",
     "name": "Take the First Few Seconds of a Bed",
     "summary": "Generate music and slice a short section out of it. Cheaper than regenerating when you only need a sting rather than a full bed.",
@@ -22562,7 +22562,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/take-the-first-few-seconds-of-a-bed.jpg",
     "graph": {
       "nodes": [
         {
@@ -22613,9 +22613,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/take-the-first-few",
     "title": "Take the First Few — NodeTool AI Workflow Template",
     "description": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "take-the-first-few",
     "name": "Take the First Few",
     "summary": "Stop a stream after n items. The cheap way to cap an expensive downstream step while iterating on a workflow - take 3 while you tune, remove it when you ship. Runs entirely in-process: no model, no key, no cost.",
@@ -22648,7 +22648,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/take-the-first-few.jpg",
     "graph": {
       "nodes": [
         {
@@ -22713,9 +22713,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/telephone-voice",
     "title": "Telephone Voice — NodeTool AI Workflow Template",
     "description": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "telephone-voice",
     "name": "Telephone Voice",
     "summary": "Band-limit to a narrow midrange and drive it. Cutting both ends is what sells the effect — the distortion alone just sounds loud.",
@@ -22752,7 +22752,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/telephone-voice.jpg",
     "graph": {
       "nodes": [
         {
@@ -22912,9 +22912,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/tidy-up-messy-text",
     "title": "Tidy Up Messy Text — NodeTool AI Workflow Template",
     "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "tidy-up-messy-text",
     "name": "Tidy Up Messy Text",
     "summary": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
@@ -22951,7 +22951,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 5,
-    "thumbnail": null,
+    "thumbnail": "/templates/tidy-up-messy-text.jpg",
     "graph": {
       "nodes": [
         {
@@ -23032,9 +23032,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/title-case-a-heading",
     "title": "Title Case a Heading — NodeTool AI Workflow Template",
     "description": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "title-case-a-heading",
     "name": "Title Case a Heading",
     "summary": "Casing helpers, applied to a heading. Small, but these are the nodes you reach for constantly when formatting model output for display.",
@@ -23061,7 +23061,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/title-case-a-heading.jpg",
     "graph": {
       "nodes": [
         {
@@ -23283,9 +23283,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/transcribe-a-clip",
     "title": "Transcribe a Clip — NodeTool AI Workflow Template",
     "description": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "transcribe-a-clip",
     "name": "Transcribe a Clip",
     "summary": "Pull the spoken words out of a video. Audio is extracted locally, then transcribed. Note the provider choice: fal and Replicate both list speech-to-text models in their manifests, but neither provider implements the transcription capability, so those entries cannot execute. OpenAI, Gemini, HuggingFace, MiniMax and Together do implement it.",
@@ -23318,7 +23318,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/transcribe-a-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -23464,9 +23464,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/trim-audio-to-a-range",
     "title": "Trim Audio to a Range — NodeTool AI Workflow Template",
     "description": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "trim-audio-to-a-range",
     "name": "Trim Audio to a Range",
     "summary": "Cut an audio track to a start and end point. Pair it with Inspect a Clip's Audio when you need the duration before deciding where to cut.",
@@ -23499,7 +23499,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/trim-audio-to-a-range.jpg",
     "graph": {
       "nodes": [
         {
@@ -23644,9 +23644,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/trim-a-clip",
     "title": "Trim a Clip — NodeTool AI Workflow Template",
     "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "trim-a-clip",
     "name": "Trim a Clip",
     "summary": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
@@ -23674,7 +23674,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/trim-a-clip.jpg",
     "graph": {
       "nodes": [
         {
@@ -23965,9 +23965,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/turn-a-logo-into-print-ready-vector",
     "title": "Turn a Logo into Print-Ready Vector — NodeTool AI Workflow Template",
     "description": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "turn-a-logo-into-print-ready-vector",
     "name": "Turn a Logo into Print-Ready Vector",
     "summary": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
@@ -23994,7 +23994,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/turn-a-logo-into-print-ready-vector.jpg",
     "graph": {
       "nodes": [
         {
@@ -24247,9 +24247,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/upscale-a-still",
     "title": "Upscale a Still — NodeTool AI Workflow Template",
     "description": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "upscale-a-still",
     "name": "Upscale a Still",
     "summary": "Enlarge an image without the softness a plain resize gives you. ESRGAN on fal reconstructs detail rather than interpolating it, which is what makes a 4x blow-up hold together in print. Billed per image.",
@@ -24276,7 +24276,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/upscale-a-still.jpg",
     "graph": {
       "nodes": [
         {
@@ -24327,9 +24327,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/validate-a-postcode-shape",
     "title": "Validate a Postcode Shape — NodeTool AI Workflow Template",
     "description": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "validate-a-postcode-shape",
     "name": "Validate a Postcode Shape",
     "summary": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
@@ -24356,7 +24356,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/validate-a-postcode-shape.jpg",
     "graph": {
       "nodes": [
         {
@@ -24407,9 +24407,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/vectorize-a-generated-logo",
     "title": "Vectorize a Generated Logo — NodeTool AI Workflow Template",
     "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "vectorize-a-generated-logo",
     "name": "Vectorize a Generated Logo",
     "summary": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
@@ -24441,7 +24441,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/vectorize-a-generated-logo.jpg",
     "graph": {
       "nodes": [
         {
@@ -24509,9 +24509,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/vectorize-a-photo-you-provide",
     "title": "Vectorize a Photo You Provide — NodeTool AI Workflow Template",
     "description": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "vectorize-a-photo-you-provide",
     "name": "Vectorize a Photo You Provide",
     "summary": "Trace an image you supply into SVG paths. Useful for turning a scanned sketch or a flat render into artwork you can recolour and scale.",
@@ -24538,7 +24538,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/vectorize-a-photo-you-provide.jpg",
     "graph": {
       "nodes": [
         {
@@ -24589,9 +24589,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/video-restyle-studio",
     "title": "Video Restyle Studio — NodeTool AI Workflow Template",
     "description": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "video-restyle-studio",
     "name": "Video Restyle Studio",
     "summary": "Repaint an existing clip in a new visual style while its motion stays put. A prompt node turns a short style note into a full restyle brief, then a video-to-video model applies it. Strength is the dial: low keeps the original read, high commits to the new look.",
@@ -24629,7 +24629,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/video-restyle-studio.jpg",
     "graph": {
       "nodes": [
         {
@@ -24816,9 +24816,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/voice-a-script-in-two-voices",
     "title": "Voice a Script in Two Voices — NodeTool AI Workflow Template",
     "description": "A two-hander needs two voices. Synthesising each part separately and joining them is what lets you re-record one line without re-rendering the whole exchange.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "voice-a-script-in-two-voices",
     "name": "Voice a Script in Two Voices",
     "summary": "A two-hander needs two voices. Synthesising each part separately and joining them is what lets you re-record one line without re-rendering the whole exchange.",
@@ -24850,7 +24850,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 6,
-    "thumbnail": null,
+    "thumbnail": "/templates/voice-a-script-in-two-voices.jpg",
     "graph": {
       "nodes": [
         {
@@ -25026,9 +25026,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/widen-a-mono-voice",
     "title": "Widen a Mono Voice — NodeTool AI Workflow Template",
     "description": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "widen-a-mono-voice",
     "name": "Widen a Mono Voice",
     "summary": "Synthesise a mono voice and place it in a stereo field. Most TTS returns mono; anything mixed for stereo playback needs both channels.",
@@ -25060,7 +25060,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 4,
-    "thumbnail": null,
+    "thumbnail": "/templates/widen-a-mono-voice.jpg",
     "graph": {
       "nodes": [
         {
@@ -25272,9 +25272,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/wrap-a-value-in-quotes",
     "title": "Wrap a Value in Quotes — NodeTool AI Workflow Template",
     "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "wrap-a-value-in-quotes",
     "name": "Wrap a Value in Quotes",
     "summary": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
@@ -25301,7 +25301,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/wrap-a-value-in-quotes.jpg",
     "graph": {
       "nodes": [
         {
@@ -25352,9 +25352,9 @@ export const templateEntries: TemplateEntry[] = [
     "route": "/templates/write-a-listing-from-the-product-photo",
     "title": "Write a Listing from the Product Photo — NodeTool AI Workflow Template",
     "description": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
-    "priority": 0.3,
+    "priority": 0.6,
     "changeFrequency": "monthly",
-    "indexable": false,
+    "indexable": true,
     "slug": "write-a-listing-from-the-product-photo",
     "name": "Write a Listing from the Product Photo",
     "summary": "Hand the model the photograph rather than a description of it. Marketplace copy written from the actual image catches details a spec sheet omits — finish, proportion, what it sits next to.",
@@ -25382,7 +25382,7 @@ export const templateEntries: TemplateEntry[] = [
       }
     ],
     "nodeCount": 3,
-    "thumbnail": null,
+    "thumbnail": "/templates/write-a-listing-from-the-product-photo.jpg",
     "graph": {
       "nodes": [
         {
