@@ -181,10 +181,6 @@ export interface RunGraphE2eEvalOptions {
 const DEFAULT_RUN_TIMEOUT_MS = 300_000;
 const MAX_OUTPUT_PREVIEW_CHARS = 4000;
 
-function totalToolCalls(byName: Record<string, number>): number {
-  return Object.values(byName).reduce((a, b) => a + b, 0);
-}
-
 /** Collapse an output value to something a JSON report can carry. */
 export function previewOutputValue(value: unknown): unknown {
   if (typeof value === "string") {
