@@ -127,8 +127,8 @@ export const GRAPH_E2E_EVAL_CASES: readonly GraphE2eEvalCase[] = [
     id: "arithmetic",
     description: "Deterministic compute the graph must get exactly right",
     objective:
-      "Compute the total of the input amount plus a tip of the input tip_percent percent of that amount, and output the total as a number under the name total. Use a deterministic computation step, not an LLM.",
-    goal: "The total output is 101.40 (84.50 plus a 20% tip of 16.90).",
+      "Compute the total of the input amount plus a tip of the input tip_percent percent of that amount, rounded to two decimal places, and output the total as a number under the name total. Use a deterministic computation step, not an LLM.",
+    goal: "The total output is 101.4 (84.50 plus a 20% tip of 16.90).",
     inputs: { amount: 84.5, tip_percent: 20 },
     expectGraph: {
       requiredInputNames: ["amount", "tip_percent"],

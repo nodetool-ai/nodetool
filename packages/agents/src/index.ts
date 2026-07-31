@@ -659,5 +659,11 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
-export { AgentWorkflowRunner } from "./agent-workflow-runner.js";
-export type { AgentWorkflowRunnerOptions } from "./agent-workflow-runner.js";
+export {
+  AgentWorkflowRunner,
+  applyRunPolicy
+} from "./agent-workflow-runner.js";
+export type {
+  AgentWorkflowRunnerOptions,
+  RunPolicy
+} from "./agent-workflow-runner.js";

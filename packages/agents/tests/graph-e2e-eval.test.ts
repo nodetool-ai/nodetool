@@ -128,6 +128,34 @@ describe("runGraphE2eEval", () => {
     expect(report.summary.executionRate).toBe(1);
   });
 
+  it("stamps the run policy onto Agent nodes before executing", async () => {
+    const provider = createScriptedProvider(PLAN_SCRIPT, [
+      '{"achieved": true, "score": 1, "reasoning": "ok"}'
+    ]);
+    let ranGraph: { nodes: { type: string; properties?: unknown }[] } | null =
+      null;
+
+    await runGraphE2eEval({
+      provider,
+      model: "planner-model",
+      registry: stubRegistry,
+      executionProviderId: "anthropic",
+      executionModel: "claude-sonnet-5",
+      runGraph: async ({ graph }) => {
+        ranGraph = graph;
+        return { ok: true, status: "completed", outputs: [] };
+      },
+      cases: [SUMMARIZE_CASE]
+    });
+
+    // The planner emits model-less Agent nodes on purpose; without the policy
+    // every LLM step would die on "Select a model" at run time.
+    const agent = ranGraph!.nodes.find((n) => n.type === AGENT_NODE_TYPE);
+    expect(agent?.properties).toMatchObject({
+      model: { provider: "anthropic", id: "claude-sonnet-5" }
+    });
+  });
+
   it("fails the case when the run does not complete, and never judges it", async () => {
     let judged = 0;
     const provider = createScriptedProvider(PLAN_SCRIPT, [

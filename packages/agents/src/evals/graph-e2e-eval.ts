@@ -9,7 +9,9 @@
  *
  *   1. **plan** — `GraphPlanner.plan()` produces a graph (scored structurally,
  *      reusing `checkExpectations` from the graph-planner suite).
- *   2. **execute** — the graph runs for real, with the case's inputs as run
+ *   2. **execute** — the run policy is stamped onto the planned graph (the
+ *      planner leaves Agent nodes model-less on purpose; the run picks the
+ *      model), then the graph runs for real with the case's inputs as run
  *      params, through a caller-supplied {@link GraphRunner}. Injecting the
  *      runner keeps this package free of an execution dependency and lets the
  *      harness tests drive scripted runs with no kernel.
@@ -30,6 +32,7 @@ import {
   type EvalCheck,
   type GraphPlannerEvalExpectations
 } from "./graph-planner-eval.js";
+import { applyRunPolicy } from "../agent-workflow-runner.js";
 import { judgeGoalAchievement, type GoalJudgeVerdict } from "./goal-judge.js";
 import { GRAPH_E2E_EVAL_CASES } from "./graph-e2e-cases.js";
 
@@ -124,6 +127,12 @@ export interface GraphE2eCaseResult {
   judge?: GoalJudgeVerdict;
   /** Outputs the run produced, keyed by name (values previewed). */
   outputs: Record<string, unknown>;
+  /**
+   * The graph that ran — policy already stamped on. Carried in the JSON report
+   * (never the text table) because a failing e2e case is triaged by reading the
+   * graph next to the outputs it produced.
+   */
+  graph?: GraphData;
   toolCalls: Record<string, number>;
   submitRounds: number;
   nodes: number;
@@ -167,6 +176,12 @@ export interface RunGraphE2eEvalOptions {
   runGraph: GraphRunner;
   /** Configured providers for `find_model`; enables model-dependent cases. */
   providers?: Record<string, BaseProvider>;
+  /**
+   * Provider/model stamped onto planner-authored Agent nodes before the run
+   * (see {@link applyRunPolicy}). Defaults to the planner's own.
+   */
+  executionProviderId?: string;
+  executionModel?: string;
   /** Judge provider/model; defaults to the primary provider and model. */
   judgeProvider?: BaseProvider;
   judgeModel?: string;
@@ -366,12 +381,21 @@ async function runCase(
   // ---- phase 2: execute --------------------------------------------------
   let run: GraphRunResult | null = null;
   let outputChecks: EvalCheck[] = [];
+  let runnableGraph: GraphData | undefined;
   const runStartedAt = Date.now();
   if (graph) {
     opts.onEvent?.(`    [run] ${graph.nodes.length} nodes`);
+    // The planner deliberately leaves Agent nodes model-less — the run owns
+    // that choice — so a planned graph is only runnable once the run policy is
+    // stamped on, exactly as `AgentWorkflowRunner` does before executing one.
+    // Without this every LLM step dies on "Select a model".
+    runnableGraph = applyRunPolicy(graph, {
+      providerId: opts.executionProviderId ?? opts.provider.provider,
+      modelId: opts.executionModel ?? opts.model
+    });
     try {
       run = await opts.runGraph({
-        graph,
+        graph: runnableGraph,
         params: evalCase.params ?? evalCase.inputs ?? {},
         timeoutMs:
           evalCase.timeoutMs ?? opts.timeoutMs ?? DEFAULT_RUN_TIMEOUT_MS,
@@ -442,6 +466,7 @@ async function runCase(
     outputs: Object.fromEntries(
       Object.entries(byName).map(([k, v]) => [k, previewOutputValue(v)])
     ),
+    graph: runnableGraph,
     toolCalls,
     submitRounds: toolCalls["submit_graph"] ?? 0,
     nodes: graph?.nodes.length ?? 0,

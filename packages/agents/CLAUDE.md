@@ -448,11 +448,14 @@ as a success when all three hold:
 
 1. **plan** — `GraphPlanner.plan()` produces a graph, scored structurally by the
    same `checkExpectations` the graph-planner suite uses.
-2. **execute** — the graph runs for real with the case's inputs as run params,
-   through a caller-supplied `GraphRunner`. The runner is injected so this
-   package needs no execution dependency and the harness tests can drive
-   scripted runs with no kernel; the CLI wires the real one over
-   `ExecutionSession` (`packages/cli/src/evals/graph-runner.ts`).
+2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
+   planner's Agent nodes (the planner leaves them model-less on purpose — the
+   run owns that choice — so an unstamped graph dies on "Select a model"),
+   then the graph runs for real with the case's inputs as run params, through a
+   caller-supplied `GraphRunner`. The runner is injected so this package needs
+   no execution dependency and the harness tests can drive scripted runs with
+   no kernel; the CLI wires the real one over `ExecutionSession`
+   (`packages/cli/src/evals/graph-runner.ts`).
 3. **judge** — deterministic output checks (an output by name exists, is
    non-empty, matches/doesn't match a literal) plus an LLM judge
    (`src/evals/goal-judge.ts`) that reads the case's goal statement and the
@@ -470,7 +473,7 @@ cases (`concat`, `arithmetic`) run anywhere and use `skipJudge`, since their
 outputs are pinned exactly by pattern.
 
 Each case costs inference twice — the run, then the judge — so it is the most
-expensive suite here.
+expensive suite here. A full pass on `claude_agent_sdk`/`sonnet` runs ~$0.07.
 
 ```bash
 npm run dev:nodetool -- eval graph-e2e --list
