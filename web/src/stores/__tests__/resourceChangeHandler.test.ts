@@ -1,7 +1,10 @@
 /**
  * Tests for resource change handler
  */
-import { handleResourceChange } from "../resourceChangeHandler";
+import {
+  handleResourceChange,
+  setWorkflowResourceReloader
+} from "../resourceChangeHandler";
 import { queryClient } from "../../queryClient";
 import { ResourceChangeUpdate } from "../ApiTypes";
 import { loadMetadata } from "../../serverState/useMetadata";
@@ -24,6 +27,7 @@ jest.mock("../../serverState/useMetadata", () => ({
 describe("handleResourceChange", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setWorkflowResourceReloader(null);
   });
 
   it("invalidates workflow queries on workflow update", () => {
@@ -58,6 +62,20 @@ describe("handleResourceChange", () => {
     expect(queryClient.invalidateQueries).toHaveBeenCalledWith({
       queryKey: ["workflow", "workflow-123", "versions"]
     });
+  });
+
+  it("reloads an open workflow after a remote update", () => {
+    const reload = jest.fn();
+    setWorkflowResourceReloader(reload);
+
+    handleResourceChange({
+      type: "resource_change",
+      event: "updated",
+      resource_type: "workflow",
+      resource: { id: "workflow-123", etag: "abc123" }
+    });
+
+    expect(reload).toHaveBeenCalledWith("workflow-123", "abc123");
   });
 
   it("invalidates job queries on job created", () => {
@@ -376,9 +394,7 @@ describe("handleResourceChange", () => {
     const predicate = predicateCall![0].predicate as (q: {
       queryKey: readonly unknown[];
     }) => boolean;
-    expect(
-      predicate({ queryKey: ["workflow", "abc", "versions"] })
-    ).toBe(true);
+    expect(predicate({ queryKey: ["workflow", "abc", "versions"] })).toBe(true);
     expect(predicate({ queryKey: ["workflow", "abc"] })).toBe(false);
     expect(predicate({ queryKey: ["workflows"] })).toBe(false);
   });

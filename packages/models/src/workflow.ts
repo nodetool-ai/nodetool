@@ -5,7 +5,12 @@
  */
 
 import { eq, and, desc, or, isNull, lt, inArray, type SQL } from "drizzle-orm";
-import { DBModel, createTimeOrderedUuid } from "./base-model.js";
+import {
+  DBModel,
+  ModelChangeEvent,
+  ModelObserver,
+  createTimeOrderedUuid
+} from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
@@ -33,6 +38,34 @@ function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
   }
   return condition;
 }
+
+function nextUpdatedAtAfter(previous: string): string {
+  const now = new Date();
+  const previousMs = Date.parse(previous);
+  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
+    return new Date(previousMs + 1).toISOString();
+  }
+  return now.toISOString();
+}
+
+export type WorkflowUpdateFields = Partial<{
+  name: string;
+  tool_name: string | null;
+  description: string;
+  tags: string[];
+  thumbnail: string | null;
+  thumbnail_url: string | null;
+  graph: WorkflowGraph;
+  settings: Record<string, unknown> | null;
+  package_name: string | null;
+  path: string | null;
+  run_mode: string | null;
+  workspace_id: string | null;
+  html_app: string | null;
+  app_doc: Record<string, unknown> | null;
+  receive_clipboard: boolean | null;
+  access: AccessLevel;
+}>;
 
 export class Workflow extends DBModel {
   static override table = workflows;
@@ -88,7 +121,36 @@ export class Workflow extends DBModel {
   }
 
   override beforeSave(): void {
-    this.updated_at = new Date().toISOString();
+    this.updated_at = nextUpdatedAtAfter(this.updated_at);
+  }
+
+  /**
+   * Atomically update a workflow only if its revision still matches the
+   * caller's last read. Returns null instead of overwriting a newer change.
+   */
+  static async updateFieldsIfUnchanged(
+    id: string,
+    expectedUpdatedAt: string,
+    fields: WorkflowUpdateFields
+  ): Promise<Workflow | null> {
+    const db = getDb();
+    const rows = await db
+      .update(workflows)
+      .set({
+        ...fields,
+        updated_at: nextUpdatedAtAfter(expectedUpdatedAt)
+      })
+      .where(
+        and(eq(workflows.id, id), eq(workflows.updated_at, expectedUpdatedAt))
+      )
+      .returning();
+
+    const row = rows[0] as Record<string, unknown> | undefined;
+    if (!row) return null;
+
+    const updated = new Workflow(row);
+    ModelObserver.notify(updated, ModelChangeEvent.UPDATED);
+    return updated;
   }
 
   hasTriggerNodes(): boolean {
@@ -216,9 +278,7 @@ export class Workflow extends DBModel {
       const [cursor] = await db
         .select({ id: workflows.id, updated_at: workflows.updated_at })
         .from(workflows)
-        .where(
-          and(eq(workflows.id, startKey), eq(workflows.user_id, userId))
-        )
+        .where(and(eq(workflows.id, startKey), eq(workflows.user_id, userId)))
         .limit(1);
       if (cursor) {
         conditions.push(
@@ -394,5 +454,4 @@ export class Workflow extends DBModel {
       .limit(1);
     return row ? new Workflow(row as Record<string, unknown>) : null;
   }
-
 }

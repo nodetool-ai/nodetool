@@ -111,6 +111,18 @@ describe("MCP Server", () => {
     expect(tools).toHaveProperty("run_workflow");
   });
 
+  it("registers persisted workflow document tools for a scoped session", () => {
+    const server = createMcpServer({
+      agentToolsScope: { userId: "user-1", source: "stdio-local" }
+    });
+    const tools = (
+      server as unknown as { _registeredTools: Record<string, unknown> }
+    )._registeredTools;
+
+    expect(tools).toHaveProperty("ui_get_graph");
+    expect(tools).toHaveProperty("ui_add_node");
+  });
+
   it("registers all expected tools", () => {
     const server = createMcpServer();
     const tools = (
@@ -355,6 +367,26 @@ describe("MCP frontend renderer routing", () => {
       expect(received.name).toBe("ui_add_node");
       expect(received.args).not.toHaveProperty("renderer_id");
       expect(received.args).toMatchObject({ id: "n1" });
+    } finally {
+      unregisterMcpFrontendTransport(transport);
+    }
+  });
+
+  it("prefers live editor state for scoped workflow document tools", async () => {
+    const transport = makeFakeTransport("r-live", async () => ({
+      ok: true,
+      workflow_id: "live-workflow"
+    }));
+    registerMcpFrontendTransport(transport);
+    try {
+      const server = createMcpServer({
+        agentToolsScope: { userId: "user-1", source: "stdio-local" }
+      });
+      const response = await callTool(server, "ui_get_graph", {});
+      expect(response.isError).not.toBe(true);
+      expect(JSON.parse(response.content[0].text)).toMatchObject({
+        workflow_id: "live-workflow"
+      });
     } finally {
       unregisterMcpFrontendTransport(transport);
     }

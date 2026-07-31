@@ -9,19 +9,18 @@
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
+import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import {
   PiQuerySession,
   listPiModels,
   listPiSessions,
-  getPiSessionMessages,
+  getPiSessionMessages
 } from "./pi-agent.js";
-import {
-  stopMcpToolServer,
-} from "./mcp-tool-server.js";
+import { stopMcpToolServer } from "./mcp-tool-server.js";
 import { LlmAgentSdkProvider } from "./llm-agent.js";
 import {
   getLocalMcpServerUrl,
-  setActiveMcpFrontendRenderer,
+  setActiveMcpFrontendRenderer
 } from "../mcp-server.js";
 import type { AgentTransport } from "./transport.js";
 import type {
@@ -33,7 +32,7 @@ import type {
   AgentSessionInfoEntry,
   AgentSessionOptions,
   AgentTranscriptMessage,
-  FrontendToolManifest,
+  FrontendToolManifest
 } from "./types.js";
 
 const log = createLogger("nodetool.websocket.agent.runtime");
@@ -46,27 +45,25 @@ const log = createLogger("nodetool.websocket.agent.runtime");
 export {
   SYSTEM_PROMPT,
   type AgentQuerySession,
-  type AgentSdkProvider,
+  type AgentSdkProvider
 } from "./sdk-provider.js";
 import { SYSTEM_PROMPT } from "./sdk-provider.js";
-import type {
-  AgentQuerySession,
-  AgentSdkProvider,
-} from "./sdk-provider.js";
+import type { AgentQuerySession, AgentSdkProvider } from "./sdk-provider.js";
 
-function getMissingFrontendTools(
-  manifest: FrontendToolManifest[],
-): string[] {
+function getMissingFrontendTools(manifest: FrontendToolManifest[]): string[] {
+  const serverDocumentTools = new Set<string>(WORKFLOW_DOCUMENT_TOOL_NAMES);
   const manifestNames = new Set(
     manifest
       .map((tool) => tool.name)
       .filter(
         (name): name is string =>
-          typeof name === "string" && name.startsWith("ui_"),
-      ),
+          typeof name === "string" && name.startsWith("ui_")
+      )
   );
 
-  return Object.keys(uiToolSchemas).filter((name) => !manifestNames.has(name));
+  return Object.keys(uiToolSchemas).filter(
+    (name) => !serverDocumentTools.has(name) && !manifestNames.has(name)
+  );
 }
 
 // AgentSdkProvider interface lives in `sdk-provider.ts` (re-exported at the
@@ -78,7 +75,7 @@ class PiSdkProvider implements AgentSdkProvider {
 
   async listModels(
     _userId: string,
-    _workspacePath?: string,
+    _workspacePath?: string
   ): Promise<AgentModelDescriptor[]> {
     return listPiModels();
   }
@@ -93,20 +90,20 @@ class PiSdkProvider implements AgentSdkProvider {
   }): AgentQuerySession {
     return new PiQuerySession({
       ...options,
-      systemPrompt: options.systemPrompt ?? SYSTEM_PROMPT,
+      systemPrompt: options.systemPrompt ?? SYSTEM_PROMPT
     });
   }
 
   async listSessions(
     options: AgentListSessionsRequest,
-    _userId: string,
+    _userId: string
   ): Promise<AgentSessionInfoEntry[]> {
     return listPiSessions(options);
   }
 
   async getSessionMessages(
     options: AgentGetSessionMessagesRequest,
-    _userId: string,
+    _userId: string
   ): Promise<AgentTranscriptMessage[]> {
     return getPiSessionMessages(options);
   }
@@ -114,7 +111,7 @@ class PiSdkProvider implements AgentSdkProvider {
 
 const providers: Record<string, AgentSdkProvider> = {
   pi: new PiSdkProvider(),
-  llm: new LlmAgentSdkProvider(),
+  llm: new LlmAgentSdkProvider()
 };
 
 function getProvider(name?: string): AgentSdkProvider {
@@ -144,7 +141,7 @@ class AgentRuntime {
    */
   private getOwnedSession(
     sessionId: string,
-    userId: string,
+    userId: string
   ): AgentQuerySession {
     const session = this.activeSessions.get(sessionId);
     const owner = this.sessionOwners.get(sessionId);
@@ -158,11 +155,11 @@ class AgentRuntime {
 
   async createSession(
     options: AgentSessionOptions,
-    userId: string,
+    userId: string
   ): Promise<string> {
     if (!userId) {
       throw new Error(
-        "createSession requires an authenticated userId — agent socket must be authenticated",
+        "createSession requires an authenticated userId — agent socket must be authenticated"
       );
     }
     // The "llm" provider runs in-process with only ui_* tools — no file
@@ -172,7 +169,7 @@ class AgentRuntime {
     if (requiresWorkspace) {
       if (!options.resumeSessionId && !options.workspacePath) {
         throw new Error(
-          "workspacePath is required when creating a new agent session",
+          "workspacePath is required when creating a new agent session"
         );
       }
       if (!options.workspacePath) {
@@ -186,7 +183,7 @@ class AgentRuntime {
     log.info(
       `${sessionMode} ${provider.name} agent session for user ${userId} with model: ${options.model}${
         options.workspacePath ? ` (workspace: ${options.workspacePath})` : ""
-      }`,
+      }`
     );
 
     const session = provider.createSession({
@@ -196,7 +193,7 @@ class AgentRuntime {
       resumeSessionId: options.resumeSessionId,
       modelParams: options.modelParams,
       chatProviderId: options.chatProviderId,
-      memoryEnabled: options.memoryEnabled,
+      memoryEnabled: options.memoryEnabled
     });
 
     this.activeSessions.set(tempId, session);
@@ -213,7 +210,7 @@ class AgentRuntime {
     sessionId: string,
     message: string,
     transport: AgentTransport,
-    userId: string,
+    userId: string
   ): Promise<void> {
     const session = this.getOwnedSession(sessionId, userId);
 
@@ -231,18 +228,18 @@ class AgentRuntime {
       log.debug(
         `Frontend tools manifest for session ${sessionId}: ${frontendTools.length} tool(s) [${frontendTools
           .map((t) => t.name)
-          .join(", ")}]`,
+          .join(", ")}]`
       );
 
       const missingFrontendTools = getMissingFrontendTools(frontendTools);
       if (missingFrontendTools.length > 0) {
         throw new Error(
-          `Renderer frontend tool manifest is incomplete for session ${sessionId}. Missing tools: ${missingFrontendTools.join(", ")}`,
+          `Renderer frontend tool manifest is incomplete for session ${sessionId}. Missing tools: ${missingFrontendTools.join(", ")}`
         );
       }
     } catch (error) {
       log.warn(
-        `Failed to get frontend tools manifest: ${error instanceof Error ? error.message : String(error)}`,
+        `Failed to get frontend tools manifest: ${error instanceof Error ? error.message : String(error)}`
       );
       throw error;
     }
@@ -275,7 +272,7 @@ class AgentRuntime {
         messageCount++;
         transport.streamMessage(sessionId, serialized, false);
       },
-      mcpServerUrl,
+      mcpServerUrl
     );
 
     transport.streamMessage(
@@ -283,14 +280,12 @@ class AgentRuntime {
       {
         type: "system",
         uuid: randomUUID(),
-        session_id: sessionId,
+        session_id: sessionId
       },
-      true,
+      true
     );
 
-    log.info(
-      `Agent session ${sessionId}: streamed ${messageCount} messages`,
-    );
+    log.info(`Agent session ${sessionId}: streamed ${messageCount} messages`);
   }
 
   async stopExecution(sessionId: string, userId: string): Promise<void> {
@@ -303,11 +298,7 @@ class AgentRuntime {
    * Only honoured by sessions that implement {@link AgentQuerySession.setMemoryEnabled}
    * (currently the in-process LLM provider); other sessions are no-ops.
    */
-  setMemoryEnabled(
-    sessionId: string,
-    userId: string,
-    enabled: boolean,
-  ): void {
+  setMemoryEnabled(sessionId: string, userId: string, enabled: boolean): void {
     const session = this.getOwnedSession(sessionId, userId);
     const setter = (session as { setMemoryEnabled?: (v: boolean) => void })
       .setMemoryEnabled;
@@ -343,7 +334,7 @@ class AgentRuntime {
 
   async listModels(
     options: AgentModelsRequest,
-    userId: string,
+    userId: string
   ): Promise<AgentModelDescriptor[]> {
     const provider = getProvider(options.provider);
     return provider.listModels(userId, options.workspacePath);
@@ -351,21 +342,21 @@ class AgentRuntime {
 
   async listSessionsForRequest(
     options: AgentListSessionsRequest,
-    userId: string,
+    userId: string
   ): Promise<AgentSessionInfoEntry[]> {
     if (options.provider) {
       const provider = getProvider(options.provider);
       return provider.listSessions(options, userId);
     }
     const results = await Promise.all(
-      Object.values(providers).map((p) => p.listSessions(options, userId)),
+      Object.values(providers).map((p) => p.listSessions(options, userId))
     );
     return results.flat();
   }
 
   async getSessionMessagesForRequest(
     options: AgentGetSessionMessagesRequest,
-    userId: string,
+    userId: string
   ): Promise<AgentTranscriptMessage[]> {
     for (const provider of Object.values(providers)) {
       const messages = await provider.getSessionMessages(options, userId);

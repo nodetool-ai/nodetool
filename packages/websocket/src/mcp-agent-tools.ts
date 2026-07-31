@@ -34,14 +34,21 @@ import {
   AnimateImageTool,
   GenerateSpeechTool,
   TranscribeAudioTool,
-  EmbedTextTool
+  EmbedTextTool,
+  createWorkflowDocumentTools
 } from "@nodetool-ai/agents";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { getSecret, Asset } from "@nodetool-ai/models";
+import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import { getAssetAdapter } from "./lib/storage.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import type { McpServerOptions } from "./mcp-server.js";
+
+export type FrontendDocumentToolExecutor = (
+  name: string,
+  args: Record<string, unknown>
+) => Promise<{ handled: boolean; result?: unknown }>;
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
 
@@ -161,7 +168,11 @@ function jsonSchemaPropToZod(prop: Record<string, unknown>): z.ZodTypeAny {
   switch (type) {
     case "string": {
       const values = prop["enum"];
-      if (Array.isArray(values) && values.every((v) => typeof v === "string") && values.length > 0) {
+      if (
+        Array.isArray(values) &&
+        values.every((v) => typeof v === "string") &&
+        values.length > 0
+      ) {
         return z.enum(values as [string, ...string[]]);
       }
       return z.string();
@@ -211,7 +222,8 @@ function jsonSchemaToZodShape(schema: JsonSchema | undefined): z.ZodRawShape {
 // ── MCP response helpers ────────────────────────────────────────────
 
 function isErrorResult(result: unknown): boolean {
-  if (!result || typeof result !== "object" || Array.isArray(result)) return false;
+  if (!result || typeof result !== "object" || Array.isArray(result))
+    return false;
   const r = result as Record<string, unknown>;
   return Boolean(r["error"]) || r["success"] === false;
 }
@@ -250,7 +262,8 @@ function errorResponse(err: unknown) {
  */
 export function registerAgentMcpTools(
   server: McpServer,
-  options?: McpServerOptions
+  options?: McpServerOptions,
+  executeFrontendDocumentTool?: FrontendDocumentToolExecutor
 ): void {
   // Every bridged tool runs against one user's secrets and assets, so a
   // session without an explicit user binding gets no bridged tools at all —
@@ -275,6 +288,9 @@ export function registerAgentMcpTools(
     return providersPromise;
   };
 
+  const workflowDocumentToolNames = new Set<string>(
+    WORKFLOW_DOCUMENT_TOOL_NAMES
+  );
   const register = (tool: Tool, before?: () => Promise<void>): void => {
     server.tool(
       tool.name,
@@ -283,6 +299,16 @@ export function registerAgentMcpTools(
       async (args) => {
         try {
           if (before) await before();
+          if (
+            executeFrontendDocumentTool &&
+            workflowDocumentToolNames.has(tool.name)
+          ) {
+            const frontend = await executeFrontendDocumentTool(
+              tool.name,
+              (args ?? {}) as Record<string, unknown>
+            );
+            if (frontend.handled) return toToolResponse(frontend.result);
+          }
           const result = await tool.process(
             context,
             (args ?? {}) as Record<string, unknown>
@@ -296,6 +322,7 @@ export function registerAgentMcpTools(
   };
 
   const bridged: Tool[] = [
+    ...createWorkflowDocumentTools(options?.registry),
     new CreateWorkflowTool(),
     new DebugWorkflowTool(),
     new ValidateWorkflowTool(options?.registry),

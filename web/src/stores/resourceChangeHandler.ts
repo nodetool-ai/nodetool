@@ -11,6 +11,16 @@ import { queryClient } from "../queryClient";
 import { ResourceChangeUpdate } from "./ApiTypes";
 import { loadMetadata } from "../serverState/useMetadata";
 
+type WorkflowResourceReloader = (workflowId: string, etag?: string) => void;
+
+let workflowResourceReloader: WorkflowResourceReloader | null = null;
+
+export function setWorkflowResourceReloader(
+  reloader: WorkflowResourceReloader | null
+): void {
+  workflowResourceReloader = reloader;
+}
+
 /**
  * Mapping of resource types to their TanStack Query cache keys.
  * When a resource change event is received, all associated query keys
@@ -110,9 +120,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
   // workflow_id; otherwise refetch every cached versions list.
   if (resource_type === "workflowversion") {
     const workflowId =
-      typeof resource.workflow_id === "string"
-        ? resource.workflow_id
-        : null;
+      typeof resource.workflow_id === "string" ? resource.workflow_id : null;
     if (workflowId) {
       console.info(
         `[ResourceChange] Invalidating workflow versions for ${workflowId}`
@@ -121,7 +129,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
         queryKey: ["workflow", workflowId, "versions"]
       });
     } else {
-      console.info("[ResourceChange] Invalidating all workflow version queries");
+      console.info(
+        "[ResourceChange] Invalidating all workflow version queries"
+      );
       queryClient.invalidateQueries({
         predicate: (query) =>
           query.queryKey[0] === "workflow" && query.queryKey[2] === "versions"
@@ -167,6 +177,9 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       queryClient.invalidateQueries({
         queryKey: ["workflow", resource.id, "versions"]
       });
+      if (event === "updated") {
+        workflowResourceReloader?.(resource.id, resource.etag);
+      }
     }
 
     if (resource_type === "thread") {
@@ -183,9 +196,7 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
       // the runner provides it, but we can also fall back to invalidating any
       // thread-scoped messages query.
       const threadId =
-        typeof resource.thread_id === "string"
-          ? resource.thread_id
-          : null;
+        typeof resource.thread_id === "string" ? resource.thread_id : null;
       if (threadId) {
         queryClient.invalidateQueries({
           queryKey: ["messages", threadId]

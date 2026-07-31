@@ -43,7 +43,6 @@ export interface FloatingToolbarActions {
 }
 
 export const useFloatingToolbarActions = (): FloatingToolbarActions => {
-
   const nodeStore = useNodeStoreRef();
   const workflow = useNodes((state) => state.workflow);
   const autoLayout = useNodes((state) => state.autoLayout);
@@ -73,7 +72,9 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
 
   const getWorkflowById = useWorkflowManager((state) => state.getWorkflow);
   const saveWorkflow = useWorkflowManager((state) => state.saveWorkflow);
-  const addNotification = useNotificationStore((state) => state.addNotification);
+  const addNotification = useNotificationStore(
+    (state) => state.addNotification
+  );
 
   const autosave = useSettingsStore((state) => state.settings.autosave);
   const confirmLargeRun = useSettingsStore(
@@ -110,11 +111,20 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
       if (autosave?.saveBeforeRun) {
         const w = getWorkflowById(workflow.id);
         if (w?.graph?.nodes && w.graph.nodes.length > 0) {
-          await triggerAutosaveForWorkflow(workflow.id, w.graph, "checkpoint", {
-            description: "Before execution",
-            force: true,
-            maxVersions: autosave.maxVersionsPerWorkflow
-          });
+          const updatedAt = await triggerAutosaveForWorkflow(
+            workflow.id,
+            w.graph,
+            "checkpoint",
+            {
+              description: "Before execution",
+              force: true,
+              maxVersions: autosave.maxVersionsPerWorkflow,
+              expectedUpdatedAt: w.updated_at ?? undefined
+            }
+          );
+          if (updatedAt) {
+            nodeStore.getState().setWorkflowUpdatedAt(updatedAt);
+          }
         }
       }
 
@@ -330,39 +340,42 @@ export const useFloatingToolbarActions = (): FloatingToolbarActions => {
     toggleMiniMap();
   }, [toggleMiniMap]);
 
-  return useMemo(() => ({
-    handleRun,
-    handleStop,
-    handlePause,
-    handleResume,
-    handleSave,
-    handleDownload,
-    handleAutoLayout,
-    handleEditWorkflow,
-    handleToggleNodeMenu,
-    handleToggleTrace,
-    handleToggleMiniMap,
-    isWorkflowRunning,
-    isPaused,
-    isSuspended,
-    queuePosition,
-    pendingRunCount
-  }), [
-    handleRun,
-    handleStop,
-    handlePause,
-    handleResume,
-    handleSave,
-    handleDownload,
-    handleAutoLayout,
-    handleEditWorkflow,
-    handleToggleNodeMenu,
-    handleToggleTrace,
-    handleToggleMiniMap,
-    isWorkflowRunning,
-    isPaused,
-    isSuspended,
-    queuePosition,
-    pendingRunCount
-  ]);
+  return useMemo(
+    () => ({
+      handleRun,
+      handleStop,
+      handlePause,
+      handleResume,
+      handleSave,
+      handleDownload,
+      handleAutoLayout,
+      handleEditWorkflow,
+      handleToggleNodeMenu,
+      handleToggleTrace,
+      handleToggleMiniMap,
+      isWorkflowRunning,
+      isPaused,
+      isSuspended,
+      queuePosition,
+      pendingRunCount
+    }),
+    [
+      handleRun,
+      handleStop,
+      handlePause,
+      handleResume,
+      handleSave,
+      handleDownload,
+      handleAutoLayout,
+      handleEditWorkflow,
+      handleToggleNodeMenu,
+      handleToggleTrace,
+      handleToggleMiniMap,
+      isWorkflowRunning,
+      isPaused,
+      isSuspended,
+      queuePosition,
+      pendingRunCount
+    ]
+  );
 };
