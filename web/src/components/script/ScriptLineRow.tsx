@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useState } from "react";
+import { memo, useCallback, useState } from "react";
 import type {
   ChangeEvent,
   DragEvent,
@@ -539,4 +539,6 @@ const ScriptLineRow = ({
   );
 };
 
-export default ScriptLineRow;
+/** Only the edited line's `line` changes identity (see `mapLine` in
+ *  ScriptStore), so the rest of the document skips the row body entirely. */
+export default memo(ScriptLineRow);

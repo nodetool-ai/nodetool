@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import { useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import type { DragEvent } from "react";
 import { useTheme } from "@mui/material/styles";
 import { useMediaQuery } from "@mui/material";
@@ -30,10 +30,13 @@ import {
 } from "../ui_primitives";
 import {
   useScript,
+  useScriptCast,
   useScriptStore,
   useScriptCanUndo,
   useScriptCanRedo,
-  type ScriptSection
+  type ScriptLine,
+  type ScriptSection,
+  type ScriptSpeaker
 } from "../../stores/script/ScriptStore";
 import { voiceAll } from "../../stores/script/scriptVoicing";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
@@ -128,7 +131,122 @@ const InsertLineGap = ({
   </Box>
 );
 
-const SectionBlock = ({
+/**
+ * One line: the insert/drop gap above it plus the row itself. Owns the per-line
+ * closures the row needs, so typing in one line leaves every other row — six
+ * icon buttons and a text field each — untouched.
+ */
+const SectionLine = memo(function SectionLine({
+  scriptId,
+  line,
+  index,
+  nextLineId,
+  cast,
+  highlighted,
+  readOnly,
+  mobile,
+  inset,
+  gapActive,
+  isDragging,
+  dragActive,
+  onKeyNav,
+  onInsert,
+  onDragStart,
+  onDragEnd,
+  onDropTarget,
+  onDrop
+}: {
+  scriptId: string;
+  line: ScriptLine;
+  index: number;
+  nextLineId: string | null;
+  cast: ScriptSpeaker[];
+  highlighted: boolean;
+  readOnly: boolean;
+  mobile: boolean;
+  inset: number;
+  /** True when the pending drop lands right above this line. */
+  gapActive: boolean;
+  isDragging: boolean;
+  /** True while any line in the document is being dragged. */
+  dragActive: boolean;
+  onKeyNav: (lineId: string, nav: LineKeyNav) => void;
+  onInsert: (index: number) => void;
+  onDragStart: (lineId: string) => void;
+  onDragEnd: () => void;
+  onDropTarget: (beforeLineId: string | null) => void;
+  onDrop: () => void;
+}) {
+  const handleInsert = useCallback(
+    () => onInsert(index),
+    [onInsert, index]
+  );
+
+  const handleGapDragOver = useCallback(
+    (e: DragEvent<HTMLElement>) => {
+      if (!dragActive) return;
+      e.preventDefault();
+      onDropTarget(line.id);
+    },
+    [dragActive, onDropTarget, line.id]
+  );
+
+  // Snap a drag hovering the row to the nearest gap (before this line, or before
+  // the next one), so the active gap's rule marks where the drop will land.
+  const handleRowDragOver = useCallback(
+    (e: DragEvent<HTMLElement>) => {
+      if (!dragActive) return;
+      e.preventDefault();
+      const rect = e.currentTarget.getBoundingClientRect();
+      const after = e.clientY - rect.top > rect.height / 2;
+      onDropTarget(after ? nextLineId : line.id);
+    },
+    [dragActive, onDropTarget, nextLineId, line.id]
+  );
+
+  const handleDrop = useCallback(
+    (e: DragEvent<HTMLElement>) => {
+      e.preventDefault();
+      onDrop();
+    },
+    [onDrop]
+  );
+
+  const handleDragStart = useCallback(
+    () => onDragStart(line.id),
+    [onDragStart, line.id]
+  );
+
+  return (
+    <div>
+      {!readOnly && (
+        <InsertLineGap
+          onInsert={handleInsert}
+          onDragOver={handleGapDragOver}
+          onDrop={handleDrop}
+          active={gapActive}
+          inset={inset}
+        />
+      )}
+      <ScriptLineRow
+        scriptId={scriptId}
+        line={line}
+        cast={cast}
+        highlighted={highlighted}
+        readOnly={readOnly}
+        mobile={mobile}
+        onKeyNav={onKeyNav}
+        isDragging={isDragging}
+        onDragStart={readOnly ? undefined : handleDragStart}
+        onDragEnd={readOnly ? undefined : onDragEnd}
+        onDragOver={handleRowDragOver}
+        onDrop={handleDrop}
+      />
+    </div>
+  );
+});
+
+const SectionBlockInner = ({
   scriptId,
   section,
   currentLineId,
@@ -145,7 +263,7 @@ const SectionBlock = ({
   dnd: LineDnd;
   onKeyNav: (lineId: string, nav: LineKeyNav) => void;
 }) => {
-  const cast = useScript(scriptId).cast;
+  const cast = useScriptCast(scriptId);
   const setSectionTitle = useScriptStore((s) => s.setSectionTitle);
   const addLine = useScriptStore((s) => s.addLine);
   const insertLine = useScriptStore((s) => s.insertLine);
@@ -159,31 +277,30 @@ const SectionBlock = ({
     dnd.dropTarget?.sectionId === section.id &&
     dnd.dropTarget.beforeLineId === beforeLineId;
 
-  // Snap a drag hovering a row to the nearest gap (before this line, or before
-  // the next one), so the active gap's rule marks where the drop will land.
-  const onRowDragOver =
-    (lineId: string, nextLineId: string | null) =>
-    (e: DragEvent<HTMLElement>) => {
-      if (!dnd.draggingLineId) return;
-      e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      const after = e.clientY - rect.top > rect.height / 2;
-      dnd.setDropTarget({
-        sectionId: section.id,
-        beforeLineId: after ? nextLineId : lineId
-      });
-    };
+  const dragActive = dnd.draggingLineId !== null;
+  const { setDropTarget, onLineDragStart, onLineDragEnd, onLineDrop } = dnd;
+
+  const onDropTarget = useCallback(
+    (beforeLineId: string | null) =>
+      setDropTarget({ sectionId: section.id, beforeLineId }),
+    [setDropTarget, section.id]
+  );
+
+  const onInsertAt = useCallback(
+    (index: number) => insertLine(scriptId, section.id, index),
+    [insertLine, scriptId, section.id]
+  );
 
   const onGapDragOver =
     (beforeLineId: string | null) => (e: DragEvent<HTMLElement>) => {
-      if (!dnd.draggingLineId) return;
+      if (!dragActive) return;
       e.preventDefault();
-      dnd.setDropTarget({ sectionId: section.id, beforeLineId });
+      onDropTarget(beforeLineId);
     };
 
   const onGapDrop = (e: DragEvent<HTMLElement>) => {
     e.preventDefault();
-    dnd.onLineDrop();
+    onLineDrop();
   };
 
   return (
@@ -239,38 +356,29 @@ const SectionBlock = ({
           </Box>
         )}
       </FlexRow>
-      {section.lines.map((line, index) => {
-        const nextLineId = section.lines[index + 1]?.id ?? null;
-        return (
-          <div key={line.id}>
-            {!readOnly && (
-              <InsertLineGap
-                onInsert={() => insertLine(scriptId, section.id, index)}
-                onDragOver={onGapDragOver(line.id)}
-                onDrop={onGapDrop}
-                active={isTarget(line.id)}
-                inset={inset}
-              />
-            )}
-            <ScriptLineRow
-              scriptId={scriptId}
-              line={line}
-              cast={cast}
-              highlighted={line.id === currentLineId}
-              readOnly={readOnly}
-              mobile={mobile}
-              onKeyNav={onKeyNav}
-              isDragging={dnd.draggingLineId === line.id}
-              onDragStart={
-                readOnly ? undefined : () => dnd.onLineDragStart(line.id)
-              }
-              onDragEnd={readOnly ? undefined : dnd.onLineDragEnd}
-              onDragOver={onRowDragOver(line.id, nextLineId)}
-              onDrop={onGapDrop}
-            />
-          </div>
-        );
-      })}
+      {section.lines.map((line, index) => (
+        <SectionLine
+          key={line.id}
+          scriptId={scriptId}
+          line={line}
+          index={index}
+          nextLineId={section.lines[index + 1]?.id ?? null}
+          cast={cast}
+          highlighted={line.id === currentLineId}
+          readOnly={readOnly}
+          mobile={mobile}
+          inset={inset}
+          gapActive={isTarget(line.id)}
+          isDragging={dnd.draggingLineId === line.id}
+          dragActive={dragActive}
+          onKeyNav={onKeyNav}
+          onInsert={onInsertAt}
+          onDragStart={onLineDragStart}
+          onDragEnd={onLineDragEnd}
+          onDropTarget={onDropTarget}
+          onDrop={onLineDrop}
+        />
+      ))}
       {!readOnly && (
         <InsertLineGap
           onInsert={() => insertLine(scriptId, section.id, section.lines.length)}
@@ -295,6 +403,10 @@ const SectionBlock = ({
     </FlexColumn>
   );
 };
+
+/** `mapLine` keeps unedited sections referentially stable, so a keystroke only
+ *  re-renders the section being edited. */
+const SectionBlock = memo(SectionBlockInner);
 
 const ScriptDocumentPane = ({
   scriptId,
@@ -324,35 +436,35 @@ const ScriptDocumentPane = ({
   const [draggingLineId, setDraggingLineId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
-  // `dnd` is rebuilt every render, so these handlers see the current drag state
-  // directly — no memoization needed and no stale closures.
-  const dnd: LineDnd = {
-    draggingLineId,
-    dropTarget,
-    onLineDragStart: setDraggingLineId,
-    onLineDragEnd: () => {
-      setDraggingLineId(null);
-      setDropTarget(null);
-    },
-    setDropTarget,
-    onLineDrop: () => {
-      if (draggingLineId && dropTarget)
-        moveLine(
-          scriptId,
-          draggingLineId,
-          dropTarget.sectionId,
-          dropTarget.beforeLineId
-        );
-      setDraggingLineId(null);
-      setDropTarget(null);
-    }
-  };
+  const onLineDragEnd = useCallback(() => {
+    setDraggingLineId(null);
+    setDropTarget(null);
+  }, []);
 
-  // Flat, document-order line id list — drives arrow-key focus moves and
-  // delete-and-focus-previous.
-  const flatLineIds = useMemo(
-    () => sections.flatMap((s) => s.lines.map((l) => l.id)),
-    [sections]
+  const onLineDrop = useCallback(() => {
+    if (draggingLineId && dropTarget)
+      moveLine(
+        scriptId,
+        draggingLineId,
+        dropTarget.sectionId,
+        dropTarget.beforeLineId
+      );
+    setDraggingLineId(null);
+    setDropTarget(null);
+  }, [draggingLineId, dropTarget, moveLine, scriptId]);
+
+  // Changes only when a drag starts, moves, or ends — never on a keystroke,
+  // which would invalidate every memoized section.
+  const dnd: LineDnd = useMemo(
+    () => ({
+      draggingLineId,
+      dropTarget,
+      onLineDragStart: setDraggingLineId,
+      onLineDragEnd,
+      setDropTarget,
+      onLineDrop
+    }),
+    [draggingLineId, dropTarget, onLineDragEnd, onLineDrop]
   );
 
   // Focus a line's text field once React has committed the mutation, placing
@@ -369,10 +481,14 @@ const ScriptDocumentPane = ({
     });
   }, []);
 
+  // Reads the document from the store rather than closing over `sections`, so
+  // typing doesn't hand every row a new callback.
   const onLineKeyNav = useCallback(
     (lineId: string, nav: LineKeyNav) => {
+      const script = useScriptStore.getState().getScript(scriptId);
+      if (!script) return;
       const located = (() => {
-        for (const section of sections) {
+        for (const section of script.sections) {
           const index = section.lines.findIndex((l) => l.id === lineId);
           if (index >= 0) return { section, index };
         }
@@ -394,6 +510,12 @@ const ScriptDocumentPane = ({
         focusLine(newId, "start");
         return;
       }
+
+      // Flat, document-order line id list — drives arrow-key focus moves and
+      // delete-and-focus-previous.
+      const flatLineIds = script.sections.flatMap((s) =>
+        s.lines.map((l) => l.id)
+      );
       if (nav.type === "delete-empty") {
         const pos = flatLineIds.indexOf(lineId);
         const prevId = pos > 0 ? flatLineIds[pos - 1] : null;
@@ -406,15 +528,7 @@ const ScriptDocumentPane = ({
       const targetId = flatLineIds[pos + nav.dir];
       if (targetId) focusLine(targetId, nav.dir < 0 ? "end" : "start");
     },
-    [
-      sections,
-      flatLineIds,
-      scriptId,
-      patchLine,
-      insertLine,
-      removeLine,
-      focusLine
-    ]
+    [scriptId, patchLine, insertLine, removeLine, focusLine]
   );
 
   const onVoiceAll = useCallback(async () => {
@@ -451,23 +565,23 @@ const ScriptDocumentPane = ({
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   }, [scriptId]);
 
-  const isEmpty = sections.every((s) => s.lines.length === 0);
-  const { lineCount, wordCount } = useMemo(() => {
+  // Every header stat from one walk; `hasVoicedLine` used to rescan the whole
+  // document on each render.
+  const { lineCount, wordCount, hasVoicedLine } = useMemo(() => {
     let lines = 0;
     let words = 0;
+    let voiced = false;
     for (const section of sections)
       for (const line of section.lines) {
         lines += 1;
         const trimmed = line.text.trim();
         if (trimmed) words += trimmed.split(/\s+/).length;
+        if (!voiced && line.takes.some((t) => t.id === line.currentTakeId))
+          voiced = true;
       }
-    return { lineCount: lines, wordCount: words };
+    return { lineCount: lines, wordCount: words, hasVoicedLine: voiced };
   }, [sections]);
-  const hasVoicedLine = sections.some((section) =>
-    section.lines.some((line) =>
-      line.takes.some((t) => t.id === line.currentTakeId)
-    )
-  );
+  const isEmpty = lineCount === 0;
 
   return (
     <FlexColumn
