@@ -123,31 +123,45 @@ describe("createCreativePipelineBridge", () => {
     expect(state.cutDurationSeconds).toBeCloseTo(5.4, 3);
   });
 
-  it("counts timeline edits only after review notes are filed", async () => {
-    const bridge = bridgeOf();
-    await call(bridge, "ui_storyboard_add_shot", {
-      action: "hands at sunrise",
-      durationSeconds: 4
-    });
-    await call(bridge, "ui_storyboard_generate_keyframe", { target: "0" });
-    await call(bridge, "ui_storyboard_generate_clip", { target: "0" });
-    await call(bridge, "ui_storyboard_assemble_timeline");
-    // Assembly itself mutates the timeline but precedes any review.
-    expect(bridge.finalState().editsAfterReview).toBe(0);
-
-    await call(bridge, "ui_review_get_cut");
-    await call(bridge, "ui_review_submit_notes", {
+  it("counts revisions from assembly, so fix-then-report scores like report-then-fix", async () => {
+    const seed = async (bridge: ReturnType<typeof bridgeOf>) => {
+      await call(bridge, "ui_storyboard_add_shot", {
+        action: "hands at sunrise",
+        durationSeconds: 4
+      });
+      await call(bridge, "ui_storyboard_generate_keyframe", { target: "0" });
+      await call(bridge, "ui_storyboard_generate_clip", { target: "0" });
+      await call(bridge, "ui_storyboard_assemble_timeline");
+      // The clips assembly lays down are not the model's own revisions.
+      expect(bridge.finalState().editsAfterAssembly).toBe(0);
+    };
+    const notes = {
       notes: [{ severity: "blocker", note: "runtime overruns the brief" }]
-    });
-    expect(bridge.finalState().editsAfterReview).toBe(0);
+    };
+    const trim = (bridge: ReturnType<typeof bridgeOf>) =>
+      call(bridge, "ui_timeline_trim_clip", {
+        target: bridge.finalState().timeline.clips[0].id,
+        durationMs: 3000
+      });
 
-    const clipId = bridge.finalState().timeline.clips[0].id;
-    await call(bridge, "ui_timeline_trim_clip", {
-      target: clipId,
-      durationMs: 3000
-    });
-    expect(bridge.finalState().editsAfterReview).toBe(1);
-    expect(bridge.finalState().cutDurationSeconds).toBeCloseTo(3, 3);
+    // Report, then fix.
+    const reportFirst = bridgeOf();
+    await seed(reportFirst);
+    await call(reportFirst, "ui_review_get_cut");
+    await call(reportFirst, "ui_review_submit_notes", notes);
+    await trim(reportFirst);
+
+    // Fix, verify, then report — what a live sonnet run actually did.
+    const fixFirst = bridgeOf();
+    await seed(fixFirst);
+    await trim(fixFirst);
+    await call(fixFirst, "ui_review_get_cut");
+    await call(fixFirst, "ui_review_submit_notes", notes);
+
+    for (const b of [reportFirst, fixFirst]) {
+      expect(b.finalState().editsAfterAssembly).toBe(1);
+      expect(b.finalState().cutDurationSeconds).toBeCloseTo(3, 3);
+    }
   });
 
   it("accepts the severity words a model actually uses", async () => {
@@ -292,7 +306,7 @@ describe("CREATIVE_PIPELINE_TOOL_LOOP_CASES", () => {
     });
     const [result] = report.cases;
     const failedNames = result.checks.filter((c) => !c.pass).map((c) => c.name);
-    expect(failedNames).toContain("state:reviewActedOn");
+    expect(failedNames).toContain("state:cutRevisedAfterAssembly");
     expect(failedNames).toContain("state:withinBriefRuntime");
     expect(result.score).toBeLessThan(1);
   });

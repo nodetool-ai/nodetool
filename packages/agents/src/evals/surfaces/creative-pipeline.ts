@@ -117,10 +117,17 @@ export interface CreativePipelineFinalState {
   /** The model inspected the assembled cut before reporting on it. */
   inspectedCut: boolean;
   /**
-   * Timeline-mutating calls made *after* the first review note. Zero means the
-   * review was decorative: findings were reported and nothing was changed.
+   * Timeline-mutating calls made after the cut was assembled. Zero means the
+   * model shipped the sequence exactly as the renderer handed it over.
+   *
+   * Deliberately keyed on assembly rather than on the review notes. An earlier
+   * version counted edits after the first note and so required the model to
+   * report before fixing. A live sonnet run assembled at 16.20s, trimmed and
+   * ripple-moved down to 12.00s, verified with ui_review_get_cut and *then*
+   * filed notes as a compliance sign-off — a complete review loop that scored
+   * as "review changed nothing". Measuring from assembly accepts either order.
    */
-  editsAfterReview: number;
+  editsAfterAssembly: number;
 }
 
 function tool(
@@ -215,9 +222,8 @@ export function createCreativePipelineBridge(
   let timelineAssembled = false;
   let inspectedCut = false;
   const reviewNotes: ReviewNote[] = [];
-  let firstReviewAt: number | null = null;
   let toolSeq = 0;
-  let editsAfterReview = 0;
+  let editsAfterAssembly = 0;
   let conceptSeq = 0;
 
   /** Requested duration per shot id, since the board's snapshot omits it. */
@@ -397,7 +403,6 @@ export function createCreativePipelineBridge(
             targetClipId: n.targetClipId ?? undefined
           });
         }
-        if (firstReviewAt === null) firstReviewAt = toolSeq;
         return { ok: true, noteCount: reviewNotes.length };
       }
     )
@@ -426,15 +431,15 @@ export function createCreativePipelineBridge(
   /**
    * Wrap every surface tool to maintain the cross-phase bookkeeping the
    * predicates read: which phase the model is in, what each shot's requested
-   * duration was, and whether anything changed after the review.
+   * duration was, and whether the assembled cut was revised.
    */
   const instrument = (t: HeadlessTool): HeadlessTool => ({
     ...t,
     execute: async (args) => {
       toolSeq += 1;
       if (WORK_PREFIXES.some((p) => t.name.startsWith(p))) anyWorkDone = true;
-      if (firstReviewAt !== null && TIMELINE_MUTATORS.has(t.name)) {
-        editsAfterReview += 1;
+      if (timelineAssembled && TIMELINE_MUTATORS.has(t.name)) {
+        editsAfterAssembly += 1;
       }
       const result = await t.execute(args);
 
@@ -476,7 +481,7 @@ export function createCreativePipelineBridge(
       cutDurationSeconds: cutDurationSeconds(),
       reviewNotes: [...reviewNotes],
       inspectedCut,
-      editsAfterReview
+      editsAfterAssembly
     })
   };
 }
@@ -625,10 +630,10 @@ export const CREATIVE_PIPELINE_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<Creati
             test: (s) => s.reviewNotes.length > 0
           },
           {
-            name: "reviewActedOn",
+            name: "cutRevisedAfterAssembly",
             detail:
-              "notes were filed but the cut was never touched afterwards — a review that changed nothing",
-            test: (s) => s.editsAfterReview > 0
+              "the cut was shipped exactly as the renderer handed it over — nothing was revised",
+            test: (s) => s.editsAfterAssembly > 0
           },
           {
             name: "withinBriefRuntime",
@@ -742,9 +747,9 @@ The storyboard phase is already done for this job: add the shots that were plann
               )
           },
           {
-            name: "reviewActedOn",
-            detail: "the cut was not edited after the review",
-            test: (s) => s.editsAfterReview > 0
+            name: "cutRevisedAfterAssembly",
+            detail: "the assembled cut was never revised",
+            test: (s) => s.editsAfterAssembly > 0
           },
           {
             name: "withinBriefRuntime",

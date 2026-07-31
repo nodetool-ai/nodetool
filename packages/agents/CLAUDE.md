@@ -602,21 +602,46 @@ only in the prompt can't be told apart from one the model ignored.
 
 Rendered clips come back 1.35× the requested length, the way a video model that
 emits fixed-length takes does, so a cut planned to exactly fill the brief
-overruns. Catching that in review and trimming — and trimming the *last* clip,
-since shortening an earlier one only opens a gap — is what separates a scoring
-run from a passing-looking one. The predicates grade behaviour, not prose:
-`reviewActedOn` (did the cut change after the notes) and severity, never a
-keyword match on the note text.
+overruns. Catching that and trimming — the *last* clip, since shortening an
+earlier one only opens a gap and leaves the runtime untouched — is what
+separates a scoring run from a passing-looking one.
 
-Measured on `claude_agent_sdk`/sonnet: `review-catches-overrun` scores 1.00 in
-~25 calls; `brief-constraints-hold` 0.91 in 97. The full six-phase case needs a
-turn cap well past the default — it spent 138 calls without converging at
-`--max-iterations 140`. Budget accordingly, and note the suite costs real money
-(~$1–3 per case).
+The predicates grade outcomes, not the shape of the process. Three checks were
+rewritten after live runs, all the same mistake: they encoded one valid working
+order and failed models that used another.
+
+- Severity was a three-value enum that threw on `"critical"`, failing a run on
+  this harness's vocabulary. Synonyms now map.
+- Overrun detection grepped the note prose for runtime/duration/length, and
+  scored a run that found the overrun and fixed it as a miss on wording. It
+  now reads the severity the model assigned.
+- `reviewActedOn` counted edits after the first review note, requiring
+  report-before-fix. A sonnet run assembled at 16.20s, trimmed and
+  ripple-moved to 12.00s, verified with `ui_review_get_cut` and *then* filed
+  notes as a sign-off — a complete loop scored as "review changed nothing". It
+  is now `cutRevisedAfterAssembly`, which accepts either order.
+
+Measured on `claude_agent_sdk`/sonnet: `full-pipeline` 1.00 in 93 calls (401s,
+~$2.6), `review-catches-overrun` 1.00 in ~25, `brief-constraints-hold` 0.91 in
+97. The SDK throws on its turn cap rather than stopping, so a low cap scores
+the whole case zero — `--max-iterations 220` clears the full case. The suite
+costs real money.
 
 ```bash
 IS_SANDBOX=1 npm run dev:nodetool -- eval creative-pipeline \
-  -p claude_agent_sdk -m sonnet --max-iterations 200 --no-find-model
+  -p claude_agent_sdk -m sonnet --max-iterations 220 --no-find-model
+```
+
+`scripts/dump-creative-run.ts` runs one case and writes the work itself —
+concepts, style-frame prompt, shot list, the assembled cut with timings, review
+notes, phase snapshots and the full tool transcript — to
+`nodetool-debug/creative-<case>.{md,json}`. The eval report gives pass/fail and
+call counts, which is right for a scoreboard and useless for seeing what the
+model made.
+
+```bash
+IS_SANDBOX=1 npx tsx packages/agents/scripts/dump-creative-run.ts \
+  full-pipeline claude_agent_sdk sonnet 220
 ```
 
 `thread-memory-tools` is the odd one out: instead of reimplementing a browser
