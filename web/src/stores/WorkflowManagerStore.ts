@@ -20,8 +20,15 @@ import {
   fetchWorkflowById,
   workflowQueryKey
 } from "../serverState/useWorkflow";
-import { subscribeToWorkflowUpdates, unsubscribeFromWorkflowUpdates, setGetNodeStore } from "./workflowUpdates";
-import { disposeWorkflowRunnerStore, getWorkflowRunnerStore } from "./WorkflowRunner";
+import {
+  subscribeToWorkflowUpdates,
+  unsubscribeFromWorkflowUpdates,
+  setGetNodeStore
+} from "./workflowUpdates";
+import {
+  disposeWorkflowRunnerStore,
+  getWorkflowRunnerStore
+} from "./WorkflowRunner";
 import {
   disposeAppRuntimeStore,
   workflowInstanceId
@@ -36,6 +43,8 @@ import { useFavoriteWorkflowsStore } from "./FavoriteWorkflowsStore";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { useSubgraphTabsStore } from "./SubgraphTabsStore";
 import { useCurrentWorkspaceStore } from "./CurrentWorkspaceStore";
+import { setWorkflowResourceReloader } from "./resourceChangeHandler";
+import { shouldApplyWorkflowRefresh } from "./workflowRefreshPolicy";
 
 const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === "object" && v !== null && !Array.isArray(v);
@@ -62,7 +71,9 @@ const storage = {
   getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),
 
   getOpenWorkflows: (): string[] =>
-    JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[],
+    JSON.parse(
+      localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"
+    ) as string[],
 
   setCurrentWorkflow: debounce((workflowId: string) => {
     localStorage.setItem(STORAGE_KEYS.CURRENT_WORKFLOW, workflowId);
@@ -77,7 +88,9 @@ const storage = {
 };
 
 export const getOpenWorkflowsFromStorage = (): string[] =>
-  JSON.parse(localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]") as string[];
+  JSON.parse(
+    localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"
+  ) as string[];
 
 /**
  * Determines the next active workflow ID when a workflow is removed.
@@ -124,6 +137,7 @@ export type WorkflowManagerState = {
   // Track notified autosave versions to prevent duplicate notifications
   notifiedAutosaveVersions: Record<string, Set<string>>;
   getWorkflow: (workflowId: string) => Workflow | undefined;
+  refreshWorkflow: (workflowId: string, etag?: string) => Promise<void>;
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
   getNodeStore: (workflowId: string) => NodeStore | undefined;
@@ -143,7 +157,11 @@ export type WorkflowManagerState = {
     fromExamplePackage?: string,
     fromExampleName?: string
   ) => Promise<Workflow>;
-  load: (cursor?: string, limit?: number, columns?: string) => Promise<WorkflowList>;
+  load: (
+    cursor?: string,
+    limit?: number,
+    columns?: string
+  ) => Promise<WorkflowList>;
   loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
   loadPublic: (cursor?: string) => Promise<WorkflowList>;
   loadTemplates: () => Promise<WorkflowList>;
@@ -167,10 +185,7 @@ const pruneStaleWorkflowReference = (
   const openIds = previousOpenIds.filter((id) => id !== workflowId);
   if (openIds.length !== previousOpenIds.length) {
     storage.setOpenWorkflows.cancel();
-    localStorage.setItem(
-      STORAGE_KEYS.OPEN_WORKFLOWS,
-      JSON.stringify(openIds)
-    );
+    localStorage.setItem(STORAGE_KEYS.OPEN_WORKFLOWS, JSON.stringify(openIds));
   }
 
   set((state) => {
@@ -210,10 +225,7 @@ const pruneStaleWorkflowReference = (
 // them if metadata never loads while the workflow is open.
 const pricingMetadataUnsubs = new Map<string, Array<() => void>>();
 
-const registerPricingUnsub = (
-  workflowId: string,
-  unsub: () => void
-): void => {
+const registerPricingUnsub = (workflowId: string, unsub: () => void): void => {
   const list = pricingMetadataUnsubs.get(workflowId) ?? [];
   list.push(unsub);
   pricingMetadataUnsubs.set(workflowId, list);
@@ -273,125 +285,128 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return data;
       },
 
-        /**
-         * Saves the workflow and creates a version entry.
-         * If the workflow has a local ID (starts with "local-"), it will be created
-         * in the database first, then updated with the real ID.
-         * @param {Workflow} workflow - The workflow to save
-         * @returns {Promise<void>}
-         * @throws {Error} If the save operation fails
-         */
-        saveWorkflow: async (workflow: Workflow) => {
-          // Snapshot the node store's state references before the awaited
-          // mutation. Every NodeStore mutation produces new `nodes`/`edges`/
-          // `workflow` references, so reference equality after the await tells
-          // us whether the user edited the graph while the save was in flight.
-          const nodeStoreBefore = get().nodeStores[workflow.id];
-          const stateBefore = nodeStoreBefore?.getState();
+      /**
+       * Saves the workflow and creates a version entry.
+       * If the workflow has a local ID (starts with "local-"), it will be created
+       * in the database first, then updated with the real ID.
+       * @param {Workflow} workflow - The workflow to save
+       * @returns {Promise<void>}
+       * @throws {Error} If the save operation fails
+       */
+      saveWorkflow: async (workflow: Workflow) => {
+        // Snapshot the node store's state references before the awaited
+        // mutation. Every NodeStore mutation produces new `nodes`/`edges`/
+        // `workflow` references, so reference equality after the await tells
+        // us whether the user edited the graph while the save was in flight.
+        const nodeStoreBefore = get().nodeStores[workflow.id];
+        const stateBefore = nodeStoreBefore?.getState();
 
-          let data: Workflow;
-          try {
-            const graph = workflow.graph ?? { nodes: [], edges: [] };
-            data = (await trpcClient.workflows.update.mutate({
-              id: workflow.id,
-              name: workflow.name,
-              access: workflow.access ?? "private",
-              graph,
-              tool_name: workflow.tool_name,
-              description: workflow.description,
-              tags: workflow.tags,
-              package_name: workflow.package_name,
-              thumbnail: workflow.thumbnail,
-              thumbnail_url: workflow.thumbnail_url,
-              settings: workflow.settings,
-              run_mode: workflow.run_mode,
-              workspace_id: workflow.workspace_id,
-              html_app: workflow.html_app
-            })) as Workflow;
-          } catch (err) {
-            throw createErrorMessage(err, "Failed to save workflow");
-          }
+        let data: Workflow;
+        try {
+          const graph = workflow.graph ?? { nodes: [], edges: [] };
+          data = (await trpcClient.workflows.update.mutate({
+            id: workflow.id,
+            name: workflow.name,
+            access: workflow.access ?? "private",
+            graph,
+            tool_name: workflow.tool_name,
+            description: workflow.description,
+            tags: workflow.tags,
+            package_name: workflow.package_name,
+            thumbnail: workflow.thumbnail,
+            thumbnail_url: workflow.thumbnail_url,
+            settings: workflow.settings,
+            run_mode: workflow.run_mode,
+            workspace_id: workflow.workspace_id,
+            html_app: workflow.html_app,
+            expected_updated_at: workflow.updated_at ?? undefined
+          })) as Workflow;
+        } catch (err) {
+          throw createErrorMessage(err, "Failed to save workflow");
+        }
 
-          // Version snapshot is best-effort — the main save already succeeded.
-          try {
-            await trpcClient.workflows.versions.create.mutate({
-              id: workflow.id,
-              name: workflow.name,
-              description: `Manual save: ${new Date().toISOString()}`
-            });
-          } catch (err) {
-            console.warn(
-              "[saveWorkflow] Workflow saved but version snapshot failed:",
-              err
-            );
-          }
+        // Version snapshot is best-effort — the main save already succeeded.
+        try {
+          await trpcClient.workflows.versions.create.mutate({
+            id: workflow.id,
+            name: workflow.name,
+            description: `Manual save: ${new Date().toISOString()}`
+          });
+        } catch (err) {
+          console.warn(
+            "[saveWorkflow] Workflow saved but version snapshot failed:",
+            err
+          );
+        }
 
-          const persistedWorkflow: Workflow = {
-            ...data,
-            run_mode: workflow.run_mode ?? data.run_mode
-          };
+        const persistedWorkflow: Workflow = {
+          ...data,
+          run_mode: workflow.run_mode ?? data.run_mode
+        };
 
-          if (window.api) {
-            window.api.onUpdateWorkflow(persistedWorkflow);
-          }
+        if (window.api) {
+          window.api.onUpdateWorkflow(persistedWorkflow);
+        }
 
-          set((state) => {
-            const nodeStore = state.nodeStores[persistedWorkflow.id];
-            if (nodeStore) {
-              const current = nodeStore.getState();
-              const editedDuringSave =
-                nodeStore !== nodeStoreBefore ||
-                !stateBefore ||
-                current.nodes !== stateBefore.nodes ||
-                current.edges !== stateBefore.edges ||
-                current.workflow !== stateBefore.workflow;
-              // Only mark the store clean (and adopt the server's workflow
-              // attributes) when nothing changed during the save. If the user
-              // edited meanwhile, keep the dirty flag and their attribute
-              // edits — the next autosave persists them.
-              if (!editedDuringSave) {
-                nodeStore.setState({
-                  workflow: persistedWorkflow
-                });
-                nodeStore.getState().setWorkflowDirty(false);
-              }
+        set((state) => {
+          const nodeStore = state.nodeStores[persistedWorkflow.id];
+          if (nodeStore) {
+            const current = nodeStore.getState();
+            const editedDuringSave =
+              nodeStore !== nodeStoreBefore ||
+              !stateBefore ||
+              current.nodes !== stateBefore.nodes ||
+              current.edges !== stateBefore.edges ||
+              current.workflow !== stateBefore.workflow;
+            // Only mark the store clean (and adopt the server's workflow
+            // attributes) when nothing changed during the save. If the user
+            // edited meanwhile, keep the dirty flag and their attribute
+            // edits — the next autosave persists them.
+            if (!editedDuringSave) {
+              nodeStore.setState({
+                workflow: persistedWorkflow
+              });
+              nodeStore.getState().setWorkflowDirty(false);
             }
+          }
 
-            const index = state.openWorkflows.findIndex((w) => w.id === persistedWorkflow.id);
-            if (index === -1) return state;
+          const index = state.openWorkflows.findIndex(
+            (w) => w.id === persistedWorkflow.id
+          );
+          if (index === -1) return state;
 
-            const newWorkflows = [...state.openWorkflows];
-            newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
+          const newWorkflows = [...state.openWorkflows];
+          newWorkflows[index] = omit(persistedWorkflow, ["graph"]);
 
-            return {
-              openWorkflows: newWorkflows
-            };
-          });
+          return {
+            openWorkflows: newWorkflows
+          };
+        });
 
-          get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
-          get().queryClient?.invalidateQueries({
-            queryKey: ["workflow", persistedWorkflow.id]
-          });
-          get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
-          get().queryClient?.invalidateQueries({
-            queryKey: ["workflow", persistedWorkflow.id, "versions"]
-          });
-        },
+        get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", persistedWorkflow.id]
+        });
+        get().queryClient?.invalidateQueries({ queryKey: ["workflow-tools"] });
+        get().queryClient?.invalidateQueries({
+          queryKey: ["workflow", persistedWorkflow.id, "versions"]
+        });
+      },
 
-       /**
-        * Creates a new workflow in memory only.
-        * Does not save to server until saveWorkflow() is explicitly called.
-        * @returns {Promise<Workflow>} The created workflow
-        */
-       createNew: async () => {
-         const workflow = get().newWorkflow();
-         get().addWorkflow(workflow);
-         get().setCurrentWorkflowId(workflow.id);
-         return workflow;
-       },
+      /**
+       * Creates a new workflow in memory only.
+       * Does not save to server until saveWorkflow() is explicitly called.
+       * @returns {Promise<Workflow>} The created workflow
+       */
+      createNew: async () => {
+        const workflow = get().newWorkflow();
+        get().addWorkflow(workflow);
+        get().setCurrentWorkflowId(workflow.id);
+        return workflow;
+      },
 
-       /**
-        * Creates a workflow based on the provided request object.
+      /**
+       * Creates a workflow based on the provided request object.
        * @param {WorkflowRequest} workflow The workflow request data
        * @param {string} [fromExamplePackage] The package name for creating from example
        * @param {string} [fromExampleName] The example name for creating from example
@@ -478,7 +493,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
 
       // Loads public workflows available from the API.
       loadPublic: async (_cursor?: string) => {
-        const data = await trpcClient.workflows.public.list.query({ limit: 100 });
+        const data = await trpcClient.workflows.public.list.query({
+          limit: 100
+        });
         return data as WorkflowList;
       },
 
@@ -573,7 +590,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           package_name: packageName,
           path: workflow.path,
           access: "public",
-          graph: workflow.graph
+          graph: workflow.graph,
+          expected_updated_at: workflow.updated_at ?? undefined
         });
 
         get().queryClient?.invalidateQueries({ queryKey: ["workflows"] });
@@ -607,6 +625,52 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         return store ? store.getState().getWorkflow() : undefined;
       },
 
+      refreshWorkflow: async (workflowId: string, etag?: string) => {
+        const storeBefore = get().nodeStores[workflowId];
+        if (!storeBefore || storeBefore.getState().workflowIsDirty) return;
+
+        const currentWorkflow = storeBefore.getState().getWorkflow();
+        if (etag && currentWorkflow.etag === etag) return;
+
+        let freshWorkflow: Workflow;
+        try {
+          freshWorkflow = await fetchWorkflowById(workflowId);
+        } catch (err) {
+          console.warn(
+            `[WorkflowManager] Failed to refresh workflow ${workflowId}`,
+            err
+          );
+          return;
+        }
+
+        const currentStore = get().nodeStores[workflowId];
+        if (
+          !shouldApplyWorkflowRefresh(
+            storeBefore,
+            currentStore,
+            freshWorkflow.updated_at
+          )
+        ) {
+          return;
+        }
+
+        const replacement = createNodeStore(freshWorkflow);
+        currentStore.getState().cleanup();
+        set((state) => ({
+          nodeStores: {
+            ...state.nodeStores,
+            [workflowId]: replacement
+          },
+          openWorkflows: state.openWorkflows.map((workflow) =>
+            workflow.id === workflowId ? omit(freshWorkflow, "graph") : workflow
+          )
+        }));
+        get().queryClient?.setQueryData(
+          workflowQueryKey(workflowId),
+          freshWorkflow
+        );
+      },
+
       /**
        * Adds a workflow to the store and updates open workflows.
        * @param {Workflow} workflow The workflow to add
@@ -623,15 +687,20 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         const newStore = createNodeStore(workflow);
         const workflowAttributes = omit(workflow, "graph");
         const newOpenWorkflows = [...get().openWorkflows, workflowAttributes];
-        
+
         set((state) => ({
           nodeStores: { ...state.nodeStores, [workflow.id]: newStore },
           openWorkflows: newOpenWorkflows
         }));
-        storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
+        storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));
 
         const runnerStore = getWorkflowRunnerStore(workflow.id);
-        subscribeToWorkflowUpdates(workflow.id, workflow, runnerStore, get().getNodeStore);
+        subscribeToWorkflowUpdates(
+          workflow.id,
+          workflow,
+          runnerStore,
+          get().getNodeStore
+        );
 
         // Refresh live FAL pricing for the FAL nodes in this workflow.
         // Subscribes to MetadataStore so we still fire once metadata loads
@@ -691,9 +760,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
 
         const kieNodeTypes = [
-          ...new Set(
-            (workflow.graph?.nodes ?? []).map((n) => n.type)
-          ),
+          ...new Set((workflow.graph?.nodes ?? []).map((n) => n.type))
         ].filter((t) => t.startsWith("kie."));
 
         if (kieNodeTypes.length > 0) {
@@ -740,66 +807,71 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         }
       },
 
-       /**
-        * Removes a workflow from state and localStorage.
-        * @param {string} workflowId The ID of the workflow to remove
-        */
-       removeWorkflow: (workflowId: string) => {
-         unsubscribeFromWorkflowUpdates(workflowId);
-         releasePricingUnsubs(workflowId);
+      /**
+       * Removes a workflow from state and localStorage.
+       * @param {string} workflowId The ID of the workflow to remove
+       */
+      removeWorkflow: (workflowId: string) => {
+        unsubscribeFromWorkflowUpdates(workflowId);
+        releasePricingUnsubs(workflowId);
 
-         const { nodeStores, openWorkflows, currentWorkflowId, notifiedAutosaveVersions } = get();
+        const {
+          nodeStores,
+          openWorkflows,
+          currentWorkflowId,
+          notifiedAutosaveVersions
+        } = get();
 
-         // Tear down the per-workflow NodeStore (releases its metadata
-         // subscription) and the WorkflowRunner store before we drop the
-         // reference, otherwise both leak forever.
-         const departingNodeStore = nodeStores[workflowId];
-         if (departingNodeStore) {
-           try {
-             departingNodeStore.getState().cleanup();
-           } catch (err) {
-             console.warn(
-               `[WorkflowManager] NodeStore cleanup failed for ${workflowId}`,
-               err
-             );
-           }
-         }
-         disposeWorkflowRunnerStore(workflowId);
-         disposeAppRuntimeStore(workflowInstanceId(workflowId));
+        // Tear down the per-workflow NodeStore (releases its metadata
+        // subscription) and the WorkflowRunner store before we drop the
+        // reference, otherwise both leak forever.
+        const departingNodeStore = nodeStores[workflowId];
+        if (departingNodeStore) {
+          try {
+            departingNodeStore.getState().cleanup();
+          } catch (err) {
+            console.warn(
+              `[WorkflowManager] NodeStore cleanup failed for ${workflowId}`,
+              err
+            );
+          }
+        }
+        disposeWorkflowRunnerStore(workflowId);
+        disposeAppRuntimeStore(workflowInstanceId(workflowId));
 
-         // Drop per-workflow keyed entries from singleton stores so they
-         // don't accumulate forever in long-lived sessions.
-         useResultsStore.getState().clearResults(workflowId);
-         useResultsStore.getState().clearOutputResults(workflowId);
-         useResultsStore.getState().clearProgress(workflowId);
-         useResultsStore.getState().clearChunks(workflowId);
-         useResultsStore.getState().clearTasks(workflowId);
-         useResultsStore.getState().clearToolCalls(workflowId);
-         useResultsStore.getState().clearPlanningUpdates(workflowId);
-         useResultsStore.getState().clearEdges(workflowId);
-         useErrorStore.getState().clearErrors(workflowId);
-         useStatusStore.getState().clearStatuses(workflowId);
-         useExecutionTimeStore.getState().clearTimings(workflowId);
-         usePropertyValidationStore.getState().clearWorkflow(workflowId);
-         useWorkflowRunsStore.getState().clearWorkflow(workflowId);
-         useWorkflowAssetStore.getState().clearWorkflowAssets(workflowId);
-         // Close the workflow's subgraph tabs (cleans up their NodeStores).
-         useSubgraphTabsStore.getState().closeForWorkflow(workflowId);
+        // Drop per-workflow keyed entries from singleton stores so they
+        // don't accumulate forever in long-lived sessions.
+        useResultsStore.getState().clearResults(workflowId);
+        useResultsStore.getState().clearOutputResults(workflowId);
+        useResultsStore.getState().clearProgress(workflowId);
+        useResultsStore.getState().clearChunks(workflowId);
+        useResultsStore.getState().clearTasks(workflowId);
+        useResultsStore.getState().clearToolCalls(workflowId);
+        useResultsStore.getState().clearPlanningUpdates(workflowId);
+        useResultsStore.getState().clearEdges(workflowId);
+        useErrorStore.getState().clearErrors(workflowId);
+        useStatusStore.getState().clearStatuses(workflowId);
+        useExecutionTimeStore.getState().clearTimings(workflowId);
+        usePropertyValidationStore.getState().clearWorkflow(workflowId);
+        useWorkflowRunsStore.getState().clearWorkflow(workflowId);
+        useWorkflowAssetStore.getState().clearWorkflowAssets(workflowId);
+        // Close the workflow's subgraph tabs (cleans up their NodeStores).
+        useSubgraphTabsStore.getState().closeForWorkflow(workflowId);
 
-         const newOpenWorkflows = openWorkflows.filter(
-           (w) => w.id !== workflowId
-         );
-         const newStores = { ...nodeStores };
-         delete newStores[workflowId];
-         // Subgraph tab stores are registered under `${workflowId}:${nodeId}`.
-         for (const key of Object.keys(newStores)) {
-           if (key.startsWith(`${workflowId}:`)) {
-             delete newStores[key];
-           }
-         }
+        const newOpenWorkflows = openWorkflows.filter(
+          (w) => w.id !== workflowId
+        );
+        const newStores = { ...nodeStores };
+        delete newStores[workflowId];
+        // Subgraph tab stores are registered under `${workflowId}:${nodeId}`.
+        for (const key of Object.keys(newStores)) {
+          if (key.startsWith(`${workflowId}:`)) {
+            delete newStores[key];
+          }
+        }
 
-         const newNotified = { ...notifiedAutosaveVersions };
-         delete newNotified[workflowId];
+        const newNotified = { ...notifiedAutosaveVersions };
+        delete newNotified[workflowId];
 
         const newCurrentId = determineNextWorkflowId(
           openWorkflows,
@@ -814,16 +886,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           notifiedAutosaveVersions: newNotified
         });
 
-        storage.setOpenWorkflows(newOpenWorkflows.map(w => w.id));
+        storage.setOpenWorkflows(newOpenWorkflows.map((w) => w.id));
 
         if (newCurrentId) {
           storage.setCurrentWorkflow(newCurrentId);
         } else {
           localStorage.removeItem(STORAGE_KEYS.CURRENT_WORKFLOW);
         }
-       },
+      },
 
-       // Returns the node store for a given workflow Id.
+      // Returns the node store for a given workflow Id.
       getNodeStore: (workflowId: string) => get().nodeStores[workflowId],
 
       /**
@@ -869,7 +941,9 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        */
       updateWorkflow: (workflow: WorkflowAttributes) => {
         set((state) => {
-          const index = state.openWorkflows.findIndex((w) => w.id === workflow.id);
+          const index = state.openWorkflows.findIndex(
+            (w) => w.id === workflow.id
+          );
           if (index === -1) return state;
 
           const merged = { ...state.openWorkflows[index], ...workflow };
@@ -971,7 +1045,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
   });
 
   // Set the global getNodeStore getter so other modules can access node stores
-  setGetNodeStore((workflowId: string) => store.getState().getNodeStore(workflowId));
+  setGetNodeStore((workflowId: string) =>
+    store.getState().getNodeStore(workflowId)
+  );
+  setWorkflowResourceReloader((workflowId, etag) => {
+    void store.getState().refreshWorkflow(workflowId, etag);
+  });
 
   return store;
 };

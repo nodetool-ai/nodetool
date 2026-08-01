@@ -34,6 +34,7 @@ import {
 type JsonObject = Record<string, unknown>;
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
+  WORKFLOW_DOCUMENT_TOOL_NAMES,
   hydrateGraphNodeFlags,
   NodeRegistry,
   rankNodeMetadata,
@@ -120,7 +121,10 @@ function resolveFrontendTransport(
 function listFrontendRenderers(): { renderer_id: string; active: boolean }[] {
   return [...frontendTransports.values()]
     .filter((t) => t.isAlive)
-    .map((t) => ({ renderer_id: t.id, active: t.id === activeFrontendRendererId }));
+    .map((t) => ({
+      renderer_id: t.id,
+      active: t.id === activeFrontendRendererId
+    }));
 }
 
 let runtimeEnvironmentPromise: Promise<RuntimeEnvironment> | null = null;
@@ -170,17 +174,20 @@ function getRuntimeEnvironment(
       });
 
       const logPythonBridgeDiagnostics = (context: string): void => {
-        const loadErrors = (
-          pythonBridge as {
-            getLoadErrors?: () => Array<{
-              module: string;
-              phase: string;
-              error: string;
-            }>;
-          }
-        ).getLoadErrors?.() ?? [];
+        const loadErrors =
+          (
+            pythonBridge as {
+              getLoadErrors?: () => Array<{
+                module: string;
+                phase: string;
+                error: string;
+              }>;
+            }
+          ).getLoadErrors?.() ?? [];
         if (loadErrors.length === 0) return;
-        log.warn(`MCP Python bridge ${context} with ${loadErrors.length} load error(s)`);
+        log.warn(
+          `MCP Python bridge ${context} with ${loadErrors.length} load error(s)`
+        );
         for (const entry of loadErrors.slice(0, 10)) {
           log.warn(
             `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
@@ -281,14 +288,16 @@ function getRuntimeEnvironment(
           );
         }
         if (registry.getMetadata(node.type) && !registry.has(node.type)) {
-          const stderrSummary = (
-            pythonBridge as { getRecentStderrSummary?: () => string | null }
-          ).getRecentStderrSummary?.() ?? null;
-          const loadErrors = (
-            pythonBridge as {
-              getLoadErrors?: () => Array<{ module: string; error: string }>;
-            }
-          ).getLoadErrors?.() ?? [];
+          const stderrSummary =
+            (
+              pythonBridge as { getRecentStderrSummary?: () => string | null }
+            ).getRecentStderrSummary?.() ?? null;
+          const loadErrors =
+            (
+              pythonBridge as {
+                getLoadErrors?: () => Array<{ module: string; error: string }>;
+              }
+            ).getLoadErrors?.() ?? [];
           const matchingLoadError = loadErrors.find((entry) => {
             if (entry.module.includes(node.type)) return true;
             const suffix = entry.module.split(".").slice(2).join(".");
@@ -342,7 +351,17 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
       )
   };
 
+  const workflowDocumentToolNames = new Set<string>(
+    WORKFLOW_DOCUMENT_TOOL_NAMES
+  );
+
   for (const [toolName, schema] of Object.entries(uiToolSchemas)) {
+    // Authenticated MCP sessions receive these from the server-side document
+    // adapter below. Unscoped sessions retain the renderer bridge for
+    // backwards compatibility, but cannot mutate persisted user data.
+    if (options?.agentToolsScope && workflowDocumentToolNames.has(toolName)) {
+      continue;
+    }
     server.tool(
       toolName,
       schema.description,
@@ -503,8 +522,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
               target: String(record.target ?? ""),
               sourceHandle: String(record.sourceHandle ?? ""),
               targetHandle: String(record.targetHandle ?? ""),
-              edge_type:
-                record.edge_type === "control" ? "control" : "data"
+              edge_type: record.edge_type === "control" ? "control" : "data"
             };
           })
         };
@@ -655,7 +673,9 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     async ({ node_type }) => {
       try {
         const nodes = await getUnifiedNodeMetadata(options);
-        const node = nodes.find((candidate) => candidate.node_type === node_type);
+        const node = nodes.find(
+          (candidate) => candidate.node_type === node_type
+        );
         if (!node) {
           return {
             content: [
@@ -845,7 +865,17 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
 
   // ── Workflow-building + creative tools (bridged from @nodetool-ai/agents) ──
   // Registered last so any name collision with a native tool throws loudly.
-  registerAgentMcpTools(server, options);
+  registerAgentMcpTools(server, options, async (toolName, args) => {
+    const transport = resolveFrontendTransport();
+    if (!transport || !transport.isAlive) return { handled: false };
+    const result = await transport.executeTool(
+      transport.id,
+      `mcp-ui-${toolName}-${crypto.randomUUID()}`,
+      toolName,
+      args
+    );
+    return { handled: true, result };
+  });
 
   return server;
 }
@@ -873,24 +903,25 @@ function appResource(
   loadHtml: () => Promise<string>
 ): void {
   registerAppResource(server, name, uri, { description }, async () => ({
-    contents: [
-      { uri, mimeType: RESOURCE_MIME_TYPE, text: await loadHtml() }
-    ]
+    contents: [{ uri, mimeType: RESOURCE_MIME_TYPE, text: await loadHtml() }]
   }));
 }
 
 function jsonResult(payload: unknown, isError = false) {
   return {
-    content: [
-      { type: "text" as const, text: JSON.stringify(payload) }
-    ],
+    content: [{ type: "text" as const, text: JSON.stringify(payload) }],
     ...(isError ? { isError: true as const } : {}),
-    ...(isError ? {} : { structuredContent: payload as Record<string, unknown> })
+    ...(isError
+      ? {}
+      : { structuredContent: payload as Record<string, unknown> })
   };
 }
 
 function errResult(err: unknown) {
-  return jsonResult({ error: String(err instanceof Error ? err.message : err) }, true);
+  return jsonResult(
+    { error: String(err instanceof Error ? err.message : err) },
+    true
+  );
 }
 
 type ImageBlock = { type: "image"; data: string; mimeType: string };
@@ -1218,9 +1249,10 @@ function registerListJobsApp(server: McpServer): void {
     },
     async ({ workflow_id, limit, start_key, user_id }) => {
       try {
-        const opts: { limit: number; workflowId?: string; startKey?: string } = {
-          limit
-        };
+        const opts: { limit: number; workflowId?: string; startKey?: string } =
+          {
+            limit
+          };
         if (workflow_id) opts.workflowId = workflow_id;
         if (start_key) opts.startKey = start_key;
         const [jobs, nextStartKey] = await Job.paginate(user_id, opts);
@@ -1251,14 +1283,19 @@ function registerNodesApp(server: McpServer, options?: McpServerOptions): void {
         "List available nodes from installed packages. Renders an inline node catalog with namespace tree and search in App-aware hosts.",
       inputSchema: {
         namespace: z.string().optional().describe("Filter by namespace prefix"),
-        limit: z.number().optional().default(200).describe("Maximum nodes to return")
+        limit: z
+          .number()
+          .optional()
+          .default(200)
+          .describe("Maximum nodes to return")
       },
       _meta: { ui: { resourceUri: UI_URI.nodes } }
     },
     async ({ namespace, limit }) => {
       try {
         let nodes = await getUnifiedNodeMetadata(options);
-        if (namespace) nodes = nodes.filter((n) => n.namespace.startsWith(namespace));
+        if (namespace)
+          nodes = nodes.filter((n) => n.namespace.startsWith(namespace));
         nodes.sort((a, b) => a.node_type.localeCompare(b.node_type));
         const result = nodes.slice(0, limit).map((n) => ({
           node_type: n.node_type,
@@ -1283,16 +1320,24 @@ function registerNodesApp(server: McpServer, options?: McpServerOptions): void {
         "Search for nodes by name, description, or tags. Provider-specific nodes (openai.*, anthropic.*, etc.) are hidden by default; set include_provider_nodes:true to include them. Renders the same node catalog UI in App-aware hosts.",
       inputSchema: {
         query: z.array(z.string()).describe("Search keywords"),
-        n_results: z.number().optional().default(10).describe("Maximum results"),
+        n_results: z
+          .number()
+          .optional()
+          .default(10)
+          .describe("Maximum results"),
         namespace: z
           .string()
           .optional()
-          .describe("Optional namespace prefix to scope the search (e.g. 'nodetool.control')."),
+          .describe(
+            "Optional namespace prefix to scope the search (e.g. 'nodetool.control')."
+          ),
         include_provider_nodes: z
           .boolean()
           .optional()
           .default(false)
-          .describe("Include provider-specific nodes. Default false — set true only when the user named a provider.")
+          .describe(
+            "Include provider-specific nodes. Default false — set true only when the user named a provider."
+          )
       },
       _meta: { ui: { resourceUri: UI_URI.nodes } }
     },
@@ -1336,7 +1381,11 @@ function registerCollectionsApp(server: McpServer): void {
       description:
         "List all vector database collections. Renders an inline collection browser with semantic search in App-aware hosts.",
       inputSchema: {
-        limit: z.number().optional().default(50).describe("Maximum collections to return")
+        limit: z
+          .number()
+          .optional()
+          .default(50)
+          .describe("Maximum collections to return")
       },
       _meta: { ui: { resourceUri: UI_URI.collections } }
     },
@@ -1349,16 +1398,25 @@ function registerCollectionsApp(server: McpServer): void {
         const collections = await provider.listCollections();
         const result = await Promise.all(
           collections.slice(0, limit).map(async (info) => {
-            const collection = await provider.getCollection({ name: info.name });
+            const collection = await provider.getCollection({
+              name: info.name
+            });
             const count = await collection.count();
             const metadata = info.metadata ?? {};
             let workflowName: string | null = null;
             const workflowId = metadata.workflow as string | undefined;
             if (workflowId) {
-              const workflow = (await Workflow.get(workflowId)) as Workflow | null;
+              const workflow = (await Workflow.get(
+                workflowId
+              )) as Workflow | null;
               if (workflow) workflowName = workflow.name;
             }
-            return { name: info.name, count, metadata, workflow_name: workflowName };
+            return {
+              name: info.name,
+              count,
+              metadata,
+              workflow_name: workflowName
+            };
           })
         );
         return jsonResult({ collections: result, count: result.length });
@@ -1407,7 +1465,9 @@ export function setActiveMcpFrontendRenderer(transport: AgentTransport): void {
 }
 
 /** Drop a renderer on disconnect, promoting another if it was the active one. */
-export function unregisterMcpFrontendTransport(transport: AgentTransport): void {
+export function unregisterMcpFrontendTransport(
+  transport: AgentTransport
+): void {
   frontendTransports.delete(transport.id);
   if (activeFrontendRendererId === transport.id) {
     const remaining = [...frontendTransports.keys()];
@@ -1417,9 +1477,7 @@ export function unregisterMcpFrontendTransport(transport: AgentTransport): void 
 
 export function getLocalMcpServerUrl(): string {
   const port = Number(process.env["PORT"] ?? 7777);
-  const tlsEnabled = Boolean(
-    process.env["TLS_CERT"] && process.env["TLS_KEY"]
-  );
+  const tlsEnabled = Boolean(process.env["TLS_CERT"] && process.env["TLS_KEY"]);
   const protocol = tlsEnabled ? "https" : "http";
   return `${protocol}://127.0.0.1:${port}/mcp`;
 }

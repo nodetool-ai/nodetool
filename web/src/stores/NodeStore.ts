@@ -209,6 +209,7 @@ export interface NodeStoreState {
   setEdges: (edges: Edge[]) => void;
   getWorkflow: () => Workflow;
   setWorkflowDirty: (dirty: boolean) => void;
+  setWorkflowUpdatedAt: (updatedAt: string) => void;
   validateConnection: (
     connection: Connection,
     srcNode: Node<NodeData>,
@@ -320,7 +321,8 @@ export const createNodeStore = (
               sanitizedEdges.length !== currentState.edges.length ||
               sanitizedEdges.some(
                 (e, i) =>
-                  e !== currentState.edges[i] && !isEqual(e, currentState.edges[i])
+                  e !== currentState.edges[i] &&
+                  !isEqual(e, currentState.edges[i])
               );
             if (changed) {
               set({ edges: sanitizedEdges });
@@ -429,7 +431,7 @@ export const createNodeStore = (
             return count;
           },
           setSelectedNodes: (nodes: Node<NodeData>[]): void => {
-            const nodesToSelectIds = new Set(nodes.map(n => n.id));
+            const nodesToSelectIds = new Set(nodes.map((n) => n.id));
             let changed = false;
             const nextNodes = get().nodes.map((node) => {
               const shouldBeSelected = nodesToSelectIds.has(node.id);
@@ -665,9 +667,8 @@ export const createNodeStore = (
               undefined;
             // A *typed* dynamic slot is gated like a static handle; only
             // undeclared (legacy) slots keep the promiscuous bypass.
-            const targetSlot = targetNode?.data.dynamic_inputs?.[
-              connection.targetHandle
-            ];
+            const targetSlot =
+              targetNode?.data.dynamic_inputs?.[connection.targetHandle];
             const isUntypedDynamicProperty =
               isDynamicProperty && !isTypedSlot(targetSlot);
             if (
@@ -769,7 +770,11 @@ export const createNodeStore = (
                 .getState()
                 .getMetadata(srcNode.type || "");
               const srcHandle = srcMetadata
-                ? findOutputHandle(srcNode, connection.sourceHandle, srcMetadata)
+                ? findOutputHandle(
+                    srcNode,
+                    connection.sourceHandle,
+                    srcMetadata
+                  )
                 : undefined;
               if (srcHandle && srcHandle.type.type !== "any") {
                 get().updateNodeData(targetNode.id, {
@@ -1148,6 +1153,11 @@ export const createNodeStore = (
             }
             set({ workflowIsDirty: dirty });
           },
+          setWorkflowUpdatedAt: (updatedAt: string): void => {
+            set((state) => ({
+              workflow: { ...state.workflow, updated_at: updatedAt }
+            }));
+          },
           autoLayout: async (): Promise<void> => {
             const allNodes = get().nodes;
             let selectedNodes = allNodes.filter((node) => node.selected);
@@ -1432,7 +1442,9 @@ export const createNodeStore = (
               defaultStyle = { width: 450, height: 350 };
             } else if (isModel3DConstantNode) {
               defaultStyle = { width: 320, height: 320 };
-            } else if (metadata.node_type === "nodetool.agents.ClaudeCodeAgent") {
+            } else if (
+              metadata.node_type === "nodetool.agents.ClaudeCodeAgent"
+            ) {
               defaultStyle = { width: 480, height: 380 };
             } else if (isAgentStyle) {
               defaultStyle = { width: DEFAULT_NODE_WIDTH };

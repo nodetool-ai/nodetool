@@ -188,7 +188,7 @@ describe("useFloatingToolbarActions", () => {
       return mockMiniMapState as any;
     });
 
-    mockTriggerAutosave.mockResolvedValue(undefined);
+    mockTriggerAutosave.mockResolvedValue(null);
 
     jest.useFakeTimers();
   });

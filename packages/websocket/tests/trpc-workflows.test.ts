@@ -26,7 +26,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       paginateSummaries: vi.fn(),
       getManyByIds: vi.fn(),
       paginatePublic: vi.fn(),
-      create: vi.fn()
+      create: vi.fn(),
+      updateFieldsIfUnchanged: vi.fn()
     },
     WorkflowVersion: {
       ...actual.WorkflowVersion,
@@ -150,9 +151,18 @@ function makeVersion(opts: {
 describe("workflows router", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    (WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>).mockResolvedValue(
-      null
+    (
+      Workflow.updateFieldsIfUnchanged as ReturnType<typeof vi.fn>
+    ).mockImplementation(
+      async (
+        id: string,
+        _expectedUpdatedAt: string,
+        fields: Record<string, unknown>
+      ) => ({ ...makeWorkflow({ id }), ...fields })
     );
+    (
+      WorkflowCollaborator.findFor as ReturnType<typeof vi.fn>
+    ).mockResolvedValue(null);
   });
 
   // ── list ──────────────────────────────────────────────────────────────────
@@ -231,7 +241,10 @@ describe("workflows router", () => {
       // paginate(), which then applies `run_mode IN ("workflow", null)` at the DB level.
       // This test verifies the router delegates filtering to paginate rather than doing
       // its own secondary filter.
-      const standalone = makeWorkflow({ id: "wf-standalone", run_mode: "workflow" });
+      const standalone = makeWorkflow({
+        id: "wf-standalone",
+        run_mode: "workflow"
+      });
       (Workflow.paginate as ReturnType<typeof vi.fn>).mockResolvedValue([
         [standalone],
         ""
@@ -283,7 +296,9 @@ describe("workflows router", () => {
       const withOutput = makeWorkflow({
         id: "wf-out",
         graph: {
-          nodes: [{ id: "out-1", type: "nodetool.output.ImageOutput", data: {} }],
+          nodes: [
+            { id: "out-1", type: "nodetool.output.ImageOutput", data: {} }
+          ],
           edges: []
         }
       });
@@ -334,7 +349,9 @@ describe("workflows router", () => {
     it("throws NOT_FOUND when workflow does not exist", async () => {
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
       const caller = createCaller(makeCtx());
-      await expect(caller.workflows.get({ id: "missing" })).rejects.toMatchObject({
+      await expect(
+        caller.workflows.get({ id: "missing" })
+      ).rejects.toMatchObject({
         code: "NOT_FOUND"
       });
     });
@@ -465,9 +482,11 @@ describe("workflows router", () => {
           }
         ]
       };
-      const resolveMetadata = vi.fn().mockImplementation((nodeType: string) =>
-        nodeType === "nodetool.input.StringInput" ? stringMetadata : undefined
-      );
+      const resolveMetadata = vi
+        .fn()
+        .mockImplementation((nodeType: string) =>
+          nodeType === "nodetool.input.StringInput" ? stringMetadata : undefined
+        );
       const registry = { resolveMetadata, revision: 0 };
       const caller = createCaller(makeCtx({ registry: registry as never }));
 
@@ -580,7 +599,30 @@ describe("workflows router", () => {
         graph: { nodes: [], edges: [] }
       });
       expect(result.id).toBe("wf-1");
-      expect(wf.save).toHaveBeenCalled();
+      expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+        "wf-1",
+        wf.updated_at,
+        expect.objectContaining({ name: "Updated Name" })
+      );
+    });
+
+    it("rejects a stale workflow revision", async () => {
+      const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (
+        Workflow.updateFieldsIfUnchanged as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.update({
+          id: "wf-1",
+          name: "Stale update",
+          access: "private",
+          graph: { nodes: [], edges: [] },
+          expected_updated_at: wf.updated_at
+        })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
     it("throws NOT_FOUND when user doesn't own the workflow", async () => {
@@ -671,10 +713,16 @@ describe("workflows router", () => {
     it("saves workflow and creates a version", async () => {
       const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-      (WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+      (
+        WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(1);
       const ver = makeVersion({ id: "ver-1", workflow_id: "wf-1", version: 1 });
-      (WorkflowVersion.create as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
-      (WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (WorkflowVersion.create as ReturnType<typeof vi.fn>).mockResolvedValue(
+        ver
+      );
+      (
+        WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
       const result = await caller.workflows.autosave({
@@ -685,17 +733,26 @@ describe("workflows router", () => {
 
       expect(result.skipped).toBe(false);
       expect(result.message).toBe("Autosaved successfully");
-      expect(wf.save).toHaveBeenCalled();
+      expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+        "wf-1",
+        wf.updated_at,
+        { graph: { nodes: [], edges: [] } }
+      );
+      expect(wf.save).not.toHaveBeenCalled();
     });
 
     it("rate-limits without force flag", async () => {
       const wf = makeWorkflow({ id: "wf-rl", user_id: "user-1" });
       (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-      (WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>).mockResolvedValue(1);
+      (
+        WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(1);
       (WorkflowVersion.create as ReturnType<typeof vi.fn>).mockResolvedValue(
         makeVersion({ id: "ver-1" })
       );
-      (WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (
+        WorkflowVersion.pruneOldVersions as ReturnType<typeof vi.fn>
+      ).mockResolvedValue(undefined);
 
       const caller = createCaller(makeCtx());
       // First save (force=true to set the timestamp)
@@ -710,6 +767,24 @@ describe("workflows router", () => {
         graph: { nodes: [], edges: [] }
       });
       expect(result.skipped).toBe(true);
+    });
+
+    it("rejects a stale autosave", async () => {
+      const wf = makeWorkflow({ id: "wf-stale", user_id: "user-1" });
+      (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
+      (
+        Workflow.updateFieldsIfUnchanged as ReturnType<typeof vi.fn>
+      ).mockResolvedValueOnce(null);
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.autosave({
+          id: "wf-stale",
+          graph: { nodes: [], edges: [] },
+          force: true,
+          expected_updated_at: "older-revision"
+        })
+      ).rejects.toMatchObject({ code: "CONFLICT" });
     });
 
     it("throws NOT_FOUND when workflow does not exist", async () => {
@@ -757,10 +832,9 @@ describe("workflows router", () => {
     describe("list", () => {
       it("returns public workflows without auth", async () => {
         const wf = makeWorkflow({ id: "wf-pub", access: "public" });
-        (Workflow.paginatePublic as ReturnType<typeof vi.fn>).mockResolvedValue([
-          [wf],
-          ""
-        ]);
+        (Workflow.paginatePublic as ReturnType<typeof vi.fn>).mockResolvedValue(
+          [[wf], ""]
+        );
 
         const caller = createCaller(makeCtx({ userId: null }));
         const result = await caller.workflows.public.list({ limit: 10 });
@@ -806,8 +880,16 @@ describe("workflows router", () => {
         user_id: "user-1",
         graph: {
           nodes: [
-            { id: "img-out", type: "nodetool.output.ImageOutput", data: { name: "Image" } },
-            { id: "video-out", type: "nodetool.output.VideoOutput", data: { name: "Video" } },
+            {
+              id: "img-out",
+              type: "nodetool.output.ImageOutput",
+              data: { name: "Image" }
+            },
+            {
+              id: "video-out",
+              type: "nodetool.output.VideoOutput",
+              data: { name: "Video" }
+            },
             { id: "downstream", type: "nodetool.misc.PassThrough", data: {} }
           ],
           edges: [
@@ -858,8 +940,14 @@ describe("workflows router", () => {
       it("returns versions for an owned workflow", async () => {
         const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
         (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-        const ver = makeVersion({ id: "ver-1", workflow_id: "wf-1", version: 1 });
-        (WorkflowVersion.listForWorkflow as ReturnType<typeof vi.fn>).mockResolvedValue([ver]);
+        const ver = makeVersion({
+          id: "ver-1",
+          workflow_id: "wf-1",
+          version: 1
+        });
+        (
+          WorkflowVersion.listForWorkflow as ReturnType<typeof vi.fn>
+        ).mockResolvedValue([ver]);
 
         const caller = createCaller(makeCtx());
         const result = await caller.workflows.versions.list({
@@ -892,9 +980,13 @@ describe("workflows router", () => {
       it("creates a new version", async () => {
         const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
         (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-        (WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>).mockResolvedValue(2);
+        (
+          WorkflowVersion.nextVersion as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(2);
         const ver = makeVersion({ id: "ver-2", version: 2 });
-        (WorkflowVersion.create as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (WorkflowVersion.create as ReturnType<typeof vi.fn>).mockResolvedValue(
+          ver
+        );
 
         const caller = createCaller(makeCtx());
         const result = await caller.workflows.versions.create({ id: "wf-1" });
@@ -927,7 +1019,9 @@ describe("workflows router", () => {
           version: 1,
           graph: { nodes: [{ id: "n1", type: "test.Node" }], edges: [] }
         });
-        (WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (
+          WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(ver);
 
         const caller = createCaller(makeCtx());
         const result = await caller.workflows.versions.restore({
@@ -941,7 +1035,9 @@ describe("workflows router", () => {
       it("throws NOT_FOUND for missing version", async () => {
         const wf = makeWorkflow({ id: "wf-1", user_id: "user-1" });
         (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(wf);
-        (WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (
+          WorkflowVersion.findByVersion as ReturnType<typeof vi.fn>
+        ).mockResolvedValue(null);
 
         const caller = createCaller(makeCtx());
         await expect(
@@ -964,7 +1060,9 @@ describe("workflows router", () => {
           user_id: "user-1",
           workflow_id: "wf-1"
         });
-        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          ver
+        );
 
         const caller = createCaller(makeCtx());
         const result = await caller.workflows.versions.delete({
@@ -976,7 +1074,9 @@ describe("workflows router", () => {
       });
 
       it("throws NOT_FOUND when version does not exist", async () => {
-        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          null
+        );
         const caller = createCaller(makeCtx());
         await expect(
           caller.workflows.versions.delete({
@@ -988,7 +1088,9 @@ describe("workflows router", () => {
 
       it("throws NOT_FOUND when user owns neither the version nor the workflow", async () => {
         const ver = makeVersion({ id: "ver-1", user_id: "other-user" });
-        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          ver
+        );
         (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
           makeWorkflow({ id: "wf-1", user_id: "other-owner" })
         );
@@ -1005,7 +1107,9 @@ describe("workflows router", () => {
 
       it("lets the workflow owner delete a collaborator's version", async () => {
         const ver = makeVersion({ id: "ver-1", user_id: "collaborator" });
-        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(ver);
+        (WorkflowVersion.get as ReturnType<typeof vi.fn>).mockResolvedValue(
+          ver
+        );
         (Workflow.get as ReturnType<typeof vi.fn>).mockResolvedValue(
           makeWorkflow({ id: "wf-1", user_id: "user-1" })
         );
@@ -1101,9 +1205,9 @@ describe("workflows.sharing router", () => {
       asMock(Workflow.get).mockResolvedValue(wf);
 
       const caller = createCaller(makeCtx());
-      await expect(caller.workflows.get({ id: "wf-1" })).rejects.toMatchObject(
-        { code: "NOT_FOUND" }
-      );
+      await expect(caller.workflows.get({ id: "wf-1" })).rejects.toMatchObject({
+        code: "NOT_FOUND"
+      });
     });
 
     it("update allows an editor collaborator but preserves access", async () => {
@@ -1127,7 +1231,11 @@ describe("workflows.sharing router", () => {
       expect(result.name).toBe("Renamed");
       // An editor cannot flip visibility.
       expect(wf.access).toBe("private");
-      expect(wf.save).toHaveBeenCalled();
+      expect(Workflow.updateFieldsIfUnchanged).toHaveBeenCalledWith(
+        "wf-1",
+        wf.updated_at,
+        expect.not.objectContaining({ access: expect.anything() })
+      );
     });
 
     it("update rejects a viewer collaborator", async () => {

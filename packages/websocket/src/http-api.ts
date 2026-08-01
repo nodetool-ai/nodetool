@@ -30,7 +30,13 @@ import {
 } from "@nodetool-ai/config";
 import { createAssetUrlBuilder } from "@nodetool-ai/storage";
 import { workflowToDsl } from "@nodetool-ai/dsl";
-import { Workflow, WorkflowVersion, Job, Asset } from "@nodetool-ai/models";
+import {
+  Workflow,
+  WorkflowVersion,
+  WorkflowCollaborator,
+  Job,
+  Asset
+} from "@nodetool-ai/models";
 import {
   hydrateGraphNodeFlags,
   loadPythonPackageMetadata,
@@ -85,6 +91,7 @@ import {
   listWorkflowSummariesV1,
   WorkflowInterfaceServiceError
 } from "./workflow-interface-service.js";
+import { syncRegistrations } from "./triggers/registration-sync.js";
 import {
   getSdkNodeTypeInventory,
   SdkNodeTypeInventoryServiceError
@@ -521,7 +528,11 @@ export interface WorkflowRequestBody {
   workspace_id?: string | null;
   html_app?: string | null;
   app_doc?: Record<string, unknown> | null;
+  expected_updated_at?: string;
 }
+
+const WORKFLOW_CONFLICT_MESSAGE =
+  "Workflow was modified since last read (optimistic concurrency conflict)";
 
 // Rate-limit tracking for autosave: maps workflow_id -> last autosave timestamp (ms)
 const lastAutosaveTime = new Map<string, number>();
@@ -767,31 +778,48 @@ async function updateWorkflow(
 
   const existing = (await Workflow.get(id)) as Workflow | null;
 
-  if (existing && existing.user_id !== userId) {
-    throw new Error("Workflow not found");
-  }
-
   if (existing) {
-    existing.name = body.name;
-    existing.tool_name = body.tool_name ?? null;
-    existing.description = body.description ?? "";
-    existing.tags = body.tags ?? [];
-    existing.package_name = body.package_name ?? null;
-    if (body.thumbnail !== undefined) existing.thumbnail = body.thumbnail;
-    existing.access = body.access === "public" ? "public" : "private";
-    existing.graph = graph;
+    const isOwner = existing.user_id === userId;
+    const collaborator = isOwner
+      ? null
+      : await WorkflowCollaborator.findFor(id, userId);
+    if (!isOwner && collaborator?.role !== "editor") {
+      throw new Error("Workflow not found");
+    }
+    const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
+      name: body.name,
+      tool_name: body.tool_name ?? null,
+      description: body.description ?? "",
+      tags: body.tags ?? [],
+      package_name: body.package_name ?? null,
+      graph
+    };
+    if (isOwner) {
+      fields.access = body.access === "public" ? "public" : "private";
+    }
+    if (body.thumbnail !== undefined) fields.thumbnail = body.thumbnail;
     // Only touch optional columns when the caller sends them, so partial saves
     // (e.g. graph autosave) don't wipe stored values. A deliberate clear still
     // sends an explicit null.
-    if (body.settings !== undefined) existing.settings = body.settings ?? null;
+    if (body.settings !== undefined) fields.settings = body.settings ?? null;
     if (body.run_mode !== undefined && body.run_mode !== null)
-      existing.run_mode = body.run_mode;
+      fields.run_mode = body.run_mode;
     if (body.workspace_id !== undefined)
-      existing.workspace_id = body.workspace_id ?? null;
-    if (body.html_app !== undefined) existing.html_app = body.html_app ?? null;
-    if (body.app_doc !== undefined) existing.app_doc = body.app_doc;
-    await existing.save();
-    return existing;
+      fields.workspace_id = body.workspace_id ?? null;
+    if (body.html_app !== undefined) fields.html_app = body.html_app ?? null;
+    if (body.app_doc !== undefined) fields.app_doc = body.app_doc;
+
+    const updated = await Workflow.updateFieldsIfUnchanged(
+      id,
+      body.expected_updated_at ?? existing.updated_at,
+      fields
+    );
+    if (!updated) throw new Error(WORKFLOW_CONFLICT_MESSAGE);
+    return updated;
+  }
+
+  if (body.expected_updated_at) {
+    throw new Error("Workflow not found");
   }
 
   // Upsert: create the workflow if it doesn't exist
@@ -2093,7 +2121,15 @@ export async function handleWorkflowById(
   if (request.method === "GET") {
     const workflow = (await Workflow.get(workflowId)) as Workflow | null;
     if (!workflow) return errorResponse(404, "Workflow not found");
-    if (workflow.access !== "public" && workflow.user_id !== userId) {
+    const collaborator =
+      workflow.user_id === userId
+        ? null
+        : await WorkflowCollaborator.findFor(workflowId, userId);
+    if (
+      workflow.access !== "public" &&
+      workflow.user_id !== userId &&
+      !collaborator
+    ) {
       return errorResponse(404, "Workflow not found");
     }
     return jsonResponse(toWorkflowResponse(workflow));
@@ -2104,11 +2140,21 @@ export async function handleWorkflowById(
     if (!body) return errorResponse(400, "Invalid JSON body");
     try {
       const workflow = await updateWorkflow(workflowId, body, userId);
+      try {
+        await syncRegistrations(workflow, {});
+      } catch (error) {
+        log.error("Trigger registration sync failed", {
+          workflowId,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
       return jsonResponse(toWorkflowResponse(workflow));
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Invalid workflow";
       if (message === "Workflow not found") return errorResponse(404, message);
+      if (message === WORKFLOW_CONFLICT_MESSAGE)
+        return errorResponse(409, message);
       return errorResponse(400, message);
     }
   }
@@ -2192,9 +2238,9 @@ export async function toAssetResponse(asset: Asset): Promise<JsonObject> {
     ? null
     : getAssetFileName(asset.id, asset.content_type);
   const getUrl = fileName
-    ? await getHttpUrlBuilder()(
-        assetObjectKey(asset.user_id, fileName)
-      ).catch(() => null)
+    ? await getHttpUrlBuilder()(assetObjectKey(asset.user_id, fileName)).catch(
+        () => null
+      )
     : null;
 
   const hasThumbnail =

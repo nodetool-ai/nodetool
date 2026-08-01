@@ -117,7 +117,9 @@ function throwWorkflowInterfaceError(error: unknown): never {
  * Non-fatal by design — a broken trigger sync must not stop the user's graph
  * from saving, so failures are logged and swallowed here.
  */
-async function syncTriggerRegistrations(workflow: WorkflowModel): Promise<void> {
+async function syncTriggerRegistrations(
+  workflow: WorkflowModel
+): Promise<void> {
   try {
     await syncRegistrations(workflow, {});
   } catch (error) {
@@ -408,14 +410,12 @@ function buildExamplesFromDir(
   return workflows;
 }
 
-function buildExampleWorkflows(
-  apiOptions: {
-    examplesDir?: string;
-    examplesAssetsFallbackDir?: string;
-    metadataRoots?: string[];
-    metadataMaxDepth?: number;
-  }
-): unknown[] {
+function buildExampleWorkflows(apiOptions: {
+  examplesDir?: string;
+  examplesAssetsFallbackDir?: string;
+  metadataRoots?: string[];
+  metadataMaxDepth?: number;
+}): unknown[] {
   if (apiOptions.examplesDir) {
     return buildExamplesFromDir(
       apiOptions.examplesDir,
@@ -461,7 +461,6 @@ function buildExampleWorkflows(
   }
   return workflows;
 }
-
 
 // ── Router ─────────────────────────────────────────────────────────────────
 
@@ -567,8 +566,15 @@ export const workflowsRouter = router({
     .input(createInput)
     .output(workflowResponse)
     .mutation(async ({ ctx, input }) => {
-      if (!input.graph || !Array.isArray(input.graph.nodes) || !Array.isArray(input.graph.edges)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "graph is required and must have nodes and edges arrays");
+      if (
+        !input.graph ||
+        !Array.isArray(input.graph.nodes) ||
+        !Array.isArray(input.graph.edges)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "graph is required and must have nodes and edges arrays"
+        );
       }
       let graph = input.graph;
       let appDoc = input.app_doc ?? null;
@@ -622,8 +628,15 @@ export const workflowsRouter = router({
     .input(updateInput)
     .output(workflowResponse)
     .mutation(async ({ ctx, input }) => {
-      if (!input.graph || !Array.isArray(input.graph.nodes) || !Array.isArray(input.graph.edges)) {
-        throwApiError(ApiErrorCode.INVALID_INPUT, "graph is required and must have nodes and edges arrays");
+      if (
+        !input.graph ||
+        !Array.isArray(input.graph.nodes) ||
+        !Array.isArray(input.graph.edges)
+      ) {
+        throwApiError(
+          ApiErrorCode.INVALID_INPUT,
+          "graph is required and must have nodes and edges arrays"
+        );
       }
       const graph = input.graph;
       const existing = (await Workflow.get(input.id)) as WorkflowModel | null;
@@ -637,30 +650,47 @@ export const workflowsRouter = router({
       }
 
       if (existing) {
-        existing.name = input.name;
-        existing.tool_name = input.tool_name ?? null;
-        existing.description = input.description ?? "";
-        existing.tags = input.tags ?? [];
-        existing.package_name = input.package_name ?? null;
-        if (input.thumbnail !== undefined) existing.thumbnail = input.thumbnail;
+        const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
+          name: input.name,
+          tool_name: input.tool_name ?? null,
+          description: input.description ?? "",
+          tags: input.tags ?? [],
+          package_name: input.package_name ?? null,
+          graph
+        };
+        if (input.thumbnail !== undefined) fields.thumbnail = input.thumbnail;
         // Only the owner can change visibility; editors keep it as-is.
         if (existingRole === "owner") {
-          existing.access = input.access === "public" ? "public" : "private";
+          fields.access = input.access === "public" ? "public" : "private";
         }
-        existing.graph = graph;
         // Only touch optional columns when the caller sent them, so a partial
         // update (a body omitting these keys) doesn't wipe stored values. A
         // deliberate clear still sends an explicit null.
-        if (input.settings !== undefined) existing.settings = input.settings;
+        if (input.settings !== undefined) fields.settings = input.settings;
         if (input.run_mode !== undefined && input.run_mode !== null)
-          existing.run_mode = input.run_mode;
+          fields.run_mode = input.run_mode;
         if (input.workspace_id !== undefined)
-          existing.workspace_id = input.workspace_id;
-        if (input.html_app !== undefined) existing.html_app = input.html_app;
-        if (input.app_doc !== undefined) existing.app_doc = input.app_doc;
-        await existing.save();
-        await syncTriggerRegistrations(existing);
-        return toWorkflowResponse(existing);
+          fields.workspace_id = input.workspace_id;
+        if (input.html_app !== undefined) fields.html_app = input.html_app;
+        if (input.app_doc !== undefined) fields.app_doc = input.app_doc;
+
+        const updated = await Workflow.updateFieldsIfUnchanged(
+          input.id,
+          input.expected_updated_at ?? existing.updated_at,
+          fields
+        );
+        if (!updated) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "Workflow was modified since last read (optimistic concurrency conflict)"
+          );
+        }
+        await syncTriggerRegistrations(updated);
+        return toWorkflowResponse(updated);
+      }
+
+      if (input.expected_updated_at) {
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
 
       // Upsert: create if doesn't exist
@@ -695,7 +725,8 @@ export const workflowsRouter = router({
     .output(deleteOutput)
     .mutation(async ({ ctx, input }) => {
       const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      if (!workflow)
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       if (workflow.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
@@ -718,7 +749,8 @@ export const workflowsRouter = router({
       );
 
       const force = input.force === true;
-      const maxVersions = typeof input.max_versions === "number" ? input.max_versions : 10;
+      const maxVersions =
+        typeof input.max_versions === "number" ? input.max_versions : 10;
 
       // Rate-limit
       if (!force) {
@@ -727,22 +759,36 @@ export const workflowsRouter = router({
           return {
             version: null,
             message: "Autosave skipped (rate limited)",
-            skipped: true
+            skipped: true,
+            updated_at: workflow.updated_at ?? null
           };
         }
       }
 
-      workflow.graph = input.graph;
-      if (input.name !== undefined) workflow.name = input.name;
+      const fields: Parameters<typeof Workflow.updateFieldsIfUnchanged>[2] = {
+        graph: input.graph
+      };
+      if (input.name !== undefined) fields.name = input.name;
       if (input.description !== undefined)
-        workflow.description = input.description;
+        fields.description = input.description;
       // Only the owner can change visibility; editors keep it as-is.
       if (
         role === "owner" &&
         (input.access === "public" || input.access === "private")
       )
-        workflow.access = input.access;
-      await workflow.save();
+        fields.access = input.access;
+      const savedWorkflow = await Workflow.updateFieldsIfUnchanged(
+        input.id,
+        input.expected_updated_at ?? workflow.updated_at,
+        fields
+      );
+      if (!savedWorkflow) {
+        throwApiError(
+          ApiErrorCode.ALREADY_EXISTS,
+          "Workflow was modified since last read (optimistic concurrency conflict)"
+        );
+      }
+      await syncTriggerRegistrations(savedWorkflow);
       recordAutosave(input.id, Date.now());
 
       let version: {
@@ -761,8 +807,8 @@ export const workflowsRouter = router({
           graph: input.graph,
           version: nextVer,
           save_type: "autosave",
-          name: workflow.name,
-          description: workflow.description
+          name: savedWorkflow.name,
+          description: savedWorkflow.description
         });
         await wv.save();
         version = {
@@ -780,7 +826,8 @@ export const workflowsRouter = router({
       return {
         version,
         message: "Autosaved successfully",
-        skipped: false
+        skipped: false,
+        updated_at: savedWorkflow.updated_at ?? null
       };
     }),
 
@@ -813,7 +860,9 @@ export const workflowsRouter = router({
       .input(publicListInput)
       .output(publicListOutput)
       .query(async ({ input }) => {
-        const [workflows] = await Workflow.paginatePublic({ limit: input.limit });
+        const [workflows] = await Workflow.paginatePublic({
+          limit: input.limit
+        });
         return {
           workflows: workflows.map((w) => toWorkflowResponse(w)),
           next: null
@@ -840,18 +889,21 @@ export const workflowsRouter = router({
     .output(terminalOutputsOutput)
     .query(async ({ ctx, input }) => {
       const workflow = (await Workflow.get(input.id)) as WorkflowModel | null;
-      if (!workflow) throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
+      if (!workflow)
+        throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       if (workflow.access !== "public" && workflow.user_id !== ctx.userId) {
         throwApiError(ApiErrorCode.WORKFLOW_NOT_FOUND, "Workflow not found");
       }
 
-      const outputs = findTerminalMediaOutputNodes(workflow)
-        .map((n) => ({
-          id: n.id,
-          type: n.type,
-          mediaType: OUTPUT_NODE_MEDIA_TYPES[n.type] as "image" | "video" | "audio",
-          name: (n.data?.name as string | undefined) ?? ""
-        }));
+      const outputs = findTerminalMediaOutputNodes(workflow).map((n) => ({
+        id: n.id,
+        type: n.type,
+        mediaType: OUTPUT_NODE_MEDIA_TYPES[n.type] as
+          | "image"
+          | "video"
+          | "audio",
+        name: (n.data?.name as string | undefined) ?? ""
+      }));
 
       return { outputs };
     }),
@@ -907,7 +959,8 @@ export const workflowsRouter = router({
           input.id,
           input.version
         );
-        if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+        if (!version)
+          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         workflow.graph = version.graph;
         await workflow.save();
         return toWorkflowResponse(workflow);
@@ -921,7 +974,8 @@ export const workflowsRouter = router({
         const version = (await WorkflowVersion.get(
           input.version_id
         )) as WorkflowVersionModel | null;
-        if (!version) throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
+        if (!version)
+          throwApiError(ApiErrorCode.NOT_FOUND, "Version not found");
         if (version.user_id !== ctx.userId) {
           // The workflow owner may prune versions saved by collaborators.
           const parent = (await Workflow.get(
@@ -1033,7 +1087,10 @@ export const workflowsRouter = router({
       .mutation(async ({ ctx, input }) => {
         const share = await WorkflowShare.findByToken(input.token);
         if (!share || share.isRevoked) {
-          throwApiError(ApiErrorCode.NOT_FOUND, "Share link is invalid or revoked");
+          throwApiError(
+            ApiErrorCode.NOT_FOUND,
+            "Share link is invalid or revoked"
+          );
         }
         const workflow = (await Workflow.get(
           share.workflow_id
