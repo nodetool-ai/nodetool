@@ -1,5 +1,5 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import React, { useCallback, useMemo, useRef, useState } from "react";
+import { useQueries } from "@tanstack/react-query";
 
 import {
   AlertBanner,
@@ -75,14 +75,43 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   }, [application]);
 
   const operationWorkflowId = document?.operations[0]?.workflowId ?? "";
-  const { data: workflow } = useQuery({
-    queryKey: ["app-builder-workflow", operationWorkflowId],
-    queryFn: async () => await fetchWorkflow(operationWorkflowId),
-    enabled: !!operationWorkflowId,
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    retry: false
+
+  // Every workflow the app's operations run, not just the first: a binding
+  // authored on the second operation is offered that workflow's own surface.
+  const workflowIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const operation of document?.operations ?? []) {
+      if (operation.workflowId) ids.add(operation.workflowId);
+    }
+    return [...ids].sort();
+  }, [document]);
+
+  const workflowQueries = useQueries({
+    queries: workflowIds.map((id) => ({
+      queryKey: ["app-builder-workflow", id],
+      queryFn: async () => await fetchWorkflow(id),
+      staleTime: 0,
+      refetchOnWindowFocus: false,
+      retry: false
+    }))
   });
+
+  const fetched: Record<string, Workflow> = {};
+  workflowIds.forEach((id, index) => {
+    const data = workflowQueries[index]?.data;
+    if (data) fetched[id] = data;
+  });
+  const fetchedRef = useRef(fetched);
+  fetchedRef.current = fetched;
+  // Which graphs have arrived. The graphs themselves are read from the ref, so
+  // the map keeps its identity across renders that changed nothing.
+  const fetchedKey = Object.keys(fetched).join("|");
+  const operationWorkflows = useMemo(
+    () => fetchedRef.current,
+    [fetchedKey]
+  );
+
+  const workflow = operationWorkflows[operationWorkflowId];
 
   const editorWorkflow = useMemo(
     () =>
@@ -150,6 +179,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
       applicationId={applicationId}
       document={document}
       workflow={editorWorkflow}
+      operationWorkflows={operationWorkflows}
       agentWorkflowId={workflow?.id}
       onSave={(next) => void handleSave(next)}
       banner={

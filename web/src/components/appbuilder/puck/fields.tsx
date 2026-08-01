@@ -14,7 +14,6 @@ import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { Property } from "../../../stores/ApiTypes";
 import {
-  DEFAULT_OPERATION_ID,
   encodeBinding,
   parseBinding,
   resolveBinding,
@@ -31,12 +30,74 @@ import {
 import { getSlotFields, updateComponentProps } from "./puckDataOps";
 import {
   useBuilderBindingScope,
+  useBuilderOperations,
   useBuilderWorkflow
 } from "./BuilderWorkflowContext";
+import type { WorkflowState } from "../workflowState";
 import type { WorkflowInputIO } from "../workflowIO";
 
 type Option = { label: string; value: string };
 const NONE: Option = { label: "— none —", value: "" };
+
+/**
+ * The operation a picker binds against, and that operation's graph surface.
+ *
+ * A stored binding carries its own operation, so editing an existing binding
+ * stays on the operation it was authored for; a fresh one goes to the operation
+ * the author selected. An operation the document no longer declares (a legacy
+ * `main` token among them) falls back to the selection, which resolves such a
+ * binding onto the app's sole operation.
+ */
+const useBindingOperation = (
+  binding: string
+): {
+  operationId: string;
+  operations: ReadonlyArray<{ id: string; name: string }>;
+  workflow: WorkflowState;
+  select: (operationId: string) => void;
+} => {
+  const { operations, selectedOperationId, selectOperation, workflowFor } =
+    useBuilderOperations();
+  const stored = parseBinding(binding);
+  const named =
+    stored && "operationId" in stored ? stored.operationId : undefined;
+  const operationId =
+    named && operations.some((op) => op.id === named)
+      ? named
+      : selectedOperationId;
+  return {
+    operationId,
+    operations: operations.map(({ id, name }) => ({ id, name })),
+    workflow: workflowFor(operationId),
+    select: selectOperation
+  };
+};
+
+/**
+ * Operation chooser, shown only when the app binds more than one — a
+ * single-operation app has nothing to choose. Switching clears the binding:
+ * another operation runs another graph, so the picked node does not carry over.
+ */
+const OperationSelect: React.FC<{
+  operations: ReadonlyArray<{ id: string; name: string }>;
+  value: string;
+  readOnly?: boolean;
+  onChange: (operationId: string) => void;
+}> = ({ operations, value, readOnly, onChange }) => {
+  if (operations.length < 2) return null;
+  return (
+    <SelectField
+      label="Operation"
+      value={value}
+      options={operations.map((op) => ({
+        label: op.name || op.id,
+        value: op.id
+      }))}
+      disabled={readOnly}
+      onChange={onChange}
+    />
+  );
+};
 
 /**
  * Normalize a stored binding to its ID form. Documents written before ID-based
@@ -114,14 +175,16 @@ const ReadBindingPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
-  const { outputs, variables } = useBuilderWorkflow();
+  const { operationId, operations, workflow, select } =
+    useBindingOperation(value);
+  const { outputs, variables } = workflow;
   const scope = useBuilderBindingScope();
   const options: Option[] = [
     ...outputs.map((o) => ({
       label: `output · ${o.label}`,
       value: encodeBinding({
         kind: "output",
-        operationId: DEFAULT_OPERATION_ID,
+        operationId,
         nodeId: o.nodeId
       })
     })),
@@ -129,20 +192,31 @@ const ReadBindingPicker: React.FC<{
       label: `variable · ${v}`,
       value: encodeBinding({ kind: "variable", variableId: v })
     })),
-    ...EXECUTION_OPTIONS
+    ...executionOptions(operationId)
   ];
   return (
-    <Picker
-      label={label}
-      value={canonicalBinding(value, scope, "read")}
-      options={options}
-      // Execution fields are always bindable, so "nothing to bind" is about
-      // the workflow's own outputs and variables.
-      hintVisible={outputs.length === 0 && variables.length === 0}
-      emptyHint="Add an Output node or Set Variable node to the workflow."
-      readOnly={readOnly}
-      onChange={onChange}
-    />
+    <FlexColumn gap={0.5}>
+      <OperationSelect
+        operations={operations}
+        value={operationId}
+        readOnly={readOnly}
+        onChange={(next) => {
+          select(next);
+          onChange("");
+        }}
+      />
+      <Picker
+        label={label}
+        value={canonicalBinding(value, scope, "read")}
+        options={options}
+        // Execution fields are always bindable, so "nothing to bind" is about
+        // the workflow's own outputs and variables.
+        hintVisible={outputs.length === 0 && variables.length === 0}
+        emptyHint="Add an Output node or Set Variable node to the workflow."
+        readOnly={readOnly}
+        onChange={onChange}
+      />
+    </FlexColumn>
   );
 };
 
@@ -199,7 +273,9 @@ const WriteBindingPicker: React.FC<{
   readOnly?: boolean;
   onChange: (value: string) => void;
 }> = ({ label, value, readOnly, onChange }) => {
-  const { inputs, nodes } = useBuilderWorkflow();
+  const { operationId, operations, workflow, select } =
+    useBindingOperation(value);
+  const { inputs, nodes } = workflow;
   const scope = useBuilderBindingScope();
   const getMetadata = useMetadataStore((s) => s.getMetadata);
   const getPuck = useGetPuck();
@@ -209,7 +285,7 @@ const WriteBindingPicker: React.FC<{
       label: `input · ${input.label}`,
       value: encodeBinding({
         kind: "input",
-        operationId: DEFAULT_OPERATION_ID,
+        operationId,
         nodeId: input.nodeId
       }),
       group: INPUTS_GROUP,
@@ -249,7 +325,7 @@ const WriteBindingPicker: React.FC<{
           label: `${group} · ${rowLabel}`,
           value: encodeBinding({
             kind: "nodeProperty",
-            operationId: DEFAULT_OPERATION_ID,
+            operationId,
             nodeId: node.id,
             property: prop.name
           }),
@@ -261,7 +337,7 @@ const WriteBindingPicker: React.FC<{
     }
 
     return [...inputOptions, ...nodeOptions];
-  }, [inputs, nodes, getMetadata]);
+  }, [inputs, nodes, getMetadata, operationId]);
 
   const { selectedOption, resolvedOptions } = useMemo(() => {
     const canonical = canonicalBinding(value, scope, "write");
@@ -322,6 +398,15 @@ const WriteBindingPicker: React.FC<{
 
   return (
     <FlexColumn gap={0.5}>
+      <OperationSelect
+        operations={operations}
+        value={operationId}
+        readOnly={readOnly}
+        onChange={(next) => {
+          select(next);
+          onChange("");
+        }}
+      />
       <Autocomplete<BindingOption>
         label={label}
         placeholder="Search inputs and node properties…"
@@ -347,6 +432,47 @@ const WriteBindingPicker: React.FC<{
         </Caption>
       )}
     </FlexColumn>
+  );
+};
+
+/**
+ * Which operation a run/cancel event drives. The document's own operations are
+ * the options — an app is not assumed to have one called `main`. Renders
+ * nothing while the app binds a single operation: there is nothing to choose,
+ * and an event that names none runs that one.
+ */
+export const operationField = (label = "Operation"): CustomField<string> => ({
+  type: "custom",
+  label,
+  render: ({ value, onChange, readOnly }) => (
+    <EventOperationPicker
+      label={label}
+      value={value ?? ""}
+      readOnly={readOnly}
+      onChange={onChange}
+    />
+  )
+});
+
+const EventOperationPicker: React.FC<{
+  label: string;
+  value: string;
+  readOnly?: boolean;
+  onChange: (value: string) => void;
+}> = ({ label, value, readOnly, onChange }) => {
+  const { operations } = useBuilderOperations();
+  if (operations.length < 2) return null;
+  return (
+    <SelectField
+      label={label}
+      value={operations.some((op) => op.id === value) ? value : ""}
+      options={[
+        { label: "— default —", value: "" },
+        ...operations.map((op) => ({ label: op.name || op.id, value: op.id }))
+      ]}
+      disabled={readOnly}
+      onChange={onChange}
+    />
   );
 };
 
@@ -414,21 +540,18 @@ const OPS_WITH_VALUE = new Set([
  * What a run reports about itself. Bindable from any read widget (a Text
  * showing the agent's current step) and from a condition.
  */
-const EXECUTION_OPTIONS: Option[] = (
-  [
-    ["running", "is running"],
-    ["progress", "progress"],
-    ["error", "error"],
-    ["activity", "activity"]
-  ] as const
-).map(([field, label]) => ({
-  label: `run · ${label}`,
-  value: encodeBinding({
-    kind: "execution",
-    operationId: DEFAULT_OPERATION_ID,
-    field
-  })
-}));
+const EXECUTION_FIELDS = [
+  ["running", "is running"],
+  ["progress", "progress"],
+  ["error", "error"],
+  ["activity", "activity"]
+] as const;
+
+const executionOptions = (operationId: string): Option[] =>
+  EXECUTION_FIELDS.map(([field, label]) => ({
+    label: `run · ${label}`,
+    value: encodeBinding({ kind: "execution", operationId, field })
+  }));
 
 /**
  * Condition field: a state reference, an operator, and (for comparisons) a
@@ -456,14 +579,17 @@ const ConditionEditor: React.FC<{
   readOnly?: boolean;
   onChange: (value: ConditionProps) => void;
 }> = ({ label, value, readOnly, onChange }) => {
-  const { inputs, outputs, variables } = useBuilderWorkflow();
+  const { operationId, operations, workflow, select } = useBindingOperation(
+    value.binding ?? ""
+  );
+  const { inputs, outputs, variables } = workflow;
   const scope = useBuilderBindingScope();
   const options: Option[] = [
     ...outputs.map((o) => ({
       label: `output · ${o.label}`,
       value: encodeBinding({
         kind: "output",
-        operationId: DEFAULT_OPERATION_ID,
+        operationId,
         nodeId: o.nodeId
       })
     })),
@@ -471,7 +597,7 @@ const ConditionEditor: React.FC<{
       label: `input · ${i.label}`,
       value: encodeBinding({
         kind: "input",
-        operationId: DEFAULT_OPERATION_ID,
+        operationId,
         nodeId: i.nodeId
       })
     })),
@@ -479,11 +605,20 @@ const ConditionEditor: React.FC<{
       label: `variable · ${v}`,
       value: encodeBinding({ kind: "variable", variableId: v })
     })),
-    ...EXECUTION_OPTIONS
+    ...executionOptions(operationId)
   ];
   const op = value.op ?? "notEmpty";
   return (
     <FlexColumn gap={0.5}>
+      <OperationSelect
+        operations={operations}
+        value={operationId}
+        readOnly={readOnly}
+        onChange={(next) => {
+          select(next);
+          onChange({ ...value, binding: "" });
+        }}
+      />
       <Picker
         label={label}
         value={canonicalBinding(value.binding ?? "", scope, "none")}

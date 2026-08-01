@@ -16,6 +16,7 @@
  *   node:<nodeId>#<prop>               legacy node property (default operation)
  *   <name>                             legacy input / output / variable name
  */
+import { DEFAULT_OPERATION_ID } from "./document.js";
 import type { VariableDeclaration } from "./document.js";
 
 export type ExecutionField = "running" | "progress" | "error" | "activity";
@@ -227,11 +228,33 @@ export const parseBinding = (binding?: string | null): BindingRef | null => {
 export type BindingMode = "read" | "write" | "none";
 
 /**
+ * Documents written by an earlier builder hard-coded `main` as the operation of
+ * every binding, whatever the document's own operation was called. When the app
+ * binds exactly one operation and it is not `main`, such a token can only have
+ * meant that operation, so it resolves there instead of addressing a state slot
+ * no run ever fills. Resolution only — the stored document keeps the token it
+ * has until the author edits that binding.
+ *
+ * Narrow on purpose: any other operation id is left alone, so a document that
+ * genuinely names an operation the caller's scope has not loaded still resolves
+ * to what it says.
+ */
+const onKnownOperation = (ref: BindingRef, scope: BindingScope): BindingRef => {
+  if (!("operationId" in ref) || ref.operationId !== DEFAULT_OPERATION_ID) {
+    return ref;
+  }
+  const only = scope.operations.length === 1 ? scope.operations[0] : undefined;
+  if (!only || only.operationId === DEFAULT_OPERATION_ID) return ref;
+  return { ...ref, operationId: only.operationId };
+};
+
+/**
  * Resolve a stored binding string to a {@link BindingRef} against the live
  * graph. Explicit tokens resolve directly (their `operationId` is filled in
- * from the default when the legacy `node:` form omitted it); a bare name is
- * looked up by mode — a write widget means an input node, a read widget means
- * an output node or a variable.
+ * from the default when the legacy `node:` form omitted it, and remapped by
+ * {@link onKnownOperation} when they name an operation the app does not have);
+ * a bare name is looked up by mode — a write widget means an input node, a read
+ * widget means an output node or a variable.
  *
  * Returns null when the binding cannot be resolved: a renamed node in a legacy
  * document, a deleted variable. Callers surface that as a validation error
@@ -246,9 +269,9 @@ export const resolveBinding = (
   const explicit = parseBinding(binding);
   if (explicit) {
     if (explicit.kind === "nodeProperty" && explicit.operationId === "") {
-      return { ...explicit, operationId };
+      return onKnownOperation({ ...explicit, operationId }, scope);
     }
-    return explicit;
+    return onKnownOperation(explicit, scope);
   }
   if (typeof binding !== "string" || binding.length === 0) return null;
 
