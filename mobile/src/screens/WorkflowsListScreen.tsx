@@ -12,16 +12,64 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { trpc } from '../trpc/client';
+import { trpc, RouterOutputs } from '../trpc/client';
 import { normalizeWorkflow } from '../services/api';
 import { Workflow } from '../types/miniapp';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type WorkflowsListScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'WorkflowsList'>;
 };
+
+// Module scope: React Query re-runs `select` whenever its identity changes, so
+// an inline arrow would remap the list on every render.
+const selectWorkflows = (data: RouterOutputs['workflows']['list']) =>
+  data.workflows.map((w) => normalizeWorkflow(w));
+
+const WorkflowRow = React.memo(function WorkflowRow({
+  workflow,
+  colors,
+  shadows,
+  onPress,
+}: {
+  workflow: Workflow;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onPress: (workflow: Workflow) => void;
+}) {
+  const handlePress = useCallback(() => onPress(workflow), [onPress, workflow]);
+  return (
+    <TouchableOpacity
+      style={[
+        styles.workflowCard,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`Open ${workflow.name}${workflow.description ? `: ${workflow.description}` : ''}`}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.workflowIcon, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="cube-outline" size={20} color={colors.primary} />
+      </View>
+      <View style={styles.workflowContent}>
+        <Text style={[styles.workflowName, { color: colors.text }]}>{workflow.name}</Text>
+        {workflow.description ? (
+          <Text style={[styles.workflowDescription, { color: colors.textSecondary }]} numberOfLines={2}>
+            {workflow.description}
+          </Text>
+        ) : null}
+      </View>
+      <View style={[styles.chevronContainer, { backgroundColor: colors.primaryLight }]}>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenProps) {
   const { colors, shadows } = useTheme();
@@ -37,13 +85,7 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
     error,
     errorUpdatedAt,
     refetch,
-  } = trpc.workflows.list.useQuery(
-    { limit: 100 },
-    {
-      select: (data) =>
-        data.workflows.map((w) => normalizeWorkflow(w)),
-    }
-  );
+  } = trpc.workflows.list.useQuery({ limit: 100 }, { select: selectWorkflows });
   const loadError = error ? error.message || 'Network Error' : null;
 
   useEffect(() => {
@@ -88,37 +130,23 @@ export default function WorkflowsListScreen({ navigation }: WorkflowsListScreenP
     };
   }, []);
 
-  const handleWorkflowPress = (workflow: Workflow) => {
-    navigation.navigate('GraphEditor', { workflowId: workflow.id });
-  };
+  const handleWorkflowPress = useCallback(
+    (workflow: Workflow) => {
+      navigation.navigate('GraphEditor', { workflowId: workflow.id });
+    },
+    [navigation]
+  );
 
-  const renderWorkflowItem = ({ item }: { item: Workflow }) => (
-    <TouchableOpacity
-      style={[
-        styles.workflowCard,
-        shadows.small,
-        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-      ]}
-      onPress={() => handleWorkflowPress(item)}
-      accessibilityRole="button"
-      accessibilityLabel={`Open ${item.name}${item.description ? `: ${item.description}` : ''}`}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.workflowIcon, { backgroundColor: colors.primaryMuted }]}>
-        <Ionicons name="cube-outline" size={20} color={colors.primary} />
-      </View>
-      <View style={styles.workflowContent}>
-        <Text style={[styles.workflowName, { color: colors.text }]}>{item.name}</Text>
-        {item.description ? (
-          <Text style={[styles.workflowDescription, { color: colors.textSecondary }]} numberOfLines={2}>
-            {item.description}
-          </Text>
-        ) : null}
-      </View>
-      <View style={[styles.chevronContainer, { backgroundColor: colors.primaryLight }]}>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-      </View>
-    </TouchableOpacity>
+  const renderWorkflowItem = useCallback(
+    ({ item }: { item: Workflow }) => (
+      <WorkflowRow
+        workflow={item}
+        colors={colors}
+        shadows={shadows}
+        onPress={handleWorkflowPress}
+      />
+    ),
+    [colors, shadows, handleWorkflowPress]
   );
 
   if (isLoading) {

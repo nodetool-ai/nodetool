@@ -22,6 +22,7 @@ import { trpc } from '../trpc/client';
 import { useAuthStore } from '../stores/AuthStore';
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type AssetsScreenProps = {
@@ -32,6 +33,89 @@ type AssetsScreenProps = {
 const GRID_COLUMNS = 3;
 const GRID_GAP = 10;
 const GRID_PADDING = 16;
+
+const assetIconName = (asset: Asset): keyof typeof Ionicons.glyphMap => {
+  const contentType = asset.content_type;
+  if (contentType === 'folder') {return 'folder';}
+  if (contentType?.startsWith('image/')) {return 'image-outline';}
+  if (contentType?.startsWith('video/')) {return 'film-outline';}
+  if (contentType?.startsWith('audio/')) {return 'musical-notes-outline';}
+  if (contentType?.startsWith('text/')) {return 'document-text-outline';}
+  return 'document-outline';
+};
+
+const AssetCard = React.memo(function AssetCard({
+  asset,
+  size,
+  colors,
+  shadows,
+  onPress,
+  onLongPress,
+}: {
+  asset: Asset;
+  size: number;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onPress: (asset: Asset) => void;
+  onLongPress: (asset: Asset) => void;
+}) {
+  const isFolder = asset.content_type === 'folder';
+  const isImage = asset.content_type?.startsWith('image/');
+  const isVideo = asset.content_type?.startsWith('video/');
+  const thumb = apiService.resolveUrl(asset.thumb_url || (isImage ? asset.get_url : null));
+
+  const handlePress = useCallback(() => onPress(asset), [onPress, asset]);
+  const handleLongPress = useCallback(() => onLongPress(asset), [onLongPress, asset]);
+
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        shadows.small,
+        {
+          width: size,
+          backgroundColor: colors.cardBg,
+          borderColor: colors.borderLight,
+        },
+      ]}
+      onPress={handlePress}
+      onLongPress={handleLongPress}
+      accessibilityRole="button"
+      accessibilityLabel={`${isFolder ? 'Folder' : 'Asset'} ${asset.name}`}
+      activeOpacity={0.7}
+    >
+      <View
+        style={[
+          styles.thumbContainer,
+          { width: size, height: size, backgroundColor: colors.primaryMuted },
+        ]}
+      >
+        {thumb ? (
+          <Image
+            source={{ uri: thumb }}
+            style={styles.thumbImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <Ionicons name={assetIconName(asset)} size={36} color={colors.primary} />
+        )}
+        {isVideo && (
+          <View style={styles.playOverlay}>
+            <Ionicons name="play-circle" size={30} color="#FFFFFF" />
+          </View>
+        )}
+      </View>
+      <View style={styles.cardLabel}>
+        <Text
+          style={[styles.cardName, { color: colors.text }]}
+          numberOfLines={1}
+        >
+          {asset.name}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
   const parentId = route.params?.parentId;
@@ -120,6 +204,9 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     }
   }, [navigation]);
 
+  // `useMutation` returns a fresh object every render; `mutate` does not.
+  const deleteAssetMutate = deleteAsset.mutate;
+
   const confirmDelete = useCallback((asset: Asset) => {
     Alert.alert(
       'Delete asset?',
@@ -129,11 +216,11 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
         {
           text: 'Delete',
           style: 'destructive',
-          onPress: () => { deleteAsset.mutate({ id: asset.id }); },
+          onPress: () => { deleteAssetMutate({ id: asset.id }); },
         },
       ]
     );
-  }, [deleteAsset]);
+  }, [deleteAssetMutate]);
 
   const handleAssetLongPress = useCallback((asset: Asset) => {
     Alert.alert(
@@ -206,70 +293,19 @@ export default function AssetsScreen({ navigation, route }: AssetsScreenProps) {
     ]);
   }, [handlePickImage, handlePickDocument]);
 
-  const renderAsset = useCallback(({ item }: { item: Asset }) => {
-    const isFolder = item.content_type === 'folder';
-    const isImage = item.content_type?.startsWith('image/');
-    const isVideo = item.content_type?.startsWith('video/');
-    const isAudio = item.content_type?.startsWith('audio/');
-    const rawThumb = item.thumb_url || (isImage ? item.get_url : null);
-    const thumb = apiService.resolveUrl(rawThumb);
-
-    let iconName: keyof typeof Ionicons.glyphMap = 'document-outline';
-    if (isFolder) {iconName = 'folder';}
-    else if (isImage) {iconName = 'image-outline';}
-    else if (isVideo) {iconName = 'film-outline';}
-    else if (isAudio) {iconName = 'musical-notes-outline';}
-    else if (item.content_type?.startsWith('text/')) {iconName = 'document-text-outline';}
-
-    return (
-      <TouchableOpacity
-        style={[
-          styles.card,
-          shadows.small,
-          {
-            width: itemSize,
-            backgroundColor: colors.cardBg,
-            borderColor: colors.borderLight,
-          },
-        ]}
-        onPress={() => handleAssetPress(item)}
-        onLongPress={() => handleAssetLongPress(item)}
-        accessibilityRole="button"
-        accessibilityLabel={`${isFolder ? 'Folder' : 'Asset'} ${item.name}`}
-        activeOpacity={0.7}
-      >
-        <View
-          style={[
-            styles.thumbContainer,
-            { width: itemSize, height: itemSize, backgroundColor: colors.primaryMuted },
-          ]}
-        >
-          {thumb ? (
-            <Image
-              source={{ uri: thumb }}
-              style={styles.thumbImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <Ionicons name={iconName} size={36} color={colors.primary} />
-          )}
-          {isVideo && (
-            <View style={styles.playOverlay}>
-              <Ionicons name="play-circle" size={30} color="#FFFFFF" />
-            </View>
-          )}
-        </View>
-        <View style={styles.cardLabel}>
-          <Text
-            style={[styles.cardName, { color: colors.text }]}
-            numberOfLines={1}
-          >
-            {item.name}
-          </Text>
-        </View>
-      </TouchableOpacity>
-    );
-  }, [colors, shadows, itemSize, handleAssetPress, handleAssetLongPress]);
+  const renderAsset = useCallback(
+    ({ item }: { item: Asset }) => (
+      <AssetCard
+        asset={item}
+        size={itemSize}
+        colors={colors}
+        shadows={shadows}
+        onPress={handleAssetPress}
+        onLongPress={handleAssetLongPress}
+      />
+    ),
+    [colors, shadows, itemSize, handleAssetPress, handleAssetLongPress]
+  );
 
   const renderEmpty = () => {
     if (isLoading) {return null;}

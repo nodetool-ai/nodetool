@@ -30,6 +30,7 @@ import type { DocumentKind } from '../documents/kinds';
 
 import { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { DOCUMENT_KINDS, documentKindInfo } from '../documents/kinds';
 import {
   useAllDocuments,
@@ -81,6 +82,79 @@ export function formatRelativeTime(iso: string): string {
 }
 
 const CREATABLE_KINDS = DOCUMENT_KINDS.filter((entry) => entry.creatable);
+
+const DocumentRow = React.memo(function DocumentRow({
+  entry,
+  colors,
+  shadows,
+  onOpen,
+  onShowActions,
+}: {
+  entry: DocumentListEntry;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onOpen: (entry: DocumentListEntry) => void;
+  onShowActions: (entry: DocumentListEntry) => void;
+}) {
+  const info = documentKindInfo(entry.kind);
+  const isReadOnly = info.surface === 'viewer';
+  const handleOpen = useCallback(() => onOpen(entry), [onOpen, entry]);
+  const handleShowActions = useCallback(
+    () => onShowActions(entry),
+    [onShowActions, entry]
+  );
+
+  return (
+    <View
+      style={[
+        styles.row,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+    >
+      <TouchableOpacity
+        style={styles.rowMain}
+        onPress={handleOpen}
+        onLongPress={handleShowActions}
+        accessibilityRole="button"
+        accessibilityLabel={`Open ${entry.name}, ${info.label}`}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.rowIcon, { backgroundColor: colors.primaryMuted }]}>
+          <Ionicons name={icon(info.icon)} size={20} color={colors.primary} />
+        </View>
+        <View style={styles.rowText}>
+          <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
+            {entry.name}
+          </Text>
+          <View style={styles.rowMetaLine}>
+            <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
+              {info.label} · {formatRelativeTime(entry.updatedAt)}
+            </Text>
+            {isReadOnly ? (
+              <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
+                <Ionicons name="eye-outline" size={11} color={colors.textSecondary} />
+                <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
+                  Read-only
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        </View>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.rowAction}
+        onPress={handleShowActions}
+        accessibilityRole="button"
+        accessibilityLabel={`Actions for ${entry.name}`}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
   const { colors, shadows } = useTheme();
@@ -152,6 +226,9 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
     [createDocument, openDocument]
   );
 
+  // `useMutation` returns a fresh object every render; `mutate` does not.
+  const deleteDocumentMutate = deleteDocument.mutate;
+
   const handleDelete = useCallback(
     (entry: DocumentListEntry) => {
       Alert.alert(
@@ -163,7 +240,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
             text: 'Delete',
             style: 'destructive',
             onPress: () => {
-              deleteDocument.mutate(
+              deleteDocumentMutate(
                 { kind: entry.kind, id: entry.id },
                 {
                   onError: (deleteError) => {
@@ -176,7 +253,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
         ]
       );
     },
-    [deleteDocument]
+    [deleteDocumentMutate]
   );
 
   const handleRenameSubmit = useCallback(async () => {
@@ -225,60 +302,15 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
   );
 
   const renderItem = useCallback(
-    ({ item }: { item: DocumentListEntry }) => {
-      const info = documentKindInfo(item.kind);
-      const isReadOnly = info.surface === 'viewer';
-      return (
-        <View
-          style={[
-            styles.row,
-            shadows.small,
-            { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-          ]}
-        >
-          <TouchableOpacity
-            style={styles.rowMain}
-            onPress={() => openDocument(item)}
-            onLongPress={() => showRowActions(item)}
-            accessibilityRole="button"
-            accessibilityLabel={`Open ${item.name}, ${info.label}`}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.rowIcon, { backgroundColor: colors.primaryMuted }]}>
-              <Ionicons name={icon(info.icon)} size={20} color={colors.primary} />
-            </View>
-            <View style={styles.rowText}>
-              <Text style={[styles.rowName, { color: colors.text }]} numberOfLines={1}>
-                {item.name}
-              </Text>
-              <View style={styles.rowMetaLine}>
-                <Text style={[styles.rowMeta, { color: colors.textSecondary }]}>
-                  {info.label} · {formatRelativeTime(item.updatedAt)}
-                </Text>
-                {isReadOnly ? (
-                  <View style={[styles.badge, { backgroundColor: colors.primaryLight }]}>
-                    <Ionicons name="eye-outline" size={11} color={colors.textSecondary} />
-                    <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
-                      Read-only
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-            </View>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.rowAction}
-            onPress={() => showRowActions(item)}
-            accessibilityRole="button"
-            accessibilityLabel={`Actions for ${item.name}`}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          >
-            <Ionicons name="ellipsis-horizontal" size={18} color={colors.textSecondary} />
-          </TouchableOpacity>
-        </View>
-      );
-    },
+    ({ item }: { item: DocumentListEntry }) => (
+      <DocumentRow
+        entry={item}
+        colors={colors}
+        shadows={shadows}
+        onOpen={openDocument}
+        onShowActions={showRowActions}
+      />
+    ),
     [colors, shadows, openDocument, showRowActions]
   );
 

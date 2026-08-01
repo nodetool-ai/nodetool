@@ -7,7 +7,7 @@
  * results are cached and shared across the app.
  */
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { trpc } from "../trpc/client";
 import { normalizeModels } from "../services/api";
 import type { ProviderInfo } from "../types/ApiTypes";
@@ -47,11 +47,16 @@ const CAPABILITY_MAP: Record<string, string> = {
 export function useModelsForType(modelType: string): UseModelsResult<BaseModel> {
   const capability = CAPABILITY_MAP[modelType] ?? "generate_message";
 
+  // React Query re-runs `select` whenever its identity changes, so an inline
+  // arrow would re-filter on every render and invalidate `providers` below.
+  const selectProviders = useCallback(
+    (all: ProviderInfo[]) =>
+      all.filter((p) => p.capabilities?.includes(capability)),
+    [capability]
+  );
+
   const providersQuery = trpc.models.providers.useQuery(undefined, {
-    select: (all) =>
-      (all as ProviderInfo[]).filter((p) =>
-        p.capabilities?.includes(capability)
-      ),
+    select: selectProviders,
   });
   const providers = useMemo(
     () => providersQuery.data ?? [],
@@ -77,19 +82,29 @@ export function useModelsForType(modelType: string): UseModelsResult<BaseModel> 
     })
   );
 
+  // `useQueries` returns a fresh array every render, so memoizing the flatten +
+  // sort on it never hits. The payloads keep their identity until a query moves.
+  const payloads = modelQueries.map((query) => query.data);
+  const payloadsRef = useRef(payloads);
+  if (
+    payloads.length !== payloadsRef.current.length ||
+    payloads.some((data, index) => data !== payloadsRef.current[index])
+  ) {
+    payloadsRef.current = payloads;
+  }
+  const stablePayloads = payloadsRef.current;
+
   const models = useMemo(() => {
     const all: BaseModel[] = [];
-    modelQueries.forEach((query, index) => {
-      if (query.data) {
+    stablePayloads.forEach((data, index) => {
+      if (data) {
         const provider = providers[index]?.provider ?? "";
-        all.push(
-          ...normalizeModels<BaseModel>(query.data, provider)
-        );
+        all.push(...normalizeModels<BaseModel>(data, provider));
       }
     });
     all.sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""));
     return all;
-  }, [modelQueries, providers]);
+  }, [stablePayloads, providers]);
 
   const isLoading =
     providersQuery.isLoading || modelQueries.some((query) => query.isLoading);
@@ -98,10 +113,14 @@ export function useModelsForType(modelType: string): UseModelsResult<BaseModel> 
     modelQueries.find((query) => query.error)?.error?.message ??
     null;
 
+  const queriesRef = useRef(modelQueries);
+  queriesRef.current = modelQueries;
+  const refetchProviders = providersQuery.refetch;
+
   const refetch = useCallback(() => {
-    providersQuery.refetch();
-    modelQueries.forEach((query) => query.refetch());
-  }, [providersQuery, modelQueries]);
+    refetchProviders();
+    queriesRef.current.forEach((query) => query.refetch());
+  }, [refetchProviders]);
 
   return { models, providers, isLoading, error, refetch };
 }

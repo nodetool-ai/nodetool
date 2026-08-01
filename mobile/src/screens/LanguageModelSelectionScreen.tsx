@@ -1,4 +1,4 @@
-import React, { useState, useLayoutEffect, useMemo } from 'react';
+import React, { useCallback, useState, useLayoutEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -12,14 +12,97 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { normalizeModels } from '../services/api';
-import { trpc } from '../trpc/client';
+import { trpc, RouterOutputs } from '../trpc/client';
 import { useChatStore } from '../stores/ChatStore';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { LanguageModel, ProviderInfo } from '../types';
 
 interface Provider {
   provider: string;
 }
+
+// Module scope: React Query re-runs `select` whenever its identity changes, so
+// an inline arrow would hand every row a fresh object on every render.
+const selectMessageProviders = (all: ProviderInfo[]): Provider[] =>
+  all
+    .filter((p) => p.capabilities?.includes('generate_message'))
+    .map((p) => ({ provider: p.provider }));
+
+const ProviderRow = React.memo(function ProviderRow({
+  provider,
+  colors,
+  shadows,
+  onSelect,
+}: {
+  provider: string;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onSelect: (provider: string) => void;
+}) {
+  const handlePress = useCallback(() => onSelect(provider), [onSelect, provider]);
+  return (
+    <TouchableOpacity
+      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`Select provider ${provider}`}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.itemIconWrap, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="cloud-outline" size={18} color={colors.primary} />
+      </View>
+      <Text
+        style={[styles.itemText, styles.itemTextFill, { color: colors.text }]}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {provider}
+      </Text>
+      <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
+        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
+      </View>
+    </TouchableOpacity>
+  );
+});
+
+const ModelRow = React.memo(function ModelRow({
+  model,
+  colors,
+  shadows,
+  onSelect,
+}: {
+  model: LanguageModel;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onSelect: (model: LanguageModel) => void;
+}) {
+  const handlePress = useCallback(() => onSelect(model), [onSelect, model]);
+  return (
+    <TouchableOpacity
+      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={`Select model ${model.name}`}
+      activeOpacity={0.7}
+    >
+      <View style={[styles.itemIconWrap, { backgroundColor: colors.accentMuted }]}>
+        <Ionicons name="sparkles-outline" size={16} color={colors.accent} />
+      </View>
+      <View style={styles.modelInfo}>
+        <Text style={[styles.itemText, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">
+          {model.name}
+        </Text>
+        {model.id !== model.name && (
+          <Text style={[styles.subText, { color: colors.textTertiary }]} numberOfLines={1} ellipsizeMode="tail">
+            {model.id}
+          </Text>
+        )}
+      </View>
+      <Ionicons name="checkmark-circle-outline" size={20} color={colors.textTertiary} />
+    </TouchableOpacity>
+  );
+});
 
 export default function LanguageModelSelectionScreen() {
   const navigation = useNavigation();
@@ -31,22 +114,24 @@ export default function LanguageModelSelectionScreen() {
   const insets = useSafeAreaInsets();
 
   const providersQuery = trpc.models.providers.useQuery(undefined, {
-    select: (all) =>
-      (all as ProviderInfo[])
-        .filter((p) => p.capabilities?.includes('generate_message'))
-        .map((p) => ({ provider: p.provider })),
+    select: selectMessageProviders,
   });
   const providers = useMemo(
     () => providersQuery.data ?? [],
     [providersQuery.data]
   );
 
+  const selectModels = useCallback(
+    (m: RouterOutputs['models']['llmByProvider']) =>
+      normalizeModels<LanguageModel>(m, selectedProvider ?? ''),
+    [selectedProvider]
+  );
+
   const modelsQuery = trpc.models.llmByProvider.useQuery(
     { provider: selectedProvider ?? '' },
     {
       enabled: step === 2 && !!selectedProvider,
-      select: (m) =>
-        normalizeModels<LanguageModel>(m, selectedProvider ?? ''),
+      select: selectModels,
     }
   );
   const models = useMemo(() => modelsQuery.data ?? [], [modelsQuery.data]);
@@ -68,16 +153,19 @@ export default function LanguageModelSelectionScreen() {
     });
   }, [navigation, step, selectedProvider, colors.text]);
 
-  const handleProviderSelect = (provider: string) => {
+  const handleProviderSelect = useCallback((provider: string) => {
     setSelectedProvider(provider);
     setSearchQuery('');
     setStep(2);
-  };
+  }, []);
 
-  const handleModelSelect = (model: LanguageModel) => {
-    setSelectedModel(model);
-    navigation.goBack();
-  };
+  const handleModelSelect = useCallback(
+    (model: LanguageModel) => {
+      setSelectedModel(model);
+      navigation.goBack();
+    },
+    [setSelectedModel, navigation]
+  );
 
   const filteredModels = useMemo(() => {
     if (!searchQuery.trim()) {return models;}
@@ -118,53 +206,28 @@ export default function LanguageModelSelectionScreen() {
     </View>
   );
 
-  const renderProviderItem = ({ item }: { item: Provider }) => (
-    <TouchableOpacity
-      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
-      onPress={() => handleProviderSelect(item.provider)}
-      accessibilityRole="button"
-      accessibilityLabel={`Select provider ${item.provider}`}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.itemIconWrap, { backgroundColor: colors.primaryMuted }]}>
-        <Ionicons name="cloud-outline" size={18} color={colors.primary} />
-      </View>
-      <Text
-        style={[styles.itemText, styles.itemTextFill, { color: colors.text }]}
-        numberOfLines={1}
-        ellipsizeMode="tail"
-      >
-        {item.provider}
-      </Text>
-      <View style={[styles.itemChevron, { backgroundColor: colors.primaryLight }]}>
-        <Ionicons name="chevron-forward" size={16} color={colors.primary} />
-      </View>
-    </TouchableOpacity>
+  const renderProviderItem = useCallback(
+    ({ item }: { item: Provider }) => (
+      <ProviderRow
+        provider={item.provider}
+        colors={colors}
+        shadows={shadows}
+        onSelect={handleProviderSelect}
+      />
+    ),
+    [colors, shadows, handleProviderSelect]
   );
 
-  const renderModelItem = ({ item }: { item: LanguageModel }) => (
-    <TouchableOpacity
-      style={[styles.item, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}
-      onPress={() => handleModelSelect(item)}
-      accessibilityRole="button"
-      accessibilityLabel={`Select model ${item.name}`}
-      activeOpacity={0.7}
-    >
-      <View style={[styles.itemIconWrap, { backgroundColor: colors.accentMuted }]}>
-        <Ionicons name="sparkles-outline" size={16} color={colors.accent} />
-      </View>
-      <View style={styles.modelInfo}>
-        <Text style={[styles.itemText, { color: colors.text }]} numberOfLines={1} ellipsizeMode="tail">
-          {item.name}
-        </Text>
-        {item.id !== item.name && (
-          <Text style={[styles.subText, { color: colors.textTertiary }]} numberOfLines={1} ellipsizeMode="tail">
-            {item.id}
-          </Text>
-        )}
-      </View>
-      <Ionicons name="checkmark-circle-outline" size={20} color={colors.textTertiary} />
-    </TouchableOpacity>
+  const renderModelItem = useCallback(
+    ({ item }: { item: LanguageModel }) => (
+      <ModelRow
+        model={item}
+        colors={colors}
+        shadows={shadows}
+        onSelect={handleModelSelect}
+      />
+    ),
+    [colors, shadows, handleModelSelect]
   );
 
   if (loading) {
