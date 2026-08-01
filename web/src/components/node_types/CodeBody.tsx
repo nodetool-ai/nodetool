@@ -60,7 +60,6 @@ import {
   isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
-import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
 import CodeGenDialog from "./code_gen/CodeGenDialog";
 
@@ -376,17 +375,13 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
 
   // AI authoring targets the universal Code node only. The other
   // `nodetool.code.*` executors run real interpreters with a fixed
-  // stdout/stderr shape and need their own generator. It also stays hidden
-  // until the deployment turns generation on, and — for the same wholesale
-  // replacement reason — on a node that already has code to lose.
+  // stdout/stderr shape and need their own generator. It also stays hidden —
+  // for the same wholesale-replacement reason — on a node that already has
+  // code to lose.
   const hasCode =
     typeof data.properties?.code === "string" &&
     data.properties.code.trim().length > 0;
-  const supportsCodeGen =
-    isCodeNode(nodeType) &&
-    isCodeGenerationEnabled() &&
-    !hasCode &&
-    !hasEdges;
+  const supportsCodeGen = isCodeNode(nodeType) && !hasCode && !hasEdges;
   const codeGenInputs = useMemo(
     () => nodeInputsToCodeGenPorts(data.dynamic_inputs),
     [data.dynamic_inputs]

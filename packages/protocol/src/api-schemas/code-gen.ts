@@ -211,7 +211,6 @@ export type CodeGenSubmission = z.infer<typeof codeGenSubmission>;
 // ── Errors ───────────────────────────────────────────────────────────────────
 
 export const codeGenErrorCodes = [
-  "disabled",
   "provider_unavailable",
   "aborted",
   "no_valid_submission",
@@ -221,11 +220,6 @@ export const codeGenErrorCodes = [
 export type CodeGenErrorCode = (typeof codeGenErrorCodes)[number];
 
 export const codeGenError = z.discriminatedUnion("code", [
-  /** The deployment has not turned code generation on. */
-  z.object({
-    code: z.literal("disabled"),
-    message: z.string()
-  }),
   z.object({
     code: z.literal("provider_unavailable"),
     message: z.string(),

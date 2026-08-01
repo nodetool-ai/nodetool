@@ -34,12 +34,6 @@ jest.mock("../../components/node/BaseNode", () => ({
   default: "MockBaseNode"
 }));
 
-// The Code node AI authoring rollout flag.
-let mockCodeGenEnabled = false;
-jest.mock("../../lib/runtimeConfig", () => ({
-  isCodeGenerationEnabled: () => mockCodeGenEnabled
-}));
-
 
 import { restFetch } from "../../lib/rest-fetch";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -127,31 +121,13 @@ describe("loadMetadata", () => {
     expect(setMetadataCall["snippet.test"]).toBeDefined();
   });
 
-  it("hides the Write Code with AI palette entry while the flag is off", async () => {
+  it("adds the Write Code with AI palette entry", async () => {
     mockRestFetch.mockResolvedValue({
       ok: true,
       json: async () => []
     } as Response);
 
     await loadMetadata();
-
-    const setMetadataCall = (useMetadataStore.getState().setMetadata as jest.Mock)
-      .mock.calls[0][0];
-    expect(setMetadataCall["nodetool.code.WriteCodeWithAI"]).toBeUndefined();
-  });
-
-  it("adds the Write Code with AI palette entry when the flag is on", async () => {
-    mockCodeGenEnabled = true;
-    mockRestFetch.mockResolvedValue({
-      ok: true,
-      json: async () => []
-    } as Response);
-
-    try {
-      await loadMetadata();
-    } finally {
-      mockCodeGenEnabled = false;
-    }
 
     const setMetadataCall = (useMetadataStore.getState().setMetadata as jest.Mock)
       .mock.calls[0][0];

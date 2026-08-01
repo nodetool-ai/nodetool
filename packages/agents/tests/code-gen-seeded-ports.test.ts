@@ -58,6 +58,20 @@ describe("portTypesCompatible", () => {
     expect(portTypesCompatible(listOfStr, { type: "list" })).toBe(true);
   });
 
+  it("is symmetric, which is what lets the call sites read in wire order", () => {
+    const pairs: [unknown, unknown][] = [
+      [STR, INT],
+      [STR, { type: "any" }],
+      [STR, { type: "enum" }],
+      [{ type: "list", type_args: [STR] }, { type: "list", type_args: [INT] }],
+      [{ type: "list", type_args: [STR] }, { type: "list" }],
+      [{ type: "dict" }, { type: "ImageRef" }]
+    ];
+    for (const [a, b] of pairs) {
+      expect(portTypesCompatible(a, b)).toBe(portTypesCompatible(b, a));
+    }
+  });
+
   it("stays out of the way for types it cannot reason about", () => {
     expect(portTypesCompatible({ type: "ImageRef" }, { type: "ImageRef" })).toBe(
       true

@@ -107,8 +107,16 @@ const typeArgs = (type: TypeLike): TypeLike[] =>
   Array.isArray(type.type_args) ? type.type_args.filter(isTypeLike) : [];
 
 /**
- * Whether a value typed `seeded` still flows through a port the model declared
- * as `submitted`.
+ * Whether two port types still describe the same wire — one seeded from a
+ * connected handle, the other declared by the model.
+ *
+ * **Symmetric by construction**, so callers may pass the pair in either order:
+ * every rule below (the `any` and `union` wildcards, `str`/`enum`, the name
+ * comparison, the element-wise recursion) reads both sides the same way. That
+ * is why the parameters are named for their positions rather than their roles.
+ * Adding a directional rule — a widening that is legal one way only — means
+ * revisiting both call sites in `submit-code-tool.ts`, which pass their
+ * arguments in wire order rather than in seeded/submitted order.
  *
  * Deliberately lenient — it exists to catch a seeded `list` coming back as
  * `str`, not to re-implement the editor's `isConnectable`. Anything it cannot
@@ -116,11 +124,11 @@ const typeArgs = (type: TypeLike): TypeLike[] =>
  * as compatible, so a legitimate submission is never rejected on a type the
  * checker does not know about.
  */
-export function portTypesCompatible(seeded: unknown, submitted: unknown): boolean {
-  if (!isTypeLike(seeded) || !isTypeLike(submitted)) return true;
+export function portTypesCompatible(left: unknown, right: unknown): boolean {
+  if (!isTypeLike(left) || !isTypeLike(right)) return true;
 
-  const from = normalizedTypeName(seeded);
-  const to = normalizedTypeName(submitted);
+  const from = normalizedTypeName(left);
+  const to = normalizedTypeName(right);
   if (from === "any" || to === "any") return true;
   // `str` and `enum` interchange on a wire, and a union is opaque here.
   if (from === "union" || to === "union") return true;
@@ -131,12 +139,12 @@ export function portTypesCompatible(seeded: unknown, submitted: unknown): boolea
 
   // Same container, compared element-wise only when both sides say what they
   // hold — a bare `list` is a widening, not a mismatch.
-  const fromArgs = typeArgs(seeded);
-  const toArgs = typeArgs(submitted);
-  if (fromArgs.length === 0 || toArgs.length === 0) return true;
-  if (fromArgs.length !== toArgs.length) return true;
-  return fromArgs.every((arg, index) =>
-    portTypesCompatible(arg, toArgs[index])
+  const leftArgs = typeArgs(left);
+  const rightArgs = typeArgs(right);
+  if (leftArgs.length === 0 || rightArgs.length === 0) return true;
+  if (leftArgs.length !== rightArgs.length) return true;
+  return leftArgs.every((arg, index) =>
+    portTypesCompatible(arg, rightArgs[index])
   );
 }
 

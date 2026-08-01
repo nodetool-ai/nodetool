@@ -171,6 +171,8 @@ function checkSeededPorts(
           `and must stay in the submission under that exact name. Declare it as ` +
           `"${expectedOutput.name}": ${formatPortType(expectedOutput.type)}.`
       );
+      // Wire order: the submission's output feeds the handle that expects it.
+      // The check is symmetric, so this reads as the graph does.
     } else if (!portTypesCompatible(match.type, expectedOutput.type)) {
       errors.push(
         `Output "${expectedOutput.name}" is consumed as ` +
