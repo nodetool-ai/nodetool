@@ -7,6 +7,7 @@ import {
   GetWorkflowTool,
   CreateWorkflowTool,
   RunWorkflowTool,
+  DebugWorkflowTool,
   ValidateWorkflowTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -333,6 +334,64 @@ describe("RunWorkflowTool", () => {
     await tool.process(ctx, { workflow_id: "wf-456" });
     expect(lastFetchUrl()).toContain("/api/workflows/wf-456/run");
     expect(lastFetchOpts().method).toBe("POST");
+  });
+});
+
+describe("DebugWorkflowTool", () => {
+  const tool = new DebugWorkflowTool();
+
+  function respondTo(routes: Record<string, { ok?: boolean; status?: number; body: unknown }>) {
+    fetchSpy.mockImplementation(async (url: string) => {
+      const match = Object.keys(routes).find((k) => String(url).includes(k));
+      const route = match ? routes[match] : { ok: true, body: {} };
+      return {
+        ok: route.ok ?? true,
+        status: route.status ?? 200,
+        json: async () => route.body,
+        text: async () => JSON.stringify(route.body)
+      };
+    });
+  }
+
+  it("keeps the debug report when the run itself failed", async () => {
+    // A failed run reports its own `error` next to the summary and verdict.
+    // That is the report worth having — it must not be mistaken for a missing
+    // endpoint and thrown away for a plain /run.
+    const debugBody = {
+      job_id: "job-1",
+      status: "failed",
+      error: "node blew up",
+      summary: { status: "failed" },
+      verdict: { ok: false, headline: "Workflow has issues", issues: ["x"] }
+    };
+    respondTo({ "/debug": { body: debugBody }, "/api/jobs/": { body: {} } });
+
+    const report = (await tool.process(ctx, {
+      workflow_id: "wf-1",
+      include_graph: false
+    })) as Record<string, unknown>;
+
+    expect(report.run).toEqual(debugBody);
+    expect(report.note).toBeUndefined();
+    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.endsWith("/run"))).toBe(false);
+  });
+
+  it("falls back to /run only when the server has no /debug endpoint", async () => {
+    respondTo({
+      "/debug": { ok: false, status: 404, body: { error: "not found" } },
+      "/run": { body: { job_id: "job-2", status: "completed" } },
+      "/api/jobs/": { body: {} }
+    });
+
+    const report = (await tool.process(ctx, {
+      workflow_id: "wf-1",
+      include_graph: false
+    })) as Record<string, unknown>;
+
+    expect(report.note).toContain("no /debug endpoint");
+    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
+    expect(urls.some((u) => u.endsWith("/run"))).toBe(true);
   });
 });
 

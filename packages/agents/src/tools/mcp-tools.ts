@@ -256,13 +256,32 @@ async function apiPost(
   return res.json();
 }
 
-/** Whether an api helper returned its `{ error }` envelope rather than a body. */
-function isApiError(value: unknown): boolean {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as Record<string, unknown>).error === "string"
-  );
+/**
+ * POST that reports the HTTP status instead of collapsing a failure into an
+ * `{ error }` body. A caller that needs to tell "this server has no such
+ * endpoint" from "the endpoint ran and reported a failure" cannot do it from
+ * the body: a failed run legitimately carries an `error` field of its own.
+ */
+async function apiPostWithStatus(
+  context: ProcessingContext,
+  path: string,
+  body?: unknown
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const url = new URL(path, getApiUrl(context));
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: getHeaders(context),
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    return {
+      ok: false,
+      status: res.status,
+      data: { error: `API error ${res.status}: ${text}` }
+    };
+  }
+  return { ok: true, status: res.status, data: await res.json() };
 }
 
 async function apiPut(
@@ -671,19 +690,26 @@ export class DebugWorkflowTool extends Tool {
     // verdict the CLI harness computes. Older servers only expose `/run`,
     // which starts the job and reports a status string — fall back to it so
     // the tool still works, and say so in the report.
-    let run = await apiPost(context, `/api/workflows/${workflowId}/debug`, {
-      params: params["params"] ?? {}
-    });
-    let degraded = false;
-    if (isApiError(run)) {
-      degraded = true;
+    //
+    // The fallback triggers on the endpoint being absent (404/405), never on
+    // the body: a run that failed reports its own `error` alongside the
+    // summary and verdict, which is precisely the report worth keeping.
+    const debugRun = await apiPostWithStatus(
+      context,
+      `/api/workflows/${workflowId}/debug`,
+      { params: params["params"] ?? {} }
+    );
+    const endpointMissing =
+      !debugRun.ok && (debugRun.status === 404 || debugRun.status === 405);
+    let run = debugRun.data;
+    if (endpointMissing) {
       run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
         params: params["params"] ?? {}
       });
     }
 
     const report: Record<string, unknown> = { workflow_id: workflowId, run };
-    if (degraded) {
+    if (endpointMissing) {
       report["note"] =
         "Server has no /debug endpoint; reporting the plain run result without an execution summary or verdict.";
     }
