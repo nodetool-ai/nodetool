@@ -29,6 +29,11 @@ export const triggerRegistrations = sqliteTable(
     run_count: integer("run_count").notNull().default(0),
     expires_at: text("expires_at"),
     max_runs: integer("max_runs"),
+    // Workflow supervision for runs this trigger starts. Off by default and
+    // never migrated on: enabling supervision shares failure context with a
+    // model, so consent is per-registration and forward-looking
+    // (docs/workflow-supervisor-design.md §6.1).
+    supervise: integer("supervise").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

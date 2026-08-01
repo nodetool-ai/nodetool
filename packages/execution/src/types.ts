@@ -146,6 +146,17 @@ export interface ExecutionSessionOptions {
   /** Forwarded to `WorkflowRunnerOptions.validateNode`. */
   validateNode?: NodeValidator;
   /**
+   * Forwarded to `WorkflowRunnerOptions.supervisor` — the one integration
+   * point every surface shares for workflow supervision
+   * (docs/workflow-supervisor-design.md §7). Omitted, the run behaves exactly
+   * as it does today: no escalation is ever constructed.
+   *
+   * Wrap the handle in the kernel's `BoundedHandle` before passing it: the
+   * facade adds no bounds of its own, so an unwrapped handle runs with no
+   * decision ceiling, no retry ceiling, and no per-decision timeout.
+   */
+  supervisor?: SupervisorHandle;
+  /**
    * Forwarded to `WorkflowRunnerOptions.strict` (docs/RELIABILITY_ARCHITECTURE.md
    * §12): turns advisory lifecycle checks (`_checkPendingInboxWork`, pending
    * control responses) into thrown violations instead of log warnings. The
@@ -164,17 +175,6 @@ export interface ExecutionSessionOptions {
    * for the cap that catches a consumer falling behind.
    */
   captureMessages?: boolean;
-  /**
-   * Workflow supervisor for this run — the single integration point every
-   * surface shares (docs/workflow-supervisor-design.md §7). Forwarded to
-   * `WorkflowRunnerOptions.supervisor`; omitted, no escalation is ever
-   * constructed and the run behaves exactly as it does today.
-   *
-   * Wrap the handle in the kernel's `BoundedHandle` before passing it: the
-   * facade adds no bounds of its own, so an unwrapped handle runs with no
-   * decision ceiling, no retry ceiling, and no per-decision timeout.
-   */
-  supervisor?: SupervisorHandle;
 }
 
 export type {

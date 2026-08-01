@@ -931,6 +931,16 @@ export interface RunJobRequest {
   require_terminal_result?: boolean;
   /** Additive execution relaxations. Omitted values preserve current behavior. */
   execution_options?: RunJobExecutionOptions;
+  /**
+   * Supervise this run: a node invocation that fails after its own error
+   * handling escalates to a supervisor agent, which answers with a verdict.
+   * **Off unless the client asks for it** — supervision sends failure context
+   * (node inputs, error text) to a model, so it is never implied by anything
+   * else on the request. See docs/workflow-supervisor-design.md.
+   */
+  supervise?: boolean;
+  /** Supervisor configuration. Ignored unless `supervise` is true. */
+  supervisor?: SupervisorRunOptions;
   resource_limits?: ResourceLimits | null;
   /**
    * The mini app this run belongs to, when it was started by one. Present only
@@ -959,6 +969,26 @@ export interface RunJobRequest {
     payload: unknown;
     input_id: string;
   } | null;
+}
+
+/**
+ * What a run's supervisor is allowed to be and to spend. Every field is
+ * optional: a host that only sets `supervise: true` gets its configured
+ * defaults (provider/model) and the kernel's default bounds.
+ */
+export interface SupervisorRunOptions {
+  /** Provider id for the supervising model; defaults to the server's. */
+  provider?: string;
+  /** Model id for the supervising model; defaults to the server's. */
+  model?: string;
+  /** Decisions the supervisor may make in this run. */
+  max_decisions?: number;
+  /** Retries per `(node, invocation)`. */
+  max_retries_per_node?: number;
+  /** Per-decision wall clock, in ms. */
+  decision_timeout_ms?: number;
+  /** Dollar ceiling on supervision for the whole run. */
+  cost_cap_usd?: number;
 }
 
 export interface RunJobExecutionOptions {

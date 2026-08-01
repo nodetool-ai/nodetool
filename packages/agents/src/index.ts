@@ -684,6 +684,11 @@ export type {
   AgentWorkflowRunnerOptions,
   RunPolicy
 } from "./agent-workflow-runner.js";
+export { resolveAgentGraph, runWorkflowAsAgent } from "./workflow-agent.js";
+export type {
+  AgentGraphSource,
+  WorkflowAgentRunOptions
+} from "./workflow-agent.js";
 export {
   SupervisorAgent,
   DEFAULT_MAX_SUPERVISOR_COST_USD,

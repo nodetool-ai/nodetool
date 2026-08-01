@@ -509,6 +509,8 @@ export class TriggerDispatcher {
         workflowId: registration.workflow_id,
         userId: registration.user_id,
         params: triggerRunParams(registration, nowMs),
+        // Per-registration opt-in, off unless the row says otherwise.
+        supervise: registration.supervise === 1,
         triggerEvent: {
           node_id: input.nodeId,
           payload: input.payload,
