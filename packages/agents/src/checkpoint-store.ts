@@ -101,6 +101,48 @@ export function hashPlanKey(input: PlanKeyInput): string {
   return fnv1aHex(canonical);
 }
 
+export interface PlanCheckpointKeyInput {
+  taskPlan: TaskPlan;
+  /** Tool names the plan was built/executed against. */
+  tools: string[];
+  /** Execution model — a different model produces a different result. */
+  model?: string;
+  systemPrompt?: string | null;
+}
+
+/**
+ * Hash identifying a plan for checkpoint matching.
+ *
+ * Covers everything that changes what a task would produce: task and step ids,
+ * titles, instructions, dependencies, tool allow-lists, output schemas, the
+ * process-mode templates, plus the model and system prompt. Keying on ids alone
+ * let an edited plan resume another plan's stale results.
+ */
+export function hashPlanCheckpointKey(input: PlanCheckpointKeyInput): string {
+  const shape = input.taskPlan.tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    description: task.description ?? null,
+    dependsOn: [...(task.dependsOn ?? [])].sort(),
+    steps: task.steps.map((step) => ({
+      id: step.id,
+      instructions: step.instructions,
+      dependsOn: [...step.dependsOn].sort(),
+      tools: step.tools ? [...step.tools].sort() : null,
+      outputSchema: step.outputSchema ?? null,
+      mode: step.mode ?? null,
+      perItemInstructions: step.perItemInstructions ?? null,
+      perItemSchema: step.perItemSchema ?? null
+    }))
+  }));
+  return hashPlanKey({
+    objective: `${input.taskPlan.title}\n${stableStringify(shape)}`,
+    tools: input.tools,
+    model: input.model,
+    systemPrompt: input.systemPrompt ?? null
+  });
+}
+
 // ---------------------------------------------------------------------------
 // Shared file persistence helpers (read-merge-write, atomic write)
 // ---------------------------------------------------------------------------

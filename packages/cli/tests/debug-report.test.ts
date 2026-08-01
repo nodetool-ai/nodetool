@@ -28,6 +28,14 @@ describe("buildVerdict", () => {
     expect(verdict.headline).toContain("clean");
   });
 
+  it("is not ok when no surface ran at all", () => {
+    // `--no-server` without `--browser` used to report "ran clean on no
+    // surface": a green verdict for a workflow that never executed.
+    const verdict = buildVerdict(null, null);
+    expect(verdict.ok).toBe(false);
+    expect(verdict.issues[0]).toContain("No surface ran");
+  });
+
   it("collects server node errors as issues", () => {
     const summary = collectExecutionSummary([
       { type: "node_update", node_id: "b", node_type: "ns.B", status: "error", error: "kaboom" },

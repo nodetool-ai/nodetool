@@ -304,8 +304,11 @@ browser/console-errors.log
 ```
 
 Agents can also debug a workflow on a running server via the **`debug_workflow`**
-tool (runs the workflow + returns status, outputs, errors, job logs, and the
-graph overview in one call). The browser surface is exposed in `web/` as
+tool. It posts to `POST /api/workflows/:id/debug`, which runs the workflow and
+returns the same execution summary and verdict the CLI harness computes —
+per-node status and errors, logs, LLM calls, outputs — plus the job record and
+the graph overview. The summary reducer and triage live in
+`@nodetool-ai/execution/debug`, so CLI and agent surfaces cannot drift. The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
 

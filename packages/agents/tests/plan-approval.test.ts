@@ -71,6 +71,16 @@ function createLoopProvider(script: ToolCall[]): {
     }): AsyncGenerator<ProviderStreamItem> {
       loopCalls++;
       const toolMap = new Map((args.tools ?? []).map((t) => [t.name, t]));
+      // Execution turns (no planner tools in the toolset) answer with a plain
+      // assistant message, which is how an unstructured step completes. Without
+      // it the step fails, and a plan whose every task failed now fails the run.
+      if (!toolMap.has("finish_plan")) {
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "step done" }
+        } as ProviderStreamItem;
+        return;
+      }
       for (const tc of script) {
         if (args.signal?.aborted) break;
         yield tc;

@@ -117,6 +117,11 @@ export interface CompilerAgentOptions {
    * memory metadata alone, which only shows titles.
    */
   taskPlan?: TaskPlan;
+  /**
+   * IDs of tasks that failed. Named in the prompt so the compiler synthesizes
+   * from what actually ran instead of inventing the missing pieces.
+   */
+  failedTaskIds?: string[];
   /** Optional preamble layered above the default compiler system prompt. */
   systemPrompt?: string;
   maxRounds?: number;
@@ -135,6 +140,7 @@ export class CompilerAgent {
   private readonly model: string;
   private readonly context: ProcessingContext;
   private readonly taskPlan?: TaskPlan;
+  private readonly failedTaskIds: string[];
   private readonly systemPrompt: string;
   private readonly maxRounds: number;
   private readonly maxTokens?: number;
@@ -149,6 +155,7 @@ export class CompilerAgent {
     this.model = opts.model;
     this.context = opts.context;
     this.taskPlan = opts.taskPlan;
+    this.failedTaskIds = opts.failedTaskIds ?? [];
     this.maxRounds = opts.maxRounds ?? MAX_COMPILE_ROUNDS;
     this.maxTokens = opts.maxTokens;
     this.threadId = opts.threadId;
@@ -455,17 +462,25 @@ export class CompilerAgent {
     const lines: string[] = [
       `Plan executed (title: ${this.taskPlan.title}). Each completed task wrote its result to \`task:<id>\`:`
     ];
+    const failedIds = new Set(this.failedTaskIds);
     for (const task of this.taskPlan.tasks) {
       const deps =
         task.dependsOn && task.dependsOn.length > 0
           ? ` [depends_on: ${task.dependsOn.join(", ")}]`
           : "";
-      lines.push(`- task:${task.id}${deps} — ${task.title}`);
+      const state = failedIds.has(task.id) ? " [FAILED — no result]" : "";
+      lines.push(`- task:${task.id}${deps}${state} — ${task.title}`);
       for (const step of task.steps) {
         const instr = step.instructions.replace(/\s+/g, " ").trim();
         const summary = instr.length > 140 ? instr.slice(0, 140) + "…" : instr;
         lines.push(`    • ${step.id}: ${summary}`);
       }
+    }
+    if (failedIds.size > 0) {
+      lines.push(
+        "",
+        `${failedIds.size} task(s) failed and produced no result. Synthesize only what the successful tasks actually produced, and state plainly which parts of the objective are unmet. Do not fill the gaps with plausible content.`
+      );
     }
     return lines.join("\n");
   }

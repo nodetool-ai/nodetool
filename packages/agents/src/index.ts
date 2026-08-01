@@ -395,6 +395,7 @@ export {
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
   hashPlanKey,
+  hashPlanCheckpointKey,
   InMemoryPlanCache,
   FilePlanCache,
   InMemoryCheckpointStore,
@@ -404,8 +405,13 @@ export type {
   PlanCache,
   CheckpointStore,
   Checkpoint,
-  PlanKeyInput
+  PlanKeyInput,
+  PlanCheckpointKeyInput
 } from "./checkpoint-store.js";
+
+// Shared execution policy (bounds every agent mode obeys)
+export { DEFAULT_AGENT_POLICY, resolveAgentPolicy } from "./agent-policy.js";
+export type { AgentPolicy, AgentPolicyOptions } from "./agent-policy.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";

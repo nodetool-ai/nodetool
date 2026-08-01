@@ -342,6 +342,26 @@ const agent = new Agent({
 | `DEFAULT_MAX_STEPS` | 50 | `task-executor.ts` |
 | `MAX_RETRIES` (planning) | 3 | `task-planner.ts` |
 
+### One policy per run (`agent-policy.ts`)
+
+`Agent` resolves `maxSteps`, `maxStepIterations`, `maxTokens`,
+`maxConcurrentAgents` and `maxAgentCalls` into a single `AgentPolicy`
+(`resolveAgentPolicy`, defaults in `DEFAULT_AGENT_POLICY`) and hands the same
+object to every mode — single task, multi-task plan, script, graph. A knob
+therefore means the same thing everywhere: `maxTokens` reaches the script and
+graph runners, `maxSteps` bounds multi-task runs, and task/fan-out dispatch is
+capped by the same semaphore script mode has always had
+(`utils/merge-generators.ts`). The plan-approval gate is likewise a property of
+the run, not of the planning mode: script and graph artifacts go through it too.
+
+### Step failure is terminal, not completion
+
+A step that fails sets `step.failed` + `step.error` and leaves `completed`
+false, and its `step_result` carries the protocol-level `error` field. Nothing
+downstream may treat a failure as a satisfied dependency: `TaskExecutor` blocks
+dependents and marks them failed with the blocking step named, and a plan whose
+every task failed throws instead of compiling a deliverable out of nothing.
+
 ## Script Mode (code-shaped orchestration)
 
 The third planning mode next to `TaskPlan` and the graph planner: the LLM

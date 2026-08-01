@@ -9,11 +9,27 @@
 import { vi } from "vitest";
 import { AgentMemory } from "@nodetool-ai/runtime";
 
-export function createMockContext() {
-  const variables = new Map<string, unknown>();
+export function createMockContext(
+  shared: { memory?: AgentMemory; variables?: Map<string, unknown> } = {}
+) {
+  const variables = shared.variables ?? new Map<string, unknown>();
   let injectedTools: Array<{ name: string }> = [];
-  return {
-    memory: new AgentMemory(),
+  const listeners = new Set<(msg: unknown) => void>();
+  const memory = shared.memory ?? new AgentMemory();
+  const ctx: Record<string, unknown> = {
+    memory,
+    signal: new AbortController().signal,
+    addMessageListener: vi.fn((listener: (msg: unknown) => void) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    }),
+    // Mirrors ProcessingContext.copy: a child sharing whatever the options say.
+    copy: vi.fn((opts?: { shareMemory?: boolean }) =>
+      createMockContext({
+        memory: opts?.shareMemory ? memory : undefined,
+        variables
+      })
+    ),
     setInjectedTools: vi.fn((tools: Array<{ name: string }>) => {
       injectedTools = tools;
     }),
@@ -35,9 +51,12 @@ export function createMockContext() {
       return variables.get(key);
     }),
     sandboxToAsset: vi.fn(async (uri: string) => ({ uri: `asset://${uri}` })),
-    emit: vi.fn(),
     postMessage: vi.fn(),
     post_message: vi.fn(),
     _store: variables
-  } as any;
+  };
+  ctx.emit = vi.fn((msg: unknown) => {
+    for (const listener of listeners) listener(msg);
+  });
+  return ctx as any;
 }

@@ -27,6 +27,13 @@ function createMockProvider(delayMs = 0) {
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
     },
+    // StepExecutor delegates the tool loop to the provider; reuse the real
+    // base loop (it only needs generateMessagesTraced, which this mock has).
+    // Without it every step failed, which the old failure path recorded as a
+    // completion — so these tests passed while nothing ran.
+    generateLoop(args: any) {
+      return (BaseProvider.prototype as any).generateLoop.call(this, args);
+    },
     async generateMessageTraced(...args: any[]) {
       return (this as any).generateMessage(...args);
     },
@@ -247,8 +254,8 @@ describe("TaskExecutor", () => {
     expect(stepResults).toHaveLength(3);
   });
 
-  it("yields dependency issue chunk when stuck", async () => {
-    // s1 depends on nonexistent step - will never be executable
+  it("fails an unschedulable step instead of leaving it pending", async () => {
+    // s1 depends on a nonexistent step — it will never be executable.
     const s1 = makeStep("s1", ["nonexistent"]);
     const task: Task = { id: "t1", title: "Test", steps: [s1] };
 
@@ -266,9 +273,17 @@ describe("TaskExecutor", () => {
     }
 
     expect(s1.completed).toBe(false);
-    const chunks = messages.filter((m) => m.type === "chunk");
+    expect(s1.failed).toBe(true);
+    expect(s1.error).toContain("unsatisfiable dependency");
+
+    // Terminal events, not a prose chunk: a stalled step must be visible to
+    // consumers that read status rather than text.
+    const stepResult = messages.find((m) => m.type === "step_result") as any;
+    expect(stepResult.error).toContain("unsatisfiable dependency");
     expect(
-      chunks.some((c) => (c as any).content.includes("dependency issues"))
+      messages.some(
+        (m) => m.type === "task_update" && (m as any).event === "step_failed"
+      )
     ).toBe(true);
   });
 

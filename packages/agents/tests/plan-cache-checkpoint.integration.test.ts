@@ -11,6 +11,7 @@ import {
   InMemoryPlanCache,
   InMemoryCheckpointStore,
   hashPlanKey,
+  hashPlanCheckpointKey,
   type Checkpoint
 } from "../src/checkpoint-store.js";
 import { BaseProvider, memoryKeys } from "@nodetool-ai/runtime";
@@ -259,9 +260,11 @@ describe("plan cache (TaskPlanner)", () => {
 
 describe("checkpoint resume (ParallelTaskExecutor)", () => {
   function planHashFor(plan: TaskPlan, tools: string[] = []): string {
-    return hashPlanKey({
-      objective: `${plan.title}\n${plan.tasks.map((t) => t.id).join(",")}`,
-      tools
+    return hashPlanCheckpointKey({
+      taskPlan: plan,
+      tools,
+      model: "test-model",
+      systemPrompt: null
     });
   }
 

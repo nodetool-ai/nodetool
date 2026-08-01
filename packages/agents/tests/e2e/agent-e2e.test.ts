@@ -245,7 +245,9 @@ describe("StepExecutor E2E", () => {
     const taskUpdates = messages.filter((m) => m.type === "task_update");
     const failed = taskUpdates.find((m) => (m as any).event === "step_failed");
     expect(failed).toBeDefined();
-    expect(task.steps[0].completed).toBe(true);
+    // Terminal but not completed: dependents stay blocked.
+    expect(task.steps[0].completed).toBe(false);
+    expect(task.steps[0].failed).toBe(true);
   });
 });
 

@@ -13,7 +13,7 @@ import type {
   OutputCorrelation,
   ProcessingMessage
 } from "@nodetool-ai/protocol";
-import { Agent } from "@nodetool-ai/agents";
+import { Agent, DEFAULT_AGENT_POLICY } from "@nodetool-ai/agents";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import type { ToolLike } from "./agent-utils.js";
@@ -891,6 +891,17 @@ export class AgentNode extends BaseNode {
   })
   declare max_turns: number;
 
+  @prop({
+    type: "int",
+    default: DEFAULT_AGENT_POLICY.maxSteps,
+    title: "Max Steps",
+    description:
+      "Plan mode only: upper bound on the number of plan steps the executor dispatches. Caps plan size, not turn count — the per-step turn budget is Max Turns. Raise for plans that legitimately decompose into many steps; lower to fail fast on an over-decomposed plan.",
+    min: 1,
+    max: 200
+  })
+  declare max_steps: number;
+
   /**
    * Build the tool list for this run. Override in subclasses to inject
    * additional tools (e.g. sandbox shell/file/browser tools) alongside the
@@ -1416,13 +1427,17 @@ export class AgentNode extends BaseNode {
       // Per-turn output-token cap, matching loop mode's use of max_tokens.
       // Threaded to every step executor and the final compiler pass.
       maxTokens: Number(this.max_tokens ?? AGENT_DEFAULT_MAX_TOKENS),
-      // maxSteps caps the *number of plan steps* the executor will run
+      // maxSteps caps the *number of plan steps* the executor dispatches
       // (`stepsTaken < maxSteps` in TaskExecutor), not the per-step tool-call
       // iteration count. The node's `max_turns` is a turn/iteration budget, so
-      // it maps to maxStepIterations semantics, not maxSteps — deriving maxSteps
-      // from max_turns would conflate plan size with turn count. Kept fixed here.
-      maxSteps: 10,
-      maxStepIterations: 5
+      // it maps to maxStepIterations; plan size gets its own `max_steps` prop.
+      // Both used to be hardcoded here, which silently overrode the node's own
+      // declared budgets in plan mode.
+      maxSteps: Math.max(
+        1,
+        Number(this.max_steps ?? DEFAULT_AGENT_POLICY.maxSteps)
+      ),
+      maxStepIterations: Math.max(1, Number(this.max_turns ?? 100))
     });
 
     let lastText = "";

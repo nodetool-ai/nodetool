@@ -45,6 +45,14 @@ export async function runDebug(
   const captureTrace = options.trace ?? false;
   const log = deps.onLog ?? (() => {});
 
+  // A run with no surface exercises nothing, and the verdict builder scored it
+  // "ran clean on no surface" — a green report for a workflow that never ran.
+  if (!runServer && !runBrowser) {
+    throw new Error(
+      "Nothing to debug: --no-server was passed without --browser. Enable at least one surface."
+    );
+  }
+
   const resolved = await resolveTarget(ref, deps.loadFromDb);
   const params = { ...resolved.fileParams, ...(options.params ?? {}) };
 

@@ -1,23 +1,17 @@
 /**
  * Cross-surface triage: turns the server/browser run reports into a single
  * pass/fail verdict plus an ordered list of concrete issues an agent can act on.
+ *
+ * The per-surface triage itself lives in `@nodetool-ai/execution` so the HTTP
+ * debug endpoint and the agent-facing `debug_workflow` tool reach the same
+ * verdict for the same run; this module only composes the two surfaces.
  */
+import { collectRunIssues, describeErrors } from "@nodetool-ai/execution/debug";
 import type {
   BrowserRunReport,
   DebugVerdict,
   ServerRunReport
 } from "./types.js";
-
-function describeErrors(
-  prefix: string,
-  errors: ReadonlyArray<{ nodeId: string | null; nodeType?: string | null; message: string }>,
-  limit = 5
-): string[] {
-  return errors.slice(0, limit).map((e) => {
-    const where = e.nodeType ?? e.nodeId ?? "workflow";
-    return `${prefix} ${where}: ${e.message.replace(/\s+/g, " ").slice(0, 200)}`;
-  });
-}
 
 export function buildVerdict(
   server: ServerRunReport | null,
@@ -26,13 +20,13 @@ export function buildVerdict(
   const issues: string[] = [];
 
   if (server) {
-    if (!server.ok) {
-      issues.push(`Server run ended ${server.status}${server.error ? `: ${server.error}` : ""}`);
-    }
-    issues.push(...describeErrors("Server node", server.summary.errors));
-    for (const call of server.summary.llmCalls) {
-      if (call.error) issues.push(`Server LLM ${call.provider}/${call.model}: ${call.error}`);
-    }
+    issues.push(
+      ...collectRunIssues("Server", server.summary, {
+        ok: server.ok,
+        status: server.status,
+        error: server.error
+      })
+    );
   }
 
   if (browser) {
@@ -56,14 +50,26 @@ export function buildVerdict(
   const serverOk = server ? server.ok : true;
   const browserRan = browser ? !browser.unavailableReason : true;
   const browserOk = browser && browserRan ? browser.ok : true;
-  const ok = serverOk && browserOk && issues.filter((i) => !i.startsWith("Browser run unavailable")).length === 0;
+  // At least one surface must have actually run. Zero surfaces means zero
+  // evidence, which is not the same as a clean run.
+  const ranSomewhere = Boolean(server) || (Boolean(browser) && browserRan);
+  if (!ranSomewhere) {
+    issues.unshift(
+      "No surface ran — nothing was executed, so nothing was verified"
+    );
+  }
+  const ok =
+    ranSomewhere &&
+    serverOk &&
+    browserOk &&
+    issues.filter((i) => !i.startsWith("Browser run unavailable")).length === 0;
 
   let headline: string;
   if (ok) {
     const surfaces = [server && "server", browser && !browser.unavailableReason && "browser"]
       .filter(Boolean)
       .join(" + ");
-    headline = `Workflow ran clean on ${surfaces || "no surface"}.`;
+    headline = `Workflow ran clean on ${surfaces}.`;
   } else {
     const first = issues[0] ?? "unknown failure";
     headline = `Workflow has issues — ${first}`;

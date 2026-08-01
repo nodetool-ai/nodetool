@@ -343,6 +343,18 @@ describe("ValidateWorkflowTool", () => {
     await tool.process(ctx, { workflow_id: "wf-789" });
     expect(lastFetchUrl()).toContain("/api/workflows/wf-789");
   });
+
+  it("reports an error, not the graph, when it has no registry", async () => {
+    // Returning the graph with a note read as a pass to any caller checking
+    // for issues rather than reading prose.
+    const result = (await tool.process(ctx, {
+      graph: { nodes: [{ id: "n1", type: "ns.A" }], edges: [] }
+    })) as Record<string, unknown>;
+
+    expect(result.error).toContain("no node registry");
+    expect(result.validated).toBe(false);
+    expect(result.graph).toBeUndefined();
+  });
 });
 
 describe("GetExampleWorkflowTool", () => {

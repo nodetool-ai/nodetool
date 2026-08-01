@@ -1263,7 +1263,28 @@ export class ProcessingContext {
     this.triggerEvent = opts.triggerEvent ?? null;
   }
 
-  copy(): ProcessingContext {
+  /**
+   * Derive a child context.
+   *
+   * Defaults to full isolation: fresh agent memory, fresh message queue, the
+   * parent's message listeners inherited. Two opt-ins exist because a child
+   * that must *not* be isolated in one respect should not have to reach around
+   * the copy:
+   *
+   *   - `shareMemory` shares the parent's {@link AgentMemory} instance, so a
+   *     scoped run (own injected tools, own emit fan-out) still reads and
+   *     writes the same step/task results.
+   *   - `inheritMessageListeners: false` drops the parent's listeners, for a
+   *     child that forwards messages itself and would otherwise double-notify.
+   *
+   * The run-level cancellation {@link signal} always carries over: a child that
+   * cannot observe the parent's Stop keeps burning provider calls after the
+   * user cancelled.
+   */
+  copy(opts?: {
+    shareMemory?: boolean;
+    inheritMessageListeners?: boolean;
+  }): ProcessingContext {
     const next = new ProcessingContext({
       jobId: this.jobId,
       workflowId: this.workflowId,
@@ -1285,9 +1306,15 @@ export class ProcessingContext {
       retainMessageQueue: this._retainMessageQueue,
       triggerEvent: this.triggerEvent
     });
-    for (const listener of this._messageListeners) {
-      next.addMessageListener(listener);
+    if (opts?.inheritMessageListeners !== false) {
+      for (const listener of this._messageListeners) {
+        next.addMessageListener(listener);
+      }
     }
+    if (opts?.shareMemory) {
+      (next as { memory: AgentMemory }).memory = this.memory;
+    }
+    next.signal = this.signal;
     next._providerResolver = this._providerResolver;
     next._modelInterfaces = this._modelInterfaces;
     next._sendControlEvent = this._sendControlEvent;

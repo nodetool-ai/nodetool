@@ -76,6 +76,8 @@ export interface ScriptRunnerOptions {
   systemPrompt?: string;
   inputs?: Record<string, unknown>;
   maxStepIterations?: number;
+  /** Cap on output tokens per sub-agent turn. Forwarded to each StepExecutor. */
+  maxTokens?: number;
   /** Concurrent `agent()` calls beyond this queue. Default 8. */
   maxConcurrentAgents?: number;
   /** Lifetime `agent()` call cap for one script run. Default 100. */
@@ -240,6 +242,7 @@ export class ScriptRunner {
   private readonly systemPrompt?: string;
   private readonly inputs: Record<string, unknown>;
   private readonly maxStepIterations?: number;
+  private readonly maxTokens?: number;
   private readonly signal?: AbortSignal;
   private readonly maxAgentCalls: number;
   private readonly scriptTimeoutMs: number;
@@ -255,6 +258,7 @@ export class ScriptRunner {
     this.systemPrompt = opts.systemPrompt;
     this.inputs = opts.inputs ?? {};
     this.maxStepIterations = opts.maxStepIterations;
+    this.maxTokens = opts.maxTokens;
     this.signal = opts.signal;
     this.maxAgentCalls = opts.maxAgentCalls ?? DEFAULT_MAX_AGENT_CALLS;
     this.scriptTimeoutMs = opts.scriptTimeoutMs ?? DEFAULT_SCRIPT_TIMEOUT_MS;
@@ -401,6 +405,7 @@ export class ScriptRunner {
       tools,
       systemPrompt: this.systemPrompt,
       maxIterations: this.maxStepIterations,
+      maxTokens: this.maxTokens,
       signal: this.signal
     });
 
