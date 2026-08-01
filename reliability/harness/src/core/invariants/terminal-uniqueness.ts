@@ -9,6 +9,13 @@
  *
  * Split from `lifecycle.ts` (which covers the node-level running/terminal
  * pairing) so each §6 bullet stays independently attributable.
+ *
+ * Frames a driver tagged `redundant` (see `RunFrame.redundant`) are discounted
+ * here: they are that surface's documented client-convenience repeats (the
+ * ws-server's eager "running" ack and its authoritative terminal snapshot),
+ * recognized one-by-one by the driver that speaks the protocol. Every other
+ * duplicate is untagged and therefore still a violation — which is the point
+ * of recording repeats instead of dropping them at the driver.
  */
 import type { RunRecord } from "../record.js";
 import type { Violation } from "./types.js";
@@ -28,6 +35,7 @@ export function checkTerminalUniqueness(record: RunRecord): Violation[] {
 
   const terminalIndices: number[] = [];
   record.frames.forEach((frame, index) => {
+    if (frame.redundant !== undefined) return;
     const message = frame.message as Record<string, unknown>;
     if (asString(message, "type") !== "job_update") return;
     const status = asString(message, "status");
@@ -57,7 +65,9 @@ export function checkTerminalUniqueness(record: RunRecord): Violation[] {
   const framesAfter = record.frames
     .slice(firstTerminal + 1)
     .filter(
-      (frame) => asString(frame.message as Record<string, unknown>, "type") === "job_update"
+      (frame) =>
+        frame.redundant === undefined &&
+        asString(frame.message as Record<string, unknown>, "type") === "job_update"
     );
   if (framesAfter.length > 0) {
     violations.push({

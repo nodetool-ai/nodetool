@@ -53,6 +53,52 @@ describe("checkTerminalUniqueness: failing fixtures", () => {
     expect(invariantIds).toContain("terminal-uniqueness.frames-after-terminal");
   });
 
+  it("discounts a duplicate terminal a driver tagged as documented surface redundancy", () => {
+    const snapshot = {
+      ...makeFrame(1, "ws-server", "server_to_client", {
+        type: "job_update",
+        status: "cancelled",
+        job_id: "job-1",
+        result: { outputs: {} }
+      }),
+      redundant: "ws-authoritative-terminal-snapshot"
+    };
+    const record = baseRecord([
+      makeFrame(0, "ws-server", "client_to_server", {
+        command: "cancel_job",
+        data: { job_id: "job-1" }
+      }),
+      makeFrame(1, "ws-server", "server_to_client", {
+        type: "job_update",
+        status: "cancelled",
+        job_id: "job-1"
+      }),
+      snapshot
+    ]);
+
+    expect(checkTerminalUniqueness(record)).toEqual([]);
+  });
+
+  it("flags an untagged duplicate terminal even on a surface that has documented repeats", () => {
+    // The driver only tags repeats it recognizes; this one it doesn't, so the
+    // invariant still sees two terminals.
+    const record = baseRecord([
+      makeFrame(0, "ws-server", "server_to_client", {
+        type: "job_update",
+        status: "completed",
+        job_id: "job-1"
+      }),
+      makeFrame(1, "ws-server", "server_to_client", {
+        type: "job_update",
+        status: "completed",
+        job_id: "job-1"
+      })
+    ]);
+
+    const invariantIds = checkTerminalUniqueness(record).map((v) => v.invariant);
+    expect(invariantIds).toContain("terminal-uniqueness.multiple");
+  });
+
   it("flags a completed terminal when a node errored and nothing was cancelled/suspended (precedence)", () => {
     const record = baseRecord([
       makeFrame(0, "kernel", "server_to_client", { type: "node_update", node_id: "n1", status: "error" }),

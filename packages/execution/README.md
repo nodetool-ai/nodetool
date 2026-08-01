@@ -81,8 +81,14 @@ const session = await ExecutionSession.create({
   persistence: { onAccepted, onTerminal } | null,
   limits: { runTimeoutMs, bufferLimit },  // nodeTimeoutMs: not yet supported, see above
   requireTerminalResult: true,  // optional — output-name rewriting
+  captureMessages: true,        // optional — required to read `messages` below
 });
 
+// Only with `captureMessages: true`, and only if you actually drain it:
+// capture queues each message until a consumer pulls it, so a host that just
+// awaits `result` would hold the whole run's messages (audio chunks included)
+// for nothing. Reading `messages` without the flag throws; a consumer that
+// falls behind `limits.messageBufferLimit` makes the iterator throw.
 for await (const message of session.messages) { /* ProcessingMessage */ }
 
 await session.pushInput("input_name", value);

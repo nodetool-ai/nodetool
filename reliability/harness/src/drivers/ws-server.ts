@@ -16,7 +16,8 @@ import { WebSocket } from "ws";
 import {
   createTestUiServer,
   packWebSocketMessage,
-  unpackWebSocketMessage
+  unpackWebSocketMessage,
+  type UnifiedWebSocketRunner
 } from "@nodetool-ai/websocket";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
@@ -25,7 +26,12 @@ import {
   type PythonBridgeBase
 } from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
-import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
+import {
+  makeFrame,
+  type ResourceCounterSnapshot,
+  type RunFrame,
+  type RunRecord
+} from "../core/record.js";
 import { AnchorWaiter } from "./anchors.js";
 import { registerFixtureNodes } from "./fixture-nodes.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
@@ -86,6 +92,55 @@ function stripRelayOnlyFields(message: Record<string, unknown>): Record<string, 
   return rest;
 }
 
+/** How long to let the server's post-disconnect cleanup settle before
+ * recording the slot counters as final. Cleanup is asynchronous (the runner
+ * finishes streaming, then frees the slot), so a snapshot taken the instant
+ * the socket closes would report a slot that is merely about to be freed. */
+const SLOT_SETTLE_TIMEOUT_MS = 2000;
+const SLOT_SETTLE_POLL_MS = 10;
+
+/**
+ * Post-run WS slot accounting (§6 "Cleanup and leaks"), summed over every
+ * connection this run opened. Polls until both counters reach zero or the
+ * settle window elapses, then reports whatever it measured — a genuine leak
+ * survives the wait and is recorded as non-zero.
+ */
+async function settledSlotCounters(
+  runners: readonly UnifiedWebSocketRunner[]
+): Promise<ResourceCounterSnapshot> {
+  const total = (): { activeJobs: number; startingJobs: number } =>
+    runners.reduce(
+      (acc, runner) => {
+        const slots = runner.slotCounters;
+        return {
+          activeJobs: acc.activeJobs + slots.activeJobs,
+          startingJobs: acc.startingJobs + slots.startingJobs
+        };
+      },
+      { activeJobs: 0, startingJobs: 0 }
+    );
+
+  const deadline = Date.now() + SLOT_SETTLE_TIMEOUT_MS;
+  let slots = total();
+  while ((slots.activeJobs > 0 || slots.startingJobs > 0) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, SLOT_SETTLE_POLL_MS));
+    slots = total();
+  }
+
+  return {
+    at: "after",
+    // Kernel-internal counters belong to the process the ws-server runs the
+    // kernel in; this driver reaches the server only over the wire, so it
+    // reports the accounting it can actually observe and leaves the rest at
+    // zero (the kernel driver is the surface that measures those).
+    liveActors: 0,
+    pendingControlResponses: 0,
+    pendingTimers: 0,
+    pythonBridgePendingRequests: 0,
+    ...slots
+  };
+}
+
 function requireJobId(jobId: string | null, journeyName: string, action: string): string {
   if (!jobId) {
     throw new Error(
@@ -120,9 +175,14 @@ export class WsServerDriver implements RunDriver {
     );
 
     let liveRegistry: NodeRegistry | null = null;
+    // §6 "Cleanup and leaks" needs the server's own WS slot accounting, which
+    // lives on the per-connection runner. `createTestUiServer` builds one per
+    // upgrade and keeps it private; this hook is the only way to read it.
+    const runners: UnifiedWebSocketRunner[] = [];
     const srv = createTestUiServer({
       host: "127.0.0.1",
       port: 0,
+      onRunnerCreated: (runner) => runners.push(runner),
       configureRegistry: (registry) => {
         registerFixtureNodes(registry);
         liveRegistry = registry;
@@ -192,6 +252,7 @@ export class WsServerDriver implements RunDriver {
     const port = wsFrontEnd ? wsFrontEnd.port : serverPort;
 
     const frames: RunFrame[] = [];
+    let counters: ResourceCounterSnapshot | null = null;
     let seq = 0;
     const waiter = new AnchorWaiter();
     let jobId: string | null = null;
@@ -205,11 +266,46 @@ export class WsServerDriver implements RunDriver {
     // `unified-websocket-runner.ts`), and, for any non-"completed" terminal
     // status, an "authoritative terminal snapshot" appended after the
     // relayed one because the kernel's own terminal frame never carries a
-    // `result` field. Recording only the first `job_update` this driver
-    // sees per status makes frame counts comparable to the kernel driver's
-    // single emission per status — the second is this wire protocol's own
-    // client-convenience redundancy, not new information.
-    const seenJobUpdateStatuses = new Set<string>();
+    // `result` field.
+    //
+    // Both are recorded, tagged `redundant` (see `RunFrame.redundant`) rather
+    // than dropped: dropping every repeat, as this driver used to, also drops
+    // the duplicates that would be real bugs, leaving "exactly one terminal
+    // job_update" with nothing to detect on the one surface that has a wire.
+    // The tag is narrow — a repeat only earns it by matching the documented
+    // shape below — so any other duplicate stays visible to the invariants
+    // and to the cross-surface diff.
+    const jobUpdateStatusCounts = new Map<string, number>();
+    const taggedReasons = new Set<string>();
+    let cancelRequested = false;
+
+    /** The reason tag for a repeated `job_update`, or undefined when this
+     * surface has no documented reason to have sent it twice. */
+    const documentedRedundancy = (
+      status: string,
+      message: Record<string, unknown>
+    ): string | undefined => {
+      const claim = (reason: string): string | undefined => {
+        // One repeat per documented reason. A third frame is not something
+        // the protocol documents, so it stays visible.
+        if (taggedReasons.has(reason)) return undefined;
+        taggedReasons.add(reason);
+        return reason;
+      };
+      if (status === "running") return claim("ws-eager-running-ack");
+      if (TERMINAL_JOB_STATUSES.has(status) && "result" in message) {
+        return claim("ws-authoritative-terminal-snapshot");
+      }
+      // `cancel_job` is acknowledged with a `cancelled` job_update right away
+      // (`unified-websocket-runner.ts`'s cancel handler: "the runner's own
+      // cleanup can lag"), which the kernel's own relayed terminal then
+      // repeats. Only ever allowed for a cancel this driver actually asked
+      // for.
+      if (status === "cancelled" && cancelRequested) {
+        return claim("ws-eager-cancel-ack");
+      }
+      return undefined;
+    };
     let resolveTerminal!: () => void;
     const terminalPromise = new Promise<void>((resolve) => {
       resolveTerminal = resolve;
@@ -239,16 +335,24 @@ export class WsServerDriver implements RunDriver {
 
       if (message["type"] === "job_update") {
         const status = String(message["status"]);
-        if (seenJobUpdateStatuses.has(status)) return;
-        seenJobUpdateStatuses.add(status);
-        if (TERMINAL_JOB_STATUSES.has(status)) {
+        const seenBefore = (jobUpdateStatusCounts.get(status) ?? 0) > 0;
+        jobUpdateStatusCounts.set(
+          status,
+          (jobUpdateStatusCounts.get(status) ?? 0) + 1
+        );
+        const redundant = seenBefore
+          ? documentedRedundancy(status, message)
+          : undefined;
+        const frame = makeFrame(seq++, "ws-server", "server_to_client", message);
+        frames.push(redundant === undefined ? frame : { ...frame, redundant });
+
+        if (!seenBefore && TERMINAL_JOB_STATUSES.has(status)) {
           terminalStatus = status;
           terminalError =
             typeof message["error"] === "string" ? (message["error"] as string) : null;
-          frames.push(makeFrame(seq++, "ws-server", "server_to_client", message));
           resolveTerminal();
-          return;
         }
+        return;
       }
 
       frames.push(makeFrame(seq++, "ws-server", "server_to_client", message));
@@ -296,6 +400,7 @@ export class WsServerDriver implements RunDriver {
             });
             break;
           case "cancel":
+            cancelRequested = true;
             send("cancel_job", {
               job_id: requireJobId(jobId, journey.manifest.name, "cancel")
             });
@@ -356,8 +461,13 @@ export class WsServerDriver implements RunDriver {
           `${journey.manifest.timeoutMs}ms waiting for a terminal job_update`;
       }
     } finally {
+      // Leak accounting is measured after the connection is gone, not at the
+      // terminal frame: tearing the socket down is what ends a run whose
+      // client stopped hearing from the server at all (the black-hole ws
+      // faults), and the server's own cleanup runs on disconnect.
       ws.close();
       await wsFrontEnd?.close();
+      counters = await settledSlotCounters(runners);
       await srv.close();
       bridge?.close();
     }
@@ -373,7 +483,8 @@ export class WsServerDriver implements RunDriver {
       status: terminalStatus ?? "unknown",
       error: terminalError,
       params: journey.manifest.params,
-      frames
+      frames,
+      resourceCounters: counters ? [counters] : []
     };
   }
 }

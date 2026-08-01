@@ -169,6 +169,13 @@ Rules that keep journeys trustworthy:
   not globally, because the actor model legitimately interleaves.
 - **Every journey states its invariant set explicitly** (§6) and the
   harness refuses a journey that asserts nothing beyond "completed".
+- **A declared golden decides the verdict.** `assertions.outputs` /
+  `assertions.streamShape` compare every surface's record against
+  `expected/` and fail the journey on a mismatch — invariants and the
+  cross-surface diff both pass when every surface returns the same wrong
+  answer. Faulted runs skip the comparison (and say so): a golden
+  describes the unfaulted contract. `nodetool reliability update-goldens
+  <journey>` recaptures the fixtures from an unfaulted kernel run.
 
 ## 5. Which workflows belong in the suite
 
@@ -234,7 +241,11 @@ the checks that convert today's advisory logging into failures:
 - Terminal precedence is exactly cancel > suspend > failed > completed
   (`runner.ts:625`) — asserted, not assumed.
 - Exactly one terminal `job_update` per run, and nothing follows it on
-  that job's stream.
+  that job's stream. A driver records repeated frames rather than
+  dropping them; a repeat its surface documents (the ws-server's eager
+  `running`/`cancelled` acks and its authoritative terminal snapshot) is
+  tagged `redundant` and discounted here and in the cross-surface diff.
+  Any other duplicate is untagged, and fails.
 
 **Cleanup and leaks.**
 - `_checkPendingInboxWork` finding pending work is a journey **failure**,
@@ -247,6 +258,11 @@ the checks that convert today's advisory logging into failures:
   repeated journey iterations (leak journeys run N=20 and compare).
 - Cancellation completes within a budget (e.g. 5 s) and `finalize()` ran
   for every started actor.
+- The counters above are **measured** — the kernel driver reads them off
+  `ExecutionSession.resourceCounters()`, the ws-server driver off the
+  runner's `slotCounters` once the connection is gone. A journey that
+  declares `cleanup-leaks` on a surface whose driver produces no post-run
+  snapshot fails on that: "nothing measured" must not read as "no leaks".
 
 **Determinism.**
 - Two runs of the same journey with the same cassettes produce identical

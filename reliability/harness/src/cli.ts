@@ -5,10 +5,11 @@
  * does the work, `commands/debug.ts` just parses flags and prints).
  */
 import { existsSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { readdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { loadJourney, type Journey, type JourneyFault } from "./core/journey.js";
+import { streamShapeOf, terminalOutputsOf } from "./core/golden.js";
 import { compareJourney, formatCompareReport, type CompareDriver, type CompareReport } from "./compare.js";
 import { KernelDriver } from "./drivers/kernel.js";
 import { WsServerDriver } from "./drivers/ws-server.js";
@@ -199,6 +200,51 @@ export async function runJourney(
   const report = await compareJourney(journey, drivers, { faults });
 
   return report;
+}
+
+/**
+ * Rewrites a journey's `expected/` fixtures from a fresh, unfaulted oracle
+ * (kernel) run — the maintainer path for a golden that legitimately moved.
+ *
+ * Only writes the fixtures the journey declares, and refuses a run that
+ * didn't complete: a golden captured from a broken run bakes the breakage in.
+ * Review the diff — that is what makes the fixture an assertion rather than a
+ * transcript.
+ */
+export async function updateJourneyGoldens(
+  journeyName: string,
+  options: { journeysDir?: string } = {}
+): Promise<{ written: string[] }> {
+  const journeysDir = options.journeysDir ?? findJourneysDir();
+  const journey = await resolveJourney(journeyName, journeysDir);
+  const { assertions } = journey.manifest;
+  if (!assertions.outputs && !assertions.streamShape) {
+    throw new ReliabilityCliError(
+      `journey "${journeyName}" declares no golden assertions to update`
+    );
+  }
+
+  const record = await new KernelDriver().run(journey);
+  if (record.status !== "completed") {
+    throw new ReliabilityCliError(
+      `journey "${journeyName}" ended "${record.status}" (${record.error ?? "no error"}) — ` +
+        "refusing to capture goldens from a run that didn't complete"
+    );
+  }
+
+  const expectedDir = join(journeysDir, journeyName, "expected");
+  const written: string[] = [];
+  if (assertions.outputs) {
+    const file = join(expectedDir, "outputs.json");
+    await writeFile(file, `${JSON.stringify(terminalOutputsOf(record), null, 2)}\n`);
+    written.push(file);
+  }
+  if (assertions.streamShape) {
+    const file = join(expectedDir, "stream.shape.json");
+    await writeFile(file, `${JSON.stringify(streamShapeOf(record), null, 2)}\n`);
+    written.push(file);
+  }
+  return { written };
 }
 
 /** Every fault name a `FaultModule` is actually registered for right now —

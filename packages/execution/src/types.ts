@@ -62,6 +62,14 @@ export interface ExecutionLimits {
   nodeTimeoutMs?: number;
   /** Forwarded to `WorkflowRunnerOptions.bufferLimit` (per-inbox cap). */
   bufferLimit?: number | null;
+  /**
+   * Cap on messages queued for an un-drained `session.messages` consumer
+   * (default {@link DEFAULT_MESSAGE_BUFFER_LIMIT}); `0` disables the cap. Only
+   * meaningful together with `captureMessages`. Past the cap the stream stops
+   * queueing and the iterator throws — a consumer that fell behind fails
+   * loudly instead of retaining the whole run's message history.
+   */
+  messageBufferLimit?: number;
 }
 
 export interface ExecutionSessionOptions {
@@ -144,6 +152,17 @@ export interface ExecutionSessionOptions {
    * surface and the one place strict mode is meant to be on by default.
    */
   strict?: boolean;
+  /**
+   * Capture every emitted message into `session.messages` (default `false`).
+   * Off by default because capture is retention: the queue holds each message
+   * until a consumer pulls it, and a host that only awaits `session.result`
+   * (every production caller today) would grow one unread queue per run — the
+   * kernel is explicit about not retaining real-time chunks for exactly that
+   * reason. Turn it on only when actually iterating the stream (the
+   * reliability harness's kernel driver does); see `limits.messageBufferLimit`
+   * for the cap that catches a consumer falling behind.
+   */
+  captureMessages?: boolean;
 }
 
 export type { NodeDescriptor, Edge, ProcessingMessage, RunResult };

@@ -44,8 +44,17 @@ function fakeDriver(name: string, record: RunRecord, opts: { supports?: boolean 
   };
 }
 
+/**
+ * These tests exercise `compareJourney`'s wiring against stub records that
+ * carry only job_update frames, so the journey's golden assertions are turned
+ * off here — a stub can't match a real run's fixtures, and the goldens have
+ * their own coverage in `golden.test.ts`.
+ */
 async function loadLinear(): Promise<Journey> {
-  return loadJourney(resolve(JOURNEYS_DIR, "linear-text-pipeline"));
+  const journey = await loadJourney(resolve(JOURNEYS_DIR, "linear-text-pipeline"));
+  journey.manifest.assertions.outputs = false;
+  journey.manifest.assertions.streamShape = false;
+  return journey;
 }
 
 describe("compareJourney", () => {

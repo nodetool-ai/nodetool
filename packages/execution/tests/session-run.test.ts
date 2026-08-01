@@ -105,7 +105,8 @@ describe("ExecutionSession — messages", () => {
       },
       registry,
       bridgeFactory: NO_BRIDGE,
-      params: { v: 5 }
+      params: { v: 5 },
+      captureMessages: true
     });
 
     const seen: string[] = [];

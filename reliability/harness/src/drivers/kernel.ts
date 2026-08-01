@@ -32,7 +32,12 @@ import {
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { InMemoryStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import type { Journey, JourneyInteraction } from "../core/journey.js";
-import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
+import {
+  makeFrame,
+  type ResourceCounterSnapshot,
+  type RunFrame,
+  type RunRecord
+} from "../core/record.js";
 import { AnchorWaiter } from "./anchors.js";
 import { buildJourneyRegistry } from "./registry.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
@@ -147,7 +152,12 @@ export class KernelDriver implements RunDriver {
             // it" — the kernel driver is the oracle surface, so its advisory
             // checks (pending inbox work, pending control responses) are
             // always thrown violations, not log warnings.
-            strict: true
+            strict: true,
+            // This driver records the message stream frame by frame
+            // (`pumpMessages` below), so it's one of the few callers that
+            // actually drains `session.messages` — capture is opt-in exactly
+            // so hosts that only await `result` don't queue messages unread.
+            captureMessages: true
           };
           // Every kernel run gets a working (in-memory, hermetic) storage
           // adapter — `ExecutionSession`'s own default context wires none at
@@ -244,6 +254,17 @@ export class KernelDriver implements RunDriver {
     const result = await session.result;
     if (pump) await pump;
 
+    // §6 "Cleanup and leaks": measured from the session itself
+    // (`ExecutionSession.resourceCounters`), not inferred. The kernel driver
+    // owns no WS slots, so those two are structurally zero here — the
+    // ws-server driver is where they carry information.
+    const counters: ResourceCounterSnapshot = {
+      at: "after",
+      ...session.resourceCounters(),
+      activeJobs: 0,
+      startingJobs: 0
+    };
+
     return {
       journeyId: journey.manifest.name,
       surface: this.name,
@@ -255,7 +276,8 @@ export class KernelDriver implements RunDriver {
       status: result.status,
       error: result.error ?? null,
       params: journey.manifest.params,
-      frames
+      frames,
+      resourceCounters: [counters]
     };
   }
 }

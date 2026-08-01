@@ -7,10 +7,11 @@
  * iterations (leak journeys run N=20 and compare).
  *
  * Operates on `RunRecord.resourceCounters` (additive over C1's shape, see
- * `record.ts`) — a driver that doesn't instrument these counters produces no
- * snapshots, and this module reports no violations rather than treating
- * absence itself as a leak: it can only assert what a driver actually
- * measured.
+ * `record.ts`). A journey that declares this invariant but whose record
+ * carries no post-run snapshot fails on that: the check measured nothing, and
+ * "nothing measured" must not read as "no leaks". Drivers that can't
+ * instrument the counters should not declare `cleanup-leaks` for the surfaces
+ * they cover.
  */
 import type { ResourceCounterSnapshot, RunRecord } from "../record.js";
 import type { Violation } from "./types.js";
@@ -27,11 +28,23 @@ const COUNTER_FIELDS = [
 type CounterField = (typeof COUNTER_FIELDS)[number];
 
 export function checkLeaks(record: RunRecord): Violation[] {
-  const snapshots = record.resourceCounters;
-  if (!snapshots || snapshots.length === 0) return [];
-
+  const snapshots = record.resourceCounters ?? [];
   const violations: Violation[] = [];
   const afterSnapshots = snapshots.filter((s) => s.at === "after");
+
+  if (afterSnapshots.length === 0) {
+    return [
+      {
+        invariant: "leaks.not-instrumented",
+        message:
+          `surface "${record.surface}" produced no post-run resource-counter ` +
+          "snapshot, so the cleanup-leaks invariant asserted nothing — " +
+          "instrument the driver (RunRecord.resourceCounters) or stop " +
+          "declaring cleanup-leaks for this surface",
+        details: { surface: record.surface, snapshots: snapshots.length }
+      }
+    ];
+  }
 
   afterSnapshots.forEach((snapshot, snapshotIndex) => {
     for (const field of COUNTER_FIELDS) {
