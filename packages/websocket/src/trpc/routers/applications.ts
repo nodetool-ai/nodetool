@@ -111,7 +111,11 @@ export const applicationsRouter = router({
     .output(z.array(applicationVersionResponse))
     .query(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const versions = await listApplicationVersions(input.id);
+      const versions = await listApplicationVersions(
+        input.id,
+        undefined,
+        ctx.userId
+      );
       return versions.map((v) => applicationVersionResponse.parse(v));
     }),
 
@@ -120,7 +124,7 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse.nullable())
     .query(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const version = await releasedApplicationVersion(input.id);
+      const version = await releasedApplicationVersion(input.id, ctx.userId);
       return version ? applicationVersionResponse.parse(version) : null;
     }),
 
@@ -173,7 +177,7 @@ export const applicationsRouter = router({
     .output(z.array(invocationRecord))
     .query(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const records = await listInvocations(input.id);
+      const records = await listInvocations(input.id, undefined, ctx.userId);
       return records.map((r) => invocationRecord.parse(r));
     }),
 
@@ -186,7 +190,7 @@ export const applicationsRouter = router({
     .output(invocationRecord)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const release = await releasedApplicationVersion(input.id);
+      const release = await releasedApplicationVersion(input.id, ctx.userId);
       // One transaction checks the budget and claims the run against it;
       // checking and then recording lets concurrent callers all read a total
       // that excludes each other and all be admitted.
@@ -227,7 +231,11 @@ export const applicationsRouter = router({
     .output(applicationVersionResponse)
     .mutation(async ({ ctx, input }) => {
       await loadOwned(ctx.userId, input.id);
-      const released = await releaseApplicationVersion(input.id, input.version);
+      const released = await releaseApplicationVersion(
+        input.id,
+        input.version,
+        ctx.userId
+      );
       if (!released) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Application version not found");
       }

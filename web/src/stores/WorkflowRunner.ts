@@ -97,6 +97,8 @@ const buildRunJobData = (opts: {
   concurrent?: boolean;
   /** Set when a mini app started this run, so the server meters it. */
   application?: { id: string; version?: number };
+  /** The app operation this run implements, so the ledger row carries it. */
+  operationId?: string;
 }): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
   const bypassedNodeIds = new Set<string>();
@@ -131,7 +133,8 @@ const buildRunJobData = (opts: {
     job_id: opts.jobId,
     concurrent: opts.concurrent,
     application_id: opts.application?.id ?? null,
-    application_version: opts.application?.version ?? null
+    application_version: opts.application?.version ?? null,
+    operation_id: opts.operationId ?? null
   };
 };
 
@@ -139,6 +142,12 @@ const buildRunJobData = (opts: {
 export interface RunOptions {
   /** The mini app this run belongs to; drives the server-side budget check. */
   application?: { id: string; version?: number };
+  /**
+   * The app operation this run implements. Recorded on the app's ledger row so
+   * spend can be reported per operation instead of per app. Only meaningful
+   * alongside `application`.
+   */
+  operationId?: string;
 }
 
 export type WorkflowRunner = {
@@ -522,7 +531,8 @@ export const createWorkflowRunnerStore = (
         authToken: auth_token,
         userId: user,
         concurrent,
-        application: options?.application
+        application: options?.application,
+        operationId: options?.operationId
       });
 
       if (queueRun) {

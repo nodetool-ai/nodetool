@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "vitest";
 
 import { initTestDb } from "../src/db.js";
+import { Application } from "../src/application.js";
 import {
   applicationUsage,
   checkApplicationBudget,
@@ -13,13 +14,26 @@ import {
 } from "../src/application-budget.js";
 
 const APP = "app-1";
+const OTHER_APP = "app-2";
+
+/**
+ * Budgets and ledger rows are children of an application row — the foreign key
+ * is what keeps a deleted app's spend from being inherited — so the parents
+ * exist before anything is booked against them.
+ */
+const seedApps = async () => {
+  for (const id of [APP, OTHER_APP]) {
+    await Application.create<Application>({ id, user_id: "u1" });
+  }
+};
 
 const run = (invocationId: string, estimatedUsd: number) =>
   recordInvocation({ applicationId: APP, invocationId, estimatedUsd });
 
 describe("application budgets", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     initTestDb();
+    await seedApps();
   });
 
   it("allows any run when no budget is configured", async () => {
@@ -76,7 +90,7 @@ describe("application budgets", () => {
   it("leaves an invocation belonging to another application untouched", async () => {
     await run("job-1", 2);
 
-    expect(await settleInvocation("app-2", "job-1", 0)).toBeNull();
+    expect(await settleInvocation(OTHER_APP, "job-1", 0)).toBeNull();
 
     const [row] = await listInvocations(APP);
     expect(row).toMatchObject({ actualUsd: null, status: "running" });
@@ -95,7 +109,7 @@ describe("application budgets", () => {
   it("scopes usage to another application's ledger", async () => {
     await run("job-1", 3);
     await recordInvocation({
-      applicationId: "app-2",
+      applicationId: OTHER_APP,
       invocationId: "job-2",
       estimatedUsd: 9
     });

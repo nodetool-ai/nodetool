@@ -33,6 +33,11 @@ export interface AppBuilderShellProps {
   /** The workflow whose inputs, outputs, and nodes bindings may reference. */
   workflow: Workflow;
   /**
+   * The graph of every workflow the document's operations run, by workflow id,
+   * so a binding on the second operation is offered that operation's surface.
+   */
+  operationWorkflows?: Record<string, Workflow>;
+  /**
    * Workflow the agent panel edits. Omitted when the app has no workflow bound
    * yet, which also hides the panel.
    */
@@ -90,6 +95,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   applicationId,
   document,
   workflow,
+  operationWorkflows,
   agentWorkflowId,
   header,
   banner,
@@ -176,6 +182,7 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
             onMetaChange={setMeta}
             dataOpen={dataOpen}
             onToggleData={toggleData}
+            operationWorkflows={operationWorkflows}
           />
         </Box>
       </FlexColumn>

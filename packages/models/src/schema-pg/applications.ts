@@ -1,4 +1,10 @@
-import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  integer,
+  index,
+  uniqueIndex
+} from "drizzle-orm/pg-core";
 import { jsonText } from "./helpers.js";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 import type { ApplicationCapabilities } from "../application.js";
@@ -27,7 +33,10 @@ export const applicationVersions = pgTable(
   "application_versions",
   {
     id: text("id").primaryKey(),
-    application_id: text("application_id").notNull(),
+    application_id: text("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    user_id: text("user_id"),
     version: integer("version").notNull(),
     document: jsonText<ApplicationDocument>()("document").notNull(),
     capabilities: jsonText<ApplicationCapabilities>()("capabilities").notNull(),
@@ -37,6 +46,10 @@ export const applicationVersions = pgTable(
   },
   (table) => [
     index("idx_application_version_app").on(table.application_id),
-    index("idx_application_version_released").on(table.released)
+    index("idx_application_version_released").on(table.released),
+    uniqueIndex("idx_application_version_app_version").on(
+      table.application_id,
+      table.version
+    )
   ]
 );

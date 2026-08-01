@@ -2332,5 +2332,278 @@ export const migrations: MigrationDef[] = [
       // no-op: the lifted documents are the canonical copy now, and pushing
       // them back onto workflows would resurrect the storage this removes.
     }
+  },
+
+  // ── Tie an application's children to the application ────────────────
+  // `application_versions`, `application_invocations` and
+  // `application_budgets` referenced `applications.id` by convention only:
+  // no foreign key, no owner of their own. Deleting an app removed the parent
+  // row and left the children behind, and an application id is
+  // client-supplied — so recreating a deleted id handed the previous owner's
+  // snapshots, ledger and budget to whoever claimed it next.
+  //
+  // Orphans are removed, the children gain the owner they were written for,
+  // duplicate versions are collapsed so `(application_id, version)` can be
+  // unique, and the tables get real ON DELETE CASCADE foreign keys.
+  {
+    version: "20260801_000000",
+    name: "cascade_and_own_application_children",
+    createsTables: [],
+    modifiesTables: [
+      "application_versions",
+      "application_invocations",
+      "application_budgets"
+    ],
+    async up(db) {
+      if (!(await db.tableExists("applications"))) return;
+
+      const children = [
+        "application_versions",
+        "application_invocations",
+        "application_budgets"
+      ];
+      const present: string[] = [];
+      for (const table of children) {
+        if (await db.tableExists(table)) present.push(table);
+      }
+
+      // Children whose parent is already gone. These are exactly the rows a
+      // recreated id would inherit.
+      for (const table of present) {
+        await db.execute(
+          `DELETE FROM ${table}
+            WHERE application_id NOT IN (SELECT id FROM applications)`
+        );
+      }
+
+      // Ownership, backfilled from the parent.
+      for (const table of ["application_versions", "application_invocations"]) {
+        if (!present.includes(table)) continue;
+        if (!(await db.columnExists(table, "user_id"))) {
+          await db.execute(`ALTER TABLE ${table} ADD COLUMN user_id TEXT`);
+        }
+        await db.execute(
+          `UPDATE ${table}
+              SET user_id = (
+                SELECT user_id FROM applications
+                 WHERE applications.id = ${table}.application_id
+              )
+            WHERE user_id IS NULL`
+        );
+      }
+
+      if (present.includes("application_versions")) {
+        await dedupeApplicationVersions(db);
+        await db.execute(
+          `CREATE UNIQUE INDEX IF NOT EXISTS idx_application_version_app_version
+             ON application_versions (application_id, version)`
+        );
+      }
+
+      for (const table of present) {
+        await addApplicationForeignKey(db, table);
+      }
+    },
+    async down(db) {
+      await db.execute(
+        "DROP INDEX IF EXISTS idx_application_version_app_version"
+      );
+      if (db.dbType !== "postgres") return;
+      for (const table of [
+        "application_versions",
+        "application_invocations",
+        "application_budgets"
+      ]) {
+        await db.execute(
+          `ALTER TABLE IF EXISTS ${table}
+             DROP CONSTRAINT IF EXISTS ${table}_application_id_fkey`
+        );
+      }
+      // The `user_id` columns stay: SQLite cannot drop a column portably and
+      // the column is inert to code that does not read it.
+    }
   }
 ];
+
+/**
+ * Collapse what the missing constraints allowed: two snapshots sharing a
+ * version number, and two snapshots flagged released. The newest row wins in
+ * both cases, which is the one a client last saw.
+ */
+async function dedupeApplicationVersions(
+  db: MigrationDBAdapter
+): Promise<void> {
+  const duplicates = await db.fetchall(
+    `SELECT application_id, version
+       FROM application_versions
+      GROUP BY application_id, version
+     HAVING COUNT(*) > 1`
+  );
+  for (const duplicate of duplicates) {
+    const rows = await db.fetchall(
+      `SELECT id FROM application_versions
+        WHERE application_id = ? AND version = ?
+        ORDER BY created_at DESC, id DESC`,
+      [duplicate.application_id, duplicate.version]
+    );
+    for (const row of rows.slice(1)) {
+      await db.execute("DELETE FROM application_versions WHERE id = ?", [
+        row.id
+      ]);
+    }
+  }
+
+  const multiReleased = await db.fetchall(
+    `SELECT application_id
+       FROM application_versions
+      WHERE released = 1
+      GROUP BY application_id
+     HAVING COUNT(*) > 1`
+  );
+  for (const app of multiReleased) {
+    const rows = await db.fetchall(
+      `SELECT id FROM application_versions
+        WHERE application_id = ? AND released = 1
+        ORDER BY version DESC`,
+      [app.application_id]
+    );
+    for (const row of rows.slice(1)) {
+      await db.execute(
+        "UPDATE application_versions SET released = 0 WHERE id = ?",
+        [row.id]
+      );
+    }
+  }
+}
+
+/** The columns and indexes each child table is rebuilt with under SQLite. */
+const SQLITE_CHILD_TABLES: Record<
+  string,
+  { definition: string; columns: string[]; indexes: string[] }
+> = {
+  application_versions: {
+    definition: `
+      id TEXT PRIMARY KEY NOT NULL,
+      application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+      user_id TEXT,
+      version INTEGER NOT NULL,
+      document TEXT NOT NULL,
+      capabilities TEXT NOT NULL,
+      workflow_graphs TEXT,
+      released INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    `,
+    columns: [
+      "id",
+      "application_id",
+      "user_id",
+      "version",
+      "document",
+      "capabilities",
+      "workflow_graphs",
+      "released",
+      "created_at"
+    ],
+    indexes: [
+      "CREATE INDEX IF NOT EXISTS idx_application_version_app ON application_versions (application_id)",
+      "CREATE INDEX IF NOT EXISTS idx_application_version_released ON application_versions (released)",
+      "CREATE UNIQUE INDEX IF NOT EXISTS idx_application_version_app_version ON application_versions (application_id, version)"
+    ]
+  },
+  application_invocations: {
+    definition: `
+      id TEXT PRIMARY KEY NOT NULL,
+      application_id TEXT NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+      user_id TEXT,
+      version INTEGER,
+      invocation_id TEXT NOT NULL,
+      operation_id TEXT NOT NULL DEFAULT '',
+      estimated_usd REAL NOT NULL DEFAULT 0,
+      actual_usd REAL,
+      status TEXT NOT NULL DEFAULT 'running',
+      created_at TEXT NOT NULL,
+      settled_at TEXT
+    `,
+    columns: [
+      "id",
+      "application_id",
+      "user_id",
+      "version",
+      "invocation_id",
+      "operation_id",
+      "estimated_usd",
+      "actual_usd",
+      "status",
+      "created_at",
+      "settled_at"
+    ],
+    indexes: [
+      "CREATE INDEX IF NOT EXISTS idx_application_invocation_app ON application_invocations (application_id)",
+      "CREATE INDEX IF NOT EXISTS idx_application_invocation_created ON application_invocations (created_at)",
+      "CREATE INDEX IF NOT EXISTS idx_application_invocation_invocation ON application_invocations (invocation_id)"
+    ]
+  },
+  application_budgets: {
+    definition: `
+      application_id TEXT PRIMARY KEY NOT NULL REFERENCES applications (id) ON DELETE CASCADE,
+      period TEXT NOT NULL DEFAULT 'month',
+      max_usd REAL,
+      max_invocations INTEGER,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    `,
+    columns: [
+      "application_id",
+      "period",
+      "max_usd",
+      "max_invocations",
+      "created_at",
+      "updated_at"
+    ],
+    indexes: []
+  }
+};
+
+/**
+ * Point a child table at `applications.id` with ON DELETE CASCADE.
+ *
+ * PostgreSQL takes the constraint directly. SQLite cannot add one to an
+ * existing table, so the table is rebuilt — the standard copy/drop/rename —
+ * and skipped entirely once the declaration is there.
+ */
+async function addApplicationForeignKey(
+  db: MigrationDBAdapter,
+  table: string
+): Promise<void> {
+  if (db.dbType === "postgres") {
+    const existing = await db.fetchone(
+      "SELECT 1 AS found FROM pg_constraint WHERE conname = ?",
+      [`${table}_application_id_fkey`]
+    );
+    if (existing) return;
+    await db.execute(
+      `ALTER TABLE ${table}
+         ADD CONSTRAINT ${table}_application_id_fkey
+         FOREIGN KEY (application_id) REFERENCES applications (id)
+         ON DELETE CASCADE`
+    );
+    return;
+  }
+
+  const spec = SQLITE_CHILD_TABLES[table];
+  if (!spec) return;
+  const current = await db.fetchone(
+    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
+    [table]
+  );
+  if (String(current?.sql ?? "").includes("REFERENCES")) return;
+
+  const columns = spec.columns.join(", ");
+  await db.execute(`CREATE TABLE ${table}__new (${spec.definition})`);
+  await db.execute(
+    `INSERT INTO ${table}__new (${columns}) SELECT ${columns} FROM ${table}`
+  );
+  await db.execute(`DROP TABLE ${table}`);
+  await db.execute(`ALTER TABLE ${table}__new RENAME TO ${table}`);
+  for (const index of spec.indexes) await db.execute(index);
+}

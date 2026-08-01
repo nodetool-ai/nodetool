@@ -8,6 +8,7 @@ import { useAppRuntimeContext } from "../runtime/AppRuntimeContext";
 import {
   bindingField,
   conditionField,
+  operationField,
   resourceBindingField,
   variableField
 } from "./fields";
@@ -119,7 +120,10 @@ const eventsField = (
         }
       : {}),
     key: variableField("State variable"),
-    value: { type: "text", label: "Value" }
+    value: { type: "text", label: "Value" },
+    // Which workflow a run/cancel drives. Only rendered by a multi-operation
+    // app; otherwise the event runs the app's sole operation.
+    operationId: operationField("Operation")
   },
   defaultItemProps: {
     trigger,

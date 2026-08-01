@@ -461,5 +461,36 @@ describe("WorkflowRunner", () => {
         })
       );
     });
+
+    it("sends the app operation so the ledger row records which one ran", async () => {
+      randomUUIDMock.mockReturnValueOnce("job-op");
+      await store
+        .getState()
+        .run({}, testWorkflow, [], [], undefined, undefined, undefined, undefined, {
+          application: { id: "app-1", version: 2 },
+          operationId: "draft"
+        });
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({
+            application_id: "app-1",
+            application_version: 2,
+            operation_id: "draft"
+          })
+        })
+      );
+    });
+
+    it("sends a null operation for a run no app started", async () => {
+      randomUUIDMock.mockReturnValueOnce("job-no-op");
+      await store.getState().run({}, testWorkflow, [], []);
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "run_job",
+          data: expect.objectContaining({ operation_id: null })
+        })
+      );
+    });
   });
 });

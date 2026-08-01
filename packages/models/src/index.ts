@@ -153,6 +153,9 @@ export type { StoryboardDocument, StoryboardResponse } from "./storyboard.js";
 export {
   Application,
   ApplicationConflictError,
+  ApplicationIdInUseError,
+  InvalidApplicationIdError,
+  normalizeApplicationId,
   deriveCapabilities,
   publishApplication,
   listApplicationVersions,

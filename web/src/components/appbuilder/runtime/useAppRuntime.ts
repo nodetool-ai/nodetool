@@ -667,7 +667,7 @@ export const useAppRuntime = (
             // workflow limit rather than queue behind the run in flight.
             entry.operation.policy === "parallel",
             undefined,
-            { application }
+            { application, operationId }
           );
         claimInvocation(operationId, jobId, true);
       } catch (error) {

@@ -1,5 +1,7 @@
 import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core";
 
+import { applications } from "./applications.js";
+
 /**
  * The spend ceiling a published app runs under.
  *
@@ -8,7 +10,9 @@ import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core
  * the ledger is summed over.
  */
 export const applicationBudgets = sqliteTable("application_budgets", {
-  application_id: text("application_id").primaryKey(),
+  application_id: text("application_id")
+    .primaryKey()
+    .references(() => applications.id, { onDelete: "cascade" }),
   /** "day" | "month" | "total" — the window `max_usd` applies to. */
   period: text("period").notNull().default("month"),
   max_usd: real("max_usd"),
@@ -30,7 +34,11 @@ export const applicationInvocations = sqliteTable(
   "application_invocations",
   {
     id: text("id").primaryKey(),
-    application_id: text("application_id").notNull(),
+    application_id: text("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    /** Owner of the app at run time, copied from the parent. */
+    user_id: text("user_id"),
     /** Released version this ran against; null for a draft run. */
     version: integer("version"),
     /** Equals the run's `job_id`. */

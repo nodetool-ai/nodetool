@@ -41,6 +41,7 @@ import {
   Asset,
   ImageDocument,
   Job,
+  listApplicationVersions,
   releasedApplicationVersion,
   reserveInvocation,
   settleInvocation,
@@ -1501,6 +1502,13 @@ export interface RunJobRequest {
   application_id?: string | null;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
+  /**
+   * The app operation this run implements. Recorded on the ledger row so
+   * per-operation governance reports come from real runs rather than being
+   * inferred from workflow ids. Optional — a client that omits it still runs,
+   * its rows just carry no operation.
+   */
+  operation_id?: string | null;
 }
 
 export interface RunJobExecutionOptions {
@@ -2511,6 +2519,29 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
+   * The version number a stale client claimed, if the app really has it —
+   * otherwise null, and the claim is unsupportable.
+   *
+   * Version history is per app and short (one row per publish), so listing it
+   * is cheap; the ceiling exists only because the model helper takes a limit,
+   * and it has to be high enough that an old claim is never truncated away by
+   * the newest releases.
+   */
+  private async claimedApplicationVersion(
+    applicationId: string,
+    claimed: number | null | undefined,
+    userId: string
+  ): Promise<number | null> {
+    if (claimed == null) return null;
+    const versions = await listApplicationVersions(
+      applicationId,
+      10_000,
+      userId
+    );
+    return versions.some((v) => v.version === claimed) ? claimed : null;
+  }
+
+  /**
    * Gate an app's run on its spend budget. Runs of a published app execute with
    * the creator's secrets, so this refuses before the job exists rather than
    * reporting an overspend afterwards. Returns false when the run was refused
@@ -2561,13 +2592,14 @@ export class UnifiedWebSocketRunner {
     try {
       const estimatedUsd = this.estimateRunCost(req);
       // The client says whether this is a release run or a draft run; the
-      // server says which release. Taking the number from the client would let
-      // a run bill itself to a version it never executed, and the ledger is
-      // also the release telemetry.
+      // server decides which release the ledger records. A number taken on
+      // faith would let a run bill itself to a version it never executed, and
+      // the ledger is also the release telemetry — so a claim is only honoured
+      // below once the server has found that version in the app's history.
       const released =
         req.application_version == null
           ? null
-          : await releasedApplicationVersion(applicationId);
+          : await releasedApplicationVersion(applicationId, userId);
       if (req.application_version != null && !released) {
         // A release run of an app that has released nothing. The claim is
         // unsupportable rather than merely stale, and letting it through would
@@ -2579,6 +2611,9 @@ export class UnifiedWebSocketRunner {
           "This app has no released version to run"
         );
       }
+      // Which version the ledger row belongs to. The release is the default,
+      // because that is what a current client runs.
+      let version = released?.version ?? null;
       if (released && released.version !== req.application_version) {
         log.warn("Run claimed a version other than the released one", {
           applicationId,
@@ -2586,14 +2621,45 @@ export class UnifiedWebSocketRunner {
           claimed: req.application_version,
           released: released.version
         });
+        // A client that loaded the app before the newest release still holds
+        // that older snapshot and is about to execute it. Filing the run under
+        // the current release would credit v2's metrics and budget with a run
+        // of v1, so the row follows what actually ran — but only once the
+        // server has confirmed the claimed version is a real version of this
+        // app. That check is what keeps the client from picking its own
+        // attribution: it can name a version it once had, not one it invents.
+        const claimed = await this.claimedApplicationVersion(
+          applicationId,
+          req.application_version,
+          userId
+        );
+        if (!claimed) {
+          return this.refuseRun(
+            req,
+            jobId,
+            ApiErrorCode.INVALID_INPUT,
+            `This app has no version ${req.application_version} to run`
+          );
+        }
+        version = claimed;
+        // The run proceeds, but the client is stale and has no other way to
+        // learn it: nothing in a job's updates mentions releases.
+        this.sendDetached({
+          type: "notification",
+          node_id: "",
+          severity: "warning",
+          workflow_id: req.workflow_id ?? null,
+          content: `Running version ${claimed} of this app; version ${released.version} has since been released. Reload to get the latest.`
+        });
       }
       // Reserving claims the run against the budget in the same transaction
       // that checks it, so concurrent runs of one app cannot each read a total
       // that excludes the others and all be admitted.
       const decision = await reserveInvocation({
         applicationId,
-        version: released?.version ?? null,
+        version,
         invocationId: jobId,
+        operationId: req.operation_id ?? undefined,
         estimatedUsd
       });
       if (!decision.allowed) {

@@ -96,6 +96,45 @@ describe("resolveBinding", () => {
   it("returns null for a name the graph no longer has", () => {
     expect(resolveBinding("renamed_away", scope, "write")).toBeNull();
   });
+
+  it("resolves a legacy `main` token onto the app's sole operation", () => {
+    const soleOperation: BindingScope = {
+      ...scope,
+      defaultOperationId: "operation_1",
+      operations: [{ ...scope.operations[0], operationId: "operation_1" }]
+    };
+    expect(resolveBinding("op:main/in:n1", soleOperation, "write")).toEqual({
+      kind: "input",
+      operationId: "operation_1",
+      nodeId: "n1"
+    });
+    expect(resolveBinding("op:main/exec#running", soleOperation)).toEqual({
+      kind: "execution",
+      operationId: "operation_1",
+      field: "running"
+    });
+  });
+
+  it("leaves an operation the app declares alone", () => {
+    const twoOperations: BindingScope = {
+      ...scope,
+      operations: [
+        scope.operations[0],
+        { ...scope.operations[0], operationId: "draft" }
+      ]
+    };
+    expect(resolveBinding("op:draft/in:n1", twoOperations, "write")).toEqual({
+      kind: "input",
+      operationId: "draft",
+      nodeId: "n1"
+    });
+    // Two operations: nothing to disambiguate an unknown one onto.
+    expect(resolveBinding("op:gone/in:n1", twoOperations, "write")).toEqual({
+      kind: "input",
+      operationId: "gone",
+      nodeId: "n1"
+    });
+  });
 });
 
 describe("migrateBindings", () => {

@@ -149,6 +149,33 @@ describe('WorkflowRunner', () => {
       expect(nodeIds).toEqual(['a', 'c']);
       expect(sent.data.graph.edges).toHaveLength(1);
     });
+
+    it('carries no application identity for a plain workflow run', async () => {
+      await bootStore();
+      const sent = mockWs.send.mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      };
+      expect(sent.data.application_id).toBeNull();
+      expect(sent.data.application_version).toBeNull();
+      expect(sent.data.job_id).toBeUndefined();
+    });
+
+    it('sends the client job id and the release identity of an app run', async () => {
+      const store = createWorkflowRunnerStore('app-run-test');
+      mockWs.subscribe.mockImplementation(() => () => {});
+      await store.getState().run({}, makeWorkflow(), {
+        jobId: 'job-abc',
+        application: { id: 'app-1', version: 3 },
+      });
+      const sent = mockWs.send.mock.calls[0][0] as {
+        data: Record<string, unknown>;
+      };
+      expect(sent.data.job_id).toBe('job-abc');
+      expect(sent.data.application_id).toBe('app-1');
+      expect(sent.data.application_version).toBe(3);
+      // The store tracks the run under the id it sent, not the first one back.
+      expect(store.getState().job_id).toBe('job-abc');
+    });
   });
 
   describe('job_update', () => {

@@ -11,6 +11,7 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { useTheme } from "../../hooks/useTheme";
+import type { ApplicationRunIdentity } from "../../hooks/useApplications";
 import type { Workflow } from "../../types/workflow";
 import { AppRuntimeContext } from "./AppRuntimeContext";
 import { useAppRuntime } from "./useAppRuntime";
@@ -55,6 +56,11 @@ interface ApplicationAppViewProps {
   applicationId?: string;
   /** The workflow the document's operations run. */
   workflow: Workflow;
+  /**
+   * Release identity sent with every run, so the server can meter it against
+   * the app's budget. Absent only where no application backs the document.
+   */
+  application?: ApplicationRunIdentity;
   /** Falls back to the app's name when the document's root has no title. */
   title?: string;
 }
@@ -63,12 +69,14 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
   document,
   applicationId,
   workflow,
+  application,
   title,
 }) => {
   const { colors } = useTheme();
   const runtime = useAppRuntime(workflow, {
     document,
     ...(applicationId ? { instanceKey: applicationId } : {}),
+    ...(application ? { application } : {}),
   });
 
   const heading = String(document.ui.root.props?.title ?? title ?? "");
