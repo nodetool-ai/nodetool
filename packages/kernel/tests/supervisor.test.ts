@@ -223,6 +223,10 @@ describe("supervisor — retry", () => {
     expect(calls).toBe(1);
     expect(result.status).toBe("failed");
     expect(result.interventions![0].verdict.action).toBe("fail");
+    // The record credits the kernel, not the handle. Crediting the handle
+    // would hide the case worth finding: a supervisor that answered outside
+    // the allowed set.
+    expect(result.interventions![0].decidedBy).toBe("kernel");
   });
 
   it("is not offered once the invocation spent money", async () => {

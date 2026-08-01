@@ -53,7 +53,10 @@ export class NodeRegistry {
   private _loadedMetadataByType = new Map<string, NodeMetadata>();
   private _registeredMetadataByType = new Map<string, NodeMetadata>();
   private _loadedMetadataSourceByType = new Map<string, NodeMetadataSource>();
-  private _registeredMetadataSourceByType = new Map<string, NodeMetadataSource>();
+  private _registeredMetadataSourceByType = new Map<
+    string,
+    NodeMetadataSource
+  >();
   private _loadedPackageIdByType = new Map<string, string>();
   private _registeredPackageIdByType = new Map<string, string>();
   private _activePackageId: string | undefined;
@@ -306,7 +309,8 @@ export class NodeRegistry {
     instance.__node_name = descriptor.name ?? descriptor.type;
     // Stryker disable next-line ConditionalExpression: forcing this true assigns _dynamic_outputs = undefined, which reads back identically to leaving it unset (equivalent).
     if (descriptor.dynamic_outputs) {
-      (instance as unknown as Record<string, unknown>)._dynamic_outputs = descriptor.dynamic_outputs;
+      (instance as unknown as Record<string, unknown>)._dynamic_outputs =
+        descriptor.dynamic_outputs;
     }
     if (descriptor.dynamic_inputs) {
       (instance as unknown as Record<string, unknown>)._dynamic_inputs =
@@ -401,7 +405,9 @@ export class NodeRegistry {
 
   listRegisteredNodeTypesWithoutMetadata(): string[] {
     // Stryker disable next-line ArrowFunction,ConditionalExpression: register() always stores derived metadata, so getMetadata is never undefined for a registered type — this filter always yields [] regardless of the predicate (equivalent).
-    return this.list().filter((nodeType) => this.getMetadata(nodeType) === undefined);
+    return this.list().filter(
+      (nodeType) => this.getMetadata(nodeType) === undefined
+    );
   }
 
   /** Add or replace metadata for a node type (e.g. from Python bridge). */
@@ -487,8 +493,12 @@ function typeMetadataToString(
     | NodeMetadata["outputs"][number]["type"]
 ): string {
   // Stryker disable next-line MethodExpression: .filter(Boolean) only drops empty renderings, which valid type metadata never produces (equivalent).
-  const args = (typeMeta.type_args ?? []).map(typeMetadataToString).filter(Boolean);
-  return args.length > 0 ? `${typeMeta.type}[${args.join(", ")}]` : typeMeta.type;
+  const args = (typeMeta.type_args ?? [])
+    .map(typeMetadataToString)
+    .filter(Boolean);
+  return args.length > 0
+    ? `${typeMeta.type}[${args.join(", ")}]`
+    : typeMeta.type;
 }
 
 /**
@@ -547,10 +557,17 @@ export function hydrateGraphNodeFlags(
         false,
       is_trigger:
         (cls ? cls.isTrigger : meta?.is_trigger) ?? node.is_trigger ?? false,
-      retry_safe:
-        (cls ? cls.retrySafe : meta?.retry_safe) ?? node.retry_safe ?? false,
+      // No `?? node.retry_safe` here, unlike every flag around it: whether
+      // re-running a node duplicates a payment or a publish is a property of
+      // its implementation, not of a saved file. A graph asserting
+      // `retry_safe: true` for a node nobody classified would hand the
+      // supervisor a retry on a side-effecting node — the asymmetric failure
+      // docs/workflow-supervisor-design.md §5.3 exists to prevent.
+      retry_safe: (cls ? cls.retrySafe : meta?.retry_safe) ?? false,
       always_emit_output_updates:
-        (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ??
+        (cls
+          ? cls.alwaysEmitOutputUpdates
+          : meta?.always_emit_output_updates) ??
         node.always_emit_output_updates ??
         false,
       input_mode: (cls ? cls.inputMode : meta?.input_mode) ?? node.input_mode,

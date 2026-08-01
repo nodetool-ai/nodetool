@@ -21,6 +21,7 @@ import {
   validateSubstituteOutputs,
   hasFullValidatorCoverage
 } from "../src/substitute-validator.js";
+import { Graph } from "../src/graph.js";
 
 function escalation(over: Partial<Escalation> = {}): Escalation {
   return {
@@ -428,5 +429,39 @@ describe("substitute validator", () => {
     expect(hasFullValidatorCoverage({ a: "image" }, true)).toBe(true);
     expect(hasFullValidatorCoverage({ a: "custom.Thing" }, true)).toBe(false);
     expect(hasFullValidatorCoverage({}, true)).toBe(false);
+  });
+});
+
+describe("graph hydration — retry safety comes from the registry", () => {
+  it("ignores a saved retry_safe a node's class never declared", async () => {
+    // Graph JSON is data. Whether re-running a node duplicates a payment is a
+    // property of its implementation, so a file claiming redo-safety must not
+    // be able to grant it.
+    const graph = await Graph.loadFromDict(
+      {
+        nodes: [{ id: "n1", type: "test.Writer", retry_safe: true }],
+        edges: []
+      },
+      {
+        resolver: async () => ({
+          nodeType: "test.Writer",
+          descriptorDefaults: {}
+        })
+      }
+    );
+    expect(graph.nodes[0].retry_safe).toBe(false);
+  });
+
+  it("takes retry_safe from the registry when the class declares it", async () => {
+    const graph = await Graph.loadFromDict(
+      { nodes: [{ id: "n1", type: "test.Pure" }], edges: [] },
+      {
+        resolver: async () => ({
+          nodeType: "test.Pure",
+          descriptorDefaults: { retry_safe: true }
+        })
+      }
+    );
+    expect(graph.nodes[0].retry_safe).toBe(true);
   });
 });

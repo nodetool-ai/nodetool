@@ -330,7 +330,7 @@ export class BoundedHandle implements SupervisorHandle {
     decision: DecisionOutcome
   ): DecisionOutcome {
     if (decision.verdict.action !== "retry") return decision;
-    const key = `${e.nodeId} ${e.invocationKey}`;
+    const key = `${e.nodeId}\u0000${e.invocationKey}`;
     const used = this._retries.get(key) ?? 0;
     if (used >= this._bounds.maxRetriesPerNode) {
       return { verdict: { action: "fail" }, decidedBy: "bounds" };
@@ -354,7 +354,7 @@ export class BoundedHandle implements SupervisorHandle {
 }
 
 function stickyKey(e: Escalation): string {
-  return `${e.nodeId} ${e.failureSignature}`;
+  return `${e.nodeId}\u0000${e.failureSignature}`;
 }
 
 function stripUndefined<T extends object>(obj: T): Partial<T> {

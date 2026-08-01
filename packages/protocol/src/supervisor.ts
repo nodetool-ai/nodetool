@@ -51,8 +51,19 @@ export const verdictSchema = z.discriminatedUnion("action", [
 
 export type Verdict = z.infer<typeof verdictSchema>;
 
-/** Who produced a verdict. Only `"agent"` involved a model. */
-export const decidedBySchema = z.enum(["agent", "sticky", "bounds", "default"]);
+/**
+ * Who produced the *applied* verdict. Only `"agent"` involved a model.
+ * `"kernel"` means the handle's answer was outside the escalation's allowed
+ * set and was replaced with `fail` — the one value that says the supervisor
+ * was overruled rather than obeyed.
+ */
+export const decidedBySchema = z.enum([
+  "agent",
+  "sticky",
+  "bounds",
+  "default",
+  "kernel"
+]);
 
 export type DecidedBy = z.infer<typeof decidedBySchema>;
 

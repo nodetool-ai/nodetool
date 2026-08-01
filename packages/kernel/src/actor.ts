@@ -34,7 +34,12 @@ import {
   inInvocationAccount,
   isRecoverableNodeError
 } from "@nodetool-ai/runtime";
-import type { Escalation, Intervention, Verdict } from "@nodetool-ai/protocol";
+import type {
+  DecidedBy,
+  Escalation,
+  Intervention,
+  Verdict
+} from "@nodetool-ai/protocol";
 import {
   computeAllowedActions,
   failureSignature,
@@ -1231,9 +1236,12 @@ export class NodeActor {
       outcome = { verdict: { action: "fail" }, decidedBy: "default" };
     }
 
-    const verdict = escalation.allowedActions.includes(outcome.verdict.action)
-      ? outcome.verdict
-      : ({ action: "fail" } as Verdict);
+    // The record has to name who produced the verdict that was *applied*. When
+    // the kernel overrules a handle, crediting the handle would hide exactly
+    // the case worth finding: a buggy or hostile supervisor.
+    const allowed = escalation.allowedActions.includes(outcome.verdict.action);
+    const verdict = allowed ? outcome.verdict : ({ action: "fail" } as Verdict);
+    const decidedBy: DecidedBy = allowed ? outcome.decidedBy : "kernel";
 
     this._emitMessage({
       type: "supervisor_decision",
@@ -1241,13 +1249,13 @@ export class NodeActor {
       node_name: this.node.name ?? this.node.type,
       escalation,
       verdict,
-      decided_by: outcome.decidedBy,
+      decided_by: decidedBy,
       cost: outcome.costUsd ?? null
     });
     this._onIntervention?.({
       escalation,
       verdict,
-      decidedBy: outcome.decidedBy,
+      decidedBy,
       costUsd: outcome.costUsd
     });
     return verdict;
@@ -1277,16 +1285,16 @@ export class NodeActor {
     const invocationKey = invocationScope.length
       ? projectLineageKey(lineage, invocationScope)
       : "";
-    const recoverable = isRecoverableNodeError(err);
+    const recoverable = isRecoverableNodeError(err) ? err : undefined;
     const candidateOutput = recoverable
-      ? redactValue(err.candidateOutput, secrets)
+      ? redactValue(recoverable.candidateOutput, secrets)
       : undefined;
 
     const allowedActions = computeAllowedActions({
       retrySafe: this.node.retry_safe === true,
       spentCostUsd: account?.costUsd ?? 0,
       createdAssets: account?.createdAssets ?? false,
-      hasCandidateOutput: recoverable,
+      hasCandidateOutput: recoverable !== undefined,
       validatorCoverage: hasFullValidatorCoverage(
         this.node.outputs ?? {},
         // Resolving a reference against run storage needs a resolver the
@@ -1306,9 +1314,7 @@ export class NodeActor {
       detail: String(
         redactValue(err instanceof Error ? err.message : String(err), secrets)
       ),
-      failureSignature: recoverable
-        ? (err.code ?? failureSignature(err))
-        : failureSignature(err),
+      failureSignature: recoverable?.code ?? failureSignature(err),
       candidateOutput,
       inputs: redactRecord(inputs, secrets),
       attempt,

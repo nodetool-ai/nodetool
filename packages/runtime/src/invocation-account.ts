@@ -14,7 +14,11 @@
  * invocations each have their own, in any completion order.
  */
 
-import { AsyncLocalStorage } from "node:async_hooks";
+// Lazily resolved so this module still loads in browser/Edge bundles. There the
+// fallback holder has no per-context isolation, and concurrent invocations
+// would share one account — acceptable only because the supervisor that reads
+// these numbers runs in the kernel, which is Node-only.
+import { AsyncLocalStorage } from "./async-local-storage.js";
 
 export interface InvocationAccount {
   /** Provider charges (USD) recorded while this invocation ran. */

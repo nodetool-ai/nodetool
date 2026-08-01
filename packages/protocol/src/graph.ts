@@ -250,6 +250,12 @@ export interface HydratedNodeDescriptor extends NodeDescriptor {
   is_streaming_output: boolean;
   is_controlled: boolean;
   is_join_node: boolean;
+  /**
+   * Resolved from the registry only. Hydration never carries a saved
+   * `retry_safe` through, so a graph file cannot claim redo-safety a node's
+   * class never declared.
+   */
+  retry_safe: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -353,7 +359,10 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
     if (migration.renameProperties) {
       const renamedData = renameKeys(next.data, migration.renameProperties);
       if (renamedData) next.data = renamedData;
-      const renamedProps = renameKeys(next.properties, migration.renameProperties);
+      const renamedProps = renameKeys(
+        next.properties,
+        migration.renameProperties
+      );
       if (renamedProps) next.properties = renamedProps;
       if (typeof next.id === "string") {
         handleRenamesByNodeId.set(next.id, migration.renameProperties);
