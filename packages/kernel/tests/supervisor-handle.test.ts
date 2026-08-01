@@ -124,20 +124,22 @@ describe("BoundedHandle — decisions and retries are capped", () => {
     }
   });
 
-  it("passes an already-aborted run signal straight through to the handle", async () => {
-    const seen: AbortSignal[] = [];
+  it("does not call the handle at all once the run is cancelled", async () => {
+    // Decisions are serialized, so a cancel mid-decision leaves a queue behind
+    // it. Waking the agent for each of those would spend money deciding the
+    // fate of a run that is already over.
+    let calls = 0;
     const bounded = new BoundedHandle({
-      async decide(_e, signal): Promise<DecisionOutcome> {
-        seen.push(signal);
+      async decide(): Promise<DecisionOutcome> {
+        calls++;
         return { verdict: { action: "skip" }, decidedBy: "agent" };
       },
       close() {}
     });
-    const cancelled = AbortSignal.abort();
-    const decision = await bounded.decide(escalation(), cancelled);
-    expect(seen[0].aborted).toBe(true);
-    // A verdict decided against a run that is already over is not applied.
+    const decision = await bounded.decide(escalation(), AbortSignal.abort());
+    expect(calls).toBe(0);
     expect(decision.verdict.action).toBe("fail");
+    expect(decision.decidedBy).toBe("bounds");
   });
 
   it("serializes decisions", async () => {

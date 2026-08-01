@@ -19,14 +19,14 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 // Python bridge is fundamentally Node-only (subprocess + raw FDs).
 // Lazy-load the builtins so the module *graph* loads off-Node;
 // instantiating PythonStdioBridge there throws at construction.
-const nodeCp = await importNodeBuiltin<typeof import("node:child_process")>(
-  "node:child_process"
-);
+const nodeCp =
+  await importNodeBuiltin<typeof import("node:child_process")>(
+    "node:child_process"
+  );
 const nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
 const nodeOs = await importNodeBuiltin<typeof import("node:os")>("node:os");
-const nodePath = await importNodeBuiltin<typeof import("node:path")>(
-  "node:path"
-);
+const nodePath =
+  await importNodeBuiltin<typeof import("node:path")>("node:path");
 
 function notOnNode(api: string): never {
   throw new Error(`${api} requires Node — PythonStdioBridge is Node-only`);
@@ -34,7 +34,8 @@ function notOnNode(api: string): never {
 type ChildProcess = ReturnType<typeof import("node:child_process").spawn>;
 const spawn = (
   ...args: Parameters<typeof import("node:child_process").spawn>
-): ChildProcess => (nodeCp ? nodeCp.spawn(...args) : notOnNode("node:child_process.spawn"));
+): ChildProcess =>
+  nodeCp ? nodeCp.spawn(...args) : notOnNode("node:child_process.spawn");
 const existsSync = (p: string): boolean =>
   nodeFs ? nodeFs.existsSync(p) : notOnNode("node:fs.existsSync");
 const homedir = (): string =>
@@ -44,10 +45,18 @@ const basename = (p: string): string =>
 const join = (...parts: string[]): string =>
   nodePath ? nodePath.join(...parts) : notOnNode("node:path.join");
 
-import { createLogger, getByteLimitEnv } from "@nodetool-ai/config";
+import {
+  createLogger,
+  getByteLimitEnv,
+  safeProcessEnv
+} from "@nodetool-ai/config";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
-import { encodeFrame, FrameDecoder, FrameSizeError } from "./python-bridge-framing.js";
+import {
+  encodeFrame,
+  FrameDecoder,
+  FrameSizeError
+} from "./python-bridge-framing.js";
 
 const log = createLogger("nodetool.runtime.python-stdio-bridge");
 import type {
@@ -85,10 +94,10 @@ const MAX_BRIDGE_FRAME_SIZE = getByteLimitEnv(
   256 * 1024 * 1024
 );
 const PYTHON_BRIDGE_ALLOWED_IN_PRODUCTION =
-  process.env["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
+  safeProcessEnv()["NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION"] === "1";
 
 function isProductionMode(): boolean {
-  return process.env["NODETOOL_ENV"] === "production";
+  return safeProcessEnv()["NODETOOL_ENV"] === "production";
 }
 
 export class PythonStdioBridge extends PythonBridgeBase {
@@ -162,8 +171,8 @@ export class PythonStdioBridge extends PythonBridgeBase {
           ...process.env,
           TQDM_DISABLE: "1",
           HF_HUB_DISABLE_PROGRESS_BARS: "1",
-          TRANSFORMERS_VERBOSITY: "error",
-        },
+          TRANSFORMERS_VERBOSITY: "error"
+        }
       });
       this._process = proc;
 
@@ -176,7 +185,9 @@ export class PythonStdioBridge extends PythonBridgeBase {
         settleError(
           new Error(
             `Python worker did not become ready within ${startupTimeoutMs}ms.` +
-              (stderrOutput.trim() ? ` Recent stderr: ${stderrOutput.trim()}` : "")
+              (stderrOutput.trim()
+                ? ` Recent stderr: ${stderrOutput.trim()}`
+                : "")
           )
         );
       }, startupTimeoutMs);

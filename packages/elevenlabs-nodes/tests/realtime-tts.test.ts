@@ -1,64 +1,79 @@
-import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const sentMessages: Array<Record<string, unknown>> = [];
-const lifecycleEvents: string[] = [];
-const wsUrls: string[] = [];
+/**
+ * `vi.mock` factories are hoisted above the module body, and the `ws` mock
+ * is pulled in while the runtime's python-websocket-bridge is evaluated —
+ * before this file's own declarations initialize. So the mock and the state
+ * it records live in `vi.hoisted`, which runs first by construction.
+ */
+const { sentMessages, lifecycleEvents, wsUrls, MockWebSocket } =
+  await vi.hoisted(async () => {
+    const { EventEmitter } = await import("node:events");
 
-class MockWebSocket extends EventEmitter {
-  static readonly OPEN = 1;
-  static readonly CLOSED = 3;
+    const sentMessages: Array<Record<string, unknown>> = [];
+    const lifecycleEvents: string[] = [];
+    const wsUrls: string[] = [];
 
-  readyState = 0;
+    class MockWebSocket extends EventEmitter {
+      static readonly OPEN = 1;
+      static readonly CLOSED = 3;
 
-  constructor(url: string, _opts?: Record<string, unknown>) {
-    super();
-    wsUrls.push(url);
+      readyState = 0;
 
-    setTimeout(() => {
-      this.readyState = MockWebSocket.OPEN;
-      this.emit("open");
-    }, 0);
-  }
+      constructor(url: string, _opts?: Record<string, unknown>) {
+        super();
+        wsUrls.push(url);
 
-  send(payload: string): void {
-    const parsed = JSON.parse(payload) as Record<string, unknown>;
-    sentMessages.push(parsed);
+        setTimeout(() => {
+          this.readyState = MockWebSocket.OPEN;
+          this.emit("open");
+        }, 0);
+      }
 
-    // Respond to EOS (empty text) with isFinal
-    if (parsed.text === "") {
-      lifecycleEvents.push("eos");
-      setTimeout(() => {
-        this.emit("message", Buffer.from(JSON.stringify({ isFinal: true })));
-      }, 0);
-      return;
+      send(payload: string): void {
+        const parsed = JSON.parse(payload) as Record<string, unknown>;
+        sentMessages.push(parsed);
+
+        // Respond to EOS (empty text) with isFinal
+        if (parsed.text === "") {
+          lifecycleEvents.push("eos");
+          setTimeout(() => {
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify({ isFinal: true }))
+            );
+          }, 0);
+          return;
+        }
+
+        // Respond to non-init text with an audio chunk
+        const text = parsed.text as string | undefined;
+        if (text && text.trim() && text !== " ") {
+          setTimeout(() => {
+            this.emit(
+              "message",
+              Buffer.from(
+                JSON.stringify({
+                  audio: "ZmFrZS1hdWRpbw==", // base64: "fake-audio"
+                  isFinal: false
+                })
+              )
+            );
+          }, 0);
+        }
+      }
+
+      close(): void {
+        lifecycleEvents.push("close");
+        this.readyState = MockWebSocket.CLOSED;
+        setTimeout(() => {
+          this.emit("close", 1000, Buffer.from(""));
+        }, 0);
+      }
     }
 
-    // Respond to non-init text with an audio chunk
-    const text = parsed.text as string | undefined;
-    if (text && text.trim() && text !== " ") {
-      setTimeout(() => {
-        this.emit(
-          "message",
-          Buffer.from(
-            JSON.stringify({
-              audio: "ZmFrZS1hdWRpbw==", // base64: "fake-audio"
-              isFinal: false
-            })
-          )
-        );
-      }, 0);
-    }
-  }
-
-  close(): void {
-    lifecycleEvents.push("close");
-    this.readyState = MockWebSocket.CLOSED;
-    setTimeout(() => {
-      this.emit("close", 1000, Buffer.from(""));
-    }, 0);
-  }
-}
+    return { sentMessages, lifecycleEvents, wsUrls, MockWebSocket };
+  });
 
 vi.mock("ws", () => ({
   WebSocket: MockWebSocket

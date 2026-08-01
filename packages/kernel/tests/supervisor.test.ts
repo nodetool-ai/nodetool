@@ -782,6 +782,13 @@ describe("supervisor — streaming", () => {
     // one the PRD reports as "kept the chunks it had finished".
     expect(result.status).toBe("completed");
     expect(received).toEqual(["chunk-0", "chunk-1"]);
+    // The invocation committed early, but it did commit: the marker replay and
+    // asset autosave key off must carry what the stream kept.
+    const committed = result.messages.filter(
+      (m) => m.type === "generation_complete" && m.node_id === "work"
+    );
+    expect(committed).toHaveLength(1);
+    expect(committed[0].outputs).toEqual({ value: "chunk-1" });
   });
 
   it("fails the node when routing a frame throws, without escalating", async () => {

@@ -45,11 +45,20 @@ export function inInvocationAccount<T>(
   return store.run(account, fn);
 }
 
-/** Charge the invocation currently on the async stack, if any. */
+/**
+ * Charge the invocation currently on the async stack, if any.
+ *
+ * A non-finite amount means a provider reported something we cannot add up —
+ * and "cannot add up" must not read as "free", or the invocation would look
+ * cost-free and re-earn a retry after a real charge. It is recorded as a
+ * nominal charge instead: the number is meaningless, the fact of spending is
+ * not. `costUsd` stays finite so the escalation record remains JSON-safe.
+ */
 export function recordInvocationCost(usd: number | undefined | null): void {
-  if (!usd) return;
+  if (usd === undefined || usd === null) return;
   const account = store.getStore();
-  if (account) account.costUsd += usd;
+  if (!account) return;
+  account.costUsd += Number.isFinite(usd) ? usd : Number.MIN_VALUE;
 }
 
 /** Mark the invocation currently on the async stack as having written an asset. */

@@ -292,11 +292,18 @@ export class BoundedHandle implements SupervisorHandle {
       return { verdict: { action: "fail" }, decidedBy: "bounds" };
     }
 
-    // The decision signal is the run signal plus a timeout, so `cancel()` is
-    // instant *and* free: a pending decision is killed, not un-awaited.
+    // Cancel is free, not merely fast. Decisions are serialized, so a cancel
+    // during a slow decision leaves a queue behind it; calling the handle for
+    // each of those would spend real money deciding the fate of a run that is
+    // already over.
+    if (runSignal.aborted) {
+      return { verdict: { action: "fail" }, decidedBy: "bounds" };
+    }
+
+    // The decision signal is the run signal plus a timeout, so an in-flight
+    // decision is killed rather than un-awaited.
     const timeout = new AbortController();
     const onRunAbort = () => timeout.abort();
-    if (runSignal.aborted) timeout.abort();
     runSignal.addEventListener("abort", onRunAbort, { once: true });
     const timer = setTimeout(
       () => timeout.abort(),

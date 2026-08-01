@@ -17,6 +17,16 @@ export const IS_NODE =
     "string";
 
 /**
+ * `process` is undefined in browser/edge runtimes, where a bare `process.env`
+ * read throws `ReferenceError` — including at module scope, which takes the
+ * whole bundle down at import time rather than at the call that wanted the
+ * variable. Any module that can end up in a browser graph reads env through
+ * this instead.
+ */
+export const safeProcessEnv = (): Record<string, string | undefined> =>
+  typeof process !== "undefined" && process.env ? process.env : {};
+
+/**
  * Dynamic import that bundlers can't statically resolve.
  *
  * The Function-constructor body hides the `import()` call from Vite /

@@ -1454,6 +1454,11 @@ export class NodeActor {
           case "end_stream":
             this._completeOutputSlots();
             this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
+            // `end_stream` keeps what the stream produced, so the invocation
+            // committed — it just committed early. Skipping the commit marker
+            // would hide those outputs from replay and asset autosave, which
+            // is the "silent data loss dressed as success" the PRD forbids.
+            this._emitGenerationComplete(this._latestResult, inputs);
             return;
           default:
             throw err;
