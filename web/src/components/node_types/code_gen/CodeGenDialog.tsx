@@ -73,6 +73,12 @@ interface FailureCopy {
 /** Every failure variant gets its own wording — including the client-only two. */
 export function describeFailure(failure: CodeGenFailure): FailureCopy {
   switch (failure.code) {
+    case "disabled":
+      return {
+        title: "Code generation is off on this server",
+        detail:
+          "The deployment has not enabled AI authoring for Code nodes. Write the code by hand, or ask an administrator to turn it on."
+      };
     case "provider_unavailable":
       return {
         title: failure.provider

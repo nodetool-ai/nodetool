@@ -15,7 +15,7 @@
  *   generate (mutation) — CodeGenResponse
  */
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, isCodeGenerationEnabled } from "@nodetool-ai/config";
 import { CodePlanner } from "@nodetool-ai/agents";
 import {
   getProvider,
@@ -134,6 +134,17 @@ export const codeGenRouter = router({
     .input(codeGenRequest)
     .output(codeGenResponse)
     .mutation(async ({ ctx, input, signal }): Promise<CodeGenResponse> => {
+      // The rollout flag is a server-side gate, not a UI preference: hiding the
+      // entry points still leaves an authenticated caller — or any local-mode
+      // client — able to spend provider credits on a deployment that has the
+      // feature off. Checked before a slot or a provider is touched.
+      if (!isCodeGenerationEnabled()) {
+        return errorResponse({
+          code: "disabled",
+          message: "Code generation is not enabled on this server."
+        });
+      }
+
       if (!acquireSlot(ctx.userId)) {
         return errorResponse({
           code: "rate_limited",

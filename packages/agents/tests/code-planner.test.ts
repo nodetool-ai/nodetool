@@ -296,4 +296,49 @@ describe("codeGenSpanAttributes", () => {
     expect(serialized).not.toContain("ACME");
     expect(serialized).not.toContain("return {");
   });
+
+  it("rejects a submission that renames the seeded input, then accepts the fix", () => {
+    // The caller already wired an edge to `text`; a submission calling it
+    // `content` would leave that edge pointing at a handle the node lacks.
+    const renamed = submission({
+      inputs: [{ name: "content", type: STR }],
+      code: `const words = content.split(" ");\nreturn { words, count: words.length };`
+    });
+    const provider = createScriptedProvider([
+      { id: "1", name: "submit_code", args: renamed },
+      { id: "2", name: "submit_code", args: submission() }
+    ] as ToolCall[]);
+
+    return drain(
+      makePlanner(provider, { inputs: [{ name: "text", type: STR }] })
+    ).then(({ result }) => {
+      expect(result.status).toBe("ok");
+      if (result.status !== "ok") return;
+      expect(result.submission.inputs.map((i) => i.name)).toEqual(["text"]);
+    });
+  });
+
+  it("fails when every round drops the seeded input", async () => {
+    const renamed = submission({
+      inputs: [{ name: "content", type: STR }],
+      code: `const words = content.split(" ");\nreturn { words, count: words.length };`
+    });
+    const provider = createScriptedProvider(
+      Array.from({ length: 3 }, (_, i) => ({
+        id: String(i),
+        name: "submit_code",
+        args: renamed
+      })) as ToolCall[]
+    );
+
+    const { result } = await drain(
+      makePlanner(provider, { inputs: [{ name: "text", type: STR }] })
+    );
+
+    expect(result.status).toBe("error");
+    if (result.status !== "error") return;
+    expect(result.error.code).toBe("no_valid_submission");
+    if (result.error.code !== "no_valid_submission") return;
+    expect(result.error.issues.join(" ")).toContain('Input "text"');
+  });
 });

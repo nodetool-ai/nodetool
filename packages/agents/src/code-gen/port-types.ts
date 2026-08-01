@@ -97,6 +97,57 @@ const checkType = (
   }
 };
 
+/** The name a type is compared under: its alias target, else itself. */
+const normalizedTypeName = (type: TypeLike): string => {
+  const raw = type.type.trim().toLowerCase();
+  return ALIASES.get(raw) ?? raw;
+};
+
+const typeArgs = (type: TypeLike): TypeLike[] =>
+  Array.isArray(type.type_args) ? type.type_args.filter(isTypeLike) : [];
+
+/**
+ * Whether a value typed `seeded` still flows through a port the model declared
+ * as `submitted`.
+ *
+ * Deliberately lenient — it exists to catch a seeded `list` coming back as
+ * `str`, not to re-implement the editor's `isConnectable`. Anything it cannot
+ * decide (a custom node type, a container whose arguments were dropped) counts
+ * as compatible, so a legitimate submission is never rejected on a type the
+ * checker does not know about.
+ */
+export function portTypesCompatible(seeded: unknown, submitted: unknown): boolean {
+  if (!isTypeLike(seeded) || !isTypeLike(submitted)) return true;
+
+  const from = normalizedTypeName(seeded);
+  const to = normalizedTypeName(submitted);
+  if (from === "any" || to === "any") return true;
+  // `str` and `enum` interchange on a wire, and a union is opaque here.
+  if (from === "union" || to === "union") return true;
+  if ((from === "str" && to === "enum") || (from === "enum" && to === "str")) {
+    return true;
+  }
+  if (from !== to) return false;
+
+  // Same container, compared element-wise only when both sides say what they
+  // hold — a bare `list` is a widening, not a mismatch.
+  const fromArgs = typeArgs(seeded);
+  const toArgs = typeArgs(submitted);
+  if (fromArgs.length === 0 || toArgs.length === 0) return true;
+  if (fromArgs.length !== toArgs.length) return true;
+  return fromArgs.every((arg, index) =>
+    portTypesCompatible(arg, toArgs[index])
+  );
+}
+
+/** Human-readable type name for an error message: `list[str]`. */
+export function formatPortType(type: unknown): string {
+  if (!isTypeLike(type)) return "unknown";
+  const args = typeArgs(type);
+  if (args.length === 0) return type.type;
+  return `${type.type}[${args.map(formatPortType).join(", ")}]`;
+}
+
 /**
  * Errors for every declared port whose type is a known alias. Unrecognized
  * names that are not aliases pass — they may be legitimate node types.

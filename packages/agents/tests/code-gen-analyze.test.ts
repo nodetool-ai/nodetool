@@ -176,4 +176,34 @@ describe("analyzeGeneratedCode", () => {
     );
     expect(result.ok).toBe(true);
   });
+
+  it("rejects a static import that the runtime wrapper cannot hold", () => {
+    // Parsed as a module, so `import` reads as an import — but the runtime
+    // splices this text into an async function, where it is a syntax error.
+    const result = analyzeGeneratedCode(
+      `import dayjs from "dayjs";\nreturn { today: dayjs().format() };`,
+      ["today"]
+    );
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" | ")).toContain("import");
+  });
+
+  it("rejects a top-level export", () => {
+    const result = analyzeGeneratedCode(
+      `export const helper = 1;\nreturn { helper };`,
+      ["helper"]
+    );
+    expect(result.ok).toBe(false);
+    expect(result.errors.join(" | ")).toContain("export");
+  });
+
+  it("leaves a dynamic import expression to the sandbox", () => {
+    // `import(...)` is a call expression, not a module declaration: it parses
+    // inside a function and fails at run time, which is the sandbox's business.
+    const result = analyzeGeneratedCode(
+      `const mod = await import("dayjs");\nreturn { mod };`,
+      ["mod"]
+    );
+    expect(result.ok).toBe(true);
+  });
 });

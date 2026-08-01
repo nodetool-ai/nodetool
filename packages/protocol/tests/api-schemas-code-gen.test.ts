@@ -175,6 +175,10 @@ describe("codeGenRequest", () => {
 
 describe("codeGenError", () => {
   const variants: Record<(typeof codeGenErrorCodes)[number], unknown> = {
+    disabled: {
+      code: "disabled",
+      message: "Code generation is not enabled on this server."
+    },
     provider_unavailable: {
       code: "provider_unavailable",
       message: "No API key for anthropic",

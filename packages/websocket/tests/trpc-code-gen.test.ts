@@ -6,7 +6,7 @@
  * in-flight cap, cancellation, and the rule that nothing the user typed and
  * nothing the model wrote reaches the log line.
  */
-import { describe, it, expect, beforeEach, vi } from "vitest";
+import { describe, it, expect, afterEach, beforeEach, vi } from "vitest";
 import type { BaseProvider, ProviderStreamItem } from "@nodetool-ai/runtime";
 
 const mocks = vi.hoisted(() => ({
@@ -141,6 +141,27 @@ describe("codeGen router", () => {
     mocks.isProviderConfigured.mockResolvedValue(true);
     mocks.getSecret.mockResolvedValue("test-key");
     resetCodeGenInFlight();
+    process.env["NODETOOL_CODE_GENERATION"] = "1";
+  });
+
+  afterEach(() => {
+    delete process.env["NODETOOL_CODE_GENERATION"];
+  });
+
+  it("refuses to generate when the deployment has the flag off", async () => {
+    delete process.env["NODETOOL_CODE_GENERATION"];
+    mocks.getProvider.mockResolvedValue(scriptedProvider());
+    const caller = createCaller(makeCtx());
+
+    const result = await caller.codeGen.generate(REQUEST);
+
+    expect(result).toMatchObject({
+      status: "error",
+      error: { code: "disabled" }
+    });
+    // No slot taken, no provider resolved: the gate is ahead of both.
+    expect(mocks.isProviderConfigured).not.toHaveBeenCalled();
+    expect(mocks.getProvider).not.toHaveBeenCalled();
   });
 
   it("returns the validated submission for a configured provider", async () => {
