@@ -13,6 +13,7 @@
 
 import { createTRPCClient, httpBatchLink, type TRPCClient, type TRPCLink } from '@trpc/client';
 import { createTRPCReact } from '@trpc/react-query';
+import type { inferRouterOutputs } from '@trpc/server';
 import type { AppRouter } from '@nodetool-ai/websocket/trpc';
 
 import { getApiHost } from '../services/apiHost';
@@ -20,6 +21,9 @@ import { useAuthStore } from '../stores/AuthStore';
 
 /** React Query bindings (`trpc.workflows.list.useQuery(...)`, etc.). */
 export const trpc = createTRPCReact<AppRouter>();
+
+/** Procedure result types, e.g. `RouterOutputs['workflows']['list']`. */
+export type RouterOutputs = inferRouterOutputs<AppRouter>;
 
 function authHeaders(): Record<string, string> {
   const token = useAuthStore.getState().session?.access_token;
