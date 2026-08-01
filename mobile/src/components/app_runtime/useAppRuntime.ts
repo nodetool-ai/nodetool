@@ -516,6 +516,7 @@ export const useAppRuntime = (
       try {
         await runnerStore.getState().run(params, workflow, {
           jobId: start.invocationId,
+          operationId: target.id,
           ...(application ? { application } : {}),
         });
       } catch (error) {

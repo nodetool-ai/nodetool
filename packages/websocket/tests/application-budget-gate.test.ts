@@ -190,13 +190,66 @@ describe("application budget gate", () => {
     expect(await listInvocations("no-such-app")).toEqual([]);
   });
 
-  it("bills a release run to the released version, not the claimed one", async () => {
+  it("bills a release run to the released version", async () => {
+    await publishApplication(await seedApp());
+
+    await run({ application_id: APP, application_version: 1 });
+
+    const [record] = await listInvocations(APP);
+    expect(record).toMatchObject({ invocationId: "job-1", version: 1 });
+  });
+
+  it("bills a stale client's run to the version it actually ran", async () => {
+    // v1 is published, then v2 supersedes it. A client that loaded the app in
+    // between still holds v1's snapshot and executes it, so v1 is what the
+    // ledger has to say — crediting v2 would corrupt the new release's metrics.
+    const app = await seedApp();
+    await publishApplication(app);
+    await publishApplication(app);
+
+    await run({ application_id: APP, application_version: 1 });
+
+    const [record] = await listInvocations(APP);
+    expect(record).toMatchObject({ invocationId: "job-1", version: 1 });
+    expect(startJob).toHaveBeenCalledOnce();
+    // The client is told it is behind; nothing else in a job's updates would
+    // reveal that a newer release exists.
+    const notice = messages(ws).find((m) => m.type === "notification");
+    expect(notice).toMatchObject({ severity: "warning" });
+    expect(String(notice?.content)).toMatch(/version 2 has since been released/);
+  });
+
+  it("refuses a run claiming a version the application never had", async () => {
     await publishApplication(await seedApp());
 
     await run({ application_id: APP, application_version: 99 });
 
+    expect(startJob).not.toHaveBeenCalled();
+    const failure = messages(ws).find(
+      (m) => m.type === "job_update" && m.status === "failed"
+    );
+    expect(failure).toMatchObject({ error_code: "INVALID_INPUT" });
+    // An unsupportable claim bills nothing — not the release it named, and not
+    // the release that happens to be current.
+    expect(await listInvocations(APP)).toEqual([]);
+  });
+
+  it("records the operation a run belongs to", async () => {
+    await seedApp();
+
+    await run({ application_id: APP, operation_id: "main" });
+
     const [record] = await listInvocations(APP);
-    expect(record).toMatchObject({ invocationId: "job-1", version: 1 });
+    expect(record).toMatchObject({ invocationId: "job-1", operationId: "main" });
+  });
+
+  it("records an empty operation for a client that sends none", async () => {
+    await seedApp();
+
+    await run({ application_id: APP });
+
+    const [record] = await listInvocations(APP);
+    expect(record).toMatchObject({ operationId: "" });
   });
 
   it("refuses a release run of an app that has released nothing", async () => {
@@ -275,6 +328,10 @@ describe("application invocation settlement", () => {
 
   beforeEach(async () => {
     await initTestDb();
+    // Ledger rows hang off an application row — the foreign key cascades a
+    // deleted app's spend away — so both apps these tests book against exist.
+    await seedApp();
+    await seedApp({ id: "other-app" });
     vi.clearAllMocks();
     ws = new MockWebSocket();
     runner = new UnifiedWebSocketRunner({

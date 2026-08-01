@@ -51,6 +51,11 @@ export type RunOptions = {
    * `version` is the released version, absent for a draft run.
    */
   application?: { id: string; version?: number | null };
+  /**
+   * The app operation this run executes. Recorded on the ledger row so
+   * per-operation spend reports reflect which operation actually ran.
+   */
+  operationId?: string;
 };
 
 export type WorkflowRunner = {
@@ -234,6 +239,7 @@ export const createWorkflowRunnerStore = (
         // and files them in the release ledger.
         application_id: options?.application?.id ?? null,
         application_version: options?.application?.version ?? null,
+        operation_id: options?.operationId ?? null,
       };
 
       await webSocketService.send(
