@@ -69,10 +69,10 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 | # | Scenario | Requirement it produced |
 |---|---|---|
 | 1 | Transient 429 mid-batch (A) | Provider-level backoff handles this *below* the supervisor. The supervisor wakes only when a node's own error handling is exhausted. |
-| 2 | 7 of 200 items fail the same way (A) | One decision, applied to the rest. First failure wakes the agent; its verdict can stick for the node, so failures 2–7 resolve instantly and free. |
+| 2 | 7 of 200 items fail the same way (A) | One decision, applied to the rest. First failure wakes the agent; its verdict can stick for *matching failures* on that node (same error signature), so failures 2–7 resolve instantly and free — while a different error on the same node still gets its own decision. |
 | 3 | Skipped items vanish silently (A) | Skips are always audited. The run ends **"Completed — supervised"**, never plain "Completed", and the report says exactly what was skipped. |
 | 4 | Repair produces a wrongly-shaped value (B) | Repaired values are type-checked against the node's declared outputs before entering the graph; invalid repairs bounce back to the agent. |
-| 5 | Retry after money was spent (B, C) | Retry is withheld when the failed step already recorded provider cost or created an asset. The agent can't double-charge the user. |
+| 5 | Retry after money was spent or an external write happened (B, C) | Retry is withheld when the failed step recorded provider cost, created an asset, **or is a node that writes externally** (publish, upsert, notify) — those can complete their side effect and then fail without recording anything. The agent can't double-charge or double-post. |
 | 6 | Streaming node fails mid-stream (C) | Retry only if nothing was emitted yet; Repair never. Otherwise the choice is Stop or end-the-stream. |
 | 7 | One bad repair cascades downstream (A) | Decisions carry lineage. The report shows one cause, not twelve symptoms, and attributes downstream failures to the verdict that caused them. |
 | 8 | The supervisor itself hangs or dies | Escalation has a timeout and honors Cancel. Any supervisor failure resolves as Stop. Cancel always works, instantly. |
@@ -86,7 +86,7 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 1. **Silent on success.** A clean run with supervision on is byte-for-byte the run you'd get with it off, at zero added cost. The supervisor is a smoke detector, not a co-pilot.
 2. **Four verbs, user words.** Retry, Repair, Skip, Stop. No configuration matrix, no policy DSL. If a behavior can't be explained in one of these four words, it doesn't ship.
 3. **Never silent, never sneaky.** Every intervention is visible in the run status, on the node, and in the report. "Completed — supervised" is a distinct state the user learns to read in a week.
-4. **Money is sacred.** The supervisor can never cause a second charge for work already paid for, and its own spending is capped by two numbers the user can see.
+4. **Money is sacred.** The supervisor can never cause a second charge or a duplicate external write for work already done, and its own spending sits under a hard dollar cap the user can see.
 5. **The graph is the policy.** Want a quality bar? Add an Assert node. Want a fallback? Draw the branch. The supervisor handles the failures you *didn't* plan for; the ones you can foresee belong in the graph where they're visible and editable.
 
 ---
@@ -95,15 +95,18 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 
 ### 6.1 Turning it on
 
-One toggle, next to the Run button: **Supervisor**. On by default for triggered (unattended) runs, off by default for interactive runs — when you're watching, you *are* the supervisor.
+One toggle, next to the Run button: **Supervisor**. The end state: on by default for triggered (unattended) runs, off by default for interactive runs — when you're watching, you *are* the supervisor. Until the evaluation and data-safety gates pass (§10 phase 4), it ships off by default everywhere.
 
-Expanding the toggle shows exactly three settings:
+Turning it on is also a data decision: failure context (the failing step's inputs and error) is sent to the supervisor model, with secrets masked. The toggle's help text says so in one sentence.
+
+Expanding the toggle shows four settings:
 
 | Setting | Default | Meaning |
 |---|---|---|
 | Model | workspace default | which model makes the calls |
 | Max decisions | 10 | after this, remaining failures fail normally |
 | Max retries per step | 2 | per failed step, across all verdicts |
+| Cost cap | $0.50 | hard ceiling on the supervisor's own spending, checked before every call |
 
 No per-node configuration. No policy editor. (Deliberately — see §9.)
 
@@ -154,7 +157,7 @@ An agent-facing entry point runs a workflow *as* an agent: same streaming interf
 
 | Verb | Report line reads like | When the agent may use it |
 |---|---|---|
-| **Retry** | "retried with a 30s timeout → succeeded" | transient-looking failures; never after money was spent on the step |
+| **Retry** | "retried with a 30s timeout → succeeded" | transient-looking failures; never after the step spent money, wrote an asset, or is one that writes externally |
 | **Repair** | "provider returned broken JSON; supervisor extracted the valid fields" | output exists but is malformed; repaired value must type-check |
 | **Skip** | "skipped item 147 (page requires login)" | the item is dispensable and the run is more valuable finished; always itemized in the report |
 | **Stop** | "stopping: the API key is invalid, so all remaining items would fail" | continuing would waste money or produce garbage |
@@ -196,5 +199,5 @@ Skip is the verb the agent is instructed to distrust most: silent data loss dres
 |---|---|---|
 | 1 | Escalation hook in the kernel, fail-closed default; audited statuses | nothing changes; groundwork only, behavior-preserving |
 | 2 | Supervisor agent + four verbs; CLI `--supervise`; intervention record in `--json` | CLI users get the full feature |
-| 3 | Editor toggle, shield badges, intervention feed, run-report section; trigger default-on | the product surface |
-| 4 | Workflows-as-agents entry point; chat integration; eval suite in CI | "run it and deal with hiccups" |
+| 3 | Editor toggle, shield badges, intervention feed, run-report section (all opt-in) | the product surface |
+| 4 | Workflows-as-agents entry point; chat integration; eval suite in CI; **then** trigger default-on, gated on the eval bar and the data-safety checklist | "run it and deal with hiccups" |

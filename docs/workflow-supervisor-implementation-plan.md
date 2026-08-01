@@ -25,22 +25,23 @@ PRs marked ∥ can proceed in parallel once their listed dependency lands.
 
 The seam, fail-closed. Zero behavior change.
 
-- `packages/protocol/src/supervisor.ts`: `Escalation`, `Verdict`, message schemas `supervisor_escalation` / `supervisor_decision`; add to the `ProcessingMessage` union.
-- `packages/kernel/src/supervisor.ts`: `SupervisorHandle` interface, `FailClosedHandle` default.
+- `packages/protocol/src/supervisor.ts`: `Escalation` (incl. `failureSignature`, `candidateOutput`, `declaredSideEffects`), `Verdict`, message schemas `supervisor_escalation` / `supervisor_decision`; add to the `ProcessingMessage` union.
+- `packages/kernel/src/supervisor.ts`: `SupervisorHandle` interface (`decide(e, signal)`), `FailClosedHandle` default.
+- node-sdk: `RecoverableNodeError` (carries the malformed candidate output) and the `sideEffects` node-metadata flag; declare it on the obvious external-write nodes (`Publish`, `Upsert`, notification and payment-shaped nodes).
 - `packages/kernel/src/runner.ts`: `WorkflowRunnerOptions.supervisor`, wire `escalate` onto the execution context, `interventions` on `RunResult`.
-- `packages/kernel/src/actor.ts`: wrap invocation execution per design §5.1 — buffered/correlated path first, controlled path second. `WorkflowSuspendedError` passes through untouched.
-- Populate `Escalation.spentCostUsd` / `createdAssets` from `ProcessingContext` tracking, scoped per invocation.
+- `packages/kernel/src/actor.ts`: wrap invocation execution per design §5.1 — buffered/correlated path first, controlled path second. `WorkflowSuspendedError` passes through untouched. Skip = `drop()` per output slot (design §5.2), never a bare return.
 - **Audit while in here:** provider-level transient retry in `packages/runtime/src/providers/` (design §10.3). File issues per gap; fixes land in runtime, not this PR.
-- Tests (`packages/kernel/tests/`): scripted `SupervisorHandle` doubles driving every verdict against fan-out, controlled, and single-fire nodes; retry re-invokes with merged properties; skip produces untaken-branch pruning downstream; substitute type-check bounces invalid shapes; no-supervisor runs byte-identical to before (message-stream snapshot).
+- Tests (`packages/kernel/tests/`): scripted `SupervisorHandle` doubles driving every verdict against fan-out, controlled, and single-fire nodes; retry re-invokes with merged properties; **skip on a correlated key prunes a downstream join whose other input already buffered** (the lineage_done case); substitute type-check bounces invalid shapes; no-supervisor runs byte-identical to before (message-stream snapshot).
 
-### PR 2 — Bounds, money guard, streaming carve-out
+### PR 2 — Bounds, retry safety, streaming carve-out
 
 Still no LLM. Depends on PR 1.
 
-- `BoundedHandle` wrapper in kernel: `maxDecisions`, `maxRetriesPerNode`, decision timeout racing the run's `AbortSignal`; `decidedBy: "bounds" | "default"` stamping.
-- Verdict-schema narrowing: strip `retry` when money/assets spent (design §5.3); streaming-node verdict sets per design §5.4, including the `end-stream` mapping.
-- Sticky-verdict cache for `applyTo: "node"` (`skip`/`fail` only), `decidedBy: "sticky"`.
-- Tests: bounds degrade to deterministic fail; cancel during a pending decision resolves instantly; mid-stream failure offers only the narrowed set; sticky skip resolves the 7-of-200 case with one `decide()` call.
+- **Invocation-scoped cost/asset tracking** in `ProcessingContext`: a per-invocation scope pushed around each `process()` call (stacked, so nested sub-workflow runs attribute correctly). This is new plumbing — today cost aggregates per run in one slot and no asset-created flag exists.
+- `BoundedHandle` wrapper in kernel: `maxDecisions`, `maxRetriesPerNode`, `maxSupervisorCostUsd`, per-decision timeout; every `decide()` gets a derived `AbortSignal` (run signal + timeout); `decidedBy: "bounds" | "default"` stamping.
+- Verdict-schema narrowing: strip `retry` unless cost-free ∧ asset-free ∧ `!sideEffects` (design §5.3); streaming-node verdict sets per design §5.4, including the `end-stream` mapping.
+- Sticky-verdict cache keyed by `(nodeId, failureSignature)` (`skip`/`fail` only), `decidedBy: "sticky"`; signature normalization (error class + stable code, never message text).
+- Tests: bounds degrade to deterministic fail; cancel during a pending decision resolves instantly; a side-effecting node's schema has no retry arm; mid-stream failure offers only the narrowed set; sticky skip resolves the 7-of-200 case with one `decide()` call while a *different* error class on the same node still escalates.
 
 ## Phase B — the agent and the CLI
 
@@ -48,11 +49,12 @@ Still no LLM. Depends on PR 1.
 
 Depends on PR 2.
 
-- `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema`, serialized queue.
-- `packages/agents/src/supervisor/tools.ts`: `get_run_state`, `read_node_output` (read-only, truncated).
+- `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema`, serialized queue; the `decide()` signal threads through `StepExecutor` into `provider.generateLoop({signal})` so abort kills the in-flight LLM request; `maxSupervisorCostUsd` checked before **every** provider call, mid-decision included.
+- **Redaction layer** (design §6.1) at the handle boundary: secret-value masking + sensitive-field-name filtering over `inputs`, `detail`, `candidateOutput`, and tool results. No prompt content bypasses it.
+- `packages/agents/src/supervisor/tools.ts`: `get_run_state`, `read_node_output` (read-only, redacted, truncated).
 - `packages/agents/src/supervisor/prompt.ts`: verb semantics, skip-distrust, one-line rationale requirement.
 - `supervisor:` memory keys for decisions + rationales.
-- Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; supervisor exceptions and timeouts resolve as `fail`.
+- Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; supervisor exceptions and timeouts resolve as `fail`; abort mid-decision cancels the provider call; a secret value planted in a node input never appears in the outbound prompt; cost cap trips mid-decision.
 
 ### PR 4 — CLI surface ∥ (with PR 5)
 
@@ -68,7 +70,7 @@ Depends on PR 3.
 Depends on PR 3.
 
 - `AgentOptions.graph?: GraphData | { workflowId: string }`; fourth branch in `Agent._executeImpl`: hydrate, run with self as supervisor, forward messages, `getResults()` returns run outputs.
-- Websocket: `supervise` flag on run requests; forward `supervisor_*` messages to clients; trigger-initiated runs default on.
+- Websocket: `supervise` flag on run requests; forward `supervisor_*` messages to clients. Trigger rows carry the flag but it **defaults to off** — the flip to default-on belongs to PR 8's gate, nowhere earlier.
 - Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream.
 
 ## Phase C — the product surface
@@ -77,7 +79,7 @@ Depends on PR 3.
 
 Depends on PR 4 (record shape frozen).
 
-- Run-bar **Supervisor** toggle + three settings (model, max decisions, max retries); default on for triggered runs, off for interactive.
+- Run-bar **Supervisor** toggle + settings (model, max decisions, max retries, cost cap); off by default everywhere until PR 8. Toggle help text states what failure context is shared and with which model (the consent surface, design §6.1).
 - Shield badges per verdict on nodes; "supervisor deciding…" node state; intervention feed panel (appears on first intervention only).
 - Run report **Interventions** section with itemized skips; "Completed — supervised" derived display state.
 - All via `ui_primitives`; feed cards reuse the chat agent-step card family.
@@ -95,7 +97,7 @@ Depends on PR 5–7.
 
 - `ReplayHandle` (design §8) as the deterministic test double.
 - `nodetool eval supervisor` in `packages/agents/src/evals/`: fault-injection cases over the three PRD reference shapes (transient error, malformed output, poisoned item, mid-stream failure, budget exhaustion); metrics: recovery rate, decisions/run, false-wake rate, cost. `--min-success` CI gate like the other suites.
-- Flip trigger-run default to on once recovery rate ≥ the PRD's 60% bar.
+- Flip trigger-run default to on only when **both** gates pass: recovery rate ≥ the PRD's 60% bar, and the data-boundary requirements (design §6.1 — redaction shipped and tested, provider allow-list enforced, consent copy in place) are verified. Until then everything ships opt-in.
 - Docs: user guide page; PRD/design status → Shipped.
 
 ---
@@ -114,4 +116,5 @@ Two people: one takes 1→2→3 (kernel/agents), the other starts PR 7 after PR 
 - **The actor catch-path has three execution modes** (correlated, controlled, streaming) and the hook must behave identically in each. Mitigation: PR 1 lands correlated + controlled with the streaming carve-out stubbed to `fail`; PR 2 completes streaming. Snapshot tests on unsupervised runs guard regressions.
 - **Verdict quality is unproven until PR 8.** The eval suite arrives last but gates the only risky default (trigger default-on). Everything before it ships opt-in.
 - **Provider retry gaps** (design §10.3) would flood the supervisor with transient escalations. The PR 1 audit exists to surface this before PR 3 makes it expensive.
-- **Invocation-scoped cost tracking** may need plumbing if `ProcessingContext` only aggregates per-run today; verify in PR 1 before the money guard in PR 2 depends on it.
+- **Invocation-scoped cost tracking is new plumbing** (confirmed: `ProcessingContext` aggregates per run, no asset flag). It is a first-class PR 2 deliverable; if the stacked-scope approach fights the context's structure, PR 2 grows rather than the retry-safety rule weakening.
+- **Cost/asset tracking cannot see external writes.** The `sideEffects` declaration is the only defense for Publish/Upsert/Notify-shaped nodes, and it depends on node authors declaring it. Mitigation: PR 1 sweeps existing node packages for external-write nodes and declares them in the same PR; the review checklist for new nodes gains the question.
