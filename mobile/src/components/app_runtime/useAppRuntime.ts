@@ -8,10 +8,11 @@
  * with a live one — live in `@nodetool-ai/app-runtime`; this hook is the React
  * Native adapter around them.
  *
- * Run identity is the load-bearing part: every invocation this app starts is
- * registered by its `job_id`, and a streaming message for any other job is
- * dropped, so a run started in the chain editor never folds into what the app
- * shows.
+ * Run identity is the load-bearing part: the job id is minted here, before the
+ * run request is sent, and the server honours it. Every invocation this app
+ * starts is registered under that id and a streaming message for any other job
+ * is dropped, so neither a run started in the chain editor nor a second
+ * parallel invocation of this app can fold into the wrong slot.
  *
  * Unlike web there is no reactive subgraph path — mobile has no browser worker
  * — so every `run` action runs the whole workflow on the server. A document may
@@ -20,6 +21,7 @@
  * holds only this one, and says so instead of running the wrong graph.
  */
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { v4 as uuidv4 } from "uuid";
 import {
   decideRun,
   implicitOperation,
@@ -66,16 +68,11 @@ type RawMessage = Record<string, unknown>;
 /** Trailing window before a variable change is written to storage. */
 const PERSIST_DEBOUNCE_MS = 300;
 
-/**
- * A run that has been dispatched but whose `job_id` has not come back yet.
- * Starts are claimed in dispatch order, which is what lets two parallel
- * invocations of one operation each find their own job.
- */
-interface PendingStart {
+/** A run this app dispatched, holding the timer that enforces its timeout. */
+interface StartedRun {
   operationId: string;
+  invocationId: string;
   timeoutMs?: number;
-  /** Set once the run's job id arrives. */
-  invocationId?: string;
   timer?: ReturnType<typeof setTimeout>;
 }
 
@@ -90,13 +87,20 @@ export interface AppRuntimeOptions {
    * the application id. Defaults to the workflow id.
    */
   instanceKey?: string;
+  /**
+   * The application these runs belong to. Sent with every run request so the
+   * server can check the app's spend budget and file the run in its release
+   * ledger; a run without it is unmetered. `version` is the released version,
+   * null for a run of the draft.
+   */
+  application?: { id: string; version?: number | null };
 }
 
 export const useAppRuntime = (
   workflow: Workflow | undefined,
   options: AppRuntimeOptions = {}
 ): AppRuntimeContextValue => {
-  const { document, instanceKey } = options;
+  const { document, instanceKey, application } = options;
   const workflowId = workflow?.id;
   const io = useMemo(() => extractWorkflowIO(workflow), [workflow]);
 
@@ -277,12 +281,10 @@ export const useAppRuntime = (
   // Invocations this app started, by job id. A streaming message for anything
   // else is not ours — that is the cross-run contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
-  // Runs dispatched but not yet matched to a job id, oldest first.
-  const pendingStartsRef = useRef<PendingStart[]>([]);
-  // Claimed runs that still hold a timeout timer, by invocation id.
-  const startsByInvocationRef = useRef(new Map<string, PendingStart>());
+  // Dispatched runs that still hold a timeout timer, by invocation id.
+  const startsByInvocationRef = useRef(new Map<string, StartedRun>());
 
-  const clearTimer = useCallback((start: PendingStart | undefined) => {
+  const clearTimer = useCallback((start: StartedRun | undefined) => {
     if (start?.timer) {
       clearTimeout(start.timer);
       start.timer = undefined;
@@ -341,23 +343,18 @@ export const useAppRuntime = (
     },
     [store]
   );
-  const failRunRef = useRef(failRun);
-  failRunRef.current = failRun;
 
-  /** Register a run this app started against the start that is waiting for it. */
-  const claimInvocation = useCallback(
-    (jobId: string) => {
-      const start = pendingStartsRef.current.shift();
-      if (!start) {return;}
-      start.invocationId = jobId;
-      startsByInvocationRef.current.set(jobId, start);
+  /** Register a run under the job id it was dispatched with. */
+  const registerInvocation = useCallback(
+    (start: StartedRun) => {
+      startsByInvocationRef.current.set(start.invocationId, start);
       const invocation: InvocationState = {
-        id: jobId,
+        id: start.invocationId,
         operationId: start.operationId,
         status: "running",
         startedAt: Date.now(),
       };
-      ownedRef.current.set(jobId, invocation);
+      ownedRef.current.set(start.invocationId, invocation);
       store.getState().dispatchEvent({
         type: "runStarted",
         invocation,
@@ -368,22 +365,17 @@ export const useAppRuntime = (
     },
     [outputKey, store]
   );
-  const claimRef = useRef(claimInvocation);
-  claimRef.current = claimInvocation;
 
   useEffect(() => {
     if (!workflowId) {return undefined;}
 
     const handler = (message: RawMessage) => {
       const jobId = message.job_id;
-      // A message with no job id cannot be attributed to one of this app's
-      // invocations, so it is not folded.
+      // Only jobs this app minted an id for are folded. A message with no job
+      // id, or one naming a run started elsewhere (the chain editor, another
+      // app instance), belongs to nobody here.
       if (typeof jobId !== "string") {return;}
-      if (!ownedRef.current.has(jobId)) {
-        // The first job id to arrive after we dispatched a run is that run.
-        if (pendingStartsRef.current.length === 0) {return;}
-        claimRef.current(jobId);
-      }
+      if (!ownedRef.current.has(jobId)) {return;}
       foldRef.current(message);
     };
 
@@ -458,22 +450,15 @@ export const useAppRuntime = (
   );
 
   const startTimeout = useCallback(
-    (start: PendingStart) => {
+    (start: StartedRun) => {
       if (!start.timeoutMs || start.timeoutMs <= 0) {return;}
       const limit = start.timeoutMs;
       start.timer = setTimeout(() => {
         start.timer = undefined;
-        const message = `Run timed out after ${limit}ms`;
-        if (start.invocationId) {
-          void cancelInvocations([start.invocationId], message);
-          return;
-        }
-        // The run never reported a job id, so there is nothing to cancel — the
-        // failure is all the app can show.
-        pendingStartsRef.current = pendingStartsRef.current.filter(
-          (pending) => pending !== start
+        void cancelInvocations(
+          [start.invocationId],
+          `Run timed out after ${limit}ms`
         );
-        failRunRef.current(start.operationId, message);
       }, limit);
     },
     [cancelInvocations]
@@ -517,26 +502,39 @@ export const useAppRuntime = (
           resourceRefsRef.current.get(resourceBindingId),
       });
 
-      const start: PendingStart = {
+      // The job id is minted before the request goes out and sent as the
+      // request's `job_id`, which the server honours. That is what makes the
+      // invocation identifiable: two runs in flight at once each own their id
+      // rather than racing for whichever job id arrives first.
+      const start: StartedRun = {
         operationId: target.id,
+        invocationId: uuidv4(),
         timeoutMs: target.timeoutMs,
       };
-      pendingStartsRef.current.push(start);
+      registerInvocation(start);
       startTimeout(start);
       try {
-        await runnerStore.getState().run(params, workflow);
+        await runnerStore.getState().run(params, workflow, {
+          jobId: start.invocationId,
+          ...(application ? { application } : {}),
+        });
       } catch (error) {
-        pendingStartsRef.current = pendingStartsRef.current.filter(
-          (pending) => pending !== start
-        );
         clearTimer(start);
-        failRun(
-          target.id,
-          error instanceof Error ? error.message : "Run failed"
-        );
+        startsByInvocationRef.current.delete(start.invocationId);
+        const message =
+          error instanceof Error ? error.message : "Run failed";
+        const invocation = ownedRef.current.get(start.invocationId);
+        if (invocation) {invocation.status = "failed";}
+        store.getState().dispatchEvent({
+          type: "invocationStatus",
+          invocationId: start.invocationId,
+          status: "failed",
+          error: message,
+        });
       }
     },
     [
+      application,
       cancelInvocations,
       clearTimer,
       failRun,
@@ -544,6 +542,7 @@ export const useAppRuntime = (
       isRunnable,
       operation.id,
       operations,
+      registerInvocation,
       runnerStore,
       startTimeout,
       store,
@@ -561,24 +560,14 @@ export const useAppRuntime = (
       const live = Object.values(store.getState().invocations)
         .filter((i) => i.operationId === operationId && isLiveInvocation(i))
         .map((i) => i.id);
-      // A run dispatched but not yet claimed has no job to cancel; dropping its
-      // start keeps a late job id from being adopted as a live run.
-      pendingStartsRef.current = pendingStartsRef.current.filter((start) => {
-        if (start.operationId !== operationId) {return true;}
-        clearTimer(start);
-        return false;
-      });
       await cancelInvocations(live);
     },
-    [cancelInvocations, clearTimer, store]
+    [cancelInvocations, store]
   );
 
   // A screen that goes away leaves no timer behind to fail a run nobody sees.
   useEffect(
     () => () => {
-      for (const start of pendingStartsRef.current) {
-        if (start.timer) {clearTimeout(start.timer);}
-      }
       for (const start of startsByInvocationRef.current.values()) {
         if (start.timer) {clearTimeout(start.timer);}
       }

@@ -5,6 +5,7 @@
  */
 import { act, renderHook, waitFor } from "@testing-library/react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { v4 as uuidv4 } from "uuid";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../../types/workflow";
@@ -101,14 +102,22 @@ const doc = (
   ...overrides,
 });
 
-const renderRuntime = (workflowId: string, document: ApplicationDocument) => {
+const renderRuntime = (
+  workflowId: string,
+  document: ApplicationDocument,
+  options: { application?: { id: string; version?: number | null } } = {}
+) => {
   disposeAppRuntimeStore(appInstanceId(workflowId));
   return renderHook(() =>
-    useAppRuntime(makeWorkflow(workflowId), { document })
+    useAppRuntime(makeWorkflow(workflowId), { document, ...options })
   );
 };
 
-/** Start a run and let the server answer with a job id. */
+/**
+ * Start a run. The job id is minted by the runtime before the request goes
+ * out, so the ids here are the ones the (mocked) uuid factory hands out in
+ * dispatch order.
+ */
 const startRun = async (
   runtime: { dispatch: (action: { kind: "run"; operationId: string }) => void },
   operationId: string,
@@ -120,11 +129,21 @@ const startRun = async (
   emit({ type: "job_update", job_id: jobId, status: "running" });
 };
 
+/** The run options the runtime handed the workflow runner for call `index`. */
+const runOptions = (index = 0) =>
+  mockRun.mock.calls[index][2] as {
+    jobId?: string;
+    application?: { id: string; version?: number | null };
+  };
+
 beforeEach(async () => {
   mockHandlers.clear();
   mockRun.mockClear();
   mockCancel.mockClear();
   mockRunnerState.job_id = null;
+  // jest.setup mocks uuid with one constant value; runs need distinct ids.
+  let minted = 0;
+  (uuidv4 as jest.Mock).mockImplementation(() => `job-${++minted}`);
   await AsyncStorage.clear();
 });
 
@@ -371,12 +390,12 @@ describe("multiple operations", () => {
   it("runs the operation the action names, not the first one", async () => {
     const { result } = renderRuntime("wf-multi", multiDoc);
 
-    await startRun(result.current, "second", "job-2");
-    emit({ type: "output_update", job_id: "job-2", node_id: "o1", value: "ok" });
+    await startRun(result.current, "second", "job-1");
+    emit({ type: "output_update", job_id: "job-1", node_id: "o1", value: "ok" });
 
     expect(mockRun.mock.calls[0][0]).toEqual({ prompt: "fixed" });
     const state = result.current.store.getState();
-    expect(state.invocations["job-2"].operationId).toBe("second");
+    expect(state.invocations["job-1"].operationId).toBe("second");
     expect(state.variables.second_out).toBe("ok");
   });
 
@@ -394,6 +413,128 @@ describe("multiple operations", () => {
     );
     expect(failed?.status).toBe("failed");
     expect(failed?.error).toContain("wf-elsewhere");
+  });
+});
+
+describe("run identity", () => {
+  it("sends the application id and released version with the run", async () => {
+    const { result } = renderRuntime("wf-release", doc(), {
+      application: { id: "app-1", version: 7 },
+    });
+
+    await startRun(result.current, "main", "job-1");
+
+    expect(runOptions().application).toEqual({ id: "app-1", version: 7 });
+  });
+
+  it("sends a null version for a draft run", async () => {
+    const { result } = renderRuntime("wf-draft", doc(), {
+      application: { id: "app-1", version: null },
+    });
+
+    await startRun(result.current, "main", "job-1");
+
+    expect(runOptions().application).toEqual({ id: "app-1", version: null });
+  });
+
+  it("sends the job id it minted, and owns the invocation under it", async () => {
+    const { result } = renderRuntime("wf-jobid", doc());
+
+    await startRun(result.current, "main", "job-1");
+
+    expect(runOptions().jobId).toBe("job-1");
+    expect(result.current.store.getState().invocations["job-1"]).toBeDefined();
+  });
+});
+
+describe("message routing", () => {
+  const parallelDoc = doc({
+    operations: [
+      {
+        id: "main",
+        name: "Run",
+        workflowId: "wf",
+        inputs: {},
+        outputs: {},
+        policy: "parallel",
+      },
+      {
+        id: "other",
+        name: "Other",
+        workflowId: "wf",
+        inputs: {},
+        outputs: {},
+        policy: "parallel",
+      },
+    ],
+  });
+
+  it("routes each concurrent run's messages to its own invocation", async () => {
+    const { result } = renderRuntime("wf-concurrent", parallelDoc);
+
+    await startRun(result.current, "main", "job-1");
+    await startRun(result.current, "other", "job-2");
+
+    // The second run answers first — arrival order says nothing about which
+    // invocation a message belongs to.
+    emit({
+      type: "output_update",
+      job_id: "job-2",
+      node_id: "o1",
+      value: "second",
+    });
+    emit({
+      type: "output_update",
+      job_id: "job-1",
+      node_id: "o1",
+      value: "first",
+    });
+    emit({ type: "job_update", job_id: "job-2", status: "completed" });
+
+    const state = result.current.store.getState();
+    expect(state.outputs["main:o1"]).toMatchObject({
+      invocationId: "job-1",
+      value: "first",
+    });
+    expect(state.outputs["other:o1"]).toMatchObject({
+      invocationId: "job-2",
+      value: "second",
+    });
+    expect(state.invocations["job-1"].operationId).toBe("main");
+    expect(state.invocations["job-1"].status).toBe("running");
+    expect(state.invocations["job-2"].operationId).toBe("other");
+    expect(state.invocations["job-2"].status).toBe("completed");
+    expect(runOptions(0).jobId).toBe("job-1");
+    expect(runOptions(1).jobId).toBe("job-2");
+  });
+
+  it("ignores a message for a job this app never started", async () => {
+    const { result } = renderRuntime("wf-foreign-job", parallelDoc);
+
+    await startRun(result.current, "main", "job-1");
+    emit({
+      type: "output_update",
+      job_id: "someone-elses-job",
+      node_id: "o1",
+      value: "not mine",
+    });
+    emit({
+      type: "job_update",
+      job_id: "someone-elses-job",
+      status: "failed",
+      error: "boom",
+    });
+
+    const state = result.current.store.getState();
+    // The slot still holds only what this app's own run seeded: pending, no
+    // value, owned by the invocation this app started.
+    expect(state.outputs["main:o1"]).toMatchObject({
+      invocationId: "job-1",
+      status: "pending",
+      value: undefined,
+    });
+    expect(state.invocations["someone-elses-job"]).toBeUndefined();
+    expect(state.invocations["job-1"].status).toBe("running");
   });
 });
 

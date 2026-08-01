@@ -37,6 +37,22 @@ export type RunnerState =
   | "cancelled"
   | "completed";
 
+/** Extra, rarely-set run options. An object so the arity stops growing. */
+export type RunOptions = {
+  /**
+   * Client-minted job id. The server honours it (`req.job_id ?? randomUUID()`),
+   * which is what lets a caller match a run's messages to the run it started
+   * instead of guessing from arrival order.
+   */
+  jobId?: string;
+  /**
+   * The mini app this run belongs to. Drives the server-side budget check, the
+   * spend cap, and the release ledger; a run that omits it is not metered.
+   * `version` is the released version, absent for a draft run.
+   */
+  application?: { id: string; version?: number | null };
+};
+
 export type WorkflowRunner = {
   workflow: Workflow | null;
   job_id: string | null;
@@ -57,6 +73,7 @@ export type WorkflowRunner = {
   run: (
     params: Record<string, unknown>,
     workflow: Workflow,
+    options?: RunOptions,
   ) => Promise<void>;
 
   ensureConnection: () => Promise<void>;
@@ -152,13 +169,20 @@ export const createWorkflowRunnerStore = (
       runnerStores.delete(workflowId);
     },
 
-    run: async (params: Record<string, unknown>, workflow: Workflow) => {
+    run: async (
+      params: Record<string, unknown>,
+      workflow: Workflow,
+      options?: RunOptions
+    ) => {
       console.log(`WorkflowRunner[${workflowId}]: Starting workflow run`);
 
       await get().ensureConnection();
 
       set({
         workflow,
+        // A caller that minted the job id owns the run identity; without one
+        // the store adopts the id of the first message that arrives.
+        job_id: options?.jobId ?? null,
         state: "running",
         logs: [],
         results: null,
@@ -205,6 +229,11 @@ export const createWorkflowRunnerStore = (
           edges: activeEdges,
         },
         resource_limits: {},
+        ...(options?.jobId ? { job_id: options.jobId } : {}),
+        // Present only for app runs: the server gates them on the app's budget
+        // and files them in the release ledger.
+        application_id: options?.application?.id ?? null,
+        application_version: options?.application?.version ?? null,
       };
 
       await webSocketService.send(

@@ -79,6 +79,16 @@ export function useApplicationRelease(
   });
 }
 
+/**
+ * What a run request has to carry so the server can meter it: the app it
+ * belongs to, and the released version it executes when the released snapshot
+ * is what is being rendered. A draft run carries a null version.
+ */
+export interface ApplicationRunIdentity {
+  id: string;
+  version: number | null;
+}
+
 export interface ApplicationApp {
   name: string;
   /** The document to render, once both requests have resolved. */
@@ -87,6 +97,8 @@ export interface ApplicationApp {
   workflow: Workflow | null;
   /** Which document won: the published release or the draft. */
   source: 'release' | 'draft' | null;
+  /** Release identity every run of this app must send; null until it loads. */
+  application: ApplicationRunIdentity | null;
   isLoading: boolean;
   error: Error | null;
 }
@@ -152,11 +164,25 @@ export function useApplicationApp(id: string | undefined): ApplicationApp {
     return liveWorkflow.data ? normalizeWorkflow(liveWorkflow.data) : null;
   }, [application.data, liveWorkflow.data, pinned, workflowId]);
 
+  // The version claim follows the document that won: a run of the released
+  // snapshot is a release run, a run of the draft is not.
+  const runIdentity = useMemo((): ApplicationRunIdentity | null => {
+    if (!id || !document.document) {
+      return null;
+    }
+    return {
+      id,
+      version:
+        document.source === 'release' ? release.data?.version ?? null : null,
+    };
+  }, [document.document, document.source, id, release.data]);
+
   return {
     name: application.data?.name ?? '',
     document: document.document,
     workflow,
     source: document.source,
+    application: runIdentity,
     isLoading:
       application.isLoading ||
       release.isLoading ||

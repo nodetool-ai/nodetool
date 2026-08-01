@@ -147,9 +147,15 @@ ApplicationAppView   # renders the document's widget tree
 - **Bindings key on node IDs** (`op:main/in:<nodeId>`), so renaming a node in
   the editor never breaks an app. Bare names still resolve — that's the legacy
   document form.
-- **Run identity**: the runtime claims the job id of the run it dispatched and
-  drops messages from any other job, so a run started in the chain editor never
-  folds into what the app shows.
+- **Run identity**: the runtime mints the job id before it sends the run and
+  passes it as the request's `job_id`, which the server honours. Messages are
+  matched on that id alone, so neither a run started in the chain editor nor a
+  second parallel invocation folds into the wrong slot.
+- **Release identity**: every run of an app sends `application_id` and, for a
+  run of the released snapshot, `application_version`. The server gates the run
+  on the app's spend budget and files it in the release ledger; a run that omits
+  them is unmetered, so `useApplicationApp` hands the identity down to
+  `useAppRuntime` and on into the run request.
 - **Run policy and timeout** are enforced, not just parsed: `decideRun` decides
   what a run colliding with a live one does (`replace` cancels first, `queue`
   waits, `parallel` starts), and an operation's `timeoutMs` cancels the run and
