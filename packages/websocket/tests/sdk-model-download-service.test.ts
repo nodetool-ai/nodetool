@@ -117,6 +117,23 @@ describe("SDK model download service", () => {
     expect(startTjs).toHaveBeenCalledOnce();
   });
 
+  it("keeps operation identity distinct across compatible model types", () => {
+    const service = createSdkV1ModelDownloadService({
+      startHuggingFaceDownload: vi.fn(async () => undefined)
+    });
+
+    const text = service.start({ userId: "alice", request });
+    const embeddings = service.start({
+      userId: "alice",
+      request: { ...request, model_type: "hf.embeddings" }
+    });
+
+    expect(embeddings.operation_id).not.toBe(text.operation_id);
+    expect(
+      service.list({ userId: "alice", query: { scope: "local" } }).downloads
+    ).toHaveLength(2);
+  });
+
   it("projects downloads started through the existing web manager", () => {
     const service = createSdkV1ModelDownloadService({
       listHuggingFaceDownloads: () => [

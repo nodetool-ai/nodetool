@@ -68,7 +68,9 @@ export interface CreateSdkV1ModelDownloadServiceOptions {
 
 function operationId(request: SdkV1ModelDownloadStartRequest): string {
   return `mdl_${createHash("sha256")
-    .update(`${request.scope}\0${request.repo_id}\0${request.path ?? ""}`)
+    .update(
+      `${request.scope}\0${request.repo_id}\0${request.path ?? ""}\0${request.model_type}`
+    )
     .digest("base64url")}`;
 }
 
