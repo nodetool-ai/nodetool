@@ -84,6 +84,39 @@ describe("WorkflowRunner run state", () => {
     });
   });
 
+  it("survives a handle whose attach throws", async () => {
+    // A broken supervisor must never be worse for the run than no supervisor.
+    const handle: SupervisorHandle = {
+      attach() {
+        throw new Error("attach exploded");
+      },
+      async decide(): Promise<DecisionOutcome> {
+        return { verdict: { action: "fail" }, decidedBy: "default" };
+      },
+      close() {}
+    };
+    const runner = new WorkflowRunner("job-bad-attach", {
+      resolveExecutor: () => ({
+        async process() {
+          return { output: "produced" };
+        }
+      }),
+      supervisor: handle
+    });
+
+    const result = await runner.run(
+      { job_id: "job-bad-attach", params: {} },
+      {
+        nodes: [
+          { id: "producer", type: "test.Producer", outputs: { output: "str" } }
+        ],
+        edges: []
+      }
+    );
+
+    expect(result.status).toBe("completed");
+  });
+
   it("records nothing when the run has no supervisor", async () => {
     const runner = new WorkflowRunner("job-unsupervised", {
       resolveExecutor: () => ({

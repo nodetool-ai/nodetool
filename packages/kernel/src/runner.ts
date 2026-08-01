@@ -1370,7 +1370,17 @@ export class WorkflowRunner {
    */
   private async _processGraph(): Promise<void> {
     // Before any actor can escalate, the supervisor gets its read-only view.
-    this._options.supervisor?.attach?.(this._runStateReader());
+    // A handle that throws here is a broken supervisor, and a broken
+    // supervisor must never be worse for the run than no supervisor: it
+    // proceeds without a reader and its decisions degrade to `fail`.
+    try {
+      this._options.supervisor?.attach?.(this._runStateReader());
+    } catch (error) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.warn("Supervisor attach failed; running without a run-state view", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
 
     const actorPromises: Array<Promise<void>> = [];
     /** Parallel to `actorPromises` — maps a settled index back to its node. */

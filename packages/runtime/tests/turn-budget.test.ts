@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { CostCappedTurnBudget } from "../src/turn-budget.js";
 import { BaseProvider } from "../src/providers/base-provider.js";
+import { OpenAIProvider } from "../src/providers/openai-provider.js";
 import type { ProviderStreamItem } from "../src/providers/types.js";
 
 const PRICED_MODEL = "gpt-4o-mini";
@@ -126,5 +127,64 @@ describe("generateLoop turn admission", () => {
       // drain
     }
     expect(provider.turns).toBe(0);
+  });
+});
+
+/**
+ * Every supported OpenAI model (the gpt-5 family) is served by the Responses
+ * loop, which drives its own turns. An override that ignored the budget would
+ * make the cap advisory for the entire catalog, so the admission gate is
+ * checked directly.
+ */
+describe("OpenAI Responses loop honors the budget", () => {
+  const RESPONSES_MODEL = "gpt-5.4-mini";
+
+  function provider(): {
+    instance: OpenAIProvider;
+    turnsCollected: () => number;
+  } {
+    const instance = new OpenAIProvider(
+      { OPENAI_API_KEY: "test-key" },
+      { client: {} as never }
+    );
+    let turns = 0;
+    const patched = instance as unknown as Record<string, unknown>;
+    patched["buildResponsesRequest"] = async () => ({});
+    patched["collectResponsesTurn"] = async function* () {
+      turns++;
+    };
+    return { instance, turnsCollected: () => turns };
+  }
+
+  it("makes the turn when the budget admits it", async () => {
+    const { instance, turnsCollected } = provider();
+    const budget = new CostCappedTurnBudget({
+      capUsd: 1,
+      maxOutputTokens: 2048
+    });
+    for await (const _item of instance.generateLoop({
+      messages: [{ role: "user", content: "hi" }],
+      model: RESPONSES_MODEL,
+      turnBudget: budget
+    } as Parameters<OpenAIProvider["generateLoop"]>[0])) {
+      // drain
+    }
+    expect(turnsCollected()).toBe(1);
+  });
+
+  it("makes no call at all when the budget refuses", async () => {
+    const { instance, turnsCollected } = provider();
+    const budget = new CostCappedTurnBudget({
+      capUsd: 0,
+      maxOutputTokens: 2048
+    });
+    for await (const _item of instance.generateLoop({
+      messages: [{ role: "user", content: "hi" }],
+      model: RESPONSES_MODEL,
+      turnBudget: budget
+    } as Parameters<OpenAIProvider["generateLoop"]>[0])) {
+      // drain
+    }
+    expect(turnsCollected()).toBe(0);
   });
 });

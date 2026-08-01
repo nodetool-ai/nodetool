@@ -902,9 +902,21 @@ export abstract class BaseProvider {
       sequentialTools?: boolean;
       /**
        * Spend admission, consulted before every model turn. A refusal ends the
-       * loop without making the call. Providers that override `generateLoop`
-       * to drive a backend's own agent loop must honor it the same way — a
-       * ceiling only holds where the turns are.
+       * loop without making the call.
+       *
+       * **Contract for overrides.** A provider that overrides `generateLoop`
+       * to drive a backend's own agent loop must call {@link _admitTurn}
+       * before each model turn and `commit` after it — a ceiling only holds
+       * where the turns are, and an override that ignores this makes the cap
+       * advisory for every model it serves. Both current overrides honor it
+       * (the Claude Agent SDK loop and OpenAI's Responses loop). TypeScript
+       * cannot enforce this, so a new override that owns its turns owns this
+       * too.
+       *
+       * Reserve against the *evolving* transcript, not the opening prompt: a
+       * backend that keeps the conversation server-side still bills for it,
+       * and reserving against the delta prices a turn as if the conversation
+       * had restarted.
        *
        * Reconciliation reads this provider instance's running cost, so a
        * budget must not be threaded through an instance two callers are

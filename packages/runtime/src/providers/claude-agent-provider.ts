@@ -341,16 +341,22 @@ export class ClaudeAgentProvider extends BaseProvider {
           mcp
         }
       );
+      // The SDK grows the conversation internally, so reserving against the
+      // opening prompt every time would under-count every later turn — badly,
+      // on a tool-heavy loop. The messages it emits are the same ones it is
+      // accumulating, so the transcript is rebuilt here to reserve against.
+      const transcript: Message[] = [...args.messages];
       for await (const item of stream) {
         yield item;
         if (!turnBudget) continue;
+        if (!isProviderMessageEvent(item)) continue;
+        transcript.push(item.message);
         const isToolCallingTurn =
-          isProviderMessageEvent(item) &&
           item.message.role === "assistant" &&
           (item.message.toolCalls?.length ?? 0) > 0;
         if (
           isToolCallingTurn &&
-          !this._admitTurn(turnBudget, args.model, args.messages)
+          !this._admitTurn(turnBudget, args.model, transcript)
         ) {
           abortController.abort();
         }
