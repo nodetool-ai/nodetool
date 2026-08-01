@@ -37,15 +37,12 @@ jest.mock('../types.d', () => ({
   },
 }));
 
-import { getMainWindow } from '../state';
 import {
   emitBootMessage,
   emitServerStarted,
   emitServerLog,
   emitUpdateProgress,
 } from '../events';
-
-const getMainWindowMock = getMainWindow as jest.Mock;
 
 describe('events module', () => {
   beforeEach(() => {

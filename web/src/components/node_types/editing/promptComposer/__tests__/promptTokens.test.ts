@@ -5,7 +5,6 @@ import {
   extForAsset,
   parseAssetUri,
   parseEntityUri,
-  tokenizePrompt,
   tokenizePromptLine,
   variablesInPrompt
 } from "../promptTokens";

@@ -1,10 +1,4 @@
-import type {
-  RuntimeContext,
-  RuntimePackage,
-  RuntimeProgress,
-  RuntimeResolution,
-  RuntimeStatus
-} from "../types";
+import type { RuntimePackage, RuntimeProgress } from "../types";
 
 jest.mock("electron", () => ({
   app: {

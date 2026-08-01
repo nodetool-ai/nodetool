@@ -14,22 +14,20 @@
  *      raster origin consistently with the preview compositing path.
  */
 
-import type { LayerTransform, LayerContentBounds, Layer } from "../types";
-import { createDefaultDocument, makeAffineTransform, makeSingleQuadTransform } from "../types";
-import { fxEnsureTransform as ensureTransformMatrix, aff, quadOf } from "./_transformFixtures";
+import type { LayerContentBounds, Layer } from "../types";
+import { createDefaultDocument, makeSingleQuadTransform } from "../types";
+import { fxEnsureTransform as ensureTransformMatrix, aff } from "./_transformFixtures";
 import { MoveTool } from "../tools/MoveTool";
 import { TransformTool } from "../tools/TransformTool";
-import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
+import type { PreviewSession } from "../tools/previewSession";
 import {
   getVisualBounds,
-  getRasterBounds,
   computeTransformedExtents,
   computeTransformedCenter
 } from "../transform/geometry/layerGeometry";
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { setCanvasRasterBounds, getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { getToolHandler } from "../tools";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
