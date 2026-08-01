@@ -16,6 +16,19 @@ import type {
   NodeOutput
 } from "./types.js";
 
+/**
+ * The deciders a `supervisor_decision` may name. Written as a total record so
+ * a new value in the protocol enum fails this file rather than slipping
+ * through as an unrecognized string.
+ */
+const DECIDED_BY: Record<Intervention["decidedBy"], true> = {
+  agent: true,
+  sticky: true,
+  bounds: true,
+  default: true,
+  kernel: true
+};
+
 const MAX_STRING_PREVIEW = 2000;
 const MAX_ARRAY_PREVIEW = 50;
 /** Fields that commonly carry base64 / data-URI payloads worth collapsing. */
@@ -263,13 +276,17 @@ function readIntervention(msg: Record<string, unknown>): Intervention | null {
   if (!verdict || typeof verdict !== "object") return null;
   if (typeof (verdict as { action?: unknown }).action !== "string") return null;
   const decidedBy = msg.decided_by;
+  // `decided_by` is required by the message schema, and only `"agent"` means a
+  // model was involved. Guessing it would misreport who decided — and inflate
+  // the agent-decision count the cost rollup reads — so an unrecognized value
+  // drops the record rather than defaulting.
+  if (typeof decidedBy !== "string") return null;
+  if (!Object.prototype.hasOwnProperty.call(DECIDED_BY, decidedBy)) return null;
   const cost = msg.cost;
   return {
     escalation: escalation as Intervention["escalation"],
     verdict: verdict as Intervention["verdict"],
-    decidedBy: (typeof decidedBy === "string"
-      ? decidedBy
-      : "agent") as Intervention["decidedBy"],
+    decidedBy: decidedBy as Intervention["decidedBy"],
     ...(typeof cost === "number" ? { costUsd: cost } : {})
   };
 }

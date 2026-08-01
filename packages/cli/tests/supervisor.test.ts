@@ -11,8 +11,36 @@ vi.mock("@nodetool-ai/models", () => ({
   }
 }));
 
+const supervisorAgents: Array<Record<string, unknown>> = [];
+
+vi.mock("@nodetool-ai/agents", () => ({
+  SupervisorAgent: class {
+    constructor(opts: Record<string, unknown>) {
+      supervisorAgents.push(opts);
+    }
+  }
+}));
+
+vi.mock("@nodetool-ai/kernel", () => ({
+  BoundedHandle: class {
+    constructor(
+      readonly inner: unknown,
+      readonly bounds: unknown
+    ) {}
+  }
+}));
+
+vi.mock("@nodetool-ai/runtime", () => ({
+  listRegisteredProviderIds: () => ["anthropic"]
+}));
+
+vi.mock("../src/providers.js", () => ({
+  createProviderStrict: async (id: string) => ({ id })
+}));
+
 import {
   DEFAULT_SUPERVISOR_MODEL,
+  createSupervisorHandle,
   parseModelSpec,
   parseSupervisorFlags,
   printSupervisedSummary,
@@ -185,5 +213,33 @@ describe("printSupervisedSummary", () => {
     const lines: string[] = [];
     printSupervisedSummary([intervention(0.01)], (line) => lines.push(line));
     expect(lines).toEqual(["⛨ supervised: 1 skipped, 1 decision, +$0.0100"]);
+  });
+});
+
+describe("createSupervisorHandle", () => {
+  it("gives the supervisor a listener-free copy of the run context", async () => {
+    supervisorAgents.length = 0;
+    const copies: Array<Record<string, unknown>> = [];
+    const runContext = {
+      copy: (opts: Record<string, unknown>) => {
+        copies.push(opts);
+        return { marker: "copy" };
+      }
+    };
+
+    await createSupervisorHandle({
+      config: { modelSpec: "anthropic/claude-sonnet-4-6" },
+      context: runContext as never
+    });
+
+    // The CLI drains the run's message stream for `⛨` lines; the supervisor's
+    // own provider chatter must not land in it, and its `supervisor:` memory
+    // keys must still reach the run's one memory.
+    expect(copies).toEqual([
+      { shareMemory: true, inheritMessageListeners: false }
+    ]);
+    expect(supervisorAgents).toHaveLength(1);
+    expect(supervisorAgents[0]?.context).not.toBe(runContext);
+    expect(supervisorAgents[0]?.context).toEqual({ marker: "copy" });
   });
 });

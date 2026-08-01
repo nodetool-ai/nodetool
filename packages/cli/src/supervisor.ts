@@ -199,7 +199,14 @@ export async function createSupervisorHandle(
   const agent = new SupervisorAgent({
     provider,
     model,
-    context: init.context,
+    // The supervisor reads and writes the run's memory (`supervisor:` keys)
+    // but must not push its own provider chatter into the run's message
+    // stream — the CLI drains that stream for `⛨` lines — so it gets a
+    // listener-free copy, matching the agent surface.
+    context: init.context.copy({
+      shareMemory: true,
+      inheritMessageListeners: false
+    }),
     ...(init.config.maxCostUsd !== undefined
       ? { maxCostUsd: init.config.maxCostUsd }
       : {})

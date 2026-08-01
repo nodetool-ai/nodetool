@@ -6,7 +6,12 @@
  * Every verdict here comes from a scripted handle; no LLM is involved.
  */
 import { describe, it, expect } from "vitest";
-import type { Escalation, Intervention, Verdict } from "@nodetool-ai/protocol";
+import type {
+  Escalation,
+  Intervention,
+  ProcessingMessage,
+  Verdict
+} from "@nodetool-ai/protocol";
 import type { DecisionOutcome, SupervisorHandle } from "@nodetool-ai/kernel";
 import { ExecutionSession } from "../src/index.js";
 import {
@@ -130,6 +135,24 @@ describe("interventions in the debug summary", () => {
     const summary = collectExecutionSummary(result.messages ?? []);
     expect(summary.interventions).toEqual([]);
     expect(summary.counts.interventions).toBe(0);
+  });
+
+  it("drops a decision whose decider is missing or unrecognized", async () => {
+    const result = await run(new ScriptedHandle({ action: "skip" }));
+    const real = (result.messages ?? []).find(
+      (m) => m.type === "supervisor_decision"
+    ) as Record<string, unknown> | undefined;
+    expect(real).toBeDefined();
+
+    // Guessing a decider would report a model decided when none did, and
+    // inflate the agent-decision count the cost rollup reads.
+    for (const decidedBy of [undefined, "someone_else"]) {
+      const summary = collectExecutionSummary([
+        { ...real, decided_by: decidedBy }
+      ] as unknown as ProcessingMessage[]);
+      expect(summary.interventions).toEqual([]);
+      expect(summary.counts.interventions).toBe(0);
+    }
   });
 });
 
