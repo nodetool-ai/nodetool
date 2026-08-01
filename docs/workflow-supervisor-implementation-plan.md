@@ -25,9 +25,10 @@ PRs marked ∥ can proceed in parallel once their listed dependency lands.
 
 The seam, fail-closed. Zero behavior change.
 
-- `packages/protocol/src/supervisor.ts`: `Escalation` (incl. `failureSignature`, `candidateOutput`, `declaredSideEffects`), `Verdict`, message schemas `supervisor_escalation` / `supervisor_decision`; add to the `ProcessingMessage` union.
+- `packages/protocol/src/supervisor.ts`: `Escalation` (incl. optional `failureSignature`, `candidateOutput`, `retrySafe`), `Verdict`, message schemas `supervisor_escalation` / `supervisor_decision`; add to the `ProcessingMessage` union.
 - `packages/kernel/src/supervisor.ts`: `SupervisorHandle` interface (`decide(e, signal)`), `FailClosedHandle` default.
-- node-sdk: `RecoverableNodeError` (carries the malformed candidate output) and the `sideEffects` node-metadata flag; declare it on the obvious external-write nodes (`Publish`, `Upsert`, notification and payment-shaped nodes).
+- **Redaction at escalation construction** (design §6.1): the kernel-side constructor masks secret-store values and drops sensitive-named fields before the `Escalation` exists as a record — `Escalation` is public (messages, `RunResult`, websocket), so no unredacted instance may be constructed. Test: a planted secret in a node input never appears in any emitted message or `RunResult`.
+- node-sdk: `RecoverableNodeError` (carries the malformed candidate output, redacted at construction like everything else) and the `retrySafe` node-metadata **opt-in**; declare it across the pure-compute and read-only node categories in shipped packages. `WorkflowNode`/`SubgraphNode` stay unsafe. Unknown ⇒ no retry.
 - `packages/kernel/src/runner.ts`: `WorkflowRunnerOptions.supervisor`, wire `escalate` onto the execution context, `interventions` on `RunResult`.
 - `packages/kernel/src/actor.ts`: wrap invocation execution per design §5.1 — buffered/correlated path first, controlled path second. `WorkflowSuspendedError` passes through untouched. Skip = `drop()` per output slot (design §5.2), never a bare return.
 - **Audit while in here:** provider-level transient retry in `packages/runtime/src/providers/` (design §10.3). File issues per gap; fixes land in runtime, not this PR.
@@ -39,9 +40,11 @@ Still no LLM. Depends on PR 1.
 
 - **Invocation-scoped cost/asset tracking** in `ProcessingContext`: a per-invocation scope pushed around each `process()` call (stacked, so nested sub-workflow runs attribute correctly). This is new plumbing — today cost aggregates per run in one slot and no asset-created flag exists.
 - `BoundedHandle` wrapper in kernel: `maxDecisions`, `maxRetriesPerNode`, `maxSupervisorCostUsd`, per-decision timeout; every `decide()` gets a derived `AbortSignal` (run signal + timeout); `decidedBy: "bounds" | "default"` stamping.
-- Verdict-schema narrowing: strip `retry` unless cost-free ∧ asset-free ∧ `!sideEffects` (design §5.3); streaming-node verdict sets per design §5.4, including the `end-stream` mapping.
-- Sticky-verdict cache keyed by `(nodeId, failureSignature)` (`skip`/`fail` only), `decidedBy: "sticky"`; signature normalization (error class + stable code, never message text).
-- Tests: bounds degrade to deterministic fail; cancel during a pending decision resolves instantly; a side-effecting node's schema has no retry arm; mid-stream failure offers only the narrowed set; sticky skip resolves the 7-of-200 case with one `decide()` call while a *different* error class on the same node still escalates.
+- Verdict-schema narrowing: `retry` only when `retrySafe` ∧ cost-free ∧ asset-free (design §5.3); streaming verdict sets per design §5.4 — including withholding retry **and** substitute from `is_streaming_input` (`run()`) nodes in every state, and the `end-stream` mapping.
+- **Runtime substitute validator** (design §5.2): per-output-type value rules — strict primitives, structural lists/objects, reference types must be well-formed refs that resolve against run storage; no rule for a type ⇒ no `substitute` arm.
+- **Cost reservation** in `BoundedHandle`: worst-case pre-call reservation from the model-pricing catalog (input tokens + configured max output tokens); no pricing entry ⇒ fail closed.
+- Sticky-verdict cache keyed by `(nodeId, failureSignature)` (`skip`/`fail` only), `decidedBy: "sticky"`; signatures come from a registry of error-shape recognizers (HTTP status, provider codes, validation paths) — a plain `Error` yields no signature and no stickiness.
+- Tests: bounds degrade to deterministic fail; cancel during a pending decision resolves instantly; an undeclared node's schema has no retry arm; a `run()` node's schema never offers retry/substitute; a fabricated `{type:"image"}` ref with an unresolvable uri bounces; reservation blocks the $0.49+$0.30 overshoot; sticky skip resolves the 7-of-200 case with one `decide()` call while a plain-`Error` failure on the same node escalates every time.
 
 ## Phase B — the agent and the CLI
 
@@ -50,11 +53,11 @@ Still no LLM. Depends on PR 1.
 Depends on PR 2.
 
 - `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema`, serialized queue; the `decide()` signal threads through `StepExecutor` into `provider.generateLoop({signal})` so abort kills the in-flight LLM request; `maxSupervisorCostUsd` checked before **every** provider call, mid-decision included.
-- **Redaction layer** (design §6.1) at the handle boundary: secret-value masking + sensitive-field-name filtering over `inputs`, `detail`, `candidateOutput`, and tool results. No prompt content bypasses it.
+- Tool-result redaction: `read_node_output` returns are the one supervisor input not derived from an already-redacted `Escalation` (that layer landed in PR 1, kernel-side); apply the same layer here.
 - `packages/agents/src/supervisor/tools.ts`: `get_run_state`, `read_node_output` (read-only, redacted, truncated).
 - `packages/agents/src/supervisor/prompt.ts`: verb semantics, skip-distrust, one-line rationale requirement.
 - `supervisor:` memory keys for decisions + rationales.
-- Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; supervisor exceptions and timeouts resolve as `fail`; abort mid-decision cancels the provider call; a secret value planted in a node input never appears in the outbound prompt; cost cap trips mid-decision.
+- Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; supervisor exceptions and timeouts resolve as `fail`; abort mid-decision cancels the provider call; a secret value planted in a `read_node_output` result never appears in the outbound prompt; reservation trips mid-decision.
 
 ### PR 4 — CLI surface ∥ (with PR 5)
 
@@ -96,8 +99,8 @@ Depends on PR 1 only.
 Depends on PR 5–7.
 
 - `ReplayHandle` (design §8) as the deterministic test double.
-- `nodetool eval supervisor` in `packages/agents/src/evals/`: fault-injection cases over the three PRD reference shapes (transient error, malformed output, poisoned item, mid-stream failure, budget exhaustion); metrics: recovery rate, decisions/run, false-wake rate, cost. `--min-success` CI gate like the other suites.
-- Flip trigger-run default to on only when **both** gates pass: recovery rate ≥ the PRD's 60% bar, and the data-boundary requirements (design §6.1 — redaction shipped and tested, provider allow-list enforced, consent copy in place) are verified. Until then everything ships opt-in.
+- `nodetool eval supervisor` in `packages/agents/src/evals/`: fault-injection cases over the three PRD reference shapes (transient error, malformed output, poisoned item, mid-stream failure, budget exhaustion). Metrics measure **unsafe recovery, not just recovery**: recovery rate, but also incorrect-skip rate (item skipped that a scripted verdict recovers), poisoned-repair rate (substitution passes validation but flunks the case's semantic check), duplicate-effect count (side-effect probe nodes counting executions), and cost-overrun count. `--min-success` CI gate like the other suites.
+- Flip the trigger-run default only when **all** gates pass: recovery ≥ the PRD's 60% bar; incorrect-skip, poisoned-repair, duplicate-effect, and cost-overrun each under an explicit threshold set in the suite (duplicate effects and cost overruns: zero); and the data-boundary requirements (design §6.1) verified. The flip applies to **newly created triggers only** — existing triggers are never silently migrated; they get a one-time prompt (consent is forward-looking, design §6.1). Until then everything ships opt-in.
 - Docs: user guide page; PRD/design status → Shipped.
 
 ---

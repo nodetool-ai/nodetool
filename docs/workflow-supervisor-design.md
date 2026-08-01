@@ -56,13 +56,13 @@ export interface Escalation {
   invocationKey: string;           // lineage/iteration token; "" for single-fire nodes
   nodeType: string;
   detail: string;                  // the thrown error, stringified
-  failureSignature: string;        // normalized error class/code, for sticky matching
+  failureSignature?: string;       // stable categorical code; absent ⇒ stickiness disabled
   candidateOutput?: unknown;       // from RecoverableNodeError — the malformed value, redacted+truncated
   inputs: Record<string, unknown>; // the invocation's input values, redacted+truncated
   attempt: number;                 // 1-based, per (nodeId, invocationKey)
   spentCostUsd: number;            // provider cost recorded by this invocation
   createdAssets: boolean;
-  declaredSideEffects: boolean;    // node metadata: talks to an external write API
+  retrySafe: boolean;              // node metadata opt-in; unknown ⇒ false ⇒ no retry
 }
 
 export type Verdict =
@@ -72,7 +72,7 @@ export type Verdict =
   | { action: "fail"; reason?: string };
 ```
 
-`applyTo: "signature"` is the sticky form: the handle caches the verdict keyed by `(nodeId, failureSignature)` and resolves later escalations that match without waking the agent (PRD scenario 2 — 7 identical failures, 1 LLM call). Keying by signature rather than node keeps one login-required error from silently skipping later, unrelated timeouts on the same node. `failureSignature` normalizes on error class and stable code (HTTP status, provider error code, validation path) — never on message text with embedded values. Only `skip` and `fail` may stick; a sticky `retry` or `substitute` would blindly replay a decision made against different inputs.
+`applyTo: "signature"` is the sticky form: the handle caches the verdict keyed by `(nodeId, failureSignature)` and resolves later escalations that match without waking the agent (PRD scenario 2 — 7 identical failures, 1 LLM call). Keying by signature rather than node keeps one login-required error from silently skipping later, unrelated timeouts on the same node. A signature exists only when the error carries a **stable categorical code** — HTTP status, provider error code, validation path — extracted by a small registry of error-shape recognizers. A plain `Error` gets **no** signature (error class alone is not one; every generic throw would collide), and with no signature stickiness is simply off: each such failure escalates individually. Signatures never derive from message text with embedded values. Only `skip` and `fail` may stick; a sticky `retry` or `substitute` would blindly replay a decision made against different inputs.
 
 `RecoverableNodeError` (node-sdk) is how a node hands the supervisor the thing that needs repairing: a parser that throws on broken JSON attaches the raw response as `candidateOutput` instead of losing it. Plain thrown errors still escalate — they just repair blind.
 
@@ -128,7 +128,7 @@ Retry is a plain loop re-entry: the invocation's inputs are still in scope, so n
 ### 5.2 What each verdict means to the kernel
 
 - **retry** — `properties` are merged via the existing `updateNodeProperties` mechanics before re-invoking. Bounded by `maxRetriesPerNode` (counted per `(nodeId, invocationKey)`).
-- **substitute** — outputs are validated against the node's declared output `TypeMetadata` (same check `graph.validate()` applies to edges). Invalid → the handle returns a tool error to the agent and awaits a new verdict; after `MAX_REPAIR_ROUNDS` (3) → `fail`. Valid → emitted through the normal `sendOutputs` path with the invocation's lineage, so correlation downstream is indistinguishable from a real emit.
+- **substitute** — outputs pass a **runtime value validator**, not a `TypeMetadata` compatibility check. `graph.validate()` compares declared edge types and the existing runtime accepts any object for custom types, so type-compatibility would wave through a fabricated `{type:"image"}` blob. The validator checks actual values per declared output type: primitives and enums strictly, lists/objects structurally, and reference types (`ImageRef`, `AudioRef`, …) as well-formed refs whose `uri`/asset id **resolves** against the run's storage — an unresolvable ref is invalid, full stop. An output type the validator has no rule for removes the `substitute` arm from the schema entirely (same unrepresentability rule as retry). Invalid → the handle returns a tool error to the agent and awaits a new verdict; after `MAX_REPAIR_ROUNDS` (3) → `fail`. Valid → emitted through the normal `sendOutputs` path with the invocation's lineage, so correlation downstream is indistinguishable from a real emit.
 - **skip** — the actor does **not** simply return. For a correlated invocation, plain non-emission leaves siblings buffered against the skipped key at downstream joins — the kernel grew per-lineage `lineage_done` signaling precisely because global EOS can't express this. Skip therefore rides the existing drop semantics: `NodeOutputs.drop(slot, envelope)` for each output slot of the invocation's lineage, closing child scopes where the node would have opened them. Downstream then prunes the key exactly as it does for a natively untaken branch. The skip is recorded in `interventions` unconditionally — the audit is the feature (PRD scenario 3).
 - **fail** — rethrow; identical to today.
 
@@ -136,26 +136,30 @@ Retry is a plain loop re-entry: the invocation's inputs are still in scope, so n
 
 The handle — not the agent's judgment — decides whether `retry` appears in the verdict schema at all, so an unsafe retry is unrepresentable rather than merely discouraged. `retry` is offered only when **all** hold:
 
-1. `spentCostUsd === 0` — no provider cost recorded by this invocation;
-2. `createdAssets === false` — no asset writes;
-3. `declaredSideEffects === false` — the node does not declare an external write.
+1. `retrySafe === true` — the node **opts in** via node metadata (node-sdk);
+2. `spentCostUsd === 0` — no provider cost recorded by this invocation;
+3. `createdAssets === false` — no asset writes.
 
-(1) and (2) require **invocation-scoped** tracking. `ProcessingContext` today aggregates cost per run in a single slot and has no asset-created flag, so this is new plumbing, not existing data: a per-invocation cost/asset scope pushed around each `process()` call (PR 2), stacked so nested sub-workflow runs attribute correctly.
+(1) is an opt-in, not an opt-out, because the failure mode is asymmetric. An unset flag on a custom node, a legacy package, a nested `WorkflowNode` (whose inner graph can contain anything), or an overlooked write node must not *gain* retry by omission — cost tracking cannot see external writes (`Publish`, `Upsert`, `Notify`, payment-shaped nodes can complete their side effect and *then* throw, recording nothing). So unknown defaults to unsafe: a node nobody classified loses a safe retry (annoying, visible, fixable with one flag) rather than gaining an unsafe one (silent duplicate effects). PR 1 declares `retrySafe` across the pure-compute and read-only node categories in the shipped packages; `WorkflowNode`/`SubgraphNode` are never retry-safe in v1. A side-effecting node can re-earn retry later via an idempotency key — out of scope, noted in §10.
 
-(3) exists because cost tracking cannot see external writes: `Publish`, `Upsert`, `Notify`, and payment-shaped nodes can complete their side effect and *then* throw, recording nothing. Node authors declare `sideEffects: true` in node metadata (node-sdk); the flag means "retrying may duplicate an external effect." Pure compute and read-only nodes leave it unset and keep retry. A side-effecting node can re-earn retry later by declaring an idempotency key — out of scope for v1, noted in §10.
-
-This is conservative by construction: a mis-declared node loses a safe retry (annoying) rather than gaining an unsafe one (unacceptable).
+(2) and (3) require **invocation-scoped** tracking. `ProcessingContext` today aggregates cost per run in a single slot and has no asset-created flag, so this is new plumbing, not existing data: a per-invocation cost/asset scope pushed around each `process()` call (PR 2), stacked so nested sub-workflow runs attribute correctly.
 
 ### 5.4 Streaming nodes
 
-For `is_streaming_output` nodes the coherent verdict set depends on whether anything was emitted (PRD scenario 6):
+Streaming breaks the "inputs still in hand, just re-invoke" premise in two distinct ways.
+
+**Streaming output** (`is_streaming_output`, `genProcess`): the coherent verdict set depends on whether anything was emitted (PRD scenario 6):
 
 | State | Allowed verdicts |
 |---|---|
-| threw before first emit | retry · substitute · skip · fail |
+| threw before first emit | retry* · substitute · skip · fail |
 | threw after emitting | `end-stream` (close slots, keep what was emitted) · fail |
 
-`end-stream` is surfaced to the agent as `skip` with the schema description adjusted; the actor maps it to completing the node's output slots instead of suppressing them. Mid-stream `retry`/`substitute` are excluded from the schema for the same reason as the money guard: unrepresentable beats forbidden.
+**Streaming input** (`is_streaming_input`, `run()` nodes): the node drains its inbox itself and may have consumed messages long before throwing — so even "threw before first emit" does not mean the invocation is replayable, and there is no single invocation value for `substitute` to stand in for. In v1 both `retry` and `substitute` are withheld for `run()` nodes in **every** state; the verdict set is `end-stream` (keep what was emitted, close slots) · `skip` (drop) · `fail`. Re-earning retry here requires a kernel-level input replay buffer, which is explicitly out of scope (§10).
+
+*retry additionally requires §5.3's conditions, as everywhere.
+
+`end-stream` is surfaced to the agent as `skip` with the schema description adjusted; the actor maps it to completing the node's output slots instead of dropping them. Excluded verdicts are removed from the schema, same rule as §5.3: unrepresentable beats forbidden.
 
 ### 5.5 Cancellation and timeouts
 
@@ -168,7 +172,7 @@ Each `decide()` call gets its own `AbortSignal`, derived from the run's signal p
 - **One `StepExecutor` per decision**, `outputSchema` = the verdict JSON schema (narrowed per §5.3/§5.4), `maxIterations` small (6). `finish_step`'s existing validate-or-bounce loop is the repair loop for malformed verdicts — no new machinery.
 - **Two tools**, both read-only, backed by state the runner already holds: `get_run_state()` (per-node status, error counts, cost — the digest) and `read_node_output(nodeId)` (last emitted values, truncated to `MAX_TOOL_RESULT_CHARS`). Progressive disclosure, same pattern as `memory_read`.
 - **Serialized queue.** One decision at a time. Consecutive failures are usually related; the agent sees them in order, and a sticky verdict drains the queue for free. Head-of-line cost is bounded by the decision timeout.
-- **Bounds.** `maxDecisions` (default 10), `maxRetriesPerNode` (default 2), and `maxSupervisorCostUsd` (default $0.50) live in the handle. Decisions and retries alone do not cap dollars — a decision allows up to 6 LLM iterations of unbounded size — so the cost ceiling is checked **before every provider call**, mid-decision included, against the supervisor's own cost records. At any boundary the handle stops calling the agent and returns `fail` with `decidedBy: "bounds"` — degradation is deterministic, not a cheaper model.
+- **Bounds.** `maxDecisions` (default 10), `maxRetriesPerNode` (default 2), and `maxSupervisorCostUsd` (default $0.50) live in the handle. Decisions and retries alone do not cap dollars, and checking *spent* cost before a call doesn't either — the next call's cost is only known afterward, so $0.49 spent could admit a $0.30 call and land at $0.79. The ceiling is enforced by **reservation**: before each provider call, compute the worst-case cost (input tokens × input price + the call's configured max output tokens × output price, from the model-pricing catalog) and proceed only if `spent + reserved ≤ cap`; commit actual cost afterward. A model with no usable pricing entry fails closed — the supervisor won't run on it. At any boundary the handle stops calling the agent and returns `fail` with `decidedBy: "bounds"` — degradation is deterministic, not a cheaper model.
 - **System prompt** carries the verb semantics from the PRD, including skip-distrust and the itemization duty. It is a preamble over the standard execution contract, per the established `StepExecutor` rule.
 
 Decisions and their one-line rationales are also written to `context.memory` under `supervisor:` keys so a downstream `CompilerAgent` (in the workflows-as-agents path) can reference them in its synthesis.
@@ -177,9 +181,9 @@ Decisions and their one-line rationales are also written to `context.memory` und
 
 Escalations carry node inputs, error text, and (via `read_node_output`) prior outputs — real user data, sent to whichever model supervises. Truncation is not redaction; the boundary is explicit:
 
-- **Redaction before prompt.** Everything crossing into the supervisor's context — `inputs`, `detail`, `candidateOutput`, tool results — passes one redaction layer: values of secrets present in the run's secret store are masked wherever they appear (headers, URLs, bodies), and fields matching the sensitive-name list (`password`, `token`, `authorization`, …) are dropped. Applied at the handle, so no code path can bypass it.
+- **Redaction at construction, not at the prompt.** `Escalation` is a *public record*: it becomes a `supervisor_escalation` message, lands in `RunResult.interventions`, and crosses the websocket — all before any agent exists. So the redaction layer lives in the **kernel** and runs when the escalation is built (PR 1, the same PR that mints the type): the actor hands raw error + inputs to a constructor that masks secret-store values wherever they appear (headers, URLs, bodies) and drops fields matching the sensitive-name list (`password`, `token`, `authorization`, …). Raw values never leave the actor's stack frame; there is no unredacted `Escalation` anywhere in the system to leak. The agent-side handle applies the same layer to tool results (`read_node_output`), which are the one supervisor input not derived from an `Escalation`.
 - **Provider policy.** The supervisor model is subject to the same workspace provider allow-list as every other model call; a workspace pinned to approved providers cannot leak failure context to an unapproved one via supervision.
-- **Consent.** Enabling supervision *is* the consent act, and the toggle's help text says what will be shared, with which model, when. This is why default-on for triggered runs is gated (§ plan PR 8): defaults must not expand data flow before the redaction layer has shipped and been evaluated.
+- **Consent.** Enabling supervision *is* the consent act, and the toggle's help text says what will be shared, with which model, when. Consent is per-trigger and forward-looking only: existing triggers are **never silently migrated** when the default flips — the new default applies to newly created triggers, and existing ones surface a one-time prompt instead. This is why default-on is gated (§ plan PR 8): defaults must not expand data flow before the boundary above has shipped and been evaluated.
 
 ## 7. Entry points
 
@@ -204,4 +208,5 @@ Escalations carry node inputs, error text, and (via `read_node_output`) prior ou
 
 1. **`inputs` truncation policy** in `Escalation` — per-value byte cap vs. schema-aware summarization. Start with the byte cap (`MAX_TOOL_RESULT_CHARS` sibling), revisit if verdict quality suffers. (Redaction per §6.1 happens regardless; this question is only about size.)
 2. **Provider-level backoff audit.** PRD scenario 1 assumes transient retry exists below the hook. Audit `packages/runtime/src/providers/` retry behavior in PR 1; if absent for a provider, that gap is fixed in the runtime layer, not compensated for in the supervisor prompt.
-3. **Idempotency keys for side-effecting nodes.** §5.3 removes retry from `sideEffects: true` nodes wholesale. A node that accepts an idempotency key could safely re-earn it. Deferred until a real node needs it.
+3. **Idempotency keys for side-effecting nodes.** §5.3 gates retry on an explicit `retrySafe` opt-in. A side-effecting node that accepts an idempotency key could safely re-earn it. Deferred until a real node needs it.
+4. **Input replay buffer for `run()` nodes.** §5.4 withholds retry/substitute from streaming-input nodes because consumed inbox messages are gone. A bounded replay buffer would re-earn retry for them; kernel-level work, deferred until an eval case shows it matters.

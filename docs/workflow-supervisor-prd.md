@@ -72,7 +72,7 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 | 2 | 7 of 200 items fail the same way (A) | One decision, applied to the rest. First failure wakes the agent; its verdict can stick for *matching failures* on that node (same error signature), so failures 2–7 resolve instantly and free — while a different error on the same node still gets its own decision. |
 | 3 | Skipped items vanish silently (A) | Skips are always audited. The run ends **"Completed — supervised"**, never plain "Completed", and the report says exactly what was skipped. |
 | 4 | Repair produces a wrongly-shaped value (B) | Repaired values are type-checked against the node's declared outputs before entering the graph; invalid repairs bounce back to the agent. |
-| 5 | Retry after money was spent or an external write happened (B, C) | Retry is withheld when the failed step recorded provider cost, created an asset, **or is a node that writes externally** (publish, upsert, notify) — those can complete their side effect and then fail without recording anything. The agent can't double-charge or double-post. |
+| 5 | Retry after money was spent or an external write happened (B, C) | Retry exists only for steps **known safe to redo**: the node type opts in, and the failed attempt recorded no cost and wrote no asset. A step nobody classified gets no retry — external writers (publish, upsert, notify) can complete their side effect and then fail without recording anything, so "unknown" must mean "unsafe." The agent can't double-charge or double-post. |
 | 6 | Streaming node fails mid-stream (C) | Retry only if nothing was emitted yet; Repair never. Otherwise the choice is Stop or end-the-stream. |
 | 7 | One bad repair cascades downstream (A) | Decisions carry lineage. The report shows one cause, not twelve symptoms, and attributes downstream failures to the verdict that caused them. |
 | 8 | The supervisor itself hangs or dies | Escalation has a timeout and honors Cancel. Any supervisor failure resolves as Stop. Cancel always works, instantly. |
@@ -95,7 +95,7 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 
 ### 6.1 Turning it on
 
-One toggle, next to the Run button: **Supervisor**. The end state: on by default for triggered (unattended) runs, off by default for interactive runs — when you're watching, you *are* the supervisor. Until the evaluation and data-safety gates pass (§10 phase 4), it ships off by default everywhere.
+One toggle, next to the Run button: **Supervisor**. The end state: on by default for triggered (unattended) runs, off by default for interactive runs — when you're watching, you *are* the supervisor. Until the evaluation and data-safety gates pass (§10 phase 4), it ships off by default everywhere — and when the default flips, it applies to newly created triggers only; existing triggers are never switched on silently.
 
 Turning it on is also a data decision: failure context (the failing step's inputs and error) is sent to the supervisor model, with secrets masked. The toggle's help text says so in one sentence.
 
@@ -157,7 +157,7 @@ An agent-facing entry point runs a workflow *as* an agent: same streaming interf
 
 | Verb | Report line reads like | When the agent may use it |
 |---|---|---|
-| **Retry** | "retried with a 30s timeout → succeeded" | transient-looking failures; never after the step spent money, wrote an asset, or is one that writes externally |
+| **Retry** | "retried with a 30s timeout → succeeded" | transient-looking failures, and only on steps known safe to redo — never after the step spent money or wrote anything, never on steps that weren't classified as redo-safe |
 | **Repair** | "provider returned broken JSON; supervisor extracted the valid fields" | output exists but is malformed; repaired value must type-check |
 | **Skip** | "skipped item 147 (page requires login)" | the item is dispensable and the run is more valuable finished; always itemized in the report |
 | **Stop** | "stopping: the API key is invalid, so all remaining items would fail" | continuing would waste money or produce garbage |
