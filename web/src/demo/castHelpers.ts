@@ -8,6 +8,8 @@
  * cut the per-cast boilerplate down to the parts that actually differ.
  */
 import type {
+  Edge,
+  Node,
   NodeMetadata,
   OutputSlot,
   Property,
@@ -57,7 +59,11 @@ export const meta = (
   ...partial,
 });
 
-export interface GraphNode {
+/**
+ * The transport `Node` with `ui_properties` narrowed so the cameras can read
+ * positions. Extending it keeps a cast graph assignable to `Workflow["graph"]`.
+ */
+export interface GraphNode extends Node {
   id: string;
   type: string;
   data: Record<string, unknown>;
@@ -69,7 +75,7 @@ export interface GraphNode {
     title: string;
   };
   dynamic_properties: Record<string, unknown>;
-  dynamic_outputs: Record<string, unknown>;
+  dynamic_outputs: Record<string, PropertyTypeMetadata>;
 }
 
 export const node = (
@@ -96,7 +102,7 @@ export const edge = (
   sourceHandle: string,
   target: string,
   targetHandle: string
-) => ({ id, source, sourceHandle, target, targetHandle });
+): Edge => ({ id, source, sourceHandle, target, targetHandle });
 
 /** Bind the message-builders to one workflow + job id pair. */
 export function castMessages(workflowId: string, jobId: string) {

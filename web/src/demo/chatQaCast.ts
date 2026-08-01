@@ -31,7 +31,7 @@ const ANSWER_TOKENS = [
 ];
 const ANSWER = ANSWER_TOKENS.join("");
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Ask the AI",
   access: "private",
@@ -53,7 +53,7 @@ const workflow = {
       edge("e2", "chat", "text", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Paced so the question reads, then the answer streams word-group by word-group.
 const events: CastEvent[] = [

@@ -51,7 +51,7 @@ const ENHANCED = TOKENS.join("");
 /** The generated image (a "hello world" kitten), inlined as a data URI. */
 const image = { type: "image", uri: EXAMPLE_IMAGE_DATA_URI };
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Image Pipeline",
   access: "private",
@@ -73,7 +73,7 @@ const workflow = {
       edge("e2", "enhance", "text", "generate", "prompt"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Paced slowly on purpose: each node holds long enough for the camera to settle
 // and the viewer to read its fields, the streamed prompt, and the progress bar.

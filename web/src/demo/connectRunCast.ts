@@ -23,7 +23,7 @@ const m = castMessages(WF, JOB);
 const INPUT = "hello nodetool";
 const OUTPUT = "HELLO NODETOOL";
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Connect & Run",
   access: "private",
@@ -45,7 +45,7 @@ const workflow = {
       edge("e2", "upper", "output", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Slow, deliberate pacing so a first-timer can follow each beat.
 const events: CastEvent[] = [

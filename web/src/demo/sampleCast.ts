@@ -79,7 +79,7 @@ const SVG_IMAGE =
 const FULL_TEXT = "A serene mountain lake at golden hour, mirror-still.";
 const TOKENS = ["A serene ", "mountain lake ", "at golden hour, ", "mirror-still."];
 
-const workflow = {
+const workflow: Workflow = {
   id: "wf-demo-sample",
   name: "Sample Demo",
   access: "private",
@@ -131,7 +131,7 @@ const workflow = {
       },
     ],
   },
-} as unknown as Workflow;
+};
 
 const WF = "wf-demo-sample";
 const JOB = "sample-job";

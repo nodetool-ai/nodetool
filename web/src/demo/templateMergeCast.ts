@@ -25,7 +25,7 @@ const TOPIC = "robotics";
 const TEMPLATE = "Hi, I'm {{ name }} and I work in {{ topic }}.";
 const RESULT = `Hi, I'm ${NAME} and I work in ${TOPIC}.`;
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Combine Inputs",
   access: "private",
@@ -54,7 +54,7 @@ const workflow = {
       edge("e3", "format", "output", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Both inputs resolve, then the template node merges them into one string.
 const events: CastEvent[] = [
