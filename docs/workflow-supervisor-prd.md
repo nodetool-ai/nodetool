@@ -22,7 +22,7 @@ This is also what makes a workflow behave like an agent. An agent improvises its
 
 ### 2.1 Failures are total
 
-Today one node error fails the whole job (`RunResult.status = "failed"`). There is no middle ground between "everything worked" and "you get nothing":
+Today one node error fails the whole job (`RunResult.status = "failed"`). The kernel's `suspended` state is a different animal — a deliberate pause for triggers and human waits, not failure handling. For failures there is no middle ground between "everything worked" and "you get nothing":
 
 - A 200-URL content pipeline dies on URL #147. The 146 finished summaries are in the message log, but the run is `failed`, the CSV never writes, and the user's mental model is "it broke."
 - An overnight image batch fails on one malformed provider response after $6 of successful generations.
@@ -108,7 +108,7 @@ No per-node configuration. No policy editor. (Deliberately — see §9.)
 ### 6.2 During a run (editor)
 
 - A failed-then-handled node shows a **shield badge** in place of the error badge, colored by verdict: retry (blue), repair (amber), skip (gray).
-- While the agent is deciding, the node pulses with a "supervisor deciding…" state — distinct from "running." Typical decision time is seconds; the rest of the graph keeps executing.
+- While the agent is deciding, the node pulses with a "supervisor deciding…" state — distinct from "running." Typical decision time is seconds; work that doesn't depend on the failed node keeps executing (its own downstream naturally waits).
 - A slim **intervention feed** appears in the run panel only when the first intervention happens: one line per decision, in plain language. *"Summarize failed on item 147 (empty response) → retried with shorter input → succeeded."*
 - Cancel behaves exactly as today. A pending decision is abandoned, not awaited.
 
