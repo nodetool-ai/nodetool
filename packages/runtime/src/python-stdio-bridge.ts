@@ -48,7 +48,8 @@ const join = (...parts: string[]): string =>
 import {
   createLogger,
   getByteLimitEnv,
-  safeProcessEnv
+  safeProcessEnv,
+  safeProcessPlatform
 } from "@nodetool-ai/config";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
@@ -168,7 +169,11 @@ export class PythonStdioBridge extends PythonBridgeBase {
           // only takes effect when set before torch initializes CUDA, which is
           // why it belongs here rather than in a node's process().
           PYTORCH_CUDA_ALLOC_CONF: "expandable_segments:True",
-          ...process.env,
+          // The options object is built before `spawn` runs, so a bare
+          // `process.env` here would throw `ReferenceError` off-Node instead
+          // of the `notOnNode("node:child_process.spawn")` this file goes out
+          // of its way to raise.
+          ...safeProcessEnv(),
           TQDM_DISABLE: "1",
           HF_HUB_DISABLE_PROGRESS_BARS: "1",
           TRANSFORMERS_VERBOSITY: "error"
@@ -435,15 +440,15 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
   private _getPythonLaunchCandidates(): PythonLaunchCandidate[] {
     const explicitPythonPath =
-      this._options.pythonPath ?? process.env.NODETOOL_PYTHON;
+      this._options.pythonPath ?? safeProcessEnv().NODETOOL_PYTHON;
     if (explicitPythonPath) {
       return [{ command: explicitPythonPath, source: "NODETOOL_PYTHON" }];
     }
 
-    const condaPrefix = process.env.CONDA_PREFIX;
+    const condaPrefix = safeProcessEnv().CONDA_PREFIX;
     if (condaPrefix && this._looksLikeNodeToolEnv(condaPrefix)) {
       const activeEnvPython =
-        process.platform === "win32"
+        safeProcessPlatform() === "win32"
           ? join(condaPrefix, "python.exe")
           : join(condaPrefix, "bin", "python");
       if (existsSync(activeEnvPython)) {
@@ -469,17 +474,13 @@ export class PythonStdioBridge extends PythonBridgeBase {
 
   private _getManagedPythonPaths(): string[] {
     const home = homedir();
-    if (process.platform === "win32") {
+    const env = safeProcessEnv();
+    if (safeProcessPlatform() === "win32") {
       return [
-        process.env.ALLUSERSPROFILE
-          ? join(
-              process.env.ALLUSERSPROFILE,
-              "nodetool",
-              "conda_env",
-              "python.exe"
-            )
+        env.ALLUSERSPROFILE
+          ? join(env.ALLUSERSPROFILE, "nodetool", "conda_env", "python.exe")
           : join(
-              process.env.APPDATA ?? join(home, "AppData", "Roaming"),
+              env.APPDATA ?? join(home, "AppData", "Roaming"),
               "nodetool",
               "conda_env",
               "python.exe"
@@ -491,7 +492,7 @@ export class PythonStdioBridge extends PythonBridgeBase {
         String.raw`C:\ProgramData\nodetool\conda_env\python.exe`
       ].filter((c, i, a) => existsSync(c) && a.indexOf(c) === i);
     }
-    if (process.platform === "darwin") {
+    if (safeProcessPlatform() === "darwin") {
       return [
         join(home, "nodetool_env", "bin", "python"),
         join(home, "miniconda3", "envs", "nodetool", "bin", "python"),

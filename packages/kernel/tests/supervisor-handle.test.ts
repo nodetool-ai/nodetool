@@ -416,11 +416,22 @@ describe("substitute validator", () => {
 
   it("rejects an output the node never declared", async () => {
     const result = await validateSubstituteOutputs(
-      { surprise: 1 },
+      { surprise: 1, value: "ok" },
       { declaredOutputs: { value: "str" } }
     );
     expect(result.ok).toBe(false);
-    expect(result.issues[0]).toContain("not declared");
+    expect(result.issues.join(" ")).toContain("not declared");
+  });
+
+  it("rejects a substitution that leaves a declared slot empty", async () => {
+    // An omitted slot emits no value and no `lineage_done`, so a downstream
+    // join correlated on it waits for a key that never arrives.
+    const result = await validateSubstituteOutputs(
+      { a: "filled" },
+      { declaredOutputs: { a: "str", b: "str" } }
+    );
+    expect(result.ok).toBe(false);
+    expect(result.issues.join(" ")).toContain('"b"');
   });
 
   it("reports coverage so an unvalidatable node is never offered substitute", () => {

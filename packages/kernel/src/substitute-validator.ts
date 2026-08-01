@@ -52,6 +52,18 @@ export async function validateSubstituteOutputs(
   const issues: string[] = [];
   const declared = opts.declaredOutputs;
 
+  // A substitution must fill every declared slot. An omitted slot emits no
+  // value *and* no `lineage_done`, so a downstream join correlated on that
+  // slot keeps waiting for a key that will never arrive — the same hole
+  // `skip` needed explicit signalling to close (design §5.2). Node code may
+  // legitimately emit a subset (an `If` emits one branch); a model-authored
+  // repair does not get that latitude.
+  for (const slot of Object.keys(declared)) {
+    if (outputs[slot] === undefined) {
+      issues.push(`output "${slot}" is declared by this node but missing`);
+    }
+  }
+
   for (const [slot, value] of Object.entries(outputs)) {
     const type = declared[slot];
     if (type === undefined) {

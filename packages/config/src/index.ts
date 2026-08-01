@@ -1,6 +1,7 @@
 export {
   IS_NODE,
   safeProcessEnv,
+  safeProcessPlatform,
   importNodeBuiltin,
   importHidden
 } from "./node-import.js";

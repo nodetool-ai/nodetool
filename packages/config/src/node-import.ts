@@ -26,6 +26,12 @@ export const IS_NODE =
 export const safeProcessEnv = (): Record<string, string | undefined> =>
   typeof process !== "undefined" && process.env ? process.env : {};
 
+/** `process.platform`, or `""` where there is no `process`. */
+export const safeProcessPlatform = (): string =>
+  typeof process !== "undefined" && typeof process.platform === "string"
+    ? process.platform
+    : "";
+
 /**
  * Dynamic import that bundlers can't statically resolve.
  *
