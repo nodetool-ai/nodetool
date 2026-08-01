@@ -16,21 +16,21 @@ describe("isCodeGenerationEnabled", () => {
     else process.env[KEY] = saved;
   });
 
-  it("is off until a deployment opts in", () => {
-    expect(isCodeGenerationEnabled()).toBe(false);
-  });
-
-  it("is on for 1 and true", () => {
-    process.env[KEY] = "1";
-    expect(isCodeGenerationEnabled()).toBe(true);
-    process.env[KEY] = "true";
+  it("is on unless a deployment opts out", () => {
     expect(isCodeGenerationEnabled()).toBe(true);
   });
 
-  it("stays off for anything else", () => {
-    process.env[KEY] = "0";
-    expect(isCodeGenerationEnabled()).toBe(false);
-    process.env[KEY] = "yes";
-    expect(isCodeGenerationEnabled()).toBe(false);
+  it("is off for the falsy spellings", () => {
+    for (const value of ["0", "false", "off", "no", "OFF"]) {
+      process.env[KEY] = value;
+      expect(isCodeGenerationEnabled()).toBe(false);
+    }
+  });
+
+  it("stays on for anything else, including an empty value", () => {
+    for (const value of ["1", "true", "", "  ", "yes"]) {
+      process.env[KEY] = value;
+      expect(isCodeGenerationEnabled()).toBe(true);
+    }
   });
 });

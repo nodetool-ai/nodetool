@@ -93,17 +93,17 @@ describe("/api/config endpoint", () => {
     );
   });
 
-  it("gates Code node AI authoring behind NODETOOL_CODE_GENERATION", async () => {
-    const off = JSON.parse(
-      (await app.inject({ method: "GET", url: "/api/config" })).body
-    );
-    expect(off.codeGeneration).toBe(false);
-
-    process.env.NODETOOL_CODE_GENERATION = "1";
+  it("reports Code node AI authoring on, and off when opted out", async () => {
     const on = JSON.parse(
       (await app.inject({ method: "GET", url: "/api/config" })).body
     );
     expect(on.codeGeneration).toBe(true);
+
+    process.env.NODETOOL_CODE_GENERATION = "0";
+    const off = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    expect(off.codeGeneration).toBe(false);
   });
 
   it("stays in local mode when only the anon key is set", async () => {

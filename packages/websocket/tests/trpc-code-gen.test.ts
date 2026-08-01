@@ -141,15 +141,15 @@ describe("codeGen router", () => {
     mocks.isProviderConfigured.mockResolvedValue(true);
     mocks.getSecret.mockResolvedValue("test-key");
     resetCodeGenInFlight();
-    process.env["NODETOOL_CODE_GENERATION"] = "1";
+    delete process.env["NODETOOL_CODE_GENERATION"];
   });
 
   afterEach(() => {
     delete process.env["NODETOOL_CODE_GENERATION"];
   });
 
-  it("refuses to generate when the deployment has the flag off", async () => {
-    delete process.env["NODETOOL_CODE_GENERATION"];
+  it("refuses to generate when the deployment opts out", async () => {
+    process.env["NODETOOL_CODE_GENERATION"] = "0";
     mocks.getProvider.mockResolvedValue(scriptedProvider());
     const caller = createCaller(makeCtx());
 
