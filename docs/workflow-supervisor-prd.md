@@ -3,6 +3,8 @@
 **Author:** Matti Georgi
 **Status:** Draft — for review
 **Last updated:** 2026-08-01
+**Design doc:** [workflow-supervisor-design.md](workflow-supervisor-design.md)
+**Implementation plan:** [workflow-supervisor-implementation-plan.md](workflow-supervisor-implementation-plan.md)
 
 ---
 
