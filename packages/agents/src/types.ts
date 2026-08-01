@@ -5,7 +5,15 @@
 export interface Step {
   id: string;
   instructions: string;
+  /**
+   * True only when the step produced a valid result. A failed step is
+   * terminal but NOT completed — dependents must not run on its output.
+   */
   completed: boolean;
+  /** True when the step ended without a usable result. Mutually exclusive with {@link completed}. */
+  failed?: boolean;
+  /** Failure cause, set alongside {@link failed}. */
+  error?: string;
   startTime?: number;
   endTime?: number;
   dependsOn: string[];

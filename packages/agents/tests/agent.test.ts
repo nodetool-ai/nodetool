@@ -599,10 +599,19 @@ describe("Agent", () => {
       ...planCalls(modelPlan),
       [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
     ]);
+    // Execution turns always answer with finish_step: the planner's own script
+    // is consumed by planning, and a step that never finishes now fails the
+    // whole run rather than quietly completing.
     const providerSpy = {
       ...baseProvider,
       generateMessages: async function* (opts: any) {
         calls.push(opts.model ?? "no-model");
+        if (opts.model === "exec-model") {
+          // The planned step carries no schema, so it finalizes from a
+          // no-tool-call assistant message.
+          yield { type: "chunk" as const, content: "done", done: true };
+          return;
+        }
         yield* baseProvider.generateMessages(opts);
       }
     } as any;

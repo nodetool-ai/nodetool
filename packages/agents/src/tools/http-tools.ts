@@ -9,6 +9,20 @@ import { safeFetch } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 import { persistBinaryOutput } from "./binary-output.js";
 
+/**
+ * A per-request timeout that also honors the run's cancellation. A tool that
+ * watches only its own timer keeps a 60-second request alive after the user
+ * pressed Stop; a tool that watches only the run signal never times out.
+ */
+export function requestSignal(
+  context: Pick<ProcessingContext, "signal"> | undefined,
+  timeoutMs: number
+): AbortSignal {
+  const timeout = AbortSignal.timeout(timeoutMs);
+  const runSignal = context?.signal;
+  return runSignal ? AbortSignal.any([timeout, runSignal]) : timeout;
+}
+
 const DEFAULT_HEADERS: Record<string, string> = {
   "User-Agent":
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
@@ -66,22 +80,14 @@ export class DownloadFileTool extends Tool {
           ? params["timeout"] * 1000
           : 60_000;
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-      let response: Response;
-      try {
-        // safeFetch gates the URL (and every redirect hop) against SSRF: no
-        // http:// downgrade, no loopback/link-local/RFC1918 targets. The URL is
-        // model/attacker-influenceable via prompt injection, so it must not be
-        // able to reach the host's metadata service or internal APIs.
-        response = await safeFetch(url, {
-          headers: mergedHeaders,
-          signal: controller.signal
-        });
-      } finally {
-        clearTimeout(timer);
-      }
+      // safeFetch gates the URL (and every redirect hop) against SSRF: no
+      // http:// downgrade, no loopback/link-local/RFC1918 targets. The URL is
+      // model/attacker-influenceable via prompt injection, so it must not be
+      // able to reach the host's metadata service or internal APIs.
+      const response = await safeFetch(url, {
+        headers: mergedHeaders,
+        signal: requestSignal(context, timeoutMs)
+      });
 
       if (!response.ok) {
         return {
@@ -160,7 +166,7 @@ export class HttpRequestTool extends Tool {
   };
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     try {
@@ -187,23 +193,15 @@ export class HttpRequestTool extends Tool {
           ? params["timeout"] * 1000
           : 60_000;
 
-      const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), timeoutMs);
-
-      let response: Response;
-      try {
-        // safeFetch gates the URL (and redirects) against SSRF — the URL is
-        // model/attacker-influenceable via prompt injection, so it must not be
-        // able to reach loopback/link-local/internal hosts or downgrade to http.
-        response = await safeFetch(url, {
-          method,
-          headers: mergedHeaders,
-          body: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
-          signal: controller.signal
-        });
-      } finally {
-        clearTimeout(timer);
-      }
+      // safeFetch gates the URL (and redirects) against SSRF — the URL is
+      // model/attacker-influenceable via prompt injection, so it must not be
+      // able to reach loopback/link-local/internal hosts or downgrade to http.
+      const response = await safeFetch(url, {
+        method,
+        headers: mergedHeaders,
+        body: ["POST", "PUT", "PATCH"].includes(method) ? body : undefined,
+        signal: requestSignal(context, timeoutMs)
+      });
 
       const contentType = response.headers.get("Content-Type") ?? "unknown";
       const text = await response.text();

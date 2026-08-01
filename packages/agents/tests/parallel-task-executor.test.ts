@@ -281,10 +281,21 @@ describe("ParallelTaskExecutor", () => {
     }
 
     expect(plan.tasks[0].completed).toBeFalsy();
-    const chunks = messages.filter((m) => m.type === "chunk");
+    // A deadlocked plan is a failure, reported as one: an error log plus a
+    // terminal task_update. It used to surface only as a prose chunk, which
+    // every status-reading consumer scored as success.
+    expect(executor.getFailedTaskIds()).toEqual(["task_stuck"]);
     expect(
-      chunks.some((c) =>
-        ((c as { content: string }).content ?? "").includes("dependency issues")
+      messages.some(
+        (m) =>
+          m.type === "log_update" &&
+          (m as { severity?: string }).severity === "error"
+      )
+    ).toBe(true);
+    expect(
+      messages.some(
+        (m) =>
+          m.type === "task_update" && (m as { event?: string }).event === "task_failed"
       )
     ).toBe(true);
   });

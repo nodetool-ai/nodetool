@@ -282,6 +282,47 @@ describe("ProcessingContext – Python model interfaces", () => {
     const cloned = ctx.copy();
     await expect(cloned.get_job("j9")).resolves.toEqual({ id: "j9" });
   });
+
+  it("carries the run's cancellation signal to the child", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const controller = new AbortController();
+    ctx.signal = controller.signal;
+
+    const child = ctx.copy();
+    controller.abort();
+
+    // A child that cannot see the parent's Stop keeps burning provider calls.
+    expect(child.signal.aborted).toBe(true);
+  });
+
+  it("isolates agent memory by default and shares it on request", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+
+    expect(ctx.copy().memory).not.toBe(ctx.memory);
+    expect(ctx.copy({ shareMemory: true }).memory).toBe(ctx.memory);
+  });
+
+  it("can drop the parent's message listeners", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const seen: unknown[] = [];
+    ctx.addMessageListener((m) => seen.push(m));
+
+    const child = ctx.copy({ inheritMessageListeners: false });
+    child.emit({ type: "chunk", content: "x", done: false } as never);
+
+    expect(seen).toHaveLength(0);
+  });
+
+  it("scopes injected tools to the child", () => {
+    const ctx = new ProcessingContext({ jobId: "j1", userId: "u1" });
+    const child = ctx.copy();
+    child.setInjectedTools([
+      { name: "scoped", description: "", inputSchema: {} } as never
+    ]);
+
+    expect(child.getInjectedTool("scoped")).not.toBeNull();
+    expect(ctx.getInjectedTool("scoped")).toBeNull();
+  });
 });
 
 describe("MemoryCache", () => {

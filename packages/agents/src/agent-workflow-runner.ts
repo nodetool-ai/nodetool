@@ -33,6 +33,7 @@ export interface RunPolicy {
   modelId: string;
   systemPrompt?: string;
   maxStepIterations?: number;
+  maxTokens?: number;
 }
 
 /**
@@ -50,7 +51,8 @@ export interface RunPolicy {
  * "Select a model".
  */
 export function applyRunPolicy(graphData: GraphData, policy: RunPolicy): GraphData {
-  const { providerId, modelId, systemPrompt, maxStepIterations } = policy;
+  const { providerId, modelId, systemPrompt, maxStepIterations, maxTokens } =
+    policy;
   return {
     ...graphData,
     nodes: graphData.nodes.map((node) => {
@@ -83,6 +85,11 @@ export function applyRunPolicy(graphData: GraphData, policy: RunPolicy): GraphDa
         properties["max_turns"] = maxStepIterations;
       }
 
+      // Same for the run's output-token cap, which the node calls `max_tokens`.
+      if (maxTokens !== undefined && properties["max_tokens"] == null) {
+        properties["max_tokens"] = maxTokens;
+      }
+
       return { ...node, properties };
     })
   };
@@ -98,6 +105,8 @@ export interface AgentWorkflowRunnerOptions {
   systemPrompt?: string;
   /** Per-step turn budget; stamped onto Agent nodes as `max_turns`. */
   maxStepIterations?: number;
+  /** Output-token cap per turn; stamped onto Agent nodes as `max_tokens`. */
+  maxTokens?: number;
   inputs?: Record<string, unknown>;
   /** External cancellation; aborting it cancels the kernel run. */
   signal?: AbortSignal;
@@ -119,20 +128,29 @@ export class AgentWorkflowRunner {
 
     // Agent nodes select tools by name; only this runner holds the wired
     // instances (MCP, workspace, skills, security-gated), so hand them to the
-    // context for the nodes to pick up.
-    context.setInjectedTools(tools);
+    // context for the nodes to pick up. The injection is scoped to a child
+    // context: setting it on the shared one permanently replaced whatever the
+    // caller had wired, and two runs on the same context clobbered each other.
+    // The child shares agent memory (sub-agents inside the graph must see the
+    // run's step/task results) and carries the cancellation signal.
+    const runContext = context.copy({
+      shareMemory: true,
+      inheritMessageListeners: false
+    });
+    runContext.setInjectedTools(tools);
 
     const resolvedGraph = applyRunPolicy(graphData, {
       providerId: provider.provider,
       modelId: model,
       systemPrompt: this.opts.systemPrompt,
-      maxStepIterations: this.opts.maxStepIterations
+      maxStepIterations: this.opts.maxStepIterations,
+      maxTokens: this.opts.maxTokens
     });
 
     const runner = new WorkflowRunner(jobId, {
       resolveExecutor: (node: { id: string; type: string }) =>
         registry.resolve(node),
-      executionContext: context
+      executionContext: runContext
     });
 
     log.info("Executing agent graph", {
@@ -141,7 +159,9 @@ export class AgentWorkflowRunner {
       edges: resolvedGraph.edges.length
     });
 
-    // Intercept context.emit to stream kernel messages live to our generator.
+    // Stream kernel messages live to our generator through the documented
+    // listener API. Monkeypatching `emit` on the shared context raced any other
+    // execution holding the same context — whichever run restored last won.
     const queue: ProcessingMessage[] = [];
     let waiter: (() => void) | null = null;
     const wake = (): void => {
@@ -149,15 +169,15 @@ export class AgentWorkflowRunner {
       waiter = null;
       w?.();
     };
-    const ctx = context as unknown as {
-      emit: (msg: ProcessingMessage) => void;
-    };
-    const origEmit = ctx.emit.bind(context);
-    ctx.emit = (msg: ProcessingMessage) => {
-      origEmit(msg);
-      queue.push(msg);
-      wake();
-    };
+    const removeListener = runContext.addMessageListener(
+      (msg: ProcessingMessage) => {
+        // Forward to the parent so callers reading the shared context's queue
+        // and listeners see the graph run, then feed this generator.
+        context.emit(msg);
+        queue.push(msg);
+        wake();
+      }
+    );
 
     // An outer abort must stop the kernel run itself — without this the graph
     // keeps executing (and burning provider calls) until it finishes on its
@@ -196,7 +216,7 @@ export class AgentWorkflowRunner {
         });
       }
     } finally {
-      ctx.emit = origEmit;
+      removeListener();
       signal?.removeEventListener("abort", onAbort);
       if (!done) {
         runner.cancel();
