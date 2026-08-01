@@ -576,7 +576,7 @@ expectations, and the runner reports the same metrics as graph-planner
 predicates, tool-call budgets, no-error-results) — never an exact transcript,
 so many valid tool orderings pass.
 
-Eight suites are registered:
+Nine suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -588,6 +588,92 @@ Eight suites are registered:
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 | `thread-memory-tools` | `thread_memory_*` / `asset_*` | `surfaces/thread-memory.ts` |
+| `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
+
+`creative-pipeline` is the long-horizon suite: one commission carried through
+brief → ideation → sketch → storyboard → cut → review, scoring the *seams*
+rather than any one surface. It composes the real sketch, storyboard and
+timeline bridges instead of reimplementing them, so it cannot drift from the
+three suites that already cover those contracts, and replaces
+`ui_storyboard_assemble_timeline` with a version that actually drives the
+timeline bridge — the handoff is the thing under test. `ui_brief_*` and
+`ui_review_*` are eval instrumentation, not a frontend contract: a brief passed
+only in the prompt can't be told apart from one the model ignored.
+
+Rendered clips come back 1.35× the requested length, the way a video model that
+emits fixed-length takes does, so a cut planned to exactly fill the brief
+overruns. Catching that and trimming — the *last* clip, since shortening an
+earlier one only opens a gap and leaves the runtime untouched — is what
+separates a scoring run from a passing-looking one.
+
+The predicates grade outcomes, not the shape of the process. Three checks were
+rewritten after live runs, all the same mistake: they encoded one valid working
+order and failed models that used another.
+
+- Severity was a three-value enum that threw on `"critical"`, failing a run on
+  this harness's vocabulary. Synonyms now map.
+- Overrun detection grepped the note prose for runtime/duration/length, and
+  scored a run that found the overrun and fixed it as a miss on wording. It
+  now reads the severity the model assigned.
+- `reviewActedOn` counted edits after the first review note, requiring
+  report-before-fix. A sonnet run assembled at 16.20s, trimmed and
+  ripple-moved to 12.00s, verified with `ui_review_get_cut` and *then* filed
+  notes as a sign-off — a complete loop scored as "review changed nothing". It
+  is now `cutRevisedAfterAssembly`, which accepts either order.
+
+Measured on `claude_agent_sdk`/sonnet: `full-pipeline` 1.00 in 93 calls (401s,
+~$2.6), `review-catches-overrun` 1.00 in ~25, `brief-constraints-hold` 0.91 in
+97. The SDK throws on its turn cap rather than stopping, so a low cap scores
+the whole case zero — `--max-iterations 220` clears the full case. The suite
+costs real money.
+
+```bash
+IS_SANDBOX=1 npm run dev:nodetool -- eval creative-pipeline \
+  -p claude_agent_sdk -m sonnet --max-iterations 220 --no-find-model
+```
+
+`scripts/dump-creative-run.ts` runs one case and writes the work itself —
+concepts, style-frame prompt, shot list, the assembled cut with timings, review
+notes, phase snapshots and the full tool transcript — to
+`nodetool-debug/creative-<case>.{md,json}`. The eval report gives pass/fail and
+call counts, which is right for a scoreboard and useless for seeing what the
+model made.
+
+```bash
+IS_SANDBOX=1 npx tsx packages/agents/scripts/dump-creative-run.ts \
+  full-pipeline claude_agent_sdk sonnet 220
+```
+
+**Live media (`--live`).** The suite fakes every generate/render, which is what
+makes it a CI-priced eval. Pass `--live` and the same tool calls additionally
+hit fal, so the run leaves real stills and clips in
+`nodetool-debug/creative-<case>-media/` without changing a tool contract or a
+predicate. One run's output is checked in at `docs/evals/creative-pipeline/`
+so the suite's media can be inspected without paying for a run. `MediaBackend` is an interface in the bridge; the fal wiring lives in
+the script, because `packages/agents` has no fal dependency and should not grow
+one for an opt-in path.
+
+Stills default to `openai/gpt-image-2`, clips to
+`ltx-2-19b/distilled/image-to-video`; override with `CREATIVE_IMAGE_MODEL` /
+`CREATIVE_VIDEO_MODEL`. The first draft used `flux/schnell` at $0.003 per
+megapixel on cost grounds and it was the wrong trade — flux mangles hands and
+the brief requires them in three of four shots. Video stays cheap at $0.0008
+per megapixel; the agent loop driving the run is still the dominant cost at
+~$2.60.
+
+Three caveats. The timeline still lays clips at the simulated overshoot, so the
+scored runtime is not the runtime of the files on disk — LTX returned 4.84s
+takes for 3s requests, a 1.61× overshoot against the 1.35× modelled, so the
+planted defect is conservative. The provider reads `FAL_API_KEY`, not
+`FAL_KEY`. And no predicate can see the pixels: `forbiddenAvoided` reads shot
+text and layer names, so a run passed it while gpt-image-2 branded a bottle
+with lettering the brief forbade. The suite grades the plan; grading the
+artifact needs a human or a vision model.
+
+```bash
+FAL_API_KEY=$FAL_KEY IS_SANDBOX=1 npx tsx \
+  packages/agents/scripts/dump-creative-run.ts full-pipeline claude_agent_sdk sonnet 220 --live
+```
 
 `thread-memory-tools` is the odd one out: instead of reimplementing a browser
 surface, its bridge executes the **real backend tools** (`thread_memory_save`/
@@ -624,7 +710,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,sketch,timeline,storyboard,model3d,app,creative-pipeline}-tool-loop.test.ts`).
 A live check against a local Ollama model runs when a daemon is reachable:
 `tests/tool-loop-eval.ollama.test.ts`.
 
