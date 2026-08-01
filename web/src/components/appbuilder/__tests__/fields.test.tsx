@@ -1,11 +1,13 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { bindingField, conditionField, variableField } from "../puck/fields";
 import { BuilderWorkflowProvider } from "../puck/BuilderWorkflowContext";
+import type { OperationBinding } from "@nodetool-ai/app-runtime";
+
 import { WorkflowState } from "../workflowState";
 
 jest.mock("@puckeditor/core", () => ({
@@ -133,5 +135,147 @@ describe("execution + logic vocabulary", () => {
     }
     // `contains` compares against a literal, so the value box is offered.
     expect(screen.getByLabelText("Value")).toBeInTheDocument();
+  });
+});
+
+describe("bindings target the app's declared operations", () => {
+  const operation = (id: string, name: string): OperationBinding => ({
+    id,
+    name,
+    workflowId: `wf-${id}`,
+    inputs: {},
+    outputs: {},
+    policy: "replace"
+  });
+
+  const stateWith = (
+    inputs: WorkflowState["inputs"],
+    outputs: WorkflowState["outputs"] = []
+  ): WorkflowState => ({
+    inputs,
+    outputs,
+    variables: [],
+    nodes: [],
+    resources: []
+  });
+
+  const promptInput = stateWith([
+    {
+      nodeId: "i1",
+      nodeType: "nodetool.input.StringInput",
+      name: "prompt",
+      label: "Prompt",
+      kind: "string"
+    }
+  ]);
+
+  const renderWithOperations = (
+    element: React.ReactElement,
+    operations: OperationBinding[],
+    states: Map<string, WorkflowState>
+  ) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <BuilderWorkflowProvider
+          value={states.get(operations[0].id) ?? emptyState}
+          operations={operations}
+          states={states}
+        >
+          {element}
+        </BuilderWorkflowProvider>
+      </ThemeProvider>
+    );
+
+  it("writes the generated operation id of a blank app, not `main`", async () => {
+    const onChange = jest.fn();
+    const ops = [operation("operation_1", "Operation 1")];
+    renderWithOperations(
+      bindingField("write").render({ ...fieldProps, onChange }),
+      ops,
+      new Map([["operation_1", promptInput]])
+    );
+
+    await userEvent.click(
+      screen.getByPlaceholderText(/Search inputs and node properties/i)
+    );
+    await userEvent.click(await screen.findByRole("option", { name: "Prompt" }));
+
+    expect(onChange).toHaveBeenCalledWith("op:operation_1/in:i1");
+  });
+
+  it("binds a widget to the operation the author picks", async () => {
+    const onChange = jest.fn();
+    const ops = [operation("draft", "Draft"), operation("publish", "Publish")];
+    const states = new Map([
+      ["draft", promptInput],
+      [
+        "publish",
+        stateWith([
+          {
+            nodeId: "i2",
+            nodeType: "nodetool.input.StringInput",
+            name: "slug",
+            label: "Slug",
+            kind: "string"
+          }
+        ])
+      ]
+    ]);
+    renderWithOperations(
+      bindingField("write").render({ ...fieldProps, onChange }),
+      ops,
+      states
+    );
+
+    await userEvent.click(screen.getByRole("combobox", { name: /Operation/i }));
+    await userEvent.click(await screen.findByRole("option", { name: "Publish" }));
+
+    await userEvent.click(
+      screen.getByPlaceholderText(/Search inputs and node properties/i)
+    );
+    await userEvent.click(await screen.findByRole("option", { name: "Slug" }));
+
+    await waitFor(() =>
+      expect(onChange).toHaveBeenLastCalledWith("op:publish/in:i2")
+    );
+  });
+
+  it("resolves a legacy `main` binding onto the app's sole operation", () => {
+    const ops = [operation("operation_1", "Operation 1")];
+    const states = new Map([
+      [
+        "operation_1",
+        stateWith([], [
+          {
+            nodeId: "o1",
+            nodeType: "nodetool.output.StringOutput",
+            name: "result",
+            label: "Result"
+          }
+        ])
+      ]
+    ]);
+    renderWithOperations(
+      bindingField("read").render({ ...fieldProps, value: "op:main/out:o1" }),
+      ops,
+      states
+    );
+
+    // The stored token names an operation the app does not have; it resolves to
+    // the only one, so the picker shows the bound output instead of nothing.
+    expect(screen.getByRole("combobox", { name: /Bind to/i })).toHaveTextContent(
+      "output · Result"
+    );
+  });
+
+  it("offers no operation chooser to a single-operation app", () => {
+    renderWithOperations(
+      bindingField("write").render(fieldProps),
+      [operation("operation_1", "Operation 1")],
+      new Map([["operation_1", promptInput]])
+    );
+    expect(
+      screen.queryByRole("combobox", { name: /Operation/i })
+    ).not.toBeInTheDocument();
   });
 });

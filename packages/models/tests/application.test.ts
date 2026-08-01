@@ -6,14 +6,26 @@ import { eq } from "drizzle-orm";
 import { getDb, initTestDb } from "../src/db.js";
 import { applicationVersions } from "../src/schema/applications.js";
 import {
+  applicationBudgets,
+  applicationInvocations
+} from "../src/schema/application-budgets.js";
+import {
   Application,
+  ApplicationIdInUseError,
+  InvalidApplicationIdError,
   deriveCapabilities,
+  normalizeApplicationId,
   listApplicationVersions,
   publishApplication,
   releaseApplicationVersion,
   releasedApplicationRelease,
   releasedApplicationVersion
 } from "../src/application.js";
+import {
+  listInvocations,
+  recordInvocation,
+  setApplicationBudget
+} from "../src/application-budget.js";
 import { Workflow } from "../src/workflow.js";
 import { WorkflowVersion } from "../src/workflow-version.js";
 
@@ -288,5 +300,191 @@ describe("deriveCapabilities", () => {
       workflows: [],
       resources: []
     });
+  });
+});
+
+describe("application ids", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("accepts a client-supplied id and refuses a second claim on it", async () => {
+    await Application.createUnique({
+      id: "my-app",
+      user_id: "u1",
+      document: JSON.stringify(documentWith())
+    });
+
+    // Even for the same user: `save()` upserts, `createUnique` does not.
+    await expect(
+      Application.createUnique({ id: "my-app", user_id: "u1" })
+    ).rejects.toThrow(ApplicationIdInUseError);
+    // And most of all not for anyone else.
+    await expect(
+      Application.createUnique({ id: "my-app", user_id: "u2" })
+    ).rejects.toThrow(ApplicationIdInUseError);
+  });
+
+  it("rejects an id that is not a plain identifier", () => {
+    expect(() => normalizeApplicationId("../etc/passwd")).toThrow(
+      InvalidApplicationIdError
+    );
+    expect(() => normalizeApplicationId("")).toThrow(InvalidApplicationIdError);
+    expect(normalizeApplicationId("  app_1.b-2  ")).toBe("app_1.b-2");
+  });
+});
+
+describe("deleting an application", () => {
+  beforeEach(async () => {
+    initTestDb();
+    await createWorkflow();
+  });
+
+  const countIn = async (
+    table:
+      | typeof applicationVersions
+      | typeof applicationInvocations
+      | typeof applicationBudgets,
+    applicationId: string
+  ): Promise<number> => {
+    const rows = await getDb().select().from(table);
+    return rows.filter(
+      (r: Record<string, unknown>) => r.application_id === applicationId
+    ).length;
+  };
+
+  const childCounts = async (applicationId: string) => ({
+    versions: await countIn(applicationVersions, applicationId),
+    invocations: await countIn(applicationInvocations, applicationId),
+    budgets: await countIn(applicationBudgets, applicationId)
+  });
+
+  it("takes its versions, ledger and budget with it", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+    await setApplicationBudget(app.id, { period: "total", maxUsd: 5 });
+    await recordInvocation({ applicationId: app.id, invocationId: "job-1" });
+    expect(await childCounts(app.id)).toEqual({
+      versions: 1,
+      invocations: 1,
+      budgets: 1
+    });
+
+    await app.delete();
+
+    expect(await childCounts(app.id)).toEqual({
+      versions: 0,
+      invocations: 0,
+      budgets: 0
+    });
+  });
+
+  it("leaves a recreated id with none of the deleted app's data", async () => {
+    const app = await Application.createUnique({
+      id: "shared-id",
+      user_id: "u1",
+      document: JSON.stringify(documentWith())
+    });
+    await publishApplication(app);
+    await recordInvocation({ applicationId: app.id, invocationId: "job-1" });
+    await app.delete();
+
+    // The attack the cascade closes: claim the id someone else gave up.
+    const impostor = await Application.createUnique({
+      id: "shared-id",
+      user_id: "u2",
+      document: JSON.stringify(documentWith())
+    });
+
+    expect(await listApplicationVersions(impostor.id)).toEqual([]);
+    expect(await releasedApplicationVersion(impostor.id)).toBeNull();
+    expect(await listInvocations(impostor.id)).toEqual([]);
+  });
+
+  it("does not touch another application's rows", async () => {
+    const app = await createApp();
+    const other = await createApp();
+    await publishApplication(other);
+
+    await app.delete();
+
+    expect(await listApplicationVersions(other.id)).toHaveLength(1);
+  });
+});
+
+describe("release transitions", () => {
+  beforeEach(async () => {
+    initTestDb();
+    await createWorkflow();
+  });
+
+  it("keeps at most one released row and one row per version", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+    await publishApplication(app);
+    await publishApplication(app);
+
+    const rows = await getDb()
+      .select()
+      .from(applicationVersions)
+      .where(eq(applicationVersions.application_id, app.id));
+    expect(rows.map((r: Record<string, unknown>) => r.version).sort()).toEqual([
+      1, 2, 3
+    ]);
+    expect(
+      rows.filter((r: Record<string, unknown>) => Number(r.released) === 1)
+    ).toHaveLength(1);
+  });
+
+  it("refuses a second snapshot with the same version number", async () => {
+    const app = await createApp();
+    const published = await publishApplication(app);
+
+    await expect(
+      getDb()
+        .insert(applicationVersions)
+        .values({
+          id: "dupe",
+          application_id: app.id,
+          user_id: "u1",
+          version: published.version,
+          document: JSON.stringify(documentWith()),
+          capabilities: "{}",
+          released: 0,
+          created_at: new Date().toISOString()
+        })
+    ).rejects.toThrow();
+  });
+
+  it("stamps each snapshot with the owner that published it", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+
+    expect(await listApplicationVersions(app.id, 50, "u1")).toHaveLength(1);
+    expect(await listApplicationVersions(app.id, 50, "u2")).toEqual([]);
+    expect(await releasedApplicationVersion(app.id, "u2")).toBeNull();
+  });
+
+  it("leaves the current release standing when the rollback target is missing", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+    const current = await publishApplication(app);
+
+    expect(await releaseApplicationVersion(app.id, 99)).toBeNull();
+
+    // The old code cleared the flag before finding out there was nothing to
+    // promote, leaving the published app serving no version at all.
+    expect((await releasedApplicationVersion(app.id))?.version).toBe(
+      current.version
+    );
+  });
+
+  it("does not roll back to another owner's snapshot", async () => {
+    const app = await createApp();
+    await publishApplication(app);
+    await publishApplication(app);
+
+    expect(await releaseApplicationVersion(app.id, 1, "u2")).toBeNull();
+    expect((await releasedApplicationVersion(app.id))?.version).toBe(2);
   });
 });

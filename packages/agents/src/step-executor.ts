@@ -1096,15 +1096,21 @@ export class StepExecutor {
     // downstream steps see an explicit error rather than undefined. When the
     // provider loop threw, report the real cause; otherwise the step genuinely
     // ran out of iterations (or an unstructured step produced no final text).
+    //
+    // A failed step is terminal but NOT completed: `failed`/`error` are set and
+    // `completed` stays false, so a scheduler cannot treat the failure as a
+    // satisfied dependency. The protocol-level `error` field carries the same
+    // cause, so a consumer never has to sniff the result payload for it.
     if (!this.step.completed) {
-      this.step.completed = true;
       this.step.endTime = Date.now();
 
-      const errorResult = {
-        error: generationError
-          ? `Step failed: ${generationError.message}`
-          : `Step failed: exceeded ${this.maxIterations} iterations without completion`
-      };
+      const message = generationError
+        ? `Step failed: ${generationError.message}`
+        : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
+      this.step.failed = true;
+      this.step.error = message;
+
+      const errorResult = { error: message };
       this.result = errorResult;
       this.context.memory.set({
         key: memoryKeys.step(this.step.id),
@@ -1126,6 +1132,7 @@ export class StepExecutor {
         type: "step_result",
         step: { id: this.step.id, instructions: this.step.instructions },
         result: errorResult,
+        error: message,
         is_task_result: this.useFinishTask
       } satisfies StepResult;
     }

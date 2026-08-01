@@ -210,7 +210,10 @@ export class RunSearchTool extends Tool {
       provider: this.provider,
       model: this.model,
       tools: childTools,
-      maxIterations
+      maxIterations,
+      // Without the run's signal a cancelled parent leaves its children driving
+      // provider calls to completion in the background.
+      signal: context.signal
     });
 
     let finalResult: unknown = null;

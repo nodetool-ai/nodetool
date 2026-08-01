@@ -21,7 +21,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'App'>;
 export default function AppScreen({ route, navigation }: Props) {
   const { colors } = useTheme();
   const { applicationId } = route.params;
-  const { name, document, workflow, isLoading, error } =
+  const { name, document, workflow, application, isLoading, error } =
     useApplicationApp(applicationId);
 
   useEffect(() => {
@@ -58,6 +58,7 @@ export default function AppScreen({ route, navigation }: Props) {
       document={document}
       applicationId={applicationId}
       workflow={workflow}
+      {...(application ? { application } : {})}
       title={name}
     />
   );

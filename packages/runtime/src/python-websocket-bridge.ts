@@ -22,7 +22,7 @@ import { pack, unpack } from "msgpackr";
 
 import WebSocket from "ws";
 
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, safeProcessEnv } from "@nodetool-ai/config";
 
 import { PythonBridgeBase } from "./python-bridge-base.js";
 
@@ -54,7 +54,7 @@ export type {
 
 /** Mirror of the stdio bridge's frame ceiling, used here for `maxPayload`. */
 const MAX_BRIDGE_FRAME_SIZE = Number(
-  process.env["NODETOOL_BRIDGE_MAX_FRAME_SIZE"] ?? 256 * 1024 * 1024
+  safeProcessEnv()["NODETOOL_BRIDGE_MAX_FRAME_SIZE"] ?? 256 * 1024 * 1024
 );
 
 const DEFAULT_STARTUP_TIMEOUT_MS = 20000;
@@ -413,7 +413,9 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       // close() may have already fired before we registered the aborter.
       if (this._explicitlyClosed) {
         finishError(
-          new Error(`Python worker WebSocket closed before opening (${this._wsUrl}).`)
+          new Error(
+            `Python worker WebSocket closed before opening (${this._wsUrl}).`
+          )
         );
         return;
       }
@@ -451,7 +453,8 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
   }
 
   private _detachLongLivedListeners(ws: WebSocket): void {
-    if (this._messageListener) ws.removeListener("message", this._messageListener);
+    if (this._messageListener)
+      ws.removeListener("message", this._messageListener);
     if (this._closeListener) ws.removeListener("close", this._closeListener);
     if (this._errorListener) ws.removeListener("error", this._errorListener);
     this._messageListener = null;
@@ -633,7 +636,9 @@ export class WebsocketPythonBridge extends PythonBridgeBase {
       const abort = this._abortHandshake;
       this._abortHandshake = null;
       abort(
-        new Error(`Python worker WebSocket closed before opening (${this._wsUrl}).`)
+        new Error(
+          `Python worker WebSocket closed before opening (${this._wsUrl}).`
+        )
       );
     }
     if (this._ws) {

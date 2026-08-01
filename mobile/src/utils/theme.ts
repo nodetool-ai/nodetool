@@ -27,7 +27,7 @@ export type ThemeColors = {
   accentMuted: string;
 };
 
-type ThemeShadows = {
+export type ThemeShadows = {
   small: ViewStyle;
   medium: ViewStyle;
   large: ViewStyle;

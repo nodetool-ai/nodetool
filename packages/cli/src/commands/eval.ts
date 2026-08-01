@@ -496,6 +496,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "thread-memory-tools",
     "Run the thread-memory tool-loop eval suite (thread_memory_*/asset tools, real DB) against a provider/model",
     "THREAD_MEMORY_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
+    "creative-pipeline",
+    "Run the long-horizon creative eval: one commission carried through brief, ideation, sketch, storyboard, cut and review across the composed ui_sketch_*/ui_storyboard_*/ui_timeline_* surfaces",
+    "CREATIVE_PIPELINE_TOOL_LOOP_CASES"
   )
 ];
 

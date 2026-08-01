@@ -32,6 +32,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./debug": {
+      "nodetool-dev": "./src/debug/index.ts",
+      "types": "./dist/debug/index.d.ts",
+      "import": "./dist/debug/index.js",
+      "default": "./dist/debug/index.js"
     }
   },
   "license": "MIT",

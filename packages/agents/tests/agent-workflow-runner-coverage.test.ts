@@ -173,12 +173,26 @@ describe("AgentWorkflowRunner.execute — node resolution", () => {
     });
   });
 
-  it("injects the run's tools into the context for agent nodes to pick up", async () => {
+  it("injects the run's tools into a scoped child context, not the caller's", async () => {
     const opts = makeOpts();
     await drain(new AgentWorkflowRunner(opts).execute(emptyGraph));
 
-    expect(opts.context.setInjectedTools).toHaveBeenCalledWith(opts.tools);
-    expect(opts.context.getInjectedTool("t1")).toEqual({ name: "t1" });
+    // The kernel runs against the child, which carries the tools…
+    const runContext = runnerInstances[0].opts.executionContext as any;
+    expect(runContext.setInjectedTools).toHaveBeenCalledWith(opts.tools);
+    expect(runContext.getInjectedTool("t1")).toEqual({ name: "t1" });
+    // …while the caller's context is left exactly as it was, so a second
+    // concurrent run cannot clobber it.
+    expect(opts.context.setInjectedTools).not.toHaveBeenCalled();
+    expect(opts.context.getInjectedTool("t1")).toBeNull();
+  });
+
+  it("shares agent memory with the caller's context", async () => {
+    const opts = makeOpts();
+    await drain(new AgentWorkflowRunner(opts).execute(emptyGraph));
+
+    const runContext = runnerInstances[0].opts.executionContext as any;
+    expect(runContext.memory).toBe(opts.context.memory);
   });
 });
 

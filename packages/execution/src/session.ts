@@ -30,8 +30,10 @@ export class ExecutionSession {
   readonly graph: HydratedGraphData;
 
   private readonly runner: WorkflowRunner;
-  private readonly stream: MessageStream;
+  /** Null unless the caller opted into `captureMessages` (see options). */
+  private readonly stream: MessageStream | null;
   private readonly persistence: ExecutionSessionOptions["persistence"];
+  private readonly bridge: { pendingRequestCount?: number } | null;
   private readonly resultPromise: Promise<RunResult>;
   private runTimeoutHandle: ReturnType<typeof setTimeout> | null = null;
   private _cancelReason: string | null = null;
@@ -45,15 +47,21 @@ export class ExecutionSession {
     persistence: ExecutionSessionOptions["persistence"];
     params: Record<string, unknown>;
     triggerEvent: ExecutionSessionOptions["triggerEvent"];
+    bridge: { pendingRequestCount?: number } | null;
     closeBridge: () => void;
     runTimeoutMs: number | undefined;
+    captureMessages: boolean;
+    messageBufferLimit: number | undefined;
   }) {
     this.jobId = init.jobId;
     this.workflowId = init.workflowId;
     this.graph = init.graph;
     this.runner = init.runner;
     this.persistence = init.persistence;
-    this.stream = new MessageStream(init.context);
+    this.bridge = init.bridge;
+    this.stream = init.captureMessages
+      ? new MessageStream(init.context, init.messageBufferLimit)
+      : null;
 
     if (init.runTimeoutMs && init.runTimeoutMs > 0) {
       this.runTimeoutHandle = setTimeout(() => {
@@ -80,7 +88,7 @@ export class ExecutionSession {
         // The terminal message was emitted synchronously before run()
         // resolved (ProcessingContext.emit() calls listeners inline), so the
         // stream can close now without dropping it.
-        this.stream.close();
+        this.stream?.close();
       });
 
     this.resultPromise
@@ -206,19 +214,59 @@ export class ExecutionSession {
       persistence: options.persistence ?? null,
       params: options.params ?? {},
       triggerEvent: options.triggerEvent ?? null,
+      bridge,
       closeBridge,
-      runTimeoutMs: options.limits?.runTimeoutMs
+      runTimeoutMs: options.limits?.runTimeoutMs,
+      captureMessages: options.captureMessages === true,
+      messageBufferLimit: options.limits?.messageBufferLimit
     });
   }
 
-  /** Validated, live message stream — closes once the run reaches a terminal state. */
+  /**
+   * Live message stream — closes once the run reaches a terminal state.
+   * Requires `captureMessages: true` at `create()`; without it nothing is
+   * queued (see that option) and reading this throws rather than handing back
+   * a stream that would silently yield nothing.
+   */
   get messages(): AsyncIterable<ProcessingMessage> {
+    if (!this.stream) {
+      throw new Error(
+        "ExecutionSession: `messages` requires `captureMessages: true` at " +
+          "create() — message capture is opt-in so a host that only awaits " +
+          "`result` never queues a run's messages unread."
+      );
+    }
     return this.stream;
   }
 
   /** The run's terminal result. Never rejects — kernel failures resolve as `status: "failed"`. */
   get result(): Promise<RunResult> {
     return this.resultPromise;
+  }
+
+  /**
+   * Live resource counts, for leak accounting: after a terminal result every
+   * one of these must be back to zero. Measured, not inferred — the
+   * reliability harness's `cleanup-leaks` invariant asserts against these
+   * numbers and reports a violation when a driver can't produce them.
+   */
+  resourceCounters(): {
+    liveActors: number;
+    pendingControlResponses: number;
+    pendingTimers: number;
+    pythonBridgePendingRequests: number;
+  } {
+    return {
+      liveActors: this.runner.liveActorCount,
+      pendingControlResponses: this.runner.pendingControlResponseCount,
+      // The session's own run-timeout timer is the only timer it owns; it is
+      // cleared when the run settles.
+      pendingTimers: this.runTimeoutHandle === null ? 0 : 1,
+      pythonBridgePendingRequests:
+        typeof this.bridge?.pendingRequestCount === "number"
+          ? this.bridge.pendingRequestCount
+          : 0
+    };
   }
 
   /** The reason passed to the most recent `cancel()` call, if any. */

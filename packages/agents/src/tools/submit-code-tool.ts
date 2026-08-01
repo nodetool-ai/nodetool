@@ -19,12 +19,18 @@ import {
   MAX_PORTS,
   MAX_SUMMARY_LENGTH,
   MAX_TITLE_LENGTH,
+  type CodeGenExpectedOutput,
+  type CodeGenInputPort,
   type CodeGenSubmission
 } from "@nodetool-ai/protocol/api-schemas/code-gen.js";
 import { z } from "zod";
 import { Tool } from "./base-tool.js";
 import { analyzeGeneratedCode } from "../code-gen/analyze.js";
-import { checkPortTypes } from "../code-gen/port-types.js";
+import {
+  checkPortTypes,
+  formatPortType,
+  portTypesCompatible
+} from "../code-gen/port-types.js";
 
 const PORT_TYPE_SCHEMA = {
   type: "object" as const,
@@ -110,6 +116,73 @@ const SUBMIT_CODE_INPUT_SCHEMA = {
 export interface SubmitCodeToolOptions {
   /** Fired once a submission is accepted, so the planner can end its loop. */
   onAccepted?: () => void;
+  /**
+   * Inputs seeded from handles that are already wired. The edge referencing
+   * each one was created before generation ran, so a submission that renames,
+   * drops, or incompatibly retypes one leaves the edge pointing at a handle the
+   * node no longer has.
+   */
+  requiredInputs?: readonly CodeGenInputPort[];
+  /** The output an existing edge already consumes, under the same contract. */
+  expectedOutput?: CodeGenExpectedOutput;
+}
+
+/**
+ * Errors for seeded ports the submission failed to honour.
+ *
+ * The transport schema checks the submission against itself; nothing there
+ * knows which handles the graph has already wired. That contract is what makes
+ * the pre-created edge valid, so it is enforced here, where a violation can
+ * still be handed back to the model as a feedback round.
+ */
+function checkSeededPorts(
+  submission: CodeGenSubmission,
+  requiredInputs: readonly CodeGenInputPort[],
+  expectedOutput: CodeGenExpectedOutput | undefined
+): string[] {
+  const errors: string[] = [];
+
+  for (const required of requiredInputs) {
+    const match = submission.inputs.find((port) => port.name === required.name);
+    if (!match) {
+      errors.push(
+        `Input "${required.name}" is already connected to another node and must ` +
+          `stay in the submission under that exact name. Declare it as ` +
+          `"${required.name}": ${formatPortType(required.type)}.`
+      );
+      continue;
+    }
+    if (!portTypesCompatible(required.type, match.type)) {
+      errors.push(
+        `Input "${required.name}" is connected as ${formatPortType(required.type)}, ` +
+          `but the submission types it ${formatPortType(match.type)}. Keep the ` +
+          `connected type, and convert inside the code if you need another shape.`
+      );
+    }
+  }
+
+  if (expectedOutput) {
+    const match = submission.outputs.find(
+      (port) => port.name === expectedOutput.name
+    );
+    if (!match) {
+      errors.push(
+        `Output "${expectedOutput.name}" is already connected to another node ` +
+          `and must stay in the submission under that exact name. Declare it as ` +
+          `"${expectedOutput.name}": ${formatPortType(expectedOutput.type)}.`
+      );
+      // Wire order: the submission's output feeds the handle that expects it.
+      // The check is symmetric, so this reads as the graph does.
+    } else if (!portTypesCompatible(match.type, expectedOutput.type)) {
+      errors.push(
+        `Output "${expectedOutput.name}" is consumed as ` +
+          `${formatPortType(expectedOutput.type)}, but the submission types it ` +
+          `${formatPortType(match.type)}. Return the connected type.`
+      );
+    }
+  }
+
+  return errors;
 }
 
 export class SubmitCodeTool extends Tool {
@@ -162,6 +235,18 @@ export class SubmitCodeTool extends Tool {
     if (typeErrors.length > 0) {
       this.lastErrors = typeErrors;
       return { status: "code_rejected", errors: typeErrors };
+    }
+
+    // Checked after the alias pass so an aliased type is reported as the alias
+    // it is, rather than as a mismatch against the handle it was seeded from.
+    const seededErrors = checkSeededPorts(
+      submission,
+      this.options.requiredInputs ?? [],
+      this.options.expectedOutput
+    );
+    if (seededErrors.length > 0) {
+      this.lastErrors = seededErrors;
+      return { status: "code_rejected", errors: seededErrors };
     }
 
     const analysis = analyzeGeneratedCode(

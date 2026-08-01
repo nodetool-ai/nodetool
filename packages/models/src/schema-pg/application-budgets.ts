@@ -1,8 +1,12 @@
 import { pgTable, text, integer, real, index } from "drizzle-orm/pg-core";
 
+import { applications } from "./applications.js";
+
 /** See the SQLite schema for the column semantics. */
 export const applicationBudgets = pgTable("application_budgets", {
-  application_id: text("application_id").primaryKey(),
+  application_id: text("application_id")
+    .primaryKey()
+    .references(() => applications.id, { onDelete: "cascade" }),
   period: text("period").notNull().default("month"),
   max_usd: real("max_usd"),
   max_invocations: integer("max_invocations"),
@@ -14,7 +18,10 @@ export const applicationInvocations = pgTable(
   "application_invocations",
   {
     id: text("id").primaryKey(),
-    application_id: text("application_id").notNull(),
+    application_id: text("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    user_id: text("user_id"),
     version: integer("version"),
     invocation_id: text("invocation_id").notNull(),
     operation_id: text("operation_id").notNull().default(""),

@@ -9,27 +9,11 @@
     }
   },
   {
-    "channel": "node:const1",
-    "message": {
-      "type": "node_update",
-      "node_id": "<node:0>",
-      "node_name": "nodetool.constant.String",
-      "node_type": "nodetool.constant.String",
-      "status": "running",
-      "result": null,
-      "error": null,
-      "properties": {
-        "value": "hello reliability"
-      },
-      "provider_cost": null
-    }
-  },
-  {
     "channel": "node:upper1",
     "message": {
       "type": "node_update",
-      "node_id": "<node:1>",
-      "node_name": "nodetool.text.ToUppercase",
+      "node_id": "<node:0>",
+      "node_name": "upper1",
       "node_type": "nodetool.text.ToUppercase",
       "status": "running",
       "result": null,
@@ -42,8 +26,8 @@
     "channel": "node:out1",
     "message": {
       "type": "node_update",
-      "node_id": "<node:2>",
-      "node_name": "nodetool.output.Output",
+      "node_id": "<node:1>",
+      "node_name": "out1",
       "node_type": "nodetool.output.Output",
       "status": "running",
       "result": null,
@@ -62,22 +46,6 @@
       "edge_id": "<edge:0>",
       "status": "active",
       "counter": 1
-    }
-  },
-  {
-    "channel": "node:const1",
-    "message": {
-      "type": "node_update",
-      "node_id": "<node:0>",
-      "node_name": "nodetool.constant.String",
-      "node_type": "nodetool.constant.String",
-      "status": "completed",
-      "result": null,
-      "error": null,
-      "properties": {
-        "value": "hello reliability"
-      },
-      "provider_cost": null
     }
   },
   {
@@ -104,8 +72,8 @@
     "channel": "node:upper1",
     "message": {
       "type": "generation_complete",
-      "node_id": "<node:1>",
-      "node_name": "nodetool.text.ToUppercase",
+      "node_id": "<node:0>",
+      "node_name": "upper1",
       "node_type": "nodetool.text.ToUppercase",
       "outputs": {
         "output": "HELLO RELIABILITY"
@@ -119,8 +87,8 @@
     "channel": "node:upper1",
     "message": {
       "type": "node_update",
-      "node_id": "<node:1>",
-      "node_name": "nodetool.text.ToUppercase",
+      "node_id": "<node:0>",
+      "node_name": "upper1",
       "node_type": "nodetool.text.ToUppercase",
       "status": "completed",
       "result": {
@@ -145,7 +113,7 @@
     "channel": "node:out1",
     "message": {
       "type": "output_update",
-      "node_id": "<node:2>",
+      "node_id": "<node:1>",
       "node_name": "out1",
       "output_name": "result",
       "value": "HELLO RELIABILITY",
@@ -158,8 +126,8 @@
     "channel": "node:out1",
     "message": {
       "type": "generation_complete",
-      "node_id": "<node:2>",
-      "node_name": "nodetool.output.Output",
+      "node_id": "<node:1>",
+      "node_name": "out1",
       "node_type": "nodetool.output.Output",
       "outputs": {
         "output": "HELLO RELIABILITY"
@@ -174,8 +142,8 @@
     "channel": "node:out1",
     "message": {
       "type": "node_update",
-      "node_id": "<node:2>",
-      "node_name": "nodetool.output.Output",
+      "node_id": "<node:1>",
+      "node_name": "out1",
       "node_type": "nodetool.output.Output",
       "status": "completed",
       "result": {

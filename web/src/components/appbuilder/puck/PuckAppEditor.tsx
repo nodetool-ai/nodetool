@@ -15,7 +15,7 @@ import TuneIcon from "@mui/icons-material/Tune";
 import { Workflow } from "../../../stores/ApiTypes";
 import { NodeContext } from "../../../contexts/NodeContext";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
-import { extractWorkflowState } from "../workflowState";
+import { extractWorkflowState, type WorkflowState } from "../workflowState";
 import { useAppRuntime } from "../runtime/useAppRuntime";
 import { AppRuntimeContext } from "../runtime/AppRuntimeContext";
 import { BuilderWorkflowProvider } from "./BuilderWorkflowContext";
@@ -23,7 +23,12 @@ import { appConfig } from "./config";
 import PuckAgentBinder from "./PuckAgentBinder";
 import { generateAppData } from "../generateAppDoc";
 import { isRenderableData } from "../appData";
-import { EMPTY_DOC_META, type AppDocMeta } from "@nodetool-ai/app-runtime";
+import {
+  APP_SCHEMA_VERSION,
+  EMPTY_DOC_META,
+  type AppDocMeta,
+  type ApplicationDocument
+} from "@nodetool-ai/app-runtime";
 import {
   Box,
   Dialog,
@@ -52,6 +57,12 @@ interface PuckAppEditorProps {
   onMetaChange?: (next: AppDocMeta) => void;
   dataOpen?: boolean;
   onToggleData?: () => void;
+  /**
+   * The graph of every workflow the document's operations run, by workflow id.
+   * An operation whose workflow is missing binds against nothing — the host
+   * workflow's surface is not another operation's.
+   */
+  operationWorkflows?: Record<string, Workflow>;
 }
 
 /**
@@ -168,17 +179,49 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
   meta = EMPTY_DOC_META,
   onMetaChange,
   dataOpen = false,
-  onToggleData
+  onToggleData,
+  operationWorkflows
 }) => {
   const workflowState = useMemo(
     () => extractWorkflowState(workflow, meta.resources),
     [workflow, meta.resources]
   );
+
+  // One bindable surface per declared operation, so a widget bound to the
+  // second operation is offered that workflow's inputs and outputs.
+  const operationStates = useMemo(() => {
+    const states = new Map<string, WorkflowState>();
+    for (const operation of meta.operations) {
+      const target =
+        operation.workflowId === workflow.id
+          ? workflow
+          : operationWorkflows?.[operation.workflowId];
+      states.set(operation.id, extractWorkflowState(target, meta.resources));
+    }
+    return states;
+  }, [meta.operations, meta.resources, operationWorkflows, workflow]);
+
+  // The design canvas resolves bindings against the document's real operations,
+  // not an implicit one — otherwise a widget bound to `operation_1` renders as
+  // unbound in the builder.
+  const designDocument = useMemo<ApplicationDocument>(
+    () => ({
+      schemaVersion: APP_SCHEMA_VERSION,
+      ui: data as ApplicationDocument["ui"],
+      operations: meta.operations,
+      resources: meta.resources,
+      variables: meta.variables
+    }),
+    [data, meta]
+  );
   const handleMetaChange = useCallback(
     (next: AppDocMeta) => onMetaChange?.(next),
     [onMetaChange]
   );
-  const designRuntime = useAppRuntime(workflow, true);
+  const designRuntime = useAppRuntime(workflow, true, {
+    document: designDocument,
+    workflowOverrides: operationWorkflows
+  });
   // Property components resolved by WorkflowInputWidget (AudioProperty) read
   // the workflow's node store via NodeContext — same wrap as the runtime view.
   const nodeStore = useWorkflowManager((s) => s.nodeStores[workflow.id]);
@@ -254,7 +297,11 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
 
   return (
     <NodeContext.Provider value={nodeStore ?? null}>
-      <BuilderWorkflowProvider value={workflowState}>
+      <BuilderWorkflowProvider
+        value={workflowState}
+        operations={meta.operations}
+        states={operationStates}
+      >
         <AppRuntimeContext.Provider value={designRuntime}>
           <Box
             className={`appbuilder-editor${

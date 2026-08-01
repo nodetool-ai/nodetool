@@ -103,6 +103,7 @@ function normalizeContent(content: unknown): string {
 
 export class RectLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Rect";
+  static readonly retrySafe = true;
   static readonly title = "Rectangle";
   static readonly description =
     "Generate SVG rectangle element with customizable position, size, and styling.\n    svg, shape, vector, rectangle\n\n    Use cases:\n    - Create rectangular shapes in SVG documents\n    - Design borders, frames, and backgrounds\n    - Build user interface components\n    - Create geometric patterns and layouts";
@@ -174,6 +175,7 @@ export class RectLibNode extends BaseNode {
 
 export class CircleLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Circle";
+  static readonly retrySafe = true;
   static readonly title = "Circle";
   static readonly description =
     "Generate SVG circle element with customizable position, radius, and styling.\n    svg, shape, vector, circle\n\n    Use cases:\n    - Create circular shapes and icons\n    - Design buttons, badges, and indicators\n    - Build data visualizations like pie charts\n    - Create decorative elements and patterns";
@@ -251,6 +253,7 @@ export class CircleLibNode extends BaseNode {
 
 export class EllipseLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Ellipse";
+  static readonly retrySafe = true;
   static readonly title = "Ellipse";
   static readonly description =
     "Generate SVG ellipse element with customizable position, radii, and styling.\n    svg, shape, vector, ellipse\n\n    Use cases:\n    - Create oval shapes and organic forms\n    - Design speech bubbles and callouts\n    - Build data visualization elements\n    - Create decorative patterns and borders";
@@ -332,6 +335,7 @@ export class EllipseLibNode extends BaseNode {
 
 export class LineLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Line";
+  static readonly retrySafe = true;
   static readonly title = "Line";
   static readonly description =
     "Generate SVG line element with customizable endpoints and styling.\n    svg, shape, vector, line\n\n    Use cases:\n    - Draw straight lines and connectors\n    - Create dividers and separators\n    - Build diagrams and flowcharts\n    - Design grid patterns and borders";
@@ -411,6 +415,7 @@ export class LineLibNode extends BaseNode {
 
 export class PolygonLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Polygon";
+  static readonly retrySafe = true;
   static readonly title = "Polygon";
   static readonly description =
     "Generate SVG polygon element with multiple vertices.\n    svg, shape, vector, polygon\n\n    Use cases:\n    - Create multi-sided shapes like triangles, pentagons, stars\n    - Build custom icons and symbols\n    - Design complex geometric patterns\n    - Create irregular shapes and forms";
@@ -475,6 +480,7 @@ export class PolygonLibNode extends BaseNode {
 
 export class PathLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Path";
+  static readonly retrySafe = true;
   static readonly title = "Path";
   static readonly description =
     "Generate SVG path element using path data commands.\n    svg, shape, vector, path\n\n    Use cases:\n    - Create complex curved and custom shapes\n    - Build logos and custom icons\n    - Design intricate patterns and illustrations\n    - Import path data from design tools";
@@ -539,6 +545,7 @@ export class PathLibNode extends BaseNode {
 
 export class TextLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Text";
+  static readonly retrySafe = true;
   static readonly title = "Text";
   static readonly description =
     "Add text elements to SVG.\n    svg, text, typography\n\n    Use cases:\n    - Add labels to vector graphics\n    - Create text-based logos\n    - Generate dynamic text content in SVGs";
@@ -618,6 +625,7 @@ export class TextLibNode extends BaseNode {
 
 export class GaussianBlurLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.GaussianBlur";
+  static readonly retrySafe = true;
   static readonly title = "Gaussian Blur";
   static readonly description =
     "Apply Gaussian blur filter effect to SVG elements.\n    svg, filter, blur, effects\n\n    Use cases:\n    - Create soft focus and depth effects\n    - Add subtle shadows and glows\n    - Simulate motion blur\n    - Soften edges in graphics";
@@ -653,6 +661,7 @@ export class GaussianBlurLibNode extends BaseNode {
 
 export class DropShadowLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.DropShadow";
+  static readonly retrySafe = true;
   static readonly title = "Drop Shadow";
   static readonly description =
     "Apply drop shadow filter effect to SVG elements for depth.\n    svg, filter, shadow, effects\n\n    Use cases:\n    - Add depth and elevation to elements\n    - Create realistic shadow effects\n    - Enhance visual hierarchy\n    - Improve element separation and readability";
@@ -737,6 +746,7 @@ export class DropShadowLibNode extends BaseNode {
 
 export class DocumentLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Document";
+  static readonly retrySafe = true;
   static readonly title = "SVG Document";
   static readonly description =
     "Combine SVG elements into a complete SVG document.\n    svg, document, combine\n\n    Use cases:\n    - Combine multiple SVG elements into a single document\n    - Set document-level properties like viewBox and dimensions\n    - Export complete SVG documents";
@@ -794,6 +804,7 @@ export class DocumentLibNode extends BaseNode {
 
 export class SVGToImageLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.SVGToImage";
+  static readonly retrySafe = true;
   // Native `sharp` rasterization — Node only. Overrides the LIB_SVG_NODES
   // tagAsServer tag (per-class platforms always win over the list tagger).
   static readonly platforms = NODE_ONLY;
@@ -880,6 +891,7 @@ export class SVGToImageLibNode extends BaseNode {
 
 export class GradientLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Gradient";
+  static readonly retrySafe = true;
   static readonly title = "Gradient";
   static readonly description =
     "Create linear or radial gradients for SVG elements.\n    svg, gradient, color\n\n    Use cases:\n    - Add smooth color transitions\n    - Create complex color effects\n    - Define reusable gradient definitions";
@@ -994,6 +1006,7 @@ export class GradientLibNode extends BaseNode {
 
 export class TransformLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.Transform";
+  static readonly retrySafe = true;
   static readonly title = "Transform";
   static readonly description =
     "Apply transformations to SVG elements.\n    svg, transform, animation\n\n    Use cases:\n    - Rotate, scale, or translate elements\n    - Create complex transformations\n    - Prepare elements for animation";
@@ -1084,6 +1097,7 @@ export class TransformLibNode extends BaseNode {
 
 export class ClipPathLibNode extends BaseNode {
   static readonly nodeType = "lib.svg.ClipPath";
+  static readonly retrySafe = true;
   static readonly title = "Clip Path";
   static readonly description =
     "Create clipping paths for SVG elements.\n    svg, clip, mask\n\n    Use cases:\n    - Mask parts of elements\n    - Create complex shapes through clipping\n    - Apply visual effects using masks";

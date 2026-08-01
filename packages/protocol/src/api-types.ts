@@ -822,6 +822,12 @@ export interface NodeMetadata {
    * anything else needs an explicit run. Absent is treated as "external".
    */
   effect?: NodeEffect;
+  /**
+   * Opt-in: re-running the node with identical inputs is safe. Absent means
+   * unsafe — cost tracking cannot see external writes, so an unclassified node
+   * must not gain `retry` by omission. See docs/workflow-supervisor-design.md §5.3.
+   */
+  retry_safe?: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */
@@ -934,6 +940,14 @@ export interface RunJobRequest {
   application_id?: string | null;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
+  /**
+   * The app operation this run implements, when the app declares more than the
+   * one. The ledger stores it alongside the invocation, so per-operation
+   * governance reports ("which button costs the money") can be built from real
+   * runs. Optional: a client that omits it still runs, its rows just carry no
+   * operation.
+   */
+  operation_id?: string | null;
   /**
    * Wake-up payload for a trigger-driven run: the trigger node whose event
    * started this job, the durable input's id (for idempotent ack), and the

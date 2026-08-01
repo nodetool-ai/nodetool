@@ -1,57 +1,70 @@
-import { EventEmitter } from "node:events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const sentMessages: Array<Record<string, unknown>> = [];
-const lifecycleEvents: string[] = [];
+/**
+ * `vi.mock` factories are hoisted above the module body, and the `ws` mock
+ * is pulled in while the runtime's python-websocket-bridge is evaluated —
+ * before this file's own declarations initialize. So the mock and the state
+ * it records live in `vi.hoisted`, which runs first by construction.
+ */
+const { sentMessages, lifecycleEvents, MockWebSocket } = await vi.hoisted(
+  async () => {
+    const { EventEmitter } = await import("node:events");
 
-class MockWebSocket extends EventEmitter {
-  static readonly OPEN = 1;
-  static readonly CLOSED = 3;
+    const sentMessages: Array<Record<string, unknown>> = [];
+    const lifecycleEvents: string[] = [];
 
-  readyState = 0;
+    class MockWebSocket extends EventEmitter {
+      static readonly OPEN = 1;
+      static readonly CLOSED = 3;
 
-  constructor(_url: string, _opts?: Record<string, unknown>) {
-    super();
+      readyState = 0;
 
-    setTimeout(() => {
-      this.readyState = MockWebSocket.OPEN;
-      this.emit("open");
-      setTimeout(() => {
-        this.emit(
-          "message",
-          Buffer.from(JSON.stringify({ message_type: "session_started" }))
-        );
-      }, 0);
-    }, 0);
-  }
+      constructor(_url: string, _opts?: Record<string, unknown>) {
+        super();
 
-  send(payload: string): void {
-    const parsed = JSON.parse(payload) as Record<string, unknown>;
-    sentMessages.push(parsed);
-    if (parsed.commit === true) {
-      lifecycleEvents.push("commit");
-      setTimeout(() => {
-        this.emit(
-          "message",
-          Buffer.from(
-            JSON.stringify({
-              message_type: "committed_transcript",
-              text: "final transcript"
-            })
-          )
-        );
-      }, 0);
+        setTimeout(() => {
+          this.readyState = MockWebSocket.OPEN;
+          this.emit("open");
+          setTimeout(() => {
+            this.emit(
+              "message",
+              Buffer.from(JSON.stringify({ message_type: "session_started" }))
+            );
+          }, 0);
+        }, 0);
+      }
+
+      send(payload: string): void {
+        const parsed = JSON.parse(payload) as Record<string, unknown>;
+        sentMessages.push(parsed);
+        if (parsed.commit === true) {
+          lifecycleEvents.push("commit");
+          setTimeout(() => {
+            this.emit(
+              "message",
+              Buffer.from(
+                JSON.stringify({
+                  message_type: "committed_transcript",
+                  text: "final transcript"
+                })
+              )
+            );
+          }, 0);
+        }
+      }
+
+      close(): void {
+        lifecycleEvents.push("close");
+        this.readyState = MockWebSocket.CLOSED;
+        setTimeout(() => {
+          this.emit("close", 1000, Buffer.from(""));
+        }, 0);
+      }
     }
-  }
 
-  close(): void {
-    lifecycleEvents.push("close");
-    this.readyState = MockWebSocket.CLOSED;
-    setTimeout(() => {
-      this.emit("close", 1000, Buffer.from(""));
-    }, 0);
+    return { sentMessages, lifecycleEvents, MockWebSocket };
   }
-}
+);
 
 vi.mock("ws", () => ({
   WebSocket: MockWebSocket

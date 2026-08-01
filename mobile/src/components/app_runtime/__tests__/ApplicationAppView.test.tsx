@@ -5,6 +5,7 @@
  */
 import React from "react";
 import { fireEvent, render, screen, act } from "@testing-library/react-native";
+import { v4 as uuidv4 } from "uuid";
 import {
   parseApplicationDocument,
   type ApplicationDocument,
@@ -147,6 +148,9 @@ describe("ApplicationAppView", () => {
     mockRun.mockClear();
     mockCancel.mockClear();
     mockRunnerState.job_id = null;
+    // The runtime mints the job id before it sends the run; the tests below
+    // emit messages for the id it will hand out.
+    (uuidv4 as jest.Mock).mockReturnValue("job-1");
   });
 
   it("renders the application document", () => {

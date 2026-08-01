@@ -11,18 +11,10 @@
  * 6. drainPendingStrokeCommit integration proof
  */
 
-import type {
-  Layer,
-  SketchDocument,
-  LayerContentBounds,
-  LayerEffect
-} from "../types";
+import type { Layer, SketchDocument, LayerEffect } from "../types";
 import { Canvas2DRuntime } from "../rendering/Canvas2DRuntime";
 import type { ActiveStrokeInfo } from "../rendering/types";
-import {
-  setCanvasRasterBounds,
-  getCanvasRasterBounds
-} from "../transform/geometry/layerGeometry";
+import { setCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import {
   magicWandFromRgba,
   polygonToBinaryMask,

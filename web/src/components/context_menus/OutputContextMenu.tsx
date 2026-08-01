@@ -38,7 +38,6 @@ import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import NodeItem from "../node_menu/NodeItem";
 import { useAutoFocusEnabled } from "../../hooks/useAutoFocusEnabled";
 import { useCodeGenFromHandle } from "../../hooks/useCodeGenFromHandle";
-import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 
 const NODE_ROW_HEIGHT = 28;
 
@@ -335,10 +334,6 @@ const OutputContextMenu: React.FC = () => {
   }, [createOutputNode, closeContextMenu]);
 
   const { transformOutput } = useCodeGenFromHandle();
-  // Off until the deployment enables AI authoring — the entry point is absent,
-  // not disabled.
-  const codeGenEnabled = isCodeGenerationEnabled();
-
   // Placement mirrors createNodeWithEdge: a fixed gap right of the handle,
   // vertically centered on it, computed in flow space so zoom doesn't matter.
   const handleTransformWithAI = useCallback(
@@ -676,7 +671,7 @@ const OutputContextMenu: React.FC = () => {
                 <Text size="small">{saveLabel}</Text>
               </Box>
             )}
-            {codeGenEnabled && sourceType != null && sourceHandle != null && (
+            {sourceType != null && sourceHandle != null && (
               <Box
                 component="button"
                 type="button"

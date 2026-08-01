@@ -729,6 +729,10 @@ describe("UnifiedWebSocketRunner", () => {
     // hand the still-queued request to startJob — the runner must honor the
     // cancellation rather than flip it back to running/completed. Regression
     // test for "cancel multiple, only one stays in the Cancelled lane".
+    //
+    // "Honor" means the workflow never executes: a DB row that still reads
+    // "cancelled" proves nothing on its own, since the kernel could have run
+    // (and performed side effects) before anything looked at the row.
     initTestDb();
     await Job.create({
       id: "cancelled-while-queued",
@@ -736,6 +740,16 @@ describe("UnifiedWebSocketRunner", () => {
       user_id: "1",
       status: "cancelled",
       name: "Cancelled run"
+    });
+
+    let executed = 0;
+    runner = new UnifiedWebSocketRunner({
+      resolveExecutor: () => ({
+        async process() {
+          executed++;
+          return {};
+        }
+      })
     });
 
     await runner.connect(ws);
@@ -758,6 +772,25 @@ describe("UnifiedWebSocketRunner", () => {
 
     const job = await Job.get<Job>("cancelled-while-queued");
     expect(job?.status).toBe("cancelled");
+    expect(executed).toBe(0);
+
+    const sent = ws.sentBytes.map((b) => unpack(b) as Record<string, unknown>);
+    expect(
+      sent.some(
+        (m) =>
+          m.type === "job_update" &&
+          m.job_id === "cancelled-while-queued" &&
+          m.status === "cancelled"
+      )
+    ).toBe(true);
+    expect(
+      sent.some(
+        (m) =>
+          m.type === "job_update" &&
+          m.job_id === "cancelled-while-queued" &&
+          m.status === "completed"
+      )
+    ).toBe(false);
 
     await runner.disconnect();
   });

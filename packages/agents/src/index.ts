@@ -395,6 +395,7 @@ export {
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
   hashPlanKey,
+  hashPlanCheckpointKey,
   InMemoryPlanCache,
   FilePlanCache,
   InMemoryCheckpointStore,
@@ -404,8 +405,13 @@ export type {
   PlanCache,
   CheckpointStore,
   Checkpoint,
-  PlanKeyInput
+  PlanKeyInput,
+  PlanCheckpointKeyInput
 } from "./checkpoint-store.js";
+
+// Shared execution policy (bounds every agent mode obeys)
+export { DEFAULT_AGENT_POLICY, resolveAgentPolicy } from "./agent-policy.js";
+export type { AgentPolicy, AgentPolicyOptions } from "./agent-policy.js";
 
 // Planning & orchestration
 export { TaskPlanner } from "./task-planner.js";
@@ -579,6 +585,19 @@ export {
   THREAD_MEMORY_TOOL_LOOP_CASES
 } from "./evals/surfaces/thread-memory.js";
 export type { ThreadMemoryBridgeFinalState } from "./evals/surfaces/thread-memory.js";
+export {
+  createCreativePipelineBridge,
+  CREATIVE_PIPELINE_TOOL_LOOP_CASES,
+  ATLAS_BRIEF,
+  LANTERN_BRIEF
+} from "./evals/surfaces/creative-pipeline.js";
+export type {
+  CreativeBrief,
+  CreativeConcept,
+  CreativePipelineFinalState,
+  CreativePipelineInitialState,
+  ReviewNote
+} from "./evals/surfaces/creative-pipeline.js";
 
 // Sub-agent execution evaluation harness (RunSubtaskTool + inherited toolset)
 export {

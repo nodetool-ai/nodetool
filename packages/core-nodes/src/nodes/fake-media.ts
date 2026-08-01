@@ -118,6 +118,7 @@ const renderGradientPng = async (
 
 export class FakeGenerateImageNode extends BaseNode {
   static readonly nodeType = "nodetool.fake.GenerateImage";
+  static readonly retrySafe = true;
   static readonly title = "Fake Generate Image";
   static readonly description =
     "Simulate image generation with a fake provider — no API calls.\n" +
@@ -184,6 +185,7 @@ const imageUri = (image: unknown): string | null => {
  */
 export class FakeColorGradeNode extends BaseNode {
   static readonly nodeType = "nodetool.fake.ColorGrade";
+  static readonly retrySafe = true;
   static readonly title = "Color Grade (browser)";
   static readonly description =
     "Color-grade an image in the browser — hue, saturation, brightness.\n" +

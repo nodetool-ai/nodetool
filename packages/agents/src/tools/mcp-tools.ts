@@ -256,6 +256,34 @@ async function apiPost(
   return res.json();
 }
 
+/**
+ * POST that reports the HTTP status instead of collapsing a failure into an
+ * `{ error }` body. A caller that needs to tell "this server has no such
+ * endpoint" from "the endpoint ran and reported a failure" cannot do it from
+ * the body: a failed run legitimately carries an `error` field of its own.
+ */
+async function apiPostWithStatus(
+  context: ProcessingContext,
+  path: string,
+  body?: unknown
+): Promise<{ ok: boolean; status: number; data: unknown }> {
+  const url = new URL(path, getApiUrl(context));
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: getHeaders(context),
+    body: body !== undefined ? JSON.stringify(body) : undefined
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    return {
+      ok: false,
+      status: res.status,
+      data: { error: `API error ${res.status}: ${text}` }
+    };
+  }
+  return { ok: true, status: res.status, data: await res.json() };
+}
+
 async function apiPut(
   context: ProcessingContext,
   path: string,
@@ -622,9 +650,10 @@ function summarizeWorkflowGraph(workflow: unknown): unknown {
 export class DebugWorkflowTool extends Tool {
   readonly name = "debug_workflow";
   readonly description =
-    "Run a workflow end-to-end and return a consolidated debug report: final " +
-    "status, outputs, error, job logs, and the workflow graph overview. Use this " +
-    "to troubleshoot a failing or misbehaving workflow and iterate on a fix.";
+    "Run a workflow end-to-end and return a consolidated debug report: a " +
+    "pass/fail verdict with the issues behind it, per-node status and errors, " +
+    "logs, LLM calls, outputs, job record, and the workflow graph overview. " +
+    "Use this to troubleshoot a failing or misbehaving workflow and iterate.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -657,11 +686,33 @@ export class DebugWorkflowTool extends Tool {
     const includeGraph = params["include_graph"] !== false;
     const logLimit = Number(params["log_limit"] ?? 200);
 
-    const run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
-      params: params["params"] ?? {}
-    });
+    // `/debug` runs the workflow and returns the same execution summary and
+    // verdict the CLI harness computes. Older servers only expose `/run`,
+    // which starts the job and reports a status string — fall back to it so
+    // the tool still works, and say so in the report.
+    //
+    // The fallback triggers on the endpoint being absent (404/405), never on
+    // the body: a run that failed reports its own `error` alongside the
+    // summary and verdict, which is precisely the report worth keeping.
+    const debugRun = await apiPostWithStatus(
+      context,
+      `/api/workflows/${workflowId}/debug`,
+      { params: params["params"] ?? {} }
+    );
+    const endpointMissing =
+      !debugRun.ok && (debugRun.status === 404 || debugRun.status === 405);
+    let run = debugRun.data;
+    if (endpointMissing) {
+      run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
+        params: params["params"] ?? {}
+      });
+    }
 
     const report: Record<string, unknown> = { workflow_id: workflowId, run };
+    if (endpointMissing) {
+      report["note"] =
+        "Server has no /debug endpoint; reporting the plain run result without an execution summary or verdict.";
+    }
 
     const jobId = (run as Record<string, unknown>)?.["job_id"];
     if (typeof jobId === "string") {
@@ -737,9 +788,13 @@ export class ValidateWorkflowTool extends Tool {
     }
 
     if (!this.registry) {
+      // Returning the graph with a note read as a pass to every caller that
+      // checks for issues rather than for prose. A validator with no registry
+      // cannot validate; say so as an error.
       return {
-        note: "No in-process node registry available; returning the graph unvalidated. Run `nodetool validate` from the CLI for a full static check.",
-        graph
+        error:
+          "Cannot validate: no node registry is available in this process. Run `nodetool validate` from the CLI, or call this tool from a server-side context with a registry.",
+        validated: false
       };
     }
 

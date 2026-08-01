@@ -26,6 +26,13 @@ export type {
   StreamingOutputs,
   TriggerEvent
 } from "@nodetool-ai/runtime";
+// Node authors throw RecoverableNodeError to hand the supervisor the value
+// that needs repairing. Re-exported so they import it from node-sdk like
+// everything else they need to write a node.
+export {
+  RecoverableNodeError,
+  isRecoverableNodeError
+} from "@nodetool-ai/runtime";
 export type {
   ImageRef,
   AudioRef,

@@ -115,7 +115,8 @@ export const runJobDataSchema = z
       .optional(),
     settings: z.record(z.string(), z.unknown()).optional(),
     application_id: z.string().nullable().optional(),
-    application_version: z.number().nullable().optional()
+    application_version: z.number().nullable().optional(),
+    operation_id: z.string().nullable().optional()
   })
   .passthrough();
 

@@ -140,6 +140,8 @@ describe('useApplications', () => {
     expect(result.current.workflow?.graph).toEqual(pinnedGraph);
     // A pinned graph makes the workflow request unnecessary.
     expect(mockWorkflowQuery.enabled).toBe(false);
+    // The identity every run of this app must send, so the server can meter it.
+    expect(result.current.application).toEqual({ id: 'a1', version: 1 });
   });
 
   it('falls back to the draft document and the live workflow', async () => {
@@ -157,6 +159,8 @@ describe('useApplications', () => {
     await waitFor(() => expect(result.current.source).toBe('draft'));
     expect(mockWorkflowQuery.enabled).toBe(true);
     expect(result.current.workflow?.id).toBe('wf-1');
+    // Still an app run — budgeted — but not a run of any released version.
+    expect(result.current.application).toEqual({ id: 'a1', version: null });
   });
 
   it('fetches nothing until an application id is known', () => {

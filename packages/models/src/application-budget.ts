@@ -19,6 +19,7 @@ import {
   applicationBudgets,
   applicationInvocations
 } from "./schema/application-budgets.js";
+import { applications } from "./schema/applications.js";
 
 export type BudgetPeriod = "day" | "month" | "total";
 
@@ -53,6 +54,8 @@ export type BudgetDecision =
 export interface InvocationRecord {
   id: string;
   applicationId: string;
+  /** Owner of the app when the run was recorded; null on pre-existing rows. */
+  userId: string | null;
   version: number | null;
   invocationId: string;
   operationId: string;
@@ -75,6 +78,7 @@ const toBudget = (row: Record<string, unknown>): ApplicationBudget => ({
 const toRecord = (row: Record<string, unknown>): InvocationRecord => ({
   id: String(row.id),
   applicationId: String(row.application_id),
+  userId: row.user_id == null ? null : String(row.user_id),
   version: row.version == null ? null : Number(row.version),
   invocationId: String(row.invocation_id),
   operationId: String(row.operation_id ?? ""),
@@ -84,6 +88,24 @@ const toRecord = (row: Record<string, unknown>): InvocationRecord => ({
   createdAt: String(row.created_at),
   settledAt: row.settled_at == null ? null : String(row.settled_at)
 });
+
+/**
+ * Who a ledger row belongs to. The ledger is read by application id, and ids
+ * are client-supplied, so each row records the owner of the app that produced
+ * it instead of leaving that to whatever row holds the id later. Callers that
+ * already know the user pass it; the rest read it off the parent.
+ */
+async function ownerOfApplication(
+  applicationId: string
+): Promise<string | null> {
+  const db = getDb();
+  const rows = await db
+    .select({ user_id: applications.user_id })
+    .from(applications)
+    .where(eq(applications.id, applicationId))
+    .limit(1);
+  return (rows[0]?.user_id as string | undefined) ?? null;
+}
 
 /** Start of the window a period covers, or null for "total". */
 export const periodStart = (period: BudgetPeriod, now: Date): string | null => {
@@ -220,26 +242,15 @@ export async function checkApplicationBudget(
 }
 
 /** Record a run against the app. Also the release telemetry row. */
-export async function recordInvocation(input: {
-  applicationId: string;
-  version?: number | null;
-  invocationId: string;
-  operationId?: string;
-  estimatedUsd?: number;
-}): Promise<InvocationRecord> {
+export async function recordInvocation(
+  input: ReserveInput
+): Promise<InvocationRecord> {
   const db = getDb();
+  const userId =
+    input.userId ?? (await ownerOfApplication(input.applicationId));
   const rows = await db
     .insert(applicationInvocations)
-    .values({
-      id: createTimeOrderedUuid(),
-      application_id: input.applicationId,
-      version: input.version ?? null,
-      invocation_id: input.invocationId,
-      operation_id: input.operationId ?? "",
-      estimated_usd: input.estimatedUsd ?? 0,
-      status: "running",
-      created_at: new Date().toISOString()
-    })
+    .values(invocationRow(input, userId))
     .returning();
   return toRecord(rows[0] as Record<string, unknown>);
 }
@@ -296,9 +307,10 @@ export type Reservation =
     };
 
 /** Values every reserved row carries, independent of which driver writes it. */
-const invocationRow = (input: ReserveInput) => ({
+const invocationRow = (input: ReserveInput, userId: string | null) => ({
   id: createTimeOrderedUuid(),
   application_id: input.applicationId,
+  user_id: userId,
   version: input.version ?? null,
   invocation_id: input.invocationId,
   operation_id: input.operationId ?? "",
@@ -326,6 +338,8 @@ const overBudget = (
 
 export interface ReserveInput {
   applicationId: string;
+  /** Owner the run is booked against. Read off the app when omitted. */
+  userId?: string | null;
   version?: number | null;
   invocationId: string;
   operationId?: string;
@@ -349,11 +363,15 @@ export async function reserveInvocation(
 ): Promise<Reservation> {
   const estimatedUsd = input.estimatedUsd ?? 0;
   const db = getDb();
+  // Resolved before the transaction: the SQLite branch runs synchronously and
+  // cannot await a lookup of its own.
+  const userId =
+    input.userId ?? (await ownerOfApplication(input.applicationId));
 
   // No budget row means unmetered, so there is nothing to serialize on.
   const configured = await getApplicationBudget(input.applicationId);
   if (!configured) {
-    const record = await recordInvocation(input);
+    const record = await recordInvocation({ ...input, userId });
     return {
       allowed: true,
       record,
@@ -389,7 +407,7 @@ export async function reserveInvocation(
       if (!budgetRow) {
         const orphan = tx
           .insert(applicationInvocations)
-          .values(invocationRow(input))
+          .values(invocationRow(input, userId))
           .returning()
           .get();
         return unmetered(toRecord(orphan as Record<string, unknown>));
@@ -418,7 +436,7 @@ export async function reserveInvocation(
       if (refused) return { allowed: false, ...refused, usage, budget };
       const row = tx
         .insert(applicationInvocations)
-        .values(invocationRow(input))
+        .values(invocationRow(input, userId))
         .returning()
         .get();
       return {
@@ -442,7 +460,7 @@ export async function reserveInvocation(
     if (!budgetRow) {
       const [orphan] = await tx
         .insert(applicationInvocations)
-        .values(invocationRow(input))
+        .values(invocationRow(input, userId))
         .returning();
       return unmetered(toRecord(orphan as Record<string, unknown>));
     }
@@ -469,7 +487,7 @@ export async function reserveInvocation(
     if (refused) return { allowed: false, ...refused, usage, budget };
     const [row] = await tx
       .insert(applicationInvocations)
-      .values(invocationRow(input))
+      .values(invocationRow(input, userId))
       .returning();
     return {
       allowed: true,
@@ -479,16 +497,27 @@ export async function reserveInvocation(
   });
 }
 
-/** Recent runs of an application, newest first. */
+/**
+ * Recent runs of an application, newest first. `userId` scopes the read to the
+ * owner the rows were written for; rows predating the column stay visible.
+ */
 export async function listInvocations(
   applicationId: string,
-  limit = 50
+  limit = 50,
+  userId?: string
 ): Promise<InvocationRecord[]> {
   const db = getDb();
+  const scope =
+    userId === undefined
+      ? eq(applicationInvocations.application_id, applicationId)
+      : and(
+          eq(applicationInvocations.application_id, applicationId),
+          sql`(${applicationInvocations.user_id} IS NULL OR ${applicationInvocations.user_id} = ${userId})`
+        );
   const rows = await db
     .select()
     .from(applicationInvocations)
-    .where(eq(applicationInvocations.application_id, applicationId))
+    .where(scope)
     .orderBy(sql`${applicationInvocations.created_at} desc`)
     .limit(limit);
   return rows.map((r: Record<string, unknown>) => toRecord(r));

@@ -45,6 +45,21 @@ export interface RunFrame {
   /** The raw frame payload. A `ProcessingMessage` for server→client frames;
    * an untyped record for client→server control frames (run/cancel/…). */
   message: ProcessingMessage | Record<string, unknown>;
+  /**
+   * Set when a driver recognizes this frame as its own surface's *documented*
+   * redundancy — a repeat of information an earlier frame already carried,
+   * emitted for client convenience (the ws-server's eager "running" ack and
+   * its authoritative terminal snapshot; see `drivers/ws-server.ts`). The
+   * value is the reason tag.
+   *
+   * The frame is still recorded: dropping repeats outright, as this driver
+   * used to, makes "exactly one terminal job_update" unfalsifiable on the one
+   * surface that has a wire. Cross-surface normalization skips tagged frames
+   * (they have no kernel counterpart), and the invariants that assert
+   * uniqueness discount them — so an *undocumented* duplicate, which is never
+   * tagged, still fails both.
+   */
+  redundant?: string;
 }
 
 /**

@@ -1309,7 +1309,10 @@ describe("StepExecutor", () => {
       messages.push(msg);
     }
 
-    expect(step.completed).toBe(true);
+    // Terminal, but NOT completed — a dependent step must not run on this.
+    expect(step.completed).toBe(false);
+    expect(step.failed).toBe(true);
+    expect(step.error).toContain("exceeded 2 iterations");
     expect(step.endTime).toBeDefined();
 
     // Should have a StepFailed task_update
@@ -1317,5 +1320,10 @@ describe("StepExecutor", () => {
       (m) => m.type === "task_update" && (m as TaskUpdate).event === "step_failed"
     );
     expect(failedUpdates).toHaveLength(1);
+
+    // …and the failure is on the protocol-level `error` field, not buried in
+    // the result payload.
+    const stepResult = messages.find((m) => m.type === "step_result") as any;
+    expect(stepResult.error).toContain("exceeded 2 iterations");
   });
 });

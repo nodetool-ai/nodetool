@@ -48,6 +48,7 @@ import type {
 } from "./types.js";
 import { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 import type { PlanCache, CheckpointStore } from "./checkpoint-store.js";
+import { resolveAgentPolicy, type AgentPolicy } from "./agent-policy.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   type AgentOutputFormat,
@@ -359,9 +360,8 @@ export class Agent {
   private readonly description: string;
   private readonly planningModel: string;
   private readonly reasoningModel: string;
-  private readonly maxSteps: number;
-  private readonly maxStepIterations: number;
-  private readonly maxTokens?: number;
+  /** The one execution policy every mode obeys (bounds, budgets, fan-out). */
+  private readonly policy: AgentPolicy;
   private readonly outputSchema?: Record<string, unknown>;
   private readonly outputFormat: AgentOutputFormat;
   private readonly workspace?: string;
@@ -374,8 +374,6 @@ export class Agent {
   private readonly useGraphPlanner: boolean;
   private readonly useScriptPlanner: boolean;
   private readonly script?: string;
-  private readonly maxConcurrentAgents?: number;
-  private readonly maxAgentCalls?: number;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly securityMonitorEnabled: boolean;
@@ -397,9 +395,13 @@ export class Agent {
     this.description = opts.description ?? "";
     this.planningModel = opts.planningModel ?? opts.model;
     this.reasoningModel = opts.reasoningModel ?? opts.model;
-    this.maxSteps = opts.maxSteps ?? 10;
-    this.maxStepIterations = opts.maxStepIterations ?? 15;
-    this.maxTokens = opts.maxTokens;
+    this.policy = resolveAgentPolicy({
+      maxSteps: opts.maxSteps,
+      maxStepIterations: opts.maxStepIterations,
+      maxTokens: opts.maxTokens,
+      maxConcurrentAgents: opts.maxConcurrentAgents,
+      maxAgentCalls: opts.maxAgentCalls
+    });
     this.outputFormat = opts.outputFormat ?? "structured";
     // Non-structured formats imply a string result; outputSchema is ignored.
     this.outputSchema =
@@ -414,8 +416,6 @@ export class Agent {
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.useScriptPlanner = opts.useScriptPlanner === true;
     this.script = opts.script;
-    this.maxConcurrentAgents = opts.maxConcurrentAgents;
-    this.maxAgentCalls = opts.maxAgentCalls;
     this.registry = opts.registry;
     this.providers = opts.providers;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
@@ -752,9 +752,7 @@ export class Agent {
     // Plan approval gate: when a host wired in a callback (option or context
     // variable), pause here and present the plan. Rejection with feedback
     // replans; plain rejection ends the run with a rejection notice.
-    const requestApproval =
-      this.requestPlanApproval ??
-      context.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
+    const requestApproval = this.resolveApprovalCallback(context);
     if (typeof requestApproval === "function") {
       const approved = yield* this.awaitPlanApproval(
         requestApproval,
@@ -813,8 +811,10 @@ export class Agent {
       taskPlan,
       systemPrompt: mergedSystemPrompt,
       inputs: this.inputs,
-      maxStepIterations: this.maxStepIterations,
-      maxTokens: this.maxTokens,
+      maxSteps: this.policy.maxSteps,
+      maxStepIterations: this.policy.maxStepIterations,
+      maxConcurrentAgents: this.policy.maxConcurrentAgents,
+      maxTokens: this.policy.maxTokens,
       checkpointStore: this.checkpointStore,
       runId: this.runId,
       planTools: this.tools.map((t) => t.name),
@@ -823,6 +823,30 @@ export class Agent {
 
     for await (const item of executor.execute()) {
       yield item;
+    }
+
+    // A plan whose tasks all failed has nothing to synthesize. Running the
+    // compiler over an empty (or error-only) memory produces a fluent
+    // deliverable assembled from nothing — a failed run that reads as a
+    // successful one. Fail loudly instead.
+    const failedTaskIds = executor.getFailedTaskIds();
+    const succeeded = taskPlan.tasks.filter((t) => t.completed).length;
+    if (failedTaskIds.length > 0 && succeeded === 0) {
+      throw new Error(
+        `All ${taskPlan.tasks.length} task(s) failed: ${failedTaskIds.join(", ")}`
+      );
+    }
+    if (failedTaskIds.length > 0) {
+      // Partial results are still worth compiling, but the deliverable must not
+      // pretend the plan ran whole — say what is missing, in the stream and in
+      // the compiler's own prompt.
+      yield {
+        type: "log_update",
+        node_id: "agent_executor",
+        node_name: this.name,
+        content: `${failedTaskIds.length} of ${taskPlan.tasks.length} task(s) failed: ${failedTaskIds.join(", ")}. Compiling from partial results.`,
+        severity: "error"
+      } satisfies LogUpdate;
     }
 
     // Final synthesis: a dedicated CompilerAgent reads the gathered memory
@@ -836,8 +860,9 @@ export class Agent {
       model: this.reasoningModel ?? this.model,
       context,
       taskPlan,
+      failedTaskIds,
       systemPrompt: mergedSystemPrompt,
-      maxTokens: this.maxTokens,
+      maxTokens: this.policy.maxTokens,
       signal: this.signal
     });
 
@@ -868,6 +893,79 @@ export class Agent {
 
     log.info("Agent completed", { name: this.name });
     this.persistAgentRunMemory();
+  }
+
+  /**
+   * The approval callback for this run, from the constructor option or the
+   * ProcessingContext variable. Every planning mode reads it through here —
+   * approval is a property of the run, not of the mode that happened to plan
+   * it, and the script and graph branches used to skip the gate entirely.
+   */
+  private resolveApprovalCallback(
+    context: ProcessingContext
+  ): RequestPlanApproval | undefined {
+    const callback =
+      this.requestPlanApproval ??
+      context.get<RequestPlanApproval>(PLAN_APPROVAL_CONTEXT_KEY);
+    return typeof callback === "function" ? callback : undefined;
+  }
+
+  /**
+   * Present a non-TaskPlan artifact (an orchestration script, a planned graph)
+   * for approval using the same gate the multi-task path uses. The artifact is
+   * rendered as a one-task plan so the existing approval surfaces — websocket
+   * message, chat card — can show it without a second protocol.
+   *
+   * Unlike the TaskPlan gate this does not replan on feedback: the script and
+   * graph planners have their own revision loops and no feedback entry point
+   * here. Any rejection ends the run.
+   */
+  private async *awaitArtifactApproval(
+    requestApproval: RequestPlanApproval,
+    plan: TaskPlan
+  ): AsyncGenerator<ProcessingMessage, boolean> {
+    yield {
+      type: "planning_update",
+      node_id: "agent_planner",
+      phase: "awaiting_approval",
+      status: "Running",
+      content: `Waiting for approval: ${plan.title}`
+    } satisfies PlanningUpdate;
+
+    let decision: PlanApprovalDecision;
+    try {
+      decision = await requestApproval(structuredClone(plan));
+    } catch (err) {
+      log.warn("Plan approval request failed — treating as rejection", {
+        name: this.name,
+        error: err instanceof Error ? err.message : String(err)
+      });
+      decision = { decision: "reject" };
+    }
+
+    if (decision.decision === "approve") {
+      yield {
+        type: "planning_update",
+        node_id: "agent_planner",
+        phase: "awaiting_approval",
+        status: "Success",
+        content: `Plan approved: ${plan.title}`
+      } satisfies PlanningUpdate;
+      return true;
+    }
+
+    const feedback = decision.feedback?.trim() ?? "";
+    yield {
+      type: "planning_update",
+      node_id: "agent_planner",
+      phase: "awaiting_approval",
+      status: "Failed",
+      content: "Plan rejected by user."
+    } satisfies PlanningUpdate;
+    this.results = feedback
+      ? `Plan rejected by user. Feedback: ${feedback}`
+      : "Plan rejected by user.";
+    return false;
   }
 
   /**
@@ -1005,6 +1103,34 @@ export class Agent {
       }
     }
 
+    const requestApproval = this.resolveApprovalCallback(context);
+    if (requestApproval) {
+      const approved = yield* this.awaitArtifactApproval(requestApproval, {
+        title: `Orchestration script for: ${this.objective.slice(0, 80)}`,
+        tasks: [
+          {
+            id: "script",
+            title: "Run orchestration script",
+            steps: [
+              {
+                id: "script_body",
+                instructions: script,
+                completed: false,
+                dependsOn: [],
+                logs: []
+              }
+            ]
+          }
+        ]
+      });
+      if (!approved) {
+        log.info("Script rejected by user — execution aborted", {
+          name: this.name
+        });
+        return;
+      }
+    }
+
     const runner = new ScriptRunner({
       provider: this.provider,
       model: this.model,
@@ -1012,9 +1138,10 @@ export class Agent {
       tools: this.buildExecutorTools(),
       systemPrompt,
       inputs: this.inputs,
-      maxStepIterations: this.maxStepIterations,
-      maxConcurrentAgents: this.maxConcurrentAgents,
-      maxAgentCalls: this.maxAgentCalls,
+      maxStepIterations: this.policy.maxStepIterations,
+      maxTokens: this.policy.maxTokens,
+      maxConcurrentAgents: this.policy.maxConcurrentAgents,
+      maxAgentCalls: this.policy.maxAgentCalls,
       signal: this.signal
     });
 
@@ -1078,6 +1205,32 @@ export class Agent {
       edges: graphData.edges.length
     });
 
+    const requestApproval = this.resolveApprovalCallback(context);
+    if (requestApproval) {
+      const approved = yield* this.awaitArtifactApproval(requestApproval, {
+        title: `Workflow graph for: ${this.objective.slice(0, 80)}`,
+        tasks: [
+          {
+            id: "graph",
+            title: `Run workflow (${graphData.nodes.length} nodes, ${graphData.edges.length} edges)`,
+            steps: graphData.nodes.map((node) => ({
+              id: node.id,
+              instructions: node.type,
+              completed: false,
+              dependsOn: [],
+              logs: []
+            }))
+          }
+        ]
+      });
+      if (!approved) {
+        log.info("Graph rejected by user — execution aborted", {
+          name: this.name
+        });
+        return;
+      }
+    }
+
     yield {
       type: "log_update",
       node_id: "graph_executor",
@@ -1093,7 +1246,8 @@ export class Agent {
       tools: this.buildExecutorTools(),
       context,
       systemPrompt,
-      maxStepIterations: this.maxStepIterations,
+      maxStepIterations: this.policy.maxStepIterations,
+      maxTokens: this.policy.maxTokens,
       inputs: this.inputs,
       signal: this.signal
     });
@@ -1144,9 +1298,10 @@ export class Agent {
       task,
       systemPrompt,
       inputs: this.inputs,
-      maxSteps: this.maxSteps,
-      maxStepIterations: this.maxStepIterations,
-      maxTokens: this.maxTokens,
+      maxSteps: this.policy.maxSteps,
+      maxStepIterations: this.policy.maxStepIterations,
+      maxTokens: this.policy.maxTokens,
+      maxConcurrentAgents: this.policy.maxConcurrentAgents,
       parallelExecution: true,
       signal: this.signal
     });

@@ -8,6 +8,7 @@
  */
 import type { Journey, JourneyFault } from "./core/journey.js";
 import { diffNormalizedRecords, formatStreamDiff, streamDiffIsEmpty, type StreamDiff } from "./core/diff.js";
+import { checkGoldens, type GoldenCheckResult } from "./core/golden.js";
 import { INVARIANT_CHECKS, type Violation } from "./core/invariants/index.js";
 import { normalizeRunRecord, type NormalizedRunRecord } from "./core/normalize.js";
 import type { RunRecord } from "./core/record.js";
@@ -39,6 +40,12 @@ export interface SurfaceCompareResult {
   error?: string | null;
   /** §6 invariant violations from the journey's declared `assertions.invariants`. */
   violations: Violation[];
+  /**
+   * Golden comparisons the journey declared (`assertions.outputs`,
+   * `assertions.streamShape`), one entry each. A skipped entry (faulted run)
+   * carries its reason — the fixtures are never silently ignored.
+   */
+  goldens: GoldenCheckResult[];
   /** Diff against the oracle's normalized `server_to_client` frames — `null`
    * for the oracle surface itself, or when the surface didn't run. */
   diffVsOracle: StreamDiff | null;
@@ -198,6 +205,7 @@ export async function compareJourney(
         ran: false,
         skipReason: "not applicable to this journey",
         violations: [],
+        goldens: [],
         diffVsOracle: null,
         diffVsOracleEmpty: true,
         notApplicable: true,
@@ -224,6 +232,7 @@ export async function compareJourney(
           ran: false,
           skipReason,
           violations: [],
+          goldens: [],
           diffVsOracle: null,
           diffVsOracleEmpty: false,
           notApplicable: false,
@@ -236,6 +245,11 @@ export async function compareJourney(
     }
 
     const violations = checks.flatMap((c) => c.check(record));
+    // §4's golden fixtures: the only assertion on what the run actually
+    // produced. Every surface is held to them, not just the oracle — a
+    // surface can agree with the oracle frame-for-frame and still be wrong.
+    const goldens = checkGoldens(journey, record, { faultsApplied });
+    const goldenFailures = goldens.flatMap((g) => g.failures);
 
     let diff: StreamDiff | null = null;
     let diffEmpty = true;
@@ -245,9 +259,15 @@ export async function compareJourney(
       diffEmpty = streamDiffIsEmpty(diff);
     }
 
-    const ok = violations.length === 0 && diffEmpty;
+    const ok = violations.length === 0 && diffEmpty && goldenFailures.length === 0;
     if (violations.length > 0) {
       issues.push(`${driver.name}: ${violations.length} invariant violation(s)`);
+    }
+    for (const golden of goldens) {
+      if (golden.failures.length === 0) continue;
+      issues.push(
+        `${driver.name}: ${golden.kind} golden mismatch (${golden.failures.length})`
+      );
     }
     if (!diffEmpty) {
       issues.push(`${driver.name}: diverges from ${oracleDriver.name}`);
@@ -259,6 +279,7 @@ export async function compareJourney(
       status: record.status,
       error: record.error,
       violations,
+      goldens,
       diffVsOracle: diff,
       diffVsOracleEmpty: diffEmpty,
       notApplicable: false,
@@ -304,6 +325,12 @@ export function formatCompareReport(
     if (s.error) bits.push(`error: ${s.error}`);
     if (s.faultsApplied.length > 0) bits.push(`faults: ${s.faultsApplied.join(", ")}`);
     if (s.violations.length > 0) bits.push(`${s.violations.length} violation(s)`);
+    for (const golden of s.goldens) {
+      if (!golden.checked) bits.push(`${golden.kind} golden skipped`);
+      else if (golden.failures.length > 0) {
+        bits.push(`${golden.kind} golden: ${golden.failures.length} mismatch(es)`);
+      }
+    }
     if (!s.diffVsOracleEmpty) {
       bits.push(
         showDiff ? `diverges from ${report.oracle}` : `diverges from ${report.oracle} (--diff for detail)`
@@ -312,6 +339,14 @@ export function formatCompareReport(
     lines.push(`  ${mark} ${s.surface}: ${bits.join(" — ")}`);
     for (const v of s.violations) {
       lines.push(`      [${v.invariant}] ${v.message}`);
+    }
+    for (const golden of s.goldens) {
+      if (!golden.checked && golden.skipReason) {
+        lines.push(`      [${golden.kind}] ${golden.skipReason}`);
+      }
+      for (const failure of golden.failures) {
+        lines.push(`      [${golden.kind}] ${failure}`);
+      }
     }
     if (showDiff && !s.diffVsOracleEmpty && s.diffVsOracle) {
       for (const line of formatStreamDiff(s.diffVsOracle).split("\n")) {

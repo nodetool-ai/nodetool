@@ -327,6 +327,11 @@ export interface NodeMetadata extends BaseNodeMetadata {
    */
   auto_save_asset?: boolean;
   /**
+   * Opt-in: re-running the node with identical inputs is safe. Absent means
+   * unsafe, so the workflow supervisor withholds `retry` for it.
+   */
+  retry_safe?: boolean;
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for
    * Computed nodes; unset / `0` means never reuse.

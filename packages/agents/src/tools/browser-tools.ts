@@ -5,7 +5,9 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { safeFetch } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
+import { requestSignal } from "./http-tools.js";
 
 const ENTITY_MAP: Record<string, string> = {
   "&amp;": "&",
@@ -113,7 +115,7 @@ export class BrowserTool extends Tool {
   }
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const url = params.url as string | undefined;
@@ -131,7 +133,11 @@ export class BrowserTool extends Tool {
     }
 
     try {
-      const response = await fetch(url, {
+      // The URL comes from the model and is therefore attacker-influenceable
+      // via prompt injection. safeFetch gates it and every redirect hop against
+      // SSRF, exactly as the HTTP tools do — a plain fetch here reached the
+      // host's metadata service and internal APIs.
+      const response = await safeFetch(url, {
         headers: {
           "User-Agent":
             "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
@@ -139,7 +145,7 @@ export class BrowserTool extends Tool {
             "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
           "Accept-Language": "en-US,en;q=0.5"
         },
-        signal: AbortSignal.timeout(30_000)
+        signal: requestSignal(context, 30_000)
       });
 
       if (!response.ok) {
@@ -185,7 +191,7 @@ export class ScreenshotTool extends Tool {
   }
 
   async process(
-    _context: ProcessingContext,
+    context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const url = params.url as string | undefined;
@@ -204,11 +210,14 @@ export class ScreenshotTool extends Tool {
 
     try {
       const outputFile = (params.output_file as string) ?? "screenshot.png";
+      // BROWSER_URL is operator-configured, not model-controlled, so it stays a
+      // plain fetch (it is usually an internal service safeFetch would block) —
+      // but it still has to observe the run's cancellation.
       const response = await fetch(browserUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url, output_file: outputFile }),
-        signal: AbortSignal.timeout(30_000)
+        signal: requestSignal(context, 30_000)
       });
 
       if (!response.ok) {

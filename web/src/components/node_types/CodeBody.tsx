@@ -20,6 +20,7 @@ import React, {
   useState
 } from "react";
 import { css } from "@emotion/react";
+import type { Edge } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -46,6 +47,7 @@ import TextEditorModal from "../properties/TextEditorModal";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
+import type { NodeStoreState } from "../../stores/NodeStore";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -58,7 +60,6 @@ import {
   isCodeNode
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
-import { isCodeGenerationEnabled } from "../../lib/runtimeConfig";
 import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
 import CodeGenDialog from "./code_gen/CodeGenDialog";
 
@@ -351,11 +352,36 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData, id]
   );
 
+  // An accepted submission replaces the node's dynamic inputs and outputs
+  // wholesale, so any edge attached to a handle the new interface drops is left
+  // pointing at nothing. Until generation can remap edges, a connected node is
+  // not offered the button at all.
+  const hasEdges = useNodes(
+    useMemo(() => {
+      let lastEdges: Edge[] | null = null;
+      let lastResult = false;
+      return (state: NodeStoreState) => {
+        if (state.edges === lastEdges) {
+          return lastResult;
+        }
+        lastEdges = state.edges;
+        lastResult = state.edges.some(
+          (edge) => edge.source === id || edge.target === id
+        );
+        return lastResult;
+      };
+    }, [id])
+  );
+
   // AI authoring targets the universal Code node only. The other
   // `nodetool.code.*` executors run real interpreters with a fixed
-  // stdout/stderr shape and need their own generator. It also stays hidden
-  // until the deployment turns generation on.
-  const supportsCodeGen = isCodeNode(nodeType) && isCodeGenerationEnabled();
+  // stdout/stderr shape and need their own generator. It also stays hidden —
+  // for the same wholesale-replacement reason — on a node that already has
+  // code to lose.
+  const hasCode =
+    typeof data.properties?.code === "string" &&
+    data.properties.code.trim().length > 0;
+  const supportsCodeGen = isCodeNode(nodeType) && !hasCode && !hasEdges;
   const codeGenInputs = useMemo(
     () => nodeInputsToCodeGenPorts(data.dynamic_inputs),
     [data.dynamic_inputs]

@@ -11,25 +11,22 @@
  * is shared; only framing/transport differs per subclass.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { importNodeBuiltin, safeProcessEnv } from "@nodetool-ai/config";
 
 // The base only needs crypto (request IDs) and events (EventEmitter).
 // Lazy-load so the module *graph* loads off-Node; instantiating a concrete
 // bridge there throws at construction. Notably the base does NOT require
 // child_process — that belongs to the stdio subclass only.
-const nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
-  "node:crypto"
-);
-const nodeEvents = await importNodeBuiltin<typeof import("node:events")>(
-  "node:events"
-);
+const nodeCrypto =
+  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
+const nodeEvents =
+  await importNodeBuiltin<typeof import("node:events")>("node:events");
 
 function notOnNode(api: string): never {
   throw new Error(`${api} requires Node — PythonBridgeBase is Node-only`);
 }
 const randomUUID =
-  nodeCrypto?.randomUUID ??
-  ((): string => notOnNode("node:crypto.randomUUID"));
+  nodeCrypto?.randomUUID ?? ((): string => notOnNode("node:crypto.randomUUID"));
 // Re-export the EventEmitter type/class — falls back to a no-op so the
 // module evaluates off-Node; consumers that instantiate the bridge will
 // fail at construction time, not at module load.
@@ -75,10 +72,11 @@ const log = createLogger("nodetool.runtime.python-bridge-base");
  * mechanism has burned in.
  */
 function shouldValidateBridgeFrames(): boolean {
-  const override = process.env["NODETOOL_VALIDATE_BRIDGE_FRAMES"]?.trim();
+  const override = safeProcessEnv()["NODETOOL_VALIDATE_BRIDGE_FRAMES"]?.trim();
   if (override === "1" || override === "true") return true;
   if (override === "0" || override === "false") return false;
-  return process.env["NODE_ENV"] === "test" || Boolean(process.env["VITEST"]);
+  const env = safeProcessEnv();
+  return env["NODE_ENV"] === "test" || Boolean(env["VITEST"]);
 }
 import type {
   PythonNodeMetadata,
@@ -116,13 +114,13 @@ interface PendingStreamRequest {
 }
 
 const DEFAULT_EXECUTE_TIMEOUT_MS = Number(
-  process.env["NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS"] ?? 12 * 60 * 1000
+  safeProcessEnv()["NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS"] ?? 12 * 60 * 1000
 );
 const DEFAULT_STATUS_TIMEOUT_MS = Number(
-  process.env["NODETOOL_PYTHON_STATUS_TIMEOUT_MS"] ?? 30000
+  safeProcessEnv()["NODETOOL_PYTHON_STATUS_TIMEOUT_MS"] ?? 30000
 );
 const DEFAULT_DOWNLOAD_IDLE_TIMEOUT_MS = Number(
-  process.env["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
+  safeProcessEnv()["NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS"] ?? 5 * 60 * 1000
 );
 
 /**
@@ -146,7 +144,10 @@ export abstract class PythonBridgeBase
    * shape) nor terminal — they stream the ComfyUI lifecycle while the same
    * request's terminal `result`/`error` settles via {@link _pendingStream}.
    */
-  protected _pendingComfyEvents = new Map<string, (event: ComfyEvent) => void>();
+  protected _pendingComfyEvents = new Map<
+    string,
+    (event: ComfyEvent) => void
+  >();
   protected _options: PythonBridgeOptions;
   protected _connected = false;
   private _connectPromise: Promise<void> | null = null;
@@ -154,6 +155,19 @@ export abstract class PythonBridgeBase
   constructor(options: PythonBridgeOptions = {}) {
     super();
     this._options = options;
+  }
+
+  /**
+   * Requests still awaiting a worker reply (plain, streaming, and Comfy event
+   * subscriptions). Exposed for leak accounting — a run that ended with
+   * pending requests left a promise nothing will ever settle.
+   */
+  get pendingRequestCount(): number {
+    return (
+      this._pending.size +
+      this._pendingStream.size +
+      this._pendingComfyEvents.size
+    );
   }
 
   // ── Transport hooks (implemented by subclasses) ─────────────────────
@@ -235,9 +249,7 @@ export abstract class PythonBridgeBase
         // that pre-date the protocol_version field are treated as version 1
         // (the initial release) — same wire format, they just don't announce.
         const workerVersion =
-          typeof data.protocol_version === "number"
-            ? data.protocol_version
-            : 1;
+          typeof data.protocol_version === "number" ? data.protocol_version : 1;
         if (workerVersion < MIN_BRIDGE_PROTOCOL_VERSION) {
           this._pending.delete(requestId);
           pending.reject(
@@ -520,9 +532,11 @@ export abstract class PythonBridgeBase
       }
     };
 
-    const streamPromise = new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingStream.set(requestId, { resolve, reject, onChunk });
-    });
+    const streamPromise = new Promise<Record<string, unknown>>(
+      (resolve, reject) => {
+        this._pendingStream.set(requestId, { resolve, reject, onChunk });
+      }
+    );
 
     streamPromise
       .then((result) => {
@@ -600,21 +614,26 @@ export abstract class PythonBridgeBase
 
   async getWorkerStatus() {
     const requestId = randomUUID();
-    const result = await new Promise<Record<string, unknown>>((resolve, reject) => {
-      this._pendingStream.set(requestId, {
-        resolve,
-        reject,
-        onChunk: () => {}
-      });
-      try {
-        this._send({ type: "worker.status", request_id: requestId, data: {} });
-      } catch (err) {
-        this._pendingStream.delete(requestId);
-        reject(err instanceof Error ? err : new Error(String(err)));
+    const result = await new Promise<Record<string, unknown>>(
+      (resolve, reject) => {
+        this._pendingStream.set(requestId, {
+          resolve,
+          reject,
+          onChunk: () => {}
+        });
+        try {
+          this._send({
+            type: "worker.status",
+            request_id: requestId,
+            data: {}
+          });
+        } catch (err) {
+          this._pendingStream.delete(requestId);
+          reject(err instanceof Error ? err : new Error(String(err)));
+        }
       }
-    });
-    this._workerStatus =
-      result as unknown as PythonWorkerStatus;
+    );
+    this._workerStatus = result as unknown as PythonWorkerStatus;
     this._loadErrors = this._workerStatus.load_errors ?? this._loadErrors;
     return this._workerStatus;
   }
@@ -664,9 +683,7 @@ export abstract class PythonBridgeBase
         // response is ignored rather than resolving a dead promise.
         this._pendingStream.delete(requestId);
         reject(
-          new Error(
-            `Python worker status timed out after ${timeoutMs}ms.`
-          )
+          new Error(`Python worker status timed out after ${timeoutMs}ms.`)
         );
       }, timeoutMs);
     });
@@ -1066,7 +1083,9 @@ export abstract class PythonBridgeBase
       try {
         this._send({ type, request_id: requestId, data });
       } catch (err) {
-        settle(() => reject(err instanceof Error ? err : new Error(String(err))));
+        settle(() =>
+          reject(err instanceof Error ? err : new Error(String(err)))
+        );
       }
     });
   }
@@ -1097,7 +1116,9 @@ export abstract class PythonBridgeBase
 
   /** Delete a cached model from the worker's HF_HOME. Returns whether it existed. */
   async deleteCachedModel(repoId: string): Promise<boolean> {
-    const result = await this._providerCall("models.delete", { repo_id: repoId });
+    const result = await this._providerCall("models.delete", {
+      repo_id: repoId
+    });
     return Boolean((result as { deleted?: boolean }).deleted);
   }
 

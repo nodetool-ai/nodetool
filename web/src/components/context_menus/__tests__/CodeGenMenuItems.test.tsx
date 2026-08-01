@@ -27,12 +27,6 @@ jest.mock("@xyflow/react", () => ({
   })
 }));
 
-// The rollout flag; both handle entry points are absent until it is on.
-let mockCodeGenEnabled = true;
-jest.mock("../../../lib/runtimeConfig", () => ({
-  isCodeGenerationEnabled: () => mockCodeGenEnabled
-}));
-
 jest.mock("../../../hooks/useCodeGenFromHandle", () => ({
   useCodeGenFromHandle: () => ({
     transformOutput: mockTransformOutput,
@@ -52,7 +46,6 @@ const renderMenu = (menu: React.ReactElement) =>
 
 beforeEach(() => {
   jest.clearAllMocks();
-  mockCodeGenEnabled = true;
   useMetadataStore.setState({
     metadata: {
       "nodetool.code.Code": {
@@ -122,14 +115,6 @@ describe("OutputContextMenu — Transform this output…", () => {
       screen.queryByRole("button", { name: /transform this output/i })
     ).not.toBeInTheDocument();
   });
-
-  it("is hidden when the feature flag is off", () => {
-    mockCodeGenEnabled = false;
-    renderMenu(<OutputContextMenu />);
-    expect(
-      screen.queryByRole("button", { name: /transform this output/i })
-    ).not.toBeInTheDocument();
-  });
 });
 
 describe("InputContextMenu — Create value with AI…", () => {
@@ -164,14 +149,6 @@ describe("InputContextMenu — Create value with AI…", () => {
 
   it("is hidden for a handle with no resolved type", () => {
     mockMenuState.type = null;
-    renderMenu(<InputContextMenu />);
-    expect(
-      screen.queryByRole("button", { name: /create value with ai/i })
-    ).not.toBeInTheDocument();
-  });
-
-  it("is hidden when the feature flag is off", () => {
-    mockCodeGenEnabled = false;
     renderMenu(<InputContextMenu />);
     expect(
       screen.queryByRole("button", { name: /create value with ai/i })

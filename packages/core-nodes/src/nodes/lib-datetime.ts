@@ -390,6 +390,7 @@ export class DateNowNode extends BaseNode {
 
 export class FormatDateNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Format";
+  static readonly retrySafe = true;
   static readonly title = "Format Date";
   static readonly description =
     "Parse a date string/number/Date and format it. Supports tokens YYYY, MM, DD, HH, mm, ss, SSS, Z. Use [brackets] for literals. The date input is required — connect a date or use the Now node.\n    date, format, parse, strftime";
@@ -430,6 +431,7 @@ export class FormatDateNode extends BaseNode {
 
 export class DateAddNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Add";
+  static readonly retrySafe = true;
   static readonly title = "Add / Subtract Time";
   static readonly description =
     "Add (or subtract, when amount is negative) a number of time units to a date. Day/week arithmetic is calendar-aware across DST. The date input is required — connect a date or use the Now node.\n    date, add, subtract, shift, offset";
@@ -484,6 +486,7 @@ export class DateAddNode extends BaseNode {
 
 export class DateDiffNode extends BaseNode {
   static readonly nodeType = "lib.datetime.Diff";
+  static readonly retrySafe = true;
   static readonly title = "Date Difference";
   static readonly description =
     "Difference between two dates (date_a − date_b) expressed in the given unit. Both date inputs are required — connect dates or use the Now node.\n    date, diff, difference, between, duration";
@@ -529,6 +532,7 @@ export class DateDiffNode extends BaseNode {
 
 export class DateStartEndNode extends BaseNode {
   static readonly nodeType = "lib.datetime.StartEnd";
+  static readonly retrySafe = true;
   static readonly title = "Start / End of Period";
   static readonly description =
     "Return the start and end of the given period (day, week, month, year). The date input is required — connect a date or use the Now node.\n    date, start, end, period, boundary";

@@ -3,6 +3,7 @@
  */
 
 export * from "./messages.js";
+export * from "./supervisor.js";
 export * from "./ws-commands.js";
 export * from "./bridge-frames.js";
 export * from "./graph.js";

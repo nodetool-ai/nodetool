@@ -9,7 +9,6 @@
  * 3. Tool-switch lifecycle rules: leaving `adjust`, `transform`, or `segment`
  *    cancels, initializes, and preserves correct preview/session state.
  */
-import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { useSketchStore } from "../state/useSketchStore";
 import {
@@ -17,7 +16,7 @@ import {
   setActiveLayerTransformPreview,
   useDisplayedActiveLayerTransform
 } from "../activeLayerTransform";
-import { createDefaultDocument, createDefaultLayer, makeAffineTransform, type LayerTransform, type SketchDocument } from "../types";
+import { createDefaultDocument, makeAffineTransform, type LayerTransform } from "../types";
 import { aff } from "./_transformFixtures";
 
 // ---------------------------------------------------------------------------

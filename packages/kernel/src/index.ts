@@ -35,6 +35,26 @@ export {
 } from "./correlation-analysis.js";
 export { NodeActor, type NodeExecutor, type ActorResult } from "./actor.js";
 export {
+  BoundedHandle,
+  FailClosedHandle,
+  computeAllowedActions,
+  failureSignature,
+  redactRecord,
+  redactValue,
+  DEFAULT_SUPERVISOR_BOUNDS,
+  MAX_ESCALATION_VALUE_CHARS,
+  type SupervisorHandle,
+  type DecisionOutcome,
+  type SupervisorBounds,
+  type AllowedActionsInput
+} from "./supervisor.js";
+export {
+  validateSubstituteOutputs,
+  hasFullValidatorCoverage,
+  type SubstituteValidationResult,
+  type SubstituteValidatorOptions
+} from "./substitute-validator.js";
+export {
   WorkflowRunner,
   type RunJobRequest,
   type WorkflowRunnerOptions,

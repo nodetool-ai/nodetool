@@ -84,6 +84,7 @@ export function buildRepeatedValues(value: unknown, times: number): unknown[] {
 
 export class RangeNode extends BaseNode {
   static readonly nodeType = "nodetool.list.Range";
+  static readonly retrySafe = true;
   static readonly title = "Range";
   static readonly description =
     "Build a list of integers like Python range(start, stop, step).\n    list, range, sequence, numbers, index, enumerate\n\n    Use cases:\n    - Generate [0, 1, ..., N-1] for iteration with For Each\n    - Produce numbered indices for batch naming or sequencing\n    - Create arithmetic sequences with custom start, stop, and step";
@@ -159,6 +160,7 @@ export class RangeNode extends BaseNode {
 
 export class TileNode extends BaseNode {
   static readonly nodeType = "nodetool.list.Tile";
+  static readonly retrySafe = true;
   static readonly title = "Tile List";
   static readonly description =
     "Repeat an entire list end-to-end N times.\n    list, repeat, tile, cycle, loop, concatenate\n\n    Use cases:\n    - Run the same item sequence multiple times before For Each\n    - Duplicate a prompt list for batch generation\n    - [A, B, C] × 3 → [A, B, C, A, B, C, A, B, C]";
@@ -215,6 +217,7 @@ export class TileNode extends BaseNode {
 
 export class RepeatEachNode extends BaseNode {
   static readonly nodeType = "nodetool.list.RepeatEach";
+  static readonly retrySafe = true;
   static readonly title = "Repeat Each";
   static readonly description =
     "Repeat each list item consecutively N times.\n    list, repeat, duplicate, interleave, expand\n\n    Use cases:\n    - Generate multiple variants per input item\n    - [A, B, C] × 2 → [A, A, B, B, C, C]\n    - Feed expanded lists into For Each";
@@ -273,6 +276,7 @@ export class RepeatEachNode extends BaseNode {
 
 export class RepeatValueNode extends BaseNode {
   static readonly nodeType = "nodetool.list.RepeatValue";
+  static readonly retrySafe = true;
   static readonly title = "Repeat Value";
   static readonly description =
     "Duplicate a single value into a list N times.\n    list, repeat, duplicate, fill, scalar, constant\n\n    Use cases:\n    - Build [v, v, v] from one prompt or parameter before For Each\n    - Expand a scalar into a list for list-typed inputs\n    - v × 3 → [v, v, v]";

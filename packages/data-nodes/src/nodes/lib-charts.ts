@@ -3,6 +3,7 @@ import { asRows } from "./data.js";
 
 export class ChartRendererLibNode extends BaseNode {
   static readonly nodeType = "lib.charts.ChartRenderer";
+  static readonly retrySafe = true;
   static readonly title = "Chart Renderer";
   static readonly description =
     "Node responsible for rendering chart configurations into image format using seaborn.\n    chart, seaborn, plot, visualization, data";

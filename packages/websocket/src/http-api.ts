@@ -63,6 +63,10 @@ import {
 } from "@nodetool-ai/runtime";
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import {
+  buildRunVerdict,
+  collectExecutionSummary
+} from "@nodetool-ai/execution";
+import {
   resolveWorkflowWorkspace,
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";
@@ -847,7 +851,9 @@ async function updateWorkflow(
 export async function handleWorkflowRun(
   request: Request,
   workflowId: string,
-  options: HttpApiOptions = {}
+  options: HttpApiOptions = {},
+  /** Return the full debug report (summary + verdict) instead of the run row. */
+  debug = false
 ): Promise<Response> {
   if (request.method !== "POST") {
     return errorResponse(405, "Method not allowed");
@@ -987,6 +993,27 @@ export async function handleWorkflowRun(
     job.markFailed(result.error ?? "Workflow run failed");
   }
   await job.save();
+
+  if (debug) {
+    // The debug surface reports what actually happened — per-node status and
+    // errors, logs, edges, LLM calls, outputs — plus the same verdict the CLI
+    // harness computes, instead of leaving a caller to infer a run's health
+    // from a status string.
+    const summary = collectExecutionSummary(result.messages);
+    return jsonResponse({
+      job_id: job.id,
+      workflow_id: workflowId,
+      status: result.status,
+      outputs: result.outputs,
+      error: result.error ?? null,
+      summary,
+      verdict: buildRunVerdict(summary, {
+        ok: result.status === "completed",
+        status: result.status,
+        error: result.error ?? null
+      })
+    });
+  }
 
   return jsonResponse({
     job_id: job.id,
@@ -2612,6 +2639,9 @@ export async function handleApiRequest(
 
       if (subPath === "run") {
         return handleWorkflowRun(request, workflowId, options);
+      }
+      if (subPath === "debug") {
+        return handleWorkflowRun(request, workflowId, options, true);
       }
       if (subPath === "autosave") {
         return handleWorkflowAutosave(request, workflowId, options);

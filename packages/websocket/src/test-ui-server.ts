@@ -974,6 +974,12 @@ export interface TestUiServerOptions extends HttpApiOptions {
   resolveUnknownNodeType?: (
     nodeType: string
   ) => Promise<import("@nodetool-ai/kernel").ResolvedNodeType | null>;
+  /**
+   * Called with each per-connection `UnifiedWebSocketRunner` right after it is
+   * constructed. The runner is otherwise private to the upgrade handler; the
+   * reliability harness needs it to read `slotCounters` for leak accounting.
+   */
+  onRunnerCreated?: (runner: UnifiedWebSocketRunner) => void;
 }
 
 function detectMetadataRootsFromPip(): string[] {
@@ -1466,6 +1472,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
             ])),
         getNodeMetadata: (nodeType) => registry.getMetadata(nodeType)
       });
+      options.onRunnerCreated?.(runner);
       log.info("WebSocket client connected");
       void runner.run(new WsAdapter(ws)).catch((error) => {
         log.error(

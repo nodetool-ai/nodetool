@@ -352,13 +352,7 @@ describe("TimelineStore — trimClipStart / trimClipEnd", () => {
   it("trimClipStart no-ops when it would produce zero/negative duration", () => {
     const { clip } = addTrackAndClip(store, { startMs: 1000, durationMs: 1000 });
     const before = store.getState().clips[0].durationMs;
-    // deltaMs = 2000 → nextDurationMs = 1000 + 2000 = 3000? No wait...
-    // trimClip(start, delta=2000): nextDurationMs = 1000 + 2000 = 3000, nextStartMs = 1000 - 2000 = -1000
-    // That would fail with "cannot extend before source start" if inPointMs=0
-    // Let's use deltaMs that would result in zero/negative duration:
-    // trimClip(start, delta=1500): nextDurationMs = 1000 + 1500 = 2500, nextStartMs = -500... 
-    // Actually we need delta negative to shrink from start:
-    // trimClip(start, delta=-1500): nextDurationMs = 1000 + (-1500) = -500 → throws
+    // delta=-1500 gives nextDurationMs = 1000 - 1500 = -500, so the trim is rejected.
     store.getState().trimClipStart(clip.id, -1500);
     expect(store.getState().clips[0].durationMs).toBe(before);
   });
