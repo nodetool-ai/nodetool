@@ -97,7 +97,7 @@ Ten failure scenarios were reasoned through against three reference workflows; t
 
 One toggle, next to the Run button: **Supervisor**. The end state: on by default for triggered (unattended) runs, off by default for interactive runs — when you're watching, you *are* the supervisor. Until the evaluation and data-safety gates pass (§10 phase 4), it ships off by default everywhere — and when the default flips, it applies to newly created triggers only; existing triggers are never switched on silently.
 
-Turning it on is also a data decision: failure context (the failing step's inputs and error) is sent to the supervisor model, with secrets masked. The toggle's help text says so in one sentence.
+Turning it on is also a data decision: failure context — the failing step's inputs and error, and, if the agent digs deeper, earlier outputs belonging to the same failing item — is sent to the supervisor model, with secrets masked. The toggle's help text says so in one sentence.
 
 Expanding the toggle shows four settings:
 
@@ -114,7 +114,7 @@ No per-node configuration. No policy editor. (Deliberately — see §9.)
 
 - A failed-then-handled node shows a **shield badge** in place of the error badge, colored by verdict: retry (blue), repair (amber), skip (gray).
 - While the agent is deciding, the node pulses with a "supervisor deciding…" state — distinct from "running." Typical decision time is seconds; work that doesn't depend on the failed node keeps executing (its own downstream naturally waits).
-- A slim **intervention feed** appears in the run panel only when the first intervention happens: one line per decision, in plain language. *"Summarize failed on item 147 (empty response) → retried with shorter input → succeeded."*
+- A slim **intervention feed** appears in the run panel only when the first intervention happens: one line per decision, in plain language. *"Summarize failed on item 147 (empty response) → retried → succeeded."*
 - Cancel behaves exactly as today. A pending decision is abandoned, not awaited.
 
 ### 6.3 After a run
@@ -157,8 +157,8 @@ An agent-facing entry point runs a workflow *as* an agent: same streaming interf
 
 | Verb | Report line reads like | When the agent may use it |
 |---|---|---|
-| **Retry** | "retried with a 30s timeout → succeeded" | transient-looking failures, and only on steps known safe to redo — never after the step spent money or wrote anything, never on steps that weren't classified as redo-safe |
-| **Repair** | "provider returned broken JSON; supervisor extracted the valid fields" | output exists but is malformed; repaired value must type-check |
+| **Retry** | "retried → succeeded on the second attempt" | transient-looking failures, and only on steps known safe to redo — never after the step spent money or wrote anything, never on steps that weren't classified as redo-safe. The step reruns exactly as it was; the supervisor can't quietly change what it does |
+| **Repair** | "provider returned broken JSON; supervisor extracted the valid fields" | only when the failing step handed over the broken value — repair fixes what exists, it never invents a plausible output from nothing; the repaired value must pass validation |
 | **Skip** | "skipped item 147 (page requires login)" | the item is dispensable and the run is more valuable finished; always itemized in the report |
 | **Stop** | "stopping: the API key is invalid, so all remaining items would fail" | continuing would waste money or produce garbage |
 

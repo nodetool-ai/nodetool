@@ -37,10 +37,11 @@ SupervisorAgent (packages/agents/src/supervisor/)
   = StepExecutor + Verdict outputSchema + {get_run_state, read_node_output}
          │ finish_step(verdict)
          ▼
-NodeActor applies the verdict:
-  retry      → call process() again with merged properties
-  substitute → validate against output TypeMetadata, then emit
-  skip       → drop() each output slot (lineage_done downstream, key pruned)
+NodeActor applies the verdict (after checking it against the kernel-computed allowed set):
+  retry      → call process() again, identical inputs and properties
+  substitute → runtime value validation, then emit
+  skip       → lineage_done + scope closure per slot, key pruned downstream
+  end_stream → keep emitted values, close output slots
   fail       → today's error path
 ```
 
@@ -66,15 +67,20 @@ export interface Escalation {
 }
 
 export type Verdict =
-  | { action: "retry"; properties?: Record<string, unknown> }
+  | { action: "retry" }                                        // no property overrides in v1
   | { action: "substitute"; outputs: Record<string, unknown> }
-  | { action: "skip"; applyTo?: "invocation" | "signature" }  // default "invocation"
-  | { action: "fail"; reason?: string };
+  | { action: "skip"; applyTo?: "invocation" | "signature" }   // default "invocation"
+  | { action: "end_stream" }                                   // streaming only: keep emitted, close slots
+  | { action: "fail"; reason?: string; applyTo?: "invocation" | "signature" };
 ```
+
+`retry` deliberately carries **no property overrides**. A free-form `Record<string, unknown>` would let the supervisor rewrite URLs, prompts, code, or paths — a nominally read-only HTTP node could be redirected to exfiltrate its inputs — and it wouldn't even work reliably: `updateNodeProperties` mutates the executor, but the next invocation reassigns edge-driven inputs over it. If re-parameterized retry earns its way back, it will be via explicitly declared, typed `retryMutable` properties applied to a local invocation copy (§10); v1 retries the invocation exactly as it was.
+
+`end_stream` is a first-class verdict, not a `skip` alias: the actor must distinguish "keep what was emitted and close the slots" from "drop this invocation's outputs," and one action cannot encode both.
 
 `applyTo: "signature"` is the sticky form: the handle caches the verdict keyed by `(nodeId, failureSignature)` and resolves later escalations that match without waking the agent (PRD scenario 2 — 7 identical failures, 1 LLM call). Keying by signature rather than node keeps one login-required error from silently skipping later, unrelated timeouts on the same node. A signature exists only when the error carries a **stable categorical code** — HTTP status, provider error code, validation path — extracted by a small registry of error-shape recognizers. A plain `Error` gets **no** signature (error class alone is not one; every generic throw would collide), and with no signature stickiness is simply off: each such failure escalates individually. Signatures never derive from message text with embedded values. Only `skip` and `fail` may stick; a sticky `retry` or `substitute` would blindly replay a decision made against different inputs.
 
-`RecoverableNodeError` (node-sdk) is how a node hands the supervisor the thing that needs repairing: a parser that throws on broken JSON attaches the raw response as `candidateOutput` instead of losing it. Plain thrown errors still escalate — they just repair blind.
+`RecoverableNodeError` (node-sdk) is how a node hands the supervisor the thing that needs repairing: a parser that throws on broken JSON attaches the raw response as `candidateOutput` instead of losing it. **No `candidateOutput`, no `substitute`** — without the broken value in hand, "repair" is fabrication: the model would invent a structurally valid output the runtime validator cannot semantically vet. A plain thrown error offers retry/skip/fail only.
 
 New `ProcessingMessage` variants: `supervisor_escalation` and `supervisor_decision` (escalation + verdict + `decidedBy: "agent" | "sticky" | "bounds" | "default"` + cost). Both flow through the existing `_emit` path.
 
@@ -107,29 +113,43 @@ export interface SupervisorHandle {
 `NodeActor` wraps each invocation's execution. Pseudocode for the buffered/correlated path (`_executeWithInputs`):
 
 ```ts
+const allowed = this.allowedActions(node, invocation);          // kernel-computed, §5.3/§5.4
+let result;
 for (;;) {
   try {
-    return await this.invoke(inputs);
+    result = await this.invoke(inputs);                         // node execution ONLY
+    break;
   } catch (err) {
-    if (err instanceof WorkflowSuspendedError) throw err;      // suspend is not failure
-    const verdict = await this.escalateOrFail(err, inputs);    // fail-closed
+    if (err instanceof WorkflowSuspendedError) throw err;       // suspend is not failure
+    let verdict = await this.escalateOrFail(err, inputs, allowed);
+    if (!allowed.has(verdict.action)) verdict = { action: "fail" };  // kernel enforces, always
     switch (verdict.action) {
-      case "retry":      mergeProperties(verdict.properties); continue;
-      case "substitute": this.emitValidated(verdict.outputs);  return;
-      case "skip":       this.dropOutputs();                    return; // lineage_done per slot
+      case "retry":      continue;                              // same inputs, same properties
+      case "substitute": result = this.validated(verdict.outputs); break;
+      case "skip":       this.dropOutputs(); return;            // lineage_done + scope closure
+      case "end_stream": this.completeSlots(); return;
       case "fail":       throw err;
     }
+    break;
   }
 }
+this.sendOutputs(result);   // routing is OUTSIDE the recovery loop — see below
 ```
+
+Two boundaries here are load-bearing:
+
+- **The kernel computes and enforces `allowed`.** Schema narrowing (§5.3, §5.4) shapes what the *agent* can express, but the actor independently rejects any verdict outside the allowed set — a buggy or third-party `SupervisorHandle` returning `retry` for an unsafe node, or `substitute` for an unsupported output, gets `fail`. The allowed set travels on the `Escalation` so both layers derive from one computation. Defense in depth: the schema is UX, the kernel check is the guarantee.
+- **Only node execution is recoverable.** `sendOutputs` routes values to downstream inboxes sequentially; if edge 1 delivered and edge 2 throws, a retry would duplicate edge 1's delivery. Routing failures therefore fail the node without escalation — the catch wraps `invoke()`, never the send.
 
 Retry is a plain loop re-entry: the invocation's inputs are still in scope, so nothing is reconstructed and no scheduler state is touched. The same wrapper applies to the controlled path (`_runControlled`, per control event) and to input dispatch.
 
 ### 5.2 What each verdict means to the kernel
 
-- **retry** — `properties` are merged via the existing `updateNodeProperties` mechanics before re-invoking. Bounded by `maxRetriesPerNode` (counted per `(nodeId, invocationKey)`).
-- **substitute** — outputs pass a **runtime value validator**, not a `TypeMetadata` compatibility check. `graph.validate()` compares declared edge types and the existing runtime accepts any object for custom types, so type-compatibility would wave through a fabricated `{type:"image"}` blob. The validator checks actual values per declared output type: primitives and enums strictly, lists/objects structurally, and reference types (`ImageRef`, `AudioRef`, …) as well-formed refs whose `uri`/asset id **resolves** against the run's storage — an unresolvable ref is invalid, full stop. An output type the validator has no rule for removes the `substitute` arm from the schema entirely (same unrepresentability rule as retry). Invalid → the handle returns a tool error to the agent and awaits a new verdict; after `MAX_REPAIR_ROUNDS` (3) → `fail`. Valid → emitted through the normal `sendOutputs` path with the invocation's lineage, so correlation downstream is indistinguishable from a real emit.
-- **skip** — the actor does **not** simply return. For a correlated invocation, plain non-emission leaves siblings buffered against the skipped key at downstream joins — the kernel grew per-lineage `lineage_done` signaling precisely because global EOS can't express this. Skip therefore rides the existing drop semantics: `NodeOutputs.drop(slot, envelope)` for each output slot of the invocation's lineage, closing child scopes where the node would have opened them. Downstream then prunes the key exactly as it does for a natively untaken branch. The skip is recorded in `interventions` unconditionally — the audit is the feature (PRD scenario 3).
+- **retry** — re-invoke with the identical inputs and properties (no overrides, §4). Bounded by `maxRetriesPerNode` (counted per `(nodeId, invocationKey)`).
+- **substitute** — offered only when the escalation carries a `candidateOutput` (§4) and every declared output type has a validator rule. Outputs pass a **runtime value validator**, not a `TypeMetadata` compatibility check: `graph.validate()` compares declared edge types and the existing runtime accepts any object for custom types, so type-compatibility would wave through a fabricated `{type:"image"}` blob. The validator checks actual values per declared output type: primitives and enums strictly, lists/objects structurally, and reference types (`ImageRef`, `AudioRef`, …) as well-formed refs whose `uri`/asset id **resolves** against the run's storage.
+
+  Resolution is asynchronous, which constrains *where* validation runs: it cannot happen after `decide()` returns, because the `StepExecutor` conversation is over and there is nobody left to bounce an error to — and `finish_step`'s built-in loop only covers synchronous JSON-schema checks. So the verdict tool's acceptance is an **async hook**: when the agent calls `finish_step` with a `substitute`, the handle awaits the full runtime validation (storage resolution included) *before* the call is accepted as terminal; a failure returns as an ordinary tool error and the conversation continues. After `MAX_REPAIR_ROUNDS` (3) → `fail`. Valid → emitted through the normal `sendOutputs` path with the invocation's lineage, so correlation downstream is indistinguishable from a real emit.
+- **skip** — the actor does **not** simply return. For a correlated invocation, plain non-emission leaves siblings buffered against the skipped key at downstream joins — the kernel grew per-lineage `lineage_done` signaling precisely because global EOS can't express this. `NodeOutputs.drop(slot, envelope)` covers that half. It does **not** cover the other half: `drop()` emits only `lineage_done`, and a skipped invocation of an iteration node would have *opened child scopes* that an aggregate downstream is waiting to see closed. Skip therefore needs new kernel plumbing — per-parent `lineage_scope_closed` emission for the scopes the invocation would have created (the signaling primitive exists in `NodeInbox`; what's new is the actor-side emission path). The iterator-feeding-an-aggregate case is a named PR 1 test. The skip is recorded in `interventions` unconditionally — the audit is the feature (PRD scenario 3).
 - **fail** — rethrow; identical to today.
 
 ### 5.3 Retry safety
@@ -142,7 +162,7 @@ The handle — not the agent's judgment — decides whether `retry` appears in t
 
 (1) is an opt-in, not an opt-out, because the failure mode is asymmetric. An unset flag on a custom node, a legacy package, a nested `WorkflowNode` (whose inner graph can contain anything), or an overlooked write node must not *gain* retry by omission — cost tracking cannot see external writes (`Publish`, `Upsert`, `Notify`, payment-shaped nodes can complete their side effect and *then* throw, recording nothing). So unknown defaults to unsafe: a node nobody classified loses a safe retry (annoying, visible, fixable with one flag) rather than gaining an unsafe one (silent duplicate effects). PR 1 declares `retrySafe` across the pure-compute and read-only node categories in the shipped packages; `WorkflowNode`/`SubgraphNode` are never retry-safe in v1. A side-effecting node can re-earn retry later via an idempotency key — out of scope, noted in §10.
 
-(2) and (3) require **invocation-scoped** tracking. `ProcessingContext` today aggregates cost per run in a single slot and has no asset-created flag, so this is new plumbing, not existing data: a per-invocation cost/asset scope pushed around each `process()` call (PR 2), stacked so nested sub-workflow runs attribute correctly.
+(2) and (3) require **invocation-scoped** tracking, and it cannot be a stack on the shared context: every actor holds the same `ProcessingContext` and actors complete out of order, so push/pop attribution would credit actor A's cost to actor B whenever A finishes first — exactly the corruption that would re-expose retry after a billed call. The scope must travel with the invocation's async execution: `AsyncLocalStorage` around `invoke()`, or an explicit per-invocation accounting object threaded through the provider/asset call paths. PR 2 builds it either way, and reverse-order completion of concurrent invocations is a named test.
 
 ### 5.4 Streaming nodes
 
@@ -152,14 +172,16 @@ Streaming breaks the "inputs still in hand, just re-invoke" premise in two disti
 
 | State | Allowed verdicts |
 |---|---|
-| threw before first emit | retry* · substitute · skip · fail |
-| threw after emitting | `end-stream` (close slots, keep what was emitted) · fail |
+| threw before first emit | retry* · skip · fail |
+| threw after emitting | `end_stream` (close slots, keep what was emitted) · fail |
 
-**Streaming input** (`is_streaming_input`, `run()` nodes): the node drains its inbox itself and may have consumed messages long before throwing — so even "threw before first emit" does not mean the invocation is replayable, and there is no single invocation value for `substitute` to stand in for. In v1 both `retry` and `substitute` are withheld for `run()` nodes in **every** state; the verdict set is `end-stream` (keep what was emitted, close slots) · `skip` (drop) · `fail`. Re-earning retry here requires a kernel-level input replay buffer, which is explicitly out of scope (§10).
+No `substitute` in either state — the PRD's rule ("Repair never" for streams) holds: there is no single invocation value for a substitution to stand in for.
+
+**Streaming input** (`is_streaming_input`, `run()` nodes): the node drains its inbox itself and may have consumed messages long before throwing — so even "threw before first emit" does not mean the invocation is replayable. Worse, a `run()` failure has no single invocation lineage: consumed-but-unresolved envelopes span arbitrary lineages, so there is nothing coherent for `skip`'s `drop()` to target either. In v1 the verdict set for `run()` nodes is `end_stream` · `fail` — nothing else is representable without a kernel-level input replay buffer or per-envelope lineage retention, both explicitly out of scope (§10).
 
 *retry additionally requires §5.3's conditions, as everywhere.
 
-`end-stream` is surfaced to the agent as `skip` with the schema description adjusted; the actor maps it to completing the node's output slots instead of dropping them. Excluded verdicts are removed from the schema, same rule as §5.3: unrepresentable beats forbidden.
+Excluded verdicts are removed from the agent's schema **and** from the kernel's allowed set (§5.1) — the schema is UX, the allowed set is the guarantee.
 
 ### 5.5 Cancellation and timeouts
 
@@ -170,9 +192,9 @@ Each `decide()` call gets its own `AbortSignal`, derived from the run's signal p
 `packages/agents/src/supervisor/supervisor-agent.ts` implements `SupervisorHandle`:
 
 - **One `StepExecutor` per decision**, `outputSchema` = the verdict JSON schema (narrowed per §5.3/§5.4), `maxIterations` small (6). `finish_step`'s existing validate-or-bounce loop is the repair loop for malformed verdicts — no new machinery.
-- **Two tools**, both read-only, backed by state the runner already holds: `get_run_state()` (per-node status, error counts, cost — the digest) and `read_node_output(nodeId)` (last emitted values, truncated to `MAX_TOOL_RESULT_CHARS`). Progressive disclosure, same pattern as `memory_read`.
+- **Two tools**, both read-only, backed by state the runner already holds: `get_run_state()` (per-node status, error counts, cost — the digest) and `read_node_output(nodeId)` — **scoped to the failed invocation's causal lineage**. In a fan-out, "last emitted value" may belong to a different item; an unscoped read hands the agent another item's output as repair material (a poisoned repair) and quietly widens the data shared with the model beyond the failing item. The tool resolves through the escalation's `correlation_lineage` and refuses reads outside it. Progressive disclosure, same pattern as `memory_read`.
 - **Serialized queue.** One decision at a time. Consecutive failures are usually related; the agent sees them in order, and a sticky verdict drains the queue for free. Head-of-line cost is bounded by the decision timeout.
-- **Bounds.** `maxDecisions` (default 10), `maxRetriesPerNode` (default 2), and `maxSupervisorCostUsd` (default $0.50) live in the handle. Decisions and retries alone do not cap dollars, and checking *spent* cost before a call doesn't either — the next call's cost is only known afterward, so $0.49 spent could admit a $0.30 call and land at $0.79. The ceiling is enforced by **reservation**: before each provider call, compute the worst-case cost (input tokens × input price + the call's configured max output tokens × output price, from the model-pricing catalog) and proceed only if `spent + reserved ≤ cap`; commit actual cost afterward. A model with no usable pricing entry fails closed — the supervisor won't run on it. At any boundary the handle stops calling the agent and returns `fail` with `decidedBy: "bounds"` — degradation is deterministic, not a cheaper model.
+- **Bounds.** `maxDecisions` (default 10), `maxRetriesPerNode` (default 2), and `maxSupervisorCostUsd` (default $0.50). Decisions and retries alone do not cap dollars, and checking *spent* cost before a call doesn't either — the next call's cost is only known afterward, so $0.49 spent could admit a $0.30 call and land at $0.79. The ceiling is enforced by **reservation**: worst-case cost (input tokens × input price + max output tokens × output price, from the model-pricing catalog), admitted only if `spent + reserved ≤ cap`, committed to actuals afterward. Two consequences the plumbing must respect: the interception point is a **provider wrapper around every individual turn inside the decision loop** — a kernel-side check at `decide()` granularity cannot see the turns `generateLoop` makes, so the wrapper lives with the agent (PR 3), while decision/retry counting stays in the kernel's `BoundedHandle` (PR 2). And reservation needs a *known* output bound, so the supervisor sets an explicit `supervisorMaxOutputTokens` (default 2048) on every call — `StepExecutor.maxTokens` being optional is not good enough here. A model with no usable pricing entry fails closed — the supervisor won't run on it. At any boundary the handle stops calling the agent and returns `fail` with `decidedBy: "bounds"` — degradation is deterministic, not a cheaper model.
 - **System prompt** carries the verb semantics from the PRD, including skip-distrust and the itemization duty. It is a preamble over the standard execution contract, per the established `StepExecutor` rule.
 
 Decisions and their one-line rationales are also written to `context.memory` under `supervisor:` keys so a downstream `CompilerAgent` (in the workflows-as-agents path) can reference them in its synthesis.
@@ -181,16 +203,18 @@ Decisions and their one-line rationales are also written to `context.memory` und
 
 Escalations carry node inputs, error text, and (via `read_node_output`) prior outputs — real user data, sent to whichever model supervises. Truncation is not redaction; the boundary is explicit:
 
-- **Redaction at construction, not at the prompt.** `Escalation` is a *public record*: it becomes a `supervisor_escalation` message, lands in `RunResult.interventions`, and crosses the websocket — all before any agent exists. So the redaction layer lives in the **kernel** and runs when the escalation is built (PR 1, the same PR that mints the type): the actor hands raw error + inputs to a constructor that masks secret-store values wherever they appear (headers, URLs, bodies) and drops fields matching the sensitive-name list (`password`, `token`, `authorization`, …). Raw values never leave the actor's stack frame; there is no unredacted `Escalation` anywhere in the system to leak. The agent-side handle applies the same layer to tool results (`read_node_output`), which are the one supervisor input not derived from an `Escalation`.
-- **Provider policy.** The supervisor model is subject to the same workspace provider allow-list as every other model call; a workspace pinned to approved providers cannot leak failure context to an unapproved one via supervision.
+- **Redaction at construction, not at the prompt.** `Escalation` is a *public record*: it becomes a `supervisor_escalation` message, lands in `RunResult.interventions`, and crosses the websocket — all before any agent exists. So the redaction layer lives in the **kernel** and runs when the escalation is built (PR 1, the same PR that mints the type): the actor hands raw error + inputs to a constructor that masks secret values wherever they appear (headers, URLs, bodies) and drops fields matching the sensitive-name list (`password`, `token`, `authorization`, …). Raw values never leave the actor's stack frame; there is no unredacted `Escalation` anywhere in the system to leak. The agent-side handle applies the same layer to tool results (`read_node_output`), the one supervisor input not derived from an `Escalation`.
+
+  Masking "every secret-store value" presupposes knowing which values are secrets, and today's `ProcessingContext` doesn't: it resolves one secret by key and forgets. So redaction has a prerequisite deliverable — a **resolved-secret registry** on the context that records every value handed out by the secret resolver for the run's lifetime, which the escalation constructor masks against. PR 1 builds it alongside the constructor; without it the masking promise is empty.
+- **Provider policy.** The supervisor model must be restricted to providers the workspace approves — and this, too, is infrastructure that does not exist yet: current allow-listing is global cloud-node pruning and frontend filtering, with no runtime enforcement per workspace. A **workspace provider allow-list** (schema + API + a runtime check in provider resolution) is a concrete deliverable on the path to default-on, not an assumed property. Until it ships, the supervisor honors the existing global restrictions only, and the gate treats the allow-list as unmet.
 - **Consent.** Enabling supervision *is* the consent act, and the toggle's help text says what will be shared, with which model, when. Consent is per-trigger and forward-looking only: existing triggers are **never silently migrated** when the default flips — the new default applies to newly created triggers, and existing ones surface a one-time prompt instead. This is why default-on is gated (§ plan PR 8): defaults must not expand data flow before the boundary above has shipped and been evaluated.
 
 ## 7. Entry points
 
 1. **`WorkflowRunnerOptions.supervisor`** — the primitive. Used directly by tests and the debug harness.
-2. **CLI** — `nodetool run --supervise [--max-decisions N] [--max-retries N] [--supervisor-model id]` and the same flags on `nodetool debug`. Interventions print inline (`⛨` lines) and appear in `--json` reports.
+2. **CLI** — `nodetool run --supervise [--max-decisions N] [--max-retries N] [--supervisor-cost-cap USD] [--supervisor-model id]` and the same flags on `nodetool debug`. Interventions print inline (`⛨` lines) and appear in `--json` reports.
 3. **`Agent({ graph })`** — a fourth branch in `Agent._executeImpl` alongside `executeScriptPlan`/`executeGraphPlan`: hydrate the graph, start a `WorkflowRunner` with itself as supervisor, forward the runner's message stream, return run outputs from `getResults()`. No planning phase — the graph is the plan.
-4. **API/web** — `supervise: true` on the run request; the websocket runner constructs the handle and forwards `supervisor_*` messages to the client for the intervention feed. Trigger-initiated runs default it on (PRD §6.1); the flag rides the trigger row.
+4. **API/web** — `supervise: true` on the run request; the websocket runner constructs the handle and forwards `supervisor_*` messages to the client for the intervention feed. Trigger rows carry the flag, **off by default** until the plan's PR 8 gate passes; the eventual flip covers newly created triggers only (§6.1 consent).
 
 ## 8. Replay
 
@@ -209,4 +233,5 @@ Escalations carry node inputs, error text, and (via `read_node_output`) prior ou
 1. **`inputs` truncation policy** in `Escalation` — per-value byte cap vs. schema-aware summarization. Start with the byte cap (`MAX_TOOL_RESULT_CHARS` sibling), revisit if verdict quality suffers. (Redaction per §6.1 happens regardless; this question is only about size.)
 2. **Provider-level backoff audit.** PRD scenario 1 assumes transient retry exists below the hook. Audit `packages/runtime/src/providers/` retry behavior in PR 1; if absent for a provider, that gap is fixed in the runtime layer, not compensated for in the supervisor prompt.
 3. **Idempotency keys for side-effecting nodes.** §5.3 gates retry on an explicit `retrySafe` opt-in. A side-effecting node that accepts an idempotency key could safely re-earn it. Deferred until a real node needs it.
-4. **Input replay buffer for `run()` nodes.** §5.4 withholds retry/substitute from streaming-input nodes because consumed inbox messages are gone. A bounded replay buffer would re-earn retry for them; kernel-level work, deferred until an eval case shows it matters.
+4. **Input replay buffer for `run()` nodes.** §5.4 leaves streaming-input nodes with only `end_stream` · `fail` because consumed inbox messages are gone and no single lineage exists to drop. A bounded replay buffer (or per-envelope lineage retention) would re-earn retry and skip; kernel-level work, deferred until an eval case shows it matters.
+5. **Typed `retryMutable` properties.** §4 removes property overrides from retry entirely. If re-parameterized retry proves necessary, the path is node-declared, typed `retryMutable` properties applied to a local invocation copy — never a free-form record, never `updateNodeProperties`.
