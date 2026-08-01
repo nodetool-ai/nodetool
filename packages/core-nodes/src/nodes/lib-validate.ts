@@ -125,6 +125,7 @@ export function normalizeEmail(value: string): string {
 
 export class ValidateEmailNode extends BaseNode {
   static readonly nodeType = "lib.validate.Email";
+  static readonly retrySafe = true;
   static readonly title = "Validate Email";
   static readonly description =
     "Check whether a value is a syntactically valid email address.\n    validate, email, check";
@@ -142,6 +143,7 @@ export class ValidateEmailNode extends BaseNode {
 
 export class ValidateURLNode extends BaseNode {
   static readonly nodeType = "lib.validate.URL";
+  static readonly retrySafe = true;
   static readonly title = "Validate URL";
   static readonly description =
     "Check whether a value is a syntactically valid absolute URL.\n    validate, url, link, check";
@@ -159,6 +161,7 @@ export class ValidateURLNode extends BaseNode {
 
 export class ValidateIPNode extends BaseNode {
   static readonly nodeType = "lib.validate.IP";
+  static readonly retrySafe = true;
   static readonly title = "Validate IP Address";
   static readonly description =
     "Check whether a value is a valid IPv4 or IPv6 address.\n    validate, ip, ipv4, ipv6, address, network";
@@ -185,6 +188,7 @@ export class ValidateIPNode extends BaseNode {
 
 export class ValidateStringNode extends BaseNode {
   static readonly nodeType = "lib.validate.String";
+  static readonly retrySafe = true;
   static readonly title = "Validate String";
   static readonly description =
     "Run several common string checks at once and return one bool per check.\n    validate, check, email, url, uuid, json, number";
@@ -219,6 +223,7 @@ export class ValidateStringNode extends BaseNode {
 
 export class SanitizeStringNode extends BaseNode {
   static readonly nodeType = "lib.validate.Sanitize";
+  static readonly retrySafe = true;
   static readonly title = "Sanitize String";
   static readonly description =
     "HTML-escape, trim, and lowercase/normalise a string. Also emits the normalised email when applicable.\n    sanitize, escape, html, xss, clean, trim";

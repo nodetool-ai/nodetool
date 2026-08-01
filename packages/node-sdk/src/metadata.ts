@@ -114,6 +114,11 @@ export interface NodeMetadata {
   supports_dynamic_outputs?: boolean;
   auto_save_asset?: boolean;
   /**
+   * Opt-in: re-running the node with identical inputs is safe. Absent means
+   * unsafe, so the supervisor withholds `retry`. See `BaseNode.retrySafe`.
+   */
+  retry_safe?: boolean;
+  /**
    * Per-type cache lifetime for partial runs (seconds, or the `"forever"`
    * sentinel — never `Infinity`, which is not JSON-safe). Only consulted for
    * Computed nodes. Unset / `0` = never reuse. See `BaseNode.cacheTtl` and

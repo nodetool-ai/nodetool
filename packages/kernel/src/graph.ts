@@ -134,7 +134,10 @@ export function withExplicitNodeFlags(graph: GraphData): HydratedGraphData {
       is_streaming_input: node.is_streaming_input ?? false,
       is_streaming_output: node.is_streaming_output ?? false,
       is_controlled: node.is_controlled ?? false,
-      is_join_node: node.is_join_node ?? false
+      is_join_node: node.is_join_node ?? false,
+      // Here — unlike `loadFromDict` — the descriptor's author is code, not a
+      // saved file, so a declared `retry_safe` is the class's own declaration.
+      retry_safe: node.retry_safe ?? false
     })),
     edges: [...graph.edges]
   };
@@ -439,7 +442,15 @@ export class Graph {
         is_controlled:
           descriptorDefaults.is_controlled ?? node.is_controlled ?? false,
         is_join_node:
-          descriptorDefaults.is_join_node ?? node.is_join_node ?? false
+          descriptorDefaults.is_join_node ?? node.is_join_node ?? false,
+        // Retry safety comes from the registry or not at all — note there is
+        // no `?? node.retry_safe` here, unlike every flag above. Whether
+        // re-running a node duplicates a payment or a publish is a property of
+        // its implementation, not of a file: a saved graph asserting
+        // `retry_safe: true` for a node whose class never declared it would
+        // hand the supervisor a retry on a side-effecting node. An unresolved
+        // type therefore gets no retry rather than the saved claim.
+        retry_safe: descriptorDefaults.retry_safe ?? false
       };
 
       resolvedNodes.push(hydratedNode);

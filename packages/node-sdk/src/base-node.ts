@@ -161,6 +161,8 @@ export type NodeClass = {
   isJoinNode: boolean;
   supportsDynamicOutputs?: boolean;
   autoSaveAsset: boolean;
+  /** Opt-in: re-running with identical inputs is safe. See `BaseNode.retrySafe`. */
+  retrySafe: boolean;
   cacheTtl?: number | "forever";
   effect?: NodeEffect;
   primaryOutput?: string;
@@ -319,6 +321,15 @@ export abstract class BaseNode {
   static readonly isJoinNode: boolean = false;
   static readonly supportsDynamicOutputs: boolean | undefined = undefined;
   static readonly autoSaveAsset: boolean = false;
+  /**
+   * Whether re-running this node with identical inputs is safe. An opt-in:
+   * unknown means unsafe. Cost tracking cannot see external writes — a
+   * Publish/Upsert/Notify node can complete its side effect and then throw,
+   * recording nothing — so a node nobody classified loses a safe retry rather
+   * than gaining an unsafe one. The workflow supervisor offers `retry` only
+   * for a node that declares this. See docs/workflow-supervisor-design.md §5.3.
+   */
+  static readonly retrySafe: boolean = false;
   /**
    * Per-type cache lifetime for partial runs ("Run Node", "Run from here", "Run
    * selected"). Only consulted for Computed nodes (Constants are always live;
@@ -769,7 +780,8 @@ export abstract class BaseNode {
       output_correlation: cls.outputCorrelation,
       is_controlled: cls.isControlled,
       is_join_node: cls.isJoinNode || undefined,
-      is_trigger: cls.isTrigger || undefined
+      is_trigger: cls.isTrigger || undefined,
+      retry_safe: cls.retrySafe || undefined
     };
     if (Object.keys(propertyTypes).length > 0) {
       desc.propertyTypes = propertyTypes;

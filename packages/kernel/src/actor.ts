@@ -24,7 +24,34 @@ import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.actor");
-import type { ProcessingContext, NodeExecutor } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  NodeExecutor,
+  InvocationAccount
+} from "@nodetool-ai/runtime";
+import {
+  createInvocationAccount,
+  inInvocationAccount,
+  isRecoverableNodeError
+} from "@nodetool-ai/runtime";
+import type {
+  DecidedBy,
+  Escalation,
+  Intervention,
+  Verdict
+} from "@nodetool-ai/protocol";
+import {
+  computeAllowedActions,
+  failureSignature,
+  redactRecord,
+  redactValue,
+  type DecisionOutcome,
+  type SupervisorHandle
+} from "./supervisor.js";
+import {
+  hasFullValidatorCoverage,
+  validateSubstituteOutputs
+} from "./substitute-validator.js";
 // Span helpers via the narrow `/tracing` subpath — keeps the runtime
 // provider / python-bridge barrel out of thin (browser) bundles.
 import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
@@ -52,9 +79,34 @@ export interface OutputRoutingHints {
    * downstream inboxes instead of `put`.
    */
   lineageDoneSlots?: Set<string>;
+  /**
+   * A supervisor `skip` verdict: this invocation produced nothing. The runner
+   * sends `lineage_done` on every outgoing data edge at `invocationLineage`,
+   * *and* `lineage_scope_closed` for every child root the invocation would have
+   * opened — `drop()` alone signals only the former, which leaves an aggregate
+   * downstream waiting forever on a scope a skipped iterator never opened.
+   * Design §5.2.
+   */
+  skipInvocation?: boolean;
 }
 
 export type { NodeExecutor };
+
+/** Returned by the recovery loop when a `skip` verdict retired an invocation. */
+const SKIPPED = Symbol("skipped");
+
+/**
+ * A failure that happened while routing values downstream, not while the node
+ * was executing. It never escalates: `sendOutputs` delivers to each outgoing
+ * edge in turn, so once edge 1 has the value, re-running the node would deliver
+ * to it twice. Design §5.1.
+ */
+class RoutingError extends Error {
+  constructor(readonly cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = "RoutingError";
+  }
+}
 
 /**
  * Canonical lineage keys join `root=index` pairs with `,`. To compute the
@@ -243,6 +295,16 @@ export class NodeActor {
    */
   private _signalSlotEos: ((nodeId: string, slot: string) => void) | undefined;
 
+  /**
+   * Supervisor for this run, if any. Absent means no escalation is ever
+   * constructed and the actor behaves exactly as it did before — a clean run
+   * with no supervisor costs nothing, because nothing runs.
+   */
+  private _supervisor: SupervisorHandle | undefined;
+
+  /** Records every escalation/verdict pair for `RunResult.interventions`. */
+  private _onIntervention: ((i: Intervention) => void) | undefined;
+
   constructor(opts: {
     node: NodeDescriptor;
     inbox: NodeInbox;
@@ -259,6 +321,8 @@ export class NodeActor {
     correlation?: NodeAnalysis;
     cancelSignal?: AbortSignal;
     signalSlotEos?: (nodeId: string, slot: string) => void;
+    supervisor?: SupervisorHandle;
+    onIntervention?: (i: Intervention) => void;
   }) {
     this.node = opts.node;
     this.inbox = opts.inbox;
@@ -271,6 +335,8 @@ export class NodeActor {
     this._correlation = opts.correlation;
     this._cancelSignal = opts.cancelSignal ?? new AbortController().signal;
     this._signalSlotEos = opts.signalSlotEos;
+    this._supervisor = opts.supervisor;
+    this._onIntervention = opts.onIntervention;
   }
 
   // -----------------------------------------------------------------------
@@ -379,7 +445,7 @@ export class NodeActor {
                   };
                 }
               }
-              await this._sendOutputs(this.node.id, { [slot]: value }, hints);
+              await this._route({ [slot]: value }, hints);
             },
             emitGroupFn: async (values, opts) => {
               await this._emitGroup(values, opts?.lineage);
@@ -398,11 +464,7 @@ export class NodeActor {
               );
             }
           });
-          await this._executor.run(
-            nodeInputs,
-            nodeOutputs,
-            this._executionContext
-          );
+          await this._runStreamingInput(nodeInputs, nodeOutputs);
           this._latestResult = nodeOutputs.collected();
           // Site #5 (RFC §5): streaming-input run() — one committed result.
           this._emitGenerationComplete(this._latestResult);
@@ -1087,6 +1149,219 @@ export class NodeActor {
   /**
    * Execute process or genProcess with the given inputs.
    */
+  /**
+   * Run one invocation under the supervisor, if there is one.
+   *
+   * The catch wraps node execution and nothing else. `sendOutputs` routes to
+   * downstream inboxes sequentially, so if edge 1 delivered and edge 2 threw, a
+   * retry would duplicate edge 1's delivery — routing failures therefore fail
+   * the node without escalation. Design §5.1.
+   *
+   * Returns the outputs to route, or `SKIPPED` when the invocation was retired
+   * without emitting.
+   */
+  private async _invokeWithRecovery(
+    inputs: Record<string, unknown>,
+    invoke: () => Promise<Record<string, unknown>>
+  ): Promise<Record<string, unknown> | typeof SKIPPED> {
+    for (let attempt = 1; ; attempt++) {
+      // A fresh account per attempt: what the previous try spent is not what
+      // this one spent.
+      const account = createInvocationAccount();
+      try {
+        return await inInvocationAccount(account, invoke);
+      } catch (err) {
+        if (err instanceof WorkflowSuspendedError) throw err;
+        if (!this._supervisor) throw err;
+
+        const verdict = await this._escalate(err, inputs, attempt, account, {
+          streamingOutput: false,
+          streamingInput: false,
+          emitted: false
+        });
+
+        switch (verdict.action) {
+          case "retry":
+            continue;
+          case "substitute": {
+            const valid = await this._validateSubstitute(verdict.outputs);
+            if (valid) return verdict.outputs;
+            throw err;
+          }
+          case "skip":
+            await this._skipInvocation();
+            return SKIPPED;
+          default:
+            throw err;
+        }
+      }
+    }
+  }
+
+  /**
+   * Build the escalation, ask the supervisor, and enforce the allowed set
+   * against whatever comes back. The schema shown to an agent is UX; this check
+   * is the guarantee — a buggy or third-party handle returning `retry` for an
+   * unsafe node gets `fail`.
+   */
+  private async _escalate(
+    err: unknown,
+    inputs: Record<string, unknown>,
+    attempt: number,
+    account: InvocationAccount | undefined,
+    mode: {
+      streamingOutput: boolean;
+      streamingInput: boolean;
+      emitted: boolean;
+    }
+  ): Promise<Verdict> {
+    const escalation = this._buildEscalation(
+      err,
+      inputs,
+      attempt,
+      account,
+      mode
+    );
+    this._emitMessage({
+      type: "supervisor_escalation",
+      node_id: this.node.id,
+      node_name: this.node.name ?? this.node.type,
+      escalation
+    });
+
+    let outcome: DecisionOutcome;
+    try {
+      outcome = await this._supervisor!.decide(escalation, this._cancelSignal);
+    } catch {
+      outcome = { verdict: { action: "fail" }, decidedBy: "default" };
+    }
+
+    // The record has to name who produced the verdict that was *applied*. When
+    // the kernel overrules a handle, crediting the handle would hide exactly
+    // the case worth finding: a buggy or hostile supervisor.
+    const allowed = escalation.allowedActions.includes(outcome.verdict.action);
+    const verdict = allowed ? outcome.verdict : ({ action: "fail" } as Verdict);
+    const decidedBy: DecidedBy = allowed ? outcome.decidedBy : "kernel";
+
+    this._emitMessage({
+      type: "supervisor_decision",
+      node_id: this.node.id,
+      node_name: this.node.name ?? this.node.type,
+      escalation,
+      verdict,
+      decided_by: decidedBy,
+      cost: outcome.costUsd ?? null
+    });
+    this._onIntervention?.({
+      escalation,
+      verdict,
+      decidedBy,
+      costUsd: outcome.costUsd
+    });
+    return verdict;
+  }
+
+  /**
+   * Mint the escalation record. Redaction happens *here*, not at some later
+   * prompt: `Escalation` is public — it becomes a message, lands in
+   * `RunResult.interventions`, and crosses the websocket — so no unredacted
+   * instance may exist anywhere in the system. Design §6.1.
+   */
+  private _buildEscalation(
+    err: unknown,
+    inputs: Record<string, unknown>,
+    attempt: number,
+    account: InvocationAccount | undefined,
+    mode: {
+      streamingOutput: boolean;
+      streamingInput: boolean;
+      emitted: boolean;
+    }
+  ): Escalation {
+    const secrets =
+      this._executionContext?.getResolvedSecretValues?.() ?? new Set<string>();
+    const lineage = this._currentInvocationLineage ?? EMPTY_LINEAGE;
+    const invocationScope = this._correlation?.invocationScope ?? [];
+    const invocationKey = invocationScope.length
+      ? projectLineageKey(lineage, invocationScope)
+      : "";
+    const recoverable = isRecoverableNodeError(err) ? err : undefined;
+    const candidateOutput = recoverable
+      ? redactValue(recoverable.candidateOutput, secrets)
+      : undefined;
+
+    const allowedActions = computeAllowedActions({
+      retrySafe: this.node.retry_safe === true,
+      spentCostUsd: account?.costUsd ?? 0,
+      createdAssets: account?.createdAssets ?? false,
+      hasCandidateOutput: recoverable !== undefined,
+      validatorCoverage: hasFullValidatorCoverage(
+        this.node.outputs ?? {},
+        // Resolving a reference against run storage needs a resolver the
+        // kernel does not have yet, so reference-typed outputs are not
+        // substitutable — better than accepting an unresolvable ref.
+        false
+      ),
+      ...mode
+    });
+
+    return {
+      nodeId: this.node.id,
+      nodeType: this.node.type,
+      correlationLineage: invocationKey === "" ? [] : invocationKey.split(","),
+      invocationKey,
+      allowedActions,
+      detail: String(
+        redactValue(err instanceof Error ? err.message : String(err), secrets)
+      ),
+      failureSignature: recoverable?.code ?? failureSignature(err),
+      candidateOutput,
+      inputs: redactRecord(inputs, secrets),
+      attempt,
+      spentCostUsd: account?.costUsd ?? 0,
+      createdAssets: account?.createdAssets ?? false,
+      retrySafe: this.node.retry_safe === true,
+      emitted: mode.emitted
+    };
+  }
+
+  /**
+   * A repaired value is type-checked against the node's declared outputs
+   * before it enters the graph. An invalid repair is not a repair.
+   */
+  private async _validateSubstitute(
+    outputs: Record<string, unknown>
+  ): Promise<boolean> {
+    const declared = this.node.outputs ?? {};
+    const result = await validateSubstituteOutputs(outputs, {
+      declaredOutputs: declared
+    });
+    if (!result.ok) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.warn("Rejected supervisor substitution", {
+        nodeId: this.node.id,
+        issues: result.issues
+      });
+    }
+    return result.ok;
+  }
+
+  /**
+   * Retire this invocation without emitting: `lineage_done` plus scope closure
+   * on every outgoing edge, so downstream joins move past the skipped key and
+   * aggregates see the scopes the invocation would have opened get closed.
+   */
+  private async _skipInvocation(): Promise<void> {
+    await this._sendOutputs(
+      this.node.id,
+      {},
+      {
+        skipInvocation: true,
+        invocationLineage: this._currentInvocationLineage ?? EMPTY_LINEAGE
+      }
+    );
+  }
+
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
@@ -1119,29 +1394,75 @@ export class NodeActor {
     this._currentInvocationLineage = this._computeInvocationLineage();
 
     if (this.node.is_streaming_output && this._executor.genProcess) {
+      await this._executeStreaming(inputs);
+      return;
+    }
+
+    const outputs = await this._invokeWithRecovery(inputs, () =>
+      this._executor.process(inputs, this._executionContext)
+    );
+    if (outputs === SKIPPED) return;
+    this._latestResult = outputs;
+    await this._sendOutputs(
+      this.node.id,
+      outputs,
+      this._currentHints(Object.keys(outputs))
+    );
+    // Site #1 (RFC §5): correlated process() — one per ready key, so N/run
+    // for a generator (the primary 6×-collapse fix).
+    this._emitGenerationComplete(outputs, inputs);
+  }
+
+  /**
+   * The streaming-output invocation, with its own recovery rules.
+   *
+   * Frames are routed inside the generator loop, so "retry" only means
+   * something before the first emit — after that the coherent choices are
+   * ending the stream (keeping what was produced) or failing. Design §5.4.
+   */
+  private async _executeStreaming(
+    inputs: Record<string, unknown>
+  ): Promise<void> {
+    for (let attempt = 1; ; attempt++) {
+      const account = createInvocationAccount();
+      let emitted = false;
       this._streamingCollectedOutputs = {};
-      for await (const partial of this._executor.genProcess(
-        inputs,
-        this._executionContext
-      )) {
-        const routed = this._filterStreamingPartial(partial);
-        const handles = Object.keys(routed);
-        if (handles.length === 0) continue;
-        // Strip actor-reserved `index` from iteration groups before routing
-        // (the actor mints the token index; node code is migrating away from
-        // supplying it). §1 — under the correlation scheduler this becomes
-        // a validation error after migration; for now we warn-and-overwrite.
-        const overrides = this._mintIterationFrameOverrides(routed);
-        Object.assign(this._streamingCollectedOutputs, routed);
-        if (overrides)
-          Object.assign(this._streamingCollectedOutputs, overrides);
-        const emit = overrides ? { ...routed, ...overrides } : routed;
-        this._latestResult = { ...this._streamingCollectedOutputs };
-        await this._sendOutputs(
-          this.node.id,
-          emit,
-          this._currentHints(Object.keys(emit))
-        );
+      try {
+        await inInvocationAccount(account, async () => {
+          for await (const partial of this._executor.genProcess!(
+            inputs,
+            this._executionContext
+          )) {
+            emitted = (await this._routeStreamingFrame(partial)) || emitted;
+          }
+        });
+      } catch (err) {
+        if (err instanceof WorkflowSuspendedError) throw err;
+        if (err instanceof RoutingError) throw err.cause;
+        if (!this._supervisor) throw err;
+        const verdict = await this._escalate(err, inputs, attempt, account, {
+          streamingOutput: true,
+          streamingInput: false,
+          emitted
+        });
+        switch (verdict.action) {
+          case "retry":
+            continue;
+          case "skip":
+            await this._skipInvocation();
+            return;
+          case "end_stream":
+            this._completeOutputSlots();
+            this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
+            // `end_stream` keeps what the stream produced, so the invocation
+            // committed — it just committed early. Skipping the commit marker
+            // would hide those outputs from replay and asset autosave, which
+            // is the "silent data loss dressed as success" the PRD forbids.
+            this._emitGenerationComplete(this._latestResult, inputs);
+            return;
+          default:
+            throw err;
+        }
       }
       this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
       // Site #4 (RFC §5): genProcess stream-end — ONCE per stream, carrying the
@@ -1150,20 +1471,87 @@ export class NodeActor {
       // OF SCOPE (RFC §5 invariant / Decision 1 corollary). Under correlation
       // this branch runs once per ready key → one generation_complete per key.
       this._emitGenerationComplete(this._latestResult, inputs);
-    } else {
-      const outputs = await this._executor.process(
-        inputs,
-        this._executionContext
+      return;
+    }
+  }
+
+  /**
+   * The streaming-input invocation. A `run()` node drains its own inbox and may
+   * have consumed messages long before it threw, across arbitrary lineages —
+   * nothing is replayable and there is no single lineage for a skip to target.
+   * So the verdict set here is exactly `end_stream` · `fail`. Design §5.4.
+   */
+  private async _runStreamingInput(
+    nodeInputs: NodeInputs,
+    nodeOutputs: NodeOutputs
+  ): Promise<void> {
+    const account = createInvocationAccount();
+    try {
+      await inInvocationAccount(account, () =>
+        this._executor.run!(nodeInputs, nodeOutputs, this._executionContext)
       );
-      this._latestResult = outputs;
-      await this._sendOutputs(
-        this.node.id,
-        outputs,
-        this._currentHints(Object.keys(outputs))
-      );
-      // Site #1 (RFC §5): correlated process() — one per ready key, so N/run
-      // for a generator (the primary 6×-collapse fix).
-      this._emitGenerationComplete(outputs, inputs);
+    } catch (err) {
+      if (err instanceof WorkflowSuspendedError) throw err;
+      if (err instanceof RoutingError) throw err.cause;
+      if (!this._supervisor) throw err;
+      const verdict = await this._escalate(err, {}, 1, account, {
+        streamingOutput: false,
+        streamingInput: true,
+        emitted: true
+      });
+      if (verdict.action !== "end_stream") throw err;
+      this._completeOutputSlots();
+    }
+  }
+
+  /** Route one yielded frame. Returns true when anything went downstream. */
+  private async _routeStreamingFrame(
+    partial: Record<string, unknown>
+  ): Promise<boolean> {
+    const routed = this._filterStreamingPartial(partial);
+    if (Object.keys(routed).length === 0) return false;
+    // Strip actor-reserved `index` from iteration groups before routing
+    // (the actor mints the token index; node code is migrating away from
+    // supplying it). §1 — under the correlation scheduler this becomes
+    // a validation error after migration; for now we warn-and-overwrite.
+    const overrides = this._mintIterationFrameOverrides(routed);
+    this._streamingCollectedOutputs ??= {};
+    Object.assign(this._streamingCollectedOutputs, routed);
+    if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
+    const emit = overrides ? { ...routed, ...overrides } : routed;
+    this._latestResult = { ...this._streamingCollectedOutputs };
+    await this._route(emit, this._currentHints(Object.keys(emit)));
+    return true;
+  }
+
+  /**
+   * Route values downstream, tagging any failure as a routing failure so the
+   * recovery loops let it through instead of escalating a delivery problem as
+   * if the node had failed.
+   */
+  private async _route(
+    outputs: Record<string, unknown>,
+    hints?: OutputRoutingHints
+  ): Promise<void> {
+    try {
+      await this._sendOutputs(this.node.id, outputs, hints);
+    } catch (err) {
+      throw new RoutingError(err);
+    }
+  }
+
+  /**
+   * Close every output slot, keeping whatever the stream already emitted —
+   * the `end_stream` verdict. Slots come from the node's declared outputs,
+   * falling back to what the stream actually produced.
+   */
+  private _completeOutputSlots(): void {
+    const declared = Object.keys(this.node.outputs ?? {});
+    const slots = declared.length
+      ? declared
+      : Object.keys(this._streamingCollectedOutputs ?? {});
+    for (const slot of slots) {
+      this._signalSlotEos?.(this.node.id, slot || "output");
     }
   }
 
@@ -1438,10 +1826,10 @@ export class NodeActor {
           ...inputs,
           ...this._currentControlProperties
         });
-        const outputs = await this._executor.process(
-          merged,
-          this._executionContext
+        const outputs = await this._invokeWithRecovery(merged, () =>
+          this._executor.process(merged, this._executionContext)
         );
+        if (outputs === SKIPPED) continue;
         this._latestResult = outputs;
         await this._sendOutputs(this.node.id, outputs);
         // Site #2 (RFC §5): controlled-loop process() — one per "run" event.

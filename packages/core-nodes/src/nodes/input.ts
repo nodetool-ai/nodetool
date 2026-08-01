@@ -52,6 +52,7 @@ interface ImageSizeValue {
 
 export class FloatInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FloatInput";
+  static readonly retrySafe = true;
   static readonly title = "Float Input";
   static readonly description =
     "Accepts a floating-point number as a parameter for workflows, typically constrained by a minimum and maximum value.  This input allows for precise numeric settings, such as adjustments, scores, or any value requiring decimal precision.\n    input, parameter, float, number, decimal, range";
@@ -86,6 +87,7 @@ export class FloatInputNode extends BaseNode {
 
 export class BooleanInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.BooleanInput";
+  static readonly retrySafe = true;
   static readonly title = "Boolean Input";
   static readonly description =
     "Accepts a boolean (true/false) value as a parameter for workflows.  This input is used for binary choices, enabling or disabling features, or controlling conditional logic paths.\n    input, parameter, boolean, bool, toggle, switch, flag";
@@ -111,6 +113,7 @@ export class BooleanInputNode extends BaseNode {
 
 export class IntegerInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.IntegerInput";
+  static readonly retrySafe = true;
   static readonly title = "Integer Input";
   static readonly description =
     "Accepts an integer (whole number) as a parameter for workflows, typically constrained by a minimum and maximum value.  This input is used for discrete numeric values like counts, indices, or iteration limits.\n    input, parameter, integer, number, count, index, whole_number";
@@ -145,6 +148,7 @@ export class IntegerInputNode extends BaseNode {
 
 export class SelectInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.SelectInput";
+  static readonly retrySafe = true;
   static readonly title = "Select Input";
   static readonly description =
     "Accepts a selection from a predefined set of options as a parameter for workflows.\n    input, parameter, select, enum, dropdown, choice, options\n\n    Use cases:\n    - Let users choose from a fixed set of values in app mode\n    - Configure enum-like options for downstream nodes\n    - Provide dropdown selection for workflow parameters\n\n    The output is a string that can be connected to enum-typed inputs.";
@@ -202,6 +206,7 @@ export class SelectInputNode extends BaseNode {
 
 export class StringListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.StringListInput";
+  static readonly retrySafe = true;
   static readonly title = "String List Input";
   static readonly description =
     "Accepts a list of strings as a parameter for workflows.\n    input, parameter, string, text, label, name, value";
@@ -232,6 +237,7 @@ export class StringListInputNode extends BaseNode {
 
 export class FolderPathInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FolderPathInput";
+  static readonly retrySafe = true;
   static readonly title = "Folder Path Input";
   static readonly description =
     "Accepts a folder path as a parameter for workflows.\n    input, parameter, folder, path, folderpath, local_folder, filesystem";
@@ -265,6 +271,7 @@ export class FolderPathInputNode extends BaseNode {
 
 export class HuggingFaceModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.HuggingFaceModelInput";
+  static readonly retrySafe = true;
   static readonly title = "Hugging Face Model Input";
   static readonly description =
     "Accepts a Hugging Face model as a parameter for workflows.\n    input, parameter, model, huggingface, hugging_face, model_name";
@@ -295,6 +302,7 @@ export class HuggingFaceModelInputNode extends BaseNode {
 
 export class ColorInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ColorInput";
+  static readonly retrySafe = true;
   static readonly title = "Color Input";
   static readonly description =
     "Accepts a color value as a parameter for workflows.\n    input, parameter, color, color_picker, color_input";
@@ -325,6 +333,7 @@ export class ColorInputNode extends BaseNode {
 
 export class ImageSizeInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageSizeInput";
+  static readonly retrySafe = true;
   static readonly title = "Image Size Input";
   static readonly description =
     "Accepts image dimensions as a parameter for workflows.\n    input, parameter, image_size, resolution, width, height, dimensions";
@@ -356,6 +365,7 @@ export class ImageSizeInputNode extends BaseNode {
 
 export class LanguageModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.LanguageModelInput";
+  static readonly retrySafe = true;
   static readonly title = "Language Model Input";
   static readonly description =
     "Accepts a language model as a parameter for workflows.\n    input, parameter, model, language, model_name";
@@ -386,6 +396,7 @@ export class LanguageModelInputNode extends BaseNode {
 
 export class ImageModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageModelInput";
+  static readonly retrySafe = true;
   static readonly title = "Image Model Input";
   static readonly description =
     "Accepts an image generation model as a parameter for workflows.\n    input, parameter, model, image, generation";
@@ -416,6 +427,7 @@ export class ImageModelInputNode extends BaseNode {
 
 export class VideoModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.VideoModelInput";
+  static readonly retrySafe = true;
   static readonly title = "Video Model Input";
   static readonly description =
     "Accepts a video generation model as a parameter for workflows.\n    input, parameter, model, video, generation";
@@ -446,6 +458,7 @@ export class VideoModelInputNode extends BaseNode {
 
 export class TTSModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.TTSModelInput";
+  static readonly retrySafe = true;
   static readonly title = "TTS Model Input";
   static readonly description =
     "Accepts a text-to-speech model as a parameter for workflows.\n    input, parameter, model, tts, speech, voice";
@@ -476,6 +489,7 @@ export class TTSModelInputNode extends BaseNode {
 
 export class ASRModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ASRModelInput";
+  static readonly retrySafe = true;
   static readonly title = "ASR Model Input";
   static readonly description =
     "Accepts an automatic speech recognition model as a parameter for workflows.\n    input, parameter, model, asr, transcription, speech";
@@ -506,6 +520,7 @@ export class ASRModelInputNode extends BaseNode {
 
 export class EmbeddingModelInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.EmbeddingModelInput";
+  static readonly retrySafe = true;
   static readonly title = "Embedding Model Input";
   static readonly description =
     "Accepts an embedding model as a parameter for workflows.\n    input, parameter, model, embedding, vector";
@@ -536,6 +551,7 @@ export class EmbeddingModelInputNode extends BaseNode {
 
 export class DataframeInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.DataframeInput";
+  static readonly retrySafe = true;
   static readonly title = "Dataframe Input";
   static readonly description =
     "Accepts a reference to a dataframe asset for workflows.\n    input, parameter, dataframe, table, data";
@@ -566,6 +582,7 @@ export class DataframeInputNode extends BaseNode {
 
 export class DocumentInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.DocumentInput";
+  static readonly retrySafe = true;
   static readonly title = "Document Input";
   static readonly description =
     "Accepts a reference to a document asset for workflows, specified by a 'DocumentRef'.  A 'DocumentRef' points to a structured document (e.g., PDF, DOCX, TXT) which can be processed or analyzed. This node is used when the workflow needs to operate on a document as a whole entity, potentially including its structure and metadata, rather than just raw text.\n    input, parameter, document, file, asset, reference\n\n    Use cases:\n    - Load a specific document (e.g., PDF, Word, text file) for content extraction or analysis.\n    - Pass a document to models that are designed to process specific document formats.\n    - Manage documents as distinct assets within a workflow.\n    - If you have a local file path and need to convert it to a 'DocumentRef', consider using 'DocumentFileInput'.";
@@ -596,6 +613,7 @@ export class DocumentInputNode extends BaseNode {
 
 export class ImageInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageInput";
+  static readonly retrySafe = true;
   static readonly title = "Image Input";
   static readonly description =
     "Accepts a reference to an image asset for workflows, specified by an 'ImageRef'.  An 'ImageRef' points to image data that can be used for display, analysis, or processing by vision models.\n    input, parameter, image, picture, graphic, visual, asset";
@@ -626,6 +644,7 @@ export class ImageInputNode extends BaseNode {
 
 export class ImageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.ImageListInput";
+  static readonly retrySafe = true;
   static readonly title = "Image List Input";
   static readonly description =
     "Accepts a list of image references as a parameter for workflows.\n    input, parameter, image, picture, graphic, visual, asset, list";
@@ -656,6 +675,7 @@ export class ImageListInputNode extends BaseNode {
 
 export class VideoListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.VideoListInput";
+  static readonly retrySafe = true;
   static readonly title = "Video List Input";
   static readonly description =
     "Accepts a list of video references as a parameter for workflows.\n    input, parameter, video, movie, clip, visual, asset, list";
@@ -686,6 +706,7 @@ export class VideoListInputNode extends BaseNode {
 
 export class AudioListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.AudioListInput";
+  static readonly retrySafe = true;
   static readonly title = "Audio List Input";
   static readonly description =
     "Accepts a list of audio references as a parameter for workflows.\n    input, parameter, audio, sound, voice, speech, asset, list";
@@ -716,6 +737,7 @@ export class AudioListInputNode extends BaseNode {
 
 export class TextListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.TextListInput";
+  static readonly retrySafe = true;
   static readonly title = "Text List Input";
   static readonly description =
     "Accepts a list of text strings as a parameter for workflows.\n    input, parameter, text, string, list";
@@ -746,6 +768,7 @@ export class TextListInputNode extends BaseNode {
 
 export class VideoInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.VideoInput";
+  static readonly retrySafe = true;
   static readonly title = "Video Input";
   static readonly description =
     "Accepts a reference to a video asset for workflows, specified by a 'VideoRef'.  A 'VideoRef' points to video data that can be used for playback, analysis, frame extraction, or processing by video-capable models.\n    input, parameter, video, movie, clip, visual, asset";
@@ -776,6 +799,7 @@ export class VideoInputNode extends BaseNode {
 
 export class AudioInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.AudioInput";
+  static readonly retrySafe = true;
   static readonly title = "Audio Input";
   static readonly description =
     "Accepts a reference to an audio asset for workflows, specified by an 'AudioRef'.  An 'AudioRef' points to audio data that can be used for playback, transcription, analysis, or processing by audio-capable models.\n    input, parameter, audio, sound, voice, speech, asset";
@@ -806,6 +830,7 @@ export class AudioInputNode extends BaseNode {
 
 export class Model3DInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.Model3DInput";
+  static readonly retrySafe = true;
   static readonly title = "Model 3D Input";
   static readonly description =
     "Accepts a reference to a 3D model asset for workflows, specified by a 'Model3DRef'.\n    A 'Model3DRef' points to 3D model data that can be used for visualization, processing,\n    or conversion by 3D-capable nodes.\n    input, parameter, 3d, model, mesh, obj, glb, stl, ply, asset";
@@ -836,6 +861,7 @@ export class Model3DInputNode extends BaseNode {
 
 export class AssetFolderInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.AssetFolderInput";
+  static readonly retrySafe = true;
   static readonly title = "Asset Folder Input";
   static readonly description =
     "Accepts an asset folder as a parameter for workflows.\n    input, parameter, folder, path, folderpath, local_folder, filesystem";
@@ -866,6 +892,7 @@ export class AssetFolderInputNode extends BaseNode {
 
 export class MessageInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.MessageInput";
+  static readonly retrySafe = true;
   static readonly title = "Message Input";
   static readonly description =
     "Accepts a chat message object for workflows.\n    input, parameter, message, chat, conversation";
@@ -896,6 +923,7 @@ export class MessageInputNode extends BaseNode {
 
 export class MessageListInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.MessageListInput";
+  static readonly retrySafe = true;
   static readonly title = "Message List Input";
   static readonly description =
     "Accepts a list of chat message objects for workflows.\n    input, parameter, messages, chat, conversation, history";
@@ -926,6 +954,7 @@ export class MessageListInputNode extends BaseNode {
 
 export class StringInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.StringInput";
+  static readonly retrySafe = true;
   static readonly title = "String Input";
   static readonly description =
     "Accepts a string value as a parameter for workflows.\n    input, parameter, string, text, label, name, value\n\n    Use cases:\n    - Define a name for an entity or process.\n    - Specify a label for a component or output.\n    - Enter a short keyword or search term.\n    - Provide a simple configuration value (e.g., an API key, a model name).\n    - If you need to input multi-line text or the content of a file, use 'DocumentFileInput'.";
@@ -979,6 +1008,7 @@ export class StringInputNode extends BaseNode {
 
 export class RealtimeAudioInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.RealtimeAudioInput";
+  static readonly retrySafe = true;
   static readonly title = "Realtime Audio Input";
   static readonly description =
     "Accepts streaming audio data for workflows.\n    input, parameter, audio, sound, voice, speech, asset";
@@ -1022,6 +1052,7 @@ export class RealtimeAudioInputNode extends BaseNode {
 
 export class DocumentFileInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.DocumentFileInput";
+  static readonly retrySafe = true;
   static readonly title = "Document File Input";
   static readonly description =
     "Accepts a local file path pointing to a document and converts it into a 'DocumentRef'.\n    input, parameter, document, file, path, local_file, load";
@@ -1060,6 +1091,7 @@ export class DocumentFileInputNode extends BaseNode {
 
 export class FilePathInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.FilePathInput";
+  static readonly retrySafe = true;
   static readonly title = "File Path Input";
   static readonly description =
     "Accepts a local filesystem path (to a file or directory) as input for workflows.\n    input, parameter, path, filepath, directory, local_file, filesystem";
@@ -1093,6 +1125,7 @@ export class FilePathInputNode extends BaseNode {
 
 export class MessageDeconstructorNode extends BaseNode {
   static readonly nodeType = "nodetool.input.MessageDeconstructor";
+  static readonly retrySafe = true;
   static readonly title = "Message Deconstructor";
   static readonly description =
     "Deconstructs a chat message object into its individual fields.\n    extract, decompose, message, fields, chat\n\n    Use cases:\n    - Extract specific fields from a message (e.g., role, content, thread_id).\n    - Access message metadata for workflow logic.\n    - Process different parts of a message separately.";

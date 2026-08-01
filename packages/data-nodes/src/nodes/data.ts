@@ -478,6 +478,7 @@ function dateName(name: string): string {
 
 export class SchemaNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Schema";
+  static readonly retrySafe = true;
   static readonly title = "Schema";
   static readonly description =
     "Define a schema for a dataframe.\n    schema, dataframe, create";
@@ -505,6 +506,7 @@ export class SchemaNode extends BaseNode {
 
 export class FilterDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Filter";
+  static readonly retrySafe = true;
   static readonly title = "Filter";
   static readonly description =
     "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments";
@@ -547,6 +549,7 @@ export class FilterDataframeNode extends BaseNode {
 
 export class SliceDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Slice";
+  static readonly retrySafe = true;
   static readonly title = "Slice";
   static readonly description =
     "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks";
@@ -667,6 +670,7 @@ export class SaveDataframeNode extends BaseNode {
 
 export class ImportCSVNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ImportCSV";
+  static readonly retrySafe = true;
   static readonly title = "Import CSV";
   static readonly description =
     "Convert CSV string to dataframe.\n    csv, dataframe, import\n\n    Use cases:\n    - Import CSV data from string input\n    - Convert CSV responses from APIs to dataframe";
@@ -692,6 +696,7 @@ export class ImportCSVNode extends BaseNode {
 
 export class LoadCSVURLNode extends BaseNode {
   static readonly nodeType = "nodetool.data.LoadCSVURL";
+  static readonly retrySafe = true;
   static readonly title = "Load CSVURL";
   static readonly description =
     "Load CSV file from URL.\n    csv, dataframe, import";
@@ -751,6 +756,7 @@ export class LoadCSVFileDataNode extends BaseNode {
 
 export class FromListNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FromList";
+  static readonly retrySafe = true;
   static readonly title = "From List";
   static readonly description =
     "Convert list of dicts to dataframe.\n    list, dataframe, convert\n\n    Use cases:\n    - Transform list data into structured dataframe\n    - Prepare list data for analysis or visualization\n    - Convert API responses to dataframe format";
@@ -805,6 +811,7 @@ export class FromListNode extends BaseNode {
 
 export class JSONToDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.JSONToDataframe";
+  static readonly retrySafe = true;
   static readonly title = "Convert JSON to DataFrame";
   static readonly description =
     "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing";
@@ -826,6 +833,7 @@ export class JSONToDataframeNode extends BaseNode {
 
 export class ToListNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ToList";
+  static readonly retrySafe = true;
   static readonly title = "To List";
   static readonly description =
     "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage";
@@ -857,6 +865,7 @@ export class ToListNode extends BaseNode {
 
 export class SelectColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SelectColumn";
+  static readonly retrySafe = true;
   static readonly title = "Select Column";
   static readonly description =
     "Select specific columns from dataframe.\n    dataframe, columns, filter\n\n    Use cases:\n    - Extract relevant features for analysis\n    - Reduce dataframe size by removing unnecessary columns\n    - Prepare data for specific visualizations or models";
@@ -906,6 +915,7 @@ export class SelectColumnNode extends BaseNode {
 
 export class ExtractColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ExtractColumn";
+  static readonly retrySafe = true;
   static readonly title = "Extract Column";
   static readonly description =
     "Convert dataframe column to list.\n    dataframe, column, list\n\n    Use cases:\n    - Extract data for use in other processing steps\n    - Prepare column data for plotting or analysis\n    - Convert categorical data to list for encoding";
@@ -947,6 +957,7 @@ export class ExtractColumnNode extends BaseNode {
 
 export class AddColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.AddColumn";
+  static readonly retrySafe = true;
   static readonly title = "Add Column";
   static readonly description =
     "Add list of values as new column to dataframe.\n    dataframe, column, list\n\n    Use cases:\n    - Incorporate external data into existing dataframe\n    - Add calculated results as new column\n    - Augment dataframe with additional features";
@@ -1007,6 +1018,7 @@ export class AddColumnNode extends BaseNode {
 
 export class MergeDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Merge";
+  static readonly retrySafe = true;
   static readonly title = "Merge";
   static readonly description =
     "Merge two dataframes along columns.\n    merge, concat, columns\n\n    Use cases:\n    - Combine data from multiple sources\n    - Add new features to existing dataframe\n    - Merge time series data from different periods";
@@ -1060,6 +1072,7 @@ export class MergeDataframeNode extends BaseNode {
 
 export class AppendDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Append";
+  static readonly retrySafe = true;
   static readonly title = "Append";
   static readonly description =
     "Append two dataframes along rows.\n    append, concat, rows\n\n    Use cases:\n    - Combine data from multiple time periods\n    - Merge datasets with same structure\n    - Aggregate data from different sources";
@@ -1117,6 +1130,7 @@ export class AppendDataframeNode extends BaseNode {
 
 export class JoinDataframeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Join";
+  static readonly retrySafe = true;
   static readonly title = "Join";
   static readonly description =
     "Join two dataframes on specified column.\n    join, merge, column\n\n    Use cases:\n    - Combine data from related tables\n    - Enrich dataset with additional information\n    - Link data based on common identifiers";
@@ -1213,6 +1227,7 @@ export class JoinDataframeNode extends BaseNode {
 
 export class FindRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FindRow";
+  static readonly retrySafe = true;
   static readonly title = "Find Row";
   static readonly description =
     "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis";
@@ -1256,6 +1271,7 @@ export class FindRowNode extends BaseNode {
 
 export class SortByColumnNode extends BaseNode {
   static readonly nodeType = "nodetool.data.SortByColumn";
+  static readonly retrySafe = true;
   static readonly title = "Sort By Column";
   static readonly description =
     "Sort dataframe by specified column.\n    sort, order, column\n\n    Use cases:\n    - Arrange data in ascending or descending order\n    - Identify top or bottom values in dataset\n    - Prepare data for rank-based analysis";
@@ -1306,6 +1322,7 @@ export class SortByColumnNode extends BaseNode {
 
 export class DropDuplicatesNode extends BaseNode {
   static readonly nodeType = "nodetool.data.DropDuplicates";
+  static readonly retrySafe = true;
   static readonly title = "Drop Duplicates";
   static readonly description =
     "Remove duplicate rows from dataframe.\n    duplicates, unique, clean\n\n    Use cases:\n    - Clean dataset by removing redundant entries\n    - Ensure data integrity in analysis\n    - Prepare data for unique value operations";
@@ -1338,6 +1355,7 @@ export class DropDuplicatesNode extends BaseNode {
 
 export class DropNANode extends BaseNode {
   static readonly nodeType = "nodetool.data.DropNA";
+  static readonly retrySafe = true;
   static readonly title = "Drop NA";
   static readonly description =
     "Remove rows with NA values from dataframe.\n    na, missing, clean\n\n    Use cases:\n    - Clean dataset by removing incomplete entries\n    - Prepare data for analysis requiring complete cases\n    - Improve data quality for modeling";
@@ -1375,6 +1393,7 @@ export class DropNANode extends BaseNode {
 
 export class ForEachRowNode extends BaseNode {
   static readonly nodeType = "nodetool.data.ForEachRow";
+  static readonly retrySafe = true;
   static readonly title = "For Each Row";
   static readonly description =
     "Iterate over rows of a dataframe.\n    iterator, loop, dataframe, sequence, rows\n\n    Use cases:\n    - Process each row of a dataframe individually\n    - Trigger actions for every record in a dataset";
@@ -1502,6 +1521,7 @@ export class LoadCSVAssetsNode extends BaseNode {
 
 export class AggregateNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Aggregate";
+  static readonly retrySafe = true;
   static readonly title = "Aggregate";
   static readonly description =
     "Aggregate dataframe by one or more columns.\n    aggregate, groupby, group, sum, mean, count, min, max, std, var, median, first, last\n\n    Use cases:\n    - Prepare data for aggregation operations\n    - Analyze data by categories\n    - Create summary statistics by groups";
@@ -1604,6 +1624,7 @@ export class AggregateNode extends BaseNode {
 
 export class PivotNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Pivot";
+  static readonly retrySafe = true;
   static readonly title = "Pivot";
   static readonly description =
     "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization";
@@ -1700,6 +1721,7 @@ export class PivotNode extends BaseNode {
 
 export class RenameNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Rename";
+  static readonly retrySafe = true;
   static readonly title = "Rename";
   static readonly description =
     "Rename columns in dataframe.\n    rename, columns, names\n\n    Use cases:\n    - Standardize column names\n    - Make column names more descriptive\n    - Prepare data for specific requirements";
@@ -1752,6 +1774,7 @@ export class RenameNode extends BaseNode {
 
 export class FillNANode extends BaseNode {
   static readonly nodeType = "nodetool.data.FillNA";
+  static readonly retrySafe = true;
   static readonly title = "Fill NA";
   static readonly description =
     "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality";
@@ -1924,6 +1947,7 @@ export class SaveCSVDataframeFileNode extends BaseNode {
 
 export class FilterNoneNode extends BaseNode {
   static readonly nodeType = "nodetool.data.FilterNone";
+  static readonly retrySafe = true;
   static readonly title = "Filter None";
   static readonly description =
     "Filters out None values from a stream.\n    filter, none, null, stream\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values";
@@ -1976,6 +2000,7 @@ export class FilterNoneNode extends BaseNode {
 
 export class DescribeNode extends BaseNode {
   static readonly nodeType = "nodetool.data.Describe";
+  static readonly retrySafe = true;
   static readonly body = "content_card";
   static readonly title = "Describe";
   static readonly description =

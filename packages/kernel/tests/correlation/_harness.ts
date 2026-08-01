@@ -29,6 +29,7 @@ import { WorkflowRunner, type RunResult } from "../../src/runner.js";
 import type { NodeExecutor } from "../../src/actor.js";
 import type { MessageEnvelope } from "../../src/inbox.js";
 import type { NodeInputs, NodeOutputs } from "../../src/io.js";
+import type { SupervisorHandle } from "../../src/supervisor.js";
 
 export type { CorrelationLineage, NodeDescriptor, Edge, MessageEnvelope };
 
@@ -57,6 +58,8 @@ export interface RunOptions {
   /** Optional runtime params. */
   params?: Record<string, unknown>;
   jobId?: string;
+  /** Optional supervisor; absent means no escalation is ever constructed. */
+  supervisor?: SupervisorHandle;
 }
 
 export interface RunWithCapture {
@@ -70,9 +73,7 @@ export interface RunWithCapture {
  * pair declared in `captureFrom`. The capture executor is streaming-input
  * and drains the named handles, pushing each envelope into the result map.
  */
-function installCaptureExecutors(
-  opts: RunOptions
-): {
+function installCaptureExecutors(opts: RunOptions): {
   executors: Record<string, NodeExecutor>;
   captured: Map<string, Map<string, MessageEnvelope[]>>;
 } {
@@ -124,7 +125,8 @@ export async function runWorkflow(opts: RunOptions): Promise<RunWithCapture> {
           };
         }
         throw new Error(`No executor registered for node id "${node.id}"`);
-      }
+      },
+      supervisor: opts.supervisor
     });
     const result = await runner.run(
       { job_id: opts.jobId ?? "conformance", params: opts.params ?? {} },
@@ -379,14 +381,20 @@ export function zipExecutor(): NodeExecutor {
       const leftLoop = (async () => {
         for await (const env of inputs.streamWithEnvelope("left")) {
           const idx = env.correlation_lineage[ld].index;
-          lefts.set(`${projParent(env)}|${idx}`, { data: env.data, index: idx });
+          lefts.set(`${projParent(env)}|${idx}`, {
+            data: env.data,
+            index: idx
+          });
           await flush();
         }
       })();
       const rightLoop = (async () => {
         for await (const env of inputs.streamWithEnvelope("right")) {
           const idx = env.correlation_lineage[rd].index;
-          rights.set(`${projParent(env)}|${idx}`, { data: env.data, index: idx });
+          rights.set(`${projParent(env)}|${idx}`, {
+            data: env.data,
+            index: idx
+          });
           await flush();
         }
       })();
@@ -443,9 +451,7 @@ export function crossExecutor(maxOutput: number = 1024): NodeExecutor {
         for (const l of ls) {
           for (const r of rs) {
             if (emitted >= maxOutput) {
-              throw new Error(
-                `Cross exceeded max_output_count (${maxOutput})`
-              );
+              throw new Error(`Cross exceeded max_output_count (${maxOutput})`);
             }
             await outputs.emitGroup({ left: l, right: r });
             emitted++;
@@ -467,27 +473,32 @@ export function iterationOutput(
   return { kind: "iteration", source, group };
 }
 
-export function forwardOutput(
-  source: string
-): { kind: "forward"; source: string } {
+export function forwardOutput(source: string): {
+  kind: "forward";
+  source: string;
+} {
   return { kind: "forward", source };
 }
 
-export function singleOutput(
-  source: string = "__execution__"
-): { kind: "single"; source: string } {
+export function singleOutput(source: string = "__execution__"): {
+  kind: "single";
+  source: string;
+} {
   return { kind: "single", source };
 }
 
-export function aggregateOutput(
-  source: string
-): { kind: "aggregate"; source: string; collapse: "innermost" } {
+export function aggregateOutput(source: string): {
+  kind: "aggregate";
+  source: string;
+  collapse: "innermost";
+} {
   return { kind: "aggregate", source, collapse: "innermost" };
 }
 
-export function chunkOutput(
-  source: string = "__execution__"
-): { kind: "chunk"; source: string } {
+export function chunkOutput(source: string = "__execution__"): {
+  kind: "chunk";
+  source: string;
+} {
   return { kind: "chunk", source };
 }
 
@@ -498,5 +509,11 @@ export function dataEdge(
   targetHandle: string,
   id?: string
 ): Edge {
-  return { id: id ?? `${source}.${sourceHandle}->${target}.${targetHandle}`, source, sourceHandle, target, targetHandle };
+  return {
+    id: id ?? `${source}.${sourceHandle}->${target}.${targetHandle}`,
+    source,
+    sourceHandle,
+    target,
+    targetHandle
+  };
 }

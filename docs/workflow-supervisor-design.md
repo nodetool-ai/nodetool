@@ -68,6 +68,7 @@ export interface Escalation {
   spentCostUsd: number;            // provider cost recorded by this invocation
   createdAssets: boolean;
   retrySafe: boolean;              // node metadata opt-in; unknown ⇒ false ⇒ no retry
+  emitted: boolean;                // streaming: the invocation already sent something downstream (§5.4)
 }
 
 export type Verdict =
@@ -102,7 +103,7 @@ Status stays the existing enum. "Completed — supervised" is `status: "complete
 
 ### 5.1 Where it sits
 
-`ProcessingContext` gains one optional member, `escalate?: (e: Escalation) => Promise<Verdict>`, wired by `WorkflowRunner` from a new option:
+`WorkflowRunner` takes the handle as an option and hands it to each `NodeActor`, alongside the callback that records interventions. The handle stays in the kernel rather than on `ProcessingContext`: node code has no business raising or answering escalations, and the actor already holds everything the escalation constructor needs. What the context *does* gain is the resolved-secret registry the constructor masks against (§6.1) and per-invocation cost/asset accounting (§5.3).
 
 ```ts
 export interface WorkflowRunnerOptions {
@@ -111,8 +112,15 @@ export interface WorkflowRunnerOptions {
 }
 
 export interface SupervisorHandle {
-  decide(e: Escalation, signal: AbortSignal): Promise<Verdict>;
+  decide(e: Escalation, signal: AbortSignal): Promise<DecisionOutcome>;
   close(): void;
+}
+
+/** The verdict, who made it, and what it cost — the intervention record minus its escalation. */
+export interface DecisionOutcome {
+  verdict: Verdict;
+  decidedBy: "agent" | "sticky" | "bounds" | "default";
+  costUsd?: number;
 }
 ```
 

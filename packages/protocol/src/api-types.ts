@@ -822,6 +822,12 @@ export interface NodeMetadata {
    * anything else needs an explicit run. Absent is treated as "external".
    */
   effect?: NodeEffect;
+  /**
+   * Opt-in: re-running the node with identical inputs is safe. Absent means
+   * unsafe — cost tracking cannot see external writes, so an unclassified node
+   * must not gain `retry` by omission. See docs/workflow-supervisor-design.md §5.3.
+   */
+  retry_safe?: boolean;
   model_packs?: ModelPack[];
   fal_unit_pricing?: FalUnitPricing | null;
   /** When true, the node remains runnable but is hidden from default discovery. */

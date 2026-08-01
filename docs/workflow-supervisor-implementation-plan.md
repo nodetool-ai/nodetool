@@ -19,7 +19,11 @@ PRs marked ∥ can proceed in parallel once their listed dependency lands.
 
 ---
 
-## Phase A — the mechanism (kernel, no LLM)
+## Phase A — the mechanism (kernel, no LLM) — **shipped**
+
+PR 1 and PR 2 landed together: PR 1's allowed-set enforcement is only as good as
+PR 2's invocation-scoped cost tracking, so shipping the first without the second
+would have meant a window where `retry` was offered after a billed call.
 
 ### PR 1 — Escalation types and the actor hook
 
@@ -35,7 +39,7 @@ The seam, fail-closed. Zero behavior change.
 - node-sdk: `RecoverableNodeError` (carries the malformed candidate output, redacted at construction like everything else) and the `retrySafe` node-metadata **opt-in**; declare it across the pure-compute and read-only node categories in shipped packages. `WorkflowNode`/`SubgraphNode` stay unsafe. Unknown ⇒ no retry.
 - `packages/kernel/src/runner.ts`: `WorkflowRunnerOptions.supervisor`, wire `escalate` onto the execution context, `interventions` on `RunResult`.
 - `packages/kernel/src/actor.ts`: wrap invocation execution per design §5.1 — buffered/correlated path first, controlled path second. `WorkflowSuspendedError` passes through untouched. Skip = `drop()` per output slot (design §5.2), never a bare return.
-- **Audit while in here:** provider-level transient retry in `packages/runtime/src/providers/` (design §10.3). File issues per gap; fixes land in runtime, not this PR.
+- **Audit while in here:** provider-level transient retry in `packages/runtime/src/providers/` (design §10.3). Done — [workflow-supervisor-provider-retry-audit.md](workflow-supervisor-provider-retry-audit.md). Gemini and Ollama have no backoff at all and would flood the supervisor with escalations a 2-second wait would fix; the fixes land in runtime, not here.
 - Tests (`packages/kernel/tests/`): scripted `SupervisorHandle` doubles driving every verdict against fan-out, controlled, and single-fire nodes; retry re-invokes with identical inputs and properties; **skip on a correlated key prunes a downstream join whose other input already buffered** (the lineage_done case) plus the iterator→aggregate scope-closure case; no-supervisor runs byte-identical to before (message-stream snapshot).
 
 ### PR 2 — Bounds, retry safety, streaming carve-out

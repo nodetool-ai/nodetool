@@ -53,6 +53,18 @@ export {
   type AgentSpanKind,
   type LlmUsage
 } from "./tracing-helpers.js";
+export {
+  RecoverableNodeError,
+  isRecoverableNodeError
+} from "./recoverable-node-error.js";
+export {
+  createInvocationAccount,
+  inInvocationAccount,
+  recordInvocationCost,
+  recordInvocationAsset,
+  currentInvocationAccount,
+  type InvocationAccount
+} from "./invocation-account.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {
   isZodSchema,

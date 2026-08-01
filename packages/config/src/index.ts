@@ -1,4 +1,10 @@
-export { IS_NODE, importNodeBuiltin, importHidden } from "./node-import.js";
+export {
+  IS_NODE,
+  safeProcessEnv,
+  safeProcessPlatform,
+  importNodeBuiltin,
+  importHidden
+} from "./node-import.js";
 
 export {
   loadEnvironment,
@@ -13,7 +19,6 @@ export {
   isGoogleWorkspaceEnabled,
   GOOGLE_WORKSPACE_NAMESPACE
 } from "./google-workspace.js";
-
 
 export {
   registerSetting,

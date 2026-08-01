@@ -20,9 +20,12 @@ import type {
   HydratedGraphData,
   Edge,
   ProcessingMessage,
-  ControlEvent
+  ControlEvent,
+  CorrelationLineage,
+  Intervention
 } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
+import type { SupervisorHandle } from "./supervisor.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
 const log = createLogger("nodetool.kernel.runner");
@@ -66,7 +69,6 @@ import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
 import { NodeInbox } from "./inbox.js";
 import { NodeActor, type NodeExecutor } from "./actor.js";
 import { syntheticEdgeId } from "./edge-ids.js";
-import type { CorrelationLineage } from "@nodetool-ai/protocol";
 import {
   analyzeCorrelation,
   type CorrelationAnalysisResult
@@ -91,6 +93,13 @@ export interface OutputRoutingHints {
    * delivering a value. §5.
    */
   lineageDoneSlots?: Set<string>;
+  /**
+   * A supervisor `skip` verdict: this invocation produced nothing. The runner
+   * sends `lineage_done` on every outgoing data edge at `invocationLineage`,
+   * *and* `lineage_scope_closed` for every child root the invocation would have
+   * opened. Design §5.2.
+   */
+  skipInvocation?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -190,6 +199,13 @@ export interface WorkflowRunnerOptions {
    * naming every offending node/edge, exactly like any other run failure.
    */
   strict?: boolean;
+
+  /**
+   * Turns a failing node invocation into a decision instead of a dead run.
+   * Absent — the default — means no escalation is ever constructed and the run
+   * behaves exactly as it does today. See docs/workflow-supervisor-design.md.
+   */
+  supervisor?: SupervisorHandle;
 }
 
 // ---------------------------------------------------------------------------
@@ -221,6 +237,14 @@ export interface RunResult {
     state: Record<string, unknown>;
     metadata: Record<string, unknown>;
   };
+
+  /**
+   * Every supervisor escalation and the verdict it received, in order. A
+   * completed run with a non-empty list is "Completed — supervised": a derived
+   * display state, not a fifth status, so existing `status` consumers keep
+   * working.
+   */
+  interventions?: Intervention[];
 }
 
 /**
@@ -381,6 +405,14 @@ export class WorkflowRunner {
         metadata: Record<string, unknown>;
       }
     | undefined;
+
+  /** Supervisor escalations and their verdicts, in decision order. */
+  private _interventions: Intervention[] = [];
+
+  /** Undefined on an unsupervised run, so its `RunResult` is unchanged. */
+  private _recordedInterventions(): Intervention[] | undefined {
+    return this._interventions.length > 0 ? this._interventions : undefined;
+  }
 
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
@@ -669,7 +701,8 @@ export class WorkflowRunner {
           outputs: Object.fromEntries(this._outputs),
           messages: this._messages,
           status: "suspended",
-          suspend: this._suspend
+          suspend: this._suspend,
+          interventions: this._recordedInterventions()
         };
       }
 
@@ -693,7 +726,8 @@ export class WorkflowRunner {
           outputs: Object.fromEntries(this._outputs),
           messages: this._messages,
           status: "failed",
-          error
+          error,
+          interventions: this._recordedInterventions()
         };
       }
 
@@ -711,7 +745,8 @@ export class WorkflowRunner {
       return {
         outputs: Object.fromEntries(this._outputs),
         messages: this._messages,
-        status
+        status,
+        interventions: this._recordedInterventions()
       };
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -742,7 +777,8 @@ export class WorkflowRunner {
         outputs: Object.fromEntries(this._outputs),
         messages: this._messages,
         status: "failed",
-        error: message
+        error: message,
+        interventions: this._recordedInterventions()
       };
     } finally {
       this._running = false;
@@ -766,6 +802,7 @@ export class WorkflowRunner {
     this._correlation = undefined;
     this._eosSentEdges = new Set();
     this._suspend = undefined;
+    this._interventions = [];
   }
 
   /** Actors spawned and not yet finished. Zero before and after a run. */
@@ -1254,86 +1291,90 @@ export class WorkflowRunner {
         correlation: this._correlation?.nodes.get(node.id),
         cancelSignal: this._abortController.signal,
         signalSlotEos: (sourceNodeId, slot) =>
-          this._signalSlotEos(sourceNodeId, slot)
+          this._signalSlotEos(sourceNodeId, slot),
+        supervisor: this._options.supervisor,
+        onIntervention: (intervention) => this._interventions.push(intervention)
       });
 
       actorNodeIds.push(node.id);
       this._liveActors++;
       actorPromises.push(
-        actor.run().then(async (result) => {
-          // Nothing will read this inbox again. Wake any upstream actor parked
-          // on a full buffer so it can finish instead of waiting forever for a
-          // consumer that is gone.
-          inbox.releaseBackpressure();
+        actor
+          .run()
+          .then(async (result) => {
+            // Nothing will read this inbox again. Wake any upstream actor parked
+            // on a full buffer so it can finish instead of waiting forever for a
+            // consumer that is gone.
+            inbox.releaseBackpressure();
 
-          if (result.error !== undefined) {
-            this._nodeErrors.set(node.id, result.error);
-          }
-
-          // A suspension is a distinct terminal outcome, not an error.
-          // Record the first one; precedence is resolved at finalization.
-          if (result.suspend !== undefined) {
-            this._suspend ??= {
-              node_id: result.suspend.nodeId,
-              reason: result.suspend.reason,
-              state: result.suspend.state,
-              metadata: result.suspend.metadata
-            };
-          }
-
-          // After actor completes, send EOS to all downstream inboxes
-          await this._sendEOS(node.id);
-
-          // A Set Variable writer finished — when the last writer for a channel
-          // is done, the context closes it so readers (Get Variable / Prompt)
-          // drain and end instead of waiting forever.
-          if (node.type === SET_VARIABLE_NODE_TYPE) {
-            const channelName = this._variableChannelName(node);
-            if (channelName) {
-              this._options.executionContext?.markChannelWriterDone?.(
-                channelName
-              );
+            if (result.error !== undefined) {
+              this._nodeErrors.set(node.id, result.error);
             }
-          }
 
-          // The actor's run loop is gone — it can no longer answer control
-          // events. Mark it so future sendControlEvent calls reject fast
-          // rather than hang, and reject any response still waiting on it
-          // (the actor finished without producing the awaited output, e.g.
-          // it errored mid-burst).
-          this._completedNodes.add(node.id);
-          const pendingQueue = this._pendingControlResponses.get(node.id);
-          if (pendingQueue) {
-            this._pendingControlResponses.delete(node.id);
-            for (const pending of pendingQueue) {
-              pending.reject(
-                new Error(
-                  result.error ??
-                    `Controlled node ${node.id} completed without responding`
-                )
-              );
+            // A suspension is a distinct terminal outcome, not an error.
+            // Record the first one; precedence is resolved at finalization.
+            if (result.suspend !== undefined) {
+              this._suspend ??= {
+                node_id: result.suspend.nodeId,
+                reason: result.suspend.reason,
+                state: result.suspend.state,
+                metadata: result.suspend.metadata
+              };
             }
-          }
 
-          // If this is an output node, collect the result
-          if (this._isOutputNode(node)) {
-            const name = node.name ?? node.id;
-            if (!this._outputs.has(name)) {
-              this._outputs.set(name, []);
-            }
-            if (result.outputs) {
-              for (const val of Object.values(result.outputs)) {
-                this._outputs.get(name)!.push(val);
+            // After actor completes, send EOS to all downstream inboxes
+            await this._sendEOS(node.id);
+
+            // A Set Variable writer finished — when the last writer for a channel
+            // is done, the context closes it so readers (Get Variable / Prompt)
+            // drain and end instead of waiting forever.
+            if (node.type === SET_VARIABLE_NODE_TYPE) {
+              const channelName = this._variableChannelName(node);
+              if (channelName) {
+                this._options.executionContext?.markChannelWriterDone?.(
+                  channelName
+                );
               }
             }
-          }
-        })
-        // Counts the actor as live until its completion handling (EOS
-        // routing, output collection) is done too — that work can still emit
-        // messages, so an actor is not "gone" before it finishes.
-        .finally(() => {
-          this._liveActors--;
-        })
+
+            // The actor's run loop is gone — it can no longer answer control
+            // events. Mark it so future sendControlEvent calls reject fast
+            // rather than hang, and reject any response still waiting on it
+            // (the actor finished without producing the awaited output, e.g.
+            // it errored mid-burst).
+            this._completedNodes.add(node.id);
+            const pendingQueue = this._pendingControlResponses.get(node.id);
+            if (pendingQueue) {
+              this._pendingControlResponses.delete(node.id);
+              for (const pending of pendingQueue) {
+                pending.reject(
+                  new Error(
+                    result.error ??
+                      `Controlled node ${node.id} completed without responding`
+                  )
+                );
+              }
+            }
+
+            // If this is an output node, collect the result
+            if (this._isOutputNode(node)) {
+              const name = node.name ?? node.id;
+              if (!this._outputs.has(name)) {
+                this._outputs.set(name, []);
+              }
+              if (result.outputs) {
+                for (const val of Object.values(result.outputs)) {
+                  this._outputs.get(name)!.push(val);
+                }
+              }
+            }
+          })
+          // Counts the actor as live until its completion handling (EOS
+          // routing, output collection) is done too — that work can still emit
+          // messages, so an actor is not "gone" before it finishes.
+          .finally(() => {
+            this._liveActors--;
+          })
       );
     }
 
@@ -1426,6 +1467,14 @@ export class WorkflowRunner {
     routingHints: OutputRoutingHints = {}
   ): Promise<void> {
     if (this._cancelled) return;
+
+    if (routingHints.skipInvocation) {
+      this._skipInvocationOutputs(
+        sourceNodeId,
+        routingHints.invocationLineage ?? {}
+      );
+      return;
+    }
 
     // Handle __control_output__ from controller nodes (Python parity:
     // send_messages wraps __control_output__ in RunEvent and routes to
@@ -1642,6 +1691,65 @@ export class WorkflowRunner {
         this._pendingControlResponses.delete(sourceNodeId);
       }
       pending.resolve(outputs);
+    }
+  }
+
+  /**
+   * A supervisor `skip`: retire one invocation's outputs without emitting.
+   *
+   * Plain non-emission is not enough. Siblings already buffered against the
+   * skipped key would sit at a downstream join forever, and an invocation of an
+   * iteration node would have opened child scopes an aggregate is waiting to
+   * see closed. So both signals go out on every outgoing data edge: the
+   * per-lineage `lineage_done` that unblocks joins, and a `lineage_scope_closed`
+   * per child root the invocation could have minted. Design §5.2.
+   */
+  private _skipInvocationOutputs(
+    sourceNodeId: string,
+    lineage: CorrelationLineage
+  ): void {
+    const nodeAnalysis = this._correlation?.nodes.get(sourceNodeId);
+    for (const edge of this._graph.findOutgoingEdges(sourceNodeId)) {
+      if (isControlEdge(edge)) continue;
+      const targetInbox = this._inboxes.get(edge.target);
+      if (!targetInbox) continue;
+      const edgeId =
+        edge.id ??
+        syntheticEdgeId(
+          edge.source,
+          edge.sourceHandle,
+          edge.target,
+          edge.targetHandle
+        );
+
+      for (const root of nodeAnalysis?.outputs.get(edge.sourceHandle)
+        ?.possibleChildRoots ?? []) {
+        targetInbox.signalLineageScopeClosed(
+          edge.targetHandle,
+          {
+            type: "lineage_scope_closed",
+            source_edge_id: edgeId,
+            output: edge.sourceHandle,
+            parent_lineage: lineage,
+            closed_root: root
+          },
+          // The parent scope of a minted child root is the invocation scope
+          // the source node fired at — the scope this lineage projects onto.
+          nodeAnalysis?.invocationScope ?? []
+        );
+      }
+
+      targetInbox.signalLineageDone(
+        edge.targetHandle,
+        {
+          type: "lineage_done",
+          source_edge_id: edgeId,
+          output: edge.sourceHandle,
+          lineage
+        },
+        this._correlation?.nodes.get(edge.target)?.inputs.get(edge.targetHandle)
+          ?.scope ?? []
+      );
     }
   }
 
