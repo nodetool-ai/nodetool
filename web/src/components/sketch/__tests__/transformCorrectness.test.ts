@@ -11,23 +11,11 @@
  *   - Shared seam consumption: tools use resolvedLayerGeometry, not local math
  */
 
-import type {
-  AffineTransform,
-  LayerTransform,
-  LayerContentBounds,
-  Layer,
-  SketchDocument
-} from "../types";
-import {
-  IDENTITY_AFFINE,
-  isAffineTransform,
-  makeAffineTransform,
-  makeSingleQuadTransform
-} from "../types";
+import type { AffineTransform, LayerContentBounds, Layer } from "../types";
+import { makeAffineTransform } from "../types";
 import {
   aff,
   quadOf,
-  fxComposeMatrix as composeAffineMatrix,
   fxEnsureTransform as ensureTransformMatrix
 } from "./_transformFixtures";
 import {
@@ -39,25 +27,17 @@ import {
   getLayerGeometry,
   computeTransformedExtents,
   computeTransformedCorners,
-  computeTransformedCenter,
-  getRasterBounds
+  computeTransformedCenter
 } from "../transform/geometry/layerGeometry";
 import {
   hitTestHandles,
   buildHandlePositions,
   computeLayerCenter,
-  scaledHalfExtents,
   docToScreen,
-  docRectToScreen,
-  rotatePoint,
-  dist,
-  HANDLE_RADIUS,
-  ROTATION_HANDLE_OFFSET,
-  type TransformHandle
+  docRectToScreen
 } from "../tools/transform/handleGeometry";
 import {
   computeMoveTransform,
-  computeRotateTransform,
   computeScaleTransform,
   computeTransformForHandle,
   computeDistortTransform,

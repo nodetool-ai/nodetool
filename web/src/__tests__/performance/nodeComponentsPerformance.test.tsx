@@ -11,13 +11,6 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
 
-const SHOULD_ENFORCE_PERF = process.env.PERF_TESTS === 'true';
-const _assertPerf = (assertion: () => void) => {
-  if (SHOULD_ENFORCE_PERF) {
-    assertion();
-  }
-};
-
 describe('BaseNode Performance Optimizations', () => {
   describe('Color Computation Memoization', () => {
     it('should compute node colors only when metadata changes', () => {

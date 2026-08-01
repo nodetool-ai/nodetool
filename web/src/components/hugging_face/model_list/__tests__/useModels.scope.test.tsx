@@ -22,8 +22,6 @@ jest.mock("../../../../lib/trpc", () => ({
 import { useModels } from "../useModels";
 import { useModelManagerStore } from "../../../../stores/ModelManagerStore";
 import { useHfCacheStatusStore } from "../../../../stores/HfCacheStatusStore";
-import { getHfCacheKey } from "../../../../utils/hfCache";
-import type { UnifiedModel } from "../../../../stores/ApiTypes";
 
 const wrapper = ({ children }: { children: React.ReactNode }) => {
   const qc = new QueryClient({

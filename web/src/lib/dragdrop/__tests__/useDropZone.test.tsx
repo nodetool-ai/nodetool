@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useDropZone } from "../useDropZone";
 import { useDragDropStore } from "../store";
-import type { DragData, DropZoneConfig } from "../types";
+import type { DropZoneConfig } from "../types";
 
 jest.mock("../serialization", () => ({
   deserializeDragData: jest.fn(),

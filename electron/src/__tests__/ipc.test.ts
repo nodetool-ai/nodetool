@@ -113,7 +113,7 @@ import { ipcMain, BrowserWindow, clipboard, globalShortcut, shell, dialog } from
 import { getServerState, openLogFile, runApp, showItemInFolder, initializeBackendServer, stopServer } from '../server';
 import { logMessage } from '../logger';
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from '../shortcuts';
-import { updateTrayMenu, emitWorkflowsChanged } from '../tray';
+import { emitWorkflowsChanged } from '../tray';
 import {
   fetchAvailablePackages,
   listInstalledPackages,
@@ -193,7 +193,6 @@ const packageManagerMock = {
 const loggerMock = logMessage as jest.MockedFunction<typeof logMessage>;
 const registerWorkflowShortcutMock = registerWorkflowShortcut as jest.MockedFunction<typeof registerWorkflowShortcut>;
 const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction<typeof setupWorkflowShortcuts>;
-const updateTrayMenuMock = updateTrayMenu as jest.MockedFunction<typeof updateTrayMenu>;
 const emitWorkflowsChangedMock = emitWorkflowsChanged as jest.MockedFunction<typeof emitWorkflowsChanged>;
 const shellMock = shell as jest.Mocked<typeof shell>;
 

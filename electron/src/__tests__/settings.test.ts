@@ -5,7 +5,6 @@ import * as yaml from 'js-yaml';
 
 let tempDir: string;
 const originalPlatform = process.platform;
-const originalHomedir = os.homedir;
 
 function setPlatform(platform: NodeJS.Platform) {
   Object.defineProperty(process, 'platform', { value: platform });

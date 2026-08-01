@@ -13,11 +13,10 @@
 
 import { CoordinateMapper } from "../painting/CoordinateMapper";
 import { HelperToolSession } from "../painting/HelperToolSession";
-import type { HelperSetupInfo, HelperDrawInfo } from "../painting/HelperToolSession";
 import { BlurTool } from "../tools/BlurTool";
 import { CloneStampTool } from "../tools/CloneStampTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import { createDefaultDocument, createDefaultLayer, makeAffineTransform } from "../types";
+import { createDefaultDocument, makeAffineTransform } from "../types";
 import { captureAlphaSnapshot, restoreAlphaFromSnapshot } from "../painting/alphaLock";
 
 // ─── Test Helpers ───────────────────────────────────────────────────────────
