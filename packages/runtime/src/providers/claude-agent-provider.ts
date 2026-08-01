@@ -58,6 +58,7 @@ import {
   type ToolCall
 } from "./types.js";
 import { hashSystemPrompt } from "./provider-session.js";
+import type { TurnBudget } from "../turn-budget.js";
 
 const log = createLogger("nodetool.runtime.providers.claude-agent");
 
@@ -261,8 +262,17 @@ export class ClaudeAgentProvider extends BaseProvider {
     args: Parameters<ClaudeAgentProvider["generateMessages"]>[0] & {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
+      turnBudget?: TurnBudget;
     }
   ): AsyncGenerator<ProviderStreamItem> {
+    // The SDK owns the loop, so honoring the budget is this override's job:
+    // reserve before the first turn, and again after every assistant turn that
+    // requested tools — that is the point where the SDK will make another call.
+    // A refusal aborts the session instead of letting it spend past the cap.
+    const turnBudget = args.turnBudget;
+    if (turnBudget && !this._admitTurn(turnBudget, args.model, args.messages)) {
+      return;
+    }
     // Drop the SerpAPI-backed `web_search` tool: the SDK's built-in `WebSearch`
     // (live under bypassPermissions) handles web search natively, so we don't
     // expose a redundant MCP one.
@@ -321,8 +331,9 @@ export class ClaudeAgentProvider extends BaseProvider {
         allowedTools: tools.map((t) => `${TOOL_PREFIX}${t.name}`)
       };
     }
+    const costBefore = turnBudget ? this.getTotalCost() : 0;
     try {
-      yield* this.runWithSession(
+      const stream = this.runWithSession(
         { ...args, signal: abortController.signal },
         {
           emitMessages: true,
@@ -330,7 +341,26 @@ export class ClaudeAgentProvider extends BaseProvider {
           mcp
         }
       );
+      for await (const item of stream) {
+        yield item;
+        if (!turnBudget) continue;
+        const isToolCallingTurn =
+          isProviderMessageEvent(item) &&
+          item.message.role === "assistant" &&
+          (item.message.toolCalls?.length ?? 0) > 0;
+        if (
+          isToolCallingTurn &&
+          !this._admitTurn(turnBudget, args.model, args.messages)
+        ) {
+          abortController.abort();
+        }
+      }
     } finally {
+      // The SDK reports usage once, on the terminal `result` message, so a
+      // per-turn actual doesn't exist here. Reservations accumulate untouched
+      // for the session's duration — conservative by construction — and the
+      // real number lands when the session ends.
+      turnBudget?.commit(this.getTotalCost() - costBefore);
       if (args.signal)
         args.signal.removeEventListener("abort", onExternalAbort);
     }

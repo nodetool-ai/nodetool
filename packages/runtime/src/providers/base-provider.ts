@@ -53,6 +53,8 @@ import {
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
+import type { TurnBudget } from "../turn-budget.js";
+import { countTokens } from "../token-counter.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import { annotateProviderError } from "./provider-error.js";
 import { applyEntityReferences } from "./entity-references.js";
@@ -227,6 +229,26 @@ export function providerCapabilities(
     capabilities.push("text_to_3d", "image_to_3d");
   }
   return capabilities;
+}
+
+/**
+ * Prompt tokens a turn will send, for reservation purposes. Deliberately a
+ * rough count over the serialized conversation: a reservation is a worst case,
+ * and a per-provider exact count would cost a tokenizer round-trip per turn to
+ * refine a number that only has to be an upper-ish bound.
+ */
+function estimatePromptTokens(messages: readonly Message[]): number {
+  let total = 0;
+  for (const message of messages) {
+    const content = message.content;
+    total += countTokens(
+      typeof content === "string" ? content : JSON.stringify(content ?? "")
+    );
+    if (message.toolCalls?.length) {
+      total += countTokens(JSON.stringify(message.toolCalls));
+    }
+  }
+  return total;
 }
 
 export abstract class BaseProvider {
@@ -841,6 +863,23 @@ export abstract class BaseProvider {
    * override this to drive that loop instead, while still emitting the same
    * stream items. `generateMessages` remains the single-turn primitive.
    */
+  /**
+   * Ask a {@link TurnBudget} to admit the turn that is about to be made.
+   * Exposed to subclasses because a provider driving a backend's own agent
+   * loop has to make the same call at the same point.
+   */
+  protected _admitTurn(
+    budget: TurnBudget,
+    model: string,
+    messages: readonly Message[]
+  ): boolean {
+    return budget.reserve({
+      model,
+      provider: this.provider,
+      inputTokens: estimatePromptTokens(messages)
+    });
+  }
+
   async *generateLoop(
     args: Parameters<this["generateMessages"]>[0] & {
       /**
@@ -861,6 +900,18 @@ export abstract class BaseProvider {
        * false (parallel) to keep chat's concurrent tool execution fast.
        */
       sequentialTools?: boolean;
+      /**
+       * Spend admission, consulted before every model turn. A refusal ends the
+       * loop without making the call. Providers that override `generateLoop`
+       * to drive a backend's own agent loop must honor it the same way — a
+       * ceiling only holds where the turns are.
+       *
+       * Reconciliation reads this provider instance's running cost, so a
+       * budget must not be threaded through an instance two callers are
+       * driving concurrently; the supervisor owns its provider for exactly
+       * this reason.
+       */
+      turnBudget?: TurnBudget;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
@@ -868,6 +919,7 @@ export abstract class BaseProvider {
       executeTool,
       maxIterations: _omitMax,
       sequentialTools,
+      turnBudget,
       ...turnArgs
     } = args;
     const messages = [...args.messages];
@@ -900,6 +952,10 @@ export abstract class BaseProvider {
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       if (turnArgs.signal?.aborted) return;
+      if (turnBudget && !this._admitTurn(turnBudget, args.model, messages)) {
+        return;
+      }
+      const costBeforeTurn = turnBudget ? this.getTotalCost() : 0;
       let assistantText = "";
       let finalizedAssistant: Message | undefined;
       const pending: ToolCall[] = [];
@@ -959,6 +1015,9 @@ export abstract class BaseProvider {
         }
         yield item;
       }
+
+      // The turn is over; replace its reservation with what it really cost.
+      turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
 
       if (pending.length === 0) {
         if (terminalChunk !== undefined) {

@@ -55,9 +55,22 @@ Still no LLM. Depends on PR 1.
 
 ## Phase B — the agent and the CLI
 
-### PR 3 — SupervisorAgent
+### PR 3 — SupervisorAgent — **shipped**
 
 Depends on PR 2.
+
+Two additions the plan did not name, both forced by what the agent has to see:
+`Escalation.declaredOutputs` (a repair cannot be typed, or accepted, without
+the node's declared output types) and a kernel-side **`RunStateReader`** handed
+to the handle via `SupervisorHandle.attach()` — the tools are pull-based over
+runner state, and a handle is configured before the runner exists. Output
+recording for `read_node_output` is bounded per node and happens only on a
+supervised run.
+
+Host-side schema validation checks the schema **as the caller wrote it**, not
+the sanitized copy sent to the provider: the sanitizer injects
+`additionalProperties: false` for strict structured-output modes, and enforcing
+that would reject results no author ever forbade.
 
 - `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema` (mirroring the escalation's allowed set), serialized queue; the `decide()` signal threads through `StepExecutor` into `provider.generateLoop({signal})` so abort kills the in-flight LLM request.
 - **`TurnBudget` in the runtime provider layer** (design §6): `reserve/commit` object accepted via `generateLoop` options, honored before every model turn by the base loop and by native loop overrides (Claude Agent SDK provider explicitly). Worst-case reservation from the pricing catalog with explicit `supervisorMaxOutputTokens` (default 2048, never unset); no pricing entry ⇒ fail closed. This is a `packages/runtime` change with its own provider-contract test, not a wrapper in the agents package — a wrapper around `generateLoop()` cannot see individual turns.

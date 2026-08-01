@@ -88,6 +88,12 @@ export const escalationSchema = z.object({
   candidateOutput: z.unknown().optional(),
   /** The invocation's input values, redacted and truncated. */
   inputs: z.record(z.string(), z.unknown()),
+  /**
+   * The node's declared output types, keyed by slot. Carried because a repair
+   * cannot be authored — or accepted — without knowing what each slot must
+   * hold. Type metadata, so nothing to redact.
+   */
+  declaredOutputs: z.record(z.string(), z.string()),
   /** 1-based, per `(nodeId, invocationKey)`. */
   attempt: z.number(),
   /** Provider cost recorded by this invocation. */

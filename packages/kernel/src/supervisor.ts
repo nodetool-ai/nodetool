@@ -17,6 +17,7 @@ import type {
   VerdictAction,
   DecidedBy
 } from "@nodetool-ai/protocol";
+import type { RunStateReader } from "./run-state.js";
 
 // ---------------------------------------------------------------------------
 // The interface
@@ -32,6 +33,12 @@ export interface DecisionOutcome {
 
 export interface SupervisorHandle {
   decide(e: Escalation, signal: AbortSignal): Promise<DecisionOutcome>;
+  /**
+   * Handed the run's read-only state once, before any actor starts. A handle
+   * is configured before the runner exists, so the reader cannot be a
+   * constructor argument. Optional: a scripted handle needs no run state.
+   */
+  attach?(reader: RunStateReader): void;
   close(): void;
 }
 
@@ -269,6 +276,10 @@ export class BoundedHandle implements SupervisorHandle {
   constructor(inner: SupervisorHandle, opts: SupervisorBounds = {}) {
     this._inner = inner;
     this._bounds = { ...DEFAULT_SUPERVISOR_BOUNDS, ...stripUndefined(opts) };
+  }
+
+  attach(reader: RunStateReader): void {
+    this._inner.attach?.(reader);
   }
 
   async decide(e: Escalation, signal: AbortSignal): Promise<DecisionOutcome> {

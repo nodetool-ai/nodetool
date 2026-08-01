@@ -64,6 +64,7 @@ export interface Escalation {
   failureSignature?: string;       // stable categorical code; absent ⇒ stickiness disabled
   candidateOutput?: unknown;       // from RecoverableNodeError — the malformed value, redacted+truncated
   inputs: Record<string, unknown>; // the invocation's input values, redacted+truncated
+  declaredOutputs: Record<string, string>; // the node's declared output types, per slot
   attempt: number;                 // 1-based, per (nodeId, invocationKey)
   spentCostUsd: number;            // provider cost recorded by this invocation
   createdAssets: boolean;
@@ -86,6 +87,13 @@ export type Verdict =
 `fail.reason` is not decoration: when a supervised run ends in `fail`, the runner surfaces `reason` as the job's user-facing error summary (the PRD's "one-sentence reason written by the agent") while the original thrown error is preserved in the intervention record and node error detail. The pseudocode's rethrow carries the original error; the runner attaches the reason at job-status level.
 
 `applyTo: "signature"` is the sticky form: the handle caches the verdict keyed by `(nodeId, failureSignature)` and resolves later escalations that match without waking the agent (PRD scenario 2 — 7 identical failures, 1 LLM call). Keying by signature rather than node keeps one login-required error from silently skipping later, unrelated timeouts on the same node. A signature exists only when the error carries a **stable categorical code** — HTTP status, provider error code, validation path — extracted by a small registry of error-shape recognizers. A plain `Error` gets **no** signature (error class alone is not one; every generic throw would collide), and with no signature stickiness is simply off: each such failure escalates individually. Signatures never derive from message text with embedded values. Only `skip` and `fail` may stick; a sticky `retry` or `substitute` would blindly replay a decision made against different inputs.
+
+`declaredOutputs` is what makes `substitute` authorable at all: a repair has to
+be typed per slot, and the escalation is the only thing the supervisor sees.
+It is also what the agent-side acceptance hook validates against before the
+verdict is allowed to become terminal, so the model learns its repair was the
+wrong shape while its conversation is still open. Type metadata, so nothing to
+redact.
 
 `RecoverableNodeError` (node-sdk) is how a node hands the supervisor the thing that needs repairing: a parser that throws on broken JSON attaches the raw response as `candidateOutput` instead of losing it. **No `candidateOutput`, no `substitute`** — without the broken value in hand, "repair" is fabrication: the model would invent a structurally valid output the runtime validator cannot semantically vet. A plain thrown error offers retry/skip/fail only.
 
