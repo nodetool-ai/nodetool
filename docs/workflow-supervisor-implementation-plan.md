@@ -91,13 +91,40 @@ Depends on PR 3.
 - Supervisor cost attributed through the existing cost tracking so `nodetool costs` sees it (PRD open question 3 resolved: attributed to the run, tagged `supervisor`).
 - Docs: CLI section in root `CLAUDE.md` + `docs/cli.md`.
 
-### PR 5 — Workflows as agents ∥ (with PR 4)
+### PR 5 — Workflows as agents ∥ (with PR 4) — **shipped**
 
 Depends on PR 3.
 
+Three things the plan did not anticipate, all forced by the websocket half.
+
+A `supervise` flag alone cannot start a supervisor: something has to name the
+model. The run request therefore carries an optional `supervisor`
+(`SupervisorRunOptions`: provider, model, the three bounds, cost cap) next to
+the flag, falling back to the connection's configured default model and then to
+`NODETOOL_SUPERVISOR_PROVIDER` / `NODETOOL_SUPERVISOR_MODEL` — the last exists
+because trigger-driven headless runs have no connection defaults at all. A
+request that asks for supervision it cannot get runs **unsupervised** rather
+than failing, which is the same fail-closed rule every other supervisor failure
+follows.
+
+The trigger flag is a real column (`trigger_registrations.supervise`, default
+`0`, migration `20260801_000001`), read by the dispatcher into the headless run.
+Registration sync mutates existing rows in place, so re-syncing a workflow never
+resets it.
+
+The supervisor gets a **dedicated provider instance** (`getProvider`, not the
+context's cached one) and a listener-free context copy: per-turn spend is
+reconciled from the provider's own running cost, so a second caller on the same
+instance would corrupt the dollar cap, and the decision's own provider traffic
+is not the run's message stream. The escalation and the verdict still cross the
+websocket — they are emitted by the kernel on the run's context.
+
+`ExecutionSessionOptions.supervisor` is PR 4's deliverable and landed here
+because PR 5 needs it; the two branches carry the same three-line change.
+
 - `AgentOptions.graph?: GraphData | { workflowId: string }`; fourth branch in `Agent._executeImpl`: hydrate, run through `ExecutionSession` with self as supervisor, forward messages, `getResults()` returns run outputs. The branch adopts the common `AgentPolicy` object (`packages/agents/src/agent-policy.ts`); it does not add a fifth ad-hoc policy.
 - Websocket: `supervise` flag on run requests; forward `supervisor_*` messages to clients. Trigger rows carry the flag but it **defaults to off** — the flip to default-on belongs to PR 8's gate, nowhere earlier.
-- Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream.
+- Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream. Plus what makes the branch trustworthy: a scripted `skip` completes a run that otherwise fails and a scripted `fail` does not, a clean supervised run emits no `supervisor_*` message at all, an aborted signal cancels the run, and `createRunSupervisor` returns no handle without an explicit flag and a resolvable model.
 
 ## Phase C — the product surface
 

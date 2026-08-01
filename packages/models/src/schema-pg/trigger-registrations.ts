@@ -26,6 +26,7 @@ export const triggerRegistrations = pgTable(
     run_count: integer("run_count").notNull().default(0),
     expires_at: text("expires_at"),
     max_runs: integer("max_runs"),
+    supervise: integer("supervise").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

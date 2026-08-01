@@ -992,6 +992,7 @@ function getCreateSchemaSql(): string {
       "run_count" integer NOT NULL DEFAULT 0,
       "expires_at" text,
       "max_runs" integer,
+      "supervise" integer NOT NULL DEFAULT 0,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL
     );

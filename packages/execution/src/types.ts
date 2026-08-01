@@ -11,7 +11,8 @@ import type {
   NodeExecutor,
   NodeTypeResolver,
   NodeValidator,
-  RunResult
+  RunResult,
+  SupervisorHandle
 } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridgeBase, ProcessingContext } from "@nodetool-ai/runtime";
@@ -144,6 +145,15 @@ export interface ExecutionSessionOptions {
   requireTerminalResult?: boolean;
   /** Forwarded to `WorkflowRunnerOptions.validateNode`. */
   validateNode?: NodeValidator;
+  /**
+   * Forwarded to `WorkflowRunnerOptions.supervisor` — the one integration
+   * point every surface shares for workflow supervision
+   * (docs/workflow-supervisor-design.md §7). Omitted, the run behaves exactly
+   * as it does today: no escalation is ever constructed. Wrap the handle in
+   * the kernel's `BoundedHandle` before passing it; this facade adds no bounds
+   * of its own.
+   */
+  supervisor?: SupervisorHandle;
   /**
    * Forwarded to `WorkflowRunnerOptions.strict` (docs/RELIABILITY_ARCHITECTURE.md
    * §12): turns advisory lifecycle checks (`_checkPendingInboxWork`, pending
