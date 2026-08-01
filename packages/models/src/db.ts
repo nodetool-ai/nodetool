@@ -534,6 +534,30 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     created_by: "text",
     created_at: "text",
     revoked_at: "text"
+  },
+  application_versions: {
+    id: "text",
+    application_id: "text",
+    user_id: "text",
+    version: "integer",
+    document: "text",
+    capabilities: "text",
+    workflow_graphs: "text",
+    released: "integer",
+    created_at: "text"
+  },
+  application_invocations: {
+    id: "text",
+    application_id: "text",
+    user_id: "text",
+    version: "integer",
+    invocation_id: "text",
+    operation_id: "text",
+    estimated_usd: "real",
+    actual_usd: "real",
+    status: "text",
+    created_at: "text",
+    settled_at: "text"
   }
 };
 
@@ -1029,7 +1053,8 @@ function getCreateSchemaSql(): string {
 
     CREATE TABLE IF NOT EXISTS "application_versions" (
       "id" text PRIMARY KEY NOT NULL,
-      "application_id" text NOT NULL,
+      "application_id" text NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,
+      "user_id" text,
       "version" integer NOT NULL,
       "document" text NOT NULL,
       "capabilities" text NOT NULL,
@@ -1039,9 +1064,10 @@ function getCreateSchemaSql(): string {
     );
     CREATE INDEX IF NOT EXISTS "idx_application_version_app" ON "application_versions" ("application_id");
     CREATE INDEX IF NOT EXISTS "idx_application_version_released" ON "application_versions" ("released");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_application_version_app_version" ON "application_versions" ("application_id", "version");
 
     CREATE TABLE IF NOT EXISTS "application_budgets" (
-      "application_id" text PRIMARY KEY NOT NULL,
+      "application_id" text PRIMARY KEY NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,
       "period" text NOT NULL DEFAULT 'month',
       "max_usd" real,
       "max_invocations" integer,
@@ -1051,7 +1077,8 @@ function getCreateSchemaSql(): string {
 
     CREATE TABLE IF NOT EXISTS "application_invocations" (
       "id" text PRIMARY KEY NOT NULL,
-      "application_id" text NOT NULL,
+      "application_id" text NOT NULL REFERENCES "applications" ("id") ON DELETE CASCADE,
+      "user_id" text,
       "version" integer,
       "invocation_id" text NOT NULL,
       "operation_id" text NOT NULL DEFAULT '',

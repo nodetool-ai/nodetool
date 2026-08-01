@@ -2529,10 +2529,15 @@ export class UnifiedWebSocketRunner {
    */
   private async claimedApplicationVersion(
     applicationId: string,
-    claimed: number | null | undefined
+    claimed: number | null | undefined,
+    userId: string
   ): Promise<number | null> {
     if (claimed == null) return null;
-    const versions = await listApplicationVersions(applicationId, 10_000);
+    const versions = await listApplicationVersions(
+      applicationId,
+      10_000,
+      userId
+    );
     return versions.some((v) => v.version === claimed) ? claimed : null;
   }
 
@@ -2594,7 +2599,7 @@ export class UnifiedWebSocketRunner {
       const released =
         req.application_version == null
           ? null
-          : await releasedApplicationVersion(applicationId);
+          : await releasedApplicationVersion(applicationId, userId);
       if (req.application_version != null && !released) {
         // A release run of an app that has released nothing. The claim is
         // unsupportable rather than merely stale, and letting it through would
@@ -2625,7 +2630,8 @@ export class UnifiedWebSocketRunner {
         // attribution: it can name a version it once had, not one it invents.
         const claimed = await this.claimedApplicationVersion(
           applicationId,
-          req.application_version
+          req.application_version,
+          userId
         );
         if (!claimed) {
           return this.refuseRun(

@@ -19,9 +19,12 @@ import {
 } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  ApplicationIdInUseError,
+  InvalidApplicationIdError,
   Workflow,
   createStableUuid,
   createTimeOrderedUuid,
+  normalizeApplicationId,
   releasedApplicationRelease
 } from "@nodetool-ai/models";
 import {
@@ -129,12 +132,48 @@ export async function getApplication(
   return applicationResponse.parse(app.toResponse());
 }
 
+/**
+ * Create the row, mapping the model's id errors onto API errors.
+ *
+ * Ids are global: an app the caller does not own occupies its id just as much
+ * as one they do, and the row it names is reported the same way a missing one
+ * is — the caller learns their id was refused, not who holds it.
+ */
+async function insertApplication(
+  data: Record<string, unknown>
+): Promise<Application> {
+  try {
+    return await Application.createUnique(data);
+  } catch (error) {
+    if (error instanceof InvalidApplicationIdError) {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid application id");
+    }
+    if (error instanceof ApplicationIdInUseError) {
+      throwApiError(
+        ApiErrorCode.ALREADY_EXISTS,
+        "An application with that id already exists"
+      );
+    }
+    throw error;
+  }
+}
+
 export async function createApplication(
   userId: string,
   input: CreateApplicationInput
 ): Promise<ApplicationResponse> {
+  let id: string | undefined;
   if (input.id) {
-    const existing = await Application.findById(input.id);
+    try {
+      id = normalizeApplicationId(input.id);
+    } catch {
+      throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid application id");
+    }
+    // Creating over an existing id is idempotent for its owner — a retried
+    // create returns the same app — and refused for everyone else. The id must
+    // never be reused, because the app's versions, ledger and budget are keyed
+    // on it and a deleted app's children could otherwise be inherited.
+    const existing = await Application.findById(id);
     if (existing) {
       if (existing.user_id !== userId) {
         throwApiError(ApiErrorCode.NOT_FOUND, "Application not found");
@@ -147,15 +186,14 @@ export async function createApplication(
     (input.fromWorkflowId
       ? await documentFromWorkflow(input.fromWorkflowId, userId)
       : createEmptyDocument());
-  const app = new Application({
-    id: input.id,
+  const app = await insertApplication({
+    id,
     user_id: userId,
     project_id: input.projectId,
     name: input.name,
     description: input.description,
     document: JSON.stringify(document)
   });
-  await app.save();
   return applicationResponse.parse(app.toResponse());
 }
 
@@ -195,6 +233,13 @@ export async function updateApplication(
   return applicationResponse.parse(updated.toResponse());
 }
 
+/**
+ * Delete the app together with its versions, ledger and budget.
+ *
+ * `Application.delete` is the cascade: the child tables carry no owner check
+ * of their own, so leaving a row behind hands it to whoever next claims this
+ * id — an id a client is free to name.
+ */
 export async function deleteApplication(
   userId: string,
   id: string
@@ -222,7 +267,7 @@ export async function exportApplicationBundle(
 ): Promise<ApplicationBundleSchema> {
   const app = await loadOwnedApplication(userId, id);
   const release = options.released
-    ? await releasedApplicationRelease(id)
+    ? await releasedApplicationRelease(id, userId)
     : null;
   if (options.released && !release) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Application has no released version");
@@ -304,14 +349,13 @@ export async function importApplicationBundle(
     });
   }
 
-  const app = new Application({
+  const app = await insertApplication({
     user_id: userId,
     project_id: input.projectId,
     name: result.app.name,
     description: result.app.description,
     document: JSON.stringify(result.app.document)
   });
-  await app.save();
   return applicationResponse.parse(app.toResponse());
 }
 
@@ -324,6 +368,6 @@ export async function releasedApplicationDocument(
   id: string
 ): Promise<ApplicationReleaseResponse | null> {
   await loadOwnedApplication(userId, id);
-  const release = await releasedApplicationRelease(id);
+  const release = await releasedApplicationRelease(id, userId);
   return release ? applicationReleaseResponse.parse(release) : null;
 }

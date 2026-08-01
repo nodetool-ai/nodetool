@@ -1,4 +1,10 @@
-import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
+import {
+  sqliteTable,
+  text,
+  integer,
+  index,
+  uniqueIndex
+} from "drizzle-orm/sqlite-core";
 
 /**
  * A mini app: a UI document plus typed bindings to workflow operations,
@@ -34,7 +40,20 @@ export const applicationVersions = sqliteTable(
   "application_versions",
   {
     id: text("id").primaryKey(),
-    application_id: text("application_id").notNull(),
+    /**
+     * The app this snapshot belongs to. The cascade is what keeps a deleted
+     * app's history from outliving it: an id is client-supplied, so an orphan
+     * left behind here would be readable by whoever recreates that id.
+     */
+    application_id: text("application_id")
+      .notNull()
+      .references(() => applications.id, { onDelete: "cascade" }),
+    /**
+     * Owner at publish time, copied from the parent. Version reads happen
+     * against an application id alone, so the snapshot carries the owner it
+     * was written for rather than trusting whatever row holds that id now.
+     */
+    user_id: text("user_id"),
     /** Monotonic per application. */
     version: integer("version").notNull(),
     document: text("document").notNull(),
@@ -52,6 +71,12 @@ export const applicationVersions = sqliteTable(
   },
   (table) => [
     index("idx_application_version_app").on(table.application_id),
-    index("idx_application_version_released").on(table.released)
+    index("idx_application_version_released").on(table.released),
+    // Two publishers that read the same MAX(version) must not both land: the
+    // second insert fails instead of minting a duplicate version number.
+    uniqueIndex("idx_application_version_app_version").on(
+      table.application_id,
+      table.version
+    )
   ]
 );
