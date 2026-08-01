@@ -91,6 +91,19 @@ export type { NodeExecutor };
 const SKIPPED = Symbol("skipped");
 
 /**
+ * A failure that happened while routing values downstream, not while the node
+ * was executing. It never escalates: `sendOutputs` delivers to each outgoing
+ * edge in turn, so once edge 1 has the value, re-running the node would deliver
+ * to it twice. Design §5.1.
+ */
+class RoutingError extends Error {
+  constructor(readonly cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause));
+    this.name = "RoutingError";
+  }
+}
+
+/**
  * Canonical lineage keys join `root=index` pairs with `,`. To compute the
  * parent key for a shorter scope, take the first `prefixLength` pairs.
  */
@@ -427,7 +440,7 @@ export class NodeActor {
                   };
                 }
               }
-              await this._sendOutputs(this.node.id, { [slot]: value }, hints);
+              await this._route({ [slot]: value }, hints);
             },
             emitGroupFn: async (values, opts) => {
               await this._emitGroup(values, opts?.lineage);
@@ -1419,6 +1432,7 @@ export class NodeActor {
         });
       } catch (err) {
         if (err instanceof WorkflowSuspendedError) throw err;
+        if (err instanceof RoutingError) throw err.cause;
         if (!this._supervisor) throw err;
         const verdict = await this._escalate(err, inputs, attempt, account, {
           streamingOutput: true,
@@ -1467,6 +1481,7 @@ export class NodeActor {
       );
     } catch (err) {
       if (err instanceof WorkflowSuspendedError) throw err;
+      if (err instanceof RoutingError) throw err.cause;
       if (!this._supervisor) throw err;
       const verdict = await this._escalate(err, {}, 1, account, {
         streamingOutput: false,
@@ -1494,12 +1509,24 @@ export class NodeActor {
     if (overrides) Object.assign(this._streamingCollectedOutputs, overrides);
     const emit = overrides ? { ...routed, ...overrides } : routed;
     this._latestResult = { ...this._streamingCollectedOutputs };
-    await this._sendOutputs(
-      this.node.id,
-      emit,
-      this._currentHints(Object.keys(emit))
-    );
+    await this._route(emit, this._currentHints(Object.keys(emit)));
     return true;
+  }
+
+  /**
+   * Route values downstream, tagging any failure as a routing failure so the
+   * recovery loops let it through instead of escalating a delivery problem as
+   * if the node had failed.
+   */
+  private async _route(
+    outputs: Record<string, unknown>,
+    hints?: OutputRoutingHints
+  ): Promise<void> {
+    try {
+      await this._sendOutputs(this.node.id, outputs, hints);
+    } catch (err) {
+      throw new RoutingError(err);
+    }
   }
 
   /**

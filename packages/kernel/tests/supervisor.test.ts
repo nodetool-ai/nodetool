@@ -14,7 +14,8 @@ import { describe, it, expect } from "vitest";
 import { isProcessingMessage } from "@nodetool-ai/protocol";
 import type { Escalation, Verdict } from "@nodetool-ai/protocol";
 import { WorkflowRunner, type RunResult } from "../src/runner.js";
-import type { NodeExecutor } from "../src/actor.js";
+import { NodeActor, type NodeExecutor } from "../src/actor.js";
+import { NodeInbox } from "../src/inbox.js";
 import type { DecisionOutcome, SupervisorHandle } from "../src/supervisor.js";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
@@ -777,6 +778,91 @@ describe("supervisor — streaming", () => {
     // one the PRD reports as "kept the chunks it had finished".
     expect(result.status).toBe("completed");
     expect(received).toEqual(["chunk-0", "chunk-1"]);
+  });
+
+  it("fails the node when routing a frame throws, without escalating", async () => {
+    // Straight at the actor, because only the routing callback can fail this
+    // way: `sendOutputs` delivers to each outgoing edge in turn, so a retry
+    // after a partial send would deliver to the earlier edges twice.
+    const handle = new ScriptedHandle(() => ({ action: "retry" }));
+    const inbox = new NodeInbox();
+    inbox.addUpstream("a", 1);
+    let streamStarts = 0;
+
+    const actor = new NodeActor({
+      node: {
+        id: "work",
+        type: "test.Stream",
+        is_streaming_output: true,
+        retry_safe: true,
+        outputs: { value: "str" }
+      },
+      inbox,
+      executor: {
+        async process() {
+          return {};
+        },
+        async *genProcess() {
+          streamStarts++;
+          yield { value: "chunk-0" };
+        }
+      },
+      sendOutputs: async () => {
+        throw new Error("inbox refused the value");
+      },
+      emitMessage: () => {},
+      correlation: {
+        invocationScope: [],
+        inputs: new Map(),
+        outputs: new Map()
+      },
+      supervisor: handle
+    });
+
+    inbox.put("a", "go");
+    inbox.markSourceDone("a");
+    const result = await actor.run();
+
+    expect(result.error).toBe("inbox refused the value");
+    expect(streamStarts).toBe(1);
+    expect(handle.seen).toHaveLength(0);
+  });
+
+  it("does not escalate a delivery failure as a node failure", async () => {
+    // Frames are routed inside the generator loop, so a downstream delivery
+    // error surfaces on the same stack as a genProcess throw. It must still
+    // fail the node: re-running the stream would re-deliver earlier frames.
+    const handle = new ScriptedHandle(() => ({ action: "retry" }));
+    let streamStarts = 0;
+    const result = await runGraph({
+      ...streamGraph(),
+      params: { x: "hi" },
+      executors: {
+        work: {
+          async process() {
+            return {};
+          },
+          async *genProcess() {
+            streamStarts++;
+            yield { value: "chunk-0" };
+            yield { value: "chunk-1" };
+          }
+        },
+        sink: {
+          async process() {
+            return {};
+          },
+          async run() {
+            throw new Error("sink exploded");
+          }
+        }
+      },
+      supervisor: handle
+    });
+
+    expect(streamStarts).toBe(1);
+    expect(handle.seen.every((e) => e.nodeId !== "work")).toBe(true);
+    expect(result.status).toBe("failed");
   });
 
   it("gives a run() node exactly end_stream and fail", async () => {
