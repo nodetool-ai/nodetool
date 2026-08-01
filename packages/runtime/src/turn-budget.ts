@@ -33,8 +33,16 @@ export interface TurnBudget {
    * stops rather than making the call.
    */
   reserve(turn: TurnReservation): boolean;
-  /** Reconcile the reservation against what the turn actually cost, in USD. */
-  commit(actualUsd: number): void;
+  /**
+   * Reconcile the reservation against what the turn actually cost, in USD.
+   *
+   * Pass `null` when turns provably ran but their cost was never reported —
+   * the Claude Agent SDK only reports usage on a terminal `result` message,
+   * which an aborted session never emits. That is not the same as free, and
+   * booking it as zero would hand the reserved headroom back for spend that
+   * really happened. The reserved worst case is charged instead.
+   */
+  commit(actualUsd: number | null): void;
   /** Committed spend so far, in USD. */
   readonly spentUsd: number;
 }
@@ -85,8 +93,13 @@ export class CostCappedTurnBudget implements TurnBudget {
     return true;
   }
 
-  commit(actualUsd: number): void {
-    this._spentUsd += Number.isFinite(actualUsd) ? Math.max(actualUsd, 0) : 0;
+  commit(actualUsd: number | null): void {
+    // Unknown must not read as free — the same rule invocation-cost accounting
+    // follows. With no number to book, the reservation becomes the charge.
+    this._spentUsd +=
+      actualUsd === null || !Number.isFinite(actualUsd)
+        ? this._reservedUsd
+        : Math.max(actualUsd, 0);
     this._reservedUsd = 0;
   }
 }

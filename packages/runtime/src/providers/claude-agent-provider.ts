@@ -366,7 +366,17 @@ export class ClaudeAgentProvider extends BaseProvider {
       // per-turn actual doesn't exist here. Reservations accumulate untouched
       // for the session's duration — conservative by construction — and the
       // real number lands when the session ends.
-      turnBudget?.commit(this.getTotalCost() - costBefore);
+      //
+      // Except when it doesn't: an aborted session never emits `result`, so
+      // nothing is recorded even though its turns ran and were billed. That is
+      // the *normal* ending here — a terminal tool (`finish_step`) aborts the
+      // query — so booking zero would mean the cap never counted a single
+      // successful decision on this provider. A zero delta is therefore read
+      // as "unknown", and the reserved worst case is charged instead.
+      if (turnBudget) {
+        const observed = this.getTotalCost() - costBefore;
+        turnBudget.commit(observed > 0 ? observed : null);
+      }
       if (args.signal)
         args.signal.removeEventListener("abort", onExternalAbort);
     }

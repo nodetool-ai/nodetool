@@ -87,7 +87,6 @@ class ThrowingProvider extends BaseProvider {
 
   async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
     throw new Error("network exploded");
-    yield undefined as never;
   }
 
   async generateMessage(): Promise<never> {
@@ -228,5 +227,30 @@ describe("reservation release on a failed turn", () => {
     // Headroom is intact: the next turn is admitted, as it would have been
     // had the failed one never happened.
     expect(budget.reserve(turn())).toBe(true);
+  });
+});
+
+describe("unreported spend", () => {
+  it("charges the reservation when the turn's cost was never reported", () => {
+    // The Claude Agent SDK reports usage only on a terminal `result` message,
+    // and an aborted session never emits one — which is how a supervisor
+    // decision normally ends, since `finish_step` aborts the query. Booking
+    // that as free would mean the cap never counted a decision at all.
+    const budget = new CostCappedTurnBudget({
+      capUsd: 1,
+      maxOutputTokens: 2048
+    });
+    expect(budget.reserve(turn())).toBe(true);
+    budget.commit(null);
+    expect(budget.spentUsd).toBeGreaterThan(0);
+  });
+
+  it("charges nothing for an unreported turn that was never admitted", () => {
+    const budget = new CostCappedTurnBudget({
+      capUsd: 1,
+      maxOutputTokens: 2048
+    });
+    budget.commit(null);
+    expect(budget.spentUsd).toBe(0);
   });
 });

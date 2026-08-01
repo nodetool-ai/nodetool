@@ -1033,7 +1033,11 @@ export abstract class BaseProvider {
           yield item;
         }
       } finally {
-        // Replace the reservation with what the turn really cost.
+        // Replace the reservation with what the turn really cost. A zero delta
+        // here is a real zero, not an unknown: `trackUsage` fires on every
+        // completed call, so nothing recorded means nothing was billed. (The
+        // Claude Agent SDK path cannot say that, which is why it commits
+        // `null` instead — see its override.)
         turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
       }
 
