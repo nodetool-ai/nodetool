@@ -53,6 +53,7 @@ import {
   type Span
 } from "@opentelemetry/api";
 import { getTracer } from "./telemetry.js";
+import { recordInvocationCost } from "./invocation-account.js";
 
 export type AgentSpanKind = "execute" | "plan" | "step" | "compile";
 
@@ -104,6 +105,10 @@ export function withUsageCapture<T>(fn: () => Promise<T>): Promise<T> {
 
 /** Provider hook: add token usage for the in-flight LLM call. */
 export function setLastUsage(usage: LlmUsage): void {
+  // Charge the enclosing node invocation before the slot check: an LLM call
+  // made outside a capture slot still cost money, and retry safety turns on
+  // whether this invocation spent anything.
+  recordInvocationCost(usage.cost);
   const slot = usageStore.getStore();
   if (!slot) return;
   const previous = slot.usage;

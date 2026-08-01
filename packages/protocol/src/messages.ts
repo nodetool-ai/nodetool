@@ -26,6 +26,12 @@
  */
 
 import { z } from "zod";
+import {
+  supervisorDecisionSchema,
+  supervisorEscalationSchema,
+  type SupervisorDecision,
+  type SupervisorEscalation
+} from "./supervisor.js";
 
 // ---------------------------------------------------------------------------
 // Enums
@@ -618,9 +624,7 @@ export const llmCallUpdateSchema = z.object({
   node_name: z.string().nullable().optional(),
   provider: z.string(),
   model: z.string(),
-  messages: z.array(
-    z.object({ role: z.string(), content: z.unknown() })
-  ),
+  messages: z.array(z.object({ role: z.string(), content: z.unknown() })),
   response: z.unknown(),
   tool_calls: z
     .array(z.object({ id: z.string(), name: z.string(), args: z.unknown() }))
@@ -898,7 +902,9 @@ export const processingMessageSchema = z.discriminatedUnion("type", [
   chunkSchema,
   predictionSchema,
   llmCallUpdateSchema,
-  todoUpdateSchema
+  todoUpdateSchema,
+  supervisorEscalationSchema,
+  supervisorDecisionSchema
 ]);
 
 export type ProcessingMessage = z.infer<typeof processingMessageSchema>;
@@ -945,7 +951,9 @@ export const processingMessageSchemas = {
   chunk: chunkSchema,
   prediction: predictionSchema,
   llm_call: llmCallUpdateSchema,
-  todo_update: todoUpdateSchema
+  todo_update: todoUpdateSchema,
+  supervisor_escalation: supervisorEscalationSchema,
+  supervisor_decision: supervisorDecisionSchema
 } as const satisfies Record<MessageType, z.ZodType<ProcessingMessage>>;
 
 /**
@@ -1007,9 +1015,7 @@ export function isErrorMessage(value: unknown): value is ErrorMessage {
 export function isToolCallUpdate(value: unknown): value is ToolCallUpdate {
   return hasType(value, "tool_call_update");
 }
-export function isToolResultUpdate(
-  value: unknown
-): value is ToolResultUpdate {
+export function isToolResultUpdate(value: unknown): value is ToolResultUpdate {
   return hasType(value, "tool_result_update");
 }
 export function isTaskUpdate(value: unknown): value is TaskUpdate {
@@ -1032,6 +1038,16 @@ export function isLLMCallUpdate(value: unknown): value is LLMCallUpdate {
 }
 export function isTodoUpdate(value: unknown): value is TodoUpdate {
   return hasType(value, "todo_update");
+}
+export function isSupervisorEscalation(
+  value: unknown
+): value is SupervisorEscalation {
+  return hasType(value, "supervisor_escalation");
+}
+export function isSupervisorDecision(
+  value: unknown
+): value is SupervisorDecision {
+  return hasType(value, "supervisor_decision");
 }
 
 /** True when `value` is a structurally valid `ProcessingMessage`. */

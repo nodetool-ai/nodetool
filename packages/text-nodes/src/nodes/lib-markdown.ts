@@ -3,6 +3,7 @@ import { tagAsUniversal } from "@nodetool-ai/nodes-utils";
 
 export class ExtractLinksMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractLinks";
+  static readonly retrySafe = true;
   static readonly title = "Extract Links";
   static readonly description =
     "Extracts all links from markdown text.\n    markdown, links, extraction\n\n    Use cases:\n    - Extract references and citations from academic documents\n    - Build link graphs from markdown documentation\n    - Analyze external resources referenced in markdown files";
@@ -48,6 +49,7 @@ export class ExtractLinksMarkdownLibNode extends BaseNode {
 
 export class ExtractHeadersMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractHeaders";
+  static readonly retrySafe = true;
   static readonly title = "Extract Headers";
   static readonly description =
     "Extracts headers and creates a document structure/outline.\n    markdown, headers, structure\n\n    Use cases:\n    - Generate table of contents\n    - Analyze document structure\n    - Extract main topics from documents";
@@ -93,6 +95,7 @@ export class ExtractHeadersMarkdownLibNode extends BaseNode {
 
 export class ExtractBulletListsMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractBulletLists";
+  static readonly retrySafe = true;
   static readonly title = "Extract Bullet Lists";
   static readonly description =
     "Extracts bulleted lists from markdown.\n    markdown, lists, bullets, extraction\n\n    Use cases:\n    - Extract unordered list items\n    - Analyze bullet point structures\n    - Convert bullet lists to structured data";
@@ -131,6 +134,7 @@ export class ExtractBulletListsMarkdownLibNode extends BaseNode {
 
 export class ExtractNumberedListsMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractNumberedLists";
+  static readonly retrySafe = true;
   static readonly title = "Extract Numbered Lists";
   static readonly description =
     "Extracts numbered lists from markdown.\n    markdown, lists, numbered, extraction\n\n    Use cases:\n    - Extract ordered list items\n    - Analyze enumerated structures\n    - Convert numbered lists to structured data";
@@ -169,6 +173,7 @@ export class ExtractNumberedListsMarkdownLibNode extends BaseNode {
 
 export class ExtractCodeBlocksMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractCodeBlocks";
+  static readonly retrySafe = true;
   static readonly title = "Extract Code Blocks";
   static readonly description =
     "Extracts code blocks and their languages from markdown.\n    markdown, code, extraction\n\n    Use cases:\n    - Extract code samples for analysis\n    - Collect programming examples\n    - Analyze code snippets in documentation";
@@ -199,6 +204,7 @@ export class ExtractCodeBlocksMarkdownLibNode extends BaseNode {
 
 export class ExtractTablesMarkdownLibNode extends BaseNode {
   static readonly nodeType = "lib.markdown.ExtractTables";
+  static readonly retrySafe = true;
   static readonly title = "Extract Tables";
   static readonly description =
     "Extracts tables from markdown and converts them to structured data.\n    markdown, tables, data\n\n    Use cases:\n    - Extract tabular data from markdown\n    - Convert markdown tables to structured formats\n    - Analyze tabulated information";

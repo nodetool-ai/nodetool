@@ -99,6 +99,7 @@ function feedMetaBlock(xml: string): string {
 
 export class FetchRSSFeedLibNode extends BaseNode {
   static readonly nodeType = "lib.rss.FetchRSSFeed";
+  static readonly retrySafe = true;
   static readonly title = "Fetch RSS Feed";
   static readonly description =
     "Fetches and parses an RSS feed from a URL.\n    rss, feed, network\n\n    Use cases:\n    - Monitor news feeds\n    - Aggregate content from multiple sources\n    - Process blog updates";
@@ -152,6 +153,7 @@ export class FetchRSSFeedLibNode extends BaseNode {
 
 export class ExtractFeedMetadataLibNode extends BaseNode {
   static readonly nodeType = "lib.rss.ExtractFeedMetadata";
+  static readonly retrySafe = true;
   static readonly title = "Extract Feed Metadata";
   static readonly description =
     "Extracts metadata from an RSS feed.\n    rss, metadata, feed\n\n    Use cases:\n    - Get feed information\n    - Validate feed details\n    - Extract feed metadata";

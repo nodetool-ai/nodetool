@@ -18,6 +18,7 @@ import {
 
 export class SentimentAnalysisLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.SentimentAnalysis";
+  static readonly retrySafe = true;
   static readonly title = "Sentiment Analysis";
   static readonly description =
     "Analyzes sentiment of text using an AFINN-based analyzer.\n    sentiment, opinion, polarity, text analysis, NLP\n\n    Use cases:\n    - Determine positive or negative tone of text\n    - Analyze customer feedback sentiment\n    - Score product reviews\n    - Monitor social media sentiment";
@@ -103,6 +104,7 @@ export class SentimentAnalysisLibNode extends BaseNode {
 
 export class TokenizeLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.Tokenize";
+  static readonly retrySafe = true;
   static readonly title = "Tokenize";
   static readonly description =
     "Tokenizes text into words or sentences.\n    tokenize, split, words, sentences, NLP\n\n    Use cases:\n    - Break text into individual words for analysis\n    - Split text into sentences for processing\n    - Prepare text for further NLP operations\n    - Count words or sentences in text";
@@ -153,6 +155,7 @@ export class TokenizeLibNode extends BaseNode {
 
 export class StemLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.Stem";
+  static readonly retrySafe = true;
   static readonly title = "Stem";
   static readonly description =
     "Stems words to their root form.\n    stem, root, morphology, NLP, text processing\n\n    Use cases:\n    - Reduce words to their base form for matching\n    - Normalize text for search indexing\n    - Prepare text for comparison and deduplication\n    - Improve text similarity matching";
@@ -202,6 +205,7 @@ export class StemLibNode extends BaseNode {
 
 export class TfIdfLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.TfIdf";
+  static readonly retrySafe = true;
   static readonly title = "TF-IDF";
   static readonly description =
     "Computes TF-IDF scores for terms across multiple documents.\n    tf-idf, term frequency, document frequency, text analysis, NLP\n\n    Use cases:\n    - Rank document relevance for a search query\n    - Identify important terms in a collection of documents\n    - Build keyword extraction pipelines\n    - Compare document similarity by term importance";
@@ -251,6 +255,7 @@ export class TfIdfLibNode extends BaseNode {
 
 export class ClassifyTextLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.ClassifyText";
+  static readonly retrySafe = true;
   static readonly title = "Classify Text";
   static readonly description =
     "Trains a Naive Bayes classifier and classifies text.\n    classify, categorize, naive bayes, machine learning, NLP\n\n    Use cases:\n    - Categorize text into predefined labels\n    - Build simple spam detection\n    - Classify customer support tickets\n    - Sort documents by topic";
@@ -315,6 +320,7 @@ export class ClassifyTextLibNode extends BaseNode {
 
 export class ExtractEntitiesLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.ExtractEntities";
+  static readonly retrySafe = true;
   static readonly title = "Extract Entities";
   static readonly description =
     "Extracts named entities and parts of speech using compromise.\n    NER, named entities, parts of speech, NLP, text analysis\n\n    Use cases:\n    - Extract people, places, and organizations from text\n    - Identify nouns and verbs in sentences\n    - Build knowledge graphs from unstructured text\n    - Analyze text structure and content";
@@ -374,6 +380,7 @@ export class ExtractEntitiesLibNode extends BaseNode {
 
 export class PhoneticMatchLibNode extends BaseNode {
   static readonly nodeType = "lib.nlp.PhoneticMatch";
+  static readonly retrySafe = true;
   static readonly title = "Phonetic Match";
   static readonly description =
     "Computes phonetic codes for words using Soundex, Metaphone, or Double Metaphone.\n    phonetics, soundex, metaphone, fuzzy matching, NLP\n\n    Use cases:\n    - Find words that sound alike\n    - Build fuzzy name matching systems\n    - Implement spell correction suggestions\n    - Match names with different spellings";

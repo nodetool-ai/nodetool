@@ -6,6 +6,7 @@ import { compileSafePredicate, compileSafeKey } from "./safe-expression.js";
 
 export class IfNode extends BaseNode {
   static readonly nodeType = "nodetool.control.If";
+  static readonly retrySafe = true;
   static readonly title = "If";
   static readonly description =
     "Conditionally executes one of two branches based on a condition.\n    control, flow, condition, logic, else, true, false, switch, toggle, flow-control\n\n    Use cases:\n    - Branch workflow based on conditions\n    - Handle different cases in data processing\n    - Implement decision logic";
@@ -55,6 +56,7 @@ export class IfNode extends BaseNode {
 
 export class ForEachNode extends BaseNode {
   static readonly nodeType = "nodetool.control.ForEach";
+  static readonly retrySafe = true;
   static readonly title = "For Each";
   static readonly description =
     "Iterate over a list and emit each item sequentially.\n    iterator, loop, list, sequence, repeat, enumerate, stream, collection\n\n    Use cases:\n    - Process each item of a collection in order\n    - Drive downstream nodes with individual elements";
@@ -108,6 +110,7 @@ export class ForEachNode extends BaseNode {
 
 export class AssetCollectionNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Collection";
+  static readonly retrySafe = true;
   static readonly title = "Asset Collection";
   static readonly description =
     "A curated collection of assets of a single type. Streams each item one at a time for downstream processing.\n    collection, gallery, assets, curate, pick, winners, iterator, stream, batch\n\n    Use cases:\n    - Hand-pick the best generations and feed them to the next step\n    - Gather assets dropped from the asset panel, files, or generation history\n    - Drive a downstream pipeline with a fixed set of media";
@@ -149,6 +152,7 @@ export class AssetCollectionNode extends BaseNode {
 
 export class RepeatCountNode extends BaseNode {
   static readonly nodeType = "nodetool.control.RepeatCount";
+  static readonly retrySafe = true;
   static readonly title = "Repeat Count";
   static readonly description =
     "Emit N sequential ticks without needing an input list.\n    repeat, loop, count, times, iterate, batch\n\n    Use cases:\n    - Run the same downstream step N times (e.g. generate N images from one prompt)\n    - Drive iteration by count instead of building a range list\n    - Pair with Collect to gather N results";
@@ -188,6 +192,7 @@ export class RepeatCountNode extends BaseNode {
 
 export class RepeatValueStreamNode extends BaseNode {
   static readonly nodeType = "nodetool.control.RepeatValue";
+  static readonly retrySafe = true;
   static readonly title = "Repeat Value";
   static readonly description =
     "Emit the same value N times without building a list first.\n    repeat, loop, duplicate, scalar, batch, stream\n\n    Use cases:\n    - Run downstream steps N times with a wired prompt or parameter\n    - Repeat one image ref, text, or dict through a pipeline\n    - Pair with Collect to gather N results";
@@ -236,6 +241,7 @@ export class RepeatValueStreamNode extends BaseNode {
 
 export class TakeNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Take";
+  static readonly retrySafe = true;
   static readonly title = "Take";
   static readonly description =
     "Pass through the first N items of a stream and stop.\n    take, head, limit, first, stream, slice, sample, truncate\n\n    Use cases:\n    - Test a pipeline on a small subset of inputs\n    - Cap expensive downstream work at N items\n    - Implement \"first N matches\" semantics over a stream";
@@ -299,6 +305,7 @@ export class TakeNode extends BaseNode {
 
 export class CollectNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Collect";
+  static readonly retrySafe = true;
   static readonly title = "Collect";
   static readonly description =
     "Collect items until the end of the stream and return them as a list.\n    collector, aggregate, list, stream\n\n    Use cases:\n    - Gather results from multiple processing steps\n    - Collect streaming data into batches\n    - Aggregate outputs from parallel operations";
@@ -340,6 +347,7 @@ export class CollectNode extends BaseNode {
 
 export class RerouteNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Reroute";
+  static readonly retrySafe = true;
   static readonly title = "Reroute";
   static readonly description =
     "Pass data through unchanged for tidier workflow layouts.\n    reroute, passthrough, organize, tidy, flow, connection, redirect\n\n    Use cases:\n    - Organize complex workflows by routing connections\n    - Create cleaner visual layouts\n    - Redirect data flow without modification";
@@ -368,6 +376,7 @@ export class RerouteNode extends BaseNode {
 
 export class SwitchNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Switch";
+  static readonly retrySafe = true;
   static readonly title = "Switch";
   static readonly description =
     "Multi-branch routing: match a value against cases and route to the matching output.\n    control, switch, match, case, branch, route, multi-branch, flow-control\n\n    Use cases:\n    - Route data based on string/number matching\n    - Implement multi-way branching logic\n    - Replace chains of If nodes";
@@ -427,6 +436,7 @@ export class SwitchNode extends BaseNode {
 
 export class TryCatchNode extends BaseNode {
   static readonly nodeType = "nodetool.control.TryCatch";
+  static readonly retrySafe = true;
   static readonly title = "Fallback";
   static readonly description =
     "Substitute a fallback value when the input is null or undefined. Does not catch exceptions — it only detects a missing value and swaps in the fallback.\n    control, fallback, default, null, undefined, missing, coalesce, flow-control\n\n    Use cases:\n    - Provide a default when an upstream step produced no value\n    - Detect missing values in workflows\n    - Flag whether the fallback was used";
@@ -475,6 +485,7 @@ export class TryCatchNode extends BaseNode {
 
 export class DropNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Drop";
+  static readonly retrySafe = true;
   static readonly title = "Drop";
   static readonly description =
     "Skip the first N items of a stream, pass the rest through.\n    drop, skip, head, stream, slice, offset\n\n    Use cases:\n    - Skip headers or warm-up items in a stream\n    - Pagination-style offsets\n    - Drop the first record from a CSV-like feed";
@@ -545,6 +556,7 @@ function deepEqual(a: unknown, b: unknown): boolean {
 
 export class FilterEqualNode extends BaseNode {
   static readonly nodeType = "nodetool.control.FilterEqual";
+  static readonly retrySafe = true;
   static readonly title = "Filter Equal";
   static readonly description =
     "Pass items through only when they equal a target value.\n    filter, equal, match, predicate, stream, where\n\n    Use cases:\n    - Keep only items matching a status, label, or category\n    - Drop sentinel/null markers from a stream\n    - Select rows by an exact id";
@@ -656,6 +668,7 @@ export class FilterCodeNode extends BaseNode {
 
 export class ChunkNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Chunk";
+  static readonly retrySafe = true;
   static readonly title = "Chunk";
   static readonly description =
     "Group every N items into a list and emit as a batch. Trailing partial batch is emitted at end of stream.\n    chunk, batch, group, window, buffer, stream\n\n    Use cases:\n    - Batched LLM/API calls without giving up streaming\n    - Window-based aggregation\n    - Group rows for bulk inserts";
@@ -721,6 +734,7 @@ export class ChunkNode extends BaseNode {
 
 export class LastNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Last";
+  static readonly retrySafe = true;
   static readonly title = "Last";
   static readonly description =
     "Emit only the final item of a stream.\n    last, final, tail, fold, stream, reduce\n\n    Use cases:\n    - Keep the final answer from an agent token stream\n    - Pick the most recent item in a feed\n    - Cheap fold to a single value";
@@ -766,6 +780,7 @@ export class LastNode extends BaseNode {
 
 export class CountStreamNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Count";
+  static readonly retrySafe = true;
   static readonly title = "Count";
   static readonly description =
     "Emit the total number of items when the stream ends.\n    count, length, size, total, fold, stream\n\n    Use cases:\n    - Report how many items a pipeline produced\n    - Measure stream throughput without buffering items\n    - Avoid collecting just to call .length";
@@ -839,6 +854,7 @@ function distinctKey(
 
 export class DistinctNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Distinct";
+  static readonly retrySafe = true;
   static readonly title = "Distinct";
   static readonly description =
     "Drop duplicate items from a stream. Optional key expression for grouping.\n    distinct, unique, dedup, deduplicate, stream, set\n\n    Use cases:\n    - Deduplicate URLs, ids, or records\n    - Keep only the first sighting of each value\n    - Field-based dedup with a key expression";
@@ -894,6 +910,7 @@ export class DistinctNode extends BaseNode {
 
 export class TakeWhileNode extends BaseNode {
   static readonly nodeType = "nodetool.control.TakeWhile";
+  static readonly retrySafe = true;
   static readonly title = "Take While";
   static readonly description =
     "Pass items through while a predicate is truthy. Stops at the first failure.\n    take, while, predicate, stream, prefix\n\n    Use cases:\n    - Stream until a sentinel/terminator is reached\n    - Process items while a confidence threshold holds\n    - Cleaner than counting when N is unknown up front";
@@ -950,6 +967,7 @@ export class TakeWhileNode extends BaseNode {
 
 export class DropWhileNode extends BaseNode {
   static readonly nodeType = "nodetool.control.DropWhile";
+  static readonly retrySafe = true;
   static readonly title = "Drop While";
   static readonly description =
     "Drop items while a predicate is truthy, then pass everything after.\n    drop, skip, while, predicate, stream, suffix\n\n    Use cases:\n    - Skip leading whitespace, headers, or warm-up\n    - Wait for a stream to enter a steady state\n    - Predicate-based version of Drop(N)";
@@ -1073,6 +1091,7 @@ export class TapNode extends BaseNode {
  */
 export class ZipNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Zip";
+  static readonly retrySafe = true;
   static readonly title = "Zip";
   static readonly description =
     "Pair items from two independent iteration sources by matched index within the common parent.\n    zip, pair, combine, merge, join, index, stream, iterate\n\n    Use cases:\n    - Combine matching items from two parallel streams\n    - Pair inputs and outputs by position\n    - Merge two iteration sources into tuples";
@@ -1264,6 +1283,7 @@ export class ZipNode extends BaseNode {
  */
 export class CrossNode extends BaseNode {
   static readonly nodeType = "nodetool.control.Cross";
+  static readonly retrySafe = true;
   static readonly title = "Cross";
   static readonly description =
     "Emit the cartesian product of two iteration sources within their common parent.\n    cross, cartesian, product, combine, pairs, matrix, stream, iterate\n\n    Use cases:\n    - Generate every combination of two input sets\n    - Build a grid of parameter combinations\n    - Pair each item of one stream with all items of another";

@@ -20,6 +20,10 @@ import {
   parsePackageAssetUri
 } from "@nodetool-ai/protocol";
 import { AgentMemory } from "./agent-memory.js";
+import {
+  recordInvocationAsset,
+  recordInvocationCost
+} from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
 import { encodeRawImageRef } from "./image-codec.js";
@@ -33,6 +37,12 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
 // lazily so this module loads in browser / Edge runtimes. The
 // `FileStorageAdapter`, `resolveWorkspacePath`, and `randomUUID`
 // fallback all degrade gracefully when these are unavailable.
+/**
+ * Secret values shorter than this are not recorded for masking: redacting a
+ * two-character value would blank unrelated text wherever it happens to occur.
+ */
+const MIN_MASKABLE_SECRET_LENGTH = 8;
+
 const nodeCrypto =
   await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
 const nodeFsP =
@@ -1134,6 +1144,8 @@ export class ProcessingContext {
         userId: string
       ) => Promise<string | null | undefined> | string | null | undefined)
     | null = null;
+  /** Every secret value the resolver handed out this run (see {@link ProcessingContext.getResolvedSecretValues}). */
+  private _resolvedSecrets = new Set<string>();
   /** Fetch function used by HTTP helpers. */
   private _fetch: (input: string, init?: RequestInit) => Promise<Response>;
   /** Optional temporary URL resolver for stored assets. */
@@ -1536,7 +1548,24 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);
+    if (
+      typeof value === "string" &&
+      value.length >= MIN_MASKABLE_SECRET_LENGTH
+    ) {
+      this._resolvedSecrets.add(value);
+    }
     return value ?? null;
+  }
+
+  /**
+   * Every secret value handed out during this run. The supervisor's escalation
+   * constructor masks against this set — without it, "mask every secret" has no
+   * subject, because the resolver forgets each key as soon as it answers.
+   * Values shorter than `MIN_MASKABLE_SECRET_LENGTH` are not recorded: masking
+   * a two-character value would redact unrelated text everywhere it occurs.
+   */
+  getResolvedSecretValues(): ReadonlySet<string> {
+    return this._resolvedSecrets;
   }
 
   async getSecretRequired(key: string): Promise<string> {
@@ -1745,6 +1774,7 @@ export class ProcessingContext {
     >
   ): void {
     this._providerCost = { provider, amount, unit, ...details };
+    recordInvocationCost(amount);
   }
 
   getProviderCost(): ProviderCost | null {
@@ -2069,6 +2099,7 @@ export class ProcessingContext {
     if (!content) {
       throw new Error("Asset content is required");
     }
+    recordInvocationAsset();
     return fn({
       userId: this.userId,
       workflowId: this.workflowId,

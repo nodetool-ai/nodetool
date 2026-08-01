@@ -125,6 +125,7 @@ function modelConfig(props: Record<string, unknown>): {
 
 export class SplitTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Split";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Split Text";
   static readonly description =
@@ -150,6 +151,7 @@ export class SplitTextNode extends BaseNode {
 
 export class ExtractTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Extract";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Extract Text";
   static readonly description =
@@ -180,6 +182,7 @@ export class ExtractTextNode extends BaseNode {
 
 export class ChunkTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Chunk";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Split Text into Chunks";
   static readonly description =
@@ -224,6 +227,7 @@ export class ChunkTextNode extends BaseNode {
 
 export class ExtractRegexNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ExtractRegex";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Extract Regex Groups";
   static readonly description =
@@ -268,6 +272,7 @@ export class ExtractRegexNode extends BaseNode {
 
 export class FindAllRegexNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FindAllRegex";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Find All Regex Matches";
   static readonly description =
@@ -311,6 +316,7 @@ export class FindAllRegexNode extends BaseNode {
 
 export class TextParseJSONNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ParseJSON";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Parse JSON String";
   static readonly description =
@@ -376,6 +382,7 @@ function jsonPathFind(path: string, root: unknown): unknown[] {
 
 export class ExtractJSONNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ExtractJSON";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Extract JSON";
   static readonly description =
@@ -414,6 +421,7 @@ export class ExtractJSONNode extends BaseNode {
 
 export class RegexMatchNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexMatch";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Find Regex Matches";
   static readonly description =
@@ -469,6 +477,7 @@ export class RegexMatchNode extends BaseNode {
 
 export class RegexReplaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexReplace";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Replace with Regex";
   static readonly description =
@@ -544,6 +553,7 @@ export class RegexReplaceNode extends BaseNode {
 
 export class RegexSplitNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexSplit";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Split with Regex";
   static readonly description =
@@ -605,6 +615,7 @@ export class RegexSplitNode extends BaseNode {
 
 export class RegexValidateNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RegexValidate";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Validate with Regex";
   static readonly description =
@@ -642,6 +653,7 @@ export class RegexValidateNode extends BaseNode {
 
 export class CompareTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Compare";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Compare Text";
   static readonly description =
@@ -704,6 +716,7 @@ export class CompareTextNode extends BaseNode {
 
 export class EqualsTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Equals";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Equals";
   static readonly description =
@@ -749,6 +762,7 @@ export class EqualsTextNode extends BaseNode {
 
 export class ToUppercaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToUppercase";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "To Uppercase";
   static readonly description =
@@ -769,6 +783,7 @@ export class ToUppercaseNode extends BaseNode {
 
 export class ToLowercaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToLowercase";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "To Lowercase";
   static readonly description =
@@ -789,6 +804,7 @@ export class ToLowercaseNode extends BaseNode {
 
 export class ToTitlecaseNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToTitlecase";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "To Title Case";
   static readonly description =
@@ -809,6 +825,7 @@ export class ToTitlecaseNode extends BaseNode {
 
 export class CapitalizeTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CapitalizeText";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Capitalize Text";
   static readonly description =
@@ -835,6 +852,7 @@ export class CapitalizeTextNode extends BaseNode {
 
 export class SliceTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Slice";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Slice Text";
   static readonly description =
@@ -914,6 +932,7 @@ export class SliceTextNode extends BaseNode {
 
 export class StartsWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.StartsWith";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Starts With";
   static readonly description =
@@ -939,6 +958,7 @@ export class StartsWithTextNode extends BaseNode {
 
 export class EndsWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.EndsWith";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Ends With";
   static readonly description =
@@ -964,6 +984,7 @@ export class EndsWithTextNode extends BaseNode {
 
 export class ContainsTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Contains";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Contains Text";
   static readonly description =
@@ -1037,6 +1058,7 @@ export class ContainsTextNode extends BaseNode {
 
 export class TrimWhitespaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.TrimWhitespace";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Trim Whitespace";
   static readonly description =
@@ -1076,6 +1098,7 @@ export class TrimWhitespaceNode extends BaseNode {
 
 export class CollapseWhitespaceNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CollapseWhitespace";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Collapse Whitespace";
   static readonly description =
@@ -1131,6 +1154,7 @@ export class CollapseWhitespaceNode extends BaseNode {
 
 export class IsEmptyTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.IsEmpty";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Is Empty";
   static readonly description =
@@ -1158,6 +1182,7 @@ export class IsEmptyTextNode extends BaseNode {
 
 export class RemovePunctuationNode extends BaseNode {
   static readonly nodeType = "nodetool.text.RemovePunctuation";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Remove Punctuation";
   static readonly description =
@@ -1205,6 +1230,7 @@ export class RemovePunctuationNode extends BaseNode {
 
 export class StripAccentsNode extends BaseNode {
   static readonly nodeType = "nodetool.text.StripAccents";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Strip Accents";
   static readonly description =
@@ -1243,6 +1269,7 @@ export class StripAccentsNode extends BaseNode {
 
 export class SlugifyNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Slugify";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Slugify";
   static readonly description =
@@ -1294,6 +1321,7 @@ export class SlugifyNode extends BaseNode {
 
 export class HasLengthTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.HasLength";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Check Length";
   static readonly description =
@@ -1340,6 +1368,7 @@ export class HasLengthTextNode extends BaseNode {
 
 export class TruncateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.TruncateText";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Truncate Text";
   static readonly description =
@@ -1388,6 +1417,7 @@ export class TruncateTextNode extends BaseNode {
 
 export class PadTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.PadText";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Pad Text";
   static readonly description =
@@ -1453,6 +1483,7 @@ export class PadTextNode extends BaseNode {
 
 export class LengthTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Length";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Measure Length";
   static readonly description =
@@ -1510,6 +1541,7 @@ export class LengthTextNode extends BaseNode {
 
 export class IndexOfTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.IndexOf";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Index Of";
   static readonly description =
@@ -1590,6 +1622,7 @@ export class IndexOfTextNode extends BaseNode {
 
 export class SurroundWithTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.SurroundWith";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Surround With";
   static readonly description =
@@ -1634,6 +1667,7 @@ export class SurroundWithTextNode extends BaseNode {
 
 export class CountTokensNode extends BaseNode {
   static readonly nodeType = "nodetool.text.CountTokens";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Count Tokens";
   static readonly description =
@@ -1673,6 +1707,7 @@ export class CountTokensNode extends BaseNode {
 
 export class HtmlToTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.HtmlToText";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "HTML to Text";
   static readonly description =
@@ -2315,6 +2350,7 @@ type FilterStringType =
 
 export class FilterStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FilterString";
+  static readonly retrySafe = true;
   static readonly title = "Filter String";
   static readonly description =
     "Filters a stream of strings based on various criteria.\n    filter, strings, text, stream";
@@ -2414,6 +2450,7 @@ export class FilterStringNode extends BaseNode {
 
 export class FilterRegexStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.FilterRegexString";
+  static readonly retrySafe = true;
   static readonly title = "Filter Regex String";
   static readonly description =
     "Filters a stream of strings using regular expressions.\n    filter, regex, pattern, text, stream";
@@ -2485,6 +2522,7 @@ export class FilterRegexStringNode extends BaseNode {
 
 export class ConcatTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Concat";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly body = "content_card";
   static readonly title = "Concat";
@@ -2512,6 +2550,7 @@ export class ConcatTextNode extends BaseNode {
 
 export class JoinTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Join";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Join";
   static readonly description =
@@ -2637,6 +2676,7 @@ export class PromptNode extends BaseNode {
 
 export class TemplateTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Template";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Template";
   static readonly description =
@@ -2675,6 +2715,7 @@ export class TemplateTextNode extends BaseNode {
 
 export class ReplaceTextNode extends BaseNode {
   static readonly nodeType = "nodetool.text.Replace";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "Replace Text";
   static readonly description =
@@ -2706,6 +2747,7 @@ export class ReplaceTextNode extends BaseNode {
 
 export class ToStringNode extends BaseNode {
   static readonly nodeType = "nodetool.text.ToString";
+  static readonly retrySafe = true;
   static readonly cacheTtl = "forever";
   static readonly title = "To String";
   static readonly description =

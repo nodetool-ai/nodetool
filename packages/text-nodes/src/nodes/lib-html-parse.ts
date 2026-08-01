@@ -16,6 +16,7 @@ function resolveUrl(src: string, baseUrl: string): string {
 
 export class BaseUrlLibNode extends BaseNode {
   static readonly nodeType = "lib.html.BaseUrl";
+  static readonly retrySafe = true;
   static readonly title = "Base Url";
   static readonly description =
     "Extract the base URL from a given URL.\n    url parsing, domain extraction, web utilities\n\n    Use cases:\n    - Get domain name from full URLs\n    - Clean up URLs for comparison\n    - Extract root website addresses\n    - Standardize URL formats";
@@ -45,6 +46,7 @@ export class BaseUrlLibNode extends BaseNode {
 
 export class ExtractLinksLibNode extends BaseNode {
   static readonly nodeType = "lib.html.ExtractLinks";
+  static readonly retrySafe = true;
   static readonly title = "Extract Links";
   static readonly description =
     "Extract all links from HTML content with type classification.\n    extract, links, urls, web scraping, html\n\n    Use cases:\n    - Analyze website structure and navigation\n    - Discover related content and resources\n    - Build sitemaps and link graphs\n    - Find internal and external references\n    - Collect URLs for further processing";
@@ -130,6 +132,7 @@ export class ExtractLinksLibNode extends BaseNode {
 
 export class ExtractImagesLibNode extends BaseNode {
   static readonly nodeType = "lib.html.ExtractImages";
+  static readonly retrySafe = true;
   static readonly title = "Extract Images";
   static readonly description =
     "Extract images from HTML content.\n    extract, images, src\n\n    Use cases:\n    - Collect images from web pages\n    - Analyze image usage on websites\n    - Create image galleries";
@@ -192,6 +195,7 @@ export class ExtractImagesLibNode extends BaseNode {
 
 export class ExtractAudioLibNode extends BaseNode {
   static readonly nodeType = "lib.html.ExtractAudio";
+  static readonly retrySafe = true;
   static readonly title = "Extract Audio";
   static readonly description =
     "Extract audio elements from HTML content.\n    extract, audio, src\n\n    Use cases:\n    - Collect audio sources from web pages\n    - Analyze audio usage on websites\n    - Create audio playlists";
@@ -256,6 +260,7 @@ export class ExtractAudioLibNode extends BaseNode {
 
 export class ExtractVideosLibNode extends BaseNode {
   static readonly nodeType = "lib.html.ExtractVideos";
+  static readonly retrySafe = true;
   static readonly title = "Extract Videos";
   static readonly description =
     "Extract videos from HTML content.\n    extract, videos, src\n\n    Use cases:\n    - Collect video sources from web pages\n    - Analyze video usage on websites\n    - Create video playlists";
@@ -320,6 +325,7 @@ export class ExtractVideosLibNode extends BaseNode {
 
 export class ExtractMetadataLibNode extends BaseNode {
   static readonly nodeType = "lib.html.ExtractMetadata";
+  static readonly retrySafe = true;
   static readonly title = "Extract Metadata";
   static readonly description =
     "Extract metadata from HTML content.\n    extract, metadata, seo\n\n    Use cases:\n    - Analyze SEO elements\n    - Gather page information\n    - Extract structured data";
@@ -357,6 +363,7 @@ export class ExtractMetadataLibNode extends BaseNode {
 
 export class HTMLToTextLibNode extends BaseNode {
   static readonly nodeType = "lib.html.HTMLToText";
+  static readonly retrySafe = true;
   static readonly title = "Convert HTML to Text";
   static readonly description =
     "Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing";
@@ -392,6 +399,7 @@ export class HTMLToTextLibNode extends BaseNode {
 
 export class WebsiteContentExtractorLibNode extends BaseNode {
   static readonly nodeType = "lib.html.WebsiteContentExtractor";
+  static readonly retrySafe = true;
   static readonly title = "Website Content Extractor";
   static readonly description =
     "Extract main content from a website, removing navigation, ads, and other non-essential elements.\n    scrape, web scraping, content extraction, text analysis\n\n    Use cases:\n    - Clean web content for further analysis\n    - Extract article text from news websites\n    - Prepare web content for summarization";

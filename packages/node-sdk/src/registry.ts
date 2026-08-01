@@ -547,6 +547,8 @@ export function hydrateGraphNodeFlags(
         false,
       is_trigger:
         (cls ? cls.isTrigger : meta?.is_trigger) ?? node.is_trigger ?? false,
+      retry_safe:
+        (cls ? cls.retrySafe : meta?.retry_safe) ?? node.retry_safe ?? false,
       always_emit_output_updates:
         (cls ? cls.alwaysEmitOutputUpdates : meta?.always_emit_output_updates) ??
         node.always_emit_output_updates ??
@@ -627,6 +629,7 @@ export function createGraphNodeTypeResolver(
           is_streaming_output: metadata.is_streaming_output ?? false,
           is_controlled: metadata.is_controlled ?? false,
           is_join_node: metadata.is_join_node ?? false,
+          retry_safe: metadata.retry_safe ?? false,
           ...(metadata.input_mode && { input_mode: metadata.input_mode }),
           ...(metadata.output_correlation && {
             output_correlation: metadata.output_correlation

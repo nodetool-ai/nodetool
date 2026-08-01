@@ -173,6 +173,15 @@ export interface NodeDescriptor {
   /** Dynamic runtime outputs declared by dynamic nodes. */
   dynamic_outputs?: Record<string, TypeMetadata | Record<string, unknown>>;
 
+  /**
+   * Whether re-running this node with identical inputs is safe. An opt-in, not
+   * an opt-out: cost tracking cannot see external writes, so a node nobody
+   * classified must lose a safe retry rather than gain an unsafe one. The
+   * supervisor offers `retry` only for a node that declares this.
+   * See docs/workflow-supervisor-design.md §5.3.
+   */
+  retry_safe?: boolean;
+
   /** Whether this node consumes streaming input. */
   is_streaming_input?: boolean;
 
