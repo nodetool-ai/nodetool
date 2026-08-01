@@ -975,61 +975,67 @@ export abstract class BaseProvider {
       // turn. Discarded when tools are pending — the next round supplies its own.
       let terminalChunk: ProviderStreamItem | undefined;
 
-      for await (const item of this.generateMessagesTraced({
-        ...turnArgs,
-        messages,
-        onToolCall
-      })) {
-        if (turnArgs.signal?.aborted) break;
-        if (isProviderMessageEvent(item)) {
-          if (item.message.role === "assistant") {
-            finalizedAssistant = item.message;
+      // The reservation covers exactly one turn, so it is reconciled in a
+      // `finally`: a turn that throws must release it. Left outstanding, a
+      // single provider error would shrink the budget's headroom for good —
+      // it is run-level and outlives the decision that hit the error.
+      try {
+        for await (const item of this.generateMessagesTraced({
+          ...turnArgs,
+          messages,
+          onToolCall
+        })) {
+          if (turnArgs.signal?.aborted) break;
+          if (isProviderMessageEvent(item)) {
+            if (item.message.role === "assistant") {
+              finalizedAssistant = item.message;
+            }
+            yield item;
+            continue;
+          }
+          if (isProviderSessionUpdate(item)) {
+            yield item;
+            continue;
+          }
+          if ("id" in item && "name" in item && "args" in item) {
+            pending.push(item);
+            yield item;
+            continue;
+          }
+          const chunk = item as {
+            content?: unknown;
+            content_type?: string;
+            thinking?: boolean;
+            done?: boolean;
+          };
+          // Only text belongs in the assistant message. Audio/image chunks carry
+          // base64 in the same `content` field; concatenating those produced
+          // assistant messages full of binary garbage.
+          const isTextChunk =
+            chunk.content_type === undefined || chunk.content_type === "text";
+          if (
+            typeof chunk.content === "string" &&
+            !chunk.thinking &&
+            isTextChunk
+          ) {
+            assistantText += chunk.content;
+          }
+          // `done: true` closes the provider's *completion*, which is not the same
+          // as the end of the turn — every provider emits one per tool-calling
+          // round. Forwarding them made consumers (the chat composer's Stop
+          // button) treat each round as the end of the turn. Hold the terminal
+          // chunk until we know whether tools are pending; release it below only
+          // when this round really is the last one.
+          if (chunk.done === true) {
+            terminalChunk = item;
+            continue;
           }
           yield item;
-          continue;
         }
-        if (isProviderSessionUpdate(item)) {
-          yield item;
-          continue;
-        }
-        if ("id" in item && "name" in item && "args" in item) {
-          pending.push(item);
-          yield item;
-          continue;
-        }
-        const chunk = item as {
-          content?: unknown;
-          content_type?: string;
-          thinking?: boolean;
-          done?: boolean;
-        };
-        // Only text belongs in the assistant message. Audio/image chunks carry
-        // base64 in the same `content` field; concatenating those produced
-        // assistant messages full of binary garbage.
-        const isTextChunk =
-          chunk.content_type === undefined || chunk.content_type === "text";
-        if (
-          typeof chunk.content === "string" &&
-          !chunk.thinking &&
-          isTextChunk
-        ) {
-          assistantText += chunk.content;
-        }
-        // `done: true` closes the provider's *completion*, which is not the same
-        // as the end of the turn — every provider emits one per tool-calling
-        // round. Forwarding them made consumers (the chat composer's Stop
-        // button) treat each round as the end of the turn. Hold the terminal
-        // chunk until we know whether tools are pending; release it below only
-        // when this round really is the last one.
-        if (chunk.done === true) {
-          terminalChunk = item;
-          continue;
-        }
-        yield item;
+      } finally {
+        // Replace the reservation with what the turn really cost.
+        turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
       }
-
-      // The turn is over; replace its reservation with what it really cost.
-      turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
 
       if (pending.length === 0) {
         if (terminalChunk !== undefined) {

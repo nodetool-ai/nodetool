@@ -81,6 +81,20 @@ describe("CostCappedTurnBudget", () => {
   });
 });
 
+/** Fails every turn, so the reservation has to be released by the loop. */
+class ThrowingProvider extends BaseProvider {
+  readonly provider = "openai" as const;
+
+  async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+    throw new Error("network exploded");
+    yield undefined as never;
+  }
+
+  async generateMessage(): Promise<never> {
+    throw new Error("not used");
+  }
+}
+
 /** Minimal provider whose only job is to report turns taken. */
 class CountingProvider extends BaseProvider {
   readonly provider = "openai" as const;
@@ -186,5 +200,33 @@ describe("OpenAI Responses loop honors the budget", () => {
       // drain
     }
     expect(turnsCollected()).toBe(0);
+  });
+});
+
+describe("reservation release on a failed turn", () => {
+  it("does not leave a failed turn's reservation outstanding", async () => {
+    // The budget is run-level and outlives the decision that hit the error, so
+    // a stranded reservation would quietly shrink the cap for the rest of the
+    // run — refusing later turns that had the headroom all along.
+    const provider = new ThrowingProvider();
+    const budget = new CostCappedTurnBudget({
+      capUsd: 0.002,
+      maxOutputTokens: 2048
+    });
+
+    await expect(async () => {
+      for await (const _item of provider.generateLoop({
+        messages: [{ role: "user", content: "hi" }],
+        model: PRICED_MODEL,
+        turnBudget: budget
+      } as Parameters<BaseProvider["generateLoop"]>[0])) {
+        // drain
+      }
+    }).rejects.toThrow("network exploded");
+
+    expect(budget.spentUsd).toBe(0);
+    // Headroom is intact: the next turn is admitted, as it would have been
+    // had the failed one never happened.
+    expect(budget.reserve(turn())).toBe(true);
   });
 });

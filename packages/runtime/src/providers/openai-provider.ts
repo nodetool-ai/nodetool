@@ -1540,18 +1540,26 @@ export class OpenAIProvider extends BaseProvider {
       }
       const costBeforeTurn = config.turnBudget ? this.getTotalCost() : 0;
 
-      const request = await this.buildResponsesRequest(config.args, {
-        input,
-        stream: true,
-        store: true,
-        previousResponseId
-      });
-      yield* this.collectResponsesTurn(
-        config.args,
-        request,
-        config.systemHash,
-        state
-      );
+      // The reservation covers exactly one turn, so it has to be reconciled
+      // even when that turn throws. Left outstanding, a single provider error
+      // would shrink the run's headroom for good — the budget is run-level and
+      // outlives the decision that hit the error.
+      try {
+        const request = await this.buildResponsesRequest(config.args, {
+          input,
+          stream: true,
+          store: true,
+          previousResponseId
+        });
+        yield* this.collectResponsesTurn(
+          config.args,
+          request,
+          config.systemHash,
+          state
+        );
+      } finally {
+        config.turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
+      }
 
       previousResponseId = state.responseId;
       // Native image_generation results ride the assistant message as image
@@ -1567,7 +1575,6 @@ export class OpenAIProvider extends BaseProvider {
       };
       yield { type: "message", message: assistantMsg };
       transcript.push(assistantMsg);
-      config.turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
 
       if (state.pending.length === 0) {
         return;
@@ -1612,6 +1619,9 @@ export class OpenAIProvider extends BaseProvider {
         yield { type: "message", message: toolMsg };
         if (imageMessage) {
           toolMessages.push(imageMessage);
+          // It rides the next turn's input, so it is part of what that turn
+          // is billed for — and therefore part of what its reservation covers.
+          transcript.push(imageMessage);
         }
       };
 
