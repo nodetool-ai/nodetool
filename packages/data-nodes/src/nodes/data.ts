@@ -82,9 +82,20 @@ function parseCsv(csv: string): Row[] {
   );
 }
 
+function getAllKeys(rows: Row[]): string[] {
+  const colSet = new Set<string>();
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i];
+    for (const k in row) {
+      colSet.add(k);
+    }
+  }
+  return [...colSet];
+}
+
 function toCsv(rows: Row[]): string {
   if (rows.length === 0) return "";
-  const headers = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+  const headers = getAllKeys(rows);
   return Papa.unparse(rows, { columns: headers, newline: "\n" });
 }
 
@@ -1549,10 +1560,11 @@ export class AggregateNode extends BaseNode {
     }
 
     const output: Row[] = [];
+    const groupColsSet = new Set(groupCols);
     for (const [key, items] of groups) {
       const base = JSON.parse(key) as Row;
-      const numericCols = [...new Set(items.flatMap((r) => Object.keys(r)))]
-        .filter((c) => !groupCols.includes(c))
+      const numericCols = getAllKeys(items)
+        .filter((c) => !groupColsSet.has(c))
         .filter((c) => items.some((r) => Number.isFinite(toNumber(r[c]))));
       for (const col of numericCols) {
         const values = items
@@ -1794,7 +1806,7 @@ export class FillNANode extends BaseNode {
     const value = this.value ?? 0;
     const method = String(this.method ?? "value");
     const colsRaw = String(this.columns ?? "");
-    const allCols = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+    const allCols = getAllKeys(rows);
     const cols = colsRaw
       ? colsRaw
           .split(",")
@@ -1986,10 +1998,21 @@ export class DescribeNode extends BaseNode {
     const rows = asRows(this.dataframe);
     if (rows.length === 0) return { output: toDataframe([]) };
 
-    const allKeys = [...new Set(rows.flatMap((r) => Object.keys(r)))];
+    const allKeys = getAllKeys(rows);
     const numericCols = allKeys.filter((key) => {
-      const vals = rows.map((r) => r[key]).filter((v) => v != null && v !== "");
-      return vals.length > 0 && vals.every((v) => !Number.isNaN(Number(v)));
+      let hasValues = false;
+      let allNumeric = true;
+      for (let i = 0; i < rows.length; i++) {
+        const v = rows[i][key];
+        if (v != null && v !== "") {
+          hasValues = true;
+          if (Number.isNaN(Number(v))) {
+            allNumeric = false;
+            break;
+          }
+        }
+      }
+      return hasValues && allNumeric;
     });
 
     const statNames = ["count", "mean", "std", "min", "25%", "50%", "75%", "max"];
