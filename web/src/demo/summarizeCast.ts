@@ -38,7 +38,7 @@ const SUMMARY_TOKENS = [
 ];
 const SUMMARY = SUMMARY_TOKENS.join("");
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Summarize a Document",
   access: "private",
@@ -62,7 +62,7 @@ const workflow = {
       edge("e2", "summary", "text", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Paced so the article reads, then the summary streams phrase by phrase.
 const events: CastEvent[] = [

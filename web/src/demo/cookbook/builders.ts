@@ -14,7 +14,7 @@
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { edge, meta, node, out, prop, type GraphNode } from "../castHelpers";
 import type { CastViewport } from "../castTypes";
-import type { NodeMetadata, Workflow } from "../../stores/ApiTypes";
+import type { Edge, NodeMetadata, Workflow } from "../../stores/ApiTypes";
 
 /** Assemble a synthetic Workflow from nodes/edges (positions are real). */
 export const cookbookWorkflow = (
@@ -22,21 +22,20 @@ export const cookbookWorkflow = (
   name: string,
   description: string,
   nodes: GraphNode[],
-  edges: ReturnType<typeof edge>[]
-): Workflow =>
-  ({
-    id,
-    name,
-    access: "private",
-    description,
-    thumbnail: "",
-    tags: [],
-    run_mode: "workflow",
-    settings: {},
-    updated_at: new Date(0).toISOString(),
-    created_at: new Date(0).toISOString(),
-    graph: { nodes, edges },
-  }) as unknown as Workflow;
+  edges: Edge[]
+): Workflow => ({
+  id,
+  name,
+  access: "private",
+  description,
+  thumbnail: "",
+  tags: [],
+  run_mode: "workflow",
+  settings: {},
+  updated_at: new Date(0).toISOString(),
+  created_at: new Date(0).toISOString(),
+  graph: { nodes, edges },
+});
 
 export { edge, node };
 

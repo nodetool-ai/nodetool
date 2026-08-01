@@ -46,7 +46,7 @@ const DESC_TOKENS = [
 ];
 const DESCRIPTION = DESC_TOKENS.join("");
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "Describe an Image",
   access: "private",
@@ -68,7 +68,7 @@ const workflow = {
       edge("e2", "describe", "text", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 // Paced so the image registers, then the description streams phrase by phrase.
 const events: CastEvent[] = [

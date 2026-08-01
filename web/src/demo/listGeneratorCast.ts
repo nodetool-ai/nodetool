@@ -34,7 +34,7 @@ const ITEMS = [
   "Vineyard & spa retreat",
 ];
 
-const workflow = {
+const workflow: Workflow = {
   id: WF,
   name: "List Generator",
   access: "private",
@@ -56,7 +56,7 @@ const workflow = {
       edge("e2", "list", "output", "preview", "value"),
     ],
   },
-} as unknown as Workflow;
+};
 
 /** Stream the list items as item/index output_updates across [start, start+span]. */
 function streamItems(start: number, span: number): CastEvent[] {
