@@ -20,28 +20,61 @@ export function isWorkflow(value: unknown): value is Workflow {
   );
 }
 
-export async function runDslFile(
+/** Every exported `Workflow` in the file, keyed by export name. */
+export async function loadDslWorkflows(
   filePath: string
-): Promise<Record<string, Record<string, unknown>>> {
+): Promise<Record<string, Workflow>> {
   const moduleUrl = pathToFileURL(filePath).href;
   const mod = (await tsImport(moduleUrl, import.meta.url)) as Record<
     string,
     unknown
   >;
 
-  const results: Record<string, Record<string, unknown>> = {};
-  let found = false;
-
+  const workflows: Record<string, Workflow> = {};
   for (const [name, value] of Object.entries(mod)) {
-    if (isWorkflow(value)) {
-      found = true;
-      results[name] = await runWorkflow(value);
-    }
+    if (isWorkflow(value)) workflows[name] = value;
   }
 
-  if (!found) {
+  if (Object.keys(workflows).length === 0) {
     throw new Error(`No Workflow exports found in ${filePath}`);
   }
+  return workflows;
+}
 
+export async function runDslFile(
+  filePath: string
+): Promise<Record<string, Record<string, unknown>>> {
+  const workflows = await loadDslWorkflows(filePath);
+  const results: Record<string, Record<string, unknown>> = {};
+  for (const [name, wf] of Object.entries(workflows)) {
+    results[name] = await runWorkflow(wf);
+  }
   return results;
+}
+
+/**
+ * The graph shape `ExecutionSession` takes, from a DSL workflow. `run()` in
+ * `@nodetool-ai/dsl` builds the same descriptors against its own
+ * `WorkflowRunner`; supervision goes through the session facade instead
+ * (docs/workflow-supervisor-design.md §7), so the mapping is needed here too.
+ */
+export function dslWorkflowToGraph(wf: Workflow): {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+} {
+  return {
+    nodes: wf.nodes.map((n) => ({
+      id: n.id,
+      type: n.type,
+      properties: n.data,
+      is_streaming_output: n.streaming,
+      is_streaming_input: n.streamingInput
+    })),
+    edges: wf.edges.map((e) => ({
+      source: e.source,
+      sourceHandle: e.sourceHandle,
+      target: e.target,
+      targetHandle: e.targetHandle
+    }))
+  };
 }

@@ -2,6 +2,11 @@
  * Renders a `DebugReport` as a human-readable Markdown document (report.md in
  * the bundle). Pure — no IO — so it's trivially testable.
  */
+import {
+  formatInterventionLine,
+  formatSupervisedSummary,
+  summarizeInterventions
+} from "@nodetool-ai/execution/debug";
 import type {
   BrowserRunReport,
   DebugReport,
@@ -59,6 +64,16 @@ function summarySection(summary: ExecutionSummary): string[] {
           (call.error ? ` · ERROR ${call.error}` : "")
       );
     }
+  }
+
+  if (summary.interventions.length > 0) {
+    lines.push("", "**Interventions**");
+    for (const intervention of summary.interventions) {
+      lines.push(`- ${formatInterventionLine(intervention)}`);
+    }
+    lines.push(
+      `- ${formatSupervisedSummary(summarizeInterventions(summary.interventions))}`
+    );
   }
 
   if (summary.logs.length > 0) {

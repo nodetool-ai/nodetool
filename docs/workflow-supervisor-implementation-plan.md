@@ -81,9 +81,34 @@ that would reject results no author ever forbade.
 - `supervisor:` memory keys for decisions + rationales.
 - Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; an unresolvable substitute ref bounces back into the open conversation; supervisor exceptions and timeouts resolve as `fail`; abort mid-decision cancels the provider call; a secret value planted in a `read_node_output` result never appears in the outbound prompt; in a fan-out, `read_node_output` refuses a sibling item's output; reservation blocks the $0.49+$0.30 overshoot mid-decision.
 
-### PR 4 — CLI surface ∥ (with PR 5)
+### PR 4 — CLI surface ∥ (with PR 5) — **shipped**
 
 Depends on PR 3.
+
+Two deviations the plan did not anticipate.
+
+**`nodetool run` is a DSL command, not a session command.** `nodetool run
+<dsl-file>` executes through `@nodetool-ai/dsl`'s own `run()`, which constructs
+a `WorkflowRunner` directly — one of the grandfathered sites this PR is
+forbidden to grow supervision on. So `--supervise` switches that command onto
+`ExecutionSession` (`packages/cli/src/run-dsl-supervised.ts`) and the
+unsupervised path stays byte-identical on the old one. One user-visible
+consequence: the supervised path does not rethrow the first node error the way
+the DSL path does. A node error the supervisor resolved is not a run failure;
+only the run's terminal status decides.
+
+**The summary line's item counts do not exist at run level.** "198/200 items"
+presumes a batch the kernel never names: it counts invocations, not the items a
+user thinks in. `formatSupervisedSummary` takes an optional item total for a
+caller that knows one and otherwise reports decisions — `⛨ supervised: 2
+skipped, 1 retried, 3 decisions, +$0.0200`.
+
+The intervention record shipped as `Intervention` from `@nodetool-ai/protocol`
+(minted in PR 1), unchanged — `RunResult.interventions`, the
+`supervisor_decision` message, and the `--json` block are the same record, so
+PR 6 has one shape to consume. The rollup and the two printed lines live in
+`@nodetool-ai/execution` beside the debug reducer, so the CLI, the debug
+bundle, and the HTTP debug endpoint cannot drift.
 
 - **`ExecutionSessionOptions.supervisor`** in `packages/execution` — the single integration point; CLI and websocket surfaces configure the facade, never `WorkflowRunner` directly (design §7). Grandfathered direct-construction sites are out of scope but must not gain supervision ad hoc.
 - `--supervise`, `--max-decisions`, `--max-retries`, `--supervisor-cost-cap`, `--supervisor-model` on `nodetool run` and `nodetool debug` (the latter through the shared debug service in `@nodetool-ai/execution`, not around it).

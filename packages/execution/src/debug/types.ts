@@ -8,6 +8,8 @@
  * different, thinner shape than the CLI did for the same run.
  */
 
+import type { Intervention } from "@nodetool-ai/protocol";
+
 /** A single value emitted by a node (output_update / generation_complete). */
 export interface NodeOutput {
   nodeId?: string;
@@ -72,6 +74,12 @@ export interface ExecutionSummary {
   llmCalls: LlmCallDebug[];
   /** Workflow-level outputs (Output / Preview nodes). */
   outputs: NodeOutput[];
+  /**
+   * Supervisor decisions, in decision order — empty on an unsupervised run.
+   * Folded from `supervisor_decision` messages, so it is the same record the
+   * kernel puts on `RunResult.interventions`.
+   */
+  interventions: Intervention[];
   counts: {
     nodes: number;
     completed: number;
@@ -79,6 +87,7 @@ export interface ExecutionSummary {
     logs: number;
     outputs: number;
     llmCalls: number;
+    interventions: number;
   };
   errors: DebugError[];
 }

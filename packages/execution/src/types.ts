@@ -11,7 +11,8 @@ import type {
   NodeExecutor,
   NodeTypeResolver,
   NodeValidator,
-  RunResult
+  RunResult,
+  SupervisorHandle
 } from "@nodetool-ai/kernel";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridgeBase, ProcessingContext } from "@nodetool-ai/runtime";
@@ -163,6 +164,23 @@ export interface ExecutionSessionOptions {
    * for the cap that catches a consumer falling behind.
    */
   captureMessages?: boolean;
+  /**
+   * Workflow supervisor for this run — the single integration point every
+   * surface shares (docs/workflow-supervisor-design.md §7). Forwarded to
+   * `WorkflowRunnerOptions.supervisor`; omitted, no escalation is ever
+   * constructed and the run behaves exactly as it does today.
+   *
+   * Wrap the handle in the kernel's `BoundedHandle` before passing it: the
+   * facade adds no bounds of its own, so an unwrapped handle runs with no
+   * decision ceiling, no retry ceiling, and no per-decision timeout.
+   */
+  supervisor?: SupervisorHandle;
 }
 
-export type { NodeDescriptor, Edge, ProcessingMessage, RunResult };
+export type {
+  NodeDescriptor,
+  Edge,
+  ProcessingMessage,
+  RunResult,
+  SupervisorHandle
+};

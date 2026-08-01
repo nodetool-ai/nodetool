@@ -6,7 +6,7 @@
  * report identically. Only `import type` is used here so the module stays free of
  * runtime workspace dependencies (testable under the CLI vitest stub setup).
  */
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import type { Intervention, ProcessingMessage } from "@nodetool-ai/protocol";
 import type {
   EdgeDebug,
   ExecutionSummary,
@@ -82,6 +82,7 @@ export function collectExecutionSummary(
   const edges = new Map<string, EdgeDebug>();
   const llmCalls: LlmCallDebug[] = [];
   const outputs: NodeOutput[] = [];
+  const interventions: Intervention[] = [];
   let status = "unknown";
   let error: string | null = null;
 
@@ -191,6 +192,11 @@ export function collectExecutionSummary(
         logs.push({ nodeId: null, severity: "error", content: message });
         break;
       }
+      case "supervisor_decision": {
+        const intervention = readIntervention(msg);
+        if (intervention) interventions.push(intervention);
+        break;
+      }
       case "llm_call": {
         llmCalls.push({
           nodeId: str(msg.node_id) ?? "",
@@ -228,14 +234,42 @@ export function collectExecutionSummary(
     edges: [...edges.values()],
     llmCalls,
     outputs,
+    interventions,
     counts: {
       nodes: nodeList.length,
       completed: nodeList.filter((n) => n.status === "completed").length,
       errored: errored.length,
       logs: logs.length,
       outputs: outputs.length,
-      llmCalls: llmCalls.length
+      llmCalls: llmCalls.length,
+      interventions: interventions.length
     },
     errors
+  };
+}
+
+/**
+ * Read a `supervisor_decision` message as an `Intervention`.
+ *
+ * Structural rather than schema-validated: this module stays free of runtime
+ * imports (the browser harness feeds it decoded JSON bags), so it checks the
+ * fields the record is keyed on and drops anything else. A message the kernel
+ * emitted always passes.
+ */
+function readIntervention(msg: Record<string, unknown>): Intervention | null {
+  const escalation = msg.escalation;
+  const verdict = msg.verdict;
+  if (!escalation || typeof escalation !== "object") return null;
+  if (!verdict || typeof verdict !== "object") return null;
+  if (typeof (verdict as { action?: unknown }).action !== "string") return null;
+  const decidedBy = msg.decided_by;
+  const cost = msg.cost;
+  return {
+    escalation: escalation as Intervention["escalation"],
+    verdict: verdict as Intervention["verdict"],
+    decidedBy: (typeof decidedBy === "string"
+      ? decidedBy
+      : "agent") as Intervention["decidedBy"],
+    ...(typeof cost === "number" ? { costUsd: cost } : {})
   };
 }
