@@ -10,6 +10,22 @@ PRs marked ∥ can proceed in parallel once their listed dependency lands.
 
 ---
 
+## -1. Repository prerequisites
+
+Review of the existing code surfaced defects in the machinery this feature reuses. They are independent fixes, but the plan names them because pretending they don't exist would bake them into the supervisor. Ordered by how hard they block:
+
+| # | Prerequisite | Blocks |
+|---|---|---|
+| P0 | **`StepExecutor` failure semantics**: a failed step today sets `completed = true`, stores `{error}` inside the result, and emits no protocol-level `StepResult.error` — so dependents run after failures and the CLI can overwrite a failed state as completed. Normalize (protocol error field, dependents blocked, no overwrite) before `StepExecutor` becomes the supervisor primitive or `Agent({graph})` promises the shared result contract. | PR 3, PR 5 |
+| P1 | **One execution policy for agent modes**: script/graph branches bypass plan approval, `maxTokens` is absent from script/graph policies, `maxSteps` ignored in multi-task mode, `AgentNode` plan mode hardcodes 10 steps/5 iterations, and parallel fan-out has no concurrency cap while script mode does. Introduce a common `AgentPolicy` object before adding the `Agent({graph})` branch — a fifth branch with its own ad-hoc policy makes this worse. | PR 5 |
+| P1 | **Signal propagation and tool fetch safety**: `ProcessingContext.copy()` drops the cancellation signal; `run_subtask`/`run_search` spawn child executors without one; HTTP/browser tools run independent timeout controllers instead of combining with `context.signal`; `BrowserTool` uses raw `fetch` for a model-controlled URL where HTTP tools use SSRF-protected `safeFetch`. The supervisor's cancellation guarantee (§5.5) is only as good as this chain. | PR 3 |
+| P1 | **`step.tools` enforcement in task mode**: plans carry per-step tool allow-lists but `TaskExecutor` hands every step the full collection (script mode enforces its list). Same plan, different privileges by mode — fix before the supervisor's "two read-only tools" claim rests on the same mechanism. | PR 3 |
+| P1 | **One debug/validation service**: CLI `debug` can report "clean" on zero surfaces (`--no-server` without `--browser`), the agent-facing `debug_workflow` tool only starts a job and fetches metadata, and `validate_workflow` silently returns unvalidated graphs when the tool factory lacks a registry. Extract one service consumed by CLI, MCP, and agents; reject zero-surface runs — `--supervise` on `nodetool debug` (PR 4) plugs into this, not around it. | PR 4 |
+| P2 | **Failed plans compile into apparent success**: dependency deadlock is reported only as a chunk and the compiler always runs; checkpoint hashes omit dependencies, instructions, schemas, and models, so changed plans can resume stale results. Fix alongside PR 5's result-contract work. | PR 5 |
+| P2 | **`AgentWorkflowRunner` shared-context mutation**: permanently replaces injected tools and monkeypatches `context.emit`; concurrent executions clobber each other. Use scoped tool injection and the existing message-listener mechanism before PR 5 reuses any of it. | PR 5 |
+
+Each lands as its own small PR (or folded into the blocked PR where inseparable); none of them waits for this feature to be approved — they are bugs today.
+
 ## 0. Ground rules
 
 - Every PR passes `npm run check` and lands behavior-preserving unless its description says otherwise. PR 1 and PR 2 must be invisible to existing runs.
@@ -56,8 +72,8 @@ Still no LLM. Depends on PR 1.
 Depends on PR 2.
 
 - `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema` (mirroring the escalation's allowed set), serialized queue; the `decide()` signal threads through `StepExecutor` into `provider.generateLoop({signal})` so abort kills the in-flight LLM request.
-- **Cost reservation at the provider wrapper**: worst-case reservation (pricing catalog; explicit `supervisorMaxOutputTokens`, default 2048, never unset) around **every individual provider turn** inside the decision loop — `decide()`-granularity checks can't see the turns `generateLoop` makes. No pricing entry ⇒ fail closed.
-- **Async verdict acceptance**: `finish_step` with a `substitute` is terminal only after the runtime validator (PR 2, storage resolution included) resolves; failures return as tool errors into the still-open conversation, `MAX_REPAIR_ROUNDS` (3) then `fail`.
+- **`TurnBudget` in the runtime provider layer** (design §6): `reserve/commit` object accepted via `generateLoop` options, honored before every model turn by the base loop and by native loop overrides (Claude Agent SDK provider explicitly). Worst-case reservation from the pricing catalog with explicit `supervisorMaxOutputTokens` (default 2048, never unset); no pricing entry ⇒ fail closed. This is a `packages/runtime` change with its own provider-contract test, not a wrapper in the agents package — a wrapper around `generateLoop()` cannot see individual turns.
+- **`StepExecutor` extensions** (design §6): full host-side JSON-schema validation for `finish_step` (enums, nested fields, `additionalProperties`, discriminated unions — today it checks top-level type and required keys only) and an injectable **async acceptance callback** so a `substitute` becomes terminal only after the runtime validator (PR 2, storage resolution included) resolves; failures return as tool errors into the still-open conversation, `MAX_REPAIR_ROUNDS` (3) then `fail`. Both extensions are general `StepExecutor` features with their own tests.
 - Tool-result redaction: `read_node_output` returns are the one supervisor input not derived from an already-redacted `Escalation` (that layer landed in PR 1, kernel-side); apply the same layer here.
 - `packages/agents/src/supervisor/tools.ts`: `get_run_state`, `read_node_output` (read-only, redacted, truncated, **lineage-scoped** — reads resolve through the escalation's `correlation_lineage` and refuse anything outside it).
 - `packages/agents/src/supervisor/prompt.ts`: verb semantics, skip-distrust, one-line rationale requirement.
@@ -68,7 +84,8 @@ Depends on PR 2.
 
 Depends on PR 3.
 
-- `--supervise`, `--max-decisions`, `--max-retries`, `--supervisor-cost-cap`, `--supervisor-model` on `nodetool run` and `nodetool debug`.
+- **`ExecutionSessionOptions.supervisor`** in `packages/execution` — the single integration point; CLI and websocket surfaces configure the facade, never `WorkflowRunner` directly (design §7). Grandfathered direct-construction sites are out of scope but must not gain supervision ad hoc.
+- `--supervise`, `--max-decisions`, `--max-retries`, `--supervisor-cost-cap`, `--supervisor-model` on `nodetool run` and `nodetool debug` (the latter through the unified debug service, prerequisite table).
 - Inline `⛨` intervention lines; interventions block in `--json`; supervised summary line ("198/200 items, 2 skipped, 3 decisions, +$0.02").
 - Supervisor cost attributed through the existing cost tracking so `nodetool costs` sees it (PRD open question 3 resolved: attributed to the run, tagged `supervisor`).
 - Docs: CLI section in root `CLAUDE.md` + `docs/cli.md`.
@@ -77,7 +94,7 @@ Depends on PR 3.
 
 Depends on PR 3.
 
-- `AgentOptions.graph?: GraphData | { workflowId: string }`; fourth branch in `Agent._executeImpl`: hydrate, run with self as supervisor, forward messages, `getResults()` returns run outputs.
+- `AgentOptions.graph?: GraphData | { workflowId: string }`; fourth branch in `Agent._executeImpl`: hydrate, run through `ExecutionSession` with self as supervisor, forward messages, `getResults()` returns run outputs. Depends on the `AgentPolicy` prerequisite — the branch adopts the common policy object, it does not add a fifth ad-hoc policy.
 - Websocket: `supervise` flag on run requests; forward `supervisor_*` messages to clients. Trigger rows carry the flag but it **defaults to off** — the flip to default-on belongs to PR 8's gate, nowhere earlier.
 - Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream.
 
@@ -96,7 +113,8 @@ Depends on PR 4 (record shape frozen).
 
 Depends on PR 1 only.
 
-- `nodetool.control.Assert` in `packages/core-nodes/`: condition (expression) + optional natural-language criterion evaluated by the run's model; throws on failure, pass-through otherwise.
+- `nodetool.control.Assert` in `packages/core-nodes/`: **deterministic in v1** — expression condition over its input; throws on failure, pass-through otherwise.
+- The natural-language criterion variant is deferred: it needs a model, and `WorkflowRunnerOptions` has no provider/model policy — inventing one inside a node would sidestep the cost caps, consent copy, and provider allow-list this whole design routes model access through. It returns as a follow-up once a run-level model policy exists (it can then reuse the supervisor's own budget and boundary machinery).
 - The PRD's "graph is the policy" counterpart: docs steer foreseeable checks here, not into supervisor config.
 
 ### PR 8 — Eval suite, replay, enable by default

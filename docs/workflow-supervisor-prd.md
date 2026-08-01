@@ -162,6 +162,8 @@ An agent-facing entry point runs a workflow *as* an agent: same streaming interf
 | **Skip** | "skipped item 147 (page requires login)" | the item is dispensable and the run is more valuable finished; always itemized in the report |
 | **Stop** | "stopping: the API key is invalid, so all remaining items would fail" | continuing would waste money or produce garbage |
 
+One boundary case wears Skip's clothes: a streaming step that fails partway is ended early, **keeping** what it already produced — reported as *"skipped the rest of this step, kept the 400 chunks it had finished."* Under the hood this is a distinct action (the run record says so), but as a user verb it stays Skip: something was given up, and the report itemizes exactly what.
+
 Skip is the verb the agent is instructed to distrust most: silent data loss dressed up as success is the one outcome this feature must never produce.
 
 ---
