@@ -1794,6 +1794,14 @@ export class UnifiedWebSocketRunner {
    * can't both slip past `activeJobs.size` and exceed MAX_CONCURRENT_JOBS.
    */
   private startingJobs = 0;
+  /**
+   * WS slot accounting, for leak accounting: after every run finishes both
+   * must be back to zero. Read by the reliability harness's ws-server driver,
+   * whose `cleanup-leaks` invariant can only assert what it can measure.
+   */
+  get slotCounters(): { activeJobs: number; startingJobs: number } {
+    return { activeJobs: this.activeJobs.size, startingJobs: this.startingJobs };
+  }
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
   private statsTimer: NodeJS.Timeout | null = null;
@@ -2867,6 +2875,59 @@ export class UnifiedWebSocketRunner {
       );
     }
 
+    // Persistence runs BEFORE the session exists, because
+    // `ExecutionSession.create()` starts the kernel: a job cancelled while it
+    // sat in the queue must never execute, and the only way to guarantee that
+    // is to check before anything can run. (The DB-only cancel path — tRPC
+    // `jobs.cancel` — doesn't remove the job from `jobQueue`, so drainQueue
+    // can still hand us a cancelled job.)
+    phaseStartedAt = performance.now();
+    if (executionOptions.persistence === "job") {
+      try {
+        const existing = await Job.get(jobId);
+        if (existing) {
+          if (existing.status === "cancelled") {
+            log.info("Skipping start of cancelled job", { jobId });
+            // Nothing was registered in activeJobs yet — free the reserved
+            // slot and promote any queued run, matching every other slot
+            // release (streamJobMessages finally, the chat-run finally).
+            // Without it a cancelled-while-queued job leaves its slot idle
+            // and the next queued run stalls.
+            releaseSlot();
+            this.drainQueue();
+            this.sendDetached({
+              type: "job_update",
+              status: "cancelled",
+              job_id: jobId,
+              workflow_id: workflowId
+            });
+            return;
+          }
+          // Was persisted as "queued" while waiting for a slot — flip it to
+          // running now that it's actually starting.
+          if (existing.status !== "running") {
+            existing.markRunning();
+            await existing.save();
+          }
+        } else {
+          await Job.create({
+            id: jobId,
+            workflow_id: workflowId ?? "",
+            user_id: userId,
+            status: "running",
+            name: req.job_name ?? "",
+            started_at: new Date().toISOString(),
+            params: req.params ?? {},
+            graph
+          });
+        }
+      } catch (error) {
+        this.logError("runJob persistence failed", error);
+        // Persistence is best-effort in TS runtime mode.
+      }
+    }
+    const persistenceMs = performance.now() - phaseStartedAt;
+
     // A5 (docs/RELIABILITY_TASKS.md Track A): the facade replaces the direct
     // `new WorkflowRunner` + later `runner.run()` pair — `graph` is already
     // hydrated/output-name-rewritten above, so this call re-hydrates it
@@ -2906,8 +2967,8 @@ export class UnifiedWebSocketRunner {
         graphLoadedMs,
         graphHydratedMs,
         preRunMs,
-        persistenceMs: 0,
-        kernelStartedAt: 0
+        persistenceMs,
+        kernelStartedAt: performance.now()
       },
       applicationId: req.application_id ?? null
     };
@@ -2917,61 +2978,9 @@ export class UnifiedWebSocketRunner {
     releaseSlot();
     log.info("Job started", { jobId, workflowId });
 
-    phaseStartedAt = performance.now();
-    if (executionOptions.persistence === "job") {
-      try {
-        const existing = await Job.get(jobId);
-        if (existing) {
-          // The run may have been cancelled via the DB-only cancel path (tRPC
-          // `jobs.cancel`) while it was still sitting in the in-memory queue —
-          // that path doesn't remove it from `jobQueue`, so drainQueue can still
-          // hand it to us. Honor the cancellation instead of resurrecting it:
-          // undo the start, surface the cancelled status, and free the slot.
-          if (existing.status === "cancelled") {
-            log.info("Skipping start of cancelled job", { jobId });
-            this.activeJobs.delete(jobId);
-            // Freeing this slot must promote any queued run, matching every
-            // other activeJobs.delete site (streamJobMessages finally, the
-            // chat-run finally). Without it a cancelled-while-queued job leaves
-            // its slot idle and the next queued run stalls.
-            this.drainQueue();
-            this.sendDetached({
-              type: "job_update",
-              status: "cancelled",
-              job_id: jobId,
-              workflow_id: workflowId
-            });
-            return;
-          }
-          // Was persisted as "queued" while waiting for a slot — flip it to
-          // running now that it's actually starting.
-          if (existing.status !== "running") {
-            existing.markRunning();
-            await existing.save();
-          }
-        } else {
-          await Job.create({
-            id: jobId,
-            workflow_id: workflowId ?? "",
-            user_id: userId,
-            status: "running",
-            name: req.job_name ?? "",
-            started_at: new Date().toISOString(),
-            params: req.params ?? {},
-            graph
-          });
-        }
-      } catch (error) {
-        this.logError("runJob persistence failed", error);
-        // Persistence is best-effort in TS runtime mode.
-      }
-    }
-    active.timings.persistenceMs = performance.now() - phaseStartedAt;
-    active.timings.kernelStartedAt = performance.now();
-
     // The run itself already started inside `ExecutionSession.create()`
-    // above (before this persistence block) — `session.result` is the same
-    // never-rejecting terminal-result promise `runner.run()` used to return.
+    // above — `session.result` is the same never-rejecting terminal-result
+    // promise `runner.run()` used to return.
     const executePromise = session.result;
 
     // `streamJobMessages` handles its own failures, but nothing awaits this

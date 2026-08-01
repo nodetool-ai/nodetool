@@ -12,6 +12,7 @@
  * so its own tests and callers stay green.
  */
 import type { NormalizedRunFrame, NormalizedRunRecord } from "./normalize.js";
+import { stableStringify } from "./stable-json.js";
 
 export interface ChannelDiffEntry {
   kind: "added" | "removed" | "changed" | "unchanged";
@@ -30,7 +31,7 @@ export interface StreamDiff {
 }
 
 function canonicalKey(message: Record<string, unknown>): string {
-  return JSON.stringify(message, Object.keys(message).sort());
+  return stableStringify(message);
 }
 
 function groupByChannel(

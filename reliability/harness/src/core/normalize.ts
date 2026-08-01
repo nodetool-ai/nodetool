@@ -192,6 +192,11 @@ export function normalizeRunRecord(
   mapper: IdMapper = new IdMapper()
 ): NormalizedRunRecord {
   const frames: NormalizedRunFrame[] = record.frames
+    // Frames a driver tagged as its surface's own documented redundancy
+    // (`RunFrame.redundant`) have no counterpart on the kernel's raw stream,
+    // so they are dropped here — in the comparison view only. The record
+    // itself keeps them, and the invariants read the record.
+    .filter((frame) => frame.redundant === undefined)
     .filter((frame) => !isTrivialNodeFrame(frame.message as Record<string, unknown>))
     .map((frame) => ({
       seq: frame.seq,

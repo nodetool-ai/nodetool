@@ -291,6 +291,14 @@ export class WorkflowRunner {
   private _cancelled = false;
 
   /**
+   * Actors spawned and not yet finished (including their completion
+   * handling). Exposed via {@link liveActorCount} for leak accounting — after
+   * a run this must be back to zero, and a harness that can't measure it
+   * can't assert it.
+   */
+  private _liveActors = 0;
+
+  /**
    * Latch set by `cancel()` and never cleared by `_resetRunState`. A cancel
    * that lands between construction and `run()` would otherwise be dropped —
    * the reset clears `_cancelled` and swaps the AbortController. `_runImpl`
@@ -758,6 +766,20 @@ export class WorkflowRunner {
     this._correlation = undefined;
     this._eosSentEdges = new Set();
     this._suspend = undefined;
+  }
+
+  /** Actors spawned and not yet finished. Zero before and after a run. */
+  get liveActorCount(): number {
+    return this._liveActors;
+  }
+
+  /** Control-event responses still waiting on an actor, summed over nodes. */
+  get pendingControlResponseCount(): number {
+    let count = 0;
+    for (const queue of this._pendingControlResponses.values()) {
+      count += queue.length;
+    }
+    return count;
   }
 
   /**
@@ -1236,6 +1258,7 @@ export class WorkflowRunner {
       });
 
       actorNodeIds.push(node.id);
+      this._liveActors++;
       actorPromises.push(
         actor.run().then(async (result) => {
           // Nothing will read this inbox again. Wake any upstream actor parked
@@ -1304,6 +1327,12 @@ export class WorkflowRunner {
               }
             }
           }
+        })
+        // Counts the actor as live until its completion handling (EOS
+        // routing, output collection) is done too — that work can still emit
+        // messages, so an actor is not "gone" before it finishes.
+        .finally(() => {
+          this._liveActors--;
         })
       );
     }

@@ -71,6 +71,25 @@ export function registerReliabilityCommands(program: Command): void {
     });
 
   reliability
+    .command("update-goldens <journey>")
+    .description(
+      "Rewrite a journey's expected/ fixtures from a fresh unfaulted kernel run — " +
+        "for a golden that legitimately moved. Review the diff before committing"
+    )
+    .action(async (journeyName: string) => {
+      try {
+        const { updateJourneyGoldens } = await import(
+          "@nodetool-ai/reliability-harness"
+        );
+        const { written } = await updateJourneyGoldens(journeyName);
+        for (const file of written) console.log(`wrote ${file}`);
+      } catch (e) {
+        console.error(String(e));
+        process.exit(1);
+      }
+    });
+
+  reliability
     .command("list")
     .description("List the journeys under reliability/journeys/")
     .option("--json", "Print the full journey summaries as JSON")

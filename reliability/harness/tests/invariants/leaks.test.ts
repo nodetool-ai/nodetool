@@ -28,10 +28,6 @@ const ZERO: Omit<ResourceCounterSnapshot, "at"> = {
 };
 
 describe("checkLeaks: passing fixtures", () => {
-  it("reports nothing when no resource counters were captured (nothing to assess)", () => {
-    expect(checkLeaks(baseRecord())).toEqual([]);
-  });
-
   it("reports nothing when every post-run counter is zero", () => {
     const record = baseRecord([
       { at: "before", ...ZERO, liveActors: 3 },
@@ -51,6 +47,18 @@ describe("checkLeaks: passing fixtures", () => {
 });
 
 describe("checkLeaks: failing fixtures", () => {
+  it("flags a record with no post-run snapshot — an uninstrumented driver asserts nothing", () => {
+    expect(checkLeaks(baseRecord())).toEqual([
+      expect.objectContaining({ invariant: "leaks.not-instrumented" })
+    ]);
+  });
+
+  it("flags a record whose only snapshot is a pre-run baseline", () => {
+    expect(checkLeaks(baseRecord([{ at: "before", ...ZERO }]))).toEqual([
+      expect.objectContaining({ invariant: "leaks.not-instrumented" })
+    ]);
+  });
+
   it("flags a nonzero post-run counter", () => {
     const record = baseRecord([{ at: "after", ...ZERO, liveActors: 1, activeJobs: 2 }]);
 

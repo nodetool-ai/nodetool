@@ -156,6 +156,19 @@ export abstract class PythonBridgeBase
     this._options = options;
   }
 
+  /**
+   * Requests still awaiting a worker reply (plain, streaming, and Comfy event
+   * subscriptions). Exposed for leak accounting — a run that ended with
+   * pending requests left a promise nothing will ever settle.
+   */
+  get pendingRequestCount(): number {
+    return (
+      this._pending.size +
+      this._pendingStream.size +
+      this._pendingComfyEvents.size
+    );
+  }
+
   // ── Transport hooks (implemented by subclasses) ─────────────────────
 
   /** Open the underlying transport and become connected. */

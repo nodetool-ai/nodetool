@@ -58,6 +58,69 @@ describe("diffNormalizedRecords", () => {
     expect(formatStreamDiff(diff)).toContain("channel node:upper1");
   });
 
+  it("flags a divergence nested inside a message payload", async () => {
+    // Regression: the canonical key used to be
+    // `JSON.stringify(message, Object.keys(message).sort())`, whose array
+    // replacer is a key whitelist at EVERY depth — every nested object
+    // serialized as `{}`, so two different node results compared equal.
+    const baseline: NormalizedRunRecord = {
+      surface: "kernel",
+      status: "completed",
+      error: null,
+      jobId: "<job:0>",
+      workflowId: "<workflow:0>",
+      frames: [
+        {
+          seq: 0,
+          channel: "node:n1",
+          direction: "server_to_client",
+          surface: "kernel",
+          message: { type: "node_update", result: { output: "A" } }
+        }
+      ]
+    };
+    const candidate = cloneNormalized(baseline);
+    candidate.surface = "ws-server";
+    (candidate.frames[0].message["result"] as Record<string, unknown>)["output"] = "B";
+
+    const diff = diffNormalizedRecords(baseline, candidate);
+    expect(streamDiffIsEmpty(diff)).toBe(false);
+    expect(diff.channels.map((c) => c.channel)).toEqual(["node:n1"]);
+    expect(formatStreamDiff(diff)).toContain('"output":"B"');
+  });
+
+  it("treats key order as insignificant at every depth", () => {
+    const baseline: NormalizedRunRecord = {
+      surface: "kernel",
+      status: "completed",
+      error: null,
+      jobId: null,
+      workflowId: null,
+      frames: [
+        {
+          seq: 0,
+          channel: "node:n1",
+          direction: "server_to_client",
+          surface: "kernel",
+          message: { type: "node_update", result: { a: 1, b: [{ x: 1, y: 2 }] } }
+        }
+      ]
+    };
+    const candidate: NormalizedRunRecord = {
+      ...baseline,
+      surface: "ws-server",
+      frames: [
+        {
+          ...baseline.frames[0],
+          surface: "ws-server",
+          message: { result: { b: [{ y: 2, x: 1 }], a: 1 }, type: "node_update" }
+        }
+      ]
+    };
+
+    expect(streamDiffIsEmpty(diffNormalizedRecords(baseline, candidate))).toBe(true);
+  });
+
   it("flags a missing terminal frame as a divergence", async () => {
     const record = await loadRunRecordFromDebugBundle(BUNDLE_DIR);
     const baseline = normalizeRunRecord(record);
