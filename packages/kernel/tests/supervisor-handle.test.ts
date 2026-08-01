@@ -32,6 +32,7 @@ function escalation(over: Partial<Escalation> = {}): Escalation {
     allowedActions: ["retry", "skip", "fail"],
     detail: "boom",
     inputs: {},
+    declaredOutputs: { output: "str" },
     attempt: 1,
     spentCostUsd: 0,
     createdAssets: false,

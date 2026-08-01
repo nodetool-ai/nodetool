@@ -1317,6 +1317,7 @@ export class NodeActor {
       failureSignature: recoverable?.code ?? failureSignature(err),
       candidateOutput,
       inputs: redactRecord(inputs, secrets),
+      declaredOutputs: this.node.outputs ?? {},
       attempt,
       spentCostUsd: account?.costUsd ?? 0,
       createdAssets: account?.createdAssets ?? false,

@@ -684,3 +684,21 @@ export type {
   AgentWorkflowRunnerOptions,
   RunPolicy
 } from "./agent-workflow-runner.js";
+export {
+  SupervisorAgent,
+  DEFAULT_MAX_SUPERVISOR_COST_USD,
+  DEFAULT_SUPERVISOR_MAX_OUTPUT_TOKENS
+} from "./supervisor/supervisor-agent.js";
+export type { SupervisorAgentOptions } from "./supervisor/supervisor-agent.js";
+export { buildVerdictSchema } from "./supervisor/verdict-schema.js";
+export { buildSupervisorPrompt } from "./supervisor/prompt.js";
+export {
+  createSupervisorTools,
+  GetRunStateTool,
+  ReadNodeOutputTool
+} from "./supervisor/tools.js";
+export {
+  validateAgainstSchema,
+  formatViolations
+} from "./utils/json-schema-validate.js";
+export type { SchemaViolation } from "./utils/json-schema-validate.js";

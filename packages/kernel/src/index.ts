@@ -49,6 +49,13 @@ export {
   type AllowedActionsInput
 } from "./supervisor.js";
 export {
+  lineageRelated,
+  type RunStateReader,
+  type RunStateDigest,
+  type NodeRunState,
+  type NodeOutputRead
+} from "./run-state.js";
+export {
   validateSubstituteOutputs,
   hasFullValidatorCoverage,
   type SubstituteValidationResult,

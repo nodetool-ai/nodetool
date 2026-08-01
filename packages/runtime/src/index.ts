@@ -65,6 +65,12 @@ export {
   currentInvocationAccount,
   type InvocationAccount
 } from "./invocation-account.js";
+export {
+  CostCappedTurnBudget,
+  type TurnBudget,
+  type TurnReservation,
+  type CostCappedTurnBudgetOptions
+} from "./turn-budget.js";
 export { packContext, type PackedContext } from "./context-packer.js";
 export {
   isZodSchema,

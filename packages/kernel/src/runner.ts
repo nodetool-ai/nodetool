@@ -49,6 +49,13 @@ const EDGE_UPDATE_MIN_INTERVAL_MS = 1000;
  */
 const MAX_RETAINED_MESSAGES = 10_000;
 
+/**
+ * Cap on lineages retained per node for `read_node_output`. A supervisor reads
+ * the failing invocation's own branch, which is recent; a wide fan-out must not
+ * turn the cache into a second copy of the run's data.
+ */
+const MAX_RECORDED_LINEAGES_PER_NODE = 64;
+
 /** An output_update whose value is a streamed audio chunk (sample payload). */
 function isAudioChunkOutputUpdate(msg: ProcessingMessage): boolean {
   if (msg.type !== "output_update") return false;
@@ -71,8 +78,16 @@ import { NodeActor, type NodeExecutor } from "./actor.js";
 import { syntheticEdgeId } from "./edge-ids.js";
 import {
   analyzeCorrelation,
+  projectLineageKey,
   type CorrelationAnalysisResult
 } from "./correlation-analysis.js";
+import {
+  lineageRelated,
+  type NodeOutputRead,
+  type NodeRunState,
+  type RunStateDigest,
+  type RunStateReader
+} from "./run-state.js";
 
 /**
  * Hints from the actor about how to route an invocation's outputs.
@@ -408,6 +423,16 @@ export class WorkflowRunner {
 
   /** Supervisor escalations and their verdicts, in decision order. */
   private _interventions: Intervention[] = [];
+
+  /**
+   * Last output of each node per invocation lineage, for `read_node_output`.
+   * Only populated on a supervised run — an unsupervised one keeps nothing.
+   * Bounded per node: a 10k-item fan-out must not become a 10k-entry cache.
+   */
+  private _recordedOutputs = new Map<
+    string,
+    Map<string, Record<string, unknown>>
+  >();
 
   /** Undefined on an unsupervised run, so its `RunResult` is unchanged. */
   private _recordedInterventions(): Intervention[] | undefined {
@@ -803,6 +828,103 @@ export class WorkflowRunner {
     this._eosSentEdges = new Set();
     this._suspend = undefined;
     this._interventions = [];
+    this._recordedOutputs = new Map();
+  }
+
+  /**
+   * The read-only view a supervisor gets of the run in flight. Built from
+   * state the runner already holds, so a run without a supervisor pays for
+   * none of it. See docs/workflow-supervisor-design.md §6.
+   */
+  private _runStateReader(): RunStateReader {
+    return {
+      digest: () => this._runStateDigest(),
+      readOutput: (nodeId, lineage) => this._readRecordedOutput(nodeId, lineage)
+    };
+  }
+
+  private _runStateDigest(): RunStateDigest {
+    const escalationsPerNode = new Map<string, number>();
+    for (const intervention of this._interventions) {
+      const nodeId = intervention.escalation.nodeId;
+      escalationsPerNode.set(nodeId, (escalationsPerNode.get(nodeId) ?? 0) + 1);
+    }
+    const nodes: NodeRunState[] = this._graph.nodes.map((node) => {
+      const error = this._nodeErrors.get(node.id);
+      const done = this._completedNodes.has(node.id);
+      const emissions = this._recordedOutputs.get(node.id)?.size ?? 0;
+      const state: NodeRunState = {
+        nodeId: node.id,
+        nodeType: node.type,
+        status:
+          error !== undefined
+            ? "failed"
+            : done
+              ? "completed"
+              : emissions > 0
+                ? "running"
+                : "pending",
+        emissions,
+        escalations: escalationsPerNode.get(node.id) ?? 0
+      };
+      if (error !== undefined) state.error = error;
+      return state;
+    });
+    return {
+      jobId: this._effectiveJobId,
+      nodes,
+      costUsd: this._options.executionContext?.getTotalCost?.() ?? 0
+    };
+  }
+
+  private _readRecordedOutput(
+    nodeId: string,
+    lineage: readonly string[]
+  ): NodeOutputRead | null {
+    const perLineage = this._recordedOutputs.get(nodeId);
+    if (!perLineage) return null;
+    // Most specific first: an entry sharing more of the failing invocation's
+    // roots is closer to it causally than a single-fire ancestor.
+    let best: NodeOutputRead | null = null;
+    for (const [key, outputs] of perLineage) {
+      const recorded = key === "" ? [] : key.split(",");
+      if (!lineageRelated(recorded, lineage)) continue;
+      if (best === null || recorded.length > best.lineage.length) {
+        best = { nodeId, lineage: recorded, outputs };
+      }
+    }
+    return best;
+  }
+
+  /**
+   * Remember what a node emitted, keyed by the invocation's lineage, so a
+   * supervisor can read a producer's output while deciding a consumer's
+   * failure. Off unless the run is supervised.
+   */
+  private _recordNodeOutput(
+    sourceNodeId: string,
+    outputs: Record<string, unknown>,
+    lineage: CorrelationLineage | undefined
+  ): void {
+    const scope = this._correlation?.nodes.get(sourceNodeId)?.invocationScope;
+    const key =
+      scope && scope.length > 0 && lineage
+        ? projectLineageKey(lineage, scope)
+        : "";
+    let perLineage = this._recordedOutputs.get(sourceNodeId);
+    if (!perLineage) {
+      perLineage = new Map();
+      this._recordedOutputs.set(sourceNodeId, perLineage);
+    }
+    // Re-inserting moves the key to the end, so the eviction below always
+    // drops the least recently emitted lineage rather than a live one.
+    perLineage.delete(key);
+    perLineage.set(key, outputs);
+    while (perLineage.size > MAX_RECORDED_LINEAGES_PER_NODE) {
+      const oldest = perLineage.keys().next();
+      if (oldest.done) break;
+      perLineage.delete(oldest.value);
+    }
   }
 
   /** Actors spawned and not yet finished. Zero before and after a run. */
@@ -1247,6 +1369,19 @@ export class WorkflowRunner {
    * upstream actors produce data.
    */
   private async _processGraph(): Promise<void> {
+    // Before any actor can escalate, the supervisor gets its read-only view.
+    // A handle that throws here is a broken supervisor, and a broken
+    // supervisor must never be worse for the run than no supervisor: it
+    // proceeds without a reader and its decisions degrade to `fail`.
+    try {
+      this._options.supervisor?.attach?.(this._runStateReader());
+    } catch (error) {
+      // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
+      log.warn("Supervisor attach failed; running without a run-state view", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+
     const actorPromises: Array<Promise<void>> = [];
     /** Parallel to `actorPromises` — maps a settled index back to its node. */
     const actorNodeIds: string[] = [];
@@ -1474,6 +1609,14 @@ export class WorkflowRunner {
         routingHints.invocationLineage ?? {}
       );
       return;
+    }
+
+    if (this._options.supervisor) {
+      this._recordNodeOutput(
+        sourceNodeId,
+        outputs,
+        routingHints.invocationLineage
+      );
     }
 
     // Handle __control_output__ from controller nodes (Python parity:

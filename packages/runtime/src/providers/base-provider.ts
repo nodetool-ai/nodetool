@@ -53,6 +53,8 @@ import {
   createUsageSlot,
   type LlmUsage
 } from "../tracing-helpers.js";
+import type { TurnBudget } from "../turn-budget.js";
+import { countTokens } from "../token-counter.js";
 import { logProviderRequestFailure } from "./provider-request-log.js";
 import { annotateProviderError } from "./provider-error.js";
 import { applyEntityReferences } from "./entity-references.js";
@@ -227,6 +229,26 @@ export function providerCapabilities(
     capabilities.push("text_to_3d", "image_to_3d");
   }
   return capabilities;
+}
+
+/**
+ * Prompt tokens a turn will send, for reservation purposes. Deliberately a
+ * rough count over the serialized conversation: a reservation is a worst case,
+ * and a per-provider exact count would cost a tokenizer round-trip per turn to
+ * refine a number that only has to be an upper-ish bound.
+ */
+function estimatePromptTokens(messages: readonly Message[]): number {
+  let total = 0;
+  for (const message of messages) {
+    const content = message.content;
+    total += countTokens(
+      typeof content === "string" ? content : JSON.stringify(content ?? "")
+    );
+    if (message.toolCalls?.length) {
+      total += countTokens(JSON.stringify(message.toolCalls));
+    }
+  }
+  return total;
 }
 
 export abstract class BaseProvider {
@@ -841,6 +863,23 @@ export abstract class BaseProvider {
    * override this to drive that loop instead, while still emitting the same
    * stream items. `generateMessages` remains the single-turn primitive.
    */
+  /**
+   * Ask a {@link TurnBudget} to admit the turn that is about to be made.
+   * Exposed to subclasses because a provider driving a backend's own agent
+   * loop has to make the same call at the same point.
+   */
+  protected _admitTurn(
+    budget: TurnBudget,
+    model: string,
+    messages: readonly Message[]
+  ): boolean {
+    return budget.reserve({
+      model,
+      provider: this.provider,
+      inputTokens: estimatePromptTokens(messages)
+    });
+  }
+
   async *generateLoop(
     args: Parameters<this["generateMessages"]>[0] & {
       /**
@@ -861,6 +900,30 @@ export abstract class BaseProvider {
        * false (parallel) to keep chat's concurrent tool execution fast.
        */
       sequentialTools?: boolean;
+      /**
+       * Spend admission, consulted before every model turn. A refusal ends the
+       * loop without making the call.
+       *
+       * **Contract for overrides.** A provider that overrides `generateLoop`
+       * to drive a backend's own agent loop must call {@link _admitTurn}
+       * before each model turn and `commit` after it — a ceiling only holds
+       * where the turns are, and an override that ignores this makes the cap
+       * advisory for every model it serves. Both current overrides honor it
+       * (the Claude Agent SDK loop and OpenAI's Responses loop). TypeScript
+       * cannot enforce this, so a new override that owns its turns owns this
+       * too.
+       *
+       * Reserve against the *evolving* transcript, not the opening prompt: a
+       * backend that keeps the conversation server-side still bills for it,
+       * and reserving against the delta prices a turn as if the conversation
+       * had restarted.
+       *
+       * Reconciliation reads this provider instance's running cost, so a
+       * budget must not be threaded through an instance two callers are
+       * driving concurrently; the supervisor owns its provider for exactly
+       * this reason.
+       */
+      turnBudget?: TurnBudget;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
@@ -868,6 +931,7 @@ export abstract class BaseProvider {
       executeTool,
       maxIterations: _omitMax,
       sequentialTools,
+      turnBudget,
       ...turnArgs
     } = args;
     const messages = [...args.messages];
@@ -900,6 +964,10 @@ export abstract class BaseProvider {
 
     for (let iteration = 0; iteration < maxIterations; iteration++) {
       if (turnArgs.signal?.aborted) return;
+      if (turnBudget && !this._admitTurn(turnBudget, args.model, messages)) {
+        return;
+      }
+      const costBeforeTurn = turnBudget ? this.getTotalCost() : 0;
       let assistantText = "";
       let finalizedAssistant: Message | undefined;
       const pending: ToolCall[] = [];
@@ -907,57 +975,70 @@ export abstract class BaseProvider {
       // turn. Discarded when tools are pending — the next round supplies its own.
       let terminalChunk: ProviderStreamItem | undefined;
 
-      for await (const item of this.generateMessagesTraced({
-        ...turnArgs,
-        messages,
-        onToolCall
-      })) {
-        if (turnArgs.signal?.aborted) break;
-        if (isProviderMessageEvent(item)) {
-          if (item.message.role === "assistant") {
-            finalizedAssistant = item.message;
+      // The reservation covers exactly one turn, so it is reconciled in a
+      // `finally`: a turn that throws must release it. Left outstanding, a
+      // single provider error would shrink the budget's headroom for good —
+      // it is run-level and outlives the decision that hit the error.
+      try {
+        for await (const item of this.generateMessagesTraced({
+          ...turnArgs,
+          messages,
+          onToolCall
+        })) {
+          if (turnArgs.signal?.aborted) break;
+          if (isProviderMessageEvent(item)) {
+            if (item.message.role === "assistant") {
+              finalizedAssistant = item.message;
+            }
+            yield item;
+            continue;
+          }
+          if (isProviderSessionUpdate(item)) {
+            yield item;
+            continue;
+          }
+          if ("id" in item && "name" in item && "args" in item) {
+            pending.push(item);
+            yield item;
+            continue;
+          }
+          const chunk = item as {
+            content?: unknown;
+            content_type?: string;
+            thinking?: boolean;
+            done?: boolean;
+          };
+          // Only text belongs in the assistant message. Audio/image chunks carry
+          // base64 in the same `content` field; concatenating those produced
+          // assistant messages full of binary garbage.
+          const isTextChunk =
+            chunk.content_type === undefined || chunk.content_type === "text";
+          if (
+            typeof chunk.content === "string" &&
+            !chunk.thinking &&
+            isTextChunk
+          ) {
+            assistantText += chunk.content;
+          }
+          // `done: true` closes the provider's *completion*, which is not the same
+          // as the end of the turn — every provider emits one per tool-calling
+          // round. Forwarding them made consumers (the chat composer's Stop
+          // button) treat each round as the end of the turn. Hold the terminal
+          // chunk until we know whether tools are pending; release it below only
+          // when this round really is the last one.
+          if (chunk.done === true) {
+            terminalChunk = item;
+            continue;
           }
           yield item;
-          continue;
         }
-        if (isProviderSessionUpdate(item)) {
-          yield item;
-          continue;
-        }
-        if ("id" in item && "name" in item && "args" in item) {
-          pending.push(item);
-          yield item;
-          continue;
-        }
-        const chunk = item as {
-          content?: unknown;
-          content_type?: string;
-          thinking?: boolean;
-          done?: boolean;
-        };
-        // Only text belongs in the assistant message. Audio/image chunks carry
-        // base64 in the same `content` field; concatenating those produced
-        // assistant messages full of binary garbage.
-        const isTextChunk =
-          chunk.content_type === undefined || chunk.content_type === "text";
-        if (
-          typeof chunk.content === "string" &&
-          !chunk.thinking &&
-          isTextChunk
-        ) {
-          assistantText += chunk.content;
-        }
-        // `done: true` closes the provider's *completion*, which is not the same
-        // as the end of the turn — every provider emits one per tool-calling
-        // round. Forwarding them made consumers (the chat composer's Stop
-        // button) treat each round as the end of the turn. Hold the terminal
-        // chunk until we know whether tools are pending; release it below only
-        // when this round really is the last one.
-        if (chunk.done === true) {
-          terminalChunk = item;
-          continue;
-        }
-        yield item;
+      } finally {
+        // Replace the reservation with what the turn really cost. A zero delta
+        // here is a real zero, not an unknown: `trackUsage` fires on every
+        // completed call, so nothing recorded means nothing was billed. (The
+        // Claude Agent SDK path cannot say that, which is why it commits
+        // `null` instead — see its override.)
+        turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
       }
 
       if (pending.length === 0) {
