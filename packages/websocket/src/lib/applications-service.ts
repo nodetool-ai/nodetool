@@ -140,6 +140,7 @@ export async function getApplication(
  * is — the caller learns their id was refused, not who holds it.
  */
 async function insertApplication(
+  userId: string,
   data: Record<string, unknown>
 ): Promise<Application> {
   try {
@@ -149,10 +150,15 @@ async function insertApplication(
       throwApiError(ApiErrorCode.INVALID_INPUT, "Invalid application id");
     }
     if (error instanceof ApplicationIdInUseError) {
-      throwApiError(
-        ApiErrorCode.ALREADY_EXISTS,
-        "An application with that id already exists"
-      );
+      // The id was taken between the caller's existence check and this insert.
+      // Answer exactly as that check would have: the owner gets their app back
+      // so a retried create stays idempotent, and everyone else gets the same
+      // answer a missing id gets. Reporting "already exists" here would make
+      // the losing side of the race the one place that reveals an id is held.
+      const existing =
+        typeof data.id === "string" ? await Application.findById(data.id) : null;
+      if (existing && existing.user_id === userId) return existing;
+      throwApiError(ApiErrorCode.NOT_FOUND, "Application not found");
     }
     throw error;
   }
@@ -186,7 +192,7 @@ export async function createApplication(
     (input.fromWorkflowId
       ? await documentFromWorkflow(input.fromWorkflowId, userId)
       : createEmptyDocument());
-  const app = await insertApplication({
+  const app = await insertApplication(userId, {
     id,
     user_id: userId,
     project_id: input.projectId,
@@ -349,7 +355,7 @@ export async function importApplicationBundle(
     });
   }
 
-  const app = await insertApplication({
+  const app = await insertApplication(userId, {
     user_id: userId,
     project_id: input.projectId,
     name: result.app.name,

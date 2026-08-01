@@ -4,7 +4,7 @@
  * two halves that keep one user's data out of another's app: deleting an app
  * takes its children with it, and an id that is taken cannot be claimed again.
  */
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
   Application,
@@ -90,6 +90,44 @@ describe("applications service", () => {
     const app = await Application.findById("taken");
     expect(app?.user_id).toBe(OTHER);
     expect(app?.name).toBe("Theirs");
+  });
+
+  /**
+   * The existence check and the insert are two statements, so an id can be
+   * claimed in between. The loser of that race has to answer exactly as the
+   * check would have, or it becomes the one place that reveals an id is held.
+   */
+  it("answers a lost id race the way the existence check would", async () => {
+    await createApplication(OTHER, input({ id: "raced", name: "Theirs" }));
+    // Hide the row from the pre-check so the insert is what finds the clash.
+    const findById = vi
+      .spyOn(Application, "findById")
+      .mockResolvedValueOnce(null);
+
+    await expect(
+      createApplication(USER, input({ id: "raced", name: "Mine" }))
+    ).rejects.toThrow(/not found/i);
+
+    findById.mockRestore();
+  });
+
+  it("returns the owner's app when they lose a race with themselves", async () => {
+    const first = await createApplication(
+      USER,
+      input({ id: "mine-raced", name: "Mine" })
+    );
+    const findById = vi
+      .spyOn(Application, "findById")
+      .mockResolvedValueOnce(null);
+
+    const again = await createApplication(
+      USER,
+      input({ id: "mine-raced", name: "Renamed" })
+    );
+
+    expect(again.id).toBe(first.id);
+    expect(again.name).toBe("Mine");
+    findById.mockRestore();
   });
 
   it("refuses an id that is not a plain identifier", async () => {

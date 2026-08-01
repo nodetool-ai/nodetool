@@ -103,9 +103,14 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   });
   const fetchedRef = useRef(fetched);
   fetchedRef.current = fetched;
-  // Which graphs have arrived. The graphs themselves are read from the ref, so
-  // the map keeps its identity across renders that changed nothing.
-  const fetchedKey = Object.keys(fetched).join("|");
+  // Which graphs have arrived, and when each last changed. The graphs are read
+  // from the ref, so the map keeps its identity across renders that changed
+  // nothing -- but keying on ids alone would pin the first copy of a graph
+  // forever, and a refetched workflow would go on serving the binding pickers
+  // a surface it no longer has.
+  const fetchedKey = workflowIds
+    .map((id, index) => `${id}:${workflowQueries[index]?.dataUpdatedAt ?? 0}`)
+    .join("|");
   const operationWorkflows = useMemo(
     () => fetchedRef.current,
     [fetchedKey]
