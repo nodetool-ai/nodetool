@@ -173,7 +173,15 @@ export class CodePlanner {
     // controller carries the caller's cancellation into the provider loop.
     const abort = new AbortController();
     const unlinkAbort = linkAbort(abort, this.options.signal);
-    const tool = new SubmitCodeTool({ onAccepted: () => abort.abort() });
+    // The seeded slots are the handles the caller already wired an edge to, so
+    // the tool enforces them as a contract rather than a suggestion.
+    const tool = new SubmitCodeTool({
+      onAccepted: () => abort.abort(),
+      requiredInputs: this.options.inputs ?? [],
+      ...(this.options.expectedOutput
+        ? { expectedOutput: this.options.expectedOutput }
+        : {})
+    });
     // Tool results are produced inside the provider's `execute` closure, off
     // the message stream. Park them here and drain into the stream.
     const pending: ToolResultUpdate[] = [];

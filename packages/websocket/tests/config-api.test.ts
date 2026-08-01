@@ -10,8 +10,7 @@ const ENV_KEYS = [
   "SUPABASE_KEY",
   "SUPABASE_ANON_KEY",
   "AUTH_REDIRECT_URL",
-  "NODETOOL_GOOGLE_WORKSPACE",
-  "NODETOOL_CODE_GENERATION"
+  "NODETOOL_GOOGLE_WORKSPACE"
 ] as const;
 
 describe("/api/config endpoint", () => {
@@ -65,7 +64,6 @@ describe("/api/config endpoint", () => {
     expect(Object.keys(JSON.parse(res.body)).sort()).toEqual([
       "authMode",
       "authRedirectUrl",
-      "codeGeneration",
       "googleScopes",
       "googleWorkspace",
       "supabaseAnonKey",
@@ -91,19 +89,6 @@ describe("/api/config endpoint", () => {
     expect(hosted.googleScopes).toContain(
       "https://www.googleapis.com/auth/drive"
     );
-  });
-
-  it("gates Code node AI authoring behind NODETOOL_CODE_GENERATION", async () => {
-    const off = JSON.parse(
-      (await app.inject({ method: "GET", url: "/api/config" })).body
-    );
-    expect(off.codeGeneration).toBe(false);
-
-    process.env.NODETOOL_CODE_GENERATION = "1";
-    const on = JSON.parse(
-      (await app.inject({ method: "GET", url: "/api/config" })).body
-    );
-    expect(on.codeGeneration).toBe(true);
   });
 
   it("stays in local mode when only the anon key is set", async () => {

@@ -116,7 +116,13 @@ function renderSamples(samples: CodeGenSampleValues): string {
 export function buildCodeGenUserPrompt(input: CodeGenPromptInput): string {
   const sections: string[] = [
     `Task:\n${input.instruction.trim()}`,
-    `Available inputs:\n${renderInputs(input.inputs)}`
+    `Available inputs:\n${renderInputs(input.inputs)}${
+      input.inputs.length > 0
+        ? "\nDeclare every one of these inputs with this exact name and type — " +
+          "each is already connected to another node. Add others only if the " +
+          "task needs them."
+        : ""
+    }`
   ];
 
   if (input.expectedOutput) {

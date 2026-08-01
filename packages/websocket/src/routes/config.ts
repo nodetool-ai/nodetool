@@ -1,8 +1,5 @@
 import type { FastifyPluginAsync } from "fastify";
-import {
-  isCodeGenerationEnabled,
-  isGoogleWorkspaceEnabled
-} from "@nodetool-ai/config";
+import { isGoogleWorkspaceEnabled } from "@nodetool-ai/config";
 import { GOOGLE_WORKSPACE_SCOPES } from "@nodetool-ai/runtime";
 import { getVersion } from "./health.js";
 
@@ -42,9 +39,6 @@ const configRoute: FastifyPluginAsync = async (app) => {
       authRedirectUrl,
       googleWorkspace,
       googleScopes: googleWorkspace ? GOOGLE_WORKSPACE_SCOPES : [],
-      // Rollout gate for Code node AI authoring: the web app hides every entry
-      // point into it while this is false.
-      codeGeneration: isCodeGenerationEnabled(),
       version: getVersion()
     });
   });

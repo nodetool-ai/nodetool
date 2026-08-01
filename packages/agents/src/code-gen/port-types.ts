@@ -97,6 +97,65 @@ const checkType = (
   }
 };
 
+/** The name a type is compared under: its alias target, else itself. */
+const normalizedTypeName = (type: TypeLike): string => {
+  const raw = type.type.trim().toLowerCase();
+  return ALIASES.get(raw) ?? raw;
+};
+
+const typeArgs = (type: TypeLike): TypeLike[] =>
+  Array.isArray(type.type_args) ? type.type_args.filter(isTypeLike) : [];
+
+/**
+ * Whether two port types still describe the same wire — one seeded from a
+ * connected handle, the other declared by the model.
+ *
+ * **Symmetric by construction**, so callers may pass the pair in either order:
+ * every rule below (the `any` and `union` wildcards, `str`/`enum`, the name
+ * comparison, the element-wise recursion) reads both sides the same way. That
+ * is why the parameters are named for their positions rather than their roles.
+ * Adding a directional rule — a widening that is legal one way only — means
+ * revisiting both call sites in `submit-code-tool.ts`, which pass their
+ * arguments in wire order rather than in seeded/submitted order.
+ *
+ * Deliberately lenient — it exists to catch a seeded `list` coming back as
+ * `str`, not to re-implement the editor's `isConnectable`. Anything it cannot
+ * decide (a custom node type, a container whose arguments were dropped) counts
+ * as compatible, so a legitimate submission is never rejected on a type the
+ * checker does not know about.
+ */
+export function portTypesCompatible(left: unknown, right: unknown): boolean {
+  if (!isTypeLike(left) || !isTypeLike(right)) return true;
+
+  const from = normalizedTypeName(left);
+  const to = normalizedTypeName(right);
+  if (from === "any" || to === "any") return true;
+  // `str` and `enum` interchange on a wire, and a union is opaque here.
+  if (from === "union" || to === "union") return true;
+  if ((from === "str" && to === "enum") || (from === "enum" && to === "str")) {
+    return true;
+  }
+  if (from !== to) return false;
+
+  // Same container, compared element-wise only when both sides say what they
+  // hold — a bare `list` is a widening, not a mismatch.
+  const leftArgs = typeArgs(left);
+  const rightArgs = typeArgs(right);
+  if (leftArgs.length === 0 || rightArgs.length === 0) return true;
+  if (leftArgs.length !== rightArgs.length) return true;
+  return leftArgs.every((arg, index) =>
+    portTypesCompatible(arg, rightArgs[index])
+  );
+}
+
+/** Human-readable type name for an error message: `list[str]`. */
+export function formatPortType(type: unknown): string {
+  if (!isTypeLike(type)) return "unknown";
+  const args = typeArgs(type);
+  if (args.length === 0) return type.type;
+  return `${type.type}[${args.map(formatPortType).join(", ")}]`;
+}
+
 /**
  * Errors for every declared port whose type is a known alias. Unrecognized
  * names that are not aliases pass — they may be legitimate node types.

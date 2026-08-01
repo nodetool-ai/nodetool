@@ -31,12 +31,6 @@ export interface RuntimeConfig {
   googleWorkspace: boolean;
   /** Google OAuth scopes to request at sign-in when the integration is on. */
   googleScopes: string[];
-  /**
-   * Whether the backend offers AI authoring for the Code node. Generation runs
-   * on the server against a tool-capable model, so a deployment that has not
-   * enabled it should show no entry point at all.
-   */
-  codeGeneration: boolean;
   /** Backend version, for diagnostics. */
   version: string | null;
 }
@@ -48,7 +42,6 @@ const DEFAULT_CONFIG: RuntimeConfig = {
   authRedirectUrl: null,
   googleWorkspace: false,
   googleScopes: [],
-  codeGeneration: false,
   version: null
 };
 
@@ -71,16 +64,9 @@ const coerce = (data: unknown): RuntimeConfig => {
     authRedirectUrl: d.authRedirectUrl ?? null,
     googleWorkspace: d.googleWorkspace === true,
     googleScopes: Array.isArray(d.googleScopes) ? d.googleScopes : [],
-    codeGeneration: d.codeGeneration === true,
     version: d.version ?? null
   };
 };
-
-/**
- * True when the backend offers Code node AI authoring. Gates all three entry
- * points (palette, output handle, input handle) and the Ask AI button.
- */
-export const isCodeGenerationEnabled = (): boolean => current.codeGeneration;
 
 /** True when the backend offers the Google Workspace tools and nodes. */
 export const isGoogleWorkspaceEnabled = (): boolean => current.googleWorkspace;

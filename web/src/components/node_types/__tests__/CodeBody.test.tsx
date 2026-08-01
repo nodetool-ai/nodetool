@@ -38,12 +38,16 @@ jest.mock("../../../hooks/nodes/useBespokePropertyWriter", () => ({
 
 const mockFindNode = jest.fn(() => ({ data: { dynamic_properties: {} } }));
 const mockUpdateNodeData = jest.fn();
+// Edges decide whether Ask AI is offered: generation replaces the node's
+// handles wholesale, so a connected node is not eligible.
+let mockEdges: Array<{ source: string; target: string }> = [];
 
 jest.mock("../../../contexts/NodeContext", () => ({
   useNodes: (selector: (state: unknown) => unknown) =>
     selector({
       findNode: mockFindNode,
-      updateNodeData: mockUpdateNodeData
+      updateNodeData: mockUpdateNodeData,
+      edges: mockEdges
     })
 }));
 
@@ -115,13 +119,6 @@ jest.mock("../../node/ExposedLabeledInputs", () => ({
   default: () => <div data-testid="exposed-labeled-inputs" />
 }));
 
-// The rollout flag; the Ask AI button is absent until a deployment turns
-// generation on.
-let mockCodeGenEnabled = true;
-jest.mock("../../../lib/runtimeConfig", () => ({
-  isCodeGenerationEnabled: () => mockCodeGenEnabled
-}));
-
 jest.mock("../code_gen/CodeGenDialog", () => ({
   __esModule: true,
   default: ({ nodeId }: { nodeId: string }) => (
@@ -165,6 +162,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
 describe("CodeBody", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockEdges = [];
   });
 
   it("renders the language label and seeds the editor from the code property", () => {
@@ -266,26 +264,6 @@ describe("CodeBody", () => {
     });
   });
 
-  it("hides Ask AI entirely when the feature flag is off", () => {
-    mockCodeGenEnabled = false;
-    try {
-      renderWithTheme(
-        <CodeBody
-          {...makeProps({
-            nodeType: "nodetool.code.Code",
-            data: { properties: { code: "" } }
-          })}
-        />
-      );
-      expect(
-        screen.queryByRole("button", { name: /ask ai/i })
-      ).not.toBeInTheDocument();
-      expect(screen.queryByTestId("code-gen-dialog")).not.toBeInTheDocument();
-    } finally {
-      mockCodeGenEnabled = true;
-    }
-  });
-
   it("offers Ask AI on the universal Code node only", () => {
     const { unmount } = renderWithTheme(
       <CodeBody
@@ -304,6 +282,51 @@ describe("CodeBody", () => {
     expect(
       screen.queryByRole("button", { name: /ask ai/i })
     ).not.toBeInTheDocument();
+  });
+
+  it("hides Ask AI on a Code node that already has code", () => {
+    // An accepted submission replaces the node's inputs and outputs wholesale,
+    // so offering it here would silently discard work.
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "return { x: 1 };" } }
+        })}
+      />
+    );
+    expect(
+      screen.queryByRole("button", { name: /ask ai/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("hides Ask AI on a connected Code node", () => {
+    // The replaced handles would strand this edge.
+    mockEdges = [{ source: "upstream", target: "node-1" }];
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(
+      screen.queryByRole("button", { name: /ask ai/i })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps Ask AI when the edges belong to other nodes", () => {
+    mockEdges = [{ source: "other-1", target: "other-2" }];
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.code.Code",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
+    expect(screen.getByRole("button", { name: /ask ai/i })).toBeInTheDocument();
   });
 
   it("opens the code generation dialog from Ask AI", () => {

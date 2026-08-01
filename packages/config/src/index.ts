@@ -14,7 +14,6 @@ export {
   GOOGLE_WORKSPACE_NAMESPACE
 } from "./google-workspace.js";
 
-export { isCodeGenerationEnabled } from "./code-generation.js";
 
 export {
   registerSetting,

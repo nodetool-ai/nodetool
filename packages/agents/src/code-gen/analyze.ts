@@ -35,6 +35,36 @@ interface ReturnShape {
 /** A top-level entry of a parsed program: a statement or an import/export. */
 type BodyStatement = acorn.Statement | acorn.ModuleDeclaration;
 
+/**
+ * The body is parsed as a module so an `import` reads as an import rather than
+ * as an unexplained syntax error — but the runtime splices the same text into
+ * an async function, where a module declaration is invalid syntax. Every one of
+ * them therefore has to be rejected explicitly; otherwise the submission passes
+ * validation and dies the first time the node runs.
+ */
+const MODULE_DECLARATION_TYPES = new Set([
+  "ImportDeclaration",
+  "ExportNamedDeclaration",
+  "ExportDefaultDeclaration",
+  "ExportAllDeclaration"
+]);
+
+function moduleDeclarationErrors(statements: BodyStatement[]): string[] {
+  const kinds = new Set<string>();
+  for (const statement of statements) {
+    if (MODULE_DECLARATION_TYPES.has(statement.type)) {
+      kinds.add(statement.type.startsWith("Import") ? "import" : "export");
+    }
+  }
+  if (kinds.size === 0) return [];
+  return [
+    `The code uses \`${[...kinds].join("` and `")}\` at the top level. The body runs ` +
+      "inside an async function, which cannot contain module declarations, and the " +
+      "sandbox has no module loader — `import` and `require` do not exist there. " +
+      "Use only the sandbox API and the code's own helpers."
+  ];
+}
+
 const PARSE_OPTIONS: acorn.Options = {
   ecmaVersion: "latest",
   sourceType: "module",
@@ -327,6 +357,9 @@ export function analyzeGeneratedCode(
 ): CodeAnalysis {
   const parsed = parseBody(code);
   if ("error" in parsed) return { ok: false, errors: [parsed.error] };
+
+  const moduleErrors = moduleDeclarationErrors(parsed.statements);
+  if (moduleErrors.length > 0) return { ok: false, errors: moduleErrors };
 
   const declared = [...new Set(declaredOutputs)];
   const { returns, fallsThrough } = analyzeBody(parsed.statements);
