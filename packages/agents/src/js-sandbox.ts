@@ -636,6 +636,57 @@ function webCryptoSubtle(): SubtleCrypto {
   return subtle;
 }
 
+/** Depth ceiling for the binary-preserving walk — guards pathological nesting. */
+const SERIALIZE_MAX_DEPTH = 32;
+
+/**
+ * True if a typed array sits anywhere inside `value`. Cycle-safe: a revisited
+ * object reports false, which drops the value onto the JSON path, where
+ * `JSON.stringify` throws on the cycle and the caller falls back to `String` —
+ * the behavior cyclic values already had.
+ */
+function containsTypedArray(
+  value: unknown,
+  depth = 0,
+  seen = new WeakSet<object>()
+): boolean {
+  if (isTypedArray(value)) return true;
+  if (value === null || typeof value !== "object") return false;
+  if (depth >= SERIALIZE_MAX_DEPTH) return false;
+  const obj = value as object;
+  if (seen.has(obj)) return false;
+  seen.add(obj);
+  const values = Array.isArray(value)
+    ? value
+    : Object.values(value as Record<string, unknown>);
+  return values.some((v) => containsTypedArray(v, depth + 1, seen));
+}
+
+/**
+ * Rebuild `value`, converting every typed array at any depth to a native
+ * Uint8Array and leaving everything else structurally intact.
+ */
+function convertTypedArraysDeep(
+  value: unknown,
+  depth = 0,
+  seen = new WeakSet<object>()
+): unknown {
+  if (isTypedArray(value)) return toNativeUint8Array(value);
+  if (value === null || typeof value !== "object") return value;
+  if (depth >= SERIALIZE_MAX_DEPTH) return value;
+  const obj = value as object;
+  if (seen.has(obj)) return null;
+  seen.add(obj);
+  if (Array.isArray(value)) {
+    return value.map((v) => convertTypedArraysDeep(v, depth + 1, seen));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = convertTypedArraysDeep(v, depth + 1, seen);
+  }
+  return out;
+}
+
 /**
  * Recursively serialize a value returned from the sandbox, converting typed
  * arrays to native Uint8Array and enforcing output size limits.
@@ -660,27 +711,14 @@ export function serializeResult(
     return toNativeUint8Array(result);
   }
   if (typeof result === "object") {
-    let hasBinary = false;
-    if (Array.isArray(result)) {
-      hasBinary = result.some(isTypedArray);
-    } else {
-      for (const v of Object.values(result as Record<string, unknown>)) {
-        if (isTypedArray(v)) {
-          hasBinary = true;
-          break;
-        }
-      }
-    }
-    if (hasBinary) {
-      if (Array.isArray(result)) {
-        return result.map((v) => (isTypedArray(v) ? toNativeUint8Array(v) : v));
-      }
-      const obj = result as Record<string, unknown>;
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(obj)) {
-        out[k] = isTypedArray(v) ? toNativeUint8Array(v) : v;
-      }
-      return out;
+    // The scan and the rebuild are both deep. They used to look one level in,
+    // so a typed array nested any deeper fell through to the JSON path below —
+    // and `JSON.stringify(new Uint8Array([137, 80]))` is `{"0":137,"1":80}`,
+    // which is lossy and indistinguishable from a user's own integer map. The
+    // streaming path hit this every time: `genProcess` returns an array of
+    // yielded objects, so the bytes are always at depth 2.
+    if (containsTypedArray(result)) {
+      return convertTypedArraysDeep(result);
     }
     try {
       const json = JSON.stringify(result);

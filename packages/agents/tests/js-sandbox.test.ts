@@ -1779,3 +1779,40 @@ describe("data.selectHtml bridge", () => {
     expect(result.result).toMatch(/exceeds the \d+ character limit/);
   });
 });
+
+// ---------------------------------------------------------------------------
+// serializeResult — binary survives at depth
+// ---------------------------------------------------------------------------
+
+describe("serializeResult binary preservation", () => {
+  it("keeps typed arrays nested below the top level", () => {
+    const out = serializeResult({
+      // No top-level typed array: this used to fall through to JSON.stringify,
+      // which turned each Uint8Array into {"0":1,"1":2}.
+      items: [{ output: new Uint8Array([1, 2, 3]) }],
+      deep: { nested: { bytes: new Uint8Array([9]) } }
+    }) as {
+      items: { output: unknown }[];
+      deep: { nested: { bytes: unknown } };
+    };
+    expect(out.items[0].output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(out.items[0].output as Uint8Array)).toEqual([1, 2, 3]);
+    expect(out.deep.nested.bytes).toBeInstanceOf(Uint8Array);
+  });
+
+  it("leaves a user's integer-keyed object alone", () => {
+    // The shape a JSON-ified Uint8Array takes. Nothing may guess it back into
+    // bytes — this is a plain object and must stay one.
+    const out = serializeResult({ counts: { 0: 5, 1: 200 } }) as {
+      counts: unknown;
+    };
+    expect(out.counts).not.toBeInstanceOf(Uint8Array);
+    expect(out.counts).toEqual({ 0: 5, 1: 200 });
+  });
+
+  it("falls back to String for a cyclic value, as before", () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    expect(typeof serializeResult(cyclic)).toBe("string");
+  });
+});
