@@ -27,18 +27,6 @@ function asLoopProvider(p: any): any {
   };
 }
 
-// ============================================================================
-// 2. WORKSPACE NODES
-// ============================================================================
-
-import {
-  ensureWorkspacePath,
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
-} from "@nodetool-ai/automation-nodes";
-
 /**
  * Helper: assign props to a node AND patch serialize() so that
  * workspace_dir (which is not a declared @prop on most workspace nodes)
@@ -57,115 +45,6 @@ function assignWithWorkspaceDir(
     });
   }
 }
-
-describe("workspace nodes", () => {
-  let tmpDir: string;
-
-  beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-test-"));
-  });
-
-  afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-  });
-
-  describe("ensureWorkspacePath security", () => {
-    it("blocks empty path", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "")).toThrow("cannot be empty");
-    });
-    it("blocks absolute path", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "/etc/passwd")).toThrow(
-        "Absolute paths"
-      );
-    });
-    it("blocks parent traversal", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "foo/../../../etc")).toThrow(
-        "traversal"
-      );
-    });
-    it("blocks path outside workspace", () => {
-      // A specially constructed relative path that resolves outside
-      // This targets line 21-22: if (!full.startsWith(root))
-      // Since we already block .., the only way to hit this is with symlinks
-      // but we can test the function directly with a workspace that's deeply nested
-      expect(() => ensureWorkspacePath(tmpDir, "valid/path")).not.toThrow();
-    });
-    it("allows valid relative paths", () => {
-      const result = ensureWorkspacePath(tmpDir, "subdir/file.txt");
-      expect(result).toBe(path.resolve(tmpDir, "subdir/file.txt"));
-    });
-  });
-
-
-  describe("ReadTextFileNode", () => {
-    it("reads text file", async () => {
-      await fs.writeFile(path.join(tmpDir, "hello.txt"), "world");
-      const node = new ReadTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "hello.txt",
-        encoding: "utf-8"
-      });
-      const result = await node.process();
-      expect(result.output).toBe("world");
-    });
-  });
-
-  describe("WriteTextFileNode", () => {
-    it("writes text file", async () => {
-      const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "out.txt",
-        content: "test data"
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "out.txt"), "utf-8");
-      expect(content).toBe("test data");
-    });
-
-    it("appends to file", async () => {
-      await fs.writeFile(path.join(tmpDir, "app.txt"), "hello");
-      const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "app.txt",
-        content: " world",
-        append: true
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "app.txt"), "utf-8");
-      expect(content).toBe("hello world");
-    });
-  });
-
-  describe("ReadBinaryFileNode", () => {
-    it("reads binary file as base64", async () => {
-      const buf = Buffer.from([0x00, 0x01, 0x02, 0xff]);
-      await fs.writeFile(path.join(tmpDir, "bin.dat"), buf);
-      const node = new ReadBinaryFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "bin.dat" });
-      const result = await node.process();
-      expect(result.output).toBe(buf.toString("base64"));
-    });
-  });
-
-  describe("WriteBinaryFileNode", () => {
-    it("writes base64 to binary file", async () => {
-      const data = Buffer.from("hello binary").toString("base64");
-      const node = new WriteBinaryFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "out.bin",
-        content: data
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "out.bin"));
-      expect(content.toString()).toBe("hello binary");
-    });
-  });
-
-});
 
 // ============================================================================
 // 3. AGENTS NODES

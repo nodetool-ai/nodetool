@@ -126,7 +126,7 @@ Edges enforce type compatibility. Use `any` type for flexible connections.
 ## Pattern 4: RAG (Retrieval-Augmented Generation)
 **Shape**: ChatInput → vector.HybridSearch + FormatText → Agent → Output
 **Use for**: Question-answering over documents, factual accuracy from specific sources.
-**Index flow**: lib.os.ListFiles → LoadDocumentFile → SplitRecursively → vector.IndexTextChunk
+**Index flow**: nodetool.code.Code (`workspace.list`) → LoadDocumentFile → SplitRecursively → vector.IndexTextChunk
 **Query flow**: ChatInput → vector.HybridSearch → FormatText → Agent → Output
 **Note**: RAG nodes are the single `vector.*` namespace (e.g. `vector.QueryText`, `vector.HybridSearch`, `vector.IndexTextChunk`); there is no `vector.chroma.*`/`vector.faiss.*`.
 

@@ -174,7 +174,7 @@ export class CodeNode extends BaseNode {
       "Let workspace.* reach any path the process can, with ~ expanded, instead " +
       "of being confined to the workspace. Off by default — host mode can read " +
       "credential files. Turn it on only for a node that has to work outside " +
-      "the workspace, the way the lib.os nodes do."
+      "the workspace."
   })
   declare allow_host_filesystem: boolean;
 

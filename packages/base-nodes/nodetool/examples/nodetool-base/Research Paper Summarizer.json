@@ -59,9 +59,13 @@
       {
         "id": "idx",
         "parent_id": null,
-        "type": "lib.http.GetText",
+        "type": "nodetool.code.Code",
         "data": {
-          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md"
+          "code": "const res = await fetch(url, { headers: { ...headers } });\nreturn { output: await res.text(), status: res.status };",
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
         },
         "ui_properties": {
           "title": "2️⃣ Fetch paper index",
@@ -73,8 +77,22 @@
           "width": 280,
           "selectable": true
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "url": "https://raw.githubusercontent.com/abacaj/awesome-transformers/refs/heads/main/README.md",
+          "headers": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "status": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "lines",
@@ -271,8 +289,14 @@
       {
         "id": "fetch-text",
         "parent_id": null,
-        "type": "lib.http.GetText",
-        "data": {},
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const res = await fetch(url, { headers: { ...headers } });\nreturn { output: await res.text(), status: res.status };",
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
         "ui_properties": {
           "title": "1️⃣3️⃣ Fetch paper text",
           "position": {
@@ -283,8 +307,22 @@
           "width": 260,
           "selectable": true
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "url": "",
+          "headers": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "status": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "collect-text",

@@ -22,8 +22,6 @@ import {
   UpdateLibNode,
   DeleteLibNode,
   ExecuteSQLLibNode,
-  SplitPathLibNode,
-  SplitExtensionLibNode,
   WaitNode,
   IntervalTriggerNode
 } from "@nodetool-ai/automation-nodes";
@@ -129,24 +127,6 @@ describe("SQLite nodes — returned keys match declared output slots", () => {
       columns: { columns: [] }
     });
     await expect(create.process(ctx())).rejects.toThrow(/no columns/i);
-  });
-});
-
-describe("Path split nodes — returned keys match declared output slots", () => {
-  it("SplitPath emits dirname + basename", async () => {
-    const node = new SplitPathLibNode();
-    node.assign({ path: "/foo/bar/file.txt" });
-    const result = await node.process();
-    assertKeysDeclared(SplitPathLibNode, result);
-    expect(result).toEqual({ dirname: "/foo/bar", basename: "file.txt" });
-  });
-
-  it("SplitExtension emits root + extension", async () => {
-    const node = new SplitExtensionLibNode();
-    node.assign({ path: "/foo/bar/file.txt" });
-    const result = await node.process();
-    assertKeysDeclared(SplitExtensionLibNode, result);
-    expect(result).toEqual({ root: "/foo/bar/file", extension: ".txt" });
   });
 });
 

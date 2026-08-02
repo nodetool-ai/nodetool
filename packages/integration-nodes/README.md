@@ -14,12 +14,6 @@ npm install @nodetool-ai/integration-nodes
 
 ## Nodes
 
-**HTTP** (`lib.http.*`) — `GetText`, `GetJSON`, `GetBytes`, `Post`, `Put`,
-`Patch`, `Delete`.
-
-**GraphQL** (`lib.graphql.*`) — `Query`, `QueryWithAuth`, `Introspection`,
-`BatchQuery`.
-
 **S3** (`lib.s3.*`) — `ListBuckets`, `ListObjects`, `GetObject`, `PutObject`,
 `DeleteObject`, `CopyObject`, `GetPresignedUrl`.
 

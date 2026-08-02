@@ -399,42 +399,6 @@ export {
   MODEL3D_NODES
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export {
-  WorkspaceDirectoryLibNode,
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
-  OpenWorkspaceDirectoryLibNode,
-  FileExistsLibNode,
-  ListFilesLibNode,
-  CopyFileLibNode,
-  MoveFileLibNode,
-  CreateDirectoryLibNode,
-  GetFileSizeLibNode,
-  CreatedTimeLibNode,
-  ModifiedTimeLibNode,
-  AccessedTimeLibNode,
-  IsFileLibNode,
-  IsDirectoryLibNode,
-  FileExtensionLibNode,
-  FileNameLibNode,
-  GetDirectoryLibNode,
-  FileNameMatchLibNode,
-  FilterFileNamesLibNode,
-  BasenameLibNode,
-  DirnameLibNode,
-  JoinPathsLibNode,
-  NormalizePathLibNode,
-  GetPathInfoLibNode,
-  AbsolutePathLibNode,
-  SplitPathLibNode,
-  SplitExtensionLibNode,
-  RelativePathLibNode,
-  PathToStringLibNode,
-  ShowNotificationLibNode,
-  LIB_OS_NODES
-} from "@nodetool-ai/automation-nodes/nodes/lib-os";
-export {
   ExtractLinksMarkdownLibNode,
   ExtractHeadersMarkdownLibNode,
   ExtractBulletListsMarkdownLibNode,
@@ -498,23 +462,6 @@ export {
   SpiderCrawlLibNode,
   LIB_BROWSER_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
-export {
-  HttpGetTextNode,
-  HttpGetJsonNode,
-  HttpGetBytesNode,
-  HttpPostNode,
-  HttpPutNode,
-  HttpPatchNode,
-  HttpDeleteNode,
-  LIB_HTTP_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-http";
-export {
-  GraphQLQueryLibNode,
-  GraphQLQueryWithAuthLibNode,
-  GraphQLIntrospectionLibNode,
-  GraphQLBatchQueryLibNode,
-  LIB_GRAPHQL_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-graphql";
 export {
   SendEmailLibNode,
   GmailSearchLibNode,
@@ -767,7 +714,6 @@ import { GENERATOR_NODES } from "@nodetool-ai/llm-nodes/nodes/generators";
 import { DIRECTOR_NODES } from "@nodetool-ai/llm-nodes/nodes/director";
 import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
-import { LIB_OS_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-os";
 import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
 import { LIB_MARKDOWN_NODES } from "@nodetool-ai/text-nodes/nodes/lib-markdown";
 import { LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
@@ -788,8 +734,6 @@ import { LIB_EXCEL_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-excel";
 import { LIB_DOCX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-docx";
 import { LIB_BEAUTIFULSOUP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-html-parse";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
-import { LIB_HTTP_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-http";
-import { LIB_GRAPHQL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-graphql";
 import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
 import { LIB_TWILIO_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-twilio";
 import { LIB_MARKITDOWN_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
@@ -859,7 +803,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...DIRECTOR_NODES,
   ...SHOTS_NODES,
   ...MODEL3D_NODES,
-  ...LIB_OS_NODES,
   ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_MARKDOWN_NODES,
   ...LIB_SECRET_NODES,
@@ -880,8 +823,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_DOCX_NODES,
   ...LIB_BEAUTIFULSOUP_NODES,
   ...LIB_BROWSER_NODES,
-  ...LIB_HTTP_NODES,
-  ...LIB_GRAPHQL_NODES,
   ...LIB_MAIL_NODES,
   ...LIB_TWILIO_NODES,
   ...LIB_MARKITDOWN_NODES,
