@@ -88,16 +88,38 @@ const NETWORK_BYPASSING_NODES = new Set<string>([
   "openai.agents.RealtimeAgent"
 ]);
 
-function workflowUsesBypassingNode(w: WorkflowFile): boolean {
+/**
+ * Trigger nodes whose adapter listens forever. Their `genProcess` waits on a
+ * live scheduler or filesystem watcher, and this harness supplies neither — so
+ * the run never ends and only stops at the per-workflow timeout, burning 30 s
+ * to learn nothing. That is a property of the node, not a fault in the
+ * workflow: an interval trigger left at `max_events: 0` is *supposed* to tick
+ * forever.
+ *
+ * Only the two adapter-backed triggers qualify. Webhook and manual triggers
+ * have no `genProcess` to loop in, so they finish immediately and stay in the
+ * executed set.
+ *
+ * Delivered-event coverage for all four lives in `trigger-examples-run.test.ts`,
+ * which wakes the node with an event instead of waiting for an adapter.
+ */
+const NON_TERMINATING_NODES = new Set<string>([
+  "nodetool.triggers.IntervalTrigger",
+  "nodetool.triggers.FileWatchTrigger"
+]);
+
+function workflowIsUnrunnable(w: WorkflowFile): boolean {
   return (w.data.graph?.nodes ?? []).some(
     (n) =>
-      typeof n.type === "string" && NETWORK_BYPASSING_NODES.has(n.type as string)
+      typeof n.type === "string" &&
+      (NETWORK_BYPASSING_NODES.has(n.type as string) ||
+        NON_TERMINATING_NODES.has(n.type as string))
   );
 }
 
 const allWorkflows = loadWorkflows();
-const workflows = allWorkflows.filter((w) => !workflowUsesBypassingNode(w));
-const skippedWorkflows = allWorkflows.filter(workflowUsesBypassingNode);
+const workflows = allWorkflows.filter((w) => !workflowIsUnrunnable(w));
+const skippedWorkflows = allWorkflows.filter(workflowIsUnrunnable);
 
 const registry = new NodeRegistry();
 registerBaseNodes(registry);
@@ -206,17 +228,7 @@ function classifyError(message: string | undefined): string {
   if (m.includes("libpng") || m.includes("vips2png")) return "image-codec";
   if (m.includes("does not support")) return "unsupported-capability";
   if (m.includes("exceeded") && m.includes("ms")) return "timeout";
-  // "does not exist" is the file-watch trigger's wording for a watch path
-  // that isn't there. A trigger example cannot complete in this harness
-  // anyway — it waits for an adapter event no fake supplies — so failing
-  // fast on a missing path is the better outcome of the two: pointing it at
-  // a directory that does exist would burn the full per-workflow timeout.
-  if (
-    m.includes("not found") ||
-    m.includes("enoent") ||
-    m.includes("does not exist")
-  )
-    return "not-found";
+  if (m.includes("not found") || m.includes("enoent")) return "not-found";
   if (m.includes("network") || m.includes("fetch")) return "network";
   if (m.includes("input") && m.includes("required")) return "missing-input";
   if (m.includes("provide a") && m.includes("input")) return "missing-input";
@@ -236,13 +248,16 @@ describe("example workflows execute end-to-end with fakes", () => {
   });
 
   it.each(skippedWorkflows)(
-    "skips $fileName because it uses a network-bypassing node",
+    "skips $fileName because this harness cannot run it to completion",
     ({ fileName, data }) => {
       const types = (data.graph?.nodes ?? []).map((n) => n.type);
-      const bypassing = types.filter(
-        (t) => typeof t === "string" && NETWORK_BYPASSING_NODES.has(t as string)
+      const unrunnable = types.filter(
+        (t) =>
+          typeof t === "string" &&
+          (NETWORK_BYPASSING_NODES.has(t as string) ||
+            NON_TERMINATING_NODES.has(t as string))
       );
-      expect(bypassing.length, fileName).toBeGreaterThan(0);
+      expect(unrunnable.length, fileName).toBeGreaterThan(0);
     }
   );
 
