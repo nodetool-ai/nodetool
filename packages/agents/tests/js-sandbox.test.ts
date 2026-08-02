@@ -1135,6 +1135,118 @@ describe("runInSandbox workspace binary I/O", () => {
     });
   });
 
+  it("reports a missing path as exists:false instead of throwing", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("here.txt", "hello");
+          const present = await workspace.stat("here.txt");
+          const absent = await workspace.stat("nope.txt");
+          return {
+            present: present.exists,
+            absent: absent.exists,
+            absentSize: absent.size,
+            isSymlink: present.isSymlink,
+            hasCreated: typeof present.createdMs === "number",
+            hasAccessed: typeof present.accessedMs === "number"
+          };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        present: true,
+        absent: false,
+        absentSize: 0,
+        isSymlink: false,
+        hasCreated: true,
+        hasAccessed: true
+      });
+    });
+  });
+
+  it("returns the workspace root", async () => {
+    await withWorkspace(async (context, dir) => {
+      const result = await runInSandbox({
+        code: `return { root: await workspace.root() };`,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({ root: dir });
+    });
+  });
+
+  it("copies and moves files, creating parent directories", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("a.txt", "payload");
+          await workspace.copy("a.txt", "nested/deep/b.txt");
+          const copied = await workspace.read("nested/deep/b.txt");
+          const srcStillThere = (await workspace.stat("a.txt")).exists;
+
+          await workspace.move("nested/deep/b.txt", "moved/c.txt");
+          const moved = await workspace.read("moved/c.txt");
+          const srcGone = !(await workspace.stat("nested/deep/b.txt")).exists;
+
+          return { copied, srcStillThere, moved, srcGone };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        copied: "payload",
+        srcStillThere: true,
+        moved: "payload",
+        srcGone: true
+      });
+    });
+  });
+
+  it("blocks copy and move that escape the workspace via a symlink", async () => {
+    const { mkdtemp, rm, writeFile, symlink, readdir } =
+      await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "SECRET");
+      await writeFile(join(ws, "inside.txt"), "ok");
+      // A symlink pointing out of the workspace: lexical containment passes,
+      // so only the realpath check can catch it.
+      await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
+      await symlink(outside, join(ws, "outdir"));
+      const context = {
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
+      } as never;
+      const { sandbox } = buildSandbox(context);
+      const workspace = sandbox.workspace as {
+        copy: (s: string, d: string) => Promise<void>;
+        move: (s: string, d: string) => Promise<void>;
+      };
+      // Reading out through a symlinked source.
+      await expect(workspace.copy("link.txt", "stolen.txt")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      // Writing out through a symlinked destination directory.
+      await expect(
+        workspace.copy("inside.txt", "outdir/planted.txt")
+      ).rejects.toThrow(/outside the workspace/i);
+      await expect(
+        workspace.move("inside.txt", "outdir/planted.txt")
+      ).rejects.toThrow(/outside the workspace/i);
+      // Absolute escape, no symlink involved.
+      await expect(
+        workspace.copy("inside.txt", join(outside, "planted.txt"))
+      ).rejects.toThrow(/outside the workspace/i);
+      expect(await readdir(outside)).toEqual(["secret.txt"]);
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("blocks binary writes through an escaping symlink", async () => {
     const { mkdtemp, rm, writeFile, symlink, readFile } =
       await import("node:fs/promises");

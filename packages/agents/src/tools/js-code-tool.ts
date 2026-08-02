@@ -44,8 +44,9 @@ Output appears in the "logs" field of the result.
 
 ### workspace.read(path) / .write(path, content) / .list(path)
 Read/write files in the agent workspace. Also .readBytes / .writeBytes (Uint8Array),
-.stat(path) → {size, isDirectory, isFile, modifiedMs}, .mkdir(path), .remove(path)
-(one file or one empty directory).
+.stat(path) → {exists, size, isDirectory, isFile, isSymlink, modifiedMs, createdMs, accessedMs}
+(a missing path reports exists: false), .root() → workspace root, .copy(src, dest), .move(src, dest),
+.mkdir(path), .remove(path) (one file or one empty directory).
 
 ### data.parseCsv(text, {delimiter?, header?}) → object[] | string[][]
 Parse CSV. \`header\` defaults to true (records keyed by the header row); with \`header: false\`

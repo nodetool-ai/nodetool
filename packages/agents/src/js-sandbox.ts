@@ -987,24 +987,74 @@ export function buildSandbox(
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, bytes);
         },
+        // A missing path is an answer, not a failure: guest code asking
+        // "does this exist?" should not have to wrap the call in try/catch.
+        // `lstat` (not `stat`) so a symlink reports as itself rather than as
+        // whatever it points at.
         stat: async (path: string): Promise<Record<string, unknown>> => {
           const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
-          const info = await fs.stat(fullPath);
+          // Checked as a write, not a read: the queried path may legitimately
+          // not exist, and the read path resolves it with `realpath`, which
+          // throws on a missing file and so would report every absent path as
+          // an escape. The write path decides containment from the nearest
+          // existing ancestor instead. A path that *does* exist is still
+          // realpath-checked, so a symlink out of the workspace is caught.
+          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          let info;
+          try {
+            info = await fs.lstat(fullPath);
+          } catch {
+            return {
+              exists: false,
+              size: 0,
+              isDirectory: false,
+              isFile: false,
+              isSymlink: false,
+              modifiedMs: 0,
+              createdMs: 0,
+              accessedMs: 0
+            };
+          }
           return {
+            exists: true,
             size: info.size,
             isDirectory: info.isDirectory(),
             isFile: info.isFile(),
-            modifiedMs: info.mtimeMs
+            isSymlink: info.isSymbolicLink(),
+            modifiedMs: info.mtimeMs,
+            createdMs: info.birthtimeMs,
+            accessedMs: info.atimeMs
           };
+        },
+        /** Absolute path of the workspace root — the base for relative paths. */
+        root: async (): Promise<string> => {
+          return context.resolveWorkspacePath(".");
+        },
+        copy: async (src: string, dest: string): Promise<void> => {
+          const fullSrc = context.resolveWorkspacePath(src);
+          const fullDest = context.resolveWorkspacePath(dest);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          // Source is a read, destination is a write — the asymmetry matters:
+          // a write target may not exist yet, so it is checked via its nearest
+          // existing ancestor.
+          await assertWorkspaceContained(context, fs, nodePath, fullSrc, false);
+          await assertWorkspaceContained(context, fs, nodePath, fullDest, true);
+          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+          await fs.copyFile(fullSrc, fullDest);
+        },
+        move: async (src: string, dest: string): Promise<void> => {
+          const fullSrc = context.resolveWorkspacePath(src);
+          const fullDest = context.resolveWorkspacePath(dest);
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          // A move unlinks the source, so it is a write on both ends.
+          await assertWorkspaceContained(context, fs, nodePath, fullSrc, true);
+          await assertWorkspaceContained(context, fs, nodePath, fullDest, true);
+          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+          await fs.rename(fullSrc, fullDest);
         },
         mkdir: async (path: string): Promise<void> => {
           const fullPath = context.resolveWorkspacePath(path);
@@ -1052,6 +1102,15 @@ export function buildSandbox(
         },
         stat: async (_path: string): Promise<Record<string, unknown>> => {
           throw new Error("workspace.stat is not available without a context");
+        },
+        root: async (): Promise<string> => {
+          throw new Error("workspace.root is not available without a context");
+        },
+        copy: async (_src: string, _dest: string): Promise<void> => {
+          throw new Error("workspace.copy is not available without a context");
+        },
+        move: async (_src: string, _dest: string): Promise<void> => {
+          throw new Error("workspace.move is not available without a context");
         },
         mkdir: async (_path: string): Promise<void> => {
           throw new Error("workspace.mkdir is not available without a context");
@@ -1705,6 +1764,9 @@ globalThis.workspace = {
   readBytes: __wrap(__ws.readBytes),
   writeBytes: __wrap(__ws.writeBytes),
   stat: __wrap(__ws.stat),
+  root: __wrap(__ws.root),
+  copy: __wrap(__ws.copy),
+  move: __wrap(__ws.move),
   mkdir: __wrap(__ws.mkdir),
   remove: __wrap(__ws.remove)
 };

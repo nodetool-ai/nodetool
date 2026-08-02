@@ -241,8 +241,30 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       {
         name: "workspace.stat",
         signature:
-          "await workspace.stat(path) -> { size, isDirectory, isFile, modifiedMs }",
-        description: "File metadata.",
+          "await workspace.stat(path) -> { exists, size, isDirectory, isFile, isSymlink, modifiedMs, createdMs, accessedMs }",
+        description:
+          "File metadata. A missing path returns { exists: false } rather than throwing.",
+        async: true,
+        requiresContext: true
+      },
+      {
+        name: "workspace.root",
+        signature: "await workspace.root() -> string",
+        description: "Absolute path of the workspace root.",
+        async: true,
+        requiresContext: true
+      },
+      {
+        name: "workspace.copy",
+        signature: "await workspace.copy(src, dest) -> void",
+        description: "Copy a file, creating parent directories.",
+        async: true,
+        requiresContext: true
+      },
+      {
+        name: "workspace.move",
+        signature: "await workspace.move(src, dest) -> void",
+        description: "Move or rename a file, creating parent directories.",
         async: true,
         requiresContext: true
       },
