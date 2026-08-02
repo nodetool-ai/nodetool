@@ -3,15 +3,19 @@
  *
  * Checks a graph against the node registry WITHOUT executing it: unknown node
  * types, duplicate ids, missing required / unselected-model properties, dangling
- * edges, unknown edge handles, and (best-effort) edge type mismatches. Catches
- * the breakage that would otherwise only surface after a full workflow run.
+ * edges, unknown edge handles, mis-spelled dynamic slot types, Code node bodies
+ * (syntax, inputs, outputs), and (best-effort) edge type mismatches. Catches the
+ * breakage that would otherwise only surface after a full workflow run.
  *
  * Takes a {@link GraphValidationRegistry} (the slice of NodeRegistry it needs)
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
+import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
 import type { NodeMetadata } from "./metadata.js";
+import { portTypeAliases } from "./port-types.js";
 import {
+  type TypeMetaLike,
   slotTypeToString,
   typeMetaToString,
   typesIncompatible,
@@ -29,6 +33,7 @@ export interface GraphValidationNode {
   dynamic_properties?: Record<string, unknown>;
   /** Typed declarations for dynamic input slots (undeclared slot = `any`). */
   dynamic_inputs?: Record<string, DynamicSlotMeta>;
+  /** Typed declarations of dynamic output slots (`{ name: TypeMetadata }`). */
   dynamic_outputs?: unknown;
 }
 
@@ -65,7 +70,9 @@ export interface GraphValidationIssue {
   /**
    * Stable category: "unknown_node" | "duplicate_id" | "property" |
    * "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in" |
-   * "untyped_dynamic_slot" | "dynamic_type_mismatch".
+   * "untyped_dynamic_slot" | "dynamic_type_mismatch" | "unknown_provider" |
+   * "slot_type_alias", plus the `code_*` categories a Code node body produces
+   * (see {@link validateCodeNodeBody}).
    *
    * - "untyped_dynamic_slot" (info): an edge targets a dynamic input that
    *   carries no `dynamic_inputs` declaration, so its type cannot be checked.
@@ -171,6 +178,20 @@ function readDynamicProperties(
   );
 }
 
+/** Typed dynamic output declarations, from either graph shape. */
+function readDynamicOutputs(
+  node: GraphValidationNode
+): Record<string, unknown> {
+  return (
+    asRecord(node.dynamic_outputs) ?? asRecord(node.data?.dynamic_outputs) ?? {}
+  );
+}
+
+/** The declared properties of a node, from either graph shape. */
+function readProperties(node: GraphValidationNode): Record<string, unknown> {
+  return (node.properties ?? node.data ?? {}) as Record<string, unknown>;
+}
+
 interface NormEdge {
   id: string;
   source: string;
@@ -269,15 +290,26 @@ export function validateGraph(
   // Handles fed by an incoming edge get their value at runtime — don't flag
   // them as missing required properties.
   const connectedByNode = new Map<string, Set<string>>();
+  // Source handles other nodes read — the output handles that have to exist.
+  const consumedByNode = new Map<string, Set<string>>();
   const normEdges = edges.map(normalizeEdge);
   for (const e of normEdges) {
-    if (!e.target || !e.targetHandle) continue;
-    let set = connectedByNode.get(e.target);
-    if (!set) {
-      set = new Set<string>();
-      connectedByNode.set(e.target, set);
+    if (e.target && e.targetHandle) {
+      let set = connectedByNode.get(e.target);
+      if (!set) {
+        set = new Set<string>();
+        connectedByNode.set(e.target, set);
+      }
+      set.add(e.targetHandle);
     }
-    set.add(e.targetHandle);
+    if (e.source && e.sourceHandle && !isReservedHandle(e.sourceHandle)) {
+      let set = consumedByNode.get(e.source);
+      if (!set) {
+        set = new Set<string>();
+        consumedByNode.set(e.source, set);
+      }
+      set.add(e.sourceHandle);
+    }
   }
 
   const providerIds = registry.listProviderIds?.();
@@ -312,14 +344,71 @@ export function validateGraph(
       });
     }
 
+    // ── Dynamic slot types: a JSON-Schema/TypeScript spelling of a type
+    // NodeTool already has passes the transport schema, then silently refuses
+    // to connect. Custom names stay legal — only known aliases are flagged.
+    for (const [slotName, slot] of Object.entries(readDynamicInputs(node))) {
+      for (const alias of portTypeAliases(slot?.type)) {
+        issues.push({
+          severity: "error",
+          code: "slot_type_alias",
+          nodeId: id,
+          nodeType: type,
+          message:
+            `Dynamic input "${slotName}" is typed "${alias.used}", which is not a ` +
+            `NodeTool type — use "${alias.canonical}". A handle typed with an unknown ` +
+            "name will not connect."
+        });
+      }
+    }
+    for (const [slotName, slotType] of Object.entries(readDynamicOutputs(node))) {
+      for (const alias of portTypeAliases(slotType)) {
+        issues.push({
+          severity: "error",
+          code: "slot_type_alias",
+          nodeId: id,
+          nodeType: type,
+          message:
+            `Dynamic output "${slotName}" is typed "${alias.used}", which is not a ` +
+            `NodeTool type — use "${alias.canonical}". A handle typed with an unknown ` +
+            "name will not connect."
+        });
+      }
+    }
+
+    // ── Code nodes: the body is only checked by running it, and a run costs
+    // the whole graph. Everything decidable from the graph is decided here.
+    // A `code` handle fed by an edge carries a body nothing here can see.
+    if (isJsCodeNodeType(type) && !connectedByNode.get(id)?.has("code")) {
+      const props = readProperties(node);
+      const availableInputs = new Set<string>([
+        ...Object.keys(readDynamicInputs(node)),
+        ...Object.keys(readDynamicProperties(node)),
+        ...(connectedByNode.get(id) ?? [])
+      ]);
+      for (const codeIssue of validateCodeNodeBody({
+        code: props.code,
+        availableInputs: [...availableInputs].filter(
+          (name) => !isReservedHandle(name)
+        ),
+        declaredOutputs: Object.keys(readDynamicOutputs(node)),
+        connectedOutputs: [...(consumedByNode.get(id) ?? [])]
+      })) {
+        issues.push({
+          severity: codeIssue.severity,
+          code: codeIssue.code,
+          nodeId: id,
+          nodeType: type,
+          message: `Node "${id}": ${codeIssue.message}`
+        });
+      }
+    }
+
     // A model property naming a provider the runtime cannot construct fails
     // only once the node runs — after the rest of the graph has already been
     // paid for. The id is right there in the saved property, so check it here.
     if (knownProviders) {
-      const props = (node.properties ?? node.data ?? {}) as Record<
-        string,
-        unknown
-      >;
+      const props = readProperties(node);
       for (const [propName, value] of Object.entries(props)) {
         const provider = modelProviderOf(value);
         if (provider === undefined || knownProviders.has(provider)) continue;
@@ -425,6 +514,26 @@ export function validateGraph(
         });
       } else if (out) {
         sourceType = typeMetaToString(out.type);
+      } else {
+        // Dynamic outputs: an empty map is a node that never declared any (the
+        // ReactFlow → graph conversion writes `{}` on every node), so only a
+        // populated one can say a handle is missing.
+        const declaredOutputs = readDynamicOutputs(sourceNode);
+        const names = Object.keys(declaredOutputs);
+        if (names.length > 0 && !(e.sourceHandle in declaredOutputs)) {
+          issues.push({
+            severity: "error",
+            code: "unknown_handle",
+            edgeId: e.id,
+            nodeId: e.source,
+            nodeType: String(sourceNode.type ?? ""),
+            message: `Edge "${e.id}" references output "${e.sourceHandle}" on ${String(sourceNode.type)}, which declares ${names.map((n) => `"${n}"`).join(", ")}`
+          });
+        } else {
+          sourceType = typeMetaToString(
+            declaredOutputs[e.sourceHandle] as TypeMetaLike | undefined
+          );
+        }
       }
     }
 

@@ -84,7 +84,21 @@ const CODE_LEGEND: Readonly<Record<string, string>> = {
   untyped_dynamic_slot:
     "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge; informational, never a failure",
   dynamic_type_mismatch:
-    "inline value of a dynamic input does not match the type the slot declares"
+    "inline value of a dynamic input does not match the type the slot declares",
+  unknown_provider: "a model property names a provider the runtime cannot build",
+  slot_type_alias:
+    "a dynamic slot is typed with a JSON-Schema/TypeScript name instead of NodeTool's, so the handle will not connect",
+  code_syntax: "a Code node's body is not valid JavaScript",
+  code_module:
+    "a Code node's body uses import/export, which the sandbox has no loader for",
+  code_undefined_name:
+    "a Code node reads a name that is neither a sandbox API nor one of its inputs",
+  code_no_return: "a Code node can finish without returning its outputs",
+  code_return_shape: "a Code node returns something other than an output object",
+  code_missing_output: "a return path leaves a declared output unset",
+  code_undeclared_output:
+    "a Code node returns a key it does not declare as an output handle",
+  code_unused_input: "a Code node input the body never reads"
 };
 
 /**

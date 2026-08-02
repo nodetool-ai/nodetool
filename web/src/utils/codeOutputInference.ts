@@ -332,6 +332,11 @@ function collectBindingNames(pattern: acorn.Pattern | null | undefined, out: Set
  * Try to parse code as a complete program, falling back to wrapping in a
  * function body for code that uses `return` at the top level.
  */
+/** Whether the text is valid JavaScript in the position a Code node runs it. */
+export function parsesAsCodeBody(code: string): boolean {
+  return tryParse(code) !== null;
+}
+
 function tryParse(code: string): acorn.Node | null {
   if (!code || typeof code !== "string") return null;
 
