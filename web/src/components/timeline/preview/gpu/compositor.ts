@@ -3,12 +3,12 @@ import {
   WebGPULayerCompositor,
   forwardClipMatrixToInverseAffine
 } from "@nodetool-ai/gpu/webgpu";
-import { WebGPUEffectsProcessor } from "./effectsProcessor";
 import {
   IDENTITY_TRANSFORM,
+  WebGPUEffectsProcessor,
   buildTransformMatrix,
   containBaseScale
-} from "./transform";
+} from "@nodetool-ai/timeline/render";
 import type {
   CompositeLayer,
   CompositeSource,

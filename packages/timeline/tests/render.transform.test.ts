@@ -1,10 +1,10 @@
-import { describe, expect, it } from "@jest/globals";
+import { describe, expect, it } from "vitest";
 import {
   containBaseScale,
   buildTransformMatrix,
   clipMatrixToCanvasAffine,
   IDENTITY_TRANSFORM
-} from "../transform";
+} from "../src/render/transform.js";
 
 interface ClipTransform {
   position: { x: number; y: number };

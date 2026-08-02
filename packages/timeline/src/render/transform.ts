@@ -1,4 +1,12 @@
-import type { ClipTransform } from "@nodetool-ai/timeline";
+/**
+ * transform — placement math shared by every timeline render surface.
+ *
+ * The live preview, the browser exporter and the server-side renderer all
+ * build a layer's placement matrix here, so a clip sits in the same spot in
+ * the preview, the gizmo, and the exported file.
+ */
+
+import type { ClipTransform } from "../types.js";
 
 export const IDENTITY_TRANSFORM: ClipTransform = {
   position: { x: 0, y: 0 },

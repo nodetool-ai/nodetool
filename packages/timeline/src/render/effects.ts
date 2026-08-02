@@ -7,7 +7,7 @@ import type {
   TrackSharpenEffect,
   TrackVignetteEffect,
   TrackChromaKeyEffect
-} from "@nodetool-ai/timeline";
+} from "../types.js";
 import {
   createGPUContextFromDevice,
   createExecutor,
@@ -55,11 +55,20 @@ interface IntermediatePool {
   currentIndex: 0 | 1;
 }
 
-const INTERMEDIATE_USAGE =
-  GPUTextureUsage.TEXTURE_BINDING |
-  GPUTextureUsage.STORAGE_BINDING |
-  GPUTextureUsage.COPY_SRC |
-  GPUTextureUsage.COPY_DST;
+/**
+ * Read at pool-allocation time, not module load: under Node the WebGPU flag
+ * namespaces are installed on `globalThis` by the Dawn adapter when a device is
+ * acquired, so a module-scope read would throw on import in every server
+ * process — including the ones that only want the scene model.
+ */
+function intermediateUsage(): number {
+  return (
+    GPUTextureUsage.TEXTURE_BINDING |
+    GPUTextureUsage.STORAGE_BINDING |
+    GPUTextureUsage.COPY_SRC |
+    GPUTextureUsage.COPY_DST
+  );
+}
 
 /**
  * GPU pre-pass for per-clip color grading and Gaussian blur. Caller passes
@@ -237,7 +246,7 @@ export class WebGPUEffectsProcessor {
         width,
         height,
         format: "rgba8unorm",
-        usage: INTERMEDIATE_USAGE,
+        usage: intermediateUsage(),
         meta: { colorSpace: "srgb", alpha: "premultiplied" }
       });
     const pool: IntermediatePool = {

@@ -2,11 +2,11 @@ import type {
   AnimationSampleMask,
   ClipEffect,
   ClipTransform,
-  TimelineClip,
   TrackEffect
 } from "@nodetool-ai/timeline";
+import type { CompositorBlendMode } from "@nodetool-ai/timeline/render";
 
-export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
+export type { CompositorBlendMode };
 
 export type CompositeSource =
   | HTMLVideoElement

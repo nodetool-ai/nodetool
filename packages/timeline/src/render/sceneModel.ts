@@ -1,33 +1,39 @@
 /**
  * sceneModel — the single source of truth for "what is on screen at time t".
  *
- * Both the live {@link PreviewCompositor} and the offline frame-by-frame
- * {@link renderTimeline} renderer drive their GPU layer lists from
+ * The live preview, the browser's offline exporter, and the server-side
+ * `RenderTimeline` node all drive their layer lists from
  * {@link computeActiveLayers}, so an exported video is composited from the
- * exact same scene description the user previewed — 1:1 with live.
+ * exact same scene description the user previewed — 1:1 with live, wherever
+ * the render runs.
  *
  * Everything here is pure (no DOM, no GPU, no store access) so it is trivially
- * testable and reusable across the live and render paths.
+ * testable and reusable across every render path.
  */
 
 import type {
-  AnimationSampleMask,
-  ClipAnimation,
   ClipEffect,
   ClipTransform,
-  CompiledAnimation,
   TimelineClip,
   TimelineTrack,
   TrackEffect
-} from "@nodetool-ai/timeline";
+} from "../types.js";
+import type {
+  AnimationSampleMask,
+  ClipAnimation,
+  CompiledAnimation
+} from "../animation/index.js";
 import {
   compileClipAnimations,
   countStaggerUnits,
   hasActiveAnimationWindow,
   hasStaggeredAnimation,
   sampleAnimations
-} from "@nodetool-ai/timeline";
-import type { CompositorBlendMode } from "./gpu/types";
+} from "../animation/index.js";
+import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
+
+/** Blend mode a layer composites with. */
+export type CompositorBlendMode = NonNullable<TimelineClip["blendMode"]>;
 
 /**
  * Top-of-UI track (lowest `track.index`) renders on top in the composite —
@@ -168,20 +174,6 @@ export function clipSourceTimeSec(
     : Math.max(0.0001, clip.speedMultiplier ?? 1);
   const intoClipTimelineSec = (currentTimeMs - clip.startMs) / 1000;
   return Math.max(0, intoClipTimelineSec * rate + (clip.inPointMs ?? 0) / 1000);
-}
-
-/** One word of a caption resolved at a point in time. */
-export interface ResolvedCaptionWord {
-  text: string;
-  /** True while the playhead is inside this word's spoken interval. */
-  active: boolean;
-}
-
-/** A caption's full per-frame state: every word of the line plus which one is
- * currently spoken. Rasterised identically by the live preview and the export
- * (see `captionRender`). */
-export interface ResolvedCaption {
-  words: ResolvedCaptionWord[];
 }
 
 /**
@@ -626,16 +618,6 @@ function composeAnimatedEffects(
 }
 
 /**
- * Per-frame input the text rasterizer needs to draw a staggered text clip:
- * the clip's compiled animations (at least one staggered) and the clip-local
- * time. `null`/absent means the block raster path applies (cache by style).
- */
-export interface TextStaggerContext {
-  compiled: CompiledAnimation[];
-  localMs: number;
-}
-
-/**
  * Resolve the stagger context for a text layer at `currentTimeMs`, or `null`
  * when the clip has no staggered animation. Shared by the live preview, the
  * export renderer, and the agent frame harness so per-word motion is drawn
@@ -646,7 +628,7 @@ export function resolveTextStaggerContext(
   currentTimeMs: number,
   canvas: { width: number; height: number },
   cache?: AnimationCompileCache
-): TextStaggerContext | null {
+): TextRenderStagger | null {
   if (clip.mediaType !== "text") return null;
   const compiled = compiledFor(clip, canvas, cache);
   if (compiled.length === 0 || !hasStaggeredAnimation(compiled)) return null;

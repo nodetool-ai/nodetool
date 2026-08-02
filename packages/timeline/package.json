@@ -18,6 +18,8 @@
     "@nodetool-ai/gpu": "*"
   },
   "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@webgpu/types": "^0.1.70",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },
@@ -27,6 +29,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./render": {
+      "nodetool-dev": "./src/render/index.ts",
+      "types": "./dist/render/index.d.ts",
+      "import": "./dist/render/index.js",
+      "default": "./dist/render/index.js"
     },
     "./dependencyHash.js": {
       "nodetool-dev": "./src/dependencyHash.ts",

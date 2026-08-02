@@ -1,5 +1,6 @@
-import { makeClip, makeTrack } from "@nodetool-ai/timeline";
-import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import { describe, expect, it } from "vitest";
+import { makeClip, makeTrack } from "../src/index.js";
+import type { TimelineClip, TimelineTrack } from "../src/index.js";
 
 import {
   clipSourceTimeSec,
@@ -10,7 +11,7 @@ import {
   resolveCaptionAtTime,
   trackZ,
   LAYER_Z_BASE
-} from "../sceneModel";
+} from "../src/render/sceneModel.js";
 
 const clip = (overrides: Partial<TimelineClip>): TimelineClip =>
   makeClip({

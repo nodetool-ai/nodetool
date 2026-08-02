@@ -17,8 +17,10 @@
   "dependencies": {
     "@gltf-transform/core": "^4.3.0",
     "@gltf-transform/functions": "^4.3.0",
+    "@napi-rs/canvas": "^0.1.65",
     "@nodetool-ai/audio-nodes": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
@@ -34,6 +36,7 @@
     "@types/chrome-remote-interface": "^0.33.0",
     "@types/node": "^22.0.0",
     "@types/three": "^0.185.0",
+    "@webgpu/types": "^0.1.70",
     "esbuild": "^0.28.1",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
