@@ -31,12 +31,17 @@ function httpStatusFromError(error: unknown): number | undefined {
   if (typeof error !== 'object' || error === null) {
     return undefined;
   }
-  const e = error as { status?: unknown; data?: { httpStatus?: unknown } };
-  if (typeof e.status === 'number') {
-    return e.status;
+  if ('status' in error && typeof error.status === 'number') {
+    return error.status;
   }
-  if (typeof e.data?.httpStatus === 'number') {
-    return e.data.httpStatus;
+  if (
+    'data' in error &&
+    typeof error.data === 'object' &&
+    error.data !== null &&
+    'httpStatus' in error.data &&
+    typeof error.data.httpStatus === 'number'
+  ) {
+    return error.data.httpStatus;
   }
   return undefined;
 }

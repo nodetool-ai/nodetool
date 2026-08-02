@@ -17,6 +17,7 @@ import {
   type ScriptDraft,
   type ScriptSaveStatus
 } from "../../stores/script/ScriptStore";
+import { getErrorMessage } from "../../utils/errorHandling";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -43,9 +44,7 @@ const responseToScript = (
 };
 
 const isNotFound = (error: unknown): boolean =>
-  !!error &&
-  typeof error === "object" &&
-  /not found/i.test((error as Error).message ?? "");
+  /not found/i.test(getErrorMessage(error));
 
 export const useScriptServerSync = (scriptId: string): void => {
   const utils = trpc.useUtils();
@@ -162,7 +161,7 @@ export const useScriptServerSync = (scriptId: string): void => {
           store.getState().setSaveStatus(scriptId, "error");
           return;
         }
-        if (/modified since last read/i.test((error as Error).message ?? "")) {
+        if (/modified since last read/i.test(getErrorMessage(error))) {
           // Set "reloaded" only after the server copy is applied, not before.
           await load("reloaded");
         } else {

@@ -144,7 +144,13 @@ const uploadAsset = async (
     emitUploadProgress(onUploadProgress, total, total);
     return normalizeAssetUrls(data as Asset);
   } catch (error) {
-    const statusCode = (error as { status?: number })?.status;
+    const statusCode =
+      typeof error === "object" &&
+      error !== null &&
+      "status" in error &&
+      typeof error.status === "number"
+        ? error.status
+        : undefined;
     const normalizedError =
       error instanceof DOMException && error.name === "AbortError"
         ? createErrorMessage(error, "Asset upload was cancelled")

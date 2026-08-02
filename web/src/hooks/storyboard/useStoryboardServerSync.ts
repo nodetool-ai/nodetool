@@ -16,6 +16,7 @@ import {
   type StoryboardBoard
 } from "../../stores/storyboard/StoryboardStore";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
+import { getErrorMessage } from "../../utils/errorHandling";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -61,9 +62,7 @@ const responseToBoard = (
 };
 
 const isNotFound = (error: unknown): boolean =>
-  !!error &&
-  typeof error === "object" &&
-  /not found/i.test((error as Error).message ?? "");
+  /not found/i.test(getErrorMessage(error));
 
 export const useStoryboardServerSync = (boardId: string): void => {
   const utils = trpc.useUtils();
@@ -139,7 +138,7 @@ export const useStoryboardServerSync = (boardId: string): void => {
       } catch (error) {
         if (disposed) return;
         console.error("Storyboard autosave failed", error);
-        if (/modified since last read/i.test((error as Error).message ?? "")) {
+        if (/modified since last read/i.test(getErrorMessage(error))) {
           // CAS conflict: the server copy wins.
           await load();
         } else {
