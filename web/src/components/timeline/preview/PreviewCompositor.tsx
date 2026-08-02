@@ -54,8 +54,8 @@ import {
   trackZ,
   PREVIEW_OVERLAY_Z,
   MAX_VIDEO_LAYERS
-} from "./sceneModel";
-import type { ActiveLayer, ResolvedCaption } from "./sceneModel";
+} from "@nodetool-ai/timeline/render";
+import type { ActiveLayer, ResolvedCaption } from "@nodetool-ai/timeline/render";
 import { CaptionRasterizer } from "./captionRender";
 import { TextRasterizer } from "./textRender";
 import { ShapeRasterizer } from "./shapeRender";

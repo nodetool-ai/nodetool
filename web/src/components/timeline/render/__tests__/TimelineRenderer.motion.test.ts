@@ -90,7 +90,7 @@ jest.mock("../../preview/shapeRender", () => ({
 import {
   createAnimationCompileCache,
   resolveAnimatedLayerProps
-} from "../../preview/sceneModel";
+} from "@nodetool-ai/timeline/render";
 import { renderTimeline } from "../TimelineRenderer";
 
 describe("renderTimeline motion", () => {

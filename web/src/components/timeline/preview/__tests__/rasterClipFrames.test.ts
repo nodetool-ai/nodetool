@@ -31,7 +31,7 @@ jest.mock("../gpu/canvas2dCompositor", () => ({
   }))
 }));
 
-jest.mock("../sceneModel", () => ({
+jest.mock("@nodetool-ai/timeline/render", () => ({
   createAnimationCompileCache: jest.fn(() => new Map()),
   resolveAnimatedLayerProps,
   resolveTextStaggerContext: jest.fn(() => null)

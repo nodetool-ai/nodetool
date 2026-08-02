@@ -11,8 +11,8 @@ import {
   createAnimationCompileCache,
   hasActiveAnimation,
   resolveAnimatedLayerProps
-} from "../sceneModel";
-import type { ActiveLayer } from "../sceneModel";
+} from "@nodetool-ai/timeline/render";
+import type { ActiveLayer } from "@nodetool-ai/timeline/render";
 
 const CANVAS = { width: 1000, height: 1000 };
 

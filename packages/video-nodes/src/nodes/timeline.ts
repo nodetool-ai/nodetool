@@ -2,11 +2,18 @@
  * Timeline nodes — operate on persisted timeline sequences (the video
  * editor's documents) referenced by the `timeline` type.
  *
- * RenderTimeline produces a rough cut with ffmpeg: video/image clips are
- * normalized to the sequence's resolution and concatenated in start order,
- * and audio-track clips are mixed in at their timeline offsets. Per-clip
- * effects, transitions, captions, overlay tracks, and speed changes are not
- * applied server-side — open the timeline editor for the full preview.
+ * RenderTimeline composites the sequence frame by frame through the same GPU
+ * compositor and scene model the editor's preview and its in-browser export
+ * use (`@nodetool-ai/timeline/render`), so a workflow render is the picture
+ * the user previewed: clip placement, transforms, opacity, blend modes,
+ * transitions, animations, effects, captions, text and shapes, across every
+ * visual track. ffmpeg decodes clip media into RGBA and encodes the result.
+ *
+ * Compositing needs a WebGPU device, which means the optional `webgpu` (Dawn)
+ * package and a working driver — the desktop app ships both; the headless
+ * server image today ships neither. Without one the node falls back to the
+ * older ffmpeg rough cut — video/image clips normalized and concatenated in
+ * start order — which ignores everything above and says so in the log.
  */
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
@@ -33,6 +40,10 @@ import {
   MissingBinaryError,
   videoRef
 } from "./ffmpeg-helpers.js";
+import {
+  CompositorUnavailableError,
+  renderTimelineComposited
+} from "./timeline/compositeRender.js";
 
 interface TimelineRefLike {
   type?: string;
@@ -80,15 +91,6 @@ async function ffprobeHasAudio(filePath: string): Promise<boolean> {
     if (error instanceof MissingBinaryError) throw error;
     return false;
   }
-}
-
-async function resolveClipBytes(
-  clip: TimelineClip,
-  context: ProcessingContext
-): Promise<Uint8Array | null> {
-  if (!clip.currentAssetId) return null;
-  const { bytes } = await context.resolveAssetBytes(clip.currentAssetId);
-  return bytes;
 }
 
 function trackById(
@@ -272,6 +274,32 @@ async function encodeSegment(opts: {
   );
 }
 
+/**
+ * Clips whose embedded audio the composited path must mix in itself: the
+ * rough cut carried a video clip's audio through its segment, but a
+ * frame-by-frame composite has no audio at all. Muted clips/tracks and clips
+ * whose audio was extracted onto an audio track (see
+ * {@link extractedAudioLinkIds}) are left out.
+ */
+function embeddedAudioClips(seq: TimelineSequence): TimelineClip[] {
+  const tracks = trackById(seq.tracks);
+  const suppressed = extractedAudioLinkIds(seq);
+  return seq.clips
+    .filter((clip) => {
+      const track = tracks.get(clip.trackId);
+      return (
+        (track?.type === "video" || track?.type === "overlay") &&
+        track.muted !== true &&
+        !clip.muted &&
+        clip.mediaType === "video" &&
+        !!clip.currentAssetId &&
+        clip.durationMs > 0 &&
+        !(typeof clip.linkId === "string" && suppressed.has(clip.linkId))
+      );
+    })
+    .sort((a, b) => a.startMs - b.startMs);
+}
+
 /** Per-clip audio chain: trim to in/out, apply gain, delay to timeline start. */
 function audioClipFilter(
   clip: TimelineClip,
@@ -293,11 +321,221 @@ function audioClipFilter(
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
 }
 
+/** Anything that draws: media, titles, shapes, or a caption riding a clip. */
+function hasRenderableVisual(seq: TimelineSequence): boolean {
+  const tracks = trackById(seq.tracks);
+  return seq.clips.some((clip) => {
+    const track = tracks.get(clip.trackId);
+    if (!track || track.visible === false || clip.hidden) return false;
+    if (clip.caption) return true;
+    if (track.type !== "video" && track.type !== "overlay") return false;
+    if (clip.mediaType === "text") return !!clip.textStyle;
+    if (clip.mediaType === "shape") return !!clip.shapeStyle;
+    return (
+      (clip.mediaType === "video" || clip.mediaType === "image") &&
+      !!clip.currentAssetId
+    );
+  });
+}
+
+/** The sequence's own length, or the end of its last clip when it has none. */
+function totalDurationMs(seq: TimelineSequence): number {
+  if (seq.durationMs > 0) return seq.durationMs;
+  return seq.clips.reduce(
+    (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
+    0
+  );
+}
+
+/** Materializes clip assets on disk once each, for ffmpeg to read. */
+class AssetFiles {
+  private readonly files = new Map<string, Promise<string | null>>();
+
+  constructor(
+    private readonly workDir: string,
+    private readonly context: ProcessingContext
+  ) {}
+
+  path(assetId: string): Promise<string | null> {
+    let pending = this.files.get(assetId);
+    if (!pending) {
+      pending = this.write(assetId);
+      this.files.set(assetId, pending);
+    }
+    return pending;
+  }
+
+  private async write(assetId: string): Promise<string | null> {
+    const { bytes } = await this.context.resolveAssetBytes(assetId);
+    if (!bytes) return null;
+    const file = path.join(this.workDir, `asset_${assetId}`);
+    await fs.writeFile(file, bytes);
+    return file;
+  }
+}
+
+/**
+ * The pre-compositor rough cut, kept as the fallback for hosts without a GPU:
+ * each video/image clip is normalized to the sequence frame and the segments
+ * are concatenated in start order. Gaps, overlaps, transforms and every other
+ * layer property are lost — it is a cut, not a render.
+ */
+async function renderRoughCut(opts: {
+  seq: TimelineSequence;
+  clips: TimelineClip[];
+  audioClips: TimelineClip[];
+  assets: AssetFiles;
+  workDir: string;
+  width: number;
+  height: number;
+  fps: number;
+}): Promise<string> {
+  const { seq, clips, audioClips, assets, workDir, width, height, fps } = opts;
+  const suppressedLinkIds = extractedAudioLinkIds(seq);
+
+  const segments: string[] = [];
+  for (const [i, clip] of clips.entries()) {
+    const srcPath = clip.currentAssetId
+      ? await assets.path(clip.currentAssetId)
+      : null;
+    if (!srcPath) {
+      console.warn(
+        `RenderTimeline: skipping clip "${clip.name}" — asset ${clip.currentAssetId} not found`
+      );
+      continue;
+    }
+    const segPath = path.join(workDir, `seg_${i}.mp4`);
+    await encodeSegment({
+      clip,
+      srcPath,
+      segPath,
+      width,
+      height,
+      fps,
+      suppressEmbeddedAudio:
+        typeof clip.linkId === "string" && suppressedLinkIds.has(clip.linkId)
+    });
+    segments.push(segPath);
+  }
+
+  const basePath = path.join(workDir, "base.mp4");
+  if (segments.length > 0) {
+    const listPath = path.join(workDir, "segments.txt");
+    await fs.writeFile(listPath, segments.map((p) => `file '${p}'`).join("\n"));
+    await execFfmpeg(
+      ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", basePath],
+      { maxBuffer: FFMPEG_MAX_BUFFER }
+    );
+    return basePath;
+  }
+
+  // Audio-only cut: synthesize a black picture to carry the mix.
+  const totalS =
+    Math.max(...audioClips.map((c) => c.startMs + c.durationMs)) / 1000;
+  await execFfmpeg(
+    [
+      "-y",
+      "-f",
+      "lavfi",
+      "-t",
+      String(totalS),
+      "-i",
+      `color=black:s=${width}x${height}:r=${fps}`,
+      "-f",
+      "lavfi",
+      "-t",
+      String(totalS),
+      "-i",
+      "anullsrc=channel_layout=stereo:sample_rate=48000",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-c:a",
+      "aac",
+      basePath
+    ],
+    { maxBuffer: FFMPEG_MAX_BUFFER }
+  );
+  return basePath;
+}
+
+/**
+ * Mix `clips` into `basePath` at their timeline offsets. `baseHasAudio` says
+ * whether the base video carries a soundtrack of its own to keep (the rough
+ * cut does; a composited render does not).
+ */
+async function mixAudioInto(opts: {
+  basePath: string;
+  clips: TimelineClip[];
+  baseHasAudio: boolean;
+  assets: AssetFiles;
+  workDir: string;
+}): Promise<string> {
+  const { basePath, clips, baseHasAudio, assets, workDir } = opts;
+  const inputs: string[] = ["-i", basePath];
+  const filters: string[] = [];
+  const labels: string[] = [];
+  let inputIndex = 1;
+
+  for (const [i, clip] of clips.entries()) {
+    const audioPath = clip.currentAssetId
+      ? await assets.path(clip.currentAssetId)
+      : null;
+    if (!audioPath) {
+      console.warn(
+        `RenderTimeline: skipping audio of clip "${clip.name}" — asset ${clip.currentAssetId} not found`
+      );
+      continue;
+    }
+    if (!baseHasAudio && !(await ffprobeHasAudio(audioPath))) continue;
+    inputs.push("-i", audioPath);
+    const label = `a${i}`;
+    filters.push(audioClipFilter(clip, inputIndex, label));
+    labels.push(`[${label}]`);
+    inputIndex += 1;
+  }
+  if (labels.length === 0) return basePath;
+
+  const sources = baseHasAudio ? [`[0:a]`, ...labels] : labels;
+  const mix =
+    sources.length === 1
+      ? `${sources[0]}apad[aout]`
+      : `${sources.join("")}amix=inputs=${sources.length}:duration=longest:normalize=0,apad[aout]`;
+  const outPath = path.join(workDir, "mixed.mp4");
+  await execFfmpeg(
+    [
+      "-y",
+      ...inputs,
+      "-filter_complex",
+      [...filters, mix].join(";"),
+      "-map",
+      "0:v",
+      "-map",
+      "[aout]",
+      "-c:v",
+      "copy",
+      "-c:a",
+      "aac",
+      "-ar",
+      "48000",
+      "-ac",
+      "2",
+      // `apad` runs the mix past the picture; stop at the shorter stream so the
+      // render is exactly as long as the video.
+      "-shortest",
+      outPath
+    ],
+    { maxBuffer: FFMPEG_MAX_BUFFER }
+  );
+  return outPath;
+}
+
 export class RenderTimelineNode extends BaseNode {
   static readonly nodeType = "nodetool.timeline.RenderTimeline";
   static readonly title = "Render Timeline";
   static readonly description =
-    "Render a timeline sequence to a video (rough cut: clips are concatenated in start order, audio tracks are mixed in at their offsets).\n    timeline, render, video, export, cut\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
+    "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset.\n    timeline, render, video, export, cut\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
   static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "video"
@@ -330,135 +568,80 @@ export class RenderTimelineNode extends BaseNode {
     const height = seq.height > 0 ? seq.height : 1080;
     const fps = seq.fps > 0 ? seq.fps : 30;
 
-    const videoClips = renderableVideoClips(seq);
-    const audioClips = this.include_audio === false ? [] : mixableAudioClips(seq);
-    const suppressedLinkIds = extractedAudioLinkIds(seq);
-    if (videoClips.length === 0 && audioClips.length === 0) {
+    const includeAudio = this.include_audio !== false;
+    const audioClips = includeAudio ? mixableAudioClips(seq) : [];
+    if (!hasRenderableVisual(seq) && audioClips.length === 0) {
       throw new Error(
         `Timeline "${seq.name}" has no renderable clips with media — generate or import clip media first`
       );
+    }
+    const durationMs = totalDurationMs(seq);
+    if (durationMs <= 0) {
+      throw new Error(`Timeline "${seq.name}" has zero duration`);
     }
 
     const workDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-timeline-")
     );
     try {
-      // 1. Normalize each video/image clip into a uniform segment.
-      const segments: string[] = [];
-      for (const [i, clip] of videoClips.entries()) {
-        const bytes = await resolveClipBytes(clip, ctx);
-        if (!bytes) {
-          console.warn(
-            `RenderTimeline: skipping clip "${clip.name}" — asset ${clip.currentAssetId} not found`
-          );
-          continue;
-        }
-        const srcPath = path.join(workDir, `src_${i}`);
-        await fs.writeFile(srcPath, bytes);
-        const segPath = path.join(workDir, `seg_${i}.mp4`);
-        const suppressEmbeddedAudio =
-          typeof clip.linkId === "string" &&
-          suppressedLinkIds.has(clip.linkId);
-        await encodeSegment({
-          clip,
-          srcPath,
-          segPath,
+      const assets = new AssetFiles(workDir, ctx);
+      let basePath: string;
+      let baseHasAudio: boolean;
+      let audioToMix: TimelineClip[];
+
+      try {
+        basePath = path.join(workDir, "composited.mp4");
+        const { skippedClips } = await renderTimelineComposited({
+          sequence: seq,
           width,
           height,
           fps,
-          suppressEmbeddedAudio
+          durationMs,
+          resolveAssetPath: (assetId) => assets.path(assetId),
+          outPath: basePath
         });
-        segments.push(segPath);
-      }
-
-      // 2. Concatenate segments (or synthesize black video for audio-only cuts).
-      const basePath = path.join(workDir, "base.mp4");
-      if (segments.length > 0) {
-        const listPath = path.join(workDir, "segments.txt");
-        await fs.writeFile(
-          listPath,
-          segments.map((p) => `file '${p}'`).join("\n")
-        );
-        await execFfmpeg(
-          ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", basePath],
-          { maxBuffer: FFMPEG_MAX_BUFFER }
-        );
-      } else {
-        const totalS =
-          Math.max(...audioClips.map((c) => c.startMs + c.durationMs)) / 1000;
-        await execFfmpeg(
-          [
-            "-y",
-            "-f",
-            "lavfi",
-            "-t",
-            String(totalS),
-            "-i",
-            `color=black:s=${width}x${height}:r=${fps}`,
-            "-f",
-            "lavfi",
-            "-t",
-            String(totalS),
-            "-i",
-            "anullsrc=channel_layout=stereo:sample_rate=48000",
-            "-c:v",
-            "libx264",
-            "-preset",
-            "veryfast",
-            "-c:a",
-            "aac",
-            basePath
-          ],
-          { maxBuffer: FFMPEG_MAX_BUFFER }
-        );
-      }
-
-      // 3. Mix audio-track clips over the base at their timeline offsets.
-      let outPath = basePath;
-      if (audioClips.length > 0) {
-        const inputs: string[] = ["-i", basePath];
-        const filters: string[] = [];
-        const labels: string[] = [];
-        let inputIndex = 1;
-        for (const [i, clip] of audioClips.entries()) {
-          const bytes = await resolveClipBytes(clip, ctx);
-          if (!bytes) {
-            console.warn(
-              `RenderTimeline: skipping audio clip "${clip.name}" — asset ${clip.currentAssetId} not found`
-            );
-            continue;
-          }
-          const audioPath = path.join(workDir, `audio_${i}`);
-          await fs.writeFile(audioPath, bytes);
-          inputs.push("-i", audioPath);
-          const label = `a${i}`;
-          filters.push(audioClipFilter(clip, inputIndex, label));
-          labels.push(`[${label}]`);
-          inputIndex += 1;
-        }
-        if (labels.length > 0) {
-          outPath = path.join(workDir, "mixed.mp4");
-          const amix = `[0:a]${labels.join("")}amix=inputs=${labels.length + 1}:duration=first:normalize=0[aout]`;
-          await execFfmpeg(
-            [
-              "-y",
-              ...inputs,
-              "-filter_complex",
-              [...filters, amix].join(";"),
-              "-map",
-              "0:v",
-              "-map",
-              "[aout]",
-              "-c:v",
-              "copy",
-              "-c:a",
-              "aac",
-              outPath
-            ],
-            { maxBuffer: FFMPEG_MAX_BUFFER }
+        for (const name of skippedClips) {
+          console.warn(
+            `RenderTimeline: clip "${name}" was skipped — its media could not be decoded`
           );
         }
+        // A composite carries no sound: every audible clip is mixed in below,
+        // including the audio muxed into video clips.
+        baseHasAudio = false;
+        audioToMix = includeAudio
+          ? [...embeddedAudioClips(seq), ...audioClips]
+          : [];
+      } catch (error) {
+        if (!(error instanceof CompositorUnavailableError)) throw error;
+        console.warn(
+          `RenderTimeline: ${error.message} Falling back to a rough cut — ` +
+            "clip transforms, effects, transitions, captions and overlay " +
+            "tracks are not applied."
+        );
+        basePath = await renderRoughCut({
+          seq,
+          clips: renderableVideoClips(seq),
+          audioClips,
+          assets,
+          workDir,
+          width,
+          height,
+          fps
+        });
+        baseHasAudio = true;
+        audioToMix = audioClips;
       }
+
+      const outPath =
+        audioToMix.length > 0
+          ? await mixAudioInto({
+              basePath,
+              clips: audioToMix,
+              baseHasAudio,
+              assets,
+              workDir
+            })
+          : basePath;
 
       const rendered = new Uint8Array(await fs.readFile(outPath));
       const duration = await ffprobeDuration(outPath);

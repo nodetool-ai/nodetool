@@ -30,7 +30,7 @@ import {
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   trackZ
-} from "../preview/sceneModel";
+} from "@nodetool-ai/timeline/render";
 import { CaptionRasterizer } from "../preview/captionRender";
 import { TextRasterizer } from "../preview/textRender";
 import { ShapeRasterizer } from "../preview/shapeRender";

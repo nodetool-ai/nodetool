@@ -4,16 +4,39 @@
     "outDir": "dist",
     "rootDir": "src",
     "noUnusedLocals": false,
-    "noUnusedParameters": false
+    "noUnusedParameters": false,
+    "types": [
+      "node",
+      "@webgpu/types"
+    ]
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    { "path": "../config" },
-    { "path": "../protocol" },
-    { "path": "../runtime" },
-    { "path": "../node-sdk" },
-    { "path": "../nodes-utils" },
-    { "path": "../audio-nodes" },
-    { "path": "../timeline" }
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../nodes-utils"
+    },
+    {
+      "path": "../audio-nodes"
+    },
+    {
+      "path": "../timeline"
+    },
+    {
+      "path": "../gpu"
+    }
   ]
 }

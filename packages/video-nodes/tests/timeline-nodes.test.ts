@@ -3,6 +3,11 @@
  * TimelineTranscriptNode, AddClipsToTimelineNode). child_process is mocked:
  * ffprobe answers duration/stream queries and the ffmpeg mock writes its
  * output file, so the full render pipeline runs without ffmpeg installed.
+ *
+ * RenderTimeline's compositor is forced unavailable here, pinning these cases
+ * to the rough-cut fallback they assert on — otherwise what they exercise
+ * would depend on whether the host happens to have a GPU. The composited path
+ * is covered by `timeline-composite.test.ts`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import fsSync from "node:fs";
@@ -65,6 +70,19 @@ vi.mock("node:child_process", async (importOriginal) => {
     }
   };
   return { ...original, execFile: mockExecFile };
+});
+
+vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
+  const original = (await importOriginal()) as Record<string, unknown>;
+  const { CompositorUnavailableError } = original as {
+    CompositorUnavailableError: new (cause: unknown) => Error;
+  };
+  return {
+    ...original,
+    renderTimelineComposited: () => {
+      throw new CompositorUnavailableError(new Error("no adapter in tests"));
+    }
+  };
 });
 
 const {
@@ -161,6 +179,8 @@ function stubContext(seq: ReturnType<typeof baseSequence> | null) {
 
 beforeEach(() => {
   execFileCalls = [];
+  // The fallback logs what the rough cut drops; not the subject of these tests.
+  vi.spyOn(console, "warn").mockImplementation(() => {});
 });
 
 describe("RenderTimelineNode", () => {
