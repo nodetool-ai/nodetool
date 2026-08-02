@@ -16,7 +16,6 @@
     "packages/base-nodes",
     "packages/dsl",
     "packages/sdk",
-    "packages/code-runners",
     "packages/fal-codegen",
     "packages/fal-nodes",
     "packages/replicate-codegen",

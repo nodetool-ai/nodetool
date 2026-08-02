@@ -445,7 +445,7 @@ We follow the **OWASP Top 10** as the baseline. See [OWASP Top 10:2021](https://
 ### Sandbox isolation
 
 - User-supplied JavaScript runs in QuickJS WASM (`packages/agents/src/js-sandbox.ts`) — never in Node's `vm`, never in the host process.
-- User-supplied shell commands run in Docker or subprocess sandboxes (`@nodetool-ai/code-runners`) — never directly via `child_process.exec`.
+- User-supplied code runs in the QuickJS WASM sandbox behind the Code node (`@nodetool-ai/agents/js-sandbox`) — never directly via `child_process.exec`.
 - File paths supplied by users are resolved against a workspace root and rejected if they escape it.
 
 ### target

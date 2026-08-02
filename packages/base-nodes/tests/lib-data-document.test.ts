@@ -28,14 +28,7 @@ import {
   SplitHTMLNode,
   SplitJSONNode,
   SplitRecursivelyNode,
-  SplitMarkdownNode,
-  // Code nodes
-  ExecuteJavaScriptNode,
-  ExecuteBashNode,
-  ExecuteCommandNode,
-  RunJavaScriptCommandNode,
-  RunBashCommandNode,
-  RunShellCommandNode
+  SplitMarkdownNode
 } from "../src/index.js";
 
 // ---------------------------------------------------------------------------
@@ -863,131 +856,6 @@ describe("document nodes", () => {
       const allYields = await collectGen(node.genProcess());
       const chunks = allYields.filter((item) => !("chunks" in item));
       expect(chunks).toHaveLength(1);
-    });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// CODE NODES
-// ---------------------------------------------------------------------------
-
-describe("code nodes", () => {
-  // -- ExecuteJavaScriptNode (requires Docker) --
-  describe.skip("ExecuteJavaScriptNode (requires Docker)", () => {
-    it("executes JavaScript and captures stdout", async () => {
-      const node = new ExecuteJavaScriptNode();
-      Object.assign(node, {
-        code: "console.log(2 + 3);"
-      });
-      const result = await node.process();
-      expect(result.output).toContain("5");
-      expect(result.exit_code).toBe(0);
-      expect(result.success).toBe(true);
-    });
-
-    it("captures stderr on error", async () => {
-      const node = new ExecuteJavaScriptNode();
-      Object.assign(node, {
-        code: "process.exit(1);"
-      });
-      const result = await node.process();
-      expect(result.exit_code).toBe(1);
-      expect(result.success).toBe(false);
-    });
-
-    it("returns computed values via stdout", async () => {
-      const node = new ExecuteJavaScriptNode();
-      Object.assign(node, {
-        code: "console.log(JSON.stringify({x: 42}));"
-      });
-      const result = await node.process();
-      expect(result.output).toContain('{"x":42}');
-    });
-  });
-
-  // -- ExecuteBashNode (requires Docker) --
-  describe.skip("ExecuteBashNode (requires Docker)", () => {
-    it("executes bash script", async () => {
-      const node = new ExecuteBashNode();
-      Object.assign(node, {
-        code: "echo hello-bash"
-      });
-      const result = await node.process();
-      expect(result.output).toContain("hello-bash");
-      expect(result.exit_code).toBe(0);
-      expect(result.success).toBe(true);
-    });
-
-    it("handles variables and arithmetic", async () => {
-      const node = new ExecuteBashNode();
-      Object.assign(node, {
-        code: "X=10; Y=20; echo $((X + Y))"
-      });
-      const result = await node.process();
-      expect(result.output).toContain("30");
-    });
-
-    it("reports non-zero exit code", async () => {
-      const node = new ExecuteBashNode();
-      Object.assign(node, {
-        code: "exit 42"
-      });
-      const result = await node.process();
-      expect(result.exit_code).toBe(42);
-      expect(result.success).toBe(false);
-    });
-  });
-
-  // -- ExecuteCommandNode (requires Docker) --
-  describe.skip("ExecuteCommandNode (requires Docker)", () => {
-    it("executes a shell command string", async () => {
-      const node = new ExecuteCommandNode();
-      Object.assign(node, {
-        command: "echo command-test"
-      });
-      const result = await node.process();
-      expect(result.output).toContain("command-test");
-      expect(result.exit_code).toBe(0);
-    });
-  });
-
-  // -- RunJavaScriptCommandNode --
-  describe("RunJavaScriptCommandNode", () => {
-    it("runs node -e with a command string", async () => {
-      const node = new RunJavaScriptCommandNode();
-      Object.assign(node, {
-        command: 'console.log("runjscmd")'
-      });
-      const result = await node.process();
-      expect(result.output).toContain("runjscmd");
-      expect(result.exit_code).toBe(0);
-    });
-  });
-
-  // -- RunBashCommandNode --
-  describe("RunBashCommandNode", () => {
-    it("runs bash -c with a command string", async () => {
-      const node = new RunBashCommandNode();
-      Object.assign(node, {
-        command: 'echo "runbashcmd"'
-      });
-      const result = await node.process();
-      expect(result.output).toContain("runbashcmd");
-      expect(result.exit_code).toBe(0);
-    });
-  });
-
-  // -- RunShellCommandNode --
-  describe("RunShellCommandNode", () => {
-    it("runs sh -c with a command string", async () => {
-      const node = new RunShellCommandNode();
-      Object.assign(node, {
-        command: "echo shell-cmd-test"
-      });
-      const result = await node.process();
-      expect(result.output).toContain("shell-cmd-test");
-      expect(result.exit_code).toBe(0);
-      expect(result.success).toBe(true);
     });
   });
 });

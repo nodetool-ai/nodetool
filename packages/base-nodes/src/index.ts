@@ -202,27 +202,6 @@ export {
   DescribeNode,
   DATA_NODES
 } from "@nodetool-ai/data-nodes/nodes/data";
-export {
-  ExecutePythonNode,
-  ExecuteJavaScriptNode,
-  ExecuteBashNode,
-  ExecuteRubyNode,
-  ExecuteLuaNode,
-  ExecuteCommandNode,
-  RunPythonCommandNode,
-  RunJavaScriptCommandNode,
-  RunBashCommandNode,
-  RunRubyCommandNode,
-  RunLuaCommandNode,
-  RunLuaCommandDockerNode,
-  RunShellCommandNode,
-  RunPythonCommandDockerNode,
-  RunJavaScriptCommandDockerNode,
-  RunBashCommandDockerNode,
-  RunRubyCommandDockerNode,
-  RunShellCommandDockerNode,
-  CODE_NODES
-} from "@nodetool-ai/code-nodes/nodes/code";
 export { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 export {
   DateNowNode,
@@ -773,7 +752,6 @@ import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 import { DOCUMENT_NODES } from "@nodetool-ai/document-nodes/nodes/document";
 import { DATA_NODES } from "@nodetool-ai/data-nodes/nodes/data";
-import { CODE_NODES } from "@nodetool-ai/code-nodes/nodes/code";
 import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
 import { AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/audio";
 import { REALTIME_AUDIO_NODES } from "@nodetool-ai/audio-nodes/nodes/realtime-audio";
@@ -864,7 +842,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...COMPARE_NODES,
   ...DOCUMENT_NODES,
   ...DATA_NODES,
-  ...CODE_NODES,
   CodeNode,
   ...LIB_DATETIME_NODES,
   ...LIB_VALIDATE_NODES,

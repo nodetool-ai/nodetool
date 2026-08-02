@@ -1452,15 +1452,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "read-stderr-from-code",
-        "name": "Read Stderr from Code",
-        "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
         "slug": "redact-email-addresses",
         "name": "Redact Email Addresses",
         "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
@@ -1474,42 +1465,6 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
         "tags": [
           "text"
-        ]
-      },
-      {
-        "slug": "run-javascript-in-a-sandbox",
-        "name": "Run JavaScript in a Sandbox",
-        "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-lua-in-a-sandbox",
-        "name": "Run Lua in a Sandbox",
-        "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-python-in-a-sandbox",
-        "name": "Run Python in a Sandbox",
-        "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-a-shell-command",
-        "name": "Run a Shell Command",
-        "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
         ]
       },
       {
@@ -1791,30 +1746,12 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "generate-a-table-in-code",
-        "name": "Generate a Table in Code",
-        "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
-        "tags": [
-          "code",
-          "data"
-        ]
-      },
-      {
         "slug": "json-to-a-table",
         "name": "JSON to a Table",
         "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
         "tags": [
           "data",
           "utility"
-        ]
-      },
-      {
-        "slug": "javascript-to-a-table",
-        "name": "JavaScript to a Table",
-        "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
-        "tags": [
-          "code",
-          "data"
         ]
       },
       {

@@ -24,8 +24,7 @@ import {
   type GuestHelperName
 } from "../js-sandbox.js";
 
-/** The node this manifest describes. Other `nodetool.code.*` executors run
- * real interpreters and need their own manifest. */
+/** The node this manifest describes. */
 export const SANDBOX_MANIFEST_NODE_TYPE = "nodetool.code.Code";
 
 export interface SandboxMemberDoc {
