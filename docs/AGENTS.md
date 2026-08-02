@@ -185,7 +185,7 @@ abstract class Tool {
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
 | **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
-| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool`, `ListModelsTool` | `mcp-tools.ts` |
+| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool`, `ListModelsTool` | `mcp-tools.ts` |
 
 ### Workflow Harness Tools
 
@@ -200,6 +200,13 @@ from inside an agent:
   the expensive `debug`.
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
+- **`build_app`** — build a mini app from a prompt (or a pinned `BuildSpec`) and
+  return the `BuildReport`: stages, repairs, the simulated interactions, a
+  verdict, and — only behind a passing verdict — the `ApplicationBundle`. Posts
+  to `POST /api/applications/build`. Minutes, not seconds: with `poll: true` it
+  returns a session id to read at `GET /api/debug/sessions/:id` or cancel at
+  `POST /api/debug/sessions/:id/cancel`. The bundle is offered, never installed
+  — install it with `POST /api/applications/import-bundle`.
 - **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
   background job (poll with `get_job` / `get_job_logs`).
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,

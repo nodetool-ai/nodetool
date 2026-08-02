@@ -509,6 +509,25 @@ stages, the `ui_app_*` bridge the `app-tools` eval also scores); the CLI keeps
 the flags and the bundle. Design:
 [docs/mini-app-build-harness-design.md](docs/mini-app-build-harness-design.md).
 
+#### On the server: `POST /api/applications/build` and `build_app`
+
+The same `buildApp` runs on the server:
+`POST /api/applications/build {prompt | spec, provider, model, workflow_ids,
+max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`, and an agent
+reaches it through the **`build_app`** tool. Provider and model come from the
+body, or from `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`; the
+cost cap defaults to the harness's own $2.
+
+A build runs for minutes, so `poll: true` returns a session id immediately and
+the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
+`POST /api/debug/sessions/:id/cancel` — the same session machinery an
+interactive `debug_workflow` run uses (`packages/websocket/src/debug-sessions.ts`).
+A cancelled build settles as `failed` with `reason: "cancelled"`.
+
+The bundle behind a green verdict is offered, never installed: it becomes an
+application through the normal `POST /api/applications/import-bundle`. Server
+code: `packages/websocket/src/lib/app-build-service.ts`.
+
 ### nodetool validate (Static Workflow Check)
 
 Checks a workflow against the node registry **without running it** — unknown

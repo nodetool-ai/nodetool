@@ -13,6 +13,10 @@
  * A session is one run: the parked escalations, the run's completion promise,
  * and the final report. Sessions are owned by the user who started the run and
  * are swept a few minutes after the run settles.
+ *
+ * Long-running work that is not a workflow run uses the same registry for its
+ * polling and cancel — `POST /api/applications/build` fronts a build this way,
+ * with a null `workflowId` and a handle nothing ever escalates to.
  */
 
 import { randomUUID } from "node:crypto";
@@ -145,7 +149,8 @@ export type DebugSessionEvent =
 
 export interface CreateDebugSessionOptions {
   userId: string;
-  workflowId: string;
+  /** Null when the session fronts something other than a workflow run. */
+  workflowId: string | null;
   jobId: string;
   handle: InteractiveEscalationHandle;
   /** Resolves with the final report once the run settles. Must never reject. */
@@ -156,7 +161,7 @@ export interface CreateDebugSessionOptions {
 export class DebugSession {
   readonly id: string;
   readonly userId: string;
-  readonly workflowId: string;
+  readonly workflowId: string | null;
   readonly jobId: string;
   private readonly _handle: InteractiveEscalationHandle;
   private readonly _done: Promise<Record<string, unknown>>;

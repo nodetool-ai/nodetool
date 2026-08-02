@@ -14,6 +14,7 @@
  *   GET    /api/applications/:id/released-document  → ApplicationReleaseResponse | null
  *   GET    /api/applications/:id/export-bundle      → ApplicationBundle (download)
  *   POST   /api/applications/import-bundle          → ApplicationResponse
+ *   POST   /api/applications/build                  → BuildReport | {session_id}
  *   GET    /api/applications/examples               → ExampleAppSummary[]
  *   GET    /api/applications/examples/:slug         → ApplicationBundle
  *   POST   /api/applications/examples/:slug/install → ApplicationResponse
@@ -47,9 +48,16 @@ import {
   updateApplication,
   updateApplicationInput
 } from "../lib/applications-service.js";
+import {
+  runApplicationBuild,
+  type AppBuildDeps,
+  type AppBuildRequest
+} from "../lib/app-build-service.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
+  /** Build dependencies — overridden only by tests. */
+  appBuild?: AppBuildDeps;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -138,6 +146,23 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
           await readJsonBody(request)
         );
         return importApplicationBundle(userIdOf(request), input);
+      })
+    );
+  });
+
+  // Build an app from a prompt or a spec. The response is the BuildReport —
+  // the bundle it carries is offered, never installed: turning a green build
+  // into an application is a separate call to `import-bundle` above.
+  app.post("/api/applications/build", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const body = (await readJsonBody(request)) as AppBuildRequest;
+        return runApplicationBuild(
+          userIdOf(request),
+          body,
+          apiOptions,
+          opts.appBuild ?? {}
+        );
       })
     );
   });
