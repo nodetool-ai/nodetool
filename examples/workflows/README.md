@@ -80,6 +80,51 @@ npm run workflow -- ./examples/workflows/import_csv_aggregate_cli.json --input c
 npm run workflow -- ./examples/workflows/wait_node_cli.json --input input='{"message":"hello"}' --input timeout_seconds=0.02
 ```
 
+## Offline node examples
+
+Self-contained: every input is a constant in the graph, so these take no
+`--input` and reach no model, network or disk. Each one covers a cluster of
+nodes that had no example before, and
+`packages/base-nodes/tests/pure-node-examples-run.test.ts` executes all ten and
+asserts the value every node produced.
+
+```bash
+# string transforms — trim, case, prefix/suffix, index, slice
+npm run workflow -- ./examples/workflows/text_transforms_cli.json
+
+# regex match/extract/filter, JSON parsing, chunking with overlap
+npm run workflow -- ./examples/workflows/text_regex_parse_cli.json
+
+# markdown → headers, bullet and numbered lists, code blocks, tables
+npm run workflow -- ./examples/workflows/markdown_extract_cli.json
+
+# HTML → title/description/keywords, links, images, video, audio, plain text
+npm run workflow -- ./examples/workflows/html_extract_cli.json
+
+# email / URL / IP validation and sanitizing untrusted text
+npm run workflow -- ./examples/workflows/validate_strings_cli.json
+
+# building lists by range, repetition and tiling
+npm run workflow -- ./examples/workflows/list_build_cli.json
+
+# streams: filter, drop-while, tap, collect; plus Switch and fallback routing
+npm run workflow -- ./examples/workflows/control_flow_stream_cli.json
+
+# formatting, shifting and comparing dates
+npm run workflow -- ./examples/workflows/datetime_cli.json
+
+# querying a dataframe parsed out of a markdown table
+npm run workflow -- ./examples/workflows/dataframe_query_cli.json
+
+# writing a workflow variable and reading it back
+npm run workflow -- ./examples/workflows/variables_cli.json
+```
+
+A stream wired straight into an `Output` records only its **last** item —
+`Output` captures the value its actor holds when it completes. Put a
+`nodetool.control.Collect` in between to materialize the whole stream;
+`control_flow_stream_cli.json` shows the wiring.
+
 ## Agent + OpenAI provider examples
 
 ```bash
