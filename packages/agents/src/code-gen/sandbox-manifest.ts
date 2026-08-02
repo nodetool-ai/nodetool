@@ -453,8 +453,16 @@ function overridableLimits(): SandboxLimitDoc[] {
     stackLimitBytes: HUGE,
     fetchTimeoutMs: HUGE
   });
-  const described: Record<
+  // Numeric limits only. The capability switches (`allowPrivateNetwork`,
+  // `userAgent`) are deliberately absent: they are host-set, have no ceiling
+  // to clamp against, and must not be advertised in the guest-facing manifest
+  // as something authored code can ask for.
+  type NumericLimitKey = Exclude<
     keyof typeof defaults,
+    "allowPrivateNetwork" | "userAgent"
+  >;
+  const described: Record<
+    NumericLimitKey,
     { description: string; unit: SandboxLimitDoc["unit"] }
   > = {
     maxFetchCalls: { description: "fetch calls per run", unit: "count" },
@@ -467,7 +475,7 @@ function overridableLimits(): SandboxLimitDoc[] {
     stackLimitBytes: { description: "guest call stack", unit: "bytes" },
     fetchTimeoutMs: { description: "per-request fetch timeout", unit: "ms" }
   };
-  return (Object.keys(described) as (keyof typeof defaults)[]).map((key) => ({
+  return (Object.keys(described) as NumericLimitKey[]).map((key) => ({
     key,
     description: described[key].description,
     unit: described[key].unit,
