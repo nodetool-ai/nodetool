@@ -884,18 +884,18 @@ export async function handleWorkflowRun(
       // guarantees an LLM supervisor gets — decision/retry caps, a per-decision
       // timeout that fails closed, sticky verdicts — just with a timeout sized
       // for an agent's tool round trip instead of one model call.
+      // These are API inputs: anything but a sane integer (NaN, Infinity,
+      // negatives, fractions) falls back to the default rather than reaching
+      // `BoundedHandle` — a NaN timeout would fail every decision instantly.
+      const maxDecisions = boundedRunOption(body?.max_decisions, 1);
+      const maxRetriesPerNode = boundedRunOption(body?.max_retries_per_node, 0);
       interactiveHandle = new InteractiveEscalationHandle();
       supervisorHandle = new BoundedHandle(interactiveHandle, {
-        ...(typeof body?.max_decisions === "number"
-          ? { maxDecisions: body.max_decisions }
-          : {}),
-        ...(typeof body?.max_retries_per_node === "number"
-          ? { maxRetriesPerNode: body.max_retries_per_node }
-          : {}),
+        ...(maxDecisions !== undefined ? { maxDecisions } : {}),
+        ...(maxRetriesPerNode !== undefined ? { maxRetriesPerNode } : {}),
         decisionTimeoutMs:
-          typeof body?.decision_timeout_ms === "number"
-            ? body.decision_timeout_ms
-            : INTERACTIVE_DECISION_TIMEOUT_MS
+          boundedRunOption(body?.decision_timeout_ms, 1) ??
+          INTERACTIVE_DECISION_TIMEOUT_MS
       });
     }
     runner = new WorkflowRunner(job.id, {
@@ -983,12 +983,17 @@ export async function handleWorkflowRun(
           error: String(saveError)
         });
       }
-      return {
-        job_id: job.id,
-        workflow_id: workflowId,
+      // Keep the payload shape of a failed run — the debug surface still gets
+      // a summary and verdict — instead of a bare {status, error} object.
+      const failed: WorkflowRunResult = {
         status: "failed",
-        error: message
+        error: message,
+        messages: [],
+        outputs: {}
       };
+      return buildWorkflowRunPayload(job.id, workflowId, failed, debug, {
+        background: false
+      });
     } finally {
       supervisorHandle?.close();
     }
@@ -1007,6 +1012,13 @@ export async function handleWorkflowRun(
 }
 
 type WorkflowRunResult = Awaited<ReturnType<WorkflowRunner["run"]>>;
+
+/** An interactive-run bound from the request body: an integer ≥ min, or undefined. */
+function boundedRunOption(value: unknown, min: number): number | undefined {
+  return typeof value === "number" && Number.isInteger(value) && value >= min
+    ? value
+    : undefined;
+}
 
 async function finalizeWorkflowRunJob(
   job: Job,

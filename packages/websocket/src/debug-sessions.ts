@@ -39,6 +39,12 @@ interface PendingEscalation {
   settle: (outcome: DecisionOutcome) => void;
 }
 
+/** What escalation subscribers see: the record, never the settle handle. */
+export interface ParkedEscalation {
+  id: string;
+  escalation: Escalation;
+}
+
 /**
  * A `SupervisorHandle` that answers nothing itself: each `decide()` parks the
  * escalation until `submit()` delivers a verdict (or the decision signal
@@ -47,7 +53,7 @@ interface PendingEscalation {
  */
 export class InteractiveEscalationHandle implements SupervisorHandle {
   private _pending: PendingEscalation | null = null;
-  private _waiters: Array<(entry: PendingEscalation) => void> = [];
+  private _waiters: Array<(entry: ParkedEscalation) => void> = [];
   private _counter = 0;
   private _closed = false;
 
@@ -81,19 +87,18 @@ export class InteractiveEscalationHandle implements SupervisorHandle {
     return { id: this._pending.id, escalation: this._pending.escalation };
   }
 
-  /** Resolves with the next parked escalation (immediately if one is parked). */
-  nextEscalation(): Promise<{ id: string; escalation: Escalation }> {
-    if (this._pending) {
-      return Promise.resolve({
-        id: this._pending.id,
-        escalation: this._pending.escalation
-      });
-    }
-    return new Promise((resolve) => {
-      this._waiters.push((entry) =>
-        resolve({ id: entry.id, escalation: entry.escalation })
-      );
-    });
+  /**
+   * Subscribe to the next parked escalation. Returns an unsubscribe so a
+   * caller racing this against run completion can withdraw when the run wins
+   * — otherwise every verdict round trip would strand one waiter until the
+   * session is swept.
+   */
+  subscribe(waiter: (entry: ParkedEscalation) => void): () => void {
+    this._waiters.push(waiter);
+    return () => {
+      const index = this._waiters.indexOf(waiter);
+      if (index !== -1) this._waiters.splice(index, 1);
+    };
   }
 
   /**
@@ -178,18 +183,33 @@ export class DebugSession {
    * parked decision fails closed on its own timeout, so this always resolves.
    */
   async waitForEvent(): Promise<DebugSessionEvent> {
-    return Promise.race([
-      this._done.then(
-        (report): DebugSessionEvent => ({ kind: "done", report })
-      ),
-      this._handle.nextEscalation().then(
-        (entry): DebugSessionEvent => ({
-          kind: "escalated",
-          escalationId: entry.id,
-          escalation: entry.escalation
+    const pending = this._handle.current();
+    if (pending) {
+      return {
+        kind: "escalated",
+        escalationId: pending.id,
+        escalation: pending.escalation
+      };
+    }
+    let unsubscribe: () => void = () => {};
+    try {
+      return await Promise.race([
+        this._done.then(
+          (report): DebugSessionEvent => ({ kind: "done", report })
+        ),
+        new Promise<DebugSessionEvent>((resolve) => {
+          unsubscribe = this._handle.subscribe((entry) =>
+            resolve({
+              kind: "escalated",
+              escalationId: entry.id,
+              escalation: entry.escalation
+            })
+          );
         })
-      )
-    ]);
+      ]);
+    } finally {
+      unsubscribe();
+    }
   }
 
   /** Current state without waiting. */
