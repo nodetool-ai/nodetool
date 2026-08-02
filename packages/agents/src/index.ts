@@ -108,6 +108,7 @@ export {
   CreateWorkflowTool,
   RunWorkflowTool,
   DebugWorkflowTool,
+  ResolveWorkflowEscalationTool,
   ValidateWorkflowTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,

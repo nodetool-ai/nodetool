@@ -352,7 +352,20 @@ tool. It posts to `POST /api/workflows/:id/debug`, which runs the workflow and
 returns the same execution summary and verdict the CLI harness computes —
 per-node status and errors, logs, LLM calls, outputs — plus the job record and
 the graph overview. The summary reducer and triage live in
-`@nodetool-ai/execution/debug`, so CLI and agent surfaces cannot drift. The browser surface is exposed in `web/` as
+`@nodetool-ai/execution/debug`, so CLI and agent surfaces cannot drift.
+
+With `interactive: true`, `run_workflow` and `debug_workflow` put the calling
+agent on the failure path the way `--supervise` puts an LLM supervisor there:
+a failing node invocation parks the run and the tool returns the escalation
+(`status: "escalated"` with the supervisor's `Escalation` record — redacted
+inputs, error detail, `allowedActions`). The agent answers via
+**`resolve_workflow_escalation`** — retry, substitute, skip, end_stream, or
+fail, kernel-enforced against the allowed set — and gets back either the next
+escalation or the run's final report. HTTP surface:
+`POST /api/workflows/:id/run|debug {interactive: true}` plus
+`GET/POST /api/debug/sessions/:id[/verdict|/cancel]`
+(`packages/websocket/src/debug-sessions.ts`). Escalations the agent leaves
+unanswered fail closed on the decision timeout (default 10 min). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
 
