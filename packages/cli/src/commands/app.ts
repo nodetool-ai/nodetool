@@ -56,7 +56,8 @@ export function registerAppCommands(program: Command): void {
         const { initMasterKey } = await import("@nodetool-ai/security");
         const { getDefaultDbPath } = await import("@nodetool-ai/config");
         const { runAppDebug } = await import("../app-debug/index.js");
-        type InteractionSteps = import("../app-debug/types.js").InteractionStep[];
+        type InteractionSteps =
+          import("@nodetool-ai/execution/app-debug").InteractionStep[];
 
         initDb(getDefaultDbPath());
         try {

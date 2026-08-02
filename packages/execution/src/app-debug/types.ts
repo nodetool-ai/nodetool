@@ -11,6 +11,7 @@
  */
 import type {
   AppEvent,
+  ApplicationDocument,
   BindingRef,
   ConditionProps,
   InputMapping,
@@ -23,6 +24,7 @@ import type {
 } from "@nodetool-ai/app-runtime";
 
 import type {
+  DebugGraph,
   DebugTargetInfo,
   DebugVerdict,
   ServerRunReport
@@ -30,6 +32,39 @@ import type {
 import type { SeedResourceItem } from "./runtime.js";
 
 export type { SeedResourceItem };
+
+/**
+ * An app target after its host resolved it — an application row, an
+ * `ApplicationBundle` file, or a workflow carrying a legacy `app_doc`. The
+ * simulator takes this shape and never learns which of the three it came from;
+ * resolution (files, database) belongs to the host.
+ */
+export interface ResolvedAppTarget {
+  info: DebugTargetInfo;
+  /**
+   * The graph the report's IO summary and branch analysis are computed
+   * against: the default operation's workflow, or the workflow itself on the
+   * legacy path. Empty when nothing resolved.
+   */
+  graph: DebugGraph;
+  /** Params discovered in a file's `params` field, merged under caller params. */
+  fileParams: Record<string, unknown>;
+  /** The document exactly as stored, for `app.json` and persist warnings. */
+  appDoc: unknown;
+  /** The parsed document, or null with {@link ResolvedAppTarget.issue} explaining why. */
+  document: ApplicationDocument | null;
+  /** Why no document could be parsed. */
+  issue: string | null;
+  /** Graphs the target carries, keyed by the id its operations reference. */
+  graphs: Map<string, DebugGraph>;
+  /**
+   * True when those keys are bundle-local, so no operation names a real
+   * workflow id and nothing can be handed to the runner as one.
+   */
+  operationsReferenceKeys: boolean;
+  /** The application's name, when the target is an app rather than a workflow. */
+  appName: string | null;
+}
 
 /** How a widget participates in the reactive layer (from the shared catalog). */
 export type WidgetBindingMode = SharedWidgetBindingMode | "unknown";

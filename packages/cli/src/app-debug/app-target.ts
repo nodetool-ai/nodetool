@@ -29,6 +29,10 @@ import {
   readFileTarget
 } from "../debug/target.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
+// The resolved shape is the simulator's input, so it is declared alongside it.
+import type { ResolvedAppTarget } from "@nodetool-ai/execution/app-debug";
+
+export type { ResolvedAppTarget };
 
 /** A workflow row as the harness needs it. */
 export interface AppWorkflowRecord {
@@ -50,33 +54,6 @@ export interface AppTargetDeps {
   loadFromDb: (id: string) => Promise<AppWorkflowRecord | null>;
   /** Load an application by DB id. Omitted when the caller has no DB. */
   loadApplication?: (id: string) => Promise<AppApplicationRecord | null>;
-}
-
-export interface ResolvedAppTarget {
-  info: DebugTargetInfo;
-  /**
-   * The graph the report's IO summary and branch analysis are computed
-   * against: the default operation's workflow, or the workflow itself on the
-   * legacy path. Empty when nothing resolved.
-   */
-  graph: DebugGraph;
-  /** Params discovered in a file's `params` field, merged under caller params. */
-  fileParams: Record<string, unknown>;
-  /** The document exactly as stored, for `app.json` and persist warnings. */
-  appDoc: unknown;
-  /** The parsed document, or null with {@link issue} explaining why. */
-  document: ApplicationDocument | null;
-  /** Why no document could be parsed. */
-  issue: string | null;
-  /** Graphs the target carries, keyed by the id its operations reference. */
-  graphs: Map<string, DebugGraph>;
-  /**
-   * True when those keys are bundle-local, so no operation names a real
-   * workflow id and nothing can be handed to the runner as one.
-   */
-  operationsReferenceKeys: boolean;
-  /** The application's name, when the target is an app rather than a workflow. */
-  appName: string | null;
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

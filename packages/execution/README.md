@@ -105,6 +105,16 @@ Inside the facade: `hydrateGraphNodeFlags` (plus the graph normalization
 param/stream seeding via the kernel's own `pushInputValue`/
 `finishInputStream`, cancellation, and run-timeout-as-cancel.
 
+## Subpaths
+
+- `@nodetool-ai/execution/debug` — the execution-summary reducer, the run
+  verdict, and the target/run-report types every surface reports a run with.
+- `@nodetool-ai/execution/app-debug` — the headless mini-app simulator:
+  `simulateApp` takes a resolved app target and an injected workflow runner and
+  returns an `AppDebugReport`. It reads no database and writes no files, so the
+  CLI (`nodetool app debug`), the agent build loop, and the server all simulate
+  an app the same way. Target resolution and bundle writing belong to the host.
+
 ## What this package does not do
 
 - **Does not migrate any call site.** Every site in the inventory table above

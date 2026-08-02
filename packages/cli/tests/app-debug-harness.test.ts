@@ -9,7 +9,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { runAppDebug, defaultInteractions } from "../src/app-debug/harness.js";
-import { parseAppSpec } from "../src/app-debug/app-spec.js";
+import { parseAppSpec } from "@nodetool-ai/execution/app-debug";
 import { collectExecutionSummary } from "../src/debug/collector.js";
 import type { ServerRunInput, ServerRunOutcome } from "../src/debug/server-runner.js";
 

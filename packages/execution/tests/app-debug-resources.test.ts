@@ -1,19 +1,22 @@
 /**
- * Tests for the headless resource provider behind `app debug`: seeding a
- * collection, feeding a `from: "resource"` param from it, mutating it with a
- * resource command, and refusing to run when nothing seeded it. The kernel
- * server runner is stubbed, so what these assert is the simulator's own
- * behaviour.
+ * Tests for the headless resource provider: seeding a collection, feeding a
+ * `from: "resource"` param from it, mutating it with a resource command, and
+ * refusing to run when nothing seeded it. The workflow runner is stubbed, so
+ * what these assert is the simulator's own behaviour.
  */
-import { mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { runAppDebug } from "../src/app-debug/harness.js";
+import { simulateApp } from "../src/app-debug/simulate.js";
 import { InMemoryResourceProvider } from "../src/app-debug/runtime.js";
 import { collectExecutionSummary } from "../src/debug/collector.js";
-import type { ServerRunInput, ServerRunOutcome } from "../src/debug/server-runner.js";
-import type { AppDebugOptions } from "../src/app-debug/types.js";
+import type {
+  AppServerRunInput,
+  AppServerRunOutcome
+} from "../src/app-debug/simulate.js";
+import type {
+  AppDebugOptions,
+  ResolvedAppTarget
+} from "../src/app-debug/types.js";
+import { resolvedBundle } from "./app-debug-fixtures.js";
 
 const graph = {
   nodes: [
@@ -28,15 +31,11 @@ const graph = {
 };
 
 /** A bundle whose one operation reads its only input from a resource binding. */
-const bundleFile = (
+const bundleTarget = (
   content: Array<Record<string, unknown>>,
   resources: Array<Record<string, unknown>>
-): string => {
-  const dir = mkdtempSync(join(tmpdir(), "app-resources-"));
-  const file = join(dir, "app.bundle.json");
-  writeFileSync(
-    file,
-    JSON.stringify({
+): ResolvedAppTarget =>
+  resolvedBundle({
       schemaVersion: 1,
       name: "Storyboard App",
       description: "",
@@ -56,12 +55,8 @@ const bundleFile = (
         resources,
         variables: []
       },
-      workflows: [{ key: "wf", name: "Main", graph }]
-    }),
-    "utf8"
-  );
-  return file;
-};
+    workflows: [{ key: "wf", name: "Main", graph }]
+  });
 
 const boards = [
   { id: "boards", name: "Boards", kind: "storyboard", scope: {}, operations: ["read", "create"] }
@@ -99,7 +94,7 @@ const widgets = [
 ];
 
 const stubRunner = () =>
-  vi.fn(async (_input: ServerRunInput): Promise<ServerRunOutcome> => {
+  vi.fn(async (_input: AppServerRunInput): Promise<AppServerRunOutcome> => {
     const messages = [
       {
         type: "output_update",
@@ -125,20 +120,18 @@ const stubRunner = () =>
     };
   });
 
-const run = async (file: string, options: AppDebugOptions) => {
+const run = async (target: ResolvedAppTarget, options: AppDebugOptions) => {
   const runOnServer = stubRunner();
-  const outDir = mkdtempSync(join(tmpdir(), "app-resources-out-"));
-  const report = await runAppDebug(
-    file,
-    { outDir, ...options },
-    { loadFromDb: async () => null, runOnServer }
-  );
+  const report = await simulateApp(target, options, {
+    loadFromDb: async () => null,
+    runOnServer
+  });
   return { report, runOnServer };
 };
 
 describe("app debug — resources", () => {
   it("runs a resource-fed param from a seeded collection", async () => {
-    const { report, runOnServer } = await run(bundleFile(widgets, boards), {
+    const { report, runOnServer } = await run(bundleTarget(widgets, boards), {
       interact: [
         {
           seedResource: {
@@ -176,7 +169,7 @@ describe("app debug — resources", () => {
   });
 
   it("seeds a collection from --params", async () => {
-    const { report, runOnServer } = await run(bundleFile(widgets, boards), {
+    const { report, runOnServer } = await run(bundleTarget(widgets, boards), {
       params: { "resource:boards": [{ id: "b9", name: "Only" }] },
       interact: [{ click: "Run" }]
     });
@@ -191,7 +184,7 @@ describe("app debug — resources", () => {
   });
 
   it("fails the run when nothing seeded the collection, naming how to seed it", async () => {
-    const { report, runOnServer } = await run(bundleFile(widgets, boards), {
+    const { report, runOnServer } = await run(bundleTarget(widgets, boards), {
       interact: [{ click: "Run" }]
     });
 
@@ -209,7 +202,7 @@ describe("app debug — resources", () => {
   });
 
   it("rejects a seed for a binding the app does not declare", async () => {
-    const { report } = await run(bundleFile(widgets, boards), {
+    const { report } = await run(bundleTarget(widgets, boards), {
       interact: [{ seedResource: { id: "scenes", items: [{ id: "s1" }] } }],
       run: false
     });
@@ -220,7 +213,7 @@ describe("app debug — resources", () => {
   });
 
   it("mutates the collection through a resource command and reports it", async () => {
-    const { report } = await run(bundleFile(widgets, boards), {
+    const { report } = await run(bundleTarget(widgets, boards), {
       interact: [
         { seedResource: { id: "boards", items: [{ id: "b1", name: "Opening" }] } },
         { click: "New board" },
@@ -240,7 +233,7 @@ describe("app debug — resources", () => {
   });
 
   it("fails a resource command against an unseeded binding", async () => {
-    const { report } = await run(bundleFile(widgets, boards), {
+    const { report } = await run(bundleTarget(widgets, boards), {
       interact: [{ click: "New board" }],
       run: false
     });

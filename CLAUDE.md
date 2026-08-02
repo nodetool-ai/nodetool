@@ -418,7 +418,10 @@ The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
 `server/run-N.messages.jsonl` per triggered run. The report carries final
 variable values, the activity label stream, and each invocation's policy
 decision, so an agent can see why a run was replaced, queued, or timed out.
-Harness code: `packages/cli/src/app-debug/`.
+Simulator code: `packages/execution/src/app-debug/`
+(`@nodetool-ai/execution/app-debug`), so every host — the CLI, the agent build
+loop, the server — simulates an app the same way. The CLI keeps target
+resolution and bundle writing in `packages/cli/src/app-debug/`.
 
 Conditions and formatting are simulated: after every fold the harness evaluates
 each widget's `visibleWhen`/`disabledWhen`, a click or change on a widget that

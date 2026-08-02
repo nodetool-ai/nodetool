@@ -1,17 +1,22 @@
 /**
- * Tests for the simulated logic surface of `app debug`: `visibleWhen`,
- * `disabledWhen`, and `format`. The kernel server runner is stubbed out, so
- * what these assert is the simulator's own behaviour — which steps a user could
+ * Tests for the simulated logic surface of the app simulator: `visibleWhen`,
+ * `disabledWhen`, and `format`. The workflow runner is stubbed out, so what
+ * these assert is the simulator's own behaviour — which steps a user could
  * perform, and what a widget ends up showing.
  */
-import { mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { runAppDebug } from "../src/app-debug/harness.js";
+import { simulateApp } from "../src/app-debug/simulate.js";
+import { renderAppReportMarkdown } from "../src/app-debug/markdown.js";
 import { collectExecutionSummary } from "../src/debug/collector.js";
-import type { ServerRunInput, ServerRunOutcome } from "../src/debug/server-runner.js";
-import type { InteractionStep } from "../src/app-debug/types.js";
+import type {
+  AppServerRunInput,
+  AppServerRunOutcome
+} from "../src/app-debug/simulate.js";
+import type {
+  InteractionStep,
+  ResolvedAppTarget
+} from "../src/app-debug/types.js";
+import { resolvedWorkflow } from "./app-debug-fixtures.js";
 
 const graph = {
   nodes: [
@@ -25,31 +30,19 @@ const graph = {
   edges: []
 };
 
-/** A workflow file whose app document is built from the given widget list. */
-const appFile = (
+/** A workflow target whose app document is built from the given widget list. */
+const appTarget = (
   content: Array<Record<string, unknown>>,
   variables: Array<Record<string, unknown>> = []
-): string => {
-  const dir = mkdtempSync(join(tmpdir(), "app-conditions-"));
-  const file = join(dir, "workflow.json");
-  writeFileSync(
-    file,
-    JSON.stringify({
-      id: "wf1",
-      graph,
-      app_doc: {
-        version: 2,
-        variables,
-        data: { root: { props: { title: "Conditional App" } }, content, zones: {} }
-      }
-    }),
-    "utf8"
-  );
-  return file;
-};
+): ResolvedAppTarget =>
+  resolvedWorkflow(graph, {
+    version: 2,
+    variables,
+    data: { root: { props: { title: "Conditional App" } }, content, zones: {} }
+  });
 
 const stubRunner = () =>
-  vi.fn(async (_input: ServerRunInput): Promise<ServerRunOutcome> => {
+  vi.fn(async (_input: AppServerRunInput): Promise<AppServerRunOutcome> => {
     const messages = [
       { type: "output_update", node_id: "out1", output_name: "output", value: "the answer" },
       { type: "job_update", status: "completed" }
@@ -70,19 +63,18 @@ const stubRunner = () =>
     };
   });
 
-const run = async (file: string, interact?: InteractionStep[]) => {
+const run = async (target: ResolvedAppTarget, interact?: InteractionStep[]) => {
   const runOnServer = stubRunner();
-  const outDir = mkdtempSync(join(tmpdir(), "app-conditions-out-"));
-  const report = await runAppDebug(
-    file,
-    { outDir, ...(interact ? { interact } : {}) },
+  const report = await simulateApp(
+    target,
+    { ...(interact ? { interact } : {}) },
     { loadFromDb: async () => null, runOnServer }
   );
-  return { report, runOnServer, outDir };
+  return { report, runOnServer };
 };
 
 const approveApp = (buttonProps: Record<string, unknown>) =>
-  appFile(
+  appTarget(
     [
       { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
       { type: "Markdown", props: { id: "Markdown-1", binding: "result" } },
@@ -166,8 +158,8 @@ describe("app debug — conditions", () => {
 
 describe("app debug — format", () => {
   it("reports what the format template renders, not the raw value", async () => {
-    const { report, outDir } = await run(
-      appFile([
+    const { report } = await run(
+      appTarget([
         { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
         {
           type: "Markdown",
@@ -190,7 +182,7 @@ describe("app debug — format", () => {
       display: "THE ANSWER",
       hasValue: true
     });
-    expect(readFileSync(join(outDir, "report.md"), "utf8")).toContain("THE ANSWER");
+    expect(renderAppReportMarkdown(report)).toContain("THE ANSWER");
     expect(report.verdict.ok).toBe(true);
   });
 
@@ -198,7 +190,7 @@ describe("app debug — format", () => {
     // The bound output arrives, but the template reads a variable nothing
     // fills, so the user sees an empty widget — which is what the check tests.
     const { report } = await run(
-      appFile(
+      appTarget(
         [
           { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
           {
@@ -226,8 +218,8 @@ describe("app debug — format", () => {
 
 describe("app debug — apps without conditions", () => {
   it("reports every widget visible and enabled, with no rendered display", async () => {
-    const { report, outDir } = await run(
-      appFile([
+    const { report } = await run(
+      appTarget([
         { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
         { type: "Markdown", props: { id: "Markdown-1", binding: "result" } },
         {
@@ -249,6 +241,6 @@ describe("app debug — apps without conditions", () => {
     // Conditions and formatting are simulated now, so nothing here may claim
     // otherwise.
     expect(report.notSimulated.join("\n")).not.toMatch(/condition|format|visibleWhen/i);
-    expect(readFileSync(join(outDir, "report.md"), "utf8")).toContain("## Not simulated");
+    expect(renderAppReportMarkdown(report)).toContain("## Not simulated");
   });
 });

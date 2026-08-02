@@ -39,11 +39,26 @@ export {
 } from "./debug/verdict.js";
 export type {
   DebugError,
+  DebugGraph,
+  DebugTargetInfo,
+  DebugVerdict,
   EdgeDebug,
   ExecutionSummary,
   LlmCallDebug,
   LogEntry,
   NodeDebug,
   NodeOutput,
-  RunVerdict
+  RunVerdict,
+  ServerRunReport,
+  TraceSummary
 } from "./debug/types.js";
+
+// App-debug surface: one headless simulation of a mini app for every host that
+// reports on one (CLI `app debug`, the agent build loop, the server).
+export { simulateApp, defaultInteractions } from "./app-debug/index.js";
+export type {
+  AppServerRunInput,
+  AppServerRunOutcome,
+  AppSimulationDeps
+} from "./app-debug/simulate.js";
+export type * from "./app-debug/types.js";
