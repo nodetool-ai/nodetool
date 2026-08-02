@@ -32,7 +32,8 @@ marked ∥ can proceed in parallel once their listed dependency lands.
   PR.
 - No web UI work in this plan. The web surface (if any) consumes `BuildReport`
   after M4; it does not define it.
-- Prose in reports and docs follows [WRITING_STYLE.md](WRITING_STYLE.md).
+- Prose in reports and docs follows the repo style rules in
+  `docs/WRITING_STYLE.md`.
 
 ## Phase M1 — close the oracle (independently shippable)
 
