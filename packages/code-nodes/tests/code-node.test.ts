@@ -874,3 +874,108 @@ describe("CodeNode — edge cases", () => {
     expect(r).toEqual({ a: 1, b: 2 });
   });
 });
+
+// ---------------------------------------------------------------------------
+// Binary output
+// ---------------------------------------------------------------------------
+
+describe("CodeNode — binary output", () => {
+  it("returns a bare Uint8Array as { output }", async () => {
+    const r = await run("return new Uint8Array([137, 80, 78, 71])");
+    expect(r.output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(r.output as Uint8Array)).toEqual([137, 80, 78, 71]);
+  });
+
+  it("keeps a Uint8Array nested one level inside the returned object", async () => {
+    const r = await run(
+      "return { output: fromBase64('iVBORw=='), status: 200 }"
+    );
+    expect(r.output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(r.output as Uint8Array)).toEqual([137, 80, 78, 71]);
+    expect(r.status).toBe(200);
+  });
+
+  it("keeps a Uint8Array nested two levels deep", async () => {
+    const r = await run(
+      "return { result: { bytes: new Uint8Array([1, 2, 3]) } }"
+    );
+    const bytes = (r.result as Record<string, unknown>).bytes;
+    expect(bytes).toBeInstanceOf(Uint8Array);
+    expect(Array.from(bytes as Uint8Array)).toEqual([1, 2, 3]);
+  });
+
+  it("keeps Uint8Arrays inside an array", async () => {
+    const r = await run(
+      "return { chunks: [new Uint8Array([1, 2]), new Uint8Array([3])] }"
+    );
+    const chunks = r.chunks as unknown[];
+    expect(chunks.every((c) => c instanceof Uint8Array)).toBe(true);
+    expect(Array.from(chunks[0] as Uint8Array)).toEqual([1, 2]);
+    expect(Array.from(chunks[1] as Uint8Array)).toEqual([3]);
+  });
+
+  it("preserves every byte value round-tripped through base64", async () => {
+    const r = await run(
+      `const bytes = new Uint8Array(256);
+       for (let i = 0; i < 256; i++) bytes[i] = i;
+       return { output: fromBase64(toBase64(bytes)), n: bytes.length };`
+    );
+    expect(r.output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(r.output as Uint8Array)).toEqual(
+      Array.from({ length: 256 }, (_, i) => i)
+    );
+  });
+
+  it("keeps an empty Uint8Array as a Uint8Array", async () => {
+    const r = await run("return { output: new Uint8Array([]) }");
+    expect(r.output).toBeInstanceOf(Uint8Array);
+    expect((r.output as Uint8Array).length).toBe(0);
+  });
+
+  it("leaves a user's integer-keyed byte-ranged map a plain object", async () => {
+    // A histogram or index map is shaped exactly like a JSON-ified Uint8Array.
+    // Nothing may guess it into bytes — only a real typed array becomes one.
+    const r = await run("return { counts: { 0: 5, 1: 200 } }");
+    expect(r.counts).toEqual({ 0: 5, 1: 200 });
+    expect(r.counts).not.toBeInstanceOf(Uint8Array);
+  });
+
+  it("leaves nested numeric-keyed objects alone when values are not bytes", async () => {
+    const r = await run('return { map: { 0: "a", 1: "b" } }');
+    expect(r.map).toEqual({ 0: "a", 1: "b" });
+    expect(r.map).not.toBeInstanceOf(Uint8Array);
+  });
+
+  it("yields Uint8Array outputs from the streaming path", async () => {
+    const node = new CodeNode({
+      code: `for (let i = 0; i < 2; i++) {
+               yield({ output: new Uint8Array([i, i + 1]), status: 200 });
+             }`
+    });
+    const items: Record<string, unknown>[] = [];
+    for await (const item of node.genProcess()) items.push(item);
+    expect(items).toHaveLength(2);
+    expect(items[0].output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(items[0].output as Uint8Array)).toEqual([0, 1]);
+    expect(Array.from(items[1].output as Uint8Array)).toEqual([1, 2]);
+    expect(items[1].status).toBe(200);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Fetch policy props
+// ---------------------------------------------------------------------------
+
+describe("CodeNode — fetch policy props", () => {
+  it("does not leak max_response_mb into the guest as a global", async () => {
+    const r = await run("return { a: typeof max_response_mb }", {
+      max_response_mb: 5
+    });
+    expect(r).toEqual({ a: "undefined" });
+  });
+
+  it("lets user variables of other names through unchanged", async () => {
+    const r = await run("return { v: max_response }", { max_response: 7 });
+    expect(r).toEqual({ v: 7 });
+  });
+});
