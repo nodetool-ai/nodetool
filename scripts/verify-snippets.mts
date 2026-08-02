@@ -1,6 +1,6 @@
 /**
  * Snippet verification harness.
- * Usage: npx tsx verify-snippets.mts <cases.json>
+ * Usage: npx tsx scripts/verify-snippets.mts <cases.json>
  * cases.json: [{ "id": "...", "code": "...", "globals": { ... } }]
  * Prints PASS/FAIL per case and exits non-zero if any failed.
  */

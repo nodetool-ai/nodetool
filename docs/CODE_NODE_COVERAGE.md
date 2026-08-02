@@ -12,7 +12,7 @@ prefilled.
 
 ## The mechanism already exists
 
-Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 112
+Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 172
 of them; `snippetMetadata.ts` turns each into a `NodeMetadata` under
 `nodetool.<category>.<snippet_id>`, `useMetadata.ts` merges them into the
 catalog the node menu reads, and `instantiatePaletteNode.ts` drops a Code node
@@ -26,10 +26,47 @@ The file says what it is for:
 
 That already happened. `nodetool.math.*`, `nodetool.boolean.*`,
 `nodetool.dictionary.*`, `nodetool.date.*`, and `nodetool.uuid.*` return **zero**
-hits in the backend catalog today. The 112 snippets are where they went.
+hits in the backend catalog today. The snippets are where they went.
 
 So this document is not proposing an approach. It measures how far the existing
 one has left to run.
+
+## Status
+
+Tier 2 is authored: **60 snippets in six new categories** — Path, SVG, HTTP,
+Markdown, HTML, Validation — bringing `codeSnippets.ts` from 112 to 172. Every
+one was executed in the real QuickJS sandbox before landing
+(`scripts/verify-snippets.mts`); the SVG set was additionally diffed
+byte-for-byte against `process()` on the real node classes.
+
+Authoring them turned up three things the paper audit had wrong. They are
+folded into the tiers below, and the short version is:
+
+- **`lib.http` and `lib.graphql` cannot be removed.** The snippets are an
+  addition, not a replacement. See Tier 2.
+- **Three `lib.os` path nodes are only partly reproducible** — anything needing
+  a working directory or filesystem access.
+- **A comment in `codeSnippets.ts` recorded the opposite decision** for HTML
+  and validation, on a premise that has since expired. See below.
+
+### The rationale that expired
+
+The bottom of `codeSnippets.ts` carried this:
+
+> Date & Time, HTML parsing, and validation snippets have been removed — the
+> corresponding work is done by dedicated nodes (`lib.datetime.*`, `lib.html.*`,
+> `lib.validate.*`) so the JS sandbox can stay library-free.
+
+Two problems. It was already **wrong about Date & Time** — that category never
+went away; seven snippets sit in the file above the comment. And its stated
+reason no longer holds: `d8c5d2c` added the cheerio (`data.selectHtml`) and
+papaparse (`data.parseCsv`) bridges, so HTML parsing is now a first-class
+sandbox capability rather than a library the guest would have to carry.
+Validation never needed a library at all — `core-nodes` has zero dependencies
+and hand-rolls its regexes.
+
+The comment is replaced by the new sections. Flagging it because it was a
+deliberate decision by someone, and this reverses it.
 
 ## The rule
 
@@ -147,30 +184,78 @@ category; none fit the ten that exist.
 
 | Group | Nodes | Category |
 | --- | --- | --- |
-| `lib.os` path helpers — `AbsolutePath` `Basename` `Dirname` `FileExtension` `FileName` `FileNameMatch` `FilterFileNames` `GetDirectory` `GetPathInfo` `JoinPaths` `NormalizePath` `PathToString` `RelativePath` `SplitExtension` `SplitPath` | 15 | **Path** (new) |
+| `lib.os` path helpers — `AbsolutePath` `Basename` `Dirname` `FileExtension` `FileName` `FileNameMatch` `FilterFileNames` `GetDirectory` `GetPathInfo` `JoinPaths` `NormalizePath` `PathToString` `RelativePath` `SplitExtension` `SplitPath` | 15 → 12 snippets | **Path** (new). Three pairs are the same operation and merged. `AbsolutePath`, `RelativePath` and `GetPathInfo` are only partly reproducible — see below. |
 | `lib.svg` element builders — `Circle` `ClipPath` `DropShadow` `Ellipse` `GaussianBlur` `Gradient` `Line` `Path` `Polygon` `Rect` `Text` `Transform` | 12 | **SVG** (new) |
-| `lib.http` — `GetText` `GetJSON` `GetBytes` `Post` `Put` `Patch` `Delete` | 7 | **HTTP** (new) |
 | `lib.markdown` — all 6 extractors | 6 | **Markdown** (new) |
 | `lib.html` — `BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata` `ExtractVideos`, via `data.selectHtml` | 6 | **HTML** (new) |
 | `lib.validate` — `Email` `IP` `URL` `String` `Sanitize` | 5 | **Validation** (new) |
-| `lib.graphql` — `Query` `QueryWithAuth` `BatchQuery` `Introspection` | 4 | HTTP |
 | `nodetool.list` — `RepeatEach` `RepeatValue` `Tile` | 3 | List |
 | `nodetool.constant.Date` `nodetool.constant.DateTime` — constructors with integer props, not value editors, unlike the rest of `nodetool.constant.*` | 2 | Date & Time |
 | `lib.datetime.StartEnd` | 1 | Date & Time |
 | `nodetool.text.HasLength` | 1 | Text |
-| `lib.secret.GetSecret` — `getSecret()` is in the sandbox; keep only if the node carries a secret *picker* | 1 | HTTP |
 
-The HTTP category is the notable hole. The header comment in `codeSnippets.ts`
-lists `http` among the wrappers it replaced, but there is **no snippet
-containing `fetch(`** in the file, and `lib.http` and `lib.graphql` are still
-real node classes. Whatever happened there, the replacement never landed.
+**Tier 2 total: 51 nodes, 46 snippets.** Three `lib.os` pairs are the same
+operation and merged into one snippet each.
 
-`lib.svg` is the sharpest case in the catalog: twelve nodes each emit an element
-string, and nothing renders until `Document` or `SVGToImage` — those two stay,
-and they are where the preview is. A twelve-node graph produces markup a user
-could type.
+### The HTTP exception — snippets yes, removal no
 
-**Tier 2 total: 63 nodes, roughly 55 new snippets across six new categories.**
+`lib.http` (7) and `lib.graphql` (4) got a **HTTP** category of 12 snippets,
+verified against live endpoints. They are still **not removable**, and this is
+the one place the paper audit was wrong rather than incomplete.
+
+The sandbox `fetch` is deliberately not the host `fetch`. Guest code is
+untrusted, so `assertFetchUrlAllowed` (`js-sandbox.ts`) blocks loopback,
+link-local and private ranges, bodies are capped at `MAX_RESPONSE_BODY_SIZE`
+(1 MB, appending `...[truncated]`), a run gets 20 fetch calls, and
+`FETCH_TIMEOUT_MS` is 15 s. `lib-http.ts` is trusted host code: raw `fetch`, no
+SSRF guard, no size or call limit, a 30 s timeout, and a hardcoded Chrome
+`User-Agent`.
+
+So a workflow pointing at `http://localhost:8000` or an internal `10.x` service
+runs today and would fail on a snippet; a `GetBytes` download over 1 MB would
+truncate silently. That is a behavioral regression, not a gap to close — the
+guard is the point.
+
+The outcome is both: the snippet is the convenient path for public APIs, the
+node stays for local services, large downloads, and slow endpoints. Same for
+`lib.secret.GetSecret`, whose value is the picker rather than the call.
+
+Two loose ends worth a follow-up. `GetBytes` in the guest yields a real
+`Uint8Array` but serializes as a numeric-keyed object at the node boundary, so
+the Code node's bytes handle wants checking for a downstream type mismatch. And
+GraphQL batching could not be proven end-to-end — no reachable public endpoint
+accepts batched operations — which is also true of `lib.graphql.BatchQuery`
+itself.
+
+### What the Path snippets could not reproduce
+
+`AbsolutePath` and `RelativePath` need `process.cwd()`, and `~` expansion needs
+`os.homedir()`; the guest has neither, so both snippets take a `const base`
+knob instead. `GetPathInfo`'s `exists`/`is_file`/`is_dir`/`is_symlink` need
+I/O, so its snippet returns only the pure path components — though
+`workspace.stat` could supply those four for workspace-relative paths, which is
+worth trying before deciding the node stays.
+
+The glob→RegExp conversion mirrors `wildcardToRegExp` in `lib-os.ts` exactly,
+including its quirks: `*` crosses `/`, and `[...]` classes are escaped rather
+than honored.
+
+### Why SVG came out clean
+
+All 12 element nodes output the same `svg_element` type, so the single
+`CATEGORY_TYPE` entry per category is exact rather than lossy — `"SVG":
+"svg_element"` means the snippets connect straight into the surviving
+`Document` / `SVGToImage` nodes, which take `list[svg_element]`. The snippets
+emit the structured `{name, attributes, children, content}` object, not markup:
+a raw string would still render, but would not connect, and `Transform` /
+`ClipPath` need object input.
+
+Two consequences to know about. Dynamic *inputs* get the same category type, so
+`cx`, `radius` and `fill` are typed `svg_element` in the menu metadata and lose
+their int/color affordance — cosmetic, since the Code node accepts anything at
+runtime, but inherent to one-type-per-category. And the snippets deliberately
+do not escape text: `elementToString` applies `escapeXmlText` at document time,
+so escaping earlier would double-escape.
 
 ## Tier 3 — coverable, but blocked on a platform change
 
@@ -202,27 +287,34 @@ Data nodes that stay regardless: `Describe` (content card), `ForEachRow` and
 
 ## Totals
 
-| Tier | Nodes | Work |
+| Tier | Nodes | State |
 | --- | --- | --- |
-| 1 | 39 | Delete the class, migrate saved graphs. The snippet ships today. |
-| 2 | 63 | ~55 new snippets in six new categories, then delete. |
-| 3 | 36 | `workspace.copy`/`move` (16) and per-snippet output typing (20), then delete. |
+| 1 | 39 | Snippet ships today. Left: delete the class, migrate saved graphs. |
+| 2 | 51 | **Snippets authored** (46, six new categories). Left: delete the class, migrate saved graphs. |
+| HTTP | 11 | **Snippets authored** (12). The nodes stay — the sandbox's SSRF guard, 1 MB body cap and 15 s timeout are not gaps to close. |
+| 3 | 36 | Blocked: `workspace.copy`/`move` (16), per-snippet output typing (20). |
 
-138 of the 733 hand-written node classes are functions wearing a card.
+137 of the 733 hand-written node classes are functions wearing a card. 11 more
+are worth a snippet without losing the node.
 
 ## Suggested order
 
-1. **`lib.http` + `lib.graphql` → an HTTP category** (11). Closes the gap the
-   header comment already claims is closed. `fetch()` plus `getSecret()`.
-2. **Tier 1 deletions** (39). No new snippets needed — the win is dropping the
+The six new categories are authored, so what remains is deletion and migration.
+
+1. **Tier 1 deletions** (39). No new snippets needed — the win is dropping the
    duplicate implementation, and `nodetool.text` is the namespace users hit
    first.
-3. **Path and SVG categories** (27). The two largest pure-string groups.
+2. **`lib.svg` deletion** (12). The cleanest of the new categories: one output
+   type, byte-identical markup, and the two rendering nodes stay.
+3. **Tier 2 deletions** (39 more) — Path, Markdown, HTML, Validation and the
+   singles, once each has a graph migration.
 4. **`workspace.copy`/`workspace.move`, then `lib.os` file ops** (16). Two
    bridge functions unlock the rest of the namespace.
-5. **Markdown, HTML, Validation** (17), plus the singles.
-6. **Per-snippet output typing, then `nodetool.data`** (20). The one that needs
+5. **Per-snippet output typing, then `nodetool.data`** (20). The one that needs
    design, not just authoring.
+
+`lib.http`, `lib.graphql` and `lib.secret.GetSecret` are deliberately absent
+from this list — their snippets shipped, their nodes stay.
 
 ## What a removal needs alongside it
 
@@ -239,7 +331,8 @@ and the change reads as a regression.
 
 ## Related
 
-- `web/src/config/codeSnippets.ts` — the 112 snippets, and where new ones go.
+- `web/src/config/codeSnippets.ts` — the 172 snippets, and where new ones go.
+- `scripts/verify-snippets.mts` — runs snippet code through the real sandbox.
 - `web/src/config/snippetMetadata.ts` — snippet → `NodeMetadata`, and where
   per-snippet output typing would go.
 - `web/src/utils/instantiatePaletteNode.ts` — snippet → Code node on the canvas.

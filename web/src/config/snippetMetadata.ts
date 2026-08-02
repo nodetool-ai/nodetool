@@ -32,6 +32,15 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   "UUID": "str",
   "JSON": "str",
   "Streaming": "str",
+  "Path": "str",
+  // Every lib.svg element node outputs `svg_element`, so the single
+  // per-category type is exact here — these connect straight into the
+  // Document / SVGToImage nodes, which take `list[svg_element]`.
+  "SVG": "svg_element",
+  "HTTP": "str",
+  "Markdown": "list",
+  "HTML": "list",
+  "Validation": "bool",
 };
 
 /** Build the virtual node_type for a snippet */
