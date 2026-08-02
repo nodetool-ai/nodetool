@@ -1,4 +1,9 @@
+jest.mock("../../../lib/rest-fetch", () => ({
+  restFetch: jest.fn()
+}));
+
 import type { FrontendToolState } from "../../../lib/tools/frontendTools";
+import { restFetch } from "../../../lib/rest-fetch";
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import "../../../lib/tools/builtin/puck";
 import {
@@ -64,13 +69,30 @@ const stubHandler = (over: Partial<PuckAgentHandler>): PuckAgentHandler => ({
     variables: [],
     resources: []
   }),
+  document: () => ({
+    schemaVersion: 3,
+    ui: { root: { props: {} }, content: [], zones: {} },
+    operations: [],
+    resources: [],
+    variables: []
+  }),
   ...over
 });
+
+const restFetchMock = restFetch as jest.MockedFunction<typeof restFetch>;
+
+const jsonResponse = (body: unknown, ok = true, status = 200): Response =>
+  ({
+    ok,
+    status,
+    json: async () => body
+  }) as unknown as Response;
 
 const ctx = { getState: () => ({}) as unknown as FrontendToolState };
 
 afterEach(() => {
   for (const id of listOpenPuckApplicationIds()) setPuckAgentHandler(id, null);
+  restFetchMock.mockReset();
 });
 
 describe("ui_app_* tools", () => {
@@ -351,5 +373,111 @@ describe("ui_app_* authoring tools", () => {
     expect(result.ok).toBe(true);
     expect(result.operations[0].inputs[0].binding).toBe("op:main/in:n1");
     expect(result.variables[0].binding).toBe("var:lang");
+  });
+});
+
+describe("ui_app_debug", () => {
+  const draft = {
+    schemaVersion: 3,
+    ui: { root: { props: { title: "Draft" } }, content: [], zones: {} },
+    operations: [
+      {
+        id: "main",
+        name: "Main",
+        workflowId: "wf-1",
+        inputs: {},
+        outputs: {},
+        policy: "replace" as const
+      }
+    ],
+    resources: [],
+    variables: []
+  };
+
+  it("is registered", () => {
+    expect(FrontendToolRegistry.has("ui_app_debug")).toBe(true);
+  });
+
+  it("posts the handler's live document and returns the report", async () => {
+    setPuckAgentHandler(APP_ID, stubHandler({ document: () => draft }));
+    restFetchMock.mockResolvedValue(
+      jsonResponse({
+        status: "ok",
+        verdict: { ok: true, headline: "3 widgets wired", issues: [], warnings: [] },
+        widgets: [{ id: "w1", type: "Text", binding: "op:main/out:n9" }]
+      })
+    );
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_debug",
+      { application_id: APP_ID, run: false, params: { prompt: "hi" } },
+      "call-debug",
+      ctx
+    )) as { ok: boolean; verdict: { ok: boolean } };
+
+    expect(restFetchMock).toHaveBeenCalledTimes(1);
+    const [path, init] = restFetchMock.mock.calls[0];
+    expect(path).toBe("/api/applications/debug");
+    expect(init?.method).toBe("POST");
+    expect(JSON.parse(String(init?.body))).toEqual({
+      document: draft,
+      params: { prompt: "hi" },
+      run: false
+    });
+    expect(result.ok).toBe(true);
+    expect(result.verdict.ok).toBe(true);
+  });
+
+  it("forwards scripted interactions and the timeout", async () => {
+    setPuckAgentHandler(APP_ID, stubHandler({ document: () => draft }));
+    restFetchMock.mockResolvedValue(jsonResponse({ status: "ok" }));
+
+    await FrontendToolRegistry.call(
+      "ui_app_debug",
+      {
+        application_id: APP_ID,
+        run: true,
+        interact: [{ set: { key: "op:main/in:n1", value: "hi" } }, { run: "main" }],
+        timeout_ms: 30000
+      },
+      "call-debug-interact",
+      ctx
+    );
+
+    const body = JSON.parse(String(restFetchMock.mock.calls[0][1]?.body));
+    expect(body.run).toBe(true);
+    expect(body.timeout_ms).toBe(30000);
+    expect(body.interact).toEqual([
+      { set: { key: "op:main/in:n1", value: "hi" } },
+      { run: "main" }
+    ]);
+  });
+
+  it("reports a server error instead of throwing", async () => {
+    setPuckAgentHandler(APP_ID, stubHandler({ document: () => draft }));
+    restFetchMock.mockResolvedValue(
+      jsonResponse({ detail: "workflow wf-1 not found" }, false, 404)
+    );
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_app_debug",
+      { application_id: APP_ID },
+      "call-debug-err",
+      ctx
+    )) as { ok: boolean; error?: string };
+
+    expect(result).toEqual({ ok: false, error: "workflow wf-1 not found" });
+  });
+
+  it("errors when no app builder is open for the application", async () => {
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_app_debug",
+        { application_id: APP_ID },
+        "call-debug-noop",
+        ctx
+      )
+    ).rejects.toThrow(/No app builder is open for application "app-1"/);
+    expect(restFetchMock).not.toHaveBeenCalled();
   });
 });
