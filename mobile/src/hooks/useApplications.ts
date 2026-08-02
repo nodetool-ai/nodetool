@@ -33,6 +33,14 @@ import {
 import { trpc } from '../trpc/client';
 import type { Workflow } from '../types/workflow';
 
+/** tRPC types its `error` as a plain interface, not an `Error` subtype. */
+function toError(error: { message: string } | null): Error | null {
+  if (!error) {
+    return null;
+  }
+  return error instanceof Error ? error : new Error(error.message);
+}
+
 export const applicationKeys = {
   all: ['applications'] as const,
   list: (projectId?: string): QueryKey => [
@@ -187,10 +195,6 @@ export function useApplicationApp(id: string | undefined): ApplicationApp {
       application.isLoading ||
       release.isLoading ||
       (Boolean(workflowId) && !pinned && liveWorkflow.isLoading),
-    error:
-      (application.error as Error | null) ??
-      (release.error as Error | null) ??
-      (liveWorkflow.error as Error | null) ??
-      null,
+    error: application.error ?? release.error ?? toError(liveWorkflow.error),
   };
 }

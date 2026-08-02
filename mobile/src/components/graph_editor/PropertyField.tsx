@@ -969,8 +969,11 @@ const JSONWidget: React.FC<{
   colors: ThemeColors;
 }> = ({ prop, value, onChange, colors }) => {
   const dataStr =
-    typeof value === "object" && value !== null
-      ? (value as Record<string, unknown>).data as string | undefined
+    typeof value === "object" &&
+    value !== null &&
+    "data" in value &&
+    typeof value.data === "string"
+      ? value.data
       : typeof value === "string"
         ? value
         : undefined;
@@ -983,7 +986,7 @@ const JSONWidget: React.FC<{
       JSON.parse(localValue);
       setError(null);
     } catch (e) {
-      setError((e as Error).message);
+      setError(e instanceof Error ? e.message : "Invalid JSON");
     }
     onChange({ type: "json", data: localValue });
   }, [localValue, onChange]);

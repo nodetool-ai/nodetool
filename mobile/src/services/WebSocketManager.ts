@@ -18,6 +18,24 @@ import { isAppForeground, subscribeAppLifecycle } from '../hooks/useAppLifecycle
 
 type WebSocketMessage = { type: string };
 
+/** The message an unknown thrown value or error event carries, or `fallback`. */
+function messageOf(value: unknown, fallback: string): string {
+  return typeof value === 'object' &&
+    value !== null &&
+    'message' in value &&
+    typeof value.message === 'string' &&
+    value.message
+    ? value.message
+    : fallback;
+}
+
+/** A `catch` binding is `unknown` — narrow it rather than assert it. */
+function toError(thrown: unknown, fallback: string): Error {
+  return thrown instanceof Error
+    ? thrown
+    : new Error(messageOf(thrown, fallback));
+}
+
 interface WebSocketCallbacks {
   onStateChange?: (state: ConnectionState, previousState: ConnectionState) => void;
   onMessage?: (data: WebSocketMessageData) => void;
@@ -250,7 +268,7 @@ export class WebSocketManager {
       this.ws!.send(encoded);
     } catch (error) {
       console.error('Failed to send message:', error);
-      this.callbacks.onError?.(error as Error);
+      this.callbacks.onError?.(toError(error, 'Failed to send message'));
       throw error;
     }
   }
@@ -260,7 +278,7 @@ export class WebSocketManager {
 
     this.ws.onopen = () => this.handleOpen();
     this.ws.onmessage = (event) => this.handleMessage(event);
-    this.ws.onerror = (event) => this.handleError(event as { message?: string });
+    this.ws.onerror = (event) => this.handleError(event);
     this.ws.onclose = (event) => this.handleClose(event);
   }
 
@@ -319,7 +337,7 @@ export class WebSocketManager {
       this.callbacks.onMessage?.(data as WebSocketMessageData);
     } catch (error) {
       console.error('Failed to process message:', error);
-      this.callbacks.onError?.(error as Error);
+      this.callbacks.onError?.(toError(error, 'Failed to process message'));
     }
   }
 
@@ -354,9 +372,11 @@ export class WebSocketManager {
     });
   }
 
-  private handleError(event: { message?: string }): void {
+  private handleError(event: unknown): void {
     console.error('WebSocket error:', event);
-    this.callbacks.onError?.(new Error(event.message || 'WebSocket error occurred'));
+    this.callbacks.onError?.(
+      new Error(messageOf(event, 'WebSocket error occurred'))
+    );
   }
 
   private handleClose(event: WebSocketCloseEvent): void {
@@ -494,7 +514,7 @@ export class WebSocketManager {
         this.setupEventHandlers();
         this.startConnectionTimeout();
       } catch (error) {
-        this.handleConnectionError(error as Error);
+        this.handleConnectionError(toError(error, 'Failed to open WebSocket'));
         reject(error);
       }
     });
@@ -663,7 +683,7 @@ export class WebSocketManager {
         this.send(message);
       } catch (error) {
         console.error('Failed to send queued message:', error);
-        this.callbacks.onError?.(error as Error);
+        this.callbacks.onError?.(toError(error, 'Failed to send queued message'));
       }
     }
   }
