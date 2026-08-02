@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import type { BaseProvider, ProviderStreamItem, ProviderTool } from "@nodetool-ai/runtime";
+import { makeClip, makeTrack, makeTrackEffect } from "@nodetool-ai/timeline";
 import { runToolLoopEval } from "../src/evals/tool-loop-eval.js";
 import {
   createTimelineToolBridge,
@@ -142,6 +143,112 @@ describe("createTimelineToolBridge", () => {
         prompt: "a new prompt"
       })
     ).rejects.toThrow(/not a generated clip/);
+  });
+
+  it("a sequence seed keeps every track and clip field through an edit", async () => {
+    const sequence = {
+      fps: 24,
+      width: 1280,
+      height: 720,
+      tracks: [
+        makeTrack({
+          id: "t_video",
+          name: "Video",
+          type: "video" as const,
+          index: 0,
+          effects: [makeTrackEffect("colorCorrection")]
+        }),
+        makeTrack({
+          id: "t_overlay",
+          name: "Titles",
+          type: "overlay" as const,
+          index: 1,
+          heightPx: 64
+        })
+      ],
+      clips: [
+        makeClip({
+          id: "c_shot",
+          trackId: "t_video",
+          name: "shot",
+          startMs: 0,
+          durationMs: 6000,
+          mediaType: "video" as const,
+          sourceType: "generated" as const,
+          bindingKind: "text-to-video" as const,
+          prompt: "a red fox",
+          provider: "fal_ai",
+          model: "fal-ai/ltx",
+          status: "generated" as const,
+          effects: [
+            { id: "fx_blur", type: "blur" as const, enabled: true, radius: 4 }
+          ],
+          animations: [
+            {
+              id: "a_in",
+              role: "in" as const,
+              preset: "fade",
+              durationMs: 500,
+              easing: "easeOut"
+            }
+          ]
+        }),
+        makeClip({
+          id: "c_title",
+          trackId: "t_overlay",
+          name: "Title",
+          startMs: 1000,
+          durationMs: 3000,
+          mediaType: "text" as const,
+          sourceType: "imported" as const,
+          status: "generated" as const,
+          textStyle: {
+            text: "Title",
+            fontSizePx: 96,
+            color: "#ffffff",
+            align: "center" as const
+          }
+        })
+      ]
+    };
+    const bridge = createTimelineToolBridge({ sequence });
+    const byName = Object.fromEntries(bridge.tools.map((t) => [t.name, t]));
+
+    const state = (await byName["ui_timeline_get_state"].execute({})) as {
+      fps: number;
+      width: number;
+      height: number;
+      tracks: { id: string; name: string }[];
+      clips: { id: string; prompt?: string; textStyle?: { fontSizePx: number } }[];
+    };
+    expect(state.fps).toBe(24);
+    expect(state.width).toBe(1280);
+    expect(state.height).toBe(720);
+    expect(state.tracks.map((t) => t.id)).toEqual(["t_video", "t_overlay"]);
+    expect(state.clips[0].prompt).toBe("a red fox");
+    expect(state.clips[1].textStyle?.fontSizePx).toBe(96);
+
+    // One edit; a newly minted id must not collide with the seeded ones.
+    const added = (await byName["ui_timeline_add_track"].execute({
+      type: "audio",
+      name: "Music"
+    })) as { track: { id: string } };
+    expect(sequence.tracks.map((t) => t.id)).not.toContain(added.track.id);
+
+    const final = bridge.finalState();
+    expect(final.documentTracks).toHaveLength(3);
+    const shot = final.documentClips.find((c) => c.id === "c_shot");
+    expect(shot?.effects).toEqual([
+      { id: "fx_blur", type: "blur", enabled: true, radius: 4 }
+    ]);
+    expect(shot?.animations?.[0]).toMatchObject({ preset: "fade", easing: "easeOut" });
+    expect(shot?.provider).toBe("fal_ai");
+    const colorCorrection = final.documentTracks.find((t) => t.id === "t_video");
+    expect(colorCorrection?.effects?.[0].type).toBe("colorCorrection");
+
+    // The seed itself is untouched — the bridge works on its own copy.
+    expect(sequence.clips[0].animations).toHaveLength(1);
+    expect(sequence.tracks).toHaveLength(2);
   });
 });
 

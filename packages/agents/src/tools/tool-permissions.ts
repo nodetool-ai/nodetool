@@ -73,6 +73,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_workflows: "read",
   get_workflow: "read",
   validate_workflow: "read",
+  validate_timeline: "read",
   get_example_workflow: "read",
   export_workflow_digraph: "read",
   list_jobs: "read",

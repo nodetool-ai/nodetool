@@ -10,6 +10,10 @@
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
+import {
+  validateTimelineSequence,
+  type TimelineValidation
+} from "@nodetool-ai/execution/timeline-debug";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
@@ -1101,6 +1105,130 @@ export class ValidateWorkflowTool extends Tool {
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
+  }
+}
+
+/** What a host must hand back for a saved timeline row. */
+export interface TimelineToolRecord {
+  /** The stored document — a JSON string or an already-parsed object. */
+  document: unknown;
+  fps?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+}
+
+/** Reads a `timeline_sequences` row for the caller. */
+export type TimelineLoader = (
+  context: ProcessingContext,
+  id: string
+) => Promise<TimelineToolRecord | null>;
+
+/** Unwrap a stored document that may still be JSON text. */
+function parseTimelineDocument(document: unknown): unknown {
+  if (typeof document !== "string") return document;
+  try {
+    return JSON.parse(document);
+  } catch {
+    return undefined;
+  }
+}
+
+function timelineSummary(validation: TimelineValidation): string {
+  const errors = validation.errors.length;
+  const warnings = validation.warnings.length;
+  if (errors === 0 && warnings === 0) return "No issues found.";
+  const parts: string[] = [];
+  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
+  if (warnings > 0)
+    parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+  return parts.join(", ");
+}
+
+export class ValidateTimelineTool extends Tool {
+  readonly name = "validate_timeline";
+  readonly description =
+    "Statically validate a timeline sequence WITHOUT rendering or playing it: " +
+    "clips on tracks the document lacks, duplicate ids, overlapping clips, " +
+    "fades and transitions longer than the clip, in/out points that cannot " +
+    "render, unknown animation presets, incomplete bindings, and fields a " +
+    "schema round trip would strip. Pass an inline `document` to check one you " +
+    "are building, or `timeline_id` to validate a saved sequence. Run it after " +
+    "timeline edits and before rendering.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      timeline_id: {
+        type: "string" as const,
+        description: "The ID of a saved timeline sequence to validate"
+      },
+      document: {
+        type: "object" as const,
+        description:
+          "Inline TimelineDocument to validate ({ tracks, clips, markers }). " +
+          "Takes precedence over timeline_id."
+      }
+    }
+  };
+
+  // The timeline API is tRPC-only, so there is no REST route to fall back on:
+  // a host that wants the `timeline_id` path injects a loader. Without one the
+  // tool still validates inline documents.
+  constructor(private readonly loadTimeline?: TimelineLoader) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const inline = params["document"];
+    const timelineId = params["timeline_id"] as string | undefined;
+
+    let document = inline;
+    let meta: { fps?: number; width?: number; height?: number } = {};
+    let name: string | undefined;
+
+    if (document === undefined && timelineId) {
+      if (!this.loadTimeline) {
+        return {
+          error:
+            "Cannot load a saved timeline in this process: no timeline loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
+          validated: false
+        };
+      }
+      const record = await this.loadTimeline(context, timelineId);
+      if (!record) {
+        return {
+          error: `Timeline ${timelineId} was not found.`,
+          validated: false
+        };
+      }
+      document = parseTimelineDocument(record.document);
+      meta = { fps: record.fps, width: record.width, height: record.height };
+      name = record.name;
+    }
+
+    if (document === undefined || document === null) {
+      return {
+        error:
+          "No timeline to validate — pass an inline `document` ({tracks, clips, markers}) or a valid `timeline_id`."
+      };
+    }
+
+    const validation = validateTimelineSequence(document, meta);
+    return {
+      ...validation,
+      ...(timelineId ? { timeline_id: timelineId } : {}),
+      ...(name ? { name } : {}),
+      summary: timelineSummary(validation)
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return params["timeline_id"]
+      ? `Validating timeline ${params["timeline_id"]}`
+      : "Validating timeline document";
   }
 }
 

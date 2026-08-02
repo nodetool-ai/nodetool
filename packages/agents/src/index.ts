@@ -112,6 +112,7 @@ export {
   BuildAppTool,
   DebugAppTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -128,7 +129,11 @@ export {
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
-export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
+export type {
+  PlanWorkflowGraphToolOptions,
+  TimelineLoader,
+  TimelineToolRecord
+} from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,
@@ -579,7 +584,8 @@ export {
 } from "./evals/surfaces/timeline.js";
 export type {
   TimelineBridgeFinalState,
-  TimelineBridgeInitialState
+  TimelineBridgeInitialState,
+  TimelineBridgeSequenceSeed
 } from "./evals/surfaces/timeline.js";
 export {
   createStoryboardToolBridge,
