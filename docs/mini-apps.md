@@ -274,9 +274,13 @@ that never receives anything, a result wired to a variable that was never
 declared, a button pointing at an operation the app doesn't have, and a run that
 hit its time limit.
 
-Two things it can't check: `visibleWhen`, `disabledWhen`, and `format` (a widget
-hidden by a condition is reported as if it were visible), and inputs that come
-from a resource, since resources only exist in the browser.
+It follows your conditions too: a widget hidden or disabled by `visibleWhen` or
+`disabledWhen` can't be clicked, so a script that tries reports the condition
+that blocked it, and a Run button no state ever makes visible is an error. A
+widget with a `format` template is reported as the template renders it.
+
+What it can't check: how the app looks — layout, styling, focus — and inputs
+that come from a resource, since resources only exist in the browser.
 
 To debug the workflow itself, `nodetool validate` is the quick check and
 `nodetool debug` is the full run. See [Workflow Debugging](workflow-debugging.md).

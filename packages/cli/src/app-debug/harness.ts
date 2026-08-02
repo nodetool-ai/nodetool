@@ -6,8 +6,9 @@
  * headlessly the way the web and mobile runtimes do: seed input and variable
  * defaults, apply params, execute the interaction script (each `run` action is
  * a full workflow run on the kernel server runner, subject to the operation's
- * policy and timeout), and fold the message stream into the app's reactive
- * values. Writes a self-contained bundle and returns the `AppDebugReport` so an
+ * policy and timeout), fold the message stream into the app's reactive values,
+ * and re-evaluate every widget's conditions — a step no user could perform,
+ * because the widget is hidden or disabled, fails. Writes a self-contained bundle and returns the `AppDebugReport` so an
  * agent can iterate directly.
  */
 import { mkdir, writeFile } from "node:fs/promises";
@@ -178,15 +179,27 @@ function nodeIdsByName(graph: DebugGraph): Map<string, string> {
   return byName;
 }
 
+/**
+ * What a headless run leaves to the browser. Conditions and `format` are
+ * simulated, so only what needs a DOM (or a provider the simulator has not
+ * grown yet) belongs here.
+ */
+const NOT_SIMULATED: ReadonlyArray<string> = [
+  "Layout, styling, focus, and scroll — nothing here renders a DOM.",
+  'Resource collections and `from: "resource"` params — a headless run has no resource provider.',
+  "Reactive subgraph runs — the browser reruns one input's downstream subgraph, the harness runs the whole workflow."
+];
+
 function buildAppVerdict(
   report: Pick<
     AppDebugReport,
     "validation" | "interactions" | "runs" | "widgets" | "spec" | "invocations"
   >,
   ranWorkflow: boolean,
-  graph: DebugGraph
+  graph: DebugGraph,
+  conditionIssues: ReadonlyArray<string>
 ): DebugVerdict {
-  const issues: string[] = [...report.validation.errors];
+  const issues: string[] = [...report.validation.errors, ...conditionIssues];
   const warnings: string[] = [];
 
   for (const interaction of report.interactions) {
@@ -421,9 +434,13 @@ export async function runAppDebug(
     invocations: [],
     activity: [],
     widgets: [],
+    notSimulated: [...NOT_SIMULATED],
     verdict: { ok: false, headline: "", issues: [] },
     bundleDir: outDir
   };
+
+  /** Verdict issues the condition simulation found, folded in at the end. */
+  const conditionIssues: string[] = [];
 
   if (spec) {
     const runs: ServerRunReport[] = report.runs;
@@ -514,6 +531,13 @@ export async function runAppDebug(
       operations,
       defaultOperationId: context.defaultOperationId,
       variables: context.variables,
+      scope,
+      widgets: spec.widgets.map((w) => ({
+        id: w.id,
+        ...(w.visibleWhen ? { visibleWhen: w.visibleWhen } : {}),
+        ...(w.disabledWhen ? { disabledWhen: w.disabledWhen } : {}),
+        ...(w.format ? { format: w.format } : {})
+      })),
       ...(options.timeoutMs != null ? { timeoutMs: options.timeoutMs } : {})
     });
 
@@ -605,6 +629,20 @@ export async function runAppDebug(
       const found = findWidget(spec, "click" in step ? step.click : step.change);
       if (typeof found === "string") {
         record.error = found;
+        continue;
+      }
+      // A `set` step writes state directly and models the runtime; a click or a
+      // change models a user, and a user cannot touch what the app hides or
+      // disables.
+      const gate = runtime.widgetState(found.id);
+      const verb = trigger === "click" ? "clicked" : "changed";
+      const named = found.label ?? found.id;
+      if (gate && !gate.visible) {
+        record.error = `${verb} "${named}" while hidden by \`${gate.visibleWhen ?? "visibleWhen"}\`.`;
+        continue;
+      }
+      if (gate?.disabled) {
+        record.error = `${verb} "${named}" while disabled by \`${gate.disabledWhen ?? "disabledWhen"}\`.`;
         continue;
       }
       if ("change" in step && step.value !== undefined) {
@@ -700,6 +738,10 @@ export async function runAppDebug(
       .filter((w) => w.bindingMode !== "layout")
       .map((w) => {
         const value = runtime.read(w.ref);
+        // A `format` template is what the widget actually shows, so it — not
+        // the raw value — decides whether anything reached the screen.
+        const display = runtime.display(w.id);
+        const state = runtime.widgetState(w.id);
         return {
           id: w.id,
           type: w.type,
@@ -707,12 +749,27 @@ export async function runAppDebug(
           binding: w.binding,
           stateKey: w.stateKey,
           value: previewValue(value),
-          hasValue: value !== undefined
+          display,
+          hasValue: display !== null ? display.length > 0 : value !== undefined,
+          visible: state?.visible ?? true,
+          disabled: state?.disabled ?? false
         };
       });
+
+    for (const w of spec.widgets) {
+      if (!w.events.some((e) => e.kind === "run")) continue;
+      const state = runtime.widgetState(w.id);
+      if (!state || state.everReachable) continue;
+      const blocking = !state.visible
+        ? `visibleWhen (\`${state.visibleWhen ?? ""}\`) never held`
+        : `disabledWhen (\`${state.disabledWhen ?? ""}\`) always held`;
+      conditionIssues.push(
+        `${w.type} "${w.label ?? w.id}" runs the app, but its ${blocking} — no interaction could start a run.`
+      );
+    }
   }
 
-  report.verdict = buildAppVerdict(report, allowRuns, resolved.graph);
+  report.verdict = buildAppVerdict(report, allowRuns, resolved.graph, conditionIssues);
 
   await writeFile(join(outDir, "report.json"), JSON.stringify(report, null, 2), "utf8");
   await writeFile(join(outDir, "report.md"), renderAppReportMarkdown(report), "utf8");

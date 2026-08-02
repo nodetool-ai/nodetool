@@ -12,6 +12,7 @@
 import type {
   AppEvent,
   BindingRef,
+  ConditionProps,
   InputMapping,
   OperationPolicy,
   OutputMapping,
@@ -66,6 +67,12 @@ export interface AppWidgetSpec {
   events: AppEventSpec[];
   parentId: string | null;
   slot: string | null;
+  /** Hide the widget unless this condition holds. Absent when unconditional. */
+  visibleWhen?: ConditionProps;
+  /** Disable the widget while this condition holds. */
+  disabledWhen?: ConditionProps;
+  /** `{binding|filter}` template rendered in place of the bound raw value. */
+  format?: string;
 }
 
 /** One declared operation, with the workflow surface it resolved against. */
@@ -186,7 +193,20 @@ export interface AppWidgetState {
   stateKey: string | null;
   /** Preview-safe final value (long strings/blobs truncated). */
   value: unknown;
+  /**
+   * What the widget shows: its `format` template rendered against the final
+   * state. Null when it has no template and displays {@link value} raw.
+   */
+  display?: string | null;
+  /**
+   * True when the widget shows something — the rendered `format` template when
+   * it has one, else the bound value.
+   */
   hasValue: boolean;
+  /** Whether the widget's `visibleWhen` held once the simulation settled. */
+  visible: boolean;
+  /** Whether its `disabledWhen` held once the simulation settled. */
+  disabled: boolean;
 }
 
 export interface AppDebugReport {
@@ -211,6 +231,11 @@ export interface AppDebugReport {
   /** The activity labels the runs reported, in order. */
   activity: Array<{ invocationId: string; operationId: string; label: string }>;
   widgets: AppWidgetState[];
+  /**
+   * What a headless run cannot answer, so a reader knows what the verdict does
+   * not cover. Conditions and `format` are simulated; layout is not.
+   */
+  notSimulated: string[];
   verdict: DebugVerdict;
   bundleDir: string | null;
 }

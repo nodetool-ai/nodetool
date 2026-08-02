@@ -420,9 +420,13 @@ variable values, the activity label stream, and each invocation's policy
 decision, so an agent can see why a run was replaced, queued, or timed out.
 Harness code: `packages/cli/src/app-debug/`.
 
-Not simulated headlessly: `visibleWhen`/`disabledWhen`/`format`, so a widget
-hidden by a condition is reported as if visible; and `from: "resource"` params,
-which have no provider outside the browser.
+Conditions and formatting are simulated: after every fold the harness evaluates
+each widget's `visibleWhen`/`disabledWhen`, a click or change on a widget that
+is hidden or disabled fails the step and names the condition, a run trigger
+whose condition never held is an error, and a widget with a `format` template
+reports what the template renders. Not simulated headlessly (the report lists
+this too, under `notSimulated`): layout, styling, focus, and scroll; and
+`from: "resource"` params, which have no provider outside the browser.
 
 The shipped example apps are curated `ApplicationBundle` files in
 `packages/base-nodes/nodetool/examples/apps/`, built from the spec in

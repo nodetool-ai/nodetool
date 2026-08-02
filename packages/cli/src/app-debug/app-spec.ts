@@ -21,6 +21,7 @@ import {
   type BindingMode,
   type BindingRef,
   type BindingScope,
+  type ConditionProps,
   type OperationBinding,
   type VariableDeclaration
 } from "@nodetool-ai/app-runtime";
@@ -61,6 +62,23 @@ export interface AppContext {
   variables: VariableDeclaration[];
   resources: Array<{ id: string; name: string; kind: string }>;
 }
+
+/**
+ * A widget's stored `visibleWhen`/`disabledWhen` props. Undefined when the
+ * widget carries none, so an unconditional widget's spec is unchanged.
+ */
+const parseConditionProps = (raw: unknown): ConditionProps | undefined => {
+  if (!isRecord(raw)) return undefined;
+  const binding = str(raw.binding);
+  if (!binding) return undefined;
+  const op = str(raw.op);
+  const value = str(raw.value);
+  return {
+    binding,
+    ...(op ? { op } : {}),
+    ...(value !== null ? { value } : {})
+  };
+};
 
 const parseEvents = (raw: unknown): AppEventSpec[] => {
   if (!Array.isArray(raw)) return [];
@@ -236,6 +254,9 @@ export function parseAppSpec(
       const resourceBindingId = usesResourceBinding(item.type)
         ? str(item.props.resourceBindingId) || null
         : null;
+      const visibleWhen = parseConditionProps(item.props.visibleWhen);
+      const disabledWhen = parseConditionProps(item.props.disabledWhen);
+      const format = str(item.props.format) || null;
       const ref: BindingRef | null = binding
         ? resolveBinding(binding, scope, modeToBindingMode(bindingMode))
         : bindingMode === "write"
@@ -260,7 +281,10 @@ export function parseAppSpec(
         label: str(item.props.label) ?? str(item.props.text) ?? null,
         events: parseEvents(item.props.events),
         parentId,
-        slot
+        slot,
+        ...(visibleWhen ? { visibleWhen } : {}),
+        ...(disabledWhen ? { disabledWhen } : {}),
+        ...(format ? { format } : {})
       });
       const slots = WIDGET_CATALOG[item.type]?.slots;
       for (const [prop, value] of Object.entries(item.props)) {

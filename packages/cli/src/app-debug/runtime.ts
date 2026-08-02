@@ -16,11 +16,14 @@ import {
   applyEvents,
   createInstanceState,
   decideRun,
+  evaluateCondition,
+  formatTemplate,
   initialVariableValues,
   liveInvocations,
   messagesToEvents,
   operationError,
   outputVariableTargets,
+  parseCondition,
   readRef,
   resolveOperationParams,
   stateKey,
@@ -28,6 +31,9 @@ import {
   type AppInstanceState,
   type AppStateEvent,
   type BindingRef,
+  type BindingScope,
+  type Condition,
+  type ConditionProps,
   type InvocationState,
   type OperationBinding,
   type RunDecision,
@@ -58,6 +64,27 @@ export interface HeadlessOperationInit {
   runWorkflow?: (params: Record<string, unknown>) => Promise<HeadlessRunResult>;
 }
 
+/** A widget's declarative logic props, as the document stores them. */
+export interface HeadlessWidgetInit {
+  id: string;
+  visibleWhen?: ConditionProps;
+  disabledWhen?: ConditionProps;
+  /** `{binding|filter}` template rendered in place of the raw value. */
+  format?: string;
+}
+
+/** Whether a widget is on screen and usable, as of the last fold. */
+export interface HeadlessWidgetState {
+  visible: boolean;
+  disabled: boolean;
+  /** True once the widget was both visible and enabled at any point. */
+  everReachable: boolean;
+  /** The `visibleWhen` condition in prose, or null when it has none. */
+  visibleWhen: string | null;
+  /** The `disabledWhen` condition in prose, or null when it has none. */
+  disabledWhen: string | null;
+}
+
 export interface HeadlessRuntimeInit {
   operations: ReadonlyArray<HeadlessOperationInit>;
   /** The operation a bare `run`/`cancel` targets. */
@@ -66,7 +93,25 @@ export interface HeadlessRuntimeInit {
   variables?: ReadonlyArray<VariableDeclaration>;
   /** Ceiling on every run, on top of each operation's own `timeoutMs`. */
   timeoutMs?: number;
+  /** Placed widgets, for condition and `format` evaluation. */
+  widgets?: ReadonlyArray<HeadlessWidgetInit>;
+  /** The scope widget conditions and `format` tokens resolve against. */
+  scope?: BindingScope;
 }
+
+/**
+ * A condition as a failure message names it: `draft notEmpty`, `count gt 3`.
+ * The stored props are what an author sees in the builder, so the message
+ * points at something they can find.
+ */
+export const describeCondition = (
+  props: ConditionProps | null | undefined
+): string | null => {
+  if (!props?.binding) return null;
+  const op = props.op ?? "notEmpty";
+  const value = props.value === undefined || props.value === "" ? "" : ` ${props.value}`;
+  return `${props.binding} ${op}${value}`;
+};
 
 /** One simulated invocation, as the report shows it. */
 export interface HeadlessInvocationRecord {
@@ -113,8 +158,22 @@ const withTimeout = async <T>(
 };
 
 export class HeadlessAppRuntime {
-  state: AppInstanceState = createInstanceState();
+  private _state: AppInstanceState = createInstanceState();
   runCount = 0;
+
+  /**
+   * Every state write goes through here, so a widget's conditions are re-read
+   * after each fold — exactly where the web runtime re-renders.
+   */
+  get state(): AppInstanceState {
+    return this._state;
+  }
+
+  set state(next: AppInstanceState) {
+    this._state = next;
+    this.refreshWidgets();
+  }
+
   /** Every invocation started, in order. */
   readonly invocations: HeadlessInvocationRecord[] = [];
   /** Every activity label reported, in order. */
@@ -129,9 +188,34 @@ export class HeadlessAppRuntime {
   /** Runs the harness stopped waiting for, still settling in the background. */
   private readonly inFlight = new Map<string, Promise<unknown>>();
   private invocationSeq = 0;
+  /** Widget conditions, parsed once, plus the state each evaluation writes. */
+  private readonly compiled: Array<{
+    init: HeadlessWidgetInit;
+    visible: Condition | null;
+    disabled: Condition | null;
+    state: HeadlessWidgetState;
+  }> = [];
+  private readonly widgetStates = new Map<string, HeadlessWidgetState>();
 
   constructor(init: HeadlessRuntimeInit) {
     this.init = init;
+    const scope = init.scope;
+    for (const widget of init.widgets ?? []) {
+      const state: HeadlessWidgetState = {
+        visible: true,
+        disabled: false,
+        everReachable: false,
+        visibleWhen: describeCondition(widget.visibleWhen),
+        disabledWhen: describeCondition(widget.disabledWhen)
+      };
+      this.compiled.push({
+        init: widget,
+        visible: scope ? parseCondition(widget.visibleWhen, scope) : null,
+        disabled: scope ? parseCondition(widget.disabledWhen, scope) : null,
+        state
+      });
+      this.widgetStates.set(widget.id, state);
+    }
     for (const operation of init.operations) {
       this.byId.set(operation.binding.id, operation);
       this.state = applyEvent(this.state, {
@@ -143,6 +227,40 @@ export class HeadlessAppRuntime {
       type: "seedVariables",
       values: initialVariableValues(init.variables ?? [])
     });
+  }
+
+  /**
+   * Re-evaluate every widget's `visibleWhen`/`disabledWhen` against the current
+   * state. An unset or unresolvable condition leaves the widget visible and
+   * enabled, the same fallback the web runtime uses.
+   */
+  private refreshWidgets(): void {
+    for (const widget of this.compiled) {
+      const visible = widget.visible
+        ? evaluateCondition(this._state, widget.visible)
+        : true;
+      const disabled = widget.disabled
+        ? evaluateCondition(this._state, widget.disabled)
+        : false;
+      widget.state.visible = visible;
+      widget.state.disabled = disabled;
+      widget.state.everReachable ||= visible && !disabled;
+    }
+  }
+
+  /** A widget's current visibility, or null when the runtime has no such widget. */
+  widgetState(widgetId: string): HeadlessWidgetState | null {
+    return this.widgetStates.get(widgetId) ?? null;
+  }
+
+  /**
+   * What a widget displays: its `format` template rendered against the current
+   * state, or null when it has none and shows its bound value raw.
+   */
+  display(widgetId: string): string | null {
+    const widget = this.compiled.find((w) => w.init.id === widgetId);
+    if (!widget?.init.format || !this.init.scope) return null;
+    return formatTemplate(widget.init.format, this._state, this.init.scope);
   }
 
   /** Last error reported against an operation's active invocation. */
