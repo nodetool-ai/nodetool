@@ -854,6 +854,47 @@ with `subtasks=0` is a real finding, not a harness bug: a capable model often
 does trivial single-step work inline instead of delegating. Harness tests
 (scripted provider, no network): `tests/subtask-eval.test.ts`.
 
+### Mini-app build eval (`app-build`)
+
+The only suite that scores a whole product loop rather than one stage:
+`buildApp` (`src/app-build/`) takes a prompt through spec → plan → author →
+check → run → judge, repairing what the oracle complains about, and the suite
+counts how often that ends green and how much repair it took. Cases in
+`src/evals/app-build-cases.ts`, runner in `src/evals/app-build-eval.ts`.
+
+Metrics per `docs/mini-app-build-harness-design.md` §5.3: **one-shot rate**
+(green with zero repair rounds — the PRD's north-star number), **green-within-
+budget rate** (the suite's `successRate`, what `--min-success` gates on), repair
+rounds, cost, and duration.
+
+A case is green only when the build's own verdict is ok **and** its target-shape
+checklist holds — operations, workflows, widget count, a widget nested in a
+container, a `persist: true` variable, a streaming output shown by a display
+widget, an operation reading a variable another wrote, and a widget carrying a
+condition. Without the checklist a build that shipped one operation and three
+widgets would score as a success. Each of the eight prompt cases declares which
+of the six medium-complexity traits (PRD §4) it exercises;
+`uncoveredAppBuildTraits()` names any trait that lost its last case, and the
+harness test fails on a non-empty answer.
+
+The two deterministic cases (`greeting-card`, `draft-then-publish`) pin the
+spec, bind template graphs (text transforms — no model in the app under test),
+author from a scripted list of `ui_app_*` calls, skip the judge, and assert
+exact widget values. They call no provider, so they run on every PR as the
+Quality Gate's `app-build` leg; what they regress is the harness, not a model.
+The full suite runs nightly (`.github/workflows/app-build-eval.yml`), reports,
+and gates nothing — a model's off night is not a broken build.
+
+```bash
+npm run dev:nodetool -- eval app-build --list
+npm run dev:nodetool -- eval app-build -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish \
+  -p ollama -m none --no-find-model --min-success 1   # no API key needed
+```
+
+Harness tests (scripted authoring, stub kernel runner, no network):
+`tests/app-build-eval.test.ts`.
+
 ## Observing LLM Steps and Planning
 
 ### Execution Tree (CLI)

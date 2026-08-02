@@ -109,12 +109,30 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
 
   if (report.widgets.length > 0) {
     lines.push("", "## Widget state", "");
-    lines.push("| Widget | Mode | Binding | Value |");
-    lines.push("| --- | --- | --- | --- |");
+    lines.push("| Widget | Mode | Binding | Value | State |");
+    lines.push("| --- | --- | --- | --- | --- |");
     for (const w of report.widgets) {
+      // A widget with a `format` template shows the rendered text, not the raw
+      // bound value — the preview says what a user would read.
+      const shown = w.display != null ? short(w.display) : short(w.value);
+      const state = !w.visible ? "hidden" : w.disabled ? "disabled" : "visible";
       lines.push(
-        `| ${w.type} \`${w.id}\` | ${w.bindingMode} | ${w.binding ?? "—"} | ${short(w.value)} |`
+        `| ${w.type} \`${w.id}\` | ${w.bindingMode} | ${w.binding ?? "—"} | ${shown} | ${state} |`
       );
+    }
+  }
+
+  if (report.resources?.length > 0) {
+    lines.push("", "## Resources", "");
+    for (const resource of report.resources) {
+      const items = resource.seeded
+        ? `${resource.items.length} item(s)${
+            resource.selected ? `, selected \`${resource.selected}\`` : ""
+          }`
+        : "not seeded";
+      const commands =
+        resource.commands.length > 0 ? ` — ${resource.commands.join(", ")}` : "";
+      lines.push(`- \`${resource.id}\` (${resource.kind}): ${items}${commands}`);
     }
   }
 
@@ -132,6 +150,11 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
     for (const [key, value] of variables) {
       lines.push(`- \`${key}\`: ${short(value, 300)}`);
     }
+  }
+
+  if (report.notSimulated?.length > 0) {
+    lines.push("", "## Not simulated", "");
+    for (const entry of report.notSimulated) lines.push(`- ${entry}`);
   }
 
   lines.push("");

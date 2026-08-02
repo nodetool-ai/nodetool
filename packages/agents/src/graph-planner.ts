@@ -13,7 +13,8 @@ import type {
   BaseProvider,
   ProcessingContext,
   Message,
-  ToolCall
+  ToolCall,
+  TurnBudget
 } from "@nodetool-ai/runtime";
 import { withAgentSpanGen } from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
@@ -80,6 +81,11 @@ export interface GraphPlannerOptions {
   providers?: Record<string, BaseProvider>;
   /** External cancellation. Aborts the planning provider loop mid-flight. */
   signal?: AbortSignal;
+  /**
+   * Spend admission, consulted before every planning turn. A refusal ends the
+   * loop, so the planner returns null rather than overrunning a caller's cap.
+   */
+  turnBudget?: TurnBudget;
 }
 
 export class GraphPlanner {
@@ -93,6 +99,7 @@ export class GraphPlanner {
   private readonly maxRetries: number;
   private readonly threadId?: string;
   private readonly signal?: AbortSignal;
+  private readonly turnBudget?: TurnBudget;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly hasFindModel: boolean;
 
@@ -110,6 +117,7 @@ export class GraphPlanner {
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
     this.signal = opts.signal;
+    this.turnBudget = opts.turnBudget;
 
     if (!this.hasFindModel) {
       log.warn(
@@ -413,6 +421,7 @@ export class GraphPlanner {
       threadId: this.threadId,
       maxIterations: MAX_TOOL_CALLS_PER_TURN,
       sequentialTools: true,
+      ...(this.turnBudget ? { turnBudget: this.turnBudget } : {}),
       signal: abort.signal
     });
 

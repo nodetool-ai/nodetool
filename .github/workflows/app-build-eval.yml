@@ -1,0 +1,116 @@
+name: App Build Eval
+
+# Nightly: run the full `app-build` suite — eight medium-complexity prompts
+# through `nodetool app build` (spec → plan → author → check → run → judge) —
+# and publish the report as an artifact.
+#
+# The number this exists to track is the one-shot rate: the share of prompts
+# that produce a green app with zero repair rounds
+# (docs/mini-app-build-harness-prd.md §8). It reports, it never decides: no PR
+# is opened and no gate is failed on a model's off night. The deterministic
+# cases are the gate, and they run on every PR in the Quality Gate's `app-build`
+# leg.
+#
+# Real inference, so it costs real money — one pass plans two workflows per
+# case, authors the app, and judges every interaction. `--cost-cap` lives in the
+# harness (default $2 per build); the schedule keeps the bill to one pass a day.
+
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Builder provider id (registry id, e.g. anthropic, openai)"
+        required: false
+        default: "anthropic"
+        type: string
+      model:
+        description: "Builder model id"
+        required: false
+        default: "claude-sonnet-5"
+        type: string
+      cases:
+        description: "Comma-separated case ids (default: the whole suite)"
+        required: false
+        default: ""
+        type: string
+  schedule:
+    # 04:40 UTC nightly — after the pricing sync, off the hour.
+    - cron: "40 4 * * *"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: app-build-eval
+  cancel-in-progress: false
+
+jobs:
+  eval:
+    name: Run the app-build suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Build backend packages
+        # The suite plans and runs real graphs, so it needs the node registry.
+        run: npm run build:packages
+
+      - name: Run the suite
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PROVIDER: ${{ inputs.provider || 'anthropic' }}
+          MODEL: ${{ inputs.model || 'claude-sonnet-5' }}
+          CASES: ${{ inputs.cases }}
+        run: |
+          set -euo pipefail
+          npm run dev:nodetool -- eval app-build \
+            -p "$PROVIDER" -m "$MODEL" \
+            ${CASES:+--cases "$CASES"} \
+            --out app-build-eval.json | tee app-build-eval.txt
+
+      - name: Upload the report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-build-eval
+          path: |
+            app-build-eval.json
+            app-build-eval.txt
+          if-no-files-found: warn
+
+      - name: Summarize
+        if: always()
+        run: |
+          set -euo pipefail
+          echo "## App build eval" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f app-build-eval.json ]; then
+            node -e "
+              const r = require('./app-build-eval.json');
+              const s = r.summary;
+              const pct = (n) => (n * 100).toFixed(0) + '%';
+              console.log(\`\${r.provider}/\${r.model} — one-shot \${s.oneShot}/\${s.ran} (\${pct(s.oneShotRate)}), green-within-budget \${s.green}/\${s.ran} (\${pct(s.greenWithinBudgetRate)}), median repairs \${s.medianRepairRounds}, cost \$\${s.totalCostUsd.toFixed(2)}\`);
+              console.log('');
+              console.log('| Case | Result | Repairs | Cost | Failed checks |');
+              console.log('| --- | --- | --- | --- | --- |');
+              for (const c of r.cases) {
+                const result = c.skipped ? 'skipped' : c.green ? (c.oneShot ? 'green (one-shot)' : 'green (repaired)') : 'FAIL';
+                const failed = c.checks.filter((k) => !k.pass).map((k) => k.name).join(', ') || '—';
+                console.log(\`| \${c.caseId} | \${result} | \${c.repairRounds} | \$\${c.costUsd.toFixed(3)} | \${failed} |\`);
+              }
+            " >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "The suite produced no report — see the run log." >> "$GITHUB_STEP_SUMMARY"
+          fi

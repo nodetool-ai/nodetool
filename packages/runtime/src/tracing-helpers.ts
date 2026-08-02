@@ -171,7 +171,7 @@ export function createUsageSlot(): {
 }
 
 /** Wrap a function in an OTel span; pass-through if telemetry is disabled. */
-async function withSpan<T>(
+export async function withSpan<T>(
   name: string,
   attributes: Record<string, unknown>,
   fn: (span: Span | null) => Promise<T>

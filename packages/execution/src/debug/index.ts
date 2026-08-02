@@ -26,11 +26,16 @@ export {
 } from "./verdict.js";
 export type {
   DebugError,
+  DebugGraph,
+  DebugTargetInfo,
+  DebugVerdict,
   EdgeDebug,
   ExecutionSummary,
   LlmCallDebug,
   LogEntry,
   NodeDebug,
   NodeOutput,
-  RunVerdict
+  RunVerdict,
+  ServerRunReport,
+  TraceSummary
 } from "./types.js";

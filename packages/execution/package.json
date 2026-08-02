@@ -15,6 +15,7 @@
     "lint": "tsc --noEmit"
   },
   "dependencies": {
+    "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/node-sdk": "*",
@@ -38,6 +39,12 @@
       "types": "./dist/debug/index.d.ts",
       "import": "./dist/debug/index.js",
       "default": "./dist/debug/index.js"
+    },
+    "./app-debug": {
+      "nodetool-dev": "./src/app-debug/index.ts",
+      "types": "./dist/app-debug/index.d.ts",
+      "import": "./dist/app-debug/index.js",
+      "default": "./dist/app-debug/index.js"
     }
   },
   "license": "MIT",

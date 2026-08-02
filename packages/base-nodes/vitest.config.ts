@@ -4,6 +4,14 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@nodetool-ai/execution/app-debug": resolve(
+        __dirname,
+        "../execution/src/app-debug/index.ts"
+      ),
+      "@nodetool-ai/execution/debug": resolve(
+        __dirname,
+        "../execution/src/debug/index.ts"
+      ),
       "@nodetool-ai/execution": resolve(__dirname, "../execution/src/index.ts"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),

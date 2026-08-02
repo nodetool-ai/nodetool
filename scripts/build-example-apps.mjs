@@ -23,13 +23,23 @@
 //   node scripts/build-example-apps.mjs                 # build + validate
 //   node scripts/build-example-apps.mjs --skip-validate # build only
 //   node scripts/build-example-apps.mjs --check         # fail if outputs would change
+//
+// `--regen` is a separate question, answered by `nodetool app build`: would the
+// build harness produce these apps today? It derives a BuildSpec from each
+// shipped bundle, builds it, and reports the drift. It writes nothing — the
+// curated bundles stay hand-approved.
+//
+//   node scripts/build-example-apps.mjs --regen -p anthropic -m claude-sonnet-5
+//   node scripts/build-example-apps.mjs --regen -p ... -m ... --app photo-studio
 
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
 import { EXAMPLE_APPS } from "./example-apps/apps.mjs";
+import { diffBundles, specFromBundle } from "./example-apps/regen.mjs";
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const PACKAGE = "nodetool-base";
@@ -45,9 +55,20 @@ const PREVIEW = path.join(ROOT, "web/public/app-preview");
 const APP_SCHEMA_VERSION = 3;
 const BUNDLE_SCHEMA_VERSION = 1;
 
-const args = new Set(process.argv.slice(2));
+const argv = process.argv.slice(2);
+const args = new Set(argv);
 const skipValidate = args.has("--skip-validate");
 const checkOnly = args.has("--check");
+const regen = args.has("--regen");
+
+/** Value of a `--flag value` pair, or its short alias. */
+const flagValue = (...names) => {
+  for (const name of names) {
+    const at = argv.indexOf(name);
+    if (at >= 0 && argv[at + 1]) return argv[at + 1];
+  }
+  return undefined;
+};
 
 const slugify = (value) =>
   String(value)
@@ -637,6 +658,114 @@ function previewFor(app, bundle, values) {
     values
   };
 }
+
+// ── Regeneration check ───────────────────────────────────────────────────────
+// Reads the shipped bundles and builds each one again through the harness. It
+// touches nothing under APPS_OUT or PREVIEW, so it can never overwrite a
+// curated app.
+
+/** Build one derived spec through `nodetool app build --json`. */
+function buildFromSpec(specFile, outDir, provider, model) {
+  const result = spawnSync(
+    "npx",
+    [
+      "tsx",
+      "./packages/cli/src/nodetool.ts",
+      "app",
+      "build",
+      specFile,
+      "--provider",
+      provider,
+      "--model",
+      model,
+      "--json",
+      "--out",
+      outDir
+    ],
+    {
+      cwd: ROOT,
+      encoding: "utf8",
+      maxBuffer: 64 * 1024 * 1024,
+      env: { ...process.env, NODE_OPTIONS: "--conditions=nodetool-dev" }
+    }
+  );
+  const stdout = (result.stdout ?? "").trim();
+  if (!stdout) {
+    return {
+      error:
+        (result.stderr ?? "").trim().split("\n").slice(-5).join("\n") ||
+        `exited ${result.status}`
+    };
+  }
+  try {
+    return { report: JSON.parse(stdout) };
+  } catch {
+    return { error: "app build printed no parseable report" };
+  }
+}
+
+function runRegen() {
+  const provider = flagValue("--provider", "-p");
+  const model = flagValue("--model", "-m");
+  if (!provider || !model) {
+    fail("--regen needs --provider and --model — a rebuild is a model run");
+  }
+  const only = flagValue("--app");
+  const apps = only
+    ? EXAMPLE_APPS.filter((app) => app.slug === only)
+    : EXAMPLE_APPS;
+  if (apps.length === 0) fail(`no example app with slug "${only}"`);
+
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), "example-apps-regen-"));
+  let failed = 0;
+  let drifted = 0;
+
+  for (const app of apps) {
+    const bundleFile = path.join(APPS_OUT, `${app.slug}.app.json`);
+    if (!fs.existsSync(bundleFile)) {
+      fail(`no shipped bundle for "${app.slug}" — run the build first`);
+    }
+    const shipped = JSON.parse(fs.readFileSync(bundleFile, "utf8"));
+    const { spec, dropped } = specFromBundle(shipped);
+    const specFile = path.join(work, `${app.slug}.spec.json`);
+    fs.writeFileSync(specFile, `${JSON.stringify(spec, null, 2)}\n`, "utf8");
+
+    const { report, error } = buildFromSpec(
+      specFile,
+      path.join(work, app.slug),
+      provider,
+      model
+    );
+    if (error || !report?.bundle) {
+      failed += 1;
+      console.log(`❌ ${app.slug}: ${error ?? report?.verdict?.reason ?? "no bundle"}`);
+      continue;
+    }
+    const lines = diffBundles(shipped, report.bundle);
+    if (dropped.length > 0) {
+      lines.push(
+        `  (${dropped.length} property-bound widget(s) have no spec token and were not asked for)`
+      );
+    }
+    if (lines.length === 0) {
+      console.log(`✅ ${app.slug}: no drift`);
+    } else {
+      drifted += 1;
+      console.log(`≠  ${app.slug}: $${(report.cost?.usd ?? 0).toFixed(4)}`);
+      for (const line of lines) console.log(line);
+    }
+  }
+
+  console.log(
+    `\nregen: ${apps.length} app(s) · drifted: ${drifted} · failed: ${failed} · specs in ${work}`
+  );
+  console.log("nothing was written — the shipped bundles stay hand-approved");
+  // Drift is expected between two model runs, so only a build that produced no
+  // bundle at all is an error.
+  process.exit(failed > 0 ? 1 : 0);
+}
+
+if (regen) runRegen();
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 

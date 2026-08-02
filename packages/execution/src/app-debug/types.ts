@@ -11,7 +11,9 @@
  */
 import type {
   AppEvent,
+  ApplicationDocument,
   BindingRef,
+  ConditionProps,
   InputMapping,
   OperationPolicy,
   OutputMapping,
@@ -22,10 +24,47 @@ import type {
 } from "@nodetool-ai/app-runtime";
 
 import type {
+  DebugGraph,
   DebugTargetInfo,
   DebugVerdict,
   ServerRunReport
 } from "../debug/types.js";
+import type { SeedResourceItem } from "./runtime.js";
+
+export type { SeedResourceItem };
+
+/**
+ * An app target after its host resolved it — an application row, an
+ * `ApplicationBundle` file, or a workflow carrying a legacy `app_doc`. The
+ * simulator takes this shape and never learns which of the three it came from;
+ * resolution (files, database) belongs to the host.
+ */
+export interface ResolvedAppTarget {
+  info: DebugTargetInfo;
+  /**
+   * The graph the report's IO summary and branch analysis are computed
+   * against: the default operation's workflow, or the workflow itself on the
+   * legacy path. Empty when nothing resolved.
+   */
+  graph: DebugGraph;
+  /** Params discovered in a file's `params` field, merged under caller params. */
+  fileParams: Record<string, unknown>;
+  /** The document exactly as stored, for `app.json` and persist warnings. */
+  appDoc: unknown;
+  /** The parsed document, or null with {@link ResolvedAppTarget.issue} explaining why. */
+  document: ApplicationDocument | null;
+  /** Why no document could be parsed. */
+  issue: string | null;
+  /** Graphs the target carries, keyed by the id its operations reference. */
+  graphs: Map<string, DebugGraph>;
+  /**
+   * True when those keys are bundle-local, so no operation names a real
+   * workflow id and nothing can be handed to the runner as one.
+   */
+  operationsReferenceKeys: boolean;
+  /** The application's name, when the target is an app rather than a workflow. */
+  appName: string | null;
+}
 
 /** How a widget participates in the reactive layer (from the shared catalog). */
 export type WidgetBindingMode = SharedWidgetBindingMode | "unknown";
@@ -66,6 +105,12 @@ export interface AppWidgetSpec {
   events: AppEventSpec[];
   parentId: string | null;
   slot: string | null;
+  /** Hide the widget unless this condition holds. Absent when unconditional. */
+  visibleWhen?: ConditionProps;
+  /** Disable the widget while this condition holds. */
+  disabledWhen?: ConditionProps;
+  /** `{binding|filter}` template rendered in place of the bound raw value. */
+  format?: string;
 }
 
 /** One declared operation, with the workflow surface it resolved against. */
@@ -138,6 +183,7 @@ export interface AppValidation {
  *  - `click`  — fire a widget's `click` events
  *  - `run`    — run one operation by id, without going through a widget
  *  - `cancel` — cancel an operation's live invocations
+ *  - `seedResource` — fill a declared resource binding's collection
  * Widgets are referenced by component id, unique type, or unique label.
  * `set` resolves against the default operation unless `operationId` says
  * otherwise.
@@ -147,7 +193,8 @@ export type InteractionStep =
   | { click: string }
   | { change: string; value: unknown }
   | { run: string }
-  | { cancel: string };
+  | { cancel: string }
+  | { seedResource: { id: string; items: SeedResourceItem[] } };
 
 /** What actually happened when a step executed. */
 export interface InteractionRecord {
@@ -184,9 +231,40 @@ export interface AppWidgetState {
   bindingMode: WidgetBindingMode;
   binding: string | null;
   stateKey: string | null;
+  /**
+   * For a resource widget, the collection it shows. Its {@link value} is that
+   * collection's members rather than a bound state value.
+   */
+  resourceBindingId?: string | null;
   /** Preview-safe final value (long strings/blobs truncated). */
   value: unknown;
+  /**
+   * What the widget shows: its `format` template rendered against the final
+   * state. Null when it has no template and displays {@link value} raw.
+   */
+  display?: string | null;
+  /**
+   * True when the widget shows something — the rendered `format` template when
+   * it has one, else the bound value.
+   */
   hasValue: boolean;
+  /** Whether the widget's `visibleWhen` held once the simulation settled. */
+  visible: boolean;
+  /** Whether its `disabledWhen` held once the simulation settled. */
+  disabled: boolean;
+}
+
+/** One resource collection after the simulation settled. */
+export interface AppResourceCollectionState {
+  id: string;
+  kind: ResourceKind;
+  /** False when no step or param seeded the collection — it has no provider. */
+  seeded: boolean;
+  items: Array<{ id: string; name: string; revision?: number }>;
+  /** The member a `from: "resource"` param would send. */
+  selected: string | null;
+  /** Commands dispatched against the binding, in order. */
+  commands: string[];
 }
 
 export interface AppDebugReport {
@@ -211,13 +289,24 @@ export interface AppDebugReport {
   /** The activity labels the runs reported, in order. */
   activity: Array<{ invocationId: string; operationId: string; label: string }>;
   widgets: AppWidgetState[];
+  /** Every declared resource binding and what its collection held at the end. */
+  resources: AppResourceCollectionState[];
+  /**
+   * What a headless run cannot answer, so a reader knows what the verdict does
+   * not cover. Conditions and `format` are simulated; layout is not.
+   */
+  notSimulated: string[];
   verdict: DebugVerdict;
   bundleDir: string | null;
 }
 
 /** Options that drive an app debug run. */
 export interface AppDebugOptions {
-  /** Reactive values applied before interactions, keyed by input name. */
+  /**
+   * Reactive values applied before interactions, keyed by input name. A
+   * `resource:<binding id>` key seeds that collection instead, taking an array
+   * of {@link SeedResourceItem}.
+   */
   params?: Record<string, unknown>;
   /**
    * Scripted interactions. When omitted the harness fires the app's natural

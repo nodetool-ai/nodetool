@@ -102,6 +102,9 @@ interface BuildComplaint {
 interface BuildReport {
   target: { prompt: string; specPath?: string };
   spec: BuildSpec;
+  interactions: CompletedInteraction[];  // what Run replayed: authored steps
+                                         // plus seeded inputs and derived runs,
+                                         // each flagged (§3.5)
   stages: StageRecord[];             // one per stage execution, repairs included
   repairs: BuildComplaint[];
   appDebug: AppDebugReport | null;   // the final Check+Run evidence, verbatim

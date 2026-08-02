@@ -867,6 +867,82 @@ export class ResolveWorkflowEscalationTool extends Tool {
   }
 }
 
+export class BuildAppTool extends Tool {
+  readonly name = "build_app";
+  readonly description =
+    "Build a mini app from one sentence of intent and return the build " +
+    "report: the pinned spec, what each stage did, the issues repair rounds " +
+    "fixed, the simulated run of every interaction, a pass/fail verdict, and " +
+    "— only behind a passing verdict — the ApplicationBundle. The bundle is " +
+    "offered, not installed: show the user the verdict and install it with " +
+    "POST /api/applications/import-bundle once they agree. A build takes " +
+    "minutes; pass poll=true to get a session id back immediately, then read " +
+    "GET /api/debug/sessions/<id> until it settles or cancel it with POST " +
+    "/api/debug/sessions/<id>/cancel.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      prompt: {
+        type: "string" as const,
+        description: "What the app should do, in the user's own terms"
+      },
+      spec: {
+        type: "object" as const,
+        description:
+          "A pinned BuildSpec to build instead of writing one from the prompt"
+      },
+      provider: {
+        type: "string" as const,
+        description: "Provider id for the build's own model calls"
+      },
+      model: {
+        type: "string" as const,
+        description: "Model id the build authors with"
+      },
+      workflow_ids: {
+        type: "array" as const,
+        items: { type: "string" as const },
+        description:
+          "Existing workflow ids to pin, in the spec's operation order — " +
+          "these are bound instead of planned"
+      },
+      max_repairs: {
+        type: "number" as const,
+        description: "Repair rounds allowed after the first pass (default 3)"
+      },
+      cost_cap_usd: {
+        type: "number" as const,
+        description: "Ceiling on what the build may spend (default 2)"
+      },
+      timeout_ms: {
+        type: "number" as const,
+        description: "Wall clock for the whole build (default 600000)"
+      },
+      poll: {
+        type: "boolean" as const,
+        description:
+          "Return a session id as soon as the build starts instead of " +
+          "waiting for it (default false)"
+      }
+    },
+    required: []
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    return apiPost(context, "/api/applications/build", params);
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const prompt = params["prompt"];
+    return typeof prompt === "string" && prompt.trim()
+      ? `Building an app: ${prompt}`
+      : "Building an app from the given spec";
+  }
+}
+
 export class ValidateWorkflowTool extends Tool {
   readonly name = "validate_workflow";
   readonly description =
@@ -1577,6 +1653,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new RunWorkflowTool(),
     new DebugWorkflowTool(),
     new ResolveWorkflowEscalationTool(),
+    new BuildAppTool(),
     new ValidateWorkflowTool(options.registry),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),

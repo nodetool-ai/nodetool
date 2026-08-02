@@ -172,6 +172,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   run_node: "execute",
   run_workflow: "execute",
   debug_workflow: "execute",
+  build_app: "execute",
   start_background_job: "execute",
   run_code: "execute",
   js: "execute",

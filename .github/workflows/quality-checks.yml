@@ -215,6 +215,20 @@ jobs:
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
+          # The `app-build` suite's two deterministic cases: a pinned spec over
+          # template graphs, authored by a script instead of a model, run on the
+          # real kernel. They call no provider, so no API key is needed — the
+          # `-p ollama -m none` provider is constructed and never used. This is
+          # the mini-app build harness's regression gate (the full suite runs
+          # nightly in app-build-eval.yml, where a model is in the loop).
+          # --min-success 1 because a deterministic case has no variance: if it
+          # is not green, the harness broke.
+          - check: app-build
+            command: npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish -p ollama -m none --no-find-model --min-success 1
+            mobile-deps: "false"
+            extra-apt: ""
+            is-test: "false"
+            fetch-depth: "1"
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
