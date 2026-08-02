@@ -463,6 +463,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "TOOL_LOOP_EVAL_CASES"
   ),
   makeToolLoopSuite(
+    "workflow-escalation",
+    "Run the workflow-tool escalation eval suite (ui_* graph tools plus an ask_user channel to a scripted user) against a provider/model",
+    "WORKFLOW_ESCALATION_TOOL_LOOP_CASES"
+  ),
+  makeToolLoopSuite(
     "script-tools",
     "Run the Script surface tool-loop eval suite (ui_script_* tools) against a provider/model",
     "SCRIPT_TOOL_LOOP_CASES"
