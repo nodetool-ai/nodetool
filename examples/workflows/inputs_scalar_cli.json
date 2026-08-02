@@ -1,0 +1,140 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "flag",
+        "type": "nodetool.input.BooleanInput",
+        "data": { "name": "flag", "value": false, "description": "a boolean" }
+      },
+      {
+        "id": "count",
+        "type": "nodetool.input.IntegerInput",
+        "data": { "name": "count", "value": 7, "min": 0, "max": 100 }
+      },
+      {
+        "id": "ratio",
+        "type": "nodetool.input.FloatInput",
+        "data": { "name": "ratio", "value": 0.25, "min": 0, "max": 1 }
+      },
+      {
+        "id": "title",
+        "type": "nodetool.input.StringInput",
+        "data": { "name": "title", "value": "untitled", "line_mode": "single_line" }
+      },
+      {
+        "id": "mode",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "mode",
+          "value": "fast",
+          "options": ["fast", "balanced", "thorough"]
+        }
+      },
+      {
+        "id": "tags",
+        "type": "nodetool.input.StringListInput",
+        "data": { "name": "tags", "value": ["alpha", "beta"] }
+      },
+      {
+        "id": "lines",
+        "type": "nodetool.input.TextListInput",
+        "data": { "name": "lines", "value": ["first", "second"] }
+      },
+
+      {
+        "id": "out_flag",
+        "type": "nodetool.output.Output",
+        "name": "flag",
+        "data": { "name": "flag" }
+      },
+      {
+        "id": "out_count",
+        "type": "nodetool.output.Output",
+        "name": "count",
+        "data": { "name": "count" }
+      },
+      {
+        "id": "out_ratio",
+        "type": "nodetool.output.Output",
+        "name": "ratio",
+        "data": { "name": "ratio" }
+      },
+      {
+        "id": "out_title",
+        "type": "nodetool.output.Output",
+        "name": "title",
+        "data": { "name": "title" }
+      },
+      {
+        "id": "out_mode",
+        "type": "nodetool.output.Output",
+        "name": "mode",
+        "data": { "name": "mode" }
+      },
+      {
+        "id": "out_tags",
+        "type": "nodetool.output.Output",
+        "name": "tags",
+        "data": { "name": "tags" }
+      },
+      {
+        "id": "out_lines",
+        "type": "nodetool.output.Output",
+        "name": "lines",
+        "data": { "name": "lines" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "flag",
+        "sourceHandle": "output",
+        "target": "out_flag",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "count",
+        "sourceHandle": "output",
+        "target": "out_count",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "ratio",
+        "sourceHandle": "output",
+        "target": "out_ratio",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "title",
+        "sourceHandle": "output",
+        "target": "out_title",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "mode",
+        "sourceHandle": "output",
+        "target": "out_mode",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "tags",
+        "sourceHandle": "output",
+        "target": "out_tags",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "lines",
+        "sourceHandle": "output",
+        "target": "out_lines",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

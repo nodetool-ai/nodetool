@@ -1,0 +1,194 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "lib.image.draw.LinearGradient",
+        "data": {
+          "width": 48,
+          "height": 32,
+          "color_a": { "type": "color", "value": "#000000" },
+          "color_b": { "type": "color", "value": "#ffffff" },
+          "angle": 0,
+          "midpoint": 0.5
+        }
+      },
+
+      {
+        "id": "invert_once",
+        "type": "lib.image.color.Invert",
+        "data": { "amount": 1 }
+      },
+      {
+        "id": "invert_twice",
+        "type": "lib.image.color.Invert",
+        "data": { "amount": 1 }
+      },
+      {
+        "id": "posterized",
+        "type": "lib.image.color.Posterize",
+        "data": { "levels": 2 }
+      },
+
+      {
+        "id": "cmp_once",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "inverted" }
+      },
+      {
+        "id": "cmp_twice",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "inverted twice" }
+      },
+      {
+        "id": "cmp_poster",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "posterized" }
+      },
+
+      { "id": "meta_poster", "type": "nodetool.image.GetMetadata" },
+
+      {
+        "id": "out_once_equal",
+        "type": "nodetool.output.Output",
+        "name": "invert_once_equal",
+        "data": { "name": "invert_once_equal" }
+      },
+      {
+        "id": "out_twice_equal",
+        "type": "nodetool.output.Output",
+        "name": "invert_twice_equal",
+        "data": { "name": "invert_twice_equal" }
+      },
+      {
+        "id": "out_poster_equal",
+        "type": "nodetool.output.Output",
+        "name": "posterize_equal",
+        "data": { "name": "posterize_equal" }
+      },
+      {
+        "id": "out_poster_w",
+        "type": "nodetool.output.Output",
+        "name": "posterize_width",
+        "data": { "name": "posterize_width" }
+      },
+      {
+        "id": "out_poster_h",
+        "type": "nodetool.output.Output",
+        "name": "posterize_height",
+        "data": { "name": "posterize_height" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "invert_once",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "invert_once",
+        "sourceHandle": "output",
+        "target": "invert_twice",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "posterized",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "c1a",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_once",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c1b",
+        "source": "invert_once",
+        "sourceHandle": "output",
+        "target": "cmp_once",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "c2a",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_twice",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c2b",
+        "source": "invert_twice",
+        "sourceHandle": "output",
+        "target": "cmp_twice",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "c3a",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_poster",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c3b",
+        "source": "posterized",
+        "sourceHandle": "output",
+        "target": "cmp_poster",
+        "targetHandle": "image_b"
+      },
+
+      {
+        "id": "mp",
+        "source": "posterized",
+        "sourceHandle": "output",
+        "target": "meta_poster",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "o1",
+        "source": "cmp_once",
+        "sourceHandle": "equal",
+        "target": "out_once_equal",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o2",
+        "source": "cmp_twice",
+        "sourceHandle": "equal",
+        "target": "out_twice_equal",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o3",
+        "source": "cmp_poster",
+        "sourceHandle": "equal",
+        "target": "out_poster_equal",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o4",
+        "source": "meta_poster",
+        "sourceHandle": "width",
+        "target": "out_poster_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o5",
+        "source": "meta_poster",
+        "sourceHandle": "height",
+        "target": "out_poster_h",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

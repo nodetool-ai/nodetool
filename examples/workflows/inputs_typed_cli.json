@@ -1,0 +1,195 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "table",
+        "type": "nodetool.input.DataframeInput",
+        "data": {
+          "name": "table",
+          "value": {
+            "type": "dataframe",
+            "columns": [
+              { "name": "node", "data_type": "string" },
+              { "name": "runs", "data_type": "int" }
+            ],
+            "data": [["Concat", 12], ["Chunk", 48]]
+          }
+        }
+      },
+      {
+        "id": "doc",
+        "type": "nodetool.input.DocumentInput",
+        "data": {
+          "name": "doc",
+          "value": { "type": "document", "uri": "memory://notes.txt" }
+        }
+      },
+      {
+        "id": "size",
+        "type": "nodetool.input.ImageSizeInput",
+        "data": {
+          "name": "size",
+          "value": { "type": "image_size", "width": 1024, "height": 576 }
+        }
+      },
+      {
+        "id": "tint",
+        "type": "nodetool.input.ColorInput",
+        "data": { "name": "tint", "value": { "type": "color", "value": "#1e88e5" } }
+      },
+      {
+        "id": "file",
+        "type": "nodetool.input.FilePathInput",
+        "data": { "name": "file", "value": "/data/inbox/report.json" }
+      },
+      {
+        "id": "folder",
+        "type": "nodetool.input.FolderPathInput",
+        "data": { "name": "folder", "value": "/data/inbox" }
+      },
+      {
+        "id": "message",
+        "type": "nodetool.input.MessageInput",
+        "data": {
+          "name": "message",
+          "value": {
+            "type": "message",
+            "id": "m-1",
+            "thread_id": "t-9",
+            "role": "user",
+            "content": "summarise the release notes"
+          }
+        }
+      },
+      { "id": "split", "type": "nodetool.input.MessageDeconstructor" },
+
+      {
+        "id": "out_table",
+        "type": "nodetool.output.Output",
+        "name": "table",
+        "data": { "name": "table" }
+      },
+      {
+        "id": "out_doc",
+        "type": "nodetool.output.Output",
+        "name": "doc",
+        "data": { "name": "doc" }
+      },
+      {
+        "id": "out_size",
+        "type": "nodetool.output.Output",
+        "name": "size",
+        "data": { "name": "size" }
+      },
+      {
+        "id": "out_tint",
+        "type": "nodetool.output.Output",
+        "name": "tint",
+        "data": { "name": "tint" }
+      },
+      {
+        "id": "out_file",
+        "type": "nodetool.output.Output",
+        "name": "file_path",
+        "data": { "name": "file_path" }
+      },
+      {
+        "id": "out_folder",
+        "type": "nodetool.output.Output",
+        "name": "folder_path",
+        "data": { "name": "folder_path" }
+      },
+      {
+        "id": "out_role",
+        "type": "nodetool.output.Output",
+        "name": "role",
+        "data": { "name": "role" }
+      },
+      {
+        "id": "out_text",
+        "type": "nodetool.output.Output",
+        "name": "text",
+        "data": { "name": "text" }
+      },
+      {
+        "id": "out_thread",
+        "type": "nodetool.output.Output",
+        "name": "thread_id",
+        "data": { "name": "thread_id" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "table",
+        "sourceHandle": "output",
+        "target": "out_table",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "doc",
+        "sourceHandle": "output",
+        "target": "out_doc",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "size",
+        "sourceHandle": "output",
+        "target": "out_size",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "tint",
+        "sourceHandle": "output",
+        "target": "out_tint",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "file",
+        "sourceHandle": "output",
+        "target": "out_file",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "folder",
+        "sourceHandle": "output",
+        "target": "out_folder",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "message",
+        "sourceHandle": "output",
+        "target": "split",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "split",
+        "sourceHandle": "role",
+        "target": "out_role",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e9",
+        "source": "split",
+        "sourceHandle": "text",
+        "target": "out_text",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e10",
+        "source": "split",
+        "sourceHandle": "thread_id",
+        "target": "out_thread",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

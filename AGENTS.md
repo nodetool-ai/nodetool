@@ -102,6 +102,53 @@ This skips every postinstall — including the root `better-sqlite3` rebuild —
 so anything touching the database needs `npm run rebuild:native` afterwards
 (which will still require the downloads above to have succeeded).
 
+### WebGPU on a headless machine
+
+The image nodes are shader-backed: every `lib.image.*` generator and every
+`nodetool.image` transform reaches WebGPU through Dawn. On a machine with no
+Vulkan driver they fail with:
+
+```
+No WebGPU adapter available (Node/Dawn). On headless Linux this usually means
+no Vulkan driver (ICD) is installed — Dawn has no software fallback of its own.
+```
+
+**This is an environment gap, not a broken test and not an unsupported
+platform.** CI already solves it: the `test-packages` leg of
+`.github/workflows/quality-checks.yml` and the browser job in `test.yml` both
+install `mesa-vulkan-drivers`, which ships **lavapipe** — a CPU Vulkan ICD. Do
+not conclude from this error that shader-backed nodes cannot be tested, and do
+not skip a test because your box hits it; the same test passes in CI.
+
+With root:
+
+```bash
+apt-get install -y mesa-vulkan-drivers
+```
+
+Without root (sandboxes, dev containers), extract the driver and point the
+Vulkan loader at it. `libvulkan1` — the loader — is usually already present;
+only the ICD is missing:
+
+```bash
+apt-get download mesa-vulkan-drivers
+dpkg-deb -x mesa-vulkan-drivers_*.deb /tmp/vk
+# The shipped manifest names the library relatively, so rewrite it absolutely:
+python3 - <<'PY'
+import json
+p = "/tmp/vk/usr/share/vulkan/icd.d/lvp_icd.json"
+d = json.load(open(p))
+d["ICD"]["library_path"] = "/tmp/vk/usr/lib/x86_64-linux-gnu/libvulkan_lvp.so"
+json.dump(d, open("/tmp/vk/lvp_icd.json", "w"))
+PY
+export VK_DRIVER_FILES=/tmp/vk/lvp_icd.json
+```
+
+Then run the tests as usual. Lavapipe is a software rasterizer, so it is slow
+but exact — pixel comparisons (`nodetool.compare.CompareImages`) are
+reproducible under it, which is what
+`packages/base-nodes/tests/image-examples-run.test.ts` relies on.
+
 ## Build, Lint & Test Commands
 
 ### Make Targets (Recommended)
