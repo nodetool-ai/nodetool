@@ -78,7 +78,6 @@ packages/           # 58 npm workspace packages (TypeScript backend)
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → StepExecutor)
   chat/             # Chat message processing, token counting
   base-nodes/       # Core workflow nodes (text, image, LLM, agents)
-  code-runners/     # Secure code execution (Docker, subprocess)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG

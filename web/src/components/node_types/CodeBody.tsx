@@ -1,11 +1,10 @@
 /** @jsxImportSource @emotion/react */
 /**
- * CodeBody — bespoke node body for code-executor nodes (`nodetool.code.*`).
+ * CodeBody — bespoke node body for nodes with an inline `code` property.
  *
  * Replaces the generic property-list body with a Monaco code editor bound to
  * the node's inline `code` property, with syntax highlighting derived from the
- * node type (Python / JavaScript / Bash / Ruby / Lua). The rest of the generic
- * body — input handles, dynamic inputs/outputs, exposed inputs, outputs and
+ * node type. The rest of the generic body — input handles, dynamic inputs/outputs, exposed inputs, outputs and
  * progress — is preserved so the node keeps its full behavior.
  *
  * Routed from `NodeContent` via the `isCodeBodyNode` predicate.
@@ -373,11 +372,8 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     }, [id])
   );
 
-  // AI authoring targets the universal Code node only. The other
-  // `nodetool.code.*` executors run real interpreters with a fixed
-  // stdout/stderr shape and need their own generator. It also stays hidden —
-  // for the same wholesale-replacement reason — on a node that already has
-  // code to lose.
+  // AI authoring targets the Code node only, and stays hidden on a node that
+  // already has code to lose — generation replaces the buffer wholesale.
   const hasCode =
     typeof data.properties?.code === "string" &&
     data.properties.code.trim().length > 0;

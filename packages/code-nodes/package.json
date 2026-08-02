@@ -17,7 +17,6 @@
   "dependencies": {
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/automation-nodes": "*",
-    "@nodetool-ai/code-runners": "*",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/llm-nodes": "*",
     "@nodetool-ai/node-sdk": "*",

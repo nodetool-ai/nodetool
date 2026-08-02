@@ -31,10 +31,9 @@ import {
   LIB_NLP_NODES
 } from "@nodetool-ai/text-nodes";
 
-import { CODE_NODES, CodeNode } from "@nodetool-ai/code-nodes";
+import { CodeNode } from "@nodetool-ai/code-nodes";
 
 export {
-  CODE_NODES,
   COMPARE_NODES,
   CONSTANT_NODES,
   CONTROL_NODES,
@@ -58,7 +57,6 @@ export {
  * register them en masse without enumerating the named exports above.
  */
 export const ALL_BROWSER_NODES: readonly NodeClass[] = [
-  ...CODE_NODES,
   ...COMPARE_NODES,
   ...CONSTANT_NODES,
   ...CONTROL_NODES,

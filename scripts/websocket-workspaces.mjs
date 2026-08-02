@@ -10,7 +10,6 @@ export const websocketWorkspaces = [
   "@nodetool-ai/kernel",
   "@nodetool-ai/node-sdk",
   "@nodetool-ai/models",
-  "@nodetool-ai/code-runners",
   "@nodetool-ai/fal-nodes",
   "@nodetool-ai/replicate-nodes",
   "@nodetool-ai/elevenlabs-nodes",

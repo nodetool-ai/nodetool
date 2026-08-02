@@ -738,7 +738,7 @@ import { ReverseTextNode } from "./nodes/reverse";      // bad
 
 **Throwing strings instead of `Error`.** The runtime wraps errors and surfaces `.message`; a thrown string becomes `undefined` in the log.
 
-**Long-running `process` blocking the event loop.** If your work is CPU-bound, do it in a `Worker` or via `code-runners`. The server is single-threaded.
+**Long-running `process` blocking the event loop.** If your work is CPU-bound, do it in a `Worker`. The server is single-threaded.
 
 **Reading from `process.env` for user-scoped secrets.** Use `context.getSecret(key)` — it consults the user's secret store, which may be encrypted and is not the process environment.
 

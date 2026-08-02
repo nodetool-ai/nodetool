@@ -175,7 +175,6 @@ nodetool/
 │   ├── runtime/       #   Processing context & model providers
 │   ├── websocket/     #   HTTP + WebSocket server (entry point)
 │   ├── vectorstore/   #   SQLite-vec vector database
-│   ├── code-runners/  #   Sandboxed code execution
 │   └── ...            #   Protocol, config, auth, storage, deploy, etc.
 ├── web/               # React frontend (Vite + MUI + React Flow)
 ├── electron/          # Electron desktop app

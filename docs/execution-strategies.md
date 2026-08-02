@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Execution Strategies"
-description: "How NodeTool runs workflows — the actor-model kernel — and how code-runner nodes sandbox untrusted code in Docker or subprocesses."
+description: "How NodeTool runs workflows — the actor-model kernel — and how the Code node sandboxes untrusted code in a WebAssembly guest."
 ---
 
 This page covers two distinct mechanisms that are easy to conflate:
@@ -9,9 +9,8 @@ This page covers two distinct mechanisms that are easy to conflate:
 1. **Workflow execution** — how the kernel runs a graph of nodes. This is an
    in-process actor model with message-passing; there are no per-job
    threads, subprocesses, or containers.
-2. **Code execution** — how individual *code-runner nodes* (Python, JavaScript,
-   Bash, …) run arbitrary user code. This is the only place Docker /
-   subprocess sandboxing applies, and it sandboxes the *code inside one node*,
+2. **Code execution** — how the *Code node* runs arbitrary user JavaScript in a
+   QuickJS WebAssembly guest. That sandbox covers the *code inside one node*,
    not the workflow.
 
 See also [Architecture](architecture.md) for the system overview and
@@ -135,77 +134,32 @@ properties and "run" action schema, injects it as an input, and exposes
 await that node's next output. Responses are tracked FIFO per node so a burst of
 concurrent control calls doesn't drop a waiter.
 
-## Code Execution: sandboxed runners
+## Code Execution: the sandboxed Code node
 
-Separately from workflow scheduling, **code-runner nodes** execute arbitrary
-user code in a sandbox. These live in `packages/code-runners/` and are consumed
-by the nodes in `packages/code-nodes/` (Python, JavaScript, Bash, Ruby, Lua,
-shell command). This is the only place "docker / subprocess" legitimately
-applies, and it isolates the *code in one node*, not the workflow.
+Separately from workflow scheduling, the **Code node**
+(`nodetool.code.Code`, `packages/code-nodes/src/nodes/code-node.ts`) executes
+user JavaScript in a QuickJS WebAssembly guest — see
+`@nodetool-ai/agents/js-sandbox`. It isolates the *code in one node*, not the
+workflow, and runs the same way in the browser and on the server: no Docker, no
+subprocess, no host interpreter.
 
-### StreamRunnerBase
+The guest gets standard JavaScript plus a fixed set of bridges — `fetch()`,
+workspace file access, `getSecret()`, `uuid()`, `sleep()`, `progress()`,
+`crypto`, `format`, and CSV/HTML `data` helpers. Dynamic inputs arrive as
+globals; the keys of the returned object become the node's outputs.
 
-`StreamRunnerBase` (`packages/code-runners/src/stream-runner-base.ts`) is the
-base class. Its `stream(userCode, envLocals, options)` async generator yields
-`[slot, value]` tuples where `slot` is `"stdout"` or `"stderr"`. It supports two
-mutually exclusive `mode`s:
-
-- **`"docker"`** (default) — run inside a Docker container (via `dockerode`).
-- **`"subprocess"`** — run as a local child process on the host.
-
-`stop()` cooperatively aborts: it force-removes the active container or
-terminates the child (SIGTERM, escalating to SIGKILL after a grace period).
-
-#### Docker sandbox defaults
-
-The constructor applies security-first defaults for untrusted code:
-
-| Option | Default | Notes |
-|--------|---------|-------|
-| `image` | `"bash:5.2"` | Subclasses override (e.g. `python:3.11-slim`, `node:22-alpine`). |
-| `timeoutSeconds` | `10` | Max container/process lifetime. |
-| `memLimit` | `"256m"` | Container memory cap. |
-| `nanoCpus` | `1_000_000_000` | CPU quota (1e9 = 1 CPU). |
-| `networkDisabled` | `true` | No network for code runners. |
-| `ipcMode` | `"private"` | Never shares host/other-container IPC or shared memory. |
-| `capDrop` | `["ALL"]` | All Linux capabilities dropped. |
-| `securityOpt` | `["no-new-privileges"]` | Blocks setuid privilege escalation. |
-| `user` | `"1000:1000"` | Never runs as root; `null` keeps the image's user. |
-| `readonlyRootfs` | `false` | Opt-in read-only root FS (with a writable `/tmp` tmpfs). |
-| `workspaceMountPath` / `dockerWorkdir` | `"/workspace"` | Bind-mounted workspace; `readonlyWorkspace` opt-in. |
-
-These are *node/runner* options, not environment variables.
-
-### Runner subclasses
-
-Exported from `packages/code-runners/src/index.ts`:
-
-- **`PythonDockerRunner`** — wraps env vars as `key = repr(value)` lines, runs `python -c`.
-- **`JavaScriptDockerRunner`**, **`BashDockerRunner`**, **`RubyDockerRunner`** — per-language code runners.
-- **`LuaRunner` / `LuaSubprocessRunner`** — Lua execution.
-- **`CommandDockerRunner`** — shell-command execution.
-- **`ServerDockerRunner`** — starts a long-running server in a container,
-  publishes an ephemeral host port, and yields an `["endpoint", url]` message
-  once the port is TCP-reachable (networking enabled).
-- **`ServerSubprocessRunner`** — same endpoint pattern as a local subprocess;
-  can download and cache a remote binary on disk.
-
-The `code-nodes` (e.g. the Python/JavaScript code nodes in
-`packages/code-nodes/src/nodes/code.ts`) expose `image` and `execution_mode`
-(`"docker"` | `"subprocess"`) as node properties and construct the matching
-runner, then collect its streamed output.
 
 ## Cancellation and shutdown
 
 - **Workflow**: `WorkflowRunner.cancel()` aborts the run-level `AbortController`
   (observed by node code via `inputs.signal`) and closes every inbox so waiting
   actors unblock; the job finalizes as `cancelled`.
-- **Code runner**: `StreamRunnerBase.stop()` force-removes the container or
-  terminates the subprocess (SIGTERM → SIGKILL escalation).
+- **Code node**: the QuickJS guest is torn down with its host call; the run's
+  abort signal ends any in-flight bridge call.
 
 ## Related
 
 - [Architecture](architecture.md) — system components, message types, job lifecycle.
 - [Automatic Message Correlation](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) — lineage, scopes, and the scheduler design.
 - `packages/kernel/` — `runner.ts`, `actor.ts`, `inbox.ts`, `correlation-analysis.ts`.
-- `packages/code-runners/` — sandboxed code execution runners.
+- `packages/code-nodes/` — the sandboxed Code node.

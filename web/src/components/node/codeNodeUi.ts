@@ -17,27 +17,11 @@ export function isSnippetCodeNode(
 
 /**
  * Monaco language id for a code node's `code` property, derived from its
- * node_type. The universal Code node and ExecuteJavaScript run JS; the
- * remaining `nodetool.code.*` executors each map to their interpreter.
- * Falls back to plain text for unknown node types.
+ * node_type. The Code node runs JavaScript in a sandbox; any other node with an
+ * inline `code` property falls back to plain text.
  */
 export function getCodeNodeLanguage(nodeType: string): string {
-  switch (nodeType) {
-    case "nodetool.code.ExecutePython":
-      return "python";
-    case "nodetool.code.ExecuteJavaScript":
-    case CODE_NODE_TYPE:
-      return "javascript";
-    case "nodetool.code.ExecuteBash":
-      return "bash";
-    case "nodetool.code.ExecuteRuby":
-      return "ruby";
-    case "nodetool.code.ExecuteLua":
-    case "nodetool.code.EvaluateExpression":
-      return "lua";
-    default:
-      return "text";
-  }
+  return nodeType === CODE_NODE_TYPE ? "javascript" : "text";
 }
 
 /**
@@ -45,9 +29,7 @@ export function getCodeNodeLanguage(nodeType: string): string {
  * managed, shown in place of the generic "Add input" / "Add output" buttons.
  * The Code node infers its handles from the code itself — undeclared
  * identifiers become inputs and the keys of the returned object become
- * outputs — so the manual buttons would be misleading. The language executors
- * (Execute Python/JavaScript/Bash/Ruby/Lua) keep the buttons since their
- * inputs are declared explicitly, not inferred.
+ * outputs — so the manual buttons would be misleading.
  */
 export function getCodeNodeIOHint(): string {
   return "Reference an undefined variable to add an input. Return an object — its keys become outputs.";
@@ -55,20 +37,7 @@ export function getCodeNodeIOHint(): string {
 
 /** Human label for a Monaco language id, shown in the code body toolbar. */
 export function codeLanguageLabel(language: string): string {
-  switch (language) {
-    case "python":
-      return "Python";
-    case "javascript":
-      return "JavaScript";
-    case "bash":
-      return "Bash";
-    case "ruby":
-      return "Ruby";
-    case "lua":
-      return "Lua";
-    default:
-      return "Code";
-  }
+  return language === "javascript" ? "JavaScript" : "Code";
 }
 
 /**

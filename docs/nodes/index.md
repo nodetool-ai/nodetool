@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 747 NodeTool nodes across 95 namespaces.
+Complete reference documentation for all 729 NodeTool nodes across 95 namespaces.
 
 ## Namespaces
 
@@ -99,7 +99,7 @@ Complete reference documentation for all 747 NodeTool nodes across 95 namespaces
 - **[nodetool.audio](nodetool/audio/)** - 24 node(s)
 - **[nodetool.audio.realtime](nodetool/audio/realtime/)** - 6 node(s)
 - **[nodetool.audio.synth](nodetool/audio/synth/)** - 9 node(s)
-- **[nodetool.code](nodetool/code/)** - 19 node(s)
+- **[nodetool.code](nodetool/code/)** - 1 node(s)
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
 - **[nodetool.constant](nodetool/constant/)** - 30 node(s)
 - **[nodetool.control](nodetool/control/)** - 22 node(s)

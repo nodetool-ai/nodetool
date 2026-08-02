@@ -105,15 +105,9 @@ describe("isCloudNodeType", () => {
 describe("code is node-level trimmed; text is whole-listed minus file I/O", () => {
   it("keeps only the sandboxed Code node", () => {
     expect(isCloudNodeType("nodetool.code.Code")).toBe(true);
-    for (const nodeType of [
-      "nodetool.code.ExecutePython",
-      "nodetool.code.ExecuteBash",
-      "nodetool.code.ExecuteRuby",
-      "nodetool.code.RunPythonCommandDocker",
-      "nodetool.code.RunShellCommandDocker"
-    ]) {
-      expect(isCloudNodeType(nodeType)).toBe(false);
-    }
+    // The namespace is not whole-listed, so anything else added under
+    // nodetool.code stays out until it is allowlisted by name.
+    expect(isCloudNodeType("nodetool.code.Other")).toBe(false);
   });
 
   it("keeps the whole text toolkit including ASR and utilities", () => {

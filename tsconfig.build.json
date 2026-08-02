@@ -16,7 +16,6 @@
     { "path": "packages/runtime" },
     { "path": "packages/kernel" },
     { "path": "packages/models" },
-    { "path": "packages/code-runners" },
     { "path": "packages/node-sdk" },
     { "path": "packages/execution" },
     { "path": "reliability/harness" },

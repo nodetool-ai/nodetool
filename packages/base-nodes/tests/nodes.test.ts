@@ -50,7 +50,6 @@ import {
   RenameNode,
   FillNANode,
   FilterNoneNode,
-  RunShellCommandNode,
   WaitNode,
   CreateSilenceNode,
   ConcatAudioNode,
@@ -93,7 +92,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
     expect(registry.has("nodetool.data.Aggregate")).toBe(true);
-    expect(registry.has("nodetool.code.ExecuteCommand")).toBe(true);
+    expect(registry.has("nodetool.code.Code")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.triggers.Wait")).toBe(true);
     expect(registry.has("nodetool.triggers.ManualTrigger")).toBe(true);
@@ -102,11 +101,6 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.triggers.FileWatchTrigger")).toBe(true);
     expect(registry.has("nodetool.image.TextToImage")).toBe(true);
     expect(registry.has("nodetool.video.Resize")).toBe(true);
-    expect(registry.has("nodetool.code.RunPythonCommandDocker")).toBe(true);
-    expect(registry.has("nodetool.code.RunJavaScriptCommandDocker")).toBe(true);
-    expect(registry.has("nodetool.code.RunBashCommandDocker")).toBe(true);
-    expect(registry.has("nodetool.code.RunRubyCommandDocker")).toBe(true);
-    expect(registry.has("nodetool.code.RunShellCommandDocker")).toBe(true);
     expect(registry.has(SandboxShellNode.nodeType)).toBe(true);
     expect(registry.has(SandboxFileNode.nodeType)).toBe(true);
   });
@@ -390,14 +384,6 @@ describe("input/output/workspace nodes", () => {
     const _fn2 = new FilterNoneNode();
     _fn2.assign({ value: "ok" });
     await expect(_fn2.process()).resolves.toEqual({ output: "ok" });
-  });
-
-  it("RunShellCommandNode executes shell command", async () => {
-    const node = new RunShellCommandNode();
-    node.assign({ command: "echo ts-code-node" });
-    const result = await node.process();
-    expect(String(result.output)).toContain("ts-code-node");
-    expect(result.exit_code).toBe(0);
   });
 
   it("WaitNode returns wait metadata", async () => {

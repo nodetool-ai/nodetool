@@ -88,15 +88,8 @@ describe("codeNodeUi", () => {
   });
 
   describe("getCodeNodeLanguage", () => {
-    it("maps executor node types to Monaco languages", () => {
-      expect(getCodeNodeLanguage("nodetool.code.ExecutePython")).toBe("python");
-      expect(getCodeNodeLanguage("nodetool.code.ExecuteJavaScript")).toBe(
-        "javascript"
-      );
+    it("maps the Code node to JavaScript", () => {
       expect(getCodeNodeLanguage(CODE_NODE_TYPE)).toBe("javascript");
-      expect(getCodeNodeLanguage("nodetool.code.ExecuteBash")).toBe("bash");
-      expect(getCodeNodeLanguage("nodetool.code.ExecuteRuby")).toBe("ruby");
-      expect(getCodeNodeLanguage("nodetool.code.ExecuteLua")).toBe("lua");
     });
 
     it("falls back to text for unknown node types", () => {
@@ -106,7 +99,6 @@ describe("codeNodeUi", () => {
 
   describe("codeLanguageLabel", () => {
     it("returns a human label for known languages", () => {
-      expect(codeLanguageLabel("python")).toBe("Python");
       expect(codeLanguageLabel("javascript")).toBe("JavaScript");
       expect(codeLanguageLabel("text")).toBe("Code");
     });

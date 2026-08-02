@@ -78,24 +78,21 @@ npm run workflow -- ./examples/workflows/import_csv_aggregate_cli.json --input c
 
 # 15) wait_node_cli.json
 npm run workflow -- ./examples/workflows/wait_node_cli.json --input input='{"message":"hello"}' --input timeout_seconds=0.02
-
-# 16) run_shell_cli.json
-npm run workflow -- ./examples/workflows/run_shell_cli.json --input command='echo hello-from-workflow'
 ```
 
 ## Agent + OpenAI provider examples
 
 ```bash
-# 17) agent_openai_basic_cli.json
+# 16) agent_openai_basic_cli.json
 npm run workflow -- ./examples/workflows/agent_openai_basic_cli.json --input prompt='Write one sentence about workflow testing.'
 
-# 18) agent_openai_with_thread_cli.json
+# 17) agent_openai_with_thread_cli.json
 npm run workflow -- ./examples/workflows/agent_openai_with_thread_cli.json --input title='OpenAI Thread Demo' --input prompt='List two automation benefits.'
 
-# 19) agent_openai_with_history_cli.json
+# 18) agent_openai_with_history_cli.json
 npm run workflow -- ./examples/workflows/agent_openai_with_history_cli.json --input history='[{"role":"user","content":"I created provider abstractions."},{"role":"assistant","content":"Great, now add integration tests."}]' --input prompt='Suggest one next step.'
 
-# 20) agent_openai_with_messages_cli.json
+# 19) agent_openai_with_messages_cli.json
 npm run workflow -- ./examples/workflows/agent_openai_with_messages_cli.json --input message='{"id":"m1","thread_id":"t1","role":"user","provider":"openai","model":"gpt-4o","content":[{"type":"text","text":"Summarize this plan in one line."}]}'
 ```
 
