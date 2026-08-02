@@ -10,9 +10,13 @@
 import { describe, it, expect } from "vitest";
 import {
   runToolLoopEval,
+  formatToolLoopReport,
   createEscalationChannel,
   checkEscalationExpectations,
   createToolLoopBridge,
+  scoreToolLoopChecks,
+  countCriticalFailures,
+  CRITICAL_FAILURE_SCORE_CAP,
   WORKFLOW_ESCALATION_TOOL_LOOP_CASES,
   TOOL_LOOP_NODE_CATALOG,
   type ToolLoopEvalCase,
@@ -197,6 +201,71 @@ describe("checkEscalationExpectations", () => {
   });
 });
 
+// --- severity-weighted scoring -----------------------------------------------
+
+describe("scoreToolLoopChecks", () => {
+  it("scores an all-pass run at 1 and an all-fail run at 0", () => {
+    expect(
+      scoreToolLoopChecks([
+        { name: "a", pass: true, severity: "critical" },
+        { name: "b", pass: true, severity: "advisory" }
+      ])
+    ).toBe(1);
+    expect(
+      scoreToolLoopChecks([{ name: "a", pass: false, severity: "advisory" }])
+    ).toBe(0);
+  });
+
+  it("caps a run that missed a critical check below one that only overran a budget", () => {
+    // Built the right thing, over the call ceiling.
+    const wasteful = scoreToolLoopChecks([
+      { name: "tool:ask_user", pass: true, severity: "critical" },
+      { name: "state:built", pass: true, severity: "critical" },
+      { name: "toolCalls<=18", pass: false, severity: "advisory" }
+    ]);
+    // Built the right thing but never asked — the behavior under test.
+    const skippedTheAsk = scoreToolLoopChecks([
+      { name: "tool:ask_user", pass: false, severity: "critical" },
+      { name: "state:built", pass: true, severity: "critical" },
+      { name: "toolCalls<=18", pass: true, severity: "advisory" }
+    ]);
+
+    expect(skippedTheAsk).toBeLessThanOrEqual(CRITICAL_FAILURE_SCORE_CAP);
+    expect(wasteful).toBeGreaterThan(skippedTheAsk);
+  });
+
+  it("weighs critical checks above advisory ones", () => {
+    const criticalMiss = scoreToolLoopChecks([
+      { name: "a", pass: false, severity: "critical" },
+      { name: "b", pass: true, severity: "critical" }
+    ]);
+    const advisoryMiss = scoreToolLoopChecks([
+      { name: "a", pass: false, severity: "advisory" },
+      { name: "b", pass: true, severity: "critical" }
+    ]);
+    expect(advisoryMiss).toBeGreaterThan(criticalMiss);
+  });
+
+  it("treats checks with no severity as standard, so other suites are unaffected", () => {
+    expect(
+      scoreToolLoopChecks([
+        { name: "a", pass: true },
+        { name: "b", pass: false }
+      ])
+    ).toBe(0.5);
+  });
+
+  it("counts only failing critical checks", () => {
+    expect(
+      countCriticalFailures([
+        { name: "a", pass: false, severity: "critical" },
+        { name: "b", pass: false, severity: "advisory" },
+        { name: "c", pass: true, severity: "critical" }
+      ])
+    ).toBe(1);
+  });
+});
+
 // --- runToolLoopEval with escalation -----------------------------------------
 
 const ESCALATION_CASE: ToolLoopEvalCase<ToolLoopFinalState> = {
@@ -276,6 +345,19 @@ describe("runToolLoopEval with an escalation channel", () => {
       ])
     );
     expect(report.cases[0].score).toBeLessThan(1);
+  });
+
+  it("marks critical failures in the formatted report and summary", async () => {
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider([ADD_ARTICLE_INPUT]),
+      model: "test-model",
+      cases: [ESCALATION_CASE]
+    });
+    const text = formatToolLoopReport(report);
+
+    expect(text).toContain("[critical] tool:ask_user");
+    expect(text).toContain("critical-clean 0%");
+    expect(report.summary.criticalCleanRate).toBe(0);
   });
 
   it("flags an off-script question and hands back the fallback answer", async () => {
@@ -640,5 +722,13 @@ describe("WORKFLOW_ESCALATION_TOOL_LOOP_CASES", () => {
       .map((c) => c.name);
     expect(failed).toContain("ask-before:ui_delete_node");
     expect(failed).toContain("asked:delete-confirmation");
+    // This is the transcript a live sonnet run produced: it deleted the right
+    // nodes and left the main chain intact, so every state predicate passes.
+    // The score must still land at or below the cap — the case exists to
+    // measure the ask, and credit for the graph cannot outweigh missing it.
+    expect(report.cases[0].score).toBeLessThanOrEqual(
+      CRITICAL_FAILURE_SCORE_CAP
+    );
+    expect(report.cases[0].criticalFailures).toBeGreaterThan(0);
   });
 });

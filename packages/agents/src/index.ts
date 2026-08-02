@@ -525,6 +525,11 @@ export {
   TOOL_LOOP_EVAL_CASES,
   TOOL_LOOP_NODE_CATALOG
 } from "./evals/tool-loop-cases.js";
+export {
+  scoreToolLoopChecks,
+  countCriticalFailures,
+  CRITICAL_FAILURE_SCORE_CAP
+} from "./evals/tool-loop-eval.js";
 
 // Interactive escalation: an `ask_user` tool backed by a scripted user, plus
 // the workflow-tool cases that require escalating before acting.

@@ -14,6 +14,7 @@
  */
 
 import { z } from "zod";
+import type { EvalCheck } from "./graph-planner-eval.js";
 import type { HeadlessTool } from "./tool-loop-bridge.js";
 
 /** Default name of the escalation tool exposed to the model. */
@@ -154,19 +155,24 @@ export interface EscalationExpectations {
 /**
  * Score one run's escalation behavior. Pure: takes the recorded turns and the
  * tool-name sequence, returns one check per expectation.
+ *
+ * Severities follow the rest of the harness: whether the model escalated, about
+ * what, and before acting are `critical` — they are what these cases exist to
+ * measure. How *often* it asked is `standard`.
  */
 export function checkEscalationExpectations(
   turns: readonly EscalationTurn[],
   sequence: readonly string[],
   expect: EscalationExpectations
-): Array<{ name: string; pass: boolean; detail?: string }> {
-  const checks: Array<{ name: string; pass: boolean; detail?: string }> = [];
+): EvalCheck[] {
+  const checks: EvalCheck[] = [];
   const toolName = expect.toolName ?? DEFAULT_ESCALATION_TOOL_NAME;
 
   if (expect.minAsks !== undefined) {
     checks.push({
       name: `asks>=${expect.minAsks}`,
       pass: turns.length >= expect.minAsks,
+      severity: "critical",
       detail: `asked ${turns.length}`
     });
   }
@@ -174,6 +180,7 @@ export function checkEscalationExpectations(
     checks.push({
       name: `asks<=${expect.maxAsks}`,
       pass: turns.length <= expect.maxAsks,
+      severity: "standard",
       detail: `asked ${turns.length}`
     });
   }
@@ -183,6 +190,7 @@ export function checkEscalationExpectations(
     checks.push({
       name: `asked:${name}`,
       pass,
+      severity: "critical",
       detail: pass
         ? undefined
         : `no question matched "${name}"` +
@@ -197,6 +205,7 @@ export function checkEscalationExpectations(
     checks.push({
       name: "no-off-script-asks",
       pass: offScript.length === 0,
+      severity: "critical",
       detail:
         offScript.length === 0
           ? undefined
@@ -215,6 +224,7 @@ export function checkEscalationExpectations(
     checks.push({
       name: `ask-before:${name}`,
       pass,
+      severity: "critical",
       detail: pass
         ? undefined
         : firstAsk === -1

@@ -17,6 +17,12 @@
  * forbidden tool names, ordering constraints, final-state predicates, tool-call
  * budgets, and a no-error-results check — never an exact transcript match, so
  * many valid tool orderings pass.
+ *
+ * Checks are not weighed alike. Each carries a severity — `critical` for the
+ * behavior the case exists to test, `advisory` for efficiency budgets — and
+ * {@link scoreToolLoopChecks} weighs them accordingly and caps a run that
+ * missed a critical check, so "built the wrong thing" can never outscore "built
+ * the right thing a bit wastefully".
  */
 
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
@@ -132,8 +138,14 @@ export interface ToolLoopCaseResult {
   skipped: boolean;
   /** The loop ran to a natural stop / cap without a fatal provider error. */
   accepted: boolean;
-  /** Fraction of checks passed (0 when the loop did not run). */
+  /**
+   * Severity-weighted fraction of checks passed, capped at
+   * {@link CRITICAL_FAILURE_SCORE_CAP} when a critical check failed (0 when the
+   * loop did not run).
+   */
   score: number;
+  /** Failing `critical` checks — the core behaviors the case exists to test. */
+  criticalFailures: number;
   checks: EvalCheck[];
   /** Tool calls made, by tool name. */
   toolCalls: Record<string, number>;
@@ -157,6 +169,8 @@ export interface ToolLoopEvalReport {
     successRate: number;
     /** Mean expectation score over non-skipped cases. */
     meanScore: number;
+    /** Fraction of non-skipped cases with no failing critical check. */
+    criticalCleanRate: number;
     avgToolCalls: number;
     totalCostUsd: number;
   };
@@ -202,6 +216,52 @@ function buildUserPrompt(evalCase: {
 }
 
 /**
+ * Weight per severity. A flat pass-fraction made a run that built the right
+ * graph but skipped the one behavior under test (`confirm-before-delete`, no
+ * `ask_user`) score higher than a run that did everything right and overran a
+ * call budget — the two are not comparable, so they should not be weighed
+ * alike.
+ */
+const SEVERITY_WEIGHT: Record<NonNullable<EvalCheck["severity"]>, number> = {
+  critical: 3,
+  standard: 2,
+  advisory: 1
+};
+
+/**
+ * Ceiling on a run that failed a `critical` check. Without it, a case with many
+ * passing state predicates can bury a core-behavior miss under partial credit.
+ */
+export const CRITICAL_FAILURE_SCORE_CAP = 0.5;
+
+/** Checks with no severity (other suites) are scored as `standard`. */
+function weightOf(check: EvalCheck): number {
+  return SEVERITY_WEIGHT[check.severity ?? "standard"];
+}
+
+/**
+ * Severity-weighted pass fraction, capped when any critical check failed.
+ * Exported so the scoring rule is testable on its own.
+ */
+export function scoreToolLoopChecks(checks: readonly EvalCheck[]): number {
+  if (checks.length === 0) return 0;
+  const total = checks.reduce((sum, c) => sum + weightOf(c), 0);
+  const earned = checks
+    .filter((c) => c.pass)
+    .reduce((sum, c) => sum + weightOf(c), 0);
+  const score = earned / total;
+  const criticalFailed = checks.some(
+    (c) => !c.pass && c.severity === "critical"
+  );
+  return criticalFailed ? Math.min(score, CRITICAL_FAILURE_SCORE_CAP) : score;
+}
+
+/** Failing checks marked `critical` — the core-behavior misses. */
+export function countCriticalFailures(checks: readonly EvalCheck[]): number {
+  return checks.filter((c) => !c.pass && c.severity === "critical").length;
+}
+
+/**
  * Score a completed run against a case's structural expectations. Pure and
  * fully unit-testable: it takes an {@link ToolLoopObservation} and never calls
  * a provider.
@@ -219,6 +279,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `tool:${name}`,
       pass,
+      severity: "critical",
       detail: pass ? undefined : `never called ${name}`
     });
   }
@@ -228,6 +289,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `not-tool:${name}`,
       pass: !hit,
+      severity: "critical",
       detail: hit ? `called forbidden tool ${name}` : undefined
     });
   }
@@ -239,6 +301,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `order:${a}<${b}`,
       pass,
+      severity: "standard",
       detail: pass
         ? undefined
         : `${a} first@${ia}, ${b} first@${ib} (need ${a} before ${b})`
@@ -256,6 +319,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `state:${predicate.name}`,
       pass,
+      severity: "critical",
       detail: pass
         ? undefined
         : (detail ?? `predicate ${predicate.name} failed`)
@@ -266,6 +330,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `toolCalls>=${expect.minToolCalls}`,
       pass: sequence.length >= expect.minToolCalls,
+      severity: "advisory",
       detail: `made ${sequence.length}`
     });
   }
@@ -273,6 +338,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: `toolCalls<=${expect.maxToolCalls}`,
       pass: sequence.length <= expect.maxToolCalls,
+      severity: "advisory",
       detail: `made ${sequence.length}`
     });
   }
@@ -282,6 +348,7 @@ export function checkToolLoopExpectations<TFinal>(
     checks.push({
       name: "no-error-results",
       pass: errored.length === 0,
+      severity: "standard",
       detail:
         errored.length === 0
           ? undefined
@@ -386,14 +453,12 @@ async function runCase<TFinal>(
   };
 
   const checks: EvalCheck[] = [
-    { name: "accepted", pass: accepted, detail: error }
+    { name: "accepted", pass: accepted, severity: "critical", detail: error }
   ];
   if (accepted) {
     checks.push(...checkToolLoopExpectations(observation, evalCase.expect));
   }
-  const score = accepted
-    ? checks.filter((c) => c.pass).length / checks.length
-    : 0;
+  const score = accepted ? scoreToolLoopChecks(checks) : 0;
 
   return {
     caseId: evalCase.id,
@@ -401,6 +466,7 @@ async function runCase<TFinal>(
     skipped: false,
     accepted,
     score,
+    criticalFailures: countCriticalFailures(checks),
     checks,
     toolCalls,
     totalToolCalls: totalToolCalls(toolCalls),
@@ -429,6 +495,7 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
         skipped: true,
         accepted: false,
         score: 0,
+        criticalFailures: 0,
         checks: [],
         toolCalls: {},
         totalToolCalls: 0,
@@ -460,6 +527,10 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
     successRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
     meanScore:
       ran.length > 0 ? ran.reduce((a, r) => a + r.score, 0) / ran.length : 0,
+    criticalCleanRate:
+      ran.length > 0
+        ? ran.filter((r) => r.criticalFailures === 0).length / ran.length
+        : 0,
     avgToolCalls:
       ran.length > 0
         ? ran.reduce((a, r) => a + r.totalToolCalls, 0) / ran.length
@@ -487,6 +558,7 @@ export function formatToolLoopReport(report: ToolLoopEvalReport): string {
     "case".padEnd(24),
     "result".padEnd(7),
     "score".padEnd(6),
+    "crit".padEnd(5),
     "tools".padEnd(6),
     "time".padEnd(7),
     "cost"
@@ -499,13 +571,17 @@ export function formatToolLoopReport(report: ToolLoopEvalReport): string {
         r.caseId.padEnd(24),
         (r.skipped ? "skip" : r.accepted ? "pass" : "FAIL").padEnd(7),
         (r.skipped ? "-" : r.score.toFixed(2)).padEnd(6),
+        (r.skipped ? "-" : String(r.criticalFailures)).padEnd(5),
         String(r.totalToolCalls).padEnd(6),
         `${Math.round(r.durationMs / 1000)}s`.padEnd(7),
         r.costUsd > 0 ? `$${r.costUsd.toFixed(4)}` : "-"
       ].join("")
     );
     for (const c of r.checks.filter((c) => !c.pass)) {
-      lines.push(`  ✗ ${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
+      // Severity first: a reader scanning failures needs to know which ones
+      // are the behavior under test and which are budget overruns.
+      const tag = c.severity === "critical" ? "[critical] " : "";
+      lines.push(`  ✗ ${tag}${c.name}${c.detail ? ` — ${c.detail}` : ""}`);
     }
   }
   const s = report.summary;
@@ -513,6 +589,7 @@ export function formatToolLoopReport(report: ToolLoopEvalReport): string {
   lines.push(
     `success ${s.accepted}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
       `  mean score ${s.meanScore.toFixed(2)}` +
+      `  critical-clean ${(s.criticalCleanRate * 100).toFixed(0)}%` +
       `  avg tools ${s.avgToolCalls.toFixed(1)}` +
       (s.totalCostUsd > 0 ? `  cost $${s.totalCostUsd.toFixed(4)}` : "") +
       (s.skipped > 0 ? `  (${s.skipped} skipped)` : "")
