@@ -105,6 +105,7 @@ exclude:
   - WRITING_STYLE.md
   - THEME.md
   - CLOUD_NODE_CURATION.md
+  - CODE_NODE_COVERAGE.md
   - COMPONENT_STREAMLINE_PLAN.md
   - AGENT_CLI_QUICKREF.md
   - runtime-package-interface.md
