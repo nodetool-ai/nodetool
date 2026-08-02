@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 729 NodeTool nodes across 95 namespaces.
+Complete reference documentation for all 684 NodeTool nodes across 92 namespaces.
 
 ## Namespaces
 
@@ -47,10 +47,8 @@ Complete reference documentation for all 729 NodeTool nodes across 95 namespaces
 - **[lib.docx](lib/docx/)** - 9 node(s)
 - **[lib.epub](lib/epub/)** - 4 node(s)
 - **[lib.excel](lib/excel/)** - 6 node(s)
-- **[lib.graphql](lib/graphql/)** - 4 node(s)
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.html](lib/html/)** - 8 node(s)
-- **[lib.http](lib/http/)** - 7 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)
 - **[lib.image.draw](lib/image/draw/)** - 5 node(s)
@@ -64,7 +62,6 @@ Complete reference documentation for all 729 NodeTool nodes across 95 namespaces
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
 - **[lib.notion](lib/notion/)** - 6 node(s)
 - **[lib.ocr](lib/ocr/)** - 2 node(s)
-- **[lib.os](lib/os/)** - 33 node(s)
 - **[lib.pdf](lib/pdf/)** - 11 node(s)
 - **[lib.pptx](lib/pptx/)** - 2 node(s)
 - **[lib.rss](lib/rss/)** - 2 node(s)
@@ -95,7 +92,7 @@ Complete reference documentation for all 729 NodeTool nodes across 95 namespaces
 
 ### nodetool
 
-- **[nodetool.agents](nodetool/agents/)** - 28 node(s)
+- **[nodetool.agents](nodetool/agents/)** - 27 node(s)
 - **[nodetool.audio](nodetool/audio/)** - 24 node(s)
 - **[nodetool.audio.realtime](nodetool/audio/realtime/)** - 6 node(s)
 - **[nodetool.audio.synth](nodetool/audio/synth/)** - 9 node(s)

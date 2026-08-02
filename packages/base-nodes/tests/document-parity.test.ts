@@ -3,11 +3,6 @@ import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
 import {
-  ensureWorkspacePath,
-  ReadTextFileNode,
-  WriteTextFileNode
-} from "@nodetool-ai/automation-nodes";
-import {
   ListDocumentsNode,
   LoadDocumentFileNode,
   SaveDocumentFileNode,
@@ -23,63 +18,7 @@ async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
   return items;
 }
 
-/** Patch a node so that workspace_dir appears in serialize() output */
-function withWorkspace<T extends { serialize: () => Record<string, unknown> }>(
-  node: T,
-  workspace: string
-): T {
-  const origSerialize = node.serialize.bind(node);
-  node.serialize = () => ({ ...origSerialize(), workspace_dir: workspace });
-  return node;
-}
-
-describe("workspace/document parity", () => {
-  it("matches workspace path validation rules from the Python tests", async () => {
-    const workspace = await mkdtemp(path.join(tmpdir(), "nodetool-ws-parity-"));
-
-    expect(ensureWorkspacePath(workspace, "subdir/file.txt")).toBe(
-      path.resolve(workspace, "subdir/file.txt")
-    );
-    expect(ensureWorkspacePath(workspace, ".")).toBe(path.resolve(workspace));
-    expect(() => ensureWorkspacePath(workspace, "")).toThrow(
-      "Path cannot be empty"
-    );
-    expect(() => ensureWorkspacePath(workspace, "/etc/passwd")).toThrow(
-      "Absolute paths are not allowed"
-    );
-    expect(() => ensureWorkspacePath(workspace, "../outside")).toThrow(
-      "Parent directory traversal"
-    );
-  });
-
-  it("matches workspace write semantics", async () => {
-    const workspace = await mkdtemp(path.join(tmpdir(), "nodetool-ws-parity-"));
-
-    const writeNode = withWorkspace(new WriteTextFileNode(), workspace);
-    const readNode = withWorkspace(new ReadTextFileNode(), workspace);
-    Object.assign(writeNode, {
-      path: "sub/deep/file.txt",
-      content: "nested content"
-    });
-    await writeNode.process();
-    Object.assign(readNode, { path: "sub/deep/file.txt" });
-    expect(await readNode.process()).toEqual({
-      output: "nested content"
-    });
-
-    await writeFile(path.join(workspace, "append.txt"), "First line\n");
-    Object.assign(writeNode, {
-      workspace_dir: workspace,
-      path: "append.txt",
-      content: "Second line",
-      append: true
-    });
-    await writeNode.process();
-    expect(await readFile(path.join(workspace, "append.txt"), "utf8")).toBe(
-      "First line\nSecond line"
-    );
-  });
-
+describe("document node parity", () => {
   it("matches document load/save and document listing behavior", async () => {
     const root = await mkdtemp(path.join(tmpdir(), "nodetool-doc-parity-"));
     const docPath = path.join(root, "notes.txt");

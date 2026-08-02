@@ -36,4 +36,5 @@ After adding a workspace, NodeTool can browse files, list folders, and read/writ
 
 - [Workflow Editor](workflow-editor.md)
 - [Storage Guide](storage.md)
-- [Node Reference: `lib.os`](nodes/lib/os/)
+- [Node Reference: `nodetool.code`](nodes/nodetool/code/) — workspace file
+  access now goes through the Code node's `workspace.*` API

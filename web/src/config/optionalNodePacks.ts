@@ -73,11 +73,9 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
     id: "web",
     label: "Web & Scraping",
     description:
-      "HTTP requests, headless browser, GraphQL, RSS, media download, and Apify scraping.",
+      "Headless browser, RSS, media download, and Apify scraping.",
     namespaces: [
-      "lib.http",
       "lib.browser",
-      "lib.graphql",
       "lib.rss",
       "lib.video.download",
       "apify"

@@ -1,7 +1,8 @@
 import type { Node } from "@xyflow/react";
 import type { XYPosition } from "@xyflow/react";
-import type { NodeMetadata } from "../stores/ApiTypes";
-import type { NodeData } from "../stores/NodeData";
+import type { NodeMetadata, TypeMetadata } from "../stores/ApiTypes";
+import type { DynamicSlotDeclaration, NodeData } from "../stores/NodeData";
+import { defaultValueForType } from "./dynamicSlots";
 import { findSnippetByNodeType } from "../config/snippetMetadata";
 import { CODE_GEN_PALETTE_NODE_TYPE } from "../config/codeGenPaletteMetadata";
 import useMetadataStore from "../stores/MetadataStore";
@@ -11,6 +12,17 @@ import {
   inferInputKeysFromCode
 } from "./codeOutputInference";
 import { CODE_NODE_TYPE } from "../components/node/codeNodeUi";
+
+/**
+ * The JSON form the graph converters round-trip: `{type, type_args, optional}`.
+ * Kept minimal on purpose — `values` / `type_name` stay absent, matching what
+ * `deriveCodeIOUpdates` writes for an untyped Code node.
+ */
+const typeMetadata = (type: string): TypeMetadata => ({
+  type,
+  type_args: [],
+  optional: false
+});
 
 type PaletteCreateNodeFn = (
   metadata: NodeMetadata,
@@ -68,21 +80,38 @@ export function instantiatePaletteNode(
       const inputKeys = inferInputKeysFromCode(snippet.code);
       const afterAdd: Partial<NodeData> = {};
       if (outputKeys) {
-        const dynOutputs: Record<
-          string,
-          { type: string; type_args: never[]; optional: boolean }
-        > = {};
+        const dynOutputs: Record<string, TypeMetadata> = {};
         for (const key of outputKeys) {
-          dynOutputs[key] = { type: "any", type_args: [], optional: false };
+          dynOutputs[key] = typeMetadata(snippet.outputs?.[key] ?? "any");
         }
         afterAdd.dynamic_outputs = dynOutputs;
       }
       if (inputKeys) {
         const dynProps: Record<string, unknown> = {};
+        const dynInputs: Record<string, DynamicSlotDeclaration> = {};
         for (const key of inputKeys) {
-          dynProps[key] = "";
+          const declared = snippet.inputs?.[key];
+          dynProps[key] = declared
+            ? declared.default ?? defaultValueForType(typeMetadata(declared.type))
+            : "";
+          if (declared) {
+            dynInputs[key] = {
+              type: typeMetadata(declared.type),
+              ...(declared.description !== undefined
+                ? { description: declared.description }
+                : {}),
+              ...(declared.default !== undefined
+                ? { default: declared.default }
+                : {}),
+              ...(declared.min !== undefined ? { min: declared.min } : {}),
+              ...(declared.max !== undefined ? { max: declared.max } : {})
+            };
+          }
         }
         afterAdd.dynamic_properties = dynProps;
+        if (Object.keys(dynInputs).length > 0) {
+          afterAdd.dynamic_inputs = dynInputs;
+        }
       }
       const hasFollowUp =
         (afterAdd.dynamic_outputs && Object.keys(afterAdd.dynamic_outputs).length > 0) ||

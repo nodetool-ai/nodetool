@@ -445,7 +445,8 @@ ${tools}
 - For images/audio/video, the generic AI nodes auto-save outputs as assets;
   no separate save node needed.
 - For text artifacts an Agent step produces (reports, summaries, JSON),
-  either use the \`lib.os.WriteTextFile\` deterministic node OR
+  either use a \`nodetool.code.Code\` node whose body calls
+  \`await workspace.write(path, text)\` OR
   have the Agent call \`save_asset\` from its tool list so the artifact
   shows up in the chat asset browser.`;
 }

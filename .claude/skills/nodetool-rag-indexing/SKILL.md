@@ -51,11 +51,11 @@ or `vector.faiss.*`).
 Query nodes (`QueryText`, `QueryImage`, `HybridSearch`) output `ids`,
 `documents`, `metadatas`, and `distances` (HybridSearch also returns `scores`).
 
-# Document Loading & Splitting (`nodetool.document.*`, `lib.os.*`)
+# Document Loading & Splitting (`nodetool.document.*`)
 
 | Node | Namespace | Purpose |
 |------|-----------|---------|
-| `ListFiles` | `lib.os` | Enumerate files in a directory |
+| `Code` | `nodetool.code` | Enumerate files with `await workspace.list(dir)` |
 | `LoadDocumentFile` | `nodetool.document` | Load a PDF/DOCX/TXT/MD into a document |
 | `SplitRecursively` | `nodetool.document` | Recursive character/token splitting (general purpose) |
 | `SplitMarkdown` | `nodetool.document` | Split Markdown by structure |

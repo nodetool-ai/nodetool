@@ -19,7 +19,7 @@ import {
 } from "../cookbook/builders";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 
-const GET_TEXT = "lib.http.GetText";
+const GET_TEXT = "nodetool.code.Code";
 const EXTRACT_LINKS = "lib.markdown.ExtractLinks";
 const FILTER = "nodetool.data.Filter";
 const FOR_EACH = "nodetool.control.ForEach";

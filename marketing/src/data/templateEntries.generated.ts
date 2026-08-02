@@ -601,6 +601,199 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/a-run-button-for-any-job",
+    "title": "A Run Button for Any Job — NodeTool AI Workflow Template",
+    "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "a-run-button-for-any-job",
+    "name": "A Run Button for Any Job",
+    "summary": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+    "tags": [
+      "example",
+      "trigger",
+      "manual",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.triggers.ManualTrigger",
+        "label": "Manual Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "start",
+          "type": "nodetool.triggers.ManualTrigger",
+          "title": "Manual Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "payload",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "source",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 220,
+          "width": 240
+        },
+        {
+          "id": "at",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 400,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "start",
+          "sourceHandle": "data",
+          "target": "payload",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "start",
+          "sourceHandle": "source",
+          "target": "source",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "start",
+          "sourceHandle": "timestamp",
+          "target": "at",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-webhook-that-answers",
+    "title": "A Webhook That Answers — NodeTool AI Workflow Template",
+    "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "a-webhook-that-answers",
+    "name": "A Webhook That Answers",
+    "summary": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+    "tags": [
+      "example",
+      "trigger",
+      "webhook",
+      "llm"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToString",
+        "label": "To String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.triggers.WebhookTrigger",
+        "label": "Webhook Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "hook",
+          "type": "nodetool.triggers.WebhookTrigger",
+          "title": "Webhook Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "str",
+          "type": "nodetool.text.ToString",
+          "title": "To String",
+          "x": 330,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 620,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 970,
+          "y": 120,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "hook",
+          "sourceHandle": "body",
+          "target": "str",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "str",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/ai-spokesperson",
     "title": "AI Spokesperson — NodeTool AI Workflow Template",
     "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
@@ -7482,6 +7675,102 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "x",
           "targetHandle": "right",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/every-hour-on-the-hour",
+    "title": "Every Hour, On the Hour — NodeTool AI Workflow Template",
+    "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "every-hour-on-the-hour",
+    "name": "Every Hour, On the Hour",
+    "summary": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+    "tags": [
+      "example",
+      "trigger",
+      "interval",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.triggers.IntervalTrigger",
+        "label": "Interval Trigger",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToString",
+        "label": "To String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "every",
+          "type": "nodetool.triggers.IntervalTrigger",
+          "title": "Interval Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "label",
+          "type": "nodetool.text.ToString",
+          "title": "To String",
+          "x": 330,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "tick",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 620,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "at",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 620,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "every",
+          "sourceHandle": "tick",
+          "target": "label",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "label",
+          "sourceHandle": "output",
+          "target": "tick",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "every",
+          "sourceHandle": "timestamp",
+          "target": "at",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -16992,6 +17281,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
         "type": "nodetool.control.Collect",
         "label": "Collect",
         "count": 2
@@ -16999,11 +17293,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.control.ForEach",
         "label": "For Each",
-        "count": 2
-      },
-      {
-        "type": "lib.http.GetText",
-        "label": "Get Text",
         "count": 2
       },
       {
@@ -17076,8 +17365,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "idx",
-          "type": "lib.http.GetText",
-          "title": "Get Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 280,
           "y": 80,
           "width": 280
@@ -17164,8 +17453,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "fetch-text",
-          "type": "lib.http.GetText",
-          "title": "Get Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 3420,
           "y": 80,
           "width": 260
@@ -24536,6 +24825,103 @@ export const templateEntries: TemplateEntry[] = [
           "source": "cb",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/watch-a-folder-act-on-what-lands",
+    "title": "Watch a Folder, Act on What Lands — NodeTool AI Workflow Template",
+    "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "watch-a-folder-act-on-what-lands",
+    "name": "Watch a Folder, Act on What Lands",
+    "summary": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+    "tags": [
+      "example",
+      "trigger",
+      "file-watch",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.triggers.FileWatchTrigger",
+        "label": "File Watch Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "watch",
+          "type": "nodetool.triggers.FileWatchTrigger",
+          "title": "File Watch Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 350,
+          "y": 220,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "event",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 350,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "note",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 700,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "watch",
+          "sourceHandle": "event",
+          "target": "event",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "watch",
+          "sourceHandle": "path",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "note",
           "targetHandle": "value",
           "color": "any"
         }

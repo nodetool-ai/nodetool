@@ -100,8 +100,12 @@ Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
 `crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
 and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
 returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
-stat,mkdir,remove}` (requires a `ProcessingContext`; `remove` deletes one file
-or one empty directory, never a tree), the pure guest-side helpers
+stat,root,copy,move,mkdir,remove}` (requires a `ProcessingContext`; `remove`
+deletes one file or one empty directory, never a tree; `copy`/`move` check the
+source for read containment and the destination for write containment;
+`stat` returns `{exists, size, isDirectory, isFile, isSymlink, modifiedMs,
+createdMs, accessedMs}` and reports a missing path as `exists: false` rather
+than throwing), the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
 `data.{parseCsv,selectHtml}`, and any caller-supplied `globals`. `fetch` sends a
@@ -154,6 +158,13 @@ Primitive globals pass by value (no sync).
   in the guest as a numeric-keyed plain object. Bridges that produce bytes
   therefore return a base64 marker object and the guest prelude rebuilds a real
   `Uint8Array` — the pattern to follow for any new binary bridge.
+- `serializeResult` scans for typed arrays at **any** depth. It used to look
+  only one level in, so binary nested deeper fell onto the `JSON.stringify`
+  path, where a `Uint8Array` becomes `{"0":137,"1":80}` — lossy, and
+  indistinguishable from a user's own integer-keyed map. The streaming path hit
+  this every time, since `genProcess` returns an array of yielded objects and
+  the bytes are always at depth 2. The walk is cycle-safe and depth-capped
+  (`SERIALIZE_MAX_DEPTH`); a cyclic value still falls through to `String`.
 
 ## Running Agents from CLI
 

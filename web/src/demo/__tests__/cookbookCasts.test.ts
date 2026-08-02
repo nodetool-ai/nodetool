@@ -44,7 +44,7 @@ const ALLOWED_NODE_TYPES = new Set([
   "lib.sqlite.Insert",
   "lib.sqlite.Query",
   "lib.mail.GmailSearch",
-  "lib.http.GetText",
+  "nodetool.code.Code",
   "vector.HybridSearch",
   "openai.agents.RealtimeAgent",
   "openai.audio.Transcribe",

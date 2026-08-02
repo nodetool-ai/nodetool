@@ -38,8 +38,6 @@ import {
   MessageDeconstructorNode,
   OutputNode,
   PreviewNode,
-  WriteTextFileNode,
-  ReadTextFileNode,
   CompareImagesNode,
   SplitJSONNode,
   SaveDocumentFileNode,
@@ -88,7 +86,6 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
     expect(registry.has("nodetool.constant.Sketch")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
-    expect(registry.has("lib.os.ReadTextFile")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
     expect(registry.has("nodetool.data.Aggregate")).toBe(true);
@@ -106,7 +103,7 @@ describe("base node registration", () => {
   });
 });
 
-describe("input/output/workspace nodes", () => {
+describe("input/output nodes", () => {
   it("StringInputNode enforces max length", async () => {
     const node = new StringInputNode();
     node.assign({ value: "abcdef", max_length: 3 });
@@ -176,23 +173,6 @@ describe("input/output/workspace nodes", () => {
     // PreviewNode now relies on the runner's output_update for its display
     // value — no redundant preview_update emission.
     expect(emitted).toHaveLength(0);
-  });
-
-  it("workspace text file nodes read and write", async () => {
-    const dir = `/tmp/nodetool-ws-${Date.now()}`;
-    const write = new WriteTextFileNode();
-    write.assign({
-      workspace_dir: dir,
-      path: "notes/a.txt",
-      content: "hello"
-    });
-    await expect(write.process()).resolves.toEqual({ output: "notes/a.txt" });
-    const read = new ReadTextFileNode();
-    read.assign({
-      workspace_dir: dir,
-      path: "notes/a.txt"
-    });
-    await expect(read.process()).resolves.toEqual({ output: "hello" });
   });
 
   it("CompareImagesNode returns perfect score for equal bytes", async () => {

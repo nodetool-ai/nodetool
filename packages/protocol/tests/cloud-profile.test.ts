@@ -63,10 +63,8 @@ describe("isCloudNodeType", () => {
 
   it("rejects the nerdy / out-of-scope namespaces", () => {
     for (const nodeType of [
-      "lib.os.ListFiles",
       "lib.sqlite.Query",
       "lib.supabase.Select",
-      "lib.http.GetJSON",
       "lib.pdf.ExtractText",
       "lib.docx.CreateDocument",
       "lib.nlp.Tokenize",

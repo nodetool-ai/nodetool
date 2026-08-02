@@ -18,12 +18,6 @@ npm install @nodetool-ai/automation-nodes
 **Browser** (`lib.browser.*`) — `WebFetch`, `DownloadFile`, `Browser`,
 `Screenshot`, `SpiderCrawl`.
 
-**OS / filesystem** (`lib.os.*`) — file operations (`ListFiles`, `CopyFile`,
-`MoveFile`, `CreateDirectory`, `FileExists`, `GetFileSize`), read/write
-(`ReadTextFile`, `WriteTextFile`, `ReadBinaryFile`, `WriteBinaryFile`), path
-helpers (`JoinPaths`, `Basename`, `Dirname`, `SplitPath`, `NormalizePath`,
-`RelativePath`), timestamps, and `ShowNotification`.
-
 **SQLite** (`lib.sqlite.*`) — `CreateTable`, `Insert`, `Query`, `Update`,
 `Delete`, `ExecuteSQL`, `GetDatabasePath`.
 

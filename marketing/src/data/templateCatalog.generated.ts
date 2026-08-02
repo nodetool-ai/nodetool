@@ -1261,6 +1261,16 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": []
       },
       {
+        "slug": "a-webhook-that-answers",
+        "name": "A Webhook That Answers",
+        "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+        "tags": [
+          "trigger",
+          "webhook",
+          "llm"
+        ]
+      },
+      {
         "slug": "ad-copy-in-three-registers",
         "name": "Ad Copy in Three Registers",
         "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
@@ -1628,6 +1638,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "a-run-button-for-any-job",
+        "name": "A Run Button for Any Job",
+        "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+        "tags": [
+          "trigger",
+          "manual",
+          "automation"
+        ]
+      },
+      {
         "slug": "add-a-computed-column",
         "name": "Add a Computed Column",
         "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
@@ -1705,6 +1725,16 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
         "tags": [
           "data"
+        ]
+      },
+      {
+        "slug": "every-hour-on-the-hour",
+        "name": "Every Hour, On the Hour",
+        "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+        "tags": [
+          "trigger",
+          "interval",
+          "automation"
         ]
       },
       {
@@ -1901,6 +1931,16 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "text",
           "data"
+        ]
+      },
+      {
+        "slug": "watch-a-folder-act-on-what-lands",
+        "name": "Watch a Folder, Act on What Lands",
+        "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+        "tags": [
+          "trigger",
+          "file-watch",
+          "automation"
         ]
       }
     ]
