@@ -747,3 +747,35 @@ export {
   formatViolations
 } from "./utils/json-schema-validate.js";
 export type { SchemaViolation } from "./utils/json-schema-validate.js";
+export { issueFingerprint } from "./app-build/types.js";
+export type {
+  BuildComplaint,
+  BuildExpectation,
+  BuildExpectCheck,
+  BuildIssue,
+  BuildReport,
+  BuildSpec,
+  BuildSpecInput,
+  BuildSpecInteraction,
+  BuildSpecOperation,
+  BuildSpecOutput,
+  BuildSpecVariable,
+  BuildSpecWidget,
+  BuildStage,
+  CompletedInteraction,
+  JudgeInteractionVerdict,
+  JudgeRecord,
+  StageRecord
+} from "./app-build/types.js";
+export {
+  BUILD_SPEC_SCHEMA,
+  buildSpecPrompt,
+  operationsExercised,
+  parseBuildSpec,
+  resolveSpecWidget,
+  runSpecStage,
+  specFromFile,
+  validateBuildSpec
+} from "./app-build/spec.js";
+export type { SpecStageOptions, SpecStageResult } from "./app-build/spec.js";
+export { completeInteractions } from "./app-build/interactions.js";
