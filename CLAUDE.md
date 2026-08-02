@@ -588,6 +588,42 @@ pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 `workflow_id` to fetch and validate a saved one. The validator core is
 `validateGraph` in `@nodetool-ai/node-sdk`.
 
+### nodetool timeline validate / debug (Timeline Harness)
+
+Checks a timeline sequence without rendering it, and replays a scripted edit
+session against it. The target is a timeline JSON file — a bare
+`TimelineDocument` or anything carrying one under `document`, so a
+`GET /api/timeline/:id` response works as-is — or a `timeline_sequences` row
+id. A path that exists on disk wins over an id.
+
+```bash
+npm run dev:nodetool -- timeline validate <timeline_id>
+npm run dev:nodetool -- timeline validate sequence.json --json
+npm run dev:nodetool -- timeline validate <id> --warnings-as-errors
+
+npm run dev:nodetool -- timeline debug sequence.json \
+  --interact '[{"tool":"add_track","input":{"type":"audio","name":"Music"}},
+               {"tool":"animate_clip","input":{"target":"shot","animations":[{"role":"in","preset":"fade"}]}}]'
+npm run dev:nodetool -- timeline debug <id> --out ./mydebug --json
+```
+
+`validate` reads what a headless check can decide: a clip on a track the
+document does not have, a field the schema round trip would strip, an animation
+preset that does not exist, timings that cannot render. `debug` runs the same
+check, then executes each `--interact` step against the headless
+`ui_timeline_*` bridge — the one the `timeline-tools` eval drives — and
+validates the document the session left behind. A step names a tool with or
+without the `ui_timeline_` prefix; a failing step is recorded and the script
+continues, so one bad target does not hide everything after it. Rendering,
+playback, decode, and generation are not simulated; the report lists that under
+`notSimulated`.
+
+The bundle (`nodetool-debug/timeline-<id>-<ts>/`) holds `report.json`,
+`report.md`, and `timeline.json` (the input document). Exit code 0 only when
+the verdict is ok. Validation and report rules live in
+`@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
+interaction script, and the bundle.
+
 ### nodetool node run (Single-Node Harness)
 
 Runs one node in isolation — instantiate it, feed it a property bag, print what

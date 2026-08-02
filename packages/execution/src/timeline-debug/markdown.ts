@@ -40,6 +40,62 @@ function issueTable(
   }
 }
 
+interface SnapshotTrack {
+  id?: string;
+  name?: string;
+  type?: string;
+  index?: number;
+}
+
+interface SnapshotClip {
+  id?: string;
+  name?: string;
+  trackId?: string;
+  mediaType?: string;
+  startMs?: number;
+  durationMs?: number;
+}
+
+const asRecord = (value: unknown): Record<string, unknown> | null =>
+  typeof value === "object" && value !== null ? (value as Record<string, unknown>) : null;
+
+/**
+ * The bridge snapshot carries full `documentTracks`/`documentClips` for the
+ * report's `finalDocument`; the markdown only needs the reduced view, so
+ * render per-track/per-clip lines instead of one giant JSON dump.
+ */
+function finalStateLines(state: unknown): string[] {
+  const record = asRecord(state);
+  const tracks = Array.isArray(record?.tracks) ? (record.tracks as SnapshotTrack[]) : null;
+  const clips = Array.isArray(record?.clips) ? (record.clips as SnapshotClip[]) : null;
+  if (!tracks || !clips) return [`- ${short(state, 600)}`];
+
+  const lines: string[] = [];
+  for (const track of tracks) {
+    const onTrack = clips.filter((clip) => clip.trackId === track.id);
+    lines.push(
+      `- track \`${track.id ?? "?"}\` (${track.type ?? "?"}, index ${track.index ?? "?"})` +
+        `${track.name ? ` "${track.name}"` : ""} — ${onTrack.length} clip(s)`
+    );
+    for (const clip of onTrack) {
+      const end = (clip.startMs ?? 0) + (clip.durationMs ?? 0);
+      lines.push(
+        `  - \`${clip.id ?? "?"}\`${clip.name ? ` "${clip.name}"` : ""} ` +
+          `${clip.mediaType ?? "?"} ${clip.startMs ?? 0}–${end}ms`
+      );
+    }
+  }
+  const orphaned = clips.filter(
+    (clip) => !tracks.some((track) => track.id === clip.trackId)
+  );
+  for (const clip of orphaned) {
+    lines.push(
+      `- orphaned clip \`${clip.id ?? "?"}\` on missing track \`${clip.trackId ?? "?"}\``
+    );
+  }
+  return lines;
+}
+
 export function renderTimelineReportMarkdown(report: TimelineDebugReport): string {
   const lines: string[] = [];
   const title = report.target.name ?? report.target.ref;
@@ -84,7 +140,7 @@ export function renderTimelineReportMarkdown(report: TimelineDebugReport): strin
 
   if (report.finalState !== undefined) {
     lines.push("", "## Final state", "");
-    lines.push(`- ${short(report.finalState, 600)}`);
+    lines.push(...finalStateLines(report.finalState));
   }
 
   if (report.notSimulated.length > 0) {
