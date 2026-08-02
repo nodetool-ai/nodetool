@@ -5,7 +5,11 @@
  * Input and output types are inferred from the snippet code via AST parsing,
  * with the category providing a default type hint.
  */
-import { CODE_SNIPPETS, type CodeSnippet, type SnippetCategory } from "./codeSnippets";
+import {
+  CODE_SNIPPETS,
+  type CodeSnippet,
+  type SnippetCategory
+} from "./codeSnippets";
 import type { NodeMetadata, PropertyTypeMetadata } from "../stores/ApiTypes";
 import { inferOutputKeysFromCode, inferInputKeysFromCode } from "../utils/codeOutputInference";
 
@@ -33,15 +37,47 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   "JSON": "str",
   "Streaming": "str",
   "Path": "str",
-  // Every lib.svg element node outputs `svg_element`, so the single
-  // per-category type is exact here — these connect straight into the
-  // Document / SVGToImage nodes, which take `list[svg_element]`.
+  // Every lib.svg element node outputs `svg_element`, so this is exact as an
+  // *output* default — these connect straight into the Document / SVGToImage
+  // nodes, which take `list[svg_element]`. It is wrong for inputs, which is
+  // what CATEGORY_INPUT_TYPE below corrects.
   "SVG": "svg_element",
   "HTTP": "str",
   "Markdown": "list",
   "HTML": "list",
   "Validation": "bool",
 };
+
+/**
+ * Categories whose input default differs from their output default.
+ *
+ * A single per-category type cannot be right for both halves of an SVG
+ * snippet: the output is always an `svg_element`, the inputs are coordinates,
+ * colours and path data. The 12 shipped `svg-*` snippets declare every input
+ * explicitly, so this only covers a snippet added later without declarations —
+ * `any` leaves those handles promiscuous instead of falsely gating them to
+ * `svg_element`.
+ */
+const CATEGORY_INPUT_TYPE: Partial<Record<SnippetCategory, string>> = {
+  "SVG": "any",
+};
+
+/** Value a slot of `type` starts with when the snippet declares no default. */
+function defaultValueForType(type: string): unknown {
+  switch (type) {
+    case "bool":
+      return false;
+    case "int":
+    case "float":
+      return 0;
+    case "list":
+      return [];
+    case "dict":
+      return {};
+    default:
+      return "";
+  }
+}
 
 /** Build the virtual node_type for a snippet */
 export function snippetNodeType(snippet: CodeSnippet): string {
@@ -60,25 +96,38 @@ export function generateSnippetMetadata(): Record<string, NodeMetadata> {
   for (const snippet of CODE_SNIPPETS) {
     const nodeType = snippetNodeType(snippet);
     const namespace = `${SNIPPET_NODE_PREFIX}${categoryToSlug(snippet.category)}`;
-    const defaultType = CATEGORY_TYPE[snippet.category] || "str";
+    const outputType = CATEGORY_TYPE[snippet.category] || "str";
+    const inputType = CATEGORY_INPUT_TYPE[snippet.category] ?? outputType;
 
     const inputKeys = inferInputKeysFromCode(snippet.code) || [];
     const outputKeys = inferOutputKeysFromCode(snippet.code) || ["output"];
 
-    const properties = inputKeys.map((name) => ({
-      name,
-      type: { type: defaultType, type_args: [] as PropertyTypeMetadata[], optional: false },
-      default: defaultType === "bool" ? false
-        : defaultType === "float" ? 0
-        : defaultType === "list" ? []
-        : defaultType === "dict" ? {}
-        : "",
-      required: false
-    }));
+    const properties = inputKeys.map((name) => {
+      const declared = snippet.inputs?.[name];
+      const type = declared?.type ?? inputType;
+      return {
+        name,
+        type: { type, type_args: [] as PropertyTypeMetadata[], optional: false },
+        default:
+          declared && "default" in declared
+            ? declared.default
+            : defaultValueForType(type),
+        ...(declared?.description !== undefined
+          ? { description: declared.description }
+          : {}),
+        ...(declared?.min !== undefined ? { min: declared.min } : {}),
+        ...(declared?.max !== undefined ? { max: declared.max } : {}),
+        required: false
+      };
+    });
 
     const outputs = outputKeys.map((name) => ({
       name,
-      type: { type: defaultType, type_args: [] as PropertyTypeMetadata[], optional: false },
+      type: {
+        type: snippet.outputs?.[name] ?? outputType,
+        type_args: [] as PropertyTypeMetadata[],
+        optional: false
+      },
       stream: false
     }));
 

@@ -24,6 +24,22 @@ export type SnippetCategory =
   | "HTML"
   | "Validation";
 
+/**
+ * Type declaration for one snippet input slot.
+ *
+ * `type` is a NodeTool type name the editor knows — see
+ * `config/data_types.ts` for the handle-colour registry and
+ * `components/node/PropertyInput.resolver.tsx` for the editor a type resolves
+ * to (`color` and `svg_element` live only in the latter).
+ */
+export interface SnippetInputDeclaration {
+  type: string;
+  default?: unknown;
+  description?: string;
+  min?: number;
+  max?: number;
+}
+
 export interface CodeSnippet {
   id: string;
   title: string;
@@ -31,6 +47,15 @@ export interface CodeSnippet {
   category: SnippetCategory;
   code: string;
   tags: string[];
+  /**
+   * Per-input types, keyed by the input name the code references. Optional:
+   * any input left undeclared falls back to the category default. Names that
+   * the code does not reference are ignored (an authoring error — the
+   * `codeSnippets` test pins that every declared name is inferred).
+   */
+  inputs?: Record<string, SnippetInputDeclaration>;
+  /** Per-output types, keyed by the key of the returned object literal. */
+  outputs?: Record<string, string>;
 }
 
 export const SNIPPET_CATEGORIES: SnippetCategory[] = [
@@ -1558,6 +1583,16 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   }
 };`,
     tags: ["rect", "rectangle", "square", "shape", "vector", "svg", "box"],
+    inputs: {
+      x: { type: "int", default: 0 },
+      y: { type: "int", default: 0 },
+      width: { type: "int", default: 100, min: 0 },
+      height: { type: "int", default: 100, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-circle",
@@ -1577,6 +1612,15 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   }
 };`,
     tags: ["circle", "round", "dot", "shape", "vector", "svg"],
+    inputs: {
+      cx: { type: "int", default: 0 },
+      cy: { type: "int", default: 0 },
+      radius: { type: "int", default: 50, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-ellipse",
@@ -1595,6 +1639,16 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   }
 };`,
     tags: ["ellipse", "oval", "shape", "vector", "svg"],
+    inputs: {
+      cx: { type: "int", default: 0 },
+      cy: { type: "int", default: 0 },
+      rx: { type: "int", default: 50, min: 0 },
+      ry: { type: "int", default: 30, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-line",
@@ -1612,6 +1666,15 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   }
 };`,
     tags: ["line", "segment", "connector", "divider", "shape", "vector", "svg"],
+    inputs: {
+      x1: { type: "int", default: 0 },
+      y1: { type: "int", default: 0 },
+      x2: { type: "int", default: 100 },
+      y2: { type: "int", default: 100 },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-polygon",
@@ -1639,6 +1702,17 @@ return {
       "vector",
       "svg",
     ],
+    inputs: {
+      points: {
+        type: "str",
+        default: "",
+        description: 'Vertices as "x1,y1 x2,y2 x3,y3 …"',
+      },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-path",
@@ -1658,6 +1732,17 @@ return {
   }
 };`,
     tags: ["path", "curve", "bezier", "d", "shape", "vector", "svg", "icon"],
+    inputs: {
+      path_data: {
+        type: "str",
+        default: "",
+        description: 'The "d" attribute, e.g. "M10 10 C 20 20, 40 20, 50 10"',
+      },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-text",
@@ -1680,6 +1765,20 @@ return {
   }
 };`,
     tags: ["text", "label", "typography", "font", "caption", "vector", "svg"],
+    inputs: {
+      x: { type: "int", default: 0 },
+      y: { type: "int", default: 0 },
+      text: { type: "str", default: "" },
+      font_family: { type: "str", default: "sans-serif" },
+      font_size: { type: "int", default: 16, min: 1 },
+      fill: { type: "color", default: "#000000" },
+      text_anchor: {
+        type: "str",
+        default: "start",
+        description: "start | middle | end",
+      },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-gaussian-blur",
@@ -1697,6 +1796,10 @@ return {
   }
 };`,
     tags: ["blur", "gaussian", "filter", "effects", "soften", "svg", "vector"],
+    inputs: {
+      std_deviation: { type: "float", default: 3, min: 0 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-drop-shadow",
@@ -1736,6 +1839,13 @@ return {
       "svg",
       "vector",
     ],
+    inputs: {
+      std_deviation: { type: "float", default: 3, min: 0 },
+      dx: { type: "int", default: 2 },
+      dy: { type: "int", default: 2 },
+      color: { type: "color", default: "#000000" },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-gradient",
@@ -1778,6 +1888,15 @@ return {
       "svg",
       "vector",
     ],
+    inputs: {
+      x1: { type: "float", default: 0, min: 0, max: 100 },
+      y1: { type: "float", default: 0, min: 0, max: 100 },
+      x2: { type: "float", default: 100, min: 0, max: 100 },
+      y2: { type: "float", default: 0, min: 0, max: 100 },
+      color1: { type: "color", default: "#000000" },
+      color2: { type: "color", default: "#ffffff" },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-transform",
@@ -1804,6 +1923,15 @@ return { output: { ...content, attributes } };`,
       "svg",
       "vector",
     ],
+    inputs: {
+      content: { type: "svg_element" },
+      translate_x: { type: "float", default: 0 },
+      translate_y: { type: "float", default: 0 },
+      rotate: { type: "float", default: 0, min: -360, max: 360 },
+      scale_x: { type: "float", default: 1 },
+      scale_y: { type: "float", default: 1 },
+    },
+    outputs: { output: "svg_element" },
   },
   {
     id: "svg-clip-path",
@@ -1824,6 +1952,14 @@ return {
   }
 };`,
     tags: ["clip", "clip path", "mask", "crop", "shape", "svg", "vector"],
+    inputs: {
+      content: { type: "svg_element" },
+      clip_content: {
+        type: "svg_element",
+        description: "Element whose shape clips `content`",
+      },
+    },
+    outputs: { output: "svg_element" },
   },
 
   // ---------------------------------------------------------------------------
