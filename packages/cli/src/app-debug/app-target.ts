@@ -30,7 +30,10 @@ import {
 } from "../debug/target.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
 // The resolved shape is the simulator's input, so it is declared alongside it.
-import type { ResolvedAppTarget } from "@nodetool-ai/execution/app-debug";
+import {
+  bundleTarget,
+  type ResolvedAppTarget
+} from "@nodetool-ai/execution/app-debug";
 
 export type { ResolvedAppTarget };
 
@@ -131,28 +134,9 @@ function resolveBundle(ref: string, raw: unknown): ResolvedAppTarget {
       appName: null
     };
   }
-  const graphs = new Map<string, DebugGraph>();
-  for (const workflow of bundle.workflows) {
-    const graph = graphOf(workflow.graph);
-    if (graph) graphs.set(workflow.key, graph);
-  }
-  const host =
-    bundle.app.operations
-      .map((operation) => graphs.get(operation.workflowId))
-      .find((graph): graph is DebugGraph => graph !== undefined) ?? EMPTY_GRAPH;
-  return {
-    // A bundle's operations reference bundle-local keys, not workflow ids, so
-    // there is no workflow id to report or hand to the runner.
-    info: targetInfo(ref, "bundle", null, host),
-    graph: host,
-    fileParams: {},
-    appDoc: rawApp,
-    document: bundle.app,
-    issue: null,
-    graphs,
-    operationsReferenceKeys: true,
-    appName: bundle.name
-  };
+  // The bundle → target mapping lives with the simulator, so the file path
+  // here and the build harness's in-memory path cannot drift.
+  return bundleTarget(bundle, ref, rawApp);
 }
 
 /** Resolve a workflow target — id, JSON file, or DSL file — via its `app_doc`. */

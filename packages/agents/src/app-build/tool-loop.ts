@@ -12,7 +12,7 @@
  * dispatches tools, counts calls, and reports what happened.
  */
 
-import type { BaseProvider, Message } from "@nodetool-ai/runtime";
+import type { BaseProvider, Message, TurnBudget } from "@nodetool-ai/runtime";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
 import type { HeadlessTool } from "../evals/tool-loop-bridge.js";
 
@@ -36,6 +36,12 @@ export interface RunToolLoopOptions {
   /** Turn cap — max tool-calling rounds. Defaults to {@link DEFAULT_MAX_ITERATIONS}. */
   maxIterations?: number;
   signal?: AbortSignal;
+  /**
+   * Spend admission, consulted before every model turn. A refusal ends the
+   * loop without making the call, so the caller sees a short transcript rather
+   * than an overrun.
+   */
+  turnBudget?: TurnBudget;
   /** Called after each tool call resolves, for progress display. */
   onToolCall?: (record: ToolLoopCallRecord) => void;
   /**
@@ -123,6 +129,7 @@ export async function runToolLoop(
       // Tools mutate shared state and read it back, so calls must be serialized.
       sequentialTools: true,
       maxIterations: opts.maxIterations ?? DEFAULT_MAX_ITERATIONS,
+      ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
       signal
     });
     // Drain the stream; side effects (tool execution, result feedback) happen

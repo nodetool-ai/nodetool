@@ -23,6 +23,7 @@ export {
   bindingScopeFor
 } from "./app-spec.js";
 export type { AppContext } from "./app-spec.js";
+export { bundleTarget } from "./bundle-target.js";
 export {
   HeadlessAppRuntime,
   InMemoryResourceProvider,

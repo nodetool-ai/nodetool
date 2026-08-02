@@ -1,5 +1,6 @@
 /**
- * `nodetool app debug` — the app-builder debug harness command.
+ * `nodetool app debug` and `nodetool app build` — the two app-builder harness
+ * commands.
  *
  * Runs a mini app headlessly: validates every widget binding against its
  * workflows' inputs/outputs/variables, simulates the app's interactions (a Run
@@ -7,12 +8,16 @@
  * workflows on the kernel runner, and reports each widget's final value. Writes
  * a debug bundle and prints an agent-friendly verdict.
  *
- * The target can be an application id, an ApplicationBundle JSON file, or —
- * legacy — a workflow id or workflow file whose `app_doc` is lifted into an
- * application document. Heavy dependencies load lazily inside the action so
+ * The debug target can be an application id, an ApplicationBundle JSON file,
+ * or — legacy — a workflow id or workflow file whose `app_doc` is lifted into
+ * an application document. `build` goes the other way: a prompt or a
+ * `spec.json` becomes a verified `ApplicationBundle`, via `buildApp` in
+ * `@nodetool-ai/agents`. Heavy dependencies load lazily inside each action so
  * command registration stays light and unit-testable.
  */
+import { resolve } from "node:path";
 import type { Command } from "commander";
+import type { BuildReport } from "@nodetool-ai/agents";
 
 interface AppDebugCliOptions {
   params?: string;
@@ -21,6 +26,20 @@ interface AppDebugCliOptions {
   out?: string;
   timeout?: number;
   json?: boolean;
+}
+
+interface AppBuildCliOptions {
+  provider?: string;
+  model?: string;
+  judgeModel?: string;
+  workflow?: string[];
+  maxRepairs?: string;
+  costCap?: string;
+  timeout?: string;
+  out?: string;
+  json?: boolean;
+  /** commander negated flag: `--no-judge` sets this to false. */
+  judge?: boolean;
 }
 
 export function registerAppCommands(program: Command): void {
@@ -115,6 +134,159 @@ export function registerAppCommands(program: Command): void {
         process.exit(1);
       }
     });
+
+  app
+    .command("build <prompt_or_spec_file>")
+    .description(
+      "Build a mini app from a prompt (or a spec.json) and verify it: plan the workflows, author the app, check its wiring, run every interaction, and write an ApplicationBundle plus a build report. Exits 0 only when the verdict is ok"
+    )
+    .option("-p, --provider <name>", "Builder provider id (e.g. anthropic)")
+    .option("-m, --model <id>", "Builder model id")
+    .option(
+      "--judge-model <provider/model>",
+      "Model that judges each interaction (default: NODETOOL_APP_JUDGE_MODEL)"
+    )
+    .option(
+      "--workflow <id>",
+      "Pin an existing workflow (repeatable, in operation order) — Plan binds it instead of planning",
+      (value: string, previous: string[] = []) => [...previous, value]
+    )
+    .option("--max-repairs <n>", "Repair rounds allowed after the first pass")
+    .option("--cost-cap <usd>", "Ceiling on what the build may spend")
+    .option("--timeout <ms>", "Wall clock for the whole build")
+    .option(
+      "--out <dir>",
+      "Bundle output directory (default: nodetool-debug/app-build-<slug>-<timestamp>)"
+    )
+    .option("--json", "Print the full BuildReport as JSON to stdout")
+    .option("--no-judge", "Skip the judge stage")
+    .action(async (ref: string, opts: AppBuildCliOptions) => {
+      try {
+        process.exit(await runAppBuild(ref, opts));
+      } catch (e) {
+        console.error(String(e));
+        process.exit(1);
+      }
+    });
+}
+
+/** The `app build` action. Returns the process exit code. */
+async function runAppBuild(
+  ref: string,
+  opts: AppBuildCliOptions
+): Promise<number> {
+  if (!opts.provider || !opts.model) {
+    console.error("--provider and --model are required");
+    return 1;
+  }
+
+  const [
+    { buildApp, renderBuildReportMarkdown },
+    { createProviderStrict, buildConfiguredProviders },
+    { buildFullRegistry },
+    { runOnServer },
+    { defaultBuildOutDir, writeBuildBundle, writeRunMessages },
+    { initDb, Workflow, getSecret },
+    { initMasterKey },
+    { getDefaultAssetsPath, getDefaultDbPath },
+    { ProcessingContext, FileStorageAdapter }
+  ] = await Promise.all([
+    import("@nodetool-ai/agents"),
+    import("../providers.js"),
+    import("../node-registry.js"),
+    import("../debug/server-runner.js"),
+    import("../app-build/bundle.js"),
+    import("@nodetool-ai/models"),
+    import("@nodetool-ai/security"),
+    import("@nodetool-ai/config"),
+    import("@nodetool-ai/runtime")
+  ]);
+
+  initDb(getDefaultDbPath());
+  try {
+    await initMasterKey();
+  } catch {
+    // Secret decryption is best-effort; only nodes that need secrets care.
+  }
+
+  const isSpecFile = /\.json$/i.test(ref);
+  const buildId = `app-build-${Date.now()}`;
+  const outDir = opts.out ? resolve(opts.out) : defaultBuildOutDir(ref);
+
+  const provider = await createProviderStrict(opts.provider);
+  const context = new ProcessingContext({
+    jobId: buildId,
+    workflowId: null,
+    userId: "1",
+    secretResolver: getSecret,
+    storage: new FileStorageAdapter(getDefaultAssetsPath())
+  });
+
+  const report = await buildApp({
+    ...(isSpecFile ? { specPath: ref } : { prompt: ref }),
+    provider,
+    model: opts.model,
+    context,
+    registry: buildFullRegistry(),
+    providers: await buildConfiguredProviders(),
+    runOnServer,
+    loadWorkflow: async (id: string) => {
+      const workflow = (await Workflow.get(id)) as {
+        graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+        name?: string;
+      } | null;
+      return workflow?.graph
+        ? { graph: workflow.graph, ...(workflow.name ? { name: workflow.name } : {}) }
+        : null;
+    },
+    ...(opts.workflow ? { pinnedWorkflowIds: opts.workflow } : {}),
+    ...(opts.maxRepairs ? { maxRepairs: Number(opts.maxRepairs) } : {}),
+    ...(opts.costCap ? { costCapUsd: Number(opts.costCap) } : {}),
+    ...(opts.timeout ? { timeoutMs: Number(opts.timeout) } : {}),
+    buildId,
+    ledger: { userId: "1" },
+    onLog: (line) => {
+      if (!opts.json) console.error(line.trimEnd());
+    },
+    onRunMessages: (interaction, runIndex, messages) =>
+      writeRunMessages(outDir, interaction, runIndex, messages)
+  });
+
+  await writeBuildBundle(outDir, report, renderBuildReportMarkdown(report));
+
+  if (opts.json) {
+    console.log(JSON.stringify(report, null, 2));
+  } else {
+    printBuildSummary(report, outDir);
+  }
+  return report.verdict.ok ? 0 : 1;
+}
+
+function printBuildSummary(report: BuildReport, outDir: string): void {
+  const mark = report.verdict.ok ? "✅" : "❌";
+  console.log(`\n${mark} ${report.verdict.reason}`);
+  console.log(
+    `  ${report.spec.title || "(untitled)"} · ${report.spec.operations.length} operation(s) · ${report.spec.widgets.length} widget(s)`
+  );
+  for (const stage of report.stages) {
+    console.log(
+      `  ${stage.stage} (round ${stage.round}): ${stage.status}${stage.detail ? ` — ${stage.detail}` : ""}`
+    );
+  }
+  const last = report.repairs[report.repairs.length - 1];
+  if (last && !report.verdict.ok) {
+    console.log("\nOutstanding issues:");
+    for (const issue of last.issues) {
+      console.log(`  - [${issue.stage}/${issue.code}] ${issue.message}`);
+    }
+  }
+  console.log(`\n  cost: $${report.cost.usd.toFixed(4)}`);
+  console.log(`\nBuild bundle: ${outDir}`);
+  console.log(
+    "  report.md / report.json · spec.json" +
+      (report.bundle ? " · app.bundle.json" : "") +
+      " · interactions/"
+  );
 }
 
 function printAppSummary(report: {

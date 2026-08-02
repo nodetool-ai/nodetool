@@ -43,6 +43,7 @@ export {
 export {
   withAgentSpan,
   withAgentSpanGen,
+  withSpan,
   withWorkflowSpan,
   withNodeSpan,
   withSpanGen,

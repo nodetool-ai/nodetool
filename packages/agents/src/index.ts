@@ -779,3 +779,26 @@ export {
 } from "./app-build/spec.js";
 export type { SpecStageOptions, SpecStageResult } from "./app-build/spec.js";
 export { completeInteractions } from "./app-build/interactions.js";
+export {
+  runAuthorStage,
+  renderAuthorSystemPrompt,
+  renderComplaintPrompt,
+  AUTHORED_APP_ID,
+  DEFAULT_AUTHOR_TURNS
+} from "./app-build/author.js";
+export type {
+  AuthorStageOptions,
+  AuthorStageResult,
+  AuthorWorkflow
+} from "./app-build/author.js";
+export {
+  buildApp,
+  DEFAULT_MAX_REPAIRS,
+  DEFAULT_BUILD_TIMEOUT_MS,
+  DEFAULT_BUILD_COST_CAP_USD
+} from "./app-build/build.js";
+export type {
+  BuildAppOptions,
+  BuildLedgerAttribution
+} from "./app-build/build.js";
+export { renderBuildReportMarkdown } from "./app-build/markdown.js";
