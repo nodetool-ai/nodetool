@@ -1,68 +1,80 @@
 /**
- * Diffs two debug runs so watch mode can show only what changed between edits:
- * status transitions, newly-appeared and resolved issues, and token/cost
- * movement. Pure (types only) so it's unit-tested directly.
+ * Diffs two harness runs so watch mode can show only what changed between
+ * edits: status transitions, newly-appeared and resolved issues, and token/cost
+ * movement.
+ *
+ * The diff works on a {@link RunSnapshot} — ok, issues, one status word, and
+ * the run's totals — so every watchable harness shares one differ. `debug`
+ * projects a {@link DebugReport} into it; `app build` projects a `BuildReport`.
+ * Pure (types only), so it is unit-tested directly.
  */
 import type { DebugReport } from "./types.js";
+
+/** What a differ needs from a run, whatever harness produced it. */
+export interface RunSnapshot {
+  ok: boolean;
+  /** Everything wrong right now, not a delta. */
+  issues: string[];
+  /** One word for the run's main surface, e.g. `completed` or `run/failed`. */
+  status: string | null;
+  tokens: number | null;
+  costUsd: number | null;
+}
 
 export interface DebugDiff {
   /** Verdict ok transition, when it changed. */
   okChanged: { from: boolean; to: boolean } | null;
-  /** Server status transition, when it changed. */
+  /** Status transition, when it changed. */
   serverStatusChanged: { from: string | null; to: string | null } | null;
   /** Issues present now but not before. */
   newIssues: string[];
   /** Issues present before but not now. */
   resolvedIssues: string[];
-  /** Token/cost deltas from the server trace, when available on both runs. */
+  /** Token/cost deltas, when both runs reported them. */
   tokenDelta: number | null;
   costDelta: number | null;
 }
 
-function serverStatus(report: DebugReport): string | null {
-  return report.server ? report.server.status : null;
-}
-
-function traceTotals(
-  report: DebugReport
-): { tokens: number; cost: number } | null {
+/** Project a workflow debug report into the shape the differ reads. */
+export function snapshotDebugReport(report: DebugReport): RunSnapshot {
   const trace = report.server?.trace;
-  if (!trace) return null;
-  return { tokens: trace.tokens.total, cost: trace.costUsd };
+  return {
+    ok: report.verdict.ok,
+    issues: report.verdict.issues,
+    status: report.server ? report.server.status : null,
+    tokens: trace ? trace.tokens.total : null,
+    costUsd: trace ? trace.costUsd : null
+  };
 }
 
-export function diffReports(
-  prev: DebugReport,
-  next: DebugReport
-): DebugDiff {
-  const prevIssues = new Set(prev.verdict.issues);
-  const nextIssues = new Set(next.verdict.issues);
+export function diffRuns(prev: RunSnapshot, next: RunSnapshot): DebugDiff {
+  const prevIssues = new Set(prev.issues);
+  const nextIssues = new Set(next.issues);
 
-  const newIssues = next.verdict.issues.filter((i) => !prevIssues.has(i));
-  const resolvedIssues = prev.verdict.issues.filter((i) => !nextIssues.has(i));
-
-  const prevStatus = serverStatus(prev);
-  const nextStatus = serverStatus(next);
-
-  const prevTotals = traceTotals(prev);
-  const nextTotals = traceTotals(next);
+  // Tokens and cost move independently: a build reports what it spent without
+  // counting tokens, so one being absent must not suppress the other.
+  const tokenDelta =
+    prev.tokens != null && next.tokens != null ? next.tokens - prev.tokens : null;
+  const costDelta =
+    prev.costUsd != null && next.costUsd != null
+      ? next.costUsd - prev.costUsd
+      : null;
 
   return {
-    okChanged:
-      prev.verdict.ok !== next.verdict.ok
-        ? { from: prev.verdict.ok, to: next.verdict.ok }
-        : null,
+    okChanged: prev.ok !== next.ok ? { from: prev.ok, to: next.ok } : null,
     serverStatusChanged:
-      prevStatus !== nextStatus
-        ? { from: prevStatus, to: nextStatus }
+      prev.status !== next.status
+        ? { from: prev.status, to: next.status }
         : null,
-    newIssues,
-    resolvedIssues,
-    tokenDelta:
-      prevTotals && nextTotals ? nextTotals.tokens - prevTotals.tokens : null,
-    costDelta:
-      prevTotals && nextTotals ? nextTotals.cost - prevTotals.cost : null
+    newIssues: next.issues.filter((i) => !prevIssues.has(i)),
+    resolvedIssues: prev.issues.filter((i) => !nextIssues.has(i)),
+    tokenDelta,
+    costDelta
   };
+}
+
+export function diffReports(prev: DebugReport, next: DebugReport): DebugDiff {
+  return diffRuns(snapshotDebugReport(prev), snapshotDebugReport(next));
 }
 
 /** True when nothing an agent would act on changed between two runs. */
@@ -75,7 +87,7 @@ export function diffIsEmpty(diff: DebugDiff): boolean {
   );
 }
 
-export function formatDiff(diff: DebugDiff): string {
+export function formatDiff(diff: DebugDiff, statusLabel = "server"): string {
   if (diffIsEmpty(diff)) return "No change since last run.";
   const lines: string[] = [];
   if (diff.okChanged) {
@@ -87,7 +99,7 @@ export function formatDiff(diff: DebugDiff): string {
   }
   if (diff.serverStatusChanged) {
     lines.push(
-      `server: ${diff.serverStatusChanged.from ?? "—"} → ${diff.serverStatusChanged.to ?? "—"}`
+      `${statusLabel}: ${diff.serverStatusChanged.from ?? "—"} → ${diff.serverStatusChanged.to ?? "—"}`
     );
   }
   for (const issue of diff.resolvedIssues) lines.push(`  - resolved: ${issue}`);

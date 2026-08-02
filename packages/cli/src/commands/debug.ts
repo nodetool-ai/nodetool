@@ -73,7 +73,7 @@ export function registerDebugCommands(program: Command): void {
         const { initDb, Workflow } = await import("@nodetool-ai/models");
         const { initMasterKey } = await import("@nodetool-ai/security");
         const { getDefaultDbPath } = await import("@nodetool-ai/config");
-        const { runDebug, diffReports, formatDiff } = await import(
+        const { runDebug, runWatchLoop, snapshotDebugReport } = await import(
           "../debug/index.js"
         );
 
@@ -118,7 +118,7 @@ export function registerDebugCommands(program: Command): void {
             onLog: (line) => console.error(line.trimEnd())
           });
 
-        let report = await runOnce();
+        const report = await runOnce();
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
         } else {
@@ -130,7 +130,7 @@ export function registerDebugCommands(program: Command): void {
         }
 
         // ── Watch mode ────────────────────────────────────────────────────
-        const { existsSync, watch } = await import("node:fs");
+        const { existsSync } = await import("node:fs");
         const { resolve } = await import("node:path");
         const watchPath = resolve(ref);
         if (!existsSync(watchPath)) {
@@ -139,46 +139,13 @@ export function registerDebugCommands(program: Command): void {
           );
           process.exit(1);
         }
-        console.error(`\nWatching ${watchPath} — edit to re-run, Ctrl-C to stop.`);
 
-        let running = false;
-        let pending = false;
-        let timer: NodeJS.Timeout | null = null;
-        const rerun = async () => {
-          if (running) {
-            pending = true;
-            return;
-          }
-          running = true;
-          try {
-            const next = await runOnce();
-            const diff = diffReports(report, next);
-            report = next;
-            console.error(`\n── re-run @ ${new Date().toLocaleTimeString()} ──`);
-            console.error(formatDiff(diff));
-          } catch (e) {
-            console.error(`Re-run failed: ${String(e)}`);
-          } finally {
-            running = false;
-            if (pending) {
-              pending = false;
-              void rerun();
-            }
-          }
-        };
-
-        watch(watchPath, () => {
-          // Debounce editor write bursts (save → multiple change events).
-          if (timer) clearTimeout(timer);
-          timer = setTimeout(() => void rerun(), 200);
-        });
-
-        // Hold the event loop open until interrupted.
-        await new Promise<void>((resolveWatch) => {
-          process.on("SIGINT", () => {
-            console.error("\nStopped watching.");
-            resolveWatch();
-          });
+        await runWatchLoop({
+          file: watchPath,
+          first: report,
+          run: runOnce,
+          snapshot: snapshotDebugReport,
+          log: (line) => console.error(line)
         });
         process.exit(0);
       } catch (e) {

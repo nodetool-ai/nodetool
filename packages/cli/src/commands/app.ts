@@ -52,6 +52,7 @@ interface AppBuildCliOptions extends SupervisorCliOptions {
   timeout?: string;
   out?: string;
   json?: boolean;
+  watch?: boolean;
   /** commander negated flag: `--no-judge` sets this to false. */
   judge?: boolean;
 }
@@ -173,7 +174,11 @@ export function registerAppCommands(program: Command): void {
       "Bundle output directory (default: nodetool-debug/app-build-<slug>-<timestamp>)"
     )
     .option("--json", "Print the full BuildReport as JSON to stdout")
-    .option("--no-judge", "Skip the judge stage");
+    .option("--no-judge", "Skip the judge stage")
+    .option(
+      "--watch",
+      "Re-build on spec-file change and print a diff of the verdict (spec-file targets only)"
+    );
 
   // The Run stage executes on the kernel, so the same five supervisor flags
   // every run-shaped command carries apply here too.
@@ -189,13 +194,26 @@ export function registerAppCommands(program: Command): void {
   );
 }
 
-/** The `app build` action. Returns the process exit code. */
+/**
+ * The `app build` action. Returns the process exit code.
+ *
+ * Everything a build needs — providers, the registry, the processing context —
+ * is set up once and reused, so `--watch` re-runs only the build itself.
+ */
 async function runAppBuild(
   ref: string,
   opts: AppBuildCliOptions
 ): Promise<number> {
   if (!opts.provider || !opts.model) {
     console.error("--provider and --model are required");
+    return 1;
+  }
+  const model = opts.model;
+  const isSpecFile = /\.json$/i.test(ref);
+  if (opts.watch && !isSpecFile) {
+    console.error(
+      `--watch re-builds on save, so it needs a spec file; "${ref}" is a prompt.`
+    );
     return 1;
   }
   const supervisorConfig = parseSupervisorFlags(opts);
@@ -229,9 +247,14 @@ async function runAppBuild(
     // Secret decryption is best-effort; only nodes that need secrets care.
   }
 
-  const isSpecFile = /\.json$/i.test(ref);
   const buildId = `app-build-${Date.now()}`;
-  const outDir = opts.out ? resolve(opts.out) : defaultBuildOutDir(ref);
+  // In watch mode keep a stable bundle dir so each re-build overwrites rather
+  // than littering timestamped directories.
+  const outDir = opts.out
+    ? resolve(opts.out)
+    : opts.watch
+      ? resolve(`nodetool-debug/${watchSlug(ref)}-watch`)
+      : defaultBuildOutDir(ref);
 
   const provider = await createProviderStrict(opts.provider);
   const providers = await buildConfiguredProviders();
@@ -240,7 +263,7 @@ async function runAppBuild(
       ? { enabled: false }
       : resolveJudge({
           builder: provider,
-          builderModel: opts.model,
+          builderModel: model,
           explicit: opts.judgeModel,
           providers,
           resolveSpec: resolveJudgeModelSpec
@@ -260,52 +283,81 @@ async function runAppBuild(
     storage: new FileStorageAdapter(getDefaultAssetsPath())
   });
 
-  const report = await buildApp({
-    ...(isSpecFile ? { specPath: ref } : { prompt: ref }),
-    provider,
-    model: opts.model,
-    context,
-    registry: buildFullRegistry(),
-    providers,
-    judge,
-    // Supervision reaches the Run stage the way it reaches every other surface:
-    // as `ExecutionSessionOptions.supervisor`, configured inside the runner the
-    // build executes each interaction on. `buildApp` never sees a handle — it
-    // reads back what was decided from the run reports.
-    runOnServer: supervisorConfig
-      ? (input: Parameters<typeof runOnServer>[0]) =>
-          runOnServer({ ...input, supervisor: supervisorConfig })
-      : runOnServer,
-    loadWorkflow: async (id: string) => {
-      const workflow = (await Workflow.get(id)) as {
-        graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
-        name?: string;
-      } | null;
-      return workflow?.graph
-        ? { graph: workflow.graph, ...(workflow.name ? { name: workflow.name } : {}) }
-        : null;
-    },
-    ...(opts.workflow ? { pinnedWorkflowIds: opts.workflow } : {}),
-    ...(opts.maxRepairs ? { maxRepairs: Number(opts.maxRepairs) } : {}),
-    ...(opts.costCap ? { costCapUsd: Number(opts.costCap) } : {}),
-    ...(opts.timeout ? { timeoutMs: Number(opts.timeout) } : {}),
-    buildId,
-    ledger: { userId: "1" },
-    onLog: (line) => {
-      if (!opts.json) console.error(line.trimEnd());
-    },
-    onRunMessages: (interaction, runIndex, messages) =>
-      writeRunMessages(outDir, interaction, runIndex, messages)
-  });
+  const runOnce = async (): Promise<BuildReport> => {
+    const built = await buildApp({
+      ...(isSpecFile ? { specPath: ref } : { prompt: ref }),
+      provider,
+      model,
+      context,
+      registry: buildFullRegistry(),
+      providers,
+      judge,
+      // Supervision reaches the Run stage the way it reaches every other surface:
+      // as `ExecutionSessionOptions.supervisor`, configured inside the runner the
+      // build executes each interaction on. `buildApp` never sees a handle — it
+      // reads back what was decided from the run reports.
+      runOnServer: supervisorConfig
+        ? (input: Parameters<typeof runOnServer>[0]) =>
+            runOnServer({ ...input, supervisor: supervisorConfig })
+        : runOnServer,
+      loadWorkflow: async (id: string) => {
+        const workflow = (await Workflow.get(id)) as {
+          graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
+          name?: string;
+        } | null;
+        return workflow?.graph
+          ? { graph: workflow.graph, ...(workflow.name ? { name: workflow.name } : {}) }
+          : null;
+      },
+      ...(opts.workflow ? { pinnedWorkflowIds: opts.workflow } : {}),
+      ...(opts.maxRepairs ? { maxRepairs: Number(opts.maxRepairs) } : {}),
+      ...(opts.costCap ? { costCapUsd: Number(opts.costCap) } : {}),
+      ...(opts.timeout ? { timeoutMs: Number(opts.timeout) } : {}),
+      buildId,
+      ledger: { userId: "1" },
+      onLog: (line) => {
+        if (!opts.json) console.error(line.trimEnd());
+      },
+      onRunMessages: (interaction, runIndex, messages) =>
+        writeRunMessages(outDir, interaction, runIndex, messages)
+    });
+    await writeBuildBundle(outDir, built, renderBuildReportMarkdown(built));
+    return built;
+  };
 
-  await writeBuildBundle(outDir, report, renderBuildReportMarkdown(report));
+  const report = await runOnce();
 
   if (opts.json) {
     console.log(JSON.stringify(report, null, 2));
   } else {
     printBuildSummary(report, outDir);
   }
-  return report.verdict.ok ? 0 : 1;
+
+  if (!opts.watch) return report.verdict.ok ? 0 : 1;
+
+  const [{ runWatchLoop }, { snapshotBuildReport }] = await Promise.all([
+    import("../debug/watch.js"),
+    import("../app-build/watch.js")
+  ]);
+  await runWatchLoop({
+    file: resolve(ref),
+    first: report,
+    run: runOnce,
+    snapshot: snapshotBuildReport,
+    statusLabel: "stage",
+    log: (line) => console.error(line)
+  });
+  return 0;
+}
+
+/** Directory-safe slug for a watched target, mirroring `debug --watch`. */
+function watchSlug(ref: string): string {
+  const slug =
+    ref
+      .replace(/[^a-zA-Z0-9_-]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 40) || "app";
+  return `app-build-${slug}`;
 }
 
 /**

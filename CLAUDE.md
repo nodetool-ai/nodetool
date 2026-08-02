@@ -443,7 +443,14 @@ The shipped example apps are curated `ApplicationBundle` files in
 build resolves every workflow, input, and output by name against the shipped
 template graphs, validates each bundle with `nodetool app debug --no-run`, and
 writes the preview bundles in `web/public/app-preview/`. Example workflows
-carry no `app_doc`. The server lists them at `GET /api/applications/examples`
+carry no `app_doc`. `--regen -p <provider> -m <model>` answers a different
+question — would `nodetool app build` produce these apps today? It derives a
+`BuildSpec` from each shipped bundle, builds it, and prints the drift
+(operations, variables, and widgets compared by what they show, not by their
+ids, so two builds of one app differ only where they really differ). It writes
+nothing: the curated bundles stay hand-approved, and drift between two model
+runs is a signal to read, not a patch to apply. Add `--app <slug>` for one app.
+The server lists them at `GET /api/applications/examples`
 and installs one with `POST /api/applications/examples/:slug/install`, which
 goes through the normal bundle import. Marketing
 screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
@@ -488,6 +495,7 @@ npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --max-re
 npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --judge-model openai/gpt-5.4-mini
 npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --no-judge   # structural only
 npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --supervise
+npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --watch
 ```
 
 ```
@@ -496,7 +504,7 @@ npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --superv
                                           default: a configured model ≠ the builder's)
 --workflow <id>                           pin an existing workflow (repeatable, operation order)
 --max-repairs <n>   --cost-cap <usd>   --timeout <ms>
---out <dir>   --json   --no-judge
+--out <dir>   --json   --no-judge   --watch
 --supervise   --max-decisions <n>   --max-retries <n>
 --supervisor-cost-cap <usd>   --supervisor-model <provider/model>
 ```
@@ -513,6 +521,13 @@ supervisor has skipped or repaired something, what the run produced less of is
 recorded as a warning instead of an issue the Author is asked to repair. The
 interaction's expectations stay errors — supervision does not excuse the
 contract the spec pinned.
+
+`--watch` (spec-file targets only) re-builds after every save and prints just
+what changed since the last build — verdict ok/fail transitions, the stage it
+ended on, issues that appeared and resolved, and cost movement. It reuses
+`debug --watch`'s differ, so both harnesses read the same. The bundle directory
+stays at `nodetool-debug/app-build-<slug>-watch` so each re-build overwrites the
+last. A build is a model run: every save spends money.
 
 The bundle (`nodetool-debug/app-build-<slug>-<ts>/`) holds `report.json` (the
 `BuildReport`), `report.md`, `spec.json`, `app.bundle.json` (the deliverable,
