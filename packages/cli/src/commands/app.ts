@@ -12,17 +12,26 @@
  * or — legacy — a workflow id or workflow file whose `app_doc` is lifted into
  * an application document. `build` goes the other way: a prompt or a
  * `spec.json` becomes a verified `ApplicationBundle`, via `buildApp` in
- * `@nodetool-ai/agents`. Heavy dependencies load lazily inside each action so
- * command registration stays light and unit-testable.
+ * `@nodetool-ai/agents`. Its Run stage executes on the kernel, so it carries the
+ * same `--supervise` flags every run-shaped command does; the handle goes to
+ * `ExecutionSessionOptions.supervisor` inside the runner, never to `buildApp`.
+ * Heavy dependencies load lazily inside each action so command registration
+ * stays light and unit-testable.
  */
 import { resolve } from "node:path";
 import type { Command } from "commander";
+import { formatSupervisedSummary } from "@nodetool-ai/execution/debug";
 import type {
   BuildJudgeOptions,
   BuildReport,
   resolveJudgeModelSpec
 } from "@nodetool-ai/agents";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import {
+  addSupervisorOptions,
+  parseSupervisorFlags,
+  type SupervisorCliOptions
+} from "../supervisor.js";
 
 interface AppDebugCliOptions {
   params?: string;
@@ -33,7 +42,7 @@ interface AppDebugCliOptions {
   json?: boolean;
 }
 
-interface AppBuildCliOptions {
+interface AppBuildCliOptions extends SupervisorCliOptions {
   provider?: string;
   model?: string;
   judgeModel?: string;
@@ -140,7 +149,7 @@ export function registerAppCommands(program: Command): void {
       }
     });
 
-  app
+  const build = app
     .command("build <prompt_or_spec_file>")
     .description(
       "Build a mini app from a prompt (or a spec.json) and verify it: plan the workflows, author the app, check its wiring, run every interaction, and write an ApplicationBundle plus a build report. Exits 0 only when the verdict is ok"
@@ -164,15 +173,20 @@ export function registerAppCommands(program: Command): void {
       "Bundle output directory (default: nodetool-debug/app-build-<slug>-<timestamp>)"
     )
     .option("--json", "Print the full BuildReport as JSON to stdout")
-    .option("--no-judge", "Skip the judge stage")
-    .action(async (ref: string, opts: AppBuildCliOptions) => {
+    .option("--no-judge", "Skip the judge stage");
+
+  // The Run stage executes on the kernel, so the same five supervisor flags
+  // every run-shaped command carries apply here too.
+  addSupervisorOptions(build).action(
+    async (ref: string, opts: AppBuildCliOptions) => {
       try {
         process.exit(await runAppBuild(ref, opts));
       } catch (e) {
         console.error(String(e));
         process.exit(1);
       }
-    });
+    }
+  );
 }
 
 /** The `app build` action. Returns the process exit code. */
@@ -184,6 +198,7 @@ async function runAppBuild(
     console.error("--provider and --model are required");
     return 1;
   }
+  const supervisorConfig = parseSupervisorFlags(opts);
 
   const [
     { buildApp, renderBuildReportMarkdown, resolveJudgeModelSpec },
@@ -233,6 +248,9 @@ async function runAppBuild(
   if (judge.provider && !opts.json) {
     console.error(`judge: ${judge.provider.provider}/${judge.model}`);
   }
+  if (supervisorConfig && !opts.json) {
+    console.error(`supervisor: ${supervisorConfig.modelSpec}`);
+  }
 
   const context = new ProcessingContext({
     jobId: buildId,
@@ -250,7 +268,14 @@ async function runAppBuild(
     registry: buildFullRegistry(),
     providers,
     judge,
-    runOnServer,
+    // Supervision reaches the Run stage the way it reaches every other surface:
+    // as `ExecutionSessionOptions.supervisor`, configured inside the runner the
+    // build executes each interaction on. `buildApp` never sees a handle — it
+    // reads back what was decided from the run reports.
+    runOnServer: supervisorConfig
+      ? (input: Parameters<typeof runOnServer>[0]) =>
+          runOnServer({ ...input, supervisor: supervisorConfig })
+      : runOnServer,
     loadWorkflow: async (id: string) => {
       const workflow = (await Workflow.get(id)) as {
         graph?: { nodes: Array<Record<string, unknown>>; edges: Array<Record<string, unknown>> };
@@ -333,6 +358,16 @@ function printBuildSummary(report: BuildReport, outDir: string): void {
     console.log("\nOutstanding issues:");
     for (const issue of last.issues) {
       console.log(`  - [${issue.stage}/${issue.code}] ${issue.message}`);
+    }
+  }
+  if (report.supervision) {
+    console.log(`\n${formatSupervisedSummary(report.supervision.summary)}`);
+    for (const entry of report.supervision.byInteraction) {
+      for (const item of entry.interventions) {
+        console.log(
+          `  ${entry.interaction}: ${item.verdict.action} on ${item.escalation.nodeId} (${item.decidedBy})`
+        );
+      }
     }
   }
   console.log(`\n  cost: $${report.cost.usd.toFixed(4)}`);

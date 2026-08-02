@@ -16,6 +16,8 @@ import type {
   AppDebugReport,
   InteractionStep
 } from "@nodetool-ai/execution/app-debug";
+import type { SupervisedRunSummary } from "@nodetool-ai/execution/debug";
+import type { Intervention } from "@nodetool-ai/protocol";
 
 /** What a spec expectation asserts about a display widget's final value. */
 export type BuildExpectCheck = "nonEmpty" | "equals" | "matches";
@@ -176,6 +178,24 @@ export interface CompletedInteraction {
   addedSteps: string[];
 }
 
+/**
+ * What supervision decided while the Run stage executed the interactions.
+ *
+ * Only present when a decision was actually taken, so an unsupervised build and
+ * a supervised build the supervisor never had to touch report the same thing:
+ * nothing. The record is `Intervention` from `@nodetool-ai/protocol`, verbatim —
+ * the same one the kernel mints and the editor surface already reads.
+ */
+export interface BuildSupervision {
+  /** Rollup over every decision the Run stage produced. */
+  summary: SupervisedRunSummary;
+  /** Decisions per interaction, in run order. Interactions with none are absent. */
+  byInteraction: Array<{
+    interaction: string;
+    interventions: Intervention[];
+  }>;
+}
+
 export interface BuildReport {
   target: { prompt: string; specPath?: string };
   spec: BuildSpec;
@@ -187,6 +207,8 @@ export interface BuildReport {
   /** The final Check+Run evidence, verbatim. */
   appDebug: AppDebugReport | null;
   judge: JudgeRecord | null;
+  /** Null unless the Run stage ran under a supervisor that decided something. */
+  supervision: BuildSupervision | null;
   verdict: { ok: boolean; reason: string; notSimulated: string[] };
   cost: { usd: number; byStage: Record<string, number> };
   /** Null only when `verdict.ok` is false. */

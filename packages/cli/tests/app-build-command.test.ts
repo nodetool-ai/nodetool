@@ -79,6 +79,7 @@ const report = (): BuildReport => ({
   repairs: [],
   appDebug: null,
   judge: null,
+  supervision: null,
   verdict: { ok: true, reason: "green on the first pass", notSimulated: [] },
   cost: { usd: 0.02, byStage: { spec: 0.02 } },
   bundle: {
@@ -119,7 +120,12 @@ describe("registerAppCommands — build", () => {
         "--timeout",
         "--out",
         "--json",
-        "--no-judge"
+        "--no-judge",
+        "--supervise",
+        "--max-decisions",
+        "--max-retries",
+        "--supervisor-cost-cap",
+        "--supervisor-model"
       ])
     );
   });

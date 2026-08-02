@@ -763,6 +763,7 @@ export type {
   BuildSpecVariable,
   BuildSpecWidget,
   BuildStage,
+  BuildSupervision,
   CompletedInteraction,
   JudgeInteractionVerdict,
   JudgeRecord,

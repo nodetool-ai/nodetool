@@ -167,6 +167,89 @@ const stubRunner = () =>
     };
   });
 
+// --- supervision fixtures ---------------------------------------------------
+// A second output nothing fills: with a supervisor skip on its node the gap is
+// a decision, without one it is a defect. Same graph, same script, same
+// expectations — only the run's supervision differs.
+
+const TWO_OUTPUT_GRAPH = {
+  nodes: [
+    ...GRAPH.nodes,
+    {
+      id: "out2",
+      type: "nodetool.output.StringOutput",
+      properties: { name: "notes" }
+    }
+  ],
+  edges: []
+};
+
+const twoOutputSpec = (): BuildSpec => {
+  const base = spec();
+  base.operations[0]!.outputs = [
+    { name: "text", type: "string" },
+    { name: "notes", type: "string" }
+  ];
+  base.widgets.push({
+    role: "notes-output",
+    type: "Markdown",
+    binding: "op:draft/out:notes",
+    label: "Notes"
+  });
+  return base;
+};
+
+const SKIP_DECISION = {
+  type: "supervisor_decision",
+  node_id: "out2",
+  escalation: {
+    nodeId: "out2",
+    nodeType: "nodetool.output.StringOutput",
+    correlationLineage: [],
+    invocationKey: "",
+    allowedActions: ["skip", "fail"],
+    detail: "the notes source returned HTTP 404",
+    inputs: {},
+    declaredOutputs: {},
+    attempt: 1,
+    spentCostUsd: 0,
+    createdAssets: false,
+    retrySafe: false,
+    emitted: false
+  },
+  verdict: { action: "skip" },
+  decided_by: "agent",
+  cost: 0.004
+};
+
+const skippingRunner = ({ supervised = true }: { supervised?: boolean } = {}) =>
+  vi.fn(async (_input: AppServerRunInput): Promise<AppServerRunOutcome> => {
+    const messages = [
+      {
+        type: "output_update",
+        node_id: "out1",
+        output_name: "output",
+        value: "a drafted note"
+      },
+      ...(supervised ? [SKIP_DECISION] : []),
+      { type: "job_update", status: "completed" }
+    ];
+    const summary = collectExecutionSummary(messages);
+    summary.status = "completed";
+    return {
+      report: {
+        surface: "server",
+        ok: true,
+        status: "completed",
+        error: null,
+        durationMs: 3,
+        summary,
+        trace: null
+      },
+      rawMessages: messages as never[]
+    };
+  });
+
 /** The tool calls that author the app the spec above describes. */
 const goodAuthorScript = (): ScriptedCall[] => [
   {
@@ -210,6 +293,20 @@ const goodAuthorScript = (): ScriptedCall[] => [
     args: { application_id: APP, summary: "a drafting app" }
   }
 ];
+
+/** The same app plus the Notes widget the second output feeds. */
+const twoOutputAuthorScript = (): ScriptedCall[] => {
+  const script = goodAuthorScript();
+  script.splice(3, 0, {
+    name: "ui_app_add_component",
+    args: {
+      application_id: APP,
+      type: "Markdown",
+      props: { label: "Notes", binding: "op:draft/out:out2" }
+    }
+  });
+  return script;
+};
 
 /** The same app, but the display widget is bound to a node that is not there. */
 const badBindingScript = (): ScriptedCall[] =>
@@ -425,6 +522,57 @@ describe("buildApp", () => {
     expect(report.verdict.ok).toBe(false);
     expect(report.verdict.reason).toBe("cancelled");
     expect(report.bundle).toBeNull();
+  });
+
+  it("reports a supervised skip without failing the build", async () => {
+    const provider = scriptedProvider([twoOutputAuthorScript()]);
+    const report = await buildApp(
+      options(provider, {
+        spec: twoOutputSpec(),
+        runOnServer: skippingRunner(),
+        loadWorkflow: async (id: string) =>
+          id === "wf1" ? { graph: TWO_OUTPUT_GRAPH, name: "Drafter" } : null
+      })
+    );
+
+    expect(report.verdict.ok).toBe(true);
+    expect(report.supervision?.summary.decisions).toBe(1);
+    expect(report.supervision?.summary.byAction.skip).toBe(1);
+    expect(report.supervision?.summary.costUsd).toBeCloseTo(0.004);
+    expect(
+      report.supervision?.byInteraction.map((e) => e.interaction)
+    ).toEqual(["draft-once"]);
+    expect(
+      report.supervision?.byInteraction[0]?.interventions[0]?.escalation.nodeId
+    ).toBe("out2");
+
+    // The decision is on the record, and the gap it left is a warning rather
+    // than an issue the Author is asked to repair.
+    const run = report.stages.find((s) => s.stage === "run");
+    expect(run?.status).toBe("ok");
+    expect(
+      run?.issues.filter((i) => i.code === "supervised").map((i) => i.severity)
+    ).toEqual(["warning"]);
+    const gap = run?.issues.find((i) => i.code === "run_issue");
+    expect(gap?.severity).toBe("warning");
+    expect(gap?.message).toMatch(/never received a value/);
+  });
+
+  it("fails on the same gap when no supervisor decided it", async () => {
+    const provider = scriptedProvider([twoOutputAuthorScript()]);
+    const report = await buildApp(
+      options(provider, {
+        spec: twoOutputSpec(),
+        maxRepairs: 0,
+        runOnServer: skippingRunner({ supervised: false }),
+        loadWorkflow: async (id: string) =>
+          id === "wf1" ? { graph: TWO_OUTPUT_GRAPH, name: "Drafter" } : null
+      })
+    );
+
+    expect(report.verdict.ok).toBe(false);
+    expect(report.supervision).toBeNull();
+    expect(report.repairs[0]?.issues.map((i) => i.code)).toContain("run_issue");
   });
 
   it("writes one ledger row per billable stage when attributed", async () => {

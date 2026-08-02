@@ -6,6 +6,7 @@
  * evidence to the JSON.
  */
 
+import { formatSupervisedSummary } from "@nodetool-ai/execution/debug";
 import type { BuildReport } from "./types.js";
 
 const money = (usd: number): string => `$${usd.toFixed(4)}`;
@@ -66,6 +67,23 @@ export function renderBuildReportMarkdown(report: BuildReport): string {
       lines.push(
         `- ${verdict.interaction}: ${verdict.achieved ? "achieved" : "not achieved"} — ${verdict.reasons.join("; ")}`
       );
+    }
+    lines.push("");
+  }
+
+  if (report.supervision) {
+    lines.push(
+      "## Supervision",
+      "",
+      formatSupervisedSummary(report.supervision.summary),
+      ""
+    );
+    for (const entry of report.supervision.byInteraction) {
+      for (const item of entry.interventions) {
+        lines.push(
+          `- **${entry.interaction}** — ${item.verdict.action} on \`${item.escalation.nodeId}\` (${item.decidedBy}): ${item.escalation.detail}`
+        );
+      }
     }
     lines.push("");
   }

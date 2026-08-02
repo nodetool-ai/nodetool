@@ -28,7 +28,11 @@ import { CostCappedTurnBudget, withSpan } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import type { Intervention, ProcessingMessage } from "@nodetool-ai/protocol";
+import {
+  collectInterventionWarnings,
+  summarizeInterventions
+} from "@nodetool-ai/execution/debug";
 import {
   APPLICATION_BUNDLE_SCHEMA_VERSION,
   APP_SCHEMA_VERSION,
@@ -70,6 +74,7 @@ import {
   type BuildReport,
   type BuildSpec,
   type BuildSpecWidget,
+  type BuildSupervision,
   type CompletedInteraction,
   type JudgeRecord,
   type StageRecord
@@ -721,6 +726,24 @@ function judgeWidgetStates(
   });
 }
 
+/**
+ * The supervision rollup for a Run stage, or null when nothing was decided.
+ *
+ * A build never configures a supervisor itself: the handle rides on
+ * `ExecutionSessionOptions.supervisor` inside whatever `runOnServer` the host
+ * injected (`--supervise` on the CLI), so the Run stage learns what was decided
+ * the same way every other surface does — by reading the run reports back.
+ */
+const supervisionOf = (
+  byInteraction: BuildSupervision["byInteraction"]
+): BuildSupervision | null => {
+  if (byInteraction.length === 0) return null;
+  const all: Intervention[] = byInteraction.flatMap(
+    (entry) => entry.interventions
+  );
+  return { summary: summarizeInterventions(all), byInteraction };
+};
+
 /** Run: one simulator pass per interaction, then that interaction's expectations. */
 async function runRunStage(
   opts: BuildAppOptions,
@@ -735,10 +758,13 @@ async function runRunStage(
   record: StageRecord;
   /** One entry per interaction that actually ran, for the Judge. */
   judged: JudgeInteractionInput[];
+  /** What supervision decided during the stage, or null when it decided nothing. */
+  supervision: BuildSupervision | null;
 }> {
   const startedAt = Date.now();
   const issues: BuildIssue[] = [];
   const judged: JudgeInteractionInput[] = [];
+  const supervised: BuildSupervision["byInteraction"] = [];
   let last: AppDebugReport | null = null;
 
   for (const interaction of interactions) {
@@ -770,6 +796,21 @@ async function runRunStage(
     last = report;
     judged.push({ interaction, widgets: judgeWidgetStates(spec, report) });
 
+    const interventions = report.runs.flatMap(
+      (run) => run.summary.interventions
+    );
+    if (interventions.length > 0) {
+      supervised.push({ interaction: interaction.name, interventions });
+    }
+    for (const run of report.runs) {
+      for (const line of collectInterventionWarnings(
+        `interaction "${interaction.name}"`,
+        run.summary
+      )) {
+        issues.push(issue("run", "supervised", line, {}, "warning"));
+      }
+    }
+
     for (const step of report.interactions) {
       if (!step.error) continue;
       issues.push(
@@ -780,11 +821,22 @@ async function runRunStage(
         )
       );
     }
+    // A supervised run's shape is a decision, not a defect: once the supervisor
+    // has skipped or repaired something, what the run then produced less of is
+    // what was asked for, and no repair round can author it away. The
+    // simulator's run issues are recorded as warnings on such a run — the
+    // interaction's expectations below stay errors, because they are the
+    // contract the spec pinned and supervision does not excuse them.
+    const runIssueSeverity = interventions.length > 0 ? "warning" : "error";
     for (const problem of report.verdict.issues) {
       issues.push(
-        issue("run", "run_issue", `interaction "${interaction.name}": ${problem}`, {
-          widget: widgetOf(problem)
-        })
+        issue(
+          "run",
+          "run_issue",
+          `interaction "${interaction.name}": ${problem}`,
+          { widget: widgetOf(problem) },
+          runIssueSeverity
+        )
       );
     }
     for (const expectation of interaction.expect) {
@@ -800,6 +852,7 @@ async function runRunStage(
     report: last,
     issues,
     judged,
+    supervision: supervisionOf(supervised),
     record: record(
       "run",
       round,
@@ -839,7 +892,8 @@ function failedReport(
   repairs: BuildComplaint[],
   appDebug: AppDebugReport | null,
   reason: string,
-  judge: JudgeRecord | null = null
+  judge: JudgeRecord | null = null,
+  supervision: BuildSupervision | null = null
 ): BuildReport {
   return {
     target,
@@ -855,6 +909,7 @@ function failedReport(
     repairs,
     appDebug,
     judge,
+    supervision,
     verdict: {
       ok: false,
       reason,
@@ -1006,13 +1061,25 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   let appDebug: AppDebugReport | null = null;
   let bundle: ApplicationBundle | null = null;
   let judge: JudgeRecord | null = null;
+  /** What supervision decided in the latest Run stage, alongside `appDebug`. */
+  let supervision: BuildSupervision | null = null;
   /** Fingerprints per round, newest last — the oscillation guard's memory. */
   const seen: Array<Set<string>> = [];
 
   for (let round = 0; round <= maxRepairs; round++) {
     const stop = budgetStop();
     if (stop) {
-      return failedReport(target, spec, interactions, stages, repairs, appDebug, stop, judge);
+      return failedReport(
+        target,
+        spec,
+        interactions,
+        stages,
+        repairs,
+        appDebug,
+        stop,
+        judge,
+        supervision
+      );
     }
 
     const authorWorkflows: AuthorWorkflow[] = workflows.map((workflow) => ({
@@ -1046,7 +1113,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
         repairs,
         appDebug,
         "cancelled",
-        judge
+        judge,
+        supervision
       );
     }
 
@@ -1081,6 +1149,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       );
       stages.push(ran.record);
       if (ran.report) appDebug = ran.report;
+      supervision = ran.supervision;
       roundIssues.push(...ran.issues);
 
       if (errorsOf(ran.issues).length === 0) {
@@ -1140,7 +1209,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
               repairs,
               appDebug,
               `cost budget exhausted ($${costCapUsd.toFixed(2)}) — the app was built but overran its cap`,
-              judge
+              judge,
+              supervision
             );
           }
           if (opts.signal?.aborted) {
@@ -1152,7 +1222,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
               repairs,
               appDebug,
               "cancelled",
-              judge
+              judge,
+              supervision
             );
           }
           return okReport(
@@ -1163,6 +1234,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
             repairs,
             appDebug,
             judge,
+            supervision,
             bundle,
             round
           );
@@ -1192,7 +1264,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
           repairs,
           appDebug,
           `oscillating: ${reappeared.join(", ")} was fixed in round ${round - 1} and is back in round ${round}`,
-          judge
+          judge,
+          supervision
         );
       }
     }
@@ -1208,7 +1281,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
         repairs,
         appDebug,
         `repair budget exhausted (${maxRepairs} repair round(s)); ${errors.length} issue(s) remain: ${errors[0]?.message ?? ""}`,
-        judge
+        judge,
+        supervision
       );
     }
 
@@ -1260,7 +1334,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     repairs,
     appDebug,
     "the build loop ended without a verdict",
-    judge
+    judge,
+    supervision
   );
 }
 
@@ -1272,6 +1347,7 @@ function okReport(
   repairs: BuildComplaint[],
   appDebug: AppDebugReport | null,
   judge: JudgeRecord | null,
+  supervision: BuildSupervision | null,
   bundle: ApplicationBundle,
   round: number
 ): BuildReport {
@@ -1283,6 +1359,7 @@ function okReport(
     repairs,
     appDebug,
     judge,
+    supervision,
     verdict: {
       ok: true,
       reason:

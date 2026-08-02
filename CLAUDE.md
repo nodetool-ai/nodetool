@@ -487,6 +487,7 @@ npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --workfl
 npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --max-repairs 1 --cost-cap 1.00
 npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --judge-model openai/gpt-5.4-mini
 npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --no-judge   # structural only
+npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --supervise
 ```
 
 ```
@@ -496,7 +497,22 @@ npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --no
 --workflow <id>                           pin an existing workflow (repeatable, operation order)
 --max-repairs <n>   --cost-cap <usd>   --timeout <ms>
 --out <dir>   --json   --no-judge
+--supervise   --max-decisions <n>   --max-retries <n>
+--supervisor-cost-cap <usd>   --supervisor-model <provider/model>
 ```
+
+`--supervise` and its four bounds are the same flags `nodetool run`, `workflows
+run`, and `debug` carry, with the same defaults (env:
+`NODETOOL_SUPERVISOR_MODEL`); see [Supervised runs](#supervised-runs---supervise)
+above. They apply to the **Run** stage, whose interactions execute on the kernel
+— `buildApp` itself is never supervised. Each decision lands in that
+interaction's run report and rolls up into `report.supervision` (the
+`Intervention` records plus the run summary), and the CLI prints the usual `⛨`
+lines. A supervised run's shape is a decision rather than a defect: once the
+supervisor has skipped or repaired something, what the run produced less of is
+recorded as a warning instead of an issue the Author is asked to repair. The
+interaction's expectations stay errors — supervision does not excuse the
+contract the spec pinned.
 
 The bundle (`nodetool-debug/app-build-<slug>-<ts>/`) holds `report.json` (the
 `BuildReport`), `report.md`, `spec.json`, `app.bundle.json` (the deliverable,
