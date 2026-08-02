@@ -39,7 +39,7 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.video.FrameToVideo",
   "lib.image.color_grading.Exposure",
   "lib.image.color_grading.SaturationVibrance",
-  "lib.http.GetText",
+  "nodetool.code.Code",
   "lib.markdown.ExtractLinks",
   "nodetool.data.Filter",
   "nodetool.control.ForEach",
