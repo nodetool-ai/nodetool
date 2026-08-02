@@ -22,7 +22,7 @@ import { RootStackParamList } from '../navigation/types';
 import { type JobResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
-import type { ThemeColors } from '../utils/theme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Jobs'>;
@@ -86,6 +86,109 @@ export function formatRelative(iso: string | null | undefined): string {
   return new Date(iso).toLocaleDateString();
 }
 
+const keyExtractor = (job: JobResponse) => job.id;
+
+const JobCard = React.memo(function JobCard({
+  job,
+  workflowName,
+  colors,
+  shadows,
+  onOpen,
+  onCancel,
+}: {
+  job: JobResponse;
+  workflowName: string;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onOpen: (jobId: string) => void;
+  onCancel: (job: JobResponse) => void;
+}) {
+  const handleOpen = useCallback(() => onOpen(job.id), [onOpen, job.id]);
+  const handleCancel = useCallback(() => onCancel(job), [onCancel, job]);
+
+  const variant = statusVariant(job.status);
+  const variantColor = statusColorFor(colors, variant);
+  const duration = formatDuration(job.started_at, job.finished_at);
+  const isRunning = variant === 'running' || variant === 'queued';
+
+  return (
+    <TouchableOpacity
+      onPress={handleOpen}
+      activeOpacity={0.8}
+      accessibilityRole="button"
+      accessibilityLabel={`Open job ${workflowName}`}
+      style={[
+        styles.card,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.statusPill, { backgroundColor: variantColor + '20' }]}>
+          <View style={[styles.statusDot, { backgroundColor: variantColor }]} />
+          <Text style={[styles.statusText, { color: variantColor }]}>
+            {job.status}
+          </Text>
+        </View>
+        <Text style={[styles.timeText, { color: colors.textTertiary }]}>
+          {formatRelative(job.started_at)}
+        </Text>
+      </View>
+
+      <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+        {workflowName}
+      </Text>
+      <Text style={[styles.idText, { color: colors.textTertiary }]} numberOfLines={1}>
+        Job {job.id}
+      </Text>
+
+      <View style={styles.metaRow}>
+        {duration ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{duration}</Text>
+          </View>
+        ) : null}
+        {job.job_type ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="layers-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{job.job_type}</Text>
+          </View>
+        ) : null}
+        {typeof job.cost === 'number' ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="card-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+              ${job.cost.toFixed(4)}
+            </Text>
+          </View>
+        ) : null}
+      </View>
+
+      {job.error ? (
+        <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
+          <Ionicons name="alert-circle-outline" size={13} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
+            {job.error}
+          </Text>
+        </View>
+      ) : null}
+
+      {isRunning ? (
+        <TouchableOpacity
+          onPress={handleCancel}
+          style={[styles.cancelBtn, { borderColor: colors.error }]}
+          accessibilityRole="button"
+          accessibilityLabel="Cancel job"
+        >
+          <Ionicons name="stop-circle-outline" size={15} color={colors.error} />
+          <Text style={[styles.cancelText, { color: colors.error }]}>Cancel job</Text>
+        </TouchableOpacity>
+      ) : null}
+    </TouchableOpacity>
+  );
+});
+
 export default function JobsScreen({ navigation, route }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
@@ -130,11 +233,6 @@ export default function JobsScreen({ navigation, route }: Props) {
     );
   }, [cancelJob]);
 
-  const statusColor = useCallback(
-    (variant: StatusVariant) => statusColorFor(colors, variant),
-    [colors],
-  );
-
   const sortedJobs = useMemo(() => {
     return [...jobs].sort((a, b) => {
       const aT = new Date(a.started_at).getTime();
@@ -143,90 +241,28 @@ export default function JobsScreen({ navigation, route }: Props) {
     });
   }, [jobs]);
 
-  const renderItem = ({ item }: { item: JobResponse }) => {
-    const variant = statusVariant(item.status);
-    const variantColor = statusColor(variant);
-    const duration = formatDuration(item.started_at, item.finished_at);
-    const isRunning = variant === 'running' || variant === 'queued';
-    const workflowName = workflowNames[item.workflow_id] || `Workflow ${item.workflow_id.substring(0, 8)}`;
+  const handleOpen = useCallback(
+    (jobId: string) => {
+      navigation.navigate('JobDetail', { jobId });
+    },
+    [navigation],
+  );
 
-    return (
-      <TouchableOpacity
-        onPress={() => navigation.navigate('JobDetail', { jobId: item.id })}
-        activeOpacity={0.8}
-        accessibilityRole="button"
-        accessibilityLabel={`Open job ${workflowName}`}
-        style={[
-          styles.card,
-          shadows.small,
-          { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <View style={[styles.statusPill, { backgroundColor: variantColor + '20' }]}>
-            <View style={[styles.statusDot, { backgroundColor: variantColor }]} />
-            <Text style={[styles.statusText, { color: variantColor }]}>
-              {item.status}
-            </Text>
-          </View>
-          <Text style={[styles.timeText, { color: colors.textTertiary }]}>
-            {formatRelative(item.started_at)}
-          </Text>
-        </View>
-
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {workflowName}
-        </Text>
-        <Text style={[styles.idText, { color: colors.textTertiary }]} numberOfLines={1}>
-          Job {item.id}
-        </Text>
-
-        <View style={styles.metaRow}>
-          {duration ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{duration}</Text>
-            </View>
-          ) : null}
-          {item.job_type ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="layers-outline" size={13} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{item.job_type}</Text>
-            </View>
-          ) : null}
-          {typeof item.cost === 'number' ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="card-outline" size={13} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                ${item.cost.toFixed(4)}
-              </Text>
-            </View>
-          ) : null}
-        </View>
-
-        {item.error ? (
-          <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
-            <Ionicons name="alert-circle-outline" size={13} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
-              {item.error}
-            </Text>
-          </View>
-        ) : null}
-
-        {isRunning ? (
-          <TouchableOpacity
-            onPress={() => handleCancel(item)}
-            style={[styles.cancelBtn, { borderColor: colors.error }]}
-            accessibilityRole="button"
-            accessibilityLabel="Cancel job"
-          >
-            <Ionicons name="stop-circle-outline" size={15} color={colors.error} />
-            <Text style={[styles.cancelText, { color: colors.error }]}>Cancel job</Text>
-          </TouchableOpacity>
-        ) : null}
-      </TouchableOpacity>
-    );
-  };
+  const renderItem = useCallback(
+    ({ item }: { item: JobResponse }) => (
+      <JobCard
+        job={item}
+        workflowName={
+          workflowNames[item.workflow_id] || `Workflow ${item.workflow_id.substring(0, 8)}`
+        }
+        colors={colors}
+        shadows={shadows}
+        onOpen={handleOpen}
+        onCancel={handleCancel}
+      />
+    ),
+    [workflowNames, colors, shadows, handleOpen, handleCancel],
+  );
 
   if (isLoading) {
     return (
@@ -247,7 +283,7 @@ export default function JobsScreen({ navigation, route }: Props) {
 
       <FlatList
         data={sortedJobs}
-        keyExtractor={(j) => j.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={

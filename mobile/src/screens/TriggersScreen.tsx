@@ -34,6 +34,7 @@ import { describeTriggerDisabledReason } from '@nodetool-ai/protocol/triggers';
 import { RootStackParamList } from '../navigation/types';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 import { formatRelative } from './JobsScreen';
 
 type Props = {
@@ -196,6 +197,189 @@ export function formatInterval(seconds: number | null | undefined): string | nul
   return `every ${Math.round(hours / 24)}d`;
 }
 
+// `useQueries` returns a fresh results array every render, so a `useMemo` keyed
+// on it never hits and every row object is rebuilt. Cache on the payload instead,
+// so rows keep the identity `React.memo` needs.
+const rowsByPayload = new WeakMap<object, TriggerRow[]>();
+
+function rowsFromPayload(data: unknown): TriggerRow[] {
+  if (typeof data !== 'object' || data === null) {
+    return [];
+  }
+  const cached = rowsByPayload.get(data);
+  if (cached) {
+    return cached;
+  }
+  const rows: TriggerRow[] = [];
+  for (const raw of (data as { triggers?: unknown[] }).triggers ?? []) {
+    const row = toTriggerRow(raw);
+    if (row) { rows.push(row); }
+  }
+  rowsByPayload.set(data, rows);
+  return rows;
+}
+
+const keyExtractor = (row: TriggerRow) => row.id;
+
+const TriggerCard = React.memo(function TriggerCard({
+  row,
+  workflowName,
+  busy,
+  colors,
+  shadows,
+  onToggle,
+  onViewRuns,
+}: {
+  row: TriggerRow;
+  workflowName: string;
+  busy: boolean;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onToggle: (row: TriggerRow) => void;
+  onViewRuns: (workflowId: string) => void;
+}) {
+  const handleToggle = useCallback(() => onToggle(row), [onToggle, row]);
+  const handleViewRuns = useCallback(
+    () => onViewRuns(row.workflow_id),
+    [onViewRuns, row.workflow_id],
+  );
+
+  const stoppedBecause = describeTriggerDisabledReason(
+    row.disabled_reason,
+    row.consecutive_failures ?? 0,
+  );
+  const stateColor =
+    stoppedBecause || row.last_error
+      ? colors.error
+      : row.enabled
+        ? colors.success
+        : colors.textTertiary;
+  const stateText = stoppedBecause
+    ? 'Stopped'
+    : row.last_error
+      ? 'Failing'
+      : row.enabled
+        ? 'Armed'
+        : 'Disarmed';
+  const countdown = row.enabled ? formatCountdown(row.next_fire_at) : null;
+  const interval = formatInterval(row.interval_seconds);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <View style={[styles.statePill, { backgroundColor: stateColor + '20' }]}>
+          <View style={[styles.stateDot, { backgroundColor: stateColor }]} />
+          <Text style={[styles.stateText, { color: stateColor }]}>{stateText}</Text>
+        </View>
+        <View style={styles.kindRow}>
+          <Ionicons name={kindIcon(row.kind)} size={13} color={colors.textSecondary} />
+          <Text style={[styles.kindText, { color: colors.textSecondary }]}>
+            {kindLabel(row.kind)}
+          </Text>
+        </View>
+      </View>
+
+      <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+        {workflowName}
+      </Text>
+      <Text style={[styles.nodeText, { color: colors.textTertiary }]} numberOfLines={1}>
+        {row.node_id || row.id}
+      </Text>
+
+      <View style={styles.metaRow}>
+        <View style={styles.metaItem}>
+          <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
+          <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+            {row.last_fired_at ? `Fired ${formatRelative(row.last_fired_at)}` : 'Never fired'}
+          </Text>
+        </View>
+        {countdown ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="alarm-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
+              Next {countdown}
+            </Text>
+          </View>
+        ) : null}
+        {interval ? (
+          <View style={styles.metaItem}>
+            <Ionicons name="repeat-outline" size={13} color={colors.textSecondary} />
+            <Text style={[styles.metaText, { color: colors.textSecondary }]}>{interval}</Text>
+          </View>
+        ) : null}
+      </View>
+
+      {stoppedBecause ? (
+        <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
+          <Ionicons name="hand-left-outline" size={13} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
+            {stoppedBecause} Arm it again to retry.
+          </Text>
+        </View>
+      ) : null}
+
+      {row.last_error ? (
+        <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
+          <Ionicons name="alert-circle-outline" size={13} color={colors.error} />
+          <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
+            {row.last_error}
+          </Text>
+        </View>
+      ) : null}
+
+      <View style={styles.actions}>
+        <TouchableOpacity
+          onPress={handleViewRuns}
+          style={[styles.secondaryBtn, { borderColor: colors.borderLight }]}
+          accessibilityRole="button"
+          accessibilityLabel={`View runs of ${workflowName}`}
+        >
+          <Ionicons name="list-outline" size={15} color={colors.textSecondary} />
+          <Text style={[styles.secondaryText, { color: colors.textSecondary }]}>Runs</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          onPress={handleToggle}
+          disabled={busy}
+          style={[
+            styles.toggleBtn,
+            { borderColor: row.enabled ? colors.error : colors.success },
+          ]}
+          accessibilityRole="button"
+          accessibilityState={{ disabled: busy }}
+          accessibilityLabel={`${row.enabled ? 'Disarm' : 'Arm'} ${kindLabel(row.kind).toLowerCase()} trigger on ${workflowName}`}
+        >
+          {busy ? (
+            <ActivityIndicator size="small" color={row.enabled ? colors.error : colors.success} />
+          ) : (
+            <>
+              <Ionicons
+                name={row.enabled ? 'stop-circle-outline' : 'play-circle-outline'}
+                size={15}
+                color={row.enabled ? colors.error : colors.success}
+              />
+              <Text
+                style={[
+                  styles.toggleText,
+                  { color: row.enabled ? colors.error : colors.success },
+                ]}
+              >
+                {row.enabled ? 'Disarm' : 'Arm'}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 export default function TriggersScreen({ navigation }: Props) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
@@ -226,27 +410,15 @@ export default function TriggersScreen({ navigation }: Props) {
     workflowIds.map((workflowId) => t.triggers.listByWorkflow({ workflowId })),
   );
 
-  const perWorkflowRows = useMemo(() => {
-    const rows: TriggerRow[] = [];
-    for (const query of byWorkflowQueries) {
-      const triggers = (query.data as { triggers?: unknown[] } | undefined)?.triggers ?? [];
-      for (const raw of triggers) {
-        const row = toTriggerRow(raw);
-        if (row) { rows.push(row); }
-      }
-    }
-    return rows;
-  }, [byWorkflowQueries]);
+  const perWorkflowRows = useMemo(
+    () => byWorkflowQueries.flatMap((query) => rowsFromPayload(query.data)),
+    [byWorkflowQueries],
+  );
 
-  const runningRows = useMemo(() => {
-    const triggers = (runningQuery.data as { triggers?: unknown[] } | undefined)?.triggers ?? [];
-    const rows: TriggerRow[] = [];
-    for (const raw of triggers) {
-      const row = toTriggerRow(raw);
-      if (row) { rows.push(row); }
-    }
-    return rows;
-  }, [runningQuery.data]);
+  const runningRows = useMemo(
+    () => rowsFromPayload(runningQuery.data),
+    [runningQuery.data],
+  );
 
   const rows = useMemo(
     () => mergeTriggerRows(runningRows, perWorkflowRows),
@@ -308,145 +480,29 @@ export default function TriggersScreen({ navigation }: Props) {
     );
   }, [startTrigger, stopTrigger, workflowNames]);
 
-  const renderItem = ({ item }: { item: TriggerRow }) => {
-    const workflowName =
-      workflowNames[item.workflow_id] ?? `Workflow ${item.workflow_id.substring(0, 8)}`;
-    const stoppedBecause = describeTriggerDisabledReason(
-      item.disabled_reason,
-      item.consecutive_failures ?? 0,
-    );
-    const stateColor =
-      stoppedBecause || item.last_error
-        ? colors.error
-        : item.enabled
-          ? colors.success
-          : colors.textTertiary;
-    const stateText = stoppedBecause
-      ? 'Stopped'
-      : item.last_error
-        ? 'Failing'
-        : item.enabled
-          ? 'Armed'
-          : 'Disarmed';
-    const countdown = item.enabled ? formatCountdown(item.next_fire_at) : null;
-    const interval = formatInterval(item.interval_seconds);
-    const busy = pendingId === item.id;
+  const handleViewRuns = useCallback(
+    (workflowId: string) => {
+      navigation.navigate('Jobs', { workflowId });
+    },
+    [navigation],
+  );
 
-    return (
-      <View
-        style={[
-          styles.card,
-          shadows.small,
-          { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-        ]}
-      >
-        <View style={styles.cardHeader}>
-          <View style={[styles.statePill, { backgroundColor: stateColor + '20' }]}>
-            <View style={[styles.stateDot, { backgroundColor: stateColor }]} />
-            <Text style={[styles.stateText, { color: stateColor }]}>{stateText}</Text>
-          </View>
-          <View style={styles.kindRow}>
-            <Ionicons name={kindIcon(item.kind)} size={13} color={colors.textSecondary} />
-            <Text style={[styles.kindText, { color: colors.textSecondary }]}>
-              {kindLabel(item.kind)}
-            </Text>
-          </View>
-        </View>
-
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {workflowName}
-        </Text>
-        <Text style={[styles.nodeText, { color: colors.textTertiary }]} numberOfLines={1}>
-          {item.node_id || item.id}
-        </Text>
-
-        <View style={styles.metaRow}>
-          <View style={styles.metaItem}>
-            <Ionicons name="time-outline" size={13} color={colors.textSecondary} />
-            <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-              {item.last_fired_at ? `Fired ${formatRelative(item.last_fired_at)}` : 'Never fired'}
-            </Text>
-          </View>
-          {countdown ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="alarm-outline" size={13} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>
-                Next {countdown}
-              </Text>
-            </View>
-          ) : null}
-          {interval ? (
-            <View style={styles.metaItem}>
-              <Ionicons name="repeat-outline" size={13} color={colors.textSecondary} />
-              <Text style={[styles.metaText, { color: colors.textSecondary }]}>{interval}</Text>
-            </View>
-          ) : null}
-        </View>
-
-        {stoppedBecause ? (
-          <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
-            <Ionicons name="hand-left-outline" size={13} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
-              {stoppedBecause} Arm it again to retry.
-            </Text>
-          </View>
-        ) : null}
-
-        {item.last_error ? (
-          <View style={[styles.errorBox, { backgroundColor: colors.error + '14' }]}>
-            <Ionicons name="alert-circle-outline" size={13} color={colors.error} />
-            <Text style={[styles.errorText, { color: colors.error }]} numberOfLines={3}>
-              {item.last_error}
-            </Text>
-          </View>
-        ) : null}
-
-        <View style={styles.actions}>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('Jobs', { workflowId: item.workflow_id })}
-            style={[styles.secondaryBtn, { borderColor: colors.borderLight }]}
-            accessibilityRole="button"
-            accessibilityLabel={`View runs of ${workflowName}`}
-          >
-            <Ionicons name="list-outline" size={15} color={colors.textSecondary} />
-            <Text style={[styles.secondaryText, { color: colors.textSecondary }]}>Runs</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => handleToggle(item)}
-            disabled={busy}
-            style={[
-              styles.toggleBtn,
-              { borderColor: item.enabled ? colors.error : colors.success },
-            ]}
-            accessibilityRole="button"
-            accessibilityState={{ disabled: busy }}
-            accessibilityLabel={`${item.enabled ? 'Disarm' : 'Arm'} ${kindLabel(item.kind).toLowerCase()} trigger on ${workflowName}`}
-          >
-            {busy ? (
-              <ActivityIndicator size="small" color={item.enabled ? colors.error : colors.success} />
-            ) : (
-              <>
-                <Ionicons
-                  name={item.enabled ? 'stop-circle-outline' : 'play-circle-outline'}
-                  size={15}
-                  color={item.enabled ? colors.error : colors.success}
-                />
-                <Text
-                  style={[
-                    styles.toggleText,
-                    { color: item.enabled ? colors.error : colors.success },
-                  ]}
-                >
-                  {item.enabled ? 'Disarm' : 'Arm'}
-                </Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+  const renderItem = useCallback(
+    ({ item }: { item: TriggerRow }) => (
+      <TriggerCard
+        row={item}
+        workflowName={
+          workflowNames[item.workflow_id] ?? `Workflow ${item.workflow_id.substring(0, 8)}`
+        }
+        busy={pendingId === item.id}
+        colors={colors}
+        shadows={shadows}
+        onToggle={handleToggle}
+        onViewRuns={handleViewRuns}
+      />
+    ),
+    [workflowNames, pendingId, colors, shadows, handleToggle, handleViewRuns],
+  );
 
   if (isLoading) {
     return (
@@ -500,7 +556,7 @@ export default function TriggersScreen({ navigation }: Props) {
 
       <FlatList
         data={rows}
-        keyExtractor={(row) => row.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 24 }]}
         refreshControl={
