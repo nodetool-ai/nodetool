@@ -111,6 +111,7 @@ export {
   ResolveWorkflowEscalationTool,
   BuildAppTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -127,7 +128,11 @@ export {
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
-export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
+export type {
+  PlanWorkflowGraphToolOptions,
+  TimelineLoader,
+  TimelineToolRecord
+} from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,

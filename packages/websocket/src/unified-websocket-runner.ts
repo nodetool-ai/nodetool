@@ -1451,6 +1451,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
   lines.push(
     "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
   );
+
+  const hasTimeline =
+    focused?.type === "timeline" || open.some((ref) => ref.type === "timeline");
+  if (hasTimeline) {
+    lines.push(
+      "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
+    );
+  }
   return lines.join("\n");
 }
 

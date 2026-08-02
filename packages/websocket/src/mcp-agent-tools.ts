@@ -22,6 +22,7 @@ import {
   ResolveWorkflowEscalationTool,
   BuildAppTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   GetJobLogsTool,
@@ -40,7 +41,8 @@ import {
   createWorkflowDocumentTools
 } from "@nodetool-ai/agents";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import { getSecret, Asset } from "@nodetool-ai/models";
+import type { TimelineLoader } from "@nodetool-ai/agents";
+import { getSecret, Asset, TimelineSequence } from "@nodetool-ai/models";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
 import { getAssetAdapter } from "./lib/storage.js";
@@ -128,6 +130,24 @@ function buildAgentToolContext(userId: string): ProcessingContext {
   });
   return context;
 }
+
+/**
+ * Read a `timeline_sequences` row for `validate_timeline`. There is no REST
+ * route for timelines (the API is tRPC-only), so the tool takes this loader
+ * instead of fetching. Ownership is checked the same way the tRPC router's
+ * `loadOwned` does — a row belonging to another user reads as not found.
+ */
+const loadTimelineForUser: TimelineLoader = async (context, id) => {
+  const row = await TimelineSequence.findById(id);
+  if (!row || row.user_id !== context.userId) return null;
+  return {
+    document: row.document,
+    fps: row.fps,
+    width: row.width,
+    height: row.height,
+    name: row.name
+  };
+};
 
 /** Test-only: expose the per-user context construction for scope assertions. */
 export const __buildAgentToolContextForTests = (
@@ -330,6 +350,7 @@ export function registerAgentMcpTools(
     new ResolveWorkflowEscalationTool(),
     new BuildAppTool(),
     new ValidateWorkflowTool(options?.registry),
+    new ValidateTimelineTool(loadTimelineForUser),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),
     new GetJobLogsTool(),

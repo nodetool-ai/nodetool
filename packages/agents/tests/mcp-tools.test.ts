@@ -10,6 +10,7 @@ import {
   DebugWorkflowTool,
   ResolveWorkflowEscalationTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListNodesTool,
@@ -529,6 +530,93 @@ describe("ValidateWorkflowTool", () => {
     expect(result.error).toContain("no node registry");
     expect(result.validated).toBe(false);
     expect(result.graph).toBeUndefined();
+  });
+});
+
+describe("ValidateTimelineTool", () => {
+  const track = {
+    id: "t1",
+    name: "Video",
+    type: "video" as const,
+    index: 0,
+    visible: true,
+    locked: false
+  };
+  const clip = (trackId: string) => ({
+    id: "c1",
+    trackId,
+    name: "Shot",
+    startMs: 0,
+    durationMs: 2000,
+    mediaType: "video" as const,
+    sourceType: "imported" as const,
+    status: "generated" as const,
+    locked: false,
+    versions: []
+  });
+  const doc = (trackId: string) => ({
+    tracks: [track],
+    clips: [clip(trackId)],
+    markers: []
+  });
+
+  it("validates an inline document and summarizes a clean result", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { document: doc("t1") })) as {
+      ok: boolean;
+      errors: unknown[];
+      summary: string;
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.summary).toBe("No issues found.");
+  });
+
+  it("reports a clip on a track the document lacks", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { document: doc("missing") })) as {
+      ok: boolean;
+      errors: Array<{ code: string }>;
+      summary: string;
+    };
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain("clip_track_missing");
+    expect(result.summary).toContain("1 error");
+  });
+
+  it("loads a saved timeline through the injected loader", async () => {
+    const loader = vi.fn().mockResolvedValue({
+      // Stored documents are JSON text; the tool parses them.
+      document: JSON.stringify(doc("missing")),
+      fps: 24,
+      width: 1920,
+      height: 1080,
+      name: "My sequence"
+    });
+    const tool = new ValidateTimelineTool(loader);
+    const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
+      ok: boolean;
+      timeline_id: string;
+      name: string;
+    };
+
+    expect(loader).toHaveBeenCalledWith(ctx, "seq-1");
+    expect(result.ok).toBe(false);
+    expect(result.timeline_id).toBe("seq-1");
+    expect(result.name).toBe("My sequence");
+  });
+
+  it("reports an error when given an id but wired with no loader", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
+      error: string;
+      validated: boolean;
+    };
+
+    expect(result.error).toContain("no timeline loader");
+    expect(result.validated).toBe(false);
   });
 });
 

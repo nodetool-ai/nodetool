@@ -517,6 +517,7 @@ describe("bridged agent tools (workflow + creative)", () => {
       "resolve_workflow_escalation",
       "build_app",
       "validate_workflow",
+      "validate_timeline",
       "list_models",
       "get_example_workflow",
       "export_workflow_digraph",
@@ -574,6 +575,19 @@ describe("bridged agent tools (workflow + creative)", () => {
     expect(res.isError).toBe(true);
     const body = JSON.parse(res.content[0].text!) as { error: string };
     expect(body.error).toContain("No graph to validate");
+  });
+
+  it("validate_timeline validates an inline document", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const res = await callTool(server, "validate_timeline", {
+      document: { tracks: [], clips: [], markers: [] }
+    });
+    const body = JSON.parse(res.content[0].text!) as {
+      ok: boolean;
+      summary: string;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.summary).toBe("No issues found.");
   });
 
   it("save_asset reports an actionable error when nothing to save", async () => {

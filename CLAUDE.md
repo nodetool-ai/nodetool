@@ -618,6 +618,11 @@ continues, so one bad target does not hide everything after it. Rendering,
 playback, decode, and generation are not simulated; the report lists that under
 `notSimulated`.
 
+The same static check is exposed to agents through the **`validate_timeline`**
+tool: pass an inline `document` to check a timeline being built, or a
+`timeline_id` to validate a saved sequence (scoped to the requesting user). The
+timeline assistant is told to call it after edits, before the user renders.
+
 The bundle (`nodetool-debug/timeline-<id>-<ts>/`) holds `report.json`,
 `report.md`, and `timeline.json` (the input document). Exit code 0 only when
 the verdict is ok. Validation and report rules live in
