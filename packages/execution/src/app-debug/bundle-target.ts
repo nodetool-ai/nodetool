@@ -10,27 +10,10 @@
  */
 import type { ApplicationBundle } from "@nodetool-ai/app-runtime";
 import type { DebugGraph } from "../debug/types.js";
+import { debugGraphOf } from "./graph-shape.js";
 import type { ResolvedAppTarget } from "./types.js";
 
 const EMPTY_GRAPH: DebugGraph = { nodes: [], edges: [] };
-
-/** ReactFlow `node.data` → kernel `node.properties`, the shape the simulator reads. */
-const normalizeGraph = (graph: DebugGraph): DebugGraph => ({
-  nodes: (graph.nodes ?? []).map((node) => {
-    if (node.properties !== undefined || node.data === undefined) return node;
-    const { data, ...rest } = node;
-    return { ...rest, properties: data };
-  }),
-  edges: graph.edges ?? []
-});
-
-/** A carried workflow's graph, or null when the entry has no node/edge arrays. */
-const graphOf = (value: unknown): DebugGraph | null => {
-  if (typeof value !== "object" || value === null) return null;
-  const graph = value as DebugGraph;
-  if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
-  return normalizeGraph(graph);
-};
 
 /**
  * Resolve a parsed bundle into a simulator target.
@@ -46,7 +29,7 @@ export function bundleTarget(
 ): ResolvedAppTarget {
   const graphs = new Map<string, DebugGraph>();
   for (const workflow of bundle.workflows) {
-    const graph = graphOf(workflow.graph);
+    const graph = debugGraphOf(workflow.graph);
     if (graph) graphs.set(workflow.key, graph);
   }
   const host =
