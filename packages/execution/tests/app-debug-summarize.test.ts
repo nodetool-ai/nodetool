@@ -131,6 +131,27 @@ describe("summarizeAppReport", () => {
     expect(summary.notSimulated).toEqual(["Layout, styling, focus, and scroll."]);
   });
 
+  it("keeps the static check's warnings, which the verdict does not carry", () => {
+    const summary = summarizeAppReport(
+      report({
+        validation: {
+          errors: [],
+          warnings: ["TextInput \"TextInput-1\": not bound to an input."]
+        },
+        verdict: {
+          ok: true,
+          headline: "App ran clean.",
+          issues: [],
+          warnings: ["Markdown \"Markdown-1\" is downstream of a branch."]
+        }
+      })
+    );
+    expect(summary.verdict.warnings).toEqual([
+      'Markdown "Markdown-1" is downstream of a branch.',
+      'TextInput "TextInput-1": not bound to an input.'
+    ]);
+  });
+
   it("reports only the interaction steps that failed", () => {
     const summary = summarizeAppReport(report());
     expect(summary.interactionErrors).toEqual([

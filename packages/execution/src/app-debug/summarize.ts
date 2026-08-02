@@ -55,6 +55,12 @@ export interface AppDebugSummary {
 }
 
 export function summarizeAppReport(report: AppDebugReport): AppDebugSummary {
+  // The verdict folds in the static check's errors but not its warnings — an
+  // unbound output or a local-only input would otherwise be dropped here, and
+  // they are exactly what a static check is for.
+  const warnings = [
+    ...new Set([...(report.verdict.warnings ?? []), ...report.validation.warnings])
+  ];
   return {
     target: {
       ref: report.target.ref,
@@ -68,7 +74,7 @@ export function summarizeAppReport(report: AppDebugReport): AppDebugSummary {
       ok: report.verdict.ok,
       headline: report.verdict.headline,
       issues: report.verdict.issues,
-      warnings: report.verdict.warnings ?? []
+      warnings
     },
     widgets: report.widgets.map((widget) => ({
       id: widget.id,
