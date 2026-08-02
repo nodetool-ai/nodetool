@@ -704,6 +704,32 @@ export {
   PLANNER_TOOL_NAMES
 } from "./evals/planner-tools.js";
 
+// Mini-app build evaluation harness (`nodetool eval app-build`)
+export {
+  runAppBuildEval,
+  formatAppBuildReport,
+  checkAppBuild,
+  APP_BUILD_TRAITS
+} from "./evals/app-build-eval.js";
+export type {
+  AppBuildEvalCase,
+  AppBuildExpectations,
+  AppBuildCheck,
+  AppBuildCaseResult,
+  AppBuildEvalReport,
+  AppBuildEvalSummary,
+  AppBuildTrait,
+  AppBuildGraph,
+  DeterministicAppBuild,
+  ScriptedToolCall,
+  RunAppBuildEvalOptions
+} from "./evals/app-build-eval.js";
+export {
+  APP_BUILD_EVAL_CASES,
+  APP_BUILD_DETERMINISTIC_CASE_IDS,
+  uncoveredAppBuildTraits
+} from "./evals/app-build-cases.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";

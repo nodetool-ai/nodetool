@@ -665,6 +665,25 @@ npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success
 npm run dev:nodetool -- eval workflow-escalation -p anthropic -m claude-sonnet-5
 ```
 
+An **`app-build`** suite scores `nodetool app build` end to end: eight
+medium-complexity prompts (two operations, a persisted setting, a streaming
+output, a gated second step, a condition that hides something) go through
+spec → plan → author → check → run → judge, and a case counts as green only
+when the build's verdict is ok *and* the delivered bundle has the shape asked
+for. It reports the one-shot rate (green with zero repair rounds — the PRD's
+north star), the green-within-budget rate that `--min-success` gates on, repair
+rounds, cost, and wall clock. Two deterministic cases author from a script over
+template graphs, call no provider, and run on every PR in the Quality Gate; the
+full suite runs nightly (`.github/workflows/app-build-eval.yml`).
+
+```bash
+npm run dev:nodetool -- eval app-build --list
+npm run dev:nodetool -- eval app-build -p anthropic -m claude-sonnet-5
+# The deterministic cases — no API key needed; the provider is never called.
+npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish \
+  -p ollama -m none --no-find-model --min-success 1
+```
+
 ### nodetool affected (Changed-File → Workspace Mapping)
 
 Maps changed files (or the git working tree) to the minimal set of workspaces to

@@ -371,6 +371,78 @@ const scriptPlannerSuite: EvalSuite = {
   }
 };
 
+/**
+ * Mini-app build suite: prompt in, verified `ApplicationBundle` out.
+ *
+ * The only suite that both plans workflows and runs them, so it needs the
+ * kernel runner (`runOnServer`, the same one `nodetool app debug` uses) and a
+ * real `ProcessingContext`. Its two deterministic cases author from a script
+ * and never touch the provider, so `--cases greeting-card,draft-then-publish`
+ * runs with no API keys at all — that is the Quality Gate's leg. The gate reads
+ * green-within-budget; the report also carries the one-shot rate the PRD calls
+ * the north star.
+ */
+const appBuildSuite: EvalSuite = {
+  id: "app-build",
+  description:
+    "Run the mini-app build eval suite (nodetool app build end to end) against a provider/model, reporting one-shot and green-within-budget rates",
+  async listCases() {
+    const { APP_BUILD_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return APP_BUILD_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description,
+      needsModelProviders: c.needsModelProviders
+    }));
+  },
+  async run(deps) {
+    const [
+      { APP_BUILD_EVAL_CASES, runAppBuildEval, formatAppBuildReport },
+      { runOnServer },
+      { getDefaultAssetsPath },
+      { getSecret },
+      { ProcessingContext, FileStorageAdapter }
+    ] = await Promise.all([
+      import("@nodetool-ai/agents"),
+      import("../debug/server-runner.js"),
+      import("@nodetool-ai/config"),
+      import("@nodetool-ai/models"),
+      import("@nodetool-ai/runtime")
+    ]);
+
+    const cases = selectCases(APP_BUILD_EVAL_CASES, deps.caseIds);
+    console.log(
+      `Running ${cases.length} app-build case(s) with ${deps.providerId}/${deps.model}` +
+        (deps.providers && Object.keys(deps.providers).length > 0
+          ? ` (find_model: ${Object.keys(deps.providers).join(", ")})`
+          : " (no model providers — prompt cases skipped)")
+    );
+
+    const report = await runAppBuildEval({
+      provider: deps.provider,
+      model: deps.model,
+      registry: deps.registry,
+      context: new ProcessingContext({
+        jobId: `eval-app-build-${Date.now()}`,
+        workflowId: null,
+        userId: "1",
+        secretResolver: getSecret,
+        storage: new FileStorageAdapter(getDefaultAssetsPath())
+      }),
+      ...(deps.providers ? { providers: deps.providers } : {}),
+      runOnServer,
+      cases,
+      ...(deps.timeoutMs !== undefined ? { timeoutMs: deps.timeoutMs } : {}),
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatAppBuildReport(report),
+      successRate: report.summary.greenWithinBudgetRate
+    };
+  }
+};
+
 /** Minimal shape of a tool-loop case, enough for `--list` + id filtering. */
 interface ToolLoopCaseLike {
   id: string;
@@ -457,6 +529,7 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
   taskPlannerSuite,
   scriptPlannerSuite,
   subtaskSuite,
+  appBuildSuite,
   makeToolLoopSuite(
     "tool-loop",
     "Run the frontend graph-editor tool-loop eval suite (ui_* graph tools) against a provider/model and report metrics",
