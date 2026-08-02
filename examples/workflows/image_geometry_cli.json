@@ -1,0 +1,252 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "lib.image.draw.Checkerboard",
+        "data": {
+          "width": 64,
+          "height": 64,
+          "cell_size": 16,
+          "color_a": { "type": "color", "value": "#ffffff" },
+          "color_b": { "type": "color", "value": "#000000" }
+        }
+      },
+
+      {
+        "id": "resized",
+        "type": "nodetool.image.Resize",
+        "data": { "width": 100, "height": 50 }
+      },
+      { "id": "scaled", "type": "nodetool.image.Scale", "data": { "scale": 0.5 } },
+      {
+        "id": "tiled",
+        "type": "lib.image.warp.Tile",
+        "data": { "tiles_x": 3, "tiles_y": 2, "wrap": 1 }
+      },
+      {
+        "id": "rotated",
+        "type": "nodetool.image.RotateAndFlip",
+        "data": { "angle": 90, "flip_horizontal": false, "flip_vertical": false }
+      },
+
+      { "id": "meta_source", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_resized", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_scaled", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_tiled", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_rotated", "type": "nodetool.image.GetMetadata" },
+
+      {
+        "id": "out_sw",
+        "type": "nodetool.output.Output",
+        "name": "source_width",
+        "data": { "name": "source_width" }
+      },
+      {
+        "id": "out_sh",
+        "type": "nodetool.output.Output",
+        "name": "source_height",
+        "data": { "name": "source_height" }
+      },
+      {
+        "id": "out_smode",
+        "type": "nodetool.output.Output",
+        "name": "source_mode",
+        "data": { "name": "source_mode" }
+      },
+      {
+        "id": "out_rw",
+        "type": "nodetool.output.Output",
+        "name": "resized_width",
+        "data": { "name": "resized_width" }
+      },
+      {
+        "id": "out_rh",
+        "type": "nodetool.output.Output",
+        "name": "resized_height",
+        "data": { "name": "resized_height" }
+      },
+      {
+        "id": "out_cw",
+        "type": "nodetool.output.Output",
+        "name": "scaled_width",
+        "data": { "name": "scaled_width" }
+      },
+      {
+        "id": "out_ch",
+        "type": "nodetool.output.Output",
+        "name": "scaled_height",
+        "data": { "name": "scaled_height" }
+      },
+      {
+        "id": "out_tw",
+        "type": "nodetool.output.Output",
+        "name": "tiled_width",
+        "data": { "name": "tiled_width" }
+      },
+      {
+        "id": "out_th",
+        "type": "nodetool.output.Output",
+        "name": "tiled_height",
+        "data": { "name": "tiled_height" }
+      },
+      {
+        "id": "out_row",
+        "type": "nodetool.output.Output",
+        "name": "rotated_width",
+        "data": { "name": "rotated_width" }
+      },
+      {
+        "id": "out_roh",
+        "type": "nodetool.output.Output",
+        "name": "rotated_height",
+        "data": { "name": "rotated_height" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "resized",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "scaled",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "tiled",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "resized",
+        "sourceHandle": "output",
+        "target": "rotated",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "m1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "meta_source",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m2",
+        "source": "resized",
+        "sourceHandle": "output",
+        "target": "meta_resized",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m3",
+        "source": "scaled",
+        "sourceHandle": "output",
+        "target": "meta_scaled",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m4",
+        "source": "tiled",
+        "sourceHandle": "output",
+        "target": "meta_tiled",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m5",
+        "source": "rotated",
+        "sourceHandle": "output",
+        "target": "meta_rotated",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "o1",
+        "source": "meta_source",
+        "sourceHandle": "width",
+        "target": "out_sw",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o2",
+        "source": "meta_source",
+        "sourceHandle": "height",
+        "target": "out_sh",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o3",
+        "source": "meta_source",
+        "sourceHandle": "mode",
+        "target": "out_smode",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o4",
+        "source": "meta_resized",
+        "sourceHandle": "width",
+        "target": "out_rw",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o5",
+        "source": "meta_resized",
+        "sourceHandle": "height",
+        "target": "out_rh",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o6",
+        "source": "meta_scaled",
+        "sourceHandle": "width",
+        "target": "out_cw",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o7",
+        "source": "meta_scaled",
+        "sourceHandle": "height",
+        "target": "out_ch",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o8",
+        "source": "meta_tiled",
+        "sourceHandle": "width",
+        "target": "out_tw",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o9",
+        "source": "meta_tiled",
+        "sourceHandle": "height",
+        "target": "out_th",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o10",
+        "source": "meta_rotated",
+        "sourceHandle": "width",
+        "target": "out_row",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o11",
+        "source": "meta_rotated",
+        "sourceHandle": "height",
+        "target": "out_roh",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

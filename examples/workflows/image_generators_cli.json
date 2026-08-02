@@ -1,0 +1,264 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "flat",
+        "type": "lib.image.draw.Background",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color": { "type": "color", "value": "#3366cc" }
+        }
+      },
+      {
+        "id": "radial",
+        "type": "lib.image.draw.RadialGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_inner": { "type": "color", "value": "#ffffff" },
+          "color_outer": { "type": "color", "value": "#000000" },
+          "radius": 0.5
+        }
+      },
+      {
+        "id": "angular",
+        "type": "lib.image.draw.AngularGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_a": { "type": "color", "value": "#ff0000" },
+          "color_b": { "type": "color", "value": "#0000ff" },
+          "rotation": 0
+        }
+      },
+      {
+        "id": "diamond",
+        "type": "lib.image.draw.DiamondGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_inner": { "type": "color", "value": "#ffffff" },
+          "color_outer": { "type": "color", "value": "#000000" },
+          "radius": 0.5
+        }
+      },
+      {
+        "id": "noise_a",
+        "type": "lib.image.draw.GaussianNoise",
+        "data": { "width": 40, "height": 24, "mean": 0.5, "stddev": 0.2, "seed": 7 }
+      },
+      {
+        "id": "noise_b",
+        "type": "lib.image.draw.GaussianNoise",
+        "data": { "width": 40, "height": 24, "mean": 0.5, "stddev": 0.2, "seed": 7 }
+      },
+      {
+        "id": "noise_c",
+        "type": "lib.image.draw.GaussianNoise",
+        "data": { "width": 40, "height": 24, "mean": 0.5, "stddev": 0.2, "seed": 99 }
+      },
+
+      {
+        "id": "cmp_same_seed",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "seed 7", "label_b": "seed 7 again" }
+      },
+      {
+        "id": "cmp_diff_seed",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "seed 7", "label_b": "seed 99" }
+      },
+      {
+        "id": "cmp_flat_radial",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "flat", "label_b": "radial" }
+      },
+
+      { "id": "meta_flat", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_radial", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_angular", "type": "nodetool.image.GetMetadata" },
+      { "id": "meta_diamond", "type": "nodetool.image.GetMetadata" },
+
+      {
+        "id": "out_flat_w",
+        "type": "nodetool.output.Output",
+        "name": "flat_width",
+        "data": { "name": "flat_width" }
+      },
+      {
+        "id": "out_flat_h",
+        "type": "nodetool.output.Output",
+        "name": "flat_height",
+        "data": { "name": "flat_height" }
+      },
+      {
+        "id": "out_radial_w",
+        "type": "nodetool.output.Output",
+        "name": "radial_width",
+        "data": { "name": "radial_width" }
+      },
+      {
+        "id": "out_angular_w",
+        "type": "nodetool.output.Output",
+        "name": "angular_width",
+        "data": { "name": "angular_width" }
+      },
+      {
+        "id": "out_diamond_w",
+        "type": "nodetool.output.Output",
+        "name": "diamond_width",
+        "data": { "name": "diamond_width" }
+      },
+      {
+        "id": "out_same_seed",
+        "type": "nodetool.output.Output",
+        "name": "same_seed_equal",
+        "data": { "name": "same_seed_equal" }
+      },
+      {
+        "id": "out_diff_seed",
+        "type": "nodetool.output.Output",
+        "name": "diff_seed_equal",
+        "data": { "name": "diff_seed_equal" }
+      },
+      {
+        "id": "out_flat_radial",
+        "type": "nodetool.output.Output",
+        "name": "flat_vs_radial_equal",
+        "data": { "name": "flat_vs_radial_equal" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "m1",
+        "source": "flat",
+        "sourceHandle": "output",
+        "target": "meta_flat",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m2",
+        "source": "radial",
+        "sourceHandle": "output",
+        "target": "meta_radial",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m3",
+        "source": "angular",
+        "sourceHandle": "output",
+        "target": "meta_angular",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m4",
+        "source": "diamond",
+        "sourceHandle": "output",
+        "target": "meta_diamond",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "c1a",
+        "source": "noise_a",
+        "sourceHandle": "output",
+        "target": "cmp_same_seed",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c1b",
+        "source": "noise_b",
+        "sourceHandle": "output",
+        "target": "cmp_same_seed",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "c2a",
+        "source": "noise_a",
+        "sourceHandle": "output",
+        "target": "cmp_diff_seed",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c2b",
+        "source": "noise_c",
+        "sourceHandle": "output",
+        "target": "cmp_diff_seed",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "c3a",
+        "source": "flat",
+        "sourceHandle": "output",
+        "target": "cmp_flat_radial",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "c3b",
+        "source": "radial",
+        "sourceHandle": "output",
+        "target": "cmp_flat_radial",
+        "targetHandle": "image_b"
+      },
+
+      {
+        "id": "o1",
+        "source": "meta_flat",
+        "sourceHandle": "width",
+        "target": "out_flat_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o2",
+        "source": "meta_flat",
+        "sourceHandle": "height",
+        "target": "out_flat_h",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o3",
+        "source": "meta_radial",
+        "sourceHandle": "width",
+        "target": "out_radial_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o4",
+        "source": "meta_angular",
+        "sourceHandle": "width",
+        "target": "out_angular_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o5",
+        "source": "meta_diamond",
+        "sourceHandle": "width",
+        "target": "out_diamond_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o6",
+        "source": "cmp_same_seed",
+        "sourceHandle": "equal",
+        "target": "out_same_seed",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o7",
+        "source": "cmp_diff_seed",
+        "sourceHandle": "equal",
+        "target": "out_diff_seed",
+        "targetHandle": "value"
+      },
+      {
+        "id": "o8",
+        "source": "cmp_flat_radial",
+        "sourceHandle": "equal",
+        "target": "out_flat_radial",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}
