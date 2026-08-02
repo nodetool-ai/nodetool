@@ -125,6 +125,57 @@ A stream wired straight into an `Output` records only its **last** item —
 `nodetool.control.Collect` in between to materialize the whole stream;
 `control_flow_stream_cli.json` shows the wiring.
 
+## Input examples
+
+These carry their own values, so they run bare — but their point is the
+`params` mapping, which matches a param to an input node by that node's `name`
+and falls back to the node's own `value`. Pass `--input` to see the override.
+`packages/base-nodes/tests/input-and-data-examples-run.test.ts` runs each one
+twice, with and without params, and asserts both.
+
+```bash
+# bool, int, float, string, select, string/text list
+npm run workflow -- ./examples/workflows/inputs_scalar_cli.json
+npm run workflow -- ./examples/workflows/inputs_scalar_cli.json --input title='overridden' --input count=42
+
+# dataframe, document, image size, colour, paths, and a message deconstructed
+npm run workflow -- ./examples/workflows/inputs_typed_cli.json
+
+# language, image, video, ASR, TTS, embedding and HuggingFace model references
+# (selecting a model is not using one — nothing here contacts a provider)
+npm run workflow -- ./examples/workflows/inputs_model_selectors_cli.json
+
+# Pivot, ForEachRow, Schema, RepeatValue
+npm run workflow -- ./examples/workflows/dataframe_reshape_cli.json
+```
+
+A numeric param outside an input's `min`/`max` is **silently clamped**, not
+rejected — `count=500` against `max: 100` yields 100. `SelectInput` is the
+exception: a value outside its options fails the run.
+
+## Image examples
+
+These need a WebGPU adapter. The image nodes go through Dawn, which has no
+software fallback, so a machine with no Vulkan driver fails them all with "No
+WebGPU adapter available". CI installs `mesa-vulkan-drivers` (lavapipe) for
+this; locally, `apt-get install -y mesa-vulkan-drivers` or see
+[AGENTS.md § WebGPU on a headless machine](../../AGENTS.md#webgpu-on-a-headless-machine)
+for the no-root route.
+
+```bash
+# Background, radial/angular/diamond gradients, seeded noise
+npm run workflow -- ./examples/workflows/image_generators_cli.json
+
+# Resize, Scale, Tile, RotateAndFlip, read back through GetMetadata
+npm run workflow -- ./examples/workflows/image_geometry_cli.json
+
+# Invert, Posterize, compared pixel-wise with CompareImages
+npm run workflow -- ./examples/workflows/image_color_roundtrip_cli.json
+```
+
+`lib.image.warp.Tile` repeats the image *inside* the existing canvas rather
+than growing it: 3×2 tiles of a 64×64 image is still 64×64.
+
 ## Agent + OpenAI provider examples
 
 ```bash
