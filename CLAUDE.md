@@ -424,9 +424,15 @@ Conditions and formatting are simulated: after every fold the harness evaluates
 each widget's `visibleWhen`/`disabledWhen`, a click or change on a widget that
 is hidden or disabled fails the step and names the condition, a run trigger
 whose condition never held is an error, and a widget with a `format` template
-reports what the template renders. Not simulated headlessly (the report lists
-this too, under `notSimulated`): layout, styling, focus, and scroll; and
-`from: "resource"` params, which have no provider outside the browser.
+reports what the template renders. Resource collections come from an in-memory
+provider the script seeds — `{"seedResource":{"id":"<binding>","items":[…]}}`
+as an interaction step, or a `resource:<binding>` key in `--params`. A
+`from: "resource"` input then resolves through it, resource widgets report their
+collection in the report, and a `resourceCommand` mutates it; running an
+operation whose input reads an unseeded binding fails and says how to seed it.
+Not simulated headlessly (the report lists this too, under `notSimulated`):
+layout, styling, focus, and scroll; and the stored collections themselves — a
+run never reads the database, and `openResource` has no editor to open.
 
 The shipped example apps are curated `ApplicationBundle` files in
 `packages/base-nodes/nodetool/examples/apps/`, built from the spec in

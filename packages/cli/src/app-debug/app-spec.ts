@@ -592,7 +592,7 @@ function validateMappings(
           );
         } else {
           warnings.push(
-            `${label}: input "${nodeId}" comes from a resource — headless runs have no resource provider, so it stays unset.`
+            `${label}: input "${nodeId}" comes from resource binding "${mapping.resourceBindingId}" — a headless run only sees a seeded collection, so seed it with a seedResource step or a "resource:${mapping.resourceBindingId}" param before running.`
           );
         }
         break;

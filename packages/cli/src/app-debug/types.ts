@@ -27,6 +27,9 @@ import type {
   DebugVerdict,
   ServerRunReport
 } from "../debug/types.js";
+import type { SeedResourceItem } from "./runtime.js";
+
+export type { SeedResourceItem };
 
 /** How a widget participates in the reactive layer (from the shared catalog). */
 export type WidgetBindingMode = SharedWidgetBindingMode | "unknown";
@@ -145,6 +148,7 @@ export interface AppValidation {
  *  - `click`  — fire a widget's `click` events
  *  - `run`    — run one operation by id, without going through a widget
  *  - `cancel` — cancel an operation's live invocations
+ *  - `seedResource` — fill a declared resource binding's collection
  * Widgets are referenced by component id, unique type, or unique label.
  * `set` resolves against the default operation unless `operationId` says
  * otherwise.
@@ -154,7 +158,8 @@ export type InteractionStep =
   | { click: string }
   | { change: string; value: unknown }
   | { run: string }
-  | { cancel: string };
+  | { cancel: string }
+  | { seedResource: { id: string; items: SeedResourceItem[] } };
 
 /** What actually happened when a step executed. */
 export interface InteractionRecord {
@@ -191,6 +196,11 @@ export interface AppWidgetState {
   bindingMode: WidgetBindingMode;
   binding: string | null;
   stateKey: string | null;
+  /**
+   * For a resource widget, the collection it shows. Its {@link value} is that
+   * collection's members rather than a bound state value.
+   */
+  resourceBindingId?: string | null;
   /** Preview-safe final value (long strings/blobs truncated). */
   value: unknown;
   /**
@@ -207,6 +217,19 @@ export interface AppWidgetState {
   visible: boolean;
   /** Whether its `disabledWhen` held once the simulation settled. */
   disabled: boolean;
+}
+
+/** One resource collection after the simulation settled. */
+export interface AppResourceCollectionState {
+  id: string;
+  kind: ResourceKind;
+  /** False when no step or param seeded the collection — it has no provider. */
+  seeded: boolean;
+  items: Array<{ id: string; name: string; revision?: number }>;
+  /** The member a `from: "resource"` param would send. */
+  selected: string | null;
+  /** Commands dispatched against the binding, in order. */
+  commands: string[];
 }
 
 export interface AppDebugReport {
@@ -231,6 +254,8 @@ export interface AppDebugReport {
   /** The activity labels the runs reported, in order. */
   activity: Array<{ invocationId: string; operationId: string; label: string }>;
   widgets: AppWidgetState[];
+  /** Every declared resource binding and what its collection held at the end. */
+  resources: AppResourceCollectionState[];
   /**
    * What a headless run cannot answer, so a reader knows what the verdict does
    * not cover. Conditions and `format` are simulated; layout is not.
@@ -242,7 +267,11 @@ export interface AppDebugReport {
 
 /** Options that drive an app debug run. */
 export interface AppDebugOptions {
-  /** Reactive values applied before interactions, keyed by input name. */
+  /**
+   * Reactive values applied before interactions, keyed by input name. A
+   * `resource:<binding id>` key seeds that collection instead, taking an array
+   * of {@link SeedResourceItem}.
+   */
   params?: Record<string, unknown>;
   /**
    * Scripted interactions. When omitted the harness fires the app's natural

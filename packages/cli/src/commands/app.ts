@@ -33,10 +33,13 @@ export function registerAppCommands(program: Command): void {
     .description(
       "Run a mini app headlessly (validate widget wiring, simulate interactions, execute the workflows) and collect a debug bundle. Takes an application id, an ApplicationBundle JSON file, or a workflow id/file carrying a legacy app_doc"
     )
-    .option("--params <json>", "Reactive values applied before interactions, keyed by input name")
+    .option(
+      "--params <json>",
+      'Reactive values applied before interactions, keyed by input name; a "resource:<binding id>" key seeds that collection with an array of items'
+    )
     .option(
       "--interact <json>",
-      'Scripted interaction steps: set, change, click, run (by operation id), cancel — e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"run":"main"}]\''
+      'Scripted interaction steps: set, change, click, run (by operation id), cancel, seedResource — e.g. \'[{"set":{"key":"prompt","value":"hi"}},{"run":"main"}]\''
     )
     .option("--no-run", "Static wiring check only — never execute the workflow")
     .option(

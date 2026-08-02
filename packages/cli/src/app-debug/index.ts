@@ -17,6 +17,16 @@ export type {
   AppWorkflowRecord,
   ResolvedAppTarget
 } from "./app-target.js";
-export { HeadlessAppRuntime, effectiveTimeoutMs } from "./runtime.js";
+export {
+  HeadlessAppRuntime,
+  InMemoryResourceProvider,
+  effectiveTimeoutMs,
+  seedResourceHint
+} from "./runtime.js";
+export type {
+  HeadlessResourceCommand,
+  HeadlessResourceProvider,
+  ResourceItem
+} from "./runtime.js";
 export { renderAppReportMarkdown } from "./markdown.js";
 export type * from "./types.js";

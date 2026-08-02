@@ -122,6 +122,20 @@ export function renderAppReportMarkdown(report: AppDebugReport): string {
     }
   }
 
+  if (report.resources?.length > 0) {
+    lines.push("", "## Resources", "");
+    for (const resource of report.resources) {
+      const items = resource.seeded
+        ? `${resource.items.length} item(s)${
+            resource.selected ? `, selected \`${resource.selected}\`` : ""
+          }`
+        : "not seeded";
+      const commands =
+        resource.commands.length > 0 ? ` — ${resource.commands.join(", ")}` : "";
+      lines.push(`- \`${resource.id}\` (${resource.kind}): ${items}${commands}`);
+    }
+  }
+
   const values = Object.entries(report.values);
   if (values.length > 0) {
     lines.push("", "## Final values", "");

@@ -279,8 +279,21 @@ It follows your conditions too: a widget hidden or disabled by `visibleWhen` or
 that blocked it, and a Run button no state ever makes visible is an error. A
 widget with a `format` template is reported as the template renders it.
 
-What it can't check: how the app looks — layout, styling, focus — and inputs
-that come from a resource, since resources only exist in the browser.
+Resources work too, from a collection you seed. Give the run the items a
+picker, gallery, or scene list would show, and an input that comes from that
+resource is sent, a `create`/`update`/`delete` button changes the collection,
+and the report lists what it holds at the end. A run whose input reads a
+collection nothing seeded fails and tells you how to seed it.
+
+```bash
+npm run dev:nodetool -- app debug <id> \
+  --interact '[{"seedResource":{"id":"boards","items":[{"id":"b1","name":"Opening"}]}},{"click":"Run"}]'
+npm run dev:nodetool -- app debug <id> --params '{"resource:boards":[{"id":"b1"}]}'
+```
+
+What it can't check: how the app looks — layout, styling, focus — and your
+stored resources, since the run reads the seeded collection rather than the
+database, and has no editor for `openResource` to open.
 
 To debug the workflow itself, `nodetool validate` is the quick check and
 `nodetool debug` is the full run. See [Workflow Debugging](workflow-debugging.md).

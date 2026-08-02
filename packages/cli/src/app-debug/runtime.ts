@@ -5,7 +5,8 @@
  * vocabulary all live in `@nodetool-ai/app-runtime` — the same code the web and
  * mobile runtimes run. This file only supplies what a headless run needs: a
  * workflow executor per operation and the bookkeeping that turns an awaited run
- * into an invocation.
+ * into an invocation, plus the in-memory resource collections a run gets in
+ * place of the server-backed ones the web runtime reads.
  *
  * The web engine's reactive subgraph runs collapse to full workflow runs here
  * (the headless kernel has no browser worker), which the report notes rather
@@ -36,9 +37,14 @@ import {
   type ConditionProps,
   type InvocationState,
   type OperationBinding,
+  type ResourceBinding,
+  type ResourceKind,
+  type ResourceOperation,
+  type ResourceRef,
   type RunDecision,
   type VariableDeclaration
 } from "@nodetool-ai/app-runtime";
+import type { ResourceDetail } from "@nodetool-ai/protocol/api-schemas/resources.js";
 
 /** What one run returned: its messages plus where its report landed. */
 export interface HeadlessRunResult {
@@ -91,6 +97,8 @@ export interface HeadlessRuntimeInit {
   defaultOperationId: string;
   /** Declared variables, for `seedVariables`. */
   variables?: ReadonlyArray<VariableDeclaration>;
+  /** Declared resource bindings — what `seedResource` can attach a collection to. */
+  resources?: ReadonlyArray<ResourceBinding>;
   /** Ceiling on every run, on top of each operation's own `timeoutMs`. */
   timeoutMs?: number;
   /** Placed widgets, for condition and `format` evaluation. */
@@ -112,6 +120,192 @@ export const describeCondition = (
   const value = props.value === undefined || props.value === "" ? "" : ` ${props.value}`;
   return `${props.binding} ${op}${value}`;
 };
+
+/**
+ * One member of a collection, in the envelope the resources router speaks
+ * (`ResourceDetail`): a `ResourceRef`, the fields a picker lists, and the
+ * provider's payload.
+ */
+export type ResourceItem = ResourceDetail;
+
+/** A collection member as a seed step or a `resource:` param writes it. */
+export interface SeedResourceItem {
+  id: string;
+  name?: string;
+  /** The provider's payload: a document body, or an asset's metadata. */
+  document?: unknown;
+  contentType?: string | null;
+  projectId?: string | null;
+  revision?: number;
+  updatedAt?: string;
+}
+
+/** What a `resourceCommand` asks a provider to do. */
+export interface HeadlessResourceCommand {
+  command: ResourceOperation | "upload";
+  /** The item the widget points at. Ignored by `create` and `upload`. */
+  ref?: ResourceRef | null;
+  args?: Record<string, unknown>;
+}
+
+/**
+ * The collection behind one resource binding, headless.
+ *
+ * The web runtime reads collections over tRPC and hands widgets a `ResourceRef`
+ * to act on; a headless run has no server and no user, so it gets the same
+ * envelope from a seeded provider instead. Nothing here touches the database —
+ * a run only ever sees what the interaction script or `--params` put in.
+ */
+export interface HeadlessResourceProvider {
+  readonly kind: ResourceKind;
+  list(): ResourceItem[];
+  get(id: string): ResourceItem | null;
+  /** The item a `from: "resource"` param sends and a command acts on. */
+  selected(): ResourceRef | null;
+  select(ref: ResourceRef | null): void;
+  apply(op: HeadlessResourceCommand): ResourceItem | null;
+}
+
+/** How to seed a collection, named in every message about an unseeded one. */
+export const seedResourceHint = (resourceBindingId: string): string =>
+  `seed it with an interaction step {"seedResource":{"id":"${resourceBindingId}","items":[{"id":"item-1"}]}} or a "resource:${resourceBindingId}" param`;
+
+/**
+ * A collection held in memory for the length of one debug run.
+ *
+ * Selection follows `useBoundResource`: a pinned `fixedId` wins, else the item
+ * the last command or `select` chose, else the first member — so a picker that
+ * nobody touched still has something to send.
+ */
+export class InMemoryResourceProvider implements HeadlessResourceProvider {
+  readonly kind: ResourceKind;
+  private readonly items: ResourceItem[] = [];
+  private readonly pinnedId: string | null;
+  private chosenId: string | null = null;
+  private seq = 0;
+
+  constructor(init: {
+    kind: ResourceKind;
+    items?: ReadonlyArray<SeedResourceItem>;
+    /** A binding scoped to one document pins its id. */
+    pinnedId?: string;
+  }) {
+    this.kind = init.kind;
+    this.pinnedId = init.pinnedId ?? null;
+    for (const seed of init.items ?? []) this.items.push(this.toItem(seed));
+  }
+
+  /**
+   * Timestamps come from a counter, not the clock, so two runs of the same
+   * script produce identical reports.
+   */
+  private toItem(seed: SeedResourceItem): ResourceItem {
+    this.seq += 1;
+    return {
+      ref: { kind: this.kind, id: seed.id, revision: seed.revision ?? 1 },
+      name: seed.name ?? seed.id,
+      projectId: seed.projectId ?? null,
+      contentType: seed.contentType ?? null,
+      updatedAt: seed.updatedAt ?? new Date(this.seq * 1000).toISOString(),
+      document: seed.document
+    };
+  }
+
+  list(): ResourceItem[] {
+    return [...this.items];
+  }
+
+  get(id: string): ResourceItem | null {
+    return this.items.find((item) => item.ref.id === id) ?? null;
+  }
+
+  selected(): ResourceRef | null {
+    const targetId = this.pinnedId ?? this.chosenId ?? this.items[0]?.ref.id ?? null;
+    if (!targetId) return null;
+    // A pinned id can sit outside the collection; point at it anyway, the way
+    // the web runtime does.
+    return this.get(targetId)?.ref ?? { kind: this.kind, id: targetId };
+  }
+
+  select(ref: ResourceRef | null): void {
+    this.chosenId = ref?.id ?? null;
+  }
+
+  apply(op: HeadlessResourceCommand): ResourceItem | null {
+    const args = op.args ?? {};
+    const name = typeof args.name === "string" ? args.name : undefined;
+    switch (op.command) {
+      case "read": {
+        const ref = op.ref ?? this.selected();
+        return ref ? this.get(ref.id) : null;
+      }
+      case "create":
+      case "upload": {
+        const item = this.toItem({
+          id: typeof args.id === "string" ? args.id : this.nextId(),
+          ...(name !== undefined ? { name } : {}),
+          document: args.document,
+          ...(typeof args.contentType === "string"
+            ? { contentType: args.contentType }
+            : {})
+        });
+        this.items.push(item);
+        this.chosenId = item.ref.id;
+        return item;
+      }
+      case "update": {
+        const ref = op.ref ?? this.selected();
+        const index = ref ? this.items.findIndex((i) => i.ref.id === ref.id) : -1;
+        if (!ref || index < 0) {
+          throw new Error(
+            `Resource command "update" has nothing to write: the collection holds no resource "${ref?.id ?? ""}".`
+          );
+        }
+        const current = this.items[index];
+        // The web providers reject a write whose revision is behind the row;
+        // headless keeps the rule so a script cannot pretend a stale write works.
+        if (
+          ref.revision !== undefined &&
+          current.ref.revision !== undefined &&
+          ref.revision < current.ref.revision
+        ) {
+          throw new Error(
+            `Resource command "update" carries revision ${ref.revision} but resource "${ref.id}" is at ${current.ref.revision}.`
+          );
+        }
+        this.seq += 1;
+        const next: ResourceItem = {
+          ...current,
+          ref: { ...current.ref, revision: (current.ref.revision ?? 0) + 1 },
+          name: name ?? current.name,
+          document: "document" in args ? args.document : current.document,
+          updatedAt: new Date(this.seq * 1000).toISOString()
+        };
+        this.items[index] = next;
+        return next;
+      }
+      case "delete": {
+        const ref = op.ref ?? this.selected();
+        const index = ref ? this.items.findIndex((i) => i.ref.id === ref.id) : -1;
+        if (!ref || index < 0) {
+          throw new Error(
+            `Resource command "delete" has nothing to remove: the collection holds no resource "${ref?.id ?? ""}".`
+          );
+        }
+        const [removed] = this.items.splice(index, 1);
+        if (this.chosenId === removed.ref.id) this.chosenId = null;
+        return removed;
+      }
+    }
+  }
+
+  /** An id no member holds, so `create` twice makes two resources. */
+  private nextId(): string {
+    let n = this.items.length + 1;
+    while (this.get(`${this.kind}-${n}`)) n += 1;
+    return `${this.kind}-${n}`;
+  }
+}
 
 /** One simulated invocation, as the report shows it. */
 export interface HeadlessInvocationRecord {
@@ -196,10 +390,22 @@ export class HeadlessAppRuntime {
     state: HeadlessWidgetState;
   }> = [];
   private readonly widgetStates = new Map<string, HeadlessWidgetState>();
+  /** Declared resource bindings, keyed by id. */
+  private readonly resourceBindings = new Map<string, ResourceBinding>();
+  /** Seeded collections, keyed by resource binding id. */
+  private readonly providers = new Map<string, HeadlessResourceProvider>();
+  /** Every resource command dispatched, in order. */
+  readonly resourceCommands: Array<{
+    resourceBindingId: string;
+    command: string;
+  }> = [];
 
   constructor(init: HeadlessRuntimeInit) {
     this.init = init;
     const scope = init.scope;
+    for (const binding of init.resources ?? []) {
+      this.resourceBindings.set(binding.id, binding);
+    }
     for (const widget of init.widgets ?? []) {
       const state: HeadlessWidgetState = {
         visible: true,
@@ -263,6 +469,41 @@ export class HeadlessAppRuntime {
     return formatTemplate(widget.init.format, this._state, this.init.scope);
   }
 
+  /**
+   * Attach a collection to a declared resource binding, replacing whatever was
+   * seeded before. Seeding is the only way a headless run gets resources.
+   */
+  seedResource(
+    resourceBindingId: string,
+    items: ReadonlyArray<SeedResourceItem>
+  ): HeadlessResourceProvider {
+    const binding = this.resourceBindings.get(resourceBindingId);
+    if (!binding) {
+      const declared = [...this.resourceBindings.keys()];
+      throw new Error(
+        `No resource binding "${resourceBindingId}" is declared by this app` +
+          (declared.length > 0 ? ` (declared: ${declared.join(", ")}).` : ".")
+      );
+    }
+    const provider = new InMemoryResourceProvider({
+      kind: binding.kind,
+      items,
+      ...(binding.scope.fixedId ? { pinnedId: binding.scope.fixedId } : {})
+    });
+    this.providers.set(resourceBindingId, provider);
+    return provider;
+  }
+
+  /** The collection behind a resource binding, or null when nothing seeded it. */
+  resourceProvider(resourceBindingId: string): HeadlessResourceProvider | null {
+    return this.providers.get(resourceBindingId) ?? null;
+  }
+
+  /** Resource bindings the document declares, in document order. */
+  get resourceBindingList(): ResourceBinding[] {
+    return [...this.resourceBindings.values()];
+  }
+
   /** Last error reported against an operation's active invocation. */
   errorFor(operationId: string): string | null {
     return operationError(this.state, operationId) ?? null;
@@ -323,8 +564,33 @@ export class HeadlessAppRuntime {
       operation: operation.binding,
       state: this.state,
       inputName: (nodeId) => operation.inputNameByNodeId.get(nodeId),
-      inputNodeIds: operation.inputNodeIds
+      inputNodeIds: operation.inputNodeIds,
+      resourceRef: (resourceBindingId) =>
+        this.providers.get(resourceBindingId)?.selected() ?? undefined
     });
+  }
+
+  /**
+   * Refuse to run an operation whose inputs read a collection nothing seeded.
+   * Sending no param for it would look like a passing run against an app that
+   * cannot work, which is the failure this harness exists to catch.
+   */
+  private assertResourcesSeeded(binding: OperationBinding): void {
+    for (const [nodeId, mapping] of Object.entries(binding.inputs)) {
+      if (mapping.from !== "resource") continue;
+      const id = mapping.resourceBindingId;
+      const provider = this.providers.get(id);
+      if (!provider) {
+        throw new Error(
+          `Operation "${binding.id}" input "${nodeId}" comes from resource binding "${id}", which nothing seeded — ${seedResourceHint(id)}.`
+        );
+      }
+      if (!provider.selected()) {
+        throw new Error(
+          `Operation "${binding.id}" input "${nodeId}" comes from resource binding "${id}", which was seeded empty — the run has no resource to send. Seed at least one item.`
+        );
+      }
+    }
   }
 
   /** Dispatch one action; a `run` executes the workflow and folds its stream. */
@@ -349,10 +615,31 @@ export class HeadlessAppRuntime {
           variableId: action.variableId
         });
         break;
-      case "resourceCommand":
+      case "resourceCommand": {
+        const provider = this.providers.get(action.resourceBindingId);
+        if (!provider) {
+          throw new Error(
+            `Resource command "${action.command}" targets resource binding "${action.resourceBindingId}", which nothing seeded — ${seedResourceHint(action.resourceBindingId)}.`
+          );
+        }
+        provider.apply({
+          command: action.command,
+          ref: provider.selected(),
+          ...(action.args ? { args: action.args } : {})
+        });
+        this.resourceCommands.push({
+          resourceBindingId: action.resourceBindingId,
+          command: action.command
+        });
+        break;
+      }
       case "openResource":
-        // Headless runs have no resource providers attached; the harness
-        // records the action and moves on.
+        // Opening a resource in its own editor is the host app's job, and a
+        // headless run has no editor — record the request and move on.
+        this.resourceCommands.push({
+          resourceBindingId: action.resourceBindingId,
+          command: "open"
+        });
         break;
     }
   }
@@ -390,6 +677,8 @@ export class HeadlessAppRuntime {
         `Operation "${operationId}" has no runnable workflow — its binding could not be resolved.`
       );
     }
+
+    this.assertResourcesSeeded(operation.binding);
 
     const decision = decideRun(this.state, operation.binding);
     const targets =

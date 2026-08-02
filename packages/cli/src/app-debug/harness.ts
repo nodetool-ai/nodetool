@@ -4,7 +4,8 @@
  * Resolves a workflow target, parses its `app_doc` into a widget spec and a set
  * of operations, statically validates the wiring, then simulates the app
  * headlessly the way the web and mobile runtimes do: seed input and variable
- * defaults, apply params, execute the interaction script (each `run` action is
+ * defaults, apply params, attach the resource collections the script seeds,
+ * execute the interaction script (each `run` action is
  * a full workflow run on the kernel server runner, subject to the operation's
  * policy and timeout), fold the message stream into the app's reactive values,
  * and re-evaluate every widget's conditions — a step no user could perform,
@@ -51,7 +52,8 @@ import type {
   AppSpec,
   AppWidgetSpec,
   InteractionRecord,
-  InteractionStep
+  InteractionStep,
+  SeedResourceItem
 } from "./types.js";
 
 export interface AppDebugDeps {
@@ -116,6 +118,7 @@ export function defaultInteractions(spec: AppSpec): InteractionStep[] {
 
 function describeStep(step: InteractionStep): string {
   if ("set" in step) return `set ${step.set.key}`;
+  if ("seedResource" in step) return `seedResource ${step.seedResource.id}`;
   if ("click" in step) return `click ${step.click}`;
   if ("run" in step) return `run ${step.run}`;
   if ("cancel" in step) return `cancel ${step.cancel}`;
@@ -186,14 +189,20 @@ function nodeIdsByName(graph: DebugGraph): Map<string, string> {
  */
 const NOT_SIMULATED: ReadonlyArray<string> = [
   "Layout, styling, focus, and scroll — nothing here renders a DOM.",
-  'Resource collections and `from: "resource"` params — a headless run has no resource provider.',
+  "Stored resource collections — a run reads the seeded in-memory provider, never the database, and `openResource` has no editor to open.",
   "Reactive subgraph runs — the browser reruns one input's downstream subgraph, the harness runs the whole workflow."
 ];
 
 function buildAppVerdict(
   report: Pick<
     AppDebugReport,
-    "validation" | "interactions" | "runs" | "widgets" | "spec" | "invocations"
+    | "validation"
+    | "interactions"
+    | "runs"
+    | "widgets"
+    | "spec"
+    | "invocations"
+    | "resources"
   >,
   ranWorkflow: boolean,
   graph: DebugGraph,
@@ -222,6 +231,19 @@ function buildAppVerdict(
       `Operation "${invocation.operationId}" did not finish within its ${invocation.timedOutMs}ms timeout — the app would show it still running.`
     );
   }
+  // A picker over an unseeded collection renders empty, and no interaction can
+  // pick from it — worth saying, but only the script knows what belongs there.
+  for (const resource of report.resources) {
+    if (resource.seeded) continue;
+    const shown = report.widgets
+      .filter((w) => w.resourceBindingId === resource.id)
+      .map((w) => `${w.type} "${w.id}"`);
+    if (shown.length === 0) continue;
+    warnings.push(
+      `${shown.join(", ")} shows resource binding "${resource.id}", which nothing seeded — the collection is empty. Seed it with a seedResource step or a "resource:${resource.id}" param.`
+    );
+  }
+
   const ranOperations = new Set(report.invocations.map((i) => i.operationId));
   if (ranWorkflow && report.runs.length > 0 && report.runs.every((r) => r.ok)) {
     const conditional = conditionalNodeIds(graph);
@@ -434,6 +456,7 @@ export async function runAppDebug(
     invocations: [],
     activity: [],
     widgets: [],
+    resources: [],
     notSimulated: [...NOT_SIMULATED],
     verdict: { ok: false, headline: "", issues: [] },
     bundleDir: outDir
@@ -531,6 +554,7 @@ export async function runAppDebug(
       operations,
       defaultOperationId: context.defaultOperationId,
       variables: context.variables,
+      resources: document?.resources ?? [],
       scope,
       widgets: spec.widgets.map((w) => ({
         id: w.id,
@@ -555,10 +579,41 @@ export async function runAppDebug(
       return true;
     };
 
+    /** Seed one collection, reporting why a bad seed did nothing. */
+    const seedResource = (
+      resourceBindingId: string,
+      items: unknown
+    ): string | null => {
+      if (!Array.isArray(items)) {
+        return `Resource seed for "${resourceBindingId}" is not an array of items.`;
+      }
+      const seeds: SeedResourceItem[] = [];
+      for (const item of items) {
+        const seed = item as SeedResourceItem | null;
+        if (!seed || typeof seed.id !== "string" || seed.id.length === 0) {
+          return `Resource seed for "${resourceBindingId}" has an item without an "id".`;
+        }
+        seeds.push(seed);
+      }
+      try {
+        runtime.seedResource(resourceBindingId, seeds);
+        return null;
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+
     for (const [key, value] of Object.entries({
       ...resolved.fileParams,
       ...(options.params ?? {})
     })) {
+      // `--params '{"resource:docs": [...]}'` seeds a collection; every other
+      // key writes a reactive value.
+      if (key.startsWith("resource:")) {
+        const failure = seedResource(key.slice("resource:".length), value);
+        if (failure) report.validation.warnings.push(failure);
+        continue;
+      }
       if (!writeByName(key, value)) {
         report.validation.warnings.push(
           `Param "${key}" matches no input, output, or variable in the workflow.`
@@ -602,6 +657,14 @@ export async function runAppDebug(
         } else {
           record.error = `"${step.set.key}" matches no input, output, or variable.`;
         }
+        continue;
+      }
+
+      if ("seedResource" in step) {
+        const { id, items } = step.seedResource;
+        const failure = seedResource(id, items);
+        if (failure) record.error = failure;
+        else record.actions.push(`seedResource ${id} (${items.length} item(s))`);
         continue;
       }
 
@@ -734,9 +797,49 @@ export async function runAppDebug(
     }));
     report.activity = [...runtime.activity];
 
+    report.resources = runtime.resourceBindingList.map((binding) => {
+      const provider = runtime.resourceProvider(binding.id);
+      const items = provider?.list() ?? [];
+      return {
+        id: binding.id,
+        kind: binding.kind,
+        seeded: provider !== null,
+        items: items.map((item) => ({
+          id: item.ref.id,
+          name: item.name,
+          ...(item.ref.revision !== undefined ? { revision: item.ref.revision } : {})
+        })),
+        selected: provider?.selected()?.id ?? null,
+        commands: runtime.resourceCommands
+          .filter((c) => c.resourceBindingId === binding.id)
+          .map((c) => c.command)
+      };
+    });
+
     report.widgets = spec.widgets
       .filter((w) => w.bindingMode !== "layout")
       .map((w) => {
+        // A resource widget shows a collection, not a state value — report what
+        // its picker or gallery would list.
+        if (w.resourceBindingId) {
+          const items = runtime.resourceProvider(w.resourceBindingId)?.list() ?? [];
+          const state = runtime.widgetState(w.id);
+          return {
+            id: w.id,
+            type: w.type,
+            bindingMode: w.bindingMode,
+            binding: w.binding,
+            stateKey: w.stateKey,
+            resourceBindingId: w.resourceBindingId,
+            value: previewValue(
+              items.map((item) => ({ id: item.ref.id, name: item.name }))
+            ),
+            display: null,
+            hasValue: items.length > 0,
+            visible: state?.visible ?? true,
+            disabled: state?.disabled ?? false
+          };
+        }
         const value = runtime.read(w.ref);
         // A `format` template is what the widget actually shows, so it — not
         // the raw value — decides whether anything reached the screen.
