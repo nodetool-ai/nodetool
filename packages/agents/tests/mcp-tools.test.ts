@@ -8,6 +8,7 @@ import {
   CreateWorkflowTool,
   RunWorkflowTool,
   DebugWorkflowTool,
+  ResolveWorkflowEscalationTool,
   ValidateWorkflowTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -335,6 +336,29 @@ describe("RunWorkflowTool", () => {
     expect(lastFetchUrl()).toContain("/api/workflows/wf-456/run");
     expect(lastFetchOpts().method).toBe("POST");
   });
+
+  it("forwards interactive and annotates an escalated response", async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "escalated",
+        session_id: "sess-1",
+        escalation_id: "esc-1",
+        escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
+      }),
+      text: async () => ""
+    });
+
+    const result = (await tool.process(ctx, {
+      workflow_id: "wf-456",
+      interactive: true
+    })) as Record<string, unknown>;
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.interactive).toBe(true);
+    expect(result.status).toBe("escalated");
+    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+  });
 });
 
 describe("DebugWorkflowTool", () => {
@@ -392,6 +416,98 @@ describe("DebugWorkflowTool", () => {
     expect(report.note).toContain("no /debug endpoint");
     const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.endsWith("/run"))).toBe(true);
+  });
+
+  it("returns the escalation directly when the interactive run parks", async () => {
+    respondTo({
+      "/debug": {
+        body: {
+          status: "escalated",
+          session_id: "sess-9",
+          escalation_id: "esc-1",
+          escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
+        }
+      }
+    });
+
+    const report = (await tool.process(ctx, {
+      workflow_id: "wf-1",
+      interactive: true
+    })) as Record<string, unknown>;
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.interactive).toBe(true);
+    const run = report.run as Record<string, unknown>;
+    expect(run.status).toBe("escalated");
+    expect(String(run.next_tool)).toContain("resolve_workflow_escalation");
+    // No report exists yet, so neither the job nor the graph is fetched.
+    expect(fetchSpy.mock.calls).toHaveLength(1);
+  });
+});
+
+describe("ResolveWorkflowEscalationTool", () => {
+  const tool = new ResolveWorkflowEscalationTool();
+
+  it("posts the verdict to the session endpoint", async () => {
+    await tool.process(ctx, {
+      session_id: "sess-9",
+      escalation_id: "esc-1",
+      action: "skip",
+      apply_to: "signature"
+    });
+
+    expect(lastFetchUrl()).toContain("/api/debug/sessions/sess-9/verdict");
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.escalation_id).toBe("esc-1");
+    expect(body.verdict).toEqual({ action: "skip", applyTo: "signature" });
+  });
+
+  it("carries substitute outputs and fail reasons, nothing else", async () => {
+    await tool.process(ctx, {
+      session_id: "s",
+      escalation_id: "e",
+      action: "substitute",
+      outputs: { value: "repaired" },
+      reason: "ignored for substitute"
+    });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.verdict).toEqual({
+      action: "substitute",
+      outputs: { value: "repaired" }
+    });
+
+    fetchSpy.mockClear();
+    await tool.process(ctx, {
+      session_id: "s",
+      escalation_id: "e",
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+    const failBody = JSON.parse(lastFetchOpts().body as string);
+    expect(failBody.verdict).toEqual({
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+  });
+
+  it("annotates a follow-up escalation so the loop continues", async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "escalated",
+        session_id: "sess-9",
+        escalation_id: "esc-2",
+        escalation: { nodeId: "n2", allowedActions: ["skip", "fail"] }
+      }),
+      text: async () => ""
+    });
+
+    const result = (await tool.process(ctx, {
+      session_id: "sess-9",
+      escalation_id: "esc-1",
+      action: "skip"
+    })) as Record<string, unknown>;
+    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
   });
 });
 

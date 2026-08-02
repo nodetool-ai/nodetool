@@ -592,10 +592,31 @@ export class CreateWorkflowTool extends Tool {
   }
 }
 
+/**
+ * Escalated run payloads name the follow-up tool, so the model driving the
+ * loop knows how to answer without reading endpoint docs.
+ */
+function annotateEscalatedRun(run: unknown): unknown {
+  if (!run || typeof run !== "object") return run;
+  const record = run as Record<string, unknown>;
+  if (record["status"] !== "escalated") return run;
+  return {
+    ...record,
+    next_tool:
+      "A node invocation failed and the run is parked awaiting your verdict. " +
+      "Call resolve_workflow_escalation with this session_id and " +
+      "escalation_id and one of the escalation's allowedActions."
+  };
+}
+
 export class RunWorkflowTool extends Tool {
   readonly name = "run_workflow";
   readonly description =
-    "Execute a workflow with given parameters and return results.";
+    "Execute a workflow with given parameters and return results. With " +
+    "interactive=true a failing node invocation pauses the run and returns " +
+    "an escalation (status \"escalated\") for you to answer via " +
+    "resolve_workflow_escalation — retry, substitute, skip, or fail — " +
+    "instead of the whole run failing outright.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -606,6 +627,12 @@ export class RunWorkflowTool extends Tool {
       params: {
         type: "object" as const,
         description: "Dictionary of input parameters for the workflow"
+      },
+      interactive: {
+        type: "boolean" as const,
+        description:
+          "Bubble node failures up as escalations you answer, instead of " +
+          "failing the run (default false)"
       }
     },
     required: ["workflow_id"]
@@ -615,9 +642,15 @@ export class RunWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, `/api/workflows/${params["workflow_id"]}/run`, {
-      params: params["params"] ?? {}
-    });
+    const run = await apiPost(
+      context,
+      `/api/workflows/${params["workflow_id"]}/run`,
+      {
+        params: params["params"] ?? {},
+        ...(params["interactive"] === true ? { interactive: true } : {})
+      }
+    );
+    return annotateEscalatedRun(run);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -653,7 +686,10 @@ export class DebugWorkflowTool extends Tool {
     "Run a workflow end-to-end and return a consolidated debug report: a " +
     "pass/fail verdict with the issues behind it, per-node status and errors, " +
     "logs, LLM calls, outputs, job record, and the workflow graph overview. " +
-    "Use this to troubleshoot a failing or misbehaving workflow and iterate.";
+    "Use this to troubleshoot a failing or misbehaving workflow and iterate. " +
+    "With interactive=true a failing node invocation pauses the run and " +
+    "returns an escalation (status \"escalated\") for you to answer via " +
+    "resolve_workflow_escalation before the report is produced.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -664,6 +700,12 @@ export class DebugWorkflowTool extends Tool {
       params: {
         type: "object" as const,
         description: "Input parameters keyed by input-node name"
+      },
+      interactive: {
+        type: "boolean" as const,
+        description:
+          "Bubble node failures up as escalations you answer mid-run, " +
+          "instead of only reading them post-mortem (default false)"
       },
       include_graph: {
         type: "boolean" as const,
@@ -697,7 +739,10 @@ export class DebugWorkflowTool extends Tool {
     const debugRun = await apiPostWithStatus(
       context,
       `/api/workflows/${workflowId}/debug`,
-      { params: params["params"] ?? {} }
+      {
+        params: params["params"] ?? {},
+        ...(params["interactive"] === true ? { interactive: true } : {})
+      }
     );
     const endpointMissing =
       !debugRun.ok && (debugRun.status === 404 || debugRun.status === 405);
@@ -706,6 +751,17 @@ export class DebugWorkflowTool extends Tool {
       run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
         params: params["params"] ?? {}
       });
+    }
+
+    // An escalated run has produced no report yet — the job is parked on the
+    // failing node. Hand the escalation back for a verdict; the final report
+    // arrives from resolve_workflow_escalation once the run settles.
+    if (
+      run &&
+      typeof run === "object" &&
+      (run as Record<string, unknown>)["status"] === "escalated"
+    ) {
+      return { workflow_id: workflowId, run: annotateEscalatedRun(run) };
     }
 
     const report: Record<string, unknown> = { workflow_id: workflowId, run };
@@ -729,6 +785,85 @@ export class DebugWorkflowTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     return `Debugging workflow ${params["workflow_id"]}`;
+  }
+}
+
+export class ResolveWorkflowEscalationTool extends Tool {
+  readonly name = "resolve_workflow_escalation";
+  readonly description =
+    "Answer an escalation raised by an interactive run_workflow/debug_workflow " +
+    "run. The run is parked on the failing node until you decide: retry the " +
+    "invocation, substitute repaired outputs (only when the escalation carries " +
+    "a candidateOutput), skip the invocation, end the stream (streaming nodes), " +
+    "or fail the node. Only the escalation's allowedActions are accepted; the " +
+    "kernel enforces the same set. Returns the next escalation (answer it the " +
+    "same way) or the run's final report.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      session_id: {
+        type: "string" as const,
+        description: "The debug session id from the escalated response"
+      },
+      escalation_id: {
+        type: "string" as const,
+        description: "The escalation id being answered"
+      },
+      action: {
+        type: "string" as const,
+        enum: ["retry", "substitute", "skip", "end_stream", "fail"],
+        description: "The verdict — must be one of the escalation's allowedActions"
+      },
+      outputs: {
+        type: "object" as const,
+        description:
+          "For substitute: repaired output values keyed by the node's " +
+          "declared output slots"
+      },
+      reason: {
+        type: "string" as const,
+        description:
+          "For fail: a one-sentence reason surfaced as the run's error summary"
+      },
+      apply_to: {
+        type: "string" as const,
+        enum: ["invocation", "signature"],
+        description:
+          "For skip/fail: \"signature\" also resolves later failures with the " +
+          "same failureSignature without asking again (default \"invocation\")"
+      }
+    },
+    required: ["session_id", "escalation_id", "action"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const action = String(params["action"]);
+    const verdict: Record<string, unknown> = { action };
+    if (action === "substitute" && params["outputs"] !== undefined) {
+      verdict["outputs"] = params["outputs"];
+    }
+    if (action === "fail" && typeof params["reason"] === "string") {
+      verdict["reason"] = params["reason"];
+    }
+    if (
+      (action === "skip" || action === "fail") &&
+      typeof params["apply_to"] === "string"
+    ) {
+      verdict["applyTo"] = params["apply_to"];
+    }
+    const result = await apiPost(
+      context,
+      `/api/debug/sessions/${params["session_id"]}/verdict`,
+      { escalation_id: params["escalation_id"], verdict }
+    );
+    return annotateEscalatedRun(result);
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return `Resolving workflow escalation with "${params["action"]}"`;
   }
 }
 
@@ -1441,6 +1576,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new CreateWorkflowTool(),
     new RunWorkflowTool(),
     new DebugWorkflowTool(),
+    new ResolveWorkflowEscalationTool(),
     new ValidateWorkflowTool(options.registry),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),
