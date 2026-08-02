@@ -1,0 +1,223 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "line",
+        "type": "nodetool.constant.String",
+        "data": { "value": "order-1042 shipped 2026-08-02 to matti@nodetool.ai" }
+      },
+      {
+        "id": "json_text",
+        "type": "nodetool.constant.String",
+        "data": { "value": "{\"repo\": \"nodetool\", \"stars\": 1200}" }
+      },
+      {
+        "id": "words",
+        "type": "nodetool.constant.String",
+        "data": { "value": "alpha beta gamma delta" }
+      },
+
+      {
+        "id": "match_date",
+        "type": "nodetool.text.RegexMatch",
+        "data": { "pattern": "(\\d{4})-(\\d{2})-(\\d{2})", "group": 0 }
+      },
+      {
+        "id": "match_year",
+        "type": "nodetool.text.RegexMatch",
+        "data": { "pattern": "(\\d{4})-(\\d{2})-(\\d{2})", "group": 1 }
+      },
+      {
+        "id": "extract_parts",
+        "type": "nodetool.text.ExtractRegex",
+        "data": { "regex": "order-(\\d+) shipped (\\S+)" }
+      },
+      {
+        "id": "keep_order",
+        "type": "nodetool.text.FilterRegexString",
+        "data": { "pattern": "order-\\d+", "full_match": false }
+      },
+      {
+        "id": "drop_nomatch",
+        "type": "nodetool.text.FilterRegexString",
+        "data": { "pattern": "invoice-\\d+", "full_match": false }
+      },
+      { "id": "parse", "type": "nodetool.text.ParseJSON" },
+      {
+        "id": "chunk",
+        "type": "nodetool.text.Chunk",
+        "data": { "length": 2, "overlap": 0, "separator": " " }
+      },
+      {
+        "id": "chunk_overlap",
+        "type": "nodetool.text.Chunk",
+        "data": { "length": 2, "overlap": 1, "separator": " " }
+      },
+
+      {
+        "id": "out_date",
+        "type": "nodetool.output.Output",
+        "name": "date",
+        "data": { "name": "date" }
+      },
+      {
+        "id": "out_year",
+        "type": "nodetool.output.Output",
+        "name": "year",
+        "data": { "name": "year" }
+      },
+      {
+        "id": "out_parts",
+        "type": "nodetool.output.Output",
+        "name": "parts",
+        "data": { "name": "parts" }
+      },
+      {
+        "id": "out_kept",
+        "type": "nodetool.output.Output",
+        "name": "kept",
+        "data": { "name": "kept" }
+      },
+      {
+        "id": "out_dropped",
+        "type": "nodetool.output.Output",
+        "name": "dropped",
+        "data": { "name": "dropped" }
+      },
+      {
+        "id": "out_parsed",
+        "type": "nodetool.output.Output",
+        "name": "parsed",
+        "data": { "name": "parsed" }
+      },
+      {
+        "id": "out_chunks",
+        "type": "nodetool.output.Output",
+        "name": "chunks",
+        "data": { "name": "chunks" }
+      },
+      {
+        "id": "out_chunks_overlap",
+        "type": "nodetool.output.Output",
+        "name": "chunks_overlap",
+        "data": { "name": "chunks_overlap" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "line",
+        "sourceHandle": "output",
+        "target": "match_date",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "line",
+        "sourceHandle": "output",
+        "target": "match_year",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e3",
+        "source": "line",
+        "sourceHandle": "output",
+        "target": "extract_parts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e4",
+        "source": "line",
+        "sourceHandle": "output",
+        "target": "keep_order",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "line",
+        "sourceHandle": "output",
+        "target": "drop_nomatch",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "json_text",
+        "sourceHandle": "output",
+        "target": "parse",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e7",
+        "source": "words",
+        "sourceHandle": "output",
+        "target": "chunk",
+        "targetHandle": "text"
+      },
+
+      {
+        "id": "e8",
+        "source": "match_date",
+        "sourceHandle": "output",
+        "target": "out_date",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e9",
+        "source": "match_year",
+        "sourceHandle": "output",
+        "target": "out_year",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e10",
+        "source": "extract_parts",
+        "sourceHandle": "output",
+        "target": "out_parts",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e11",
+        "source": "keep_order",
+        "sourceHandle": "output",
+        "target": "out_kept",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e12",
+        "source": "drop_nomatch",
+        "sourceHandle": "output",
+        "target": "out_dropped",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e13",
+        "source": "parse",
+        "sourceHandle": "output",
+        "target": "out_parsed",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e14",
+        "source": "chunk",
+        "sourceHandle": "output",
+        "target": "out_chunks",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e15",
+        "source": "words",
+        "sourceHandle": "output",
+        "target": "chunk_overlap",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e16",
+        "source": "chunk_overlap",
+        "sourceHandle": "output",
+        "target": "out_chunks_overlap",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

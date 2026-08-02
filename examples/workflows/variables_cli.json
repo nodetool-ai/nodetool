@@ -1,0 +1,53 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "set_run",
+        "type": "nodetool.variable.SetVariable",
+        "data": { "name": "run_label", "value": "nightly-42" }
+      },
+      {
+        "id": "get_run",
+        "type": "nodetool.variable.GetVariable",
+        "data": { "name": "run_label" }
+      },
+
+      {
+        "id": "out_set",
+        "type": "nodetool.output.Output",
+        "name": "set_returns",
+        "data": { "name": "set_returns" }
+      },
+      {
+        "id": "out_get",
+        "type": "nodetool.output.Output",
+        "name": "read_back",
+        "data": { "name": "read_back" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "set_run",
+        "sourceHandle": "output",
+        "target": "get_run",
+        "targetHandle": "trigger"
+      },
+      {
+        "id": "e2",
+        "source": "set_run",
+        "sourceHandle": "output",
+        "target": "out_set",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "get_run",
+        "sourceHandle": "output",
+        "target": "out_get",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

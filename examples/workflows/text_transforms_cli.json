@@ -1,0 +1,208 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "raw",
+        "type": "nodetool.constant.String",
+        "data": { "value": "  hello nodetool  " }
+      },
+      {
+        "id": "trim",
+        "type": "nodetool.text.TrimWhitespace",
+        "data": { "trim_start": true, "trim_end": true }
+      },
+      { "id": "upper", "type": "nodetool.text.ToUppercase" },
+      { "id": "capitalize", "type": "nodetool.text.CapitalizeText" },
+      {
+        "id": "starts",
+        "type": "nodetool.text.StartsWith",
+        "data": { "prefix": "hello" }
+      },
+      {
+        "id": "ends",
+        "type": "nodetool.text.EndsWith",
+        "data": { "suffix": "tool" }
+      },
+      {
+        "id": "index",
+        "type": "nodetool.text.IndexOf",
+        "data": { "substring": "node", "case_sensitive": true }
+      },
+      {
+        "id": "length",
+        "type": "nodetool.text.HasLength",
+        "data": { "exact_length": 14 }
+      },
+      {
+        "id": "slice",
+        "type": "nodetool.text.Extract",
+        "data": { "start": 6, "end": 14 }
+      },
+
+      {
+        "id": "out_trimmed",
+        "type": "nodetool.output.Output",
+        "name": "trimmed",
+        "data": { "name": "trimmed" }
+      },
+      {
+        "id": "out_upper",
+        "type": "nodetool.output.Output",
+        "name": "upper",
+        "data": { "name": "upper" }
+      },
+      {
+        "id": "out_capitalized",
+        "type": "nodetool.output.Output",
+        "name": "capitalized",
+        "data": { "name": "capitalized" }
+      },
+      {
+        "id": "out_starts",
+        "type": "nodetool.output.Output",
+        "name": "starts_with_hello",
+        "data": { "name": "starts_with_hello" }
+      },
+      {
+        "id": "out_ends",
+        "type": "nodetool.output.Output",
+        "name": "ends_with_tool",
+        "data": { "name": "ends_with_tool" }
+      },
+      {
+        "id": "out_index",
+        "type": "nodetool.output.Output",
+        "name": "index_of_node",
+        "data": { "name": "index_of_node" }
+      },
+      {
+        "id": "out_length",
+        "type": "nodetool.output.Output",
+        "name": "has_length_14",
+        "data": { "name": "has_length_14" }
+      },
+      {
+        "id": "out_slice",
+        "type": "nodetool.output.Output",
+        "name": "slice_6_14",
+        "data": { "name": "slice_6_14" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_raw_trim",
+        "source": "raw",
+        "sourceHandle": "output",
+        "target": "trim",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_upper",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "upper",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_capitalize",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "capitalize",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_starts",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "starts",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_ends",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "ends",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_index",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "index",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_length",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "length",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e_trim_slice",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "slice",
+        "targetHandle": "text"
+      },
+
+      {
+        "id": "e_out_trimmed",
+        "source": "trim",
+        "sourceHandle": "output",
+        "target": "out_trimmed",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_upper",
+        "source": "upper",
+        "sourceHandle": "output",
+        "target": "out_upper",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_capitalized",
+        "source": "capitalize",
+        "sourceHandle": "output",
+        "target": "out_capitalized",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_starts",
+        "source": "starts",
+        "sourceHandle": "output",
+        "target": "out_starts",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_ends",
+        "source": "ends",
+        "sourceHandle": "output",
+        "target": "out_ends",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_index",
+        "source": "index",
+        "sourceHandle": "output",
+        "target": "out_index",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_length",
+        "source": "length",
+        "sourceHandle": "output",
+        "target": "out_length",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_out_slice",
+        "source": "slice",
+        "sourceHandle": "output",
+        "target": "out_slice",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}
