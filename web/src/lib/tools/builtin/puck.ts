@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import { FrontendToolRegistry } from "../frontendTools";
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
+import { restFetch } from "../../rest-fetch";
 
 const applicationIdParam = z
   .string()
@@ -541,6 +542,73 @@ FrontendToolRegistry.register({
       ok: true,
       ...getPuckAgentHandler(application_id).getBindingTargets()
     };
+  }
+});
+
+/* ---------------------------------------------------------------- verifying */
+
+FrontendToolRegistry.register({
+  name: "ui_app_debug",
+  description:
+    "Verify the app you are editing, including unsaved edits: the current " +
+    "draft is sent to the server, which checks every binding against the " +
+    "workflows the operations name and reports a verdict (issues, warnings), " +
+    "each widget's end state (binding, hasValue, visible, disabled, display), " +
+    "invocation outcomes, and what was not simulated. " +
+    "With run: false (the default) it is a static wiring check — free and " +
+    "instant; call it after any binding, operation, or variable change and fix " +
+    "what it names. With run: true it executes the app's workflows for real, " +
+    "which costs money and takes time: do that once, before you tell the user " +
+    "the app is done, and read the verdict. " +
+    "Omit `interact` to click the app's natural run trigger, or script the " +
+    "flow with steps: {\"set\":{\"key\":\"<binding>\",\"value\":…," +
+    "\"operationId\":\"<opId>\"}}, {\"click\":\"<widget id | type | label>\"}, " +
+    '{"change":"<widget>","value":…}, {"run":"<opId>"}, {"cancel":"<opId>"}, ' +
+    '{"seedResource":{"id":"<resource binding id>","items":[…]}}.',
+  parameters: z.object({
+    application_id: applicationIdParam,
+    run: z
+      .boolean()
+      .optional()
+      .describe(
+        "Execute the app's workflows (costs money). Defaults to false: wiring check only."
+      ),
+    params: z
+      .record(z.string(), z.unknown())
+      .optional()
+      .describe(
+        "Initial values by binding key, applied before the interactions run."
+      ),
+    interact: z
+      .array(z.record(z.string(), z.unknown()))
+      .optional()
+      .describe(
+        "Interaction steps to replay, in order. Omit to use the app's natural " +
+          "run trigger. Each step is one of set / click / change / run / " +
+          "cancel / seedResource, as described above."
+      ),
+    timeout_ms: z
+      .number()
+      .int()
+      .optional()
+      .describe("Per-run timeout in milliseconds.")
+  }),
+  async execute({ application_id, run, params, interact, timeout_ms }) {
+    const document = getPuckAgentHandler(application_id).document();
+    const response = await restFetch("/api/applications/debug", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ document, params, interact, run, timeout_ms })
+    });
+    const report: unknown = await response.json().catch(() => null);
+    if (!response.ok) {
+      const detail =
+        report && typeof report === "object" && "detail" in report
+          ? String((report as { detail: unknown }).detail)
+          : `App debug failed (${response.status})`;
+      return { ok: false, error: detail };
+    }
+    return { ok: true, application_id, ...(report as object | null) };
   }
 });
 

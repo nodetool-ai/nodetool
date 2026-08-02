@@ -5,7 +5,8 @@
  * An app can be named three ways, and all three end up in the same shape:
  *
  * - an **application id** — the canonical form, read from the applications
- *   table through an injected loader (no server involved);
+ *   table through an injected loader (no server involved) and resolved by
+ *   `applicationTarget`, which the server surface calls too;
  * - an **ApplicationBundle JSON file** — an app together with the full graphs
  *   of every workflow it binds, where operations reference bundle-local keys;
  * - a **workflow id or workflow JSON/DSL file** — the legacy form, where the
@@ -18,39 +19,23 @@
  */
 import {
   liftLegacyAppDoc,
-  parseApplicationBundle,
-  parseApplicationDocument,
-  type ApplicationDocument
+  parseApplicationBundle
 } from "@nodetool-ai/app-runtime";
 
-import {
-  looksLikeFile,
-  normalizeGraph,
-  readFileTarget
-} from "../debug/target.js";
+import { looksLikeFile, normalizeGraph, readFileTarget } from "../debug/target.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
-// The resolved shape is the simulator's input, so it is declared alongside it.
+// The resolved shape is the simulator's input, and so is the resolution of an
+// application row — both live with the simulator so the CLI and the server
+// surfaces cannot drift.
 import {
+  applicationTarget,
   bundleTarget,
+  type AppApplicationRecord,
+  type AppWorkflowRecord,
   type ResolvedAppTarget
 } from "@nodetool-ai/execution/app-debug";
 
-export type { ResolvedAppTarget };
-
-/** A workflow row as the harness needs it. */
-export interface AppWorkflowRecord {
-  graph: DebugGraph;
-  app_doc?: unknown;
-}
-
-/** An application row, with its document still unparsed. */
-export interface AppApplicationRecord {
-  id: string;
-  name: string;
-  description?: string;
-  /** The stored document — a JSON string or an already-parsed object. */
-  document: unknown;
-}
+export type { ResolvedAppTarget, AppApplicationRecord, AppWorkflowRecord };
 
 export interface AppTargetDeps {
   /** Load a workflow by DB id, including its legacy `app_doc`. */
@@ -87,35 +72,6 @@ const graphOf = (value: unknown): DebugGraph | null => {
   if (!Array.isArray(graph.nodes) || !Array.isArray(graph.edges)) return null;
   return normalizeGraph(graph);
 };
-
-/**
- * The graph the document's first operation runs, plus the id it referenced.
- * Carried graphs win over the database, so a bundle resolves without one.
- */
-async function hostGraphFor(
-  document: ApplicationDocument,
-  graphs: Map<string, DebugGraph>,
-  loadFromDb: AppTargetDeps["loadFromDb"]
-): Promise<{ graph: DebugGraph; workflowId: string | null }> {
-  for (const operation of document.operations) {
-    const id = operation.workflowId;
-    if (!id) continue;
-    const carried = graphs.get(id);
-    if (carried) return { graph: carried, workflowId: null };
-    try {
-      const workflow = await loadFromDb(id);
-      const graph = workflow?.graph ? normalizeGraph(workflow.graph) : null;
-      if (graph) {
-        graphs.set(id, graph);
-        return { graph, workflowId: id };
-      }
-    } catch {
-      // A workflow that will not load is reported per-operation by the
-      // harness; the host graph just stays empty.
-    }
-  }
-  return { graph: EMPTY_GRAPH, workflowId: null };
-}
 
 /** Resolve an ApplicationBundle JSON file. */
 function resolveBundle(ref: string, raw: unknown): ResolvedAppTarget {
@@ -176,49 +132,6 @@ function resolveWorkflow(
   };
 }
 
-/** Resolve an application row read from the database. */
-async function resolveApplication(
-  ref: string,
-  record: AppApplicationRecord,
-  loadFromDb: AppTargetDeps["loadFromDb"]
-): Promise<ResolvedAppTarget> {
-  let raw: unknown = record.document;
-  if (typeof raw === "string") {
-    try {
-      raw = JSON.parse(raw);
-    } catch {
-      raw = null;
-    }
-  }
-  const document = parseApplicationDocument(raw);
-  if (!document) {
-    return {
-      info: targetInfo(ref, "application", null, EMPTY_GRAPH),
-      graph: EMPTY_GRAPH,
-      fileParams: {},
-      appDoc: raw,
-      document: null,
-      issue: `Application "${record.id}" has no valid document.`,
-      graphs: new Map(),
-      operationsReferenceKeys: false,
-      appName: record.name
-    };
-  }
-  const graphs = new Map<string, DebugGraph>();
-  const host = await hostGraphFor(document, graphs, loadFromDb);
-  return {
-    info: targetInfo(ref, "application", host.workflowId, host.graph),
-    graph: host.graph,
-    fileParams: {},
-    appDoc: raw,
-    document,
-    issue: null,
-    graphs,
-    operationsReferenceKeys: false,
-    appName: record.name
-  };
-}
-
 /**
  * Resolve an app debug target: an application id, an ApplicationBundle JSON
  * file, or a workflow id / workflow file carrying a legacy `app_doc`.
@@ -236,7 +149,7 @@ export async function resolveAppTarget(
 
   if (deps.loadApplication) {
     const application = await deps.loadApplication(ref);
-    if (application) return resolveApplication(ref, application, deps.loadFromDb);
+    if (application) return applicationTarget(ref, application, deps.loadFromDb);
   }
 
   const workflow = await deps.loadFromDb(ref);

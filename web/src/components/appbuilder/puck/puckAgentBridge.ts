@@ -10,6 +10,7 @@
  * something a tool call infers.
  */
 import type {
+  ApplicationDocument,
   BindingTargets,
   OperationBinding,
   OperationInput,
@@ -75,6 +76,13 @@ export interface PuckAgentHandler {
   addResource: (input: ResourceInput) => ResourceBinding;
   removeResource: (id: string) => boolean;
   getBindingTargets: () => BindingTargets;
+  /**
+   * The working document — the same shape the editor saves to the
+   * `applications` row, but assembled from the live (unsaved) Puck data and
+   * meta. This is what `ui_app_debug` sends to the server so a verdict grades
+   * the draft the agent is editing rather than the last saved row.
+   */
+  document: () => ApplicationDocument;
 }
 
 const handlers = new Map<string, PuckAgentHandler>();

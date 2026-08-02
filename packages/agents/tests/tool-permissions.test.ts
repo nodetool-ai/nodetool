@@ -53,6 +53,9 @@ describe("permissionCategoryFor", () => {
     expect(permissionCategoryFor("write_file")).toBe("write");
     expect(permissionCategoryFor("run_node")).toBe("execute");
     expect(permissionCategoryFor("run_workflow")).toBe("execute");
+    // debug_app can execute an app's workflows, so it takes the execute
+    // class even though `run: false` requests only read.
+    expect(permissionCategoryFor("debug_app")).toBe("execute");
     expect(permissionCategoryFor("browser")).toBe("external");
   });
 

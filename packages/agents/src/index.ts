@@ -110,6 +110,7 @@ export {
   DebugWorkflowTool,
   ResolveWorkflowEscalationTool,
   BuildAppTool,
+  DebugAppTool,
   ValidateWorkflowTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,

@@ -22,6 +22,7 @@ import {
   updateComponentProps
 } from "./puckDataOps";
 import {
+  APP_SCHEMA_VERSION,
   addOperation,
   addResource,
   bindingTargets,
@@ -31,7 +32,9 @@ import {
   removeVariable,
   updateOperation,
   updateVariable,
-  type AppDocMeta
+  type AppDocMeta,
+  type ApplicationDocument,
+  type PuckData
 } from "@nodetool-ai/app-runtime";
 import type { WorkflowState } from "../workflowState";
 
@@ -220,7 +223,26 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
       },
 
       getBindingTargets: () =>
-        bindingTargets(metaRef.current, workflowId, workflowStateRef.current)
+        bindingTargets(metaRef.current, workflowId, workflowStateRef.current),
+
+      // Assembled the way AppBuilderShell's save does — the theme the author
+      // picked lives as a root field, everything else comes from the two live
+      // halves — so a debug run grades exactly what a save would store.
+      document: (): ApplicationDocument => {
+        const data = working.current;
+        const rootProps = (data.root?.props ?? {}) as Record<string, unknown>;
+        const themeId = rootProps.theme;
+        return {
+          schemaVersion: APP_SCHEMA_VERSION,
+          ui: data as unknown as PuckData,
+          operations: metaRef.current.operations,
+          resources: metaRef.current.resources,
+          variables: metaRef.current.variables,
+          ...(typeof themeId === "string" && themeId
+            ? { theme: { id: themeId } }
+            : {})
+        };
+      }
     };
 
     setPuckAgentHandler(applicationId, handler);

@@ -1222,7 +1222,7 @@ function createRuntimeContext(opts: {
  * multi-step / parallel work. Planning is not forced — it is one of the
  * choices the agent can make.
  */
-const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
+export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
 
 # How to think about effort
 - For simple questions, answer directly without any tool calls.
@@ -1291,6 +1291,19 @@ When the user wants a workflow built, drive this loop:
 Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
 hand-fix small issues in a planned graph rather than re-planning.
 
+# Debugging mini apps
+A mini app is not a workflow: \`debug_workflow\` says nothing about whether a
+binding resolves or a widget shows anything. After editing an app with the
+\`ui_app_*\` tools, or when a user reports one behaving wrong, call
+\`debug_app\`. It returns each widget's final state and a pass/fail verdict.
+- \`run: false\` is the free, instant wiring check — use it after every
+  wiring change.
+- One \`run: true\` before you call the app done. A run executes the real
+  workflows and spends real money: check often, run once.
+- In the App Builder pass \`document\` with the live draft (the
+  \`ui_app_debug\` tool does this) — the saved row is stale mid-edit. Use
+  \`application_id\` for a saved app you are not editing.
+
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
 Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
@@ -1350,7 +1363,7 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
  * alongside; the long tail (collections, files, web, media, other MCP tools,
  * and all client `ui_*` tools) is deferred and loaded on demand.
  */
-const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
+export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives.
   "run_subtask",
   "run_search",
@@ -1368,7 +1381,10 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "plan_workflow_graph",
   "validate_workflow",
   "create_workflow",
-  "debug_workflow"
+  "debug_workflow",
+  // The app half of the same loop: the only tool that can tell the agent
+  // whether a mini app it edited actually works.
+  "debug_app"
 ]);
 
 /**
