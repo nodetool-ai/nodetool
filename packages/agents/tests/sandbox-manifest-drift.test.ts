@@ -16,6 +16,7 @@ import {
   buildCodeGenSystemPrompt,
   buildCodeGenUserPrompt
 } from "../src/code-gen/prompt.js";
+import { SANDBOX_GLOBALS } from "@nodetool-ai/node-sdk";
 
 const repoRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -132,6 +133,35 @@ describe("authoring instructions name only APIs the sandbox has", () => {
   });
 });
 
+/** Names the sandbox really puts in scope, as the manifest reports them. */
+function documentedGlobals(): Set<string> {
+  const manifest = getSandboxManifest();
+  const documented = new Set(
+    [...sandboxManifestNames(manifest)].filter((n) => !n.includes("."))
+  );
+  for (const name of manifest.blockedGlobals) documented.add(name);
+  documented.delete("__maxIter");
+  return documented;
+}
+
+/**
+ * Both copies of the sandbox global list — the web editor's input inference and
+ * the node-sdk graph validator — restate the manifest because neither package
+ * can import it. Drift either way is a bug: a missing name invents an input or
+ * a "not defined" error, an extra one hides a real reference.
+ */
+function expectMatchesSandbox(names: ReadonlySet<string>, label: string): void {
+  const documented = documentedGlobals();
+
+  const missing = [...documented].filter((n) => !names.has(n));
+  expect(missing, `sandbox names ${label} omits`).toEqual([]);
+
+  const phantom = [...names].filter(
+    (n) => !documented.has(n) && !NODE_LEVEL_NAMES.has(n)
+  );
+  expect(phantom, `${label} names the sandbox does not provide`).toEqual([]);
+}
+
 describe("web input inference globals", () => {
   it("matches the sandbox surface", () => {
     const source = readIfPresent(OUTPUT_INFERENCE);
@@ -143,20 +173,12 @@ describe("web input inference globals", () => {
     const webNames = new Set(
       [...literal![1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
     );
+    expectMatchesSandbox(webNames, "the web set");
+  });
+});
 
-    const manifest = getSandboxManifest();
-    const documented = new Set(
-      [...sandboxManifestNames(manifest)].filter((n) => !n.includes("."))
-    );
-    for (const name of manifest.blockedGlobals) documented.add(name);
-    documented.delete("__maxIter");
-
-    const missing = [...documented].filter((n) => !webNames.has(n));
-    expect(missing, "sandbox names the web set omits").toEqual([]);
-
-    const phantom = [...webNames].filter(
-      (n) => !documented.has(n) && !NODE_LEVEL_NAMES.has(n)
-    );
-    expect(phantom, "web names the sandbox does not provide").toEqual([]);
+describe("graph validator globals", () => {
+  it("matches the sandbox surface", () => {
+    expectMatchesSandbox(SANDBOX_GLOBALS, "the node-sdk set");
   });
 });

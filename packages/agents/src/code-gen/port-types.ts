@@ -1,5 +1,9 @@
 /**
- * NodeTool's port type vocabulary, and the near-misses worth catching.
+ * Port-type checks for a `submit_code` submission.
+ *
+ * The vocabulary and the alias table live in `@nodetool-ai/node-sdk`
+ * (`port-types.ts`), where the graph validator reads them too; what is here is
+ * the submission-shaped checking built on top.
  *
  * A generated port type lands verbatim on the node's `dynamic_inputs` /
  * `dynamic_outputs`, and handle compatibility is decided by comparing those
@@ -14,54 +18,9 @@
  * failure mode a model actually produces — JSON Schema and TypeScript spellings
  * of types NodeTool already has under another name.
  */
+import { CORE_PORT_TYPES, canonicalPortType } from "@nodetool-ai/node-sdk";
 
-/** Scalar and container types every NodeTool install understands. */
-export const CORE_PORT_TYPES = [
-  "any",
-  "str",
-  "text",
-  "int",
-  "float",
-  "number",
-  "bool",
-  "list",
-  "dict",
-  "union",
-  "enum",
-  "image",
-  "audio",
-  "video",
-  "document",
-  "file"
-] as const;
-
-/**
- * Spellings a model reaches for that NodeTool spells differently. JSON Schema
- * (`integer`, `string`, `boolean`, `object`, `array`, `null`) and TypeScript
- * (`String`, `Number`, `Record`) both appear in practice.
- */
-const ALIASES: ReadonlyMap<string, string> = new Map([
-  ["integer", "int"],
-  ["long", "int"],
-  ["double", "float"],
-  ["decimal", "float"],
-  ["string", "str"],
-  ["boolean", "bool"],
-  ["object", "dict"],
-  ["record", "dict"],
-  ["map", "dict"],
-  ["array", "list"],
-  ["tuple", "list"],
-  ["null", "any"],
-  ["none", "any"],
-  ["undefined", "any"],
-  ["unknown", "any"],
-  ["void", "any"]
-]);
-
-/** The NodeTool name for a known alias, case-insensitively. */
-export const canonicalPortType = (type: string): string | undefined =>
-  ALIASES.get(type.trim().toLowerCase());
+export { CORE_PORT_TYPES, canonicalPortType };
 
 interface TypeLike {
   type: string;
@@ -100,7 +59,7 @@ const checkType = (
 /** The name a type is compared under: its alias target, else itself. */
 const normalizedTypeName = (type: TypeLike): string => {
   const raw = type.type.trim().toLowerCase();
-  return ALIASES.get(raw) ?? raw;
+  return canonicalPortType(raw) ?? raw;
 };
 
 const typeArgs = (type: TypeLike): TypeLike[] =>
