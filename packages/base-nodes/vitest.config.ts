@@ -12,6 +12,10 @@ export default defineConfig({
         __dirname,
         "../execution/src/debug/index.ts"
       ),
+      "@nodetool-ai/execution/timeline-debug": resolve(
+        __dirname,
+        "../execution/src/timeline-debug/index.ts"
+      ),
       "@nodetool-ai/execution": resolve(__dirname, "../execution/src/index.ts"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
