@@ -103,6 +103,17 @@ describe("createEscalationChannel", () => {
     expect(channel.turns()[0].matched).toBeNull();
   });
 
+  it("matches a global regex on every turn, not every other one", async () => {
+    const channel = createEscalationChannel({
+      replies: [{ name: "names", when: /name/gi, reply: "article" }]
+    });
+
+    await channel.tool.execute({ question: "which name?" });
+    await channel.tool.execute({ question: "and the output name?" });
+
+    expect(channel.turns().map((t) => t.matched)).toEqual(["names", "names"]);
+  });
+
   it("gives each run its own transcript", async () => {
     const config = { replies: [{ name: "a", when: /./, reply: "ok" }] };
     const first = createEscalationChannel(config);
@@ -312,6 +323,26 @@ describe("WORKFLOW_ESCALATION_TOOL_LOOP_CASES", () => {
       expect(evalCase.escalation).toBeDefined();
       expect(evalCase.createBridge().tools.length).toBeGreaterThan(0);
     }
+  });
+
+  it("rejects a node type borrowed from Object.prototype", () => {
+    const predicate = WORKFLOW_ESCALATION_TOOL_LOOP_CASES.find(
+      (c) => c.id === "escalate-missing-capability"
+    )!.expect.finalState!.find((p) => p.name === "noInventedNodeTypes")!;
+
+    expect(
+      predicate.test({
+        nodes: [
+          {
+            id: "n1",
+            type: "toString",
+            position: { x: 0, y: 0 },
+            data: { properties: {} }
+          }
+        ],
+        edges: []
+      })
+    ).toBe(false);
   });
 
   it("scores a golden transcript of ask-for-missing-names at 1.00", async () => {

@@ -69,7 +69,12 @@ function propertyEquals(
 const noInventedTypes: ToolLoopStatePredicate<ToolLoopFinalState> = {
   name: "noInventedNodeTypes",
   detail: "graph contains a node type that is not in the catalog",
-  test: (state) => state.nodes.every((n) => n.type in TOOL_LOOP_NODE_CATALOG)
+  // Own-property check: `in` would accept a node type named after something on
+  // Object.prototype.
+  test: (state) =>
+    state.nodes.every((n) =>
+      Object.prototype.hasOwnProperty.call(TOOL_LOOP_NODE_CATALOG, n.type)
+    )
 };
 
 /** Seed graph for the delete-confirmation case: in1 → agent1 → out1, plus a stray fmt1. */

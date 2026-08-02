@@ -92,7 +92,12 @@ function matchText(args: Record<string, unknown>): string {
 }
 
 function matches(reply: EscalationReply, text: string): boolean {
-  if (reply.when instanceof RegExp) return reply.when.test(text);
+  if (reply.when instanceof RegExp) {
+    // A `/g` or `/y` matcher carries `lastIndex` across calls, so the same
+    // question would match on one turn and miss on the next.
+    reply.when.lastIndex = 0;
+    return reply.when.test(text);
+  }
   const lower = text.toLowerCase();
   return reply.when.every((needle) => lower.includes(needle.toLowerCase()));
 }
