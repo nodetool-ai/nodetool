@@ -1,0 +1,36 @@
+{
+  "graph": {
+    "nodes": [
+      { "id": "hook", "type": "nodetool.triggers.WebhookTrigger" },
+      {
+        "id": "body",
+        "type": "nodetool.output.Output",
+        "name": "body",
+        "data": { "name": "body" }
+      },
+      {
+        "id": "method",
+        "type": "nodetool.output.Output",
+        "name": "method",
+        "data": { "name": "method" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "hook",
+        "sourceHandle": "body",
+        "target": "body",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "hook",
+        "sourceHandle": "method",
+        "target": "method",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

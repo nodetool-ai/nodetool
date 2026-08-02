@@ -1,0 +1,46 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "watch",
+        "type": "nodetool.triggers.FileWatchTrigger",
+        "data": {
+          "path": "./drop",
+          "patterns": ["*.json"],
+          "events": ["created", "modified"],
+          "debounce_seconds": 0.05,
+          "max_events": 1
+        }
+      },
+      {
+        "id": "event",
+        "type": "nodetool.output.Output",
+        "name": "event",
+        "data": { "name": "event" }
+      },
+      {
+        "id": "path",
+        "type": "nodetool.output.Output",
+        "name": "path",
+        "data": { "name": "path" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "watch",
+        "sourceHandle": "event",
+        "target": "event",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "watch",
+        "sourceHandle": "path",
+        "target": "path",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

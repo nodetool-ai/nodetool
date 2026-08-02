@@ -1,0 +1,104 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T11:00:00.000Z",
+  "updated_at": "2026-08-02T11:00:00.000Z",
+  "name": "A Run Button for Any Job",
+  "tool_name": null,
+  "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+  "tags": ["example", "trigger", "manual", "automation"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "nodetool.triggers.ManualTrigger",
+        "data": { "name": "run_button", "max_events": 0 },
+        "ui_properties": {
+          "position": { "x": 0, "y": 120 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Run button"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "payload",
+        "type": "nodetool.output.Output",
+        "name": "payload",
+        "data": { "name": "payload", "description": "Whatever the caller sent" },
+        "ui_properties": {
+          "position": { "x": 330, "y": 40 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Payload"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "source",
+        "type": "nodetool.output.Output",
+        "name": "source",
+        "data": { "name": "source", "description": "Who fired it" },
+        "ui_properties": {
+          "position": { "x": 330, "y": 220 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "3  Source"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "at",
+        "type": "nodetool.output.Output",
+        "name": "fired_at",
+        "data": { "name": "fired_at", "description": "ISO time it was fired" },
+        "ui_properties": {
+          "position": { "x": 330, "y": 400 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Fired at"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "start",
+        "sourceHandle": "data",
+        "target": "payload",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "start",
+        "sourceHandle": "source",
+        "target": "source",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "start",
+        "sourceHandle": "timestamp",
+        "target": "at",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

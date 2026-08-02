@@ -206,7 +206,17 @@ function classifyError(message: string | undefined): string {
   if (m.includes("libpng") || m.includes("vips2png")) return "image-codec";
   if (m.includes("does not support")) return "unsupported-capability";
   if (m.includes("exceeded") && m.includes("ms")) return "timeout";
-  if (m.includes("not found") || m.includes("enoent")) return "not-found";
+  // "does not exist" is the file-watch trigger's wording for a watch path
+  // that isn't there. A trigger example cannot complete in this harness
+  // anyway — it waits for an adapter event no fake supplies — so failing
+  // fast on a missing path is the better outcome of the two: pointing it at
+  // a directory that does exist would burn the full per-workflow timeout.
+  if (
+    m.includes("not found") ||
+    m.includes("enoent") ||
+    m.includes("does not exist")
+  )
+    return "not-found";
   if (m.includes("network") || m.includes("fetch")) return "network";
   if (m.includes("input") && m.includes("required")) return "missing-input";
   if (m.includes("provide a") && m.includes("input")) return "missing-input";
