@@ -18,6 +18,7 @@ export type SnippetCategory =
   | "JSON"
   | "Streaming"
   | "Path"
+  | "Files"
   | "SVG"
   | "HTTP"
   | "Markdown"
@@ -70,6 +71,7 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "JSON",
   "Streaming",
   "Path",
+  "Files",
   "SVG",
   "HTTP",
   "Markdown",
@@ -995,34 +997,222 @@ return {};`,
   },
 
   // ---------------------------------------------------------------------------
-  // File / Workspace
+  // Files
   // ---------------------------------------------------------------------------
   {
     id: "file-read",
     title: "Read File",
     description: "Read a text file from the workspace",
-    category: "JSON",
+    category: "Files",
     code: `const content = await workspace.read(path);
 return { output: content };`,
     tags: ["file", "read", "workspace", "load", "text"],
+    inputs: { path: { type: "str", description: "Path relative to the workspace" } },
+    outputs: { output: "str" },
   },
   {
     id: "file-write",
     title: "Write File",
-    description: "Write text content to a workspace file",
-    category: "JSON",
+    description: "Write text content to a workspace file, creating parent directories",
+    category: "Files",
     code: `await workspace.write(path, content);
 return { output: path };`,
     tags: ["file", "write", "save", "workspace", "export"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-append",
+    title: "Append To File",
+    description: "Append text to a workspace file, creating it when missing",
+    category: "Files",
+    code: `const info = await workspace.stat(path);
+const existing = info.exists ? await workspace.read(path) : "";
+await workspace.write(path, existing + content);
+return { output: path };`,
+    tags: ["file", "append", "write", "log", "workspace"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str" },
+    },
+    outputs: { output: "str" },
   },
   {
     id: "file-list",
     title: "List Files",
-    description: "List files in a workspace directory",
-    category: "JSON",
+    description: "List the entry names of a workspace directory",
+    category: "Files",
     code: `const files = await workspace.list(path);
 return { output: files };`,
     tags: ["file", "list", "directory", "ls", "workspace"],
+    inputs: { path: { type: "str", default: "." } },
+    outputs: { output: "list" },
+  },
+  {
+    id: "file-list-match",
+    title: "Find Files",
+    description:
+      "Find files matching a wildcard pattern, optionally recursing; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `const pattern = "*"; // wildcard on the file name, e.g. *.txt
+const recursive = false;
+const rx = new RegExp(
+  "^" +
+    pattern
+      .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
+      .replace(/\\*/g, ".*")
+      .replace(/\\?/g, ".") +
+    "$",
+  "i"
+);
+const found = [];
+const scan = async (dir) => {
+  for (const name of await workspace.list(dir)) {
+    const full = dir.replace(/\\/+$/, "") + "/" + name;
+    const info = await workspace.stat(full);
+    if (info.isDirectory) {
+      if (recursive) await scan(full);
+    } else if (rx.test(name)) {
+      found.push(full);
+    }
+  }
+};
+await scan(folder);
+return { output: found, file: found[0] ?? "" };`,
+    tags: ["file", "find", "glob", "pattern", "recursive", "walk", "directory"],
+    inputs: {
+      folder: { type: "str", default: ".", description: "Directory to scan" },
+    },
+    outputs: { output: "list", file: "str" },
+  },
+  {
+    id: "file-read-binary",
+    title: "Read Binary File",
+    description: "Read a workspace file as a base64 string",
+    category: "Files",
+    code: `const bytes = await workspace.readBytes(path);
+return { output: toBase64(bytes) };`,
+    tags: ["file", "binary", "read", "base64", "bytes"],
+    inputs: { path: { type: "str", description: "Path relative to the workspace" } },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-write-binary",
+    title: "Write Binary File",
+    description: "Write base64 content to a workspace file as raw bytes",
+    category: "Files",
+    code: `await workspace.writeBytes(path, fromBase64(content));
+return { output: path };`,
+    tags: ["file", "binary", "write", "base64", "bytes", "save"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str", description: "Base64-encoded bytes" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-exists",
+    title: "File Exists",
+    description:
+      "Check whether a path exists; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `return { output: (await workspace.stat(path)).exists };`,
+    tags: ["file", "exists", "check", "missing", "branch"],
+    inputs: { path: { type: "str" } },
+    outputs: { output: "bool" },
+  },
+  {
+    id: "file-stat",
+    title: "File Info",
+    description:
+      "Size, kind and timestamps of a path in one call; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `const info = await workspace.stat(path);
+return {
+  exists: info.exists,
+  size: info.size,
+  is_file: info.isFile,
+  is_directory: info.isDirectory,
+  created: new Date(info.createdMs).toISOString(),
+  modified: new Date(info.modifiedMs).toISOString(),
+  accessed: new Date(info.accessedMs).toISOString()
+};`,
+    tags: [
+      "file",
+      "stat",
+      "size",
+      "metadata",
+      "is file",
+      "is directory",
+      "created",
+      "modified",
+      "accessed",
+      "time",
+    ],
+    inputs: { path: { type: "str" } },
+    outputs: {
+      exists: "bool",
+      size: "int",
+      is_file: "bool",
+      is_directory: "bool",
+      created: "str",
+      modified: "str",
+      accessed: "str",
+    },
+  },
+  {
+    id: "file-mkdir",
+    title: "Create Directory",
+    description:
+      "Create a directory and its parents; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.mkdir(path);
+return { output: path };`,
+    tags: ["directory", "folder", "create", "mkdir"],
+    inputs: { path: { type: "str" } },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-copy",
+    title: "Copy File",
+    description:
+      "Copy a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.copy(source, destination);
+return { output: destination };`,
+    tags: ["file", "copy", "duplicate", "backup"],
+    inputs: {
+      source: { type: "str" },
+      destination: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-move",
+    title: "Move File",
+    description:
+      "Move or rename a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.move(source, destination);
+return { output: destination };`,
+    tags: ["file", "move", "rename", "archive", "organize"],
+    inputs: {
+      source: { type: "str" },
+      destination: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-workspace-dir",
+    title: "Workspace Directory",
+    description: "Absolute path of the workspace root — the base for relative paths",
+    category: "Files",
+    code: `return { output: await workspace.root() };`,
+    tags: ["workspace", "directory", "root", "path", "base"],
+    outputs: { output: "str" },
   },
 
   // ---------------------------------------------------------------------------

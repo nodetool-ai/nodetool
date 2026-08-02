@@ -37,6 +37,7 @@ const CATEGORY_TYPE: Record<SnippetCategory, string> = {
   "JSON": "str",
   "Streaming": "str",
   "Path": "str",
+  "Files": "str",
   // Every lib.svg element node outputs `svg_element`, so this is exact as an
   // *output* default — these connect straight into the Document / SVGToImage
   // nodes, which take `list[svg_element]`. It is wrong for inputs, which is
