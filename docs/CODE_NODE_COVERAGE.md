@@ -1,24 +1,43 @@
 # Nodes the Code Node Should Cover
 
 An audit of the hand-written node catalog against `nodetool.code.Code`, the
-sandboxed QuickJS JavaScript node. The question it answers: **which nodes exist
-only because there was no way to write three lines of JavaScript?**
+sandboxed QuickJS JavaScript node. It asks: **which node classes exist only
+because there was no way to write three lines of JavaScript, and which of those
+already have a snippet standing in for them?**
 
-Those nodes cost more than they give. Each one is a class, a metadata entry, a
-test, a search-index row, and a card the user has to find, read, and wire before
-learning it does `text.toUpperCase()`. Ten of them in a row is a workflow that
-would read better as one Code node.
+Nothing here proposes taking a capability away from the user. The palette entry
+stays. What changes is what is behind it — a TypeScript class with a metadata
+entry, a test, and a registry row, or a Code node with the equivalent JS
+prefilled.
 
-The nodes that earn their card do something the canvas can *show*: a preview, an
-editor, a picker, a progress stream. That is the line this document draws.
+## The mechanism already exists
+
+Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 112
+of them; `snippetMetadata.ts` turns each into a `NodeMetadata` under
+`nodetool.<category>.<snippet_id>`, `useMetadata.ts` merges them into the
+catalog the node menu reads, and `instantiatePaletteNode.ts` drops a Code node
+with the snippet's code when one is placed. To the user it is a node: it is
+searchable, it has a title, a description, tags, and inferred handles.
+
+The file says what it is for:
+
+> These replace the removed pure-JS wrapper nodes (boolean, math, text, list,
+> dictionary, date, uuid, http, json) and add streaming patterns.
+
+That already happened. `nodetool.math.*`, `nodetool.boolean.*`,
+`nodetool.dictionary.*`, `nodetool.date.*`, and `nodetool.uuid.*` return **zero**
+hits in the backend catalog today. The 112 snippets are where they went.
+
+So this document is not proposing an approach. It measures how far the existing
+one has left to run.
 
 ## The rule
 
-**Keep a node when it produces UI feedback or uses a capability the sandbox does
-not have. Retire it when it is a pure function of its inputs with a scalar,
-boolean, string, or plain-object output.**
+**A node stays a node when it produces UI feedback or needs a capability the
+sandbox lacks. It becomes a snippet when it is a pure function of its inputs
+with a scalar, boolean, string, or plain-object output.**
 
-UI feedback, concretely, is any of:
+UI feedback, concretely:
 
 - a content card — image, video, audio, text, or 3D preview
   (`isContentCardNode`, `web/src/components/node_types/contentCardRegistry.ts`)
@@ -26,8 +45,8 @@ UI feedback, concretely, is any of:
 - a value editor on a constant, or an asset/model/secret picker
 - streamed progress, partial results, or per-item activity during a run
 
-A node whose entire visible output is `true` or `"HELLO"` in a result overlay has
-no UI feedback. It has a return value.
+A node whose entire visible output is `true` or `"HELLO"` in a result overlay
+has no UI feedback. It has a return value.
 
 ## What the sandbox can actually do
 
@@ -49,154 +68,131 @@ Verified against `packages/agents/src/js-sandbox.ts` by running code in it:
 | npm packages, native modules, canvas, ffmpeg | **no** |
 | Streaming operators (fan-out, per-item emission) | **no** — kernel-level |
 
-So: string, regex, date, math, path, JSON, CSV, HTML-selection, HTTP, hashing,
-and workspace file work are all in reach. Anything that needs `sharp`, `pdf-lib`,
+String, regex, date, math, path, JSON, CSV, HTML-selection, HTTP, hashing, and
+workspace file work are all in reach. Anything needing `sharp`, `pdf-lib`,
 `exceljs`, `compromise`, `tesseract`, `tfjs`, or an actor-model stream is not.
 
-## Tier A — retire, fully covered (99 nodes)
+## Tier 1 — the snippet already exists, the node class is the duplicate
 
-Pure functions with no preview, no editor, no library. Each is one Code-node
-expression.
+These are done except for the deletion. Each has a shipping snippet with
+equivalent code; the node class is a second implementation of the same thing.
 
-### `nodetool.text` — 35 of 50
+### `nodetool.text` — 34 of 50
 
-`ToUppercase` `ToLowercase` `ToTitlecase` `CapitalizeText` `TrimWhitespace`
-`CollapseWhitespace` `PadText` `TruncateText` `SurroundWith` `StripAccents`
-`RemovePunctuation` `Slugify` `Replace` `Slice` `Extract` `Split` `Join`
-`IndexOf` `Length` `Contains` `StartsWith` `EndsWith` `IsEmpty` `HasLength`
-`Equals` `Compare` `RegexMatch` `RegexReplace` `RegexSplit` `RegexValidate`
-`FindAllRegex` `ExtractRegex` `ParseJSON` `ToString` `Chunk`
+| Node | Snippet |
+| --- | --- |
+| `ToUppercase` `ToLowercase` | Upper / Lower Case |
+| `ToTitlecase` | Title Case |
+| `CapitalizeText` | Capitalize |
+| `TrimWhitespace` | Trim |
+| `CollapseWhitespace` | Collapse Whitespace |
+| `PadText` | Pad String |
+| `TruncateText` | Truncate |
+| `SurroundWith` | Surround / Wrap |
+| `StripAccents` | Strip Accents |
+| `RemovePunctuation` | Remove Punctuation |
+| `Slugify` | Slugify |
+| `Replace` | Replace |
+| `Slice` `Extract` | Extract Substring |
+| `Split` | Split |
+| `Join` | Join Array |
+| `IndexOf` | Index Of |
+| `Length` | Measure Length |
+| `Contains` | Contains |
+| `StartsWith` | Starts With |
+| `EndsWith` | Ends With |
+| `IsEmpty` | Is Empty |
+| `Equals` `Compare` | Compare Text (returns both ordering and `equal`) |
+| `Chunk` | Chunk Text |
+| `ToString` | To String |
+| `ParseJSON` | Parse JSON |
+| `ExtractJSON` | Extract JSONPath / Get JSON Path |
+| `RegexMatch` | Regex Match |
+| `RegexReplace` | Regex Replace |
+| `RegexSplit` | Regex Split |
+| `RegexValidate` | Regex Validate |
+| `FindAllRegex` | Find All Matches |
+| `ExtractRegex` | Extract Regex Groups |
 
 `StripAccents` and `Slugify` look like the risky ones — they need
-`normalize("NFKD")`, which QuickJS has. Confirmed.
+`normalize("NFKD")`, which QuickJS has. Confirmed by running it.
 
-The 15 that stay: `Prompt` and `Template` (variable editors, `{{var}}`
-substitution UI), `Concat` (dynamic-input card), `Collect` (streaming fold),
-`Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
-`HtmlToText` (html-to-text), `ExtractJSON` (see Tier B), `SaveText`,
-`SaveTextFile`, `LoadTextAssets`, `LoadTextFolder` (asset system),
-`FilterString`, `FilterRegexString` (stream operators).
+`HasLength` is the one text node in this class without a snippet; **Measure
+Length** returns chars/words/lines and the comparison is one more expression.
 
-### `nodetool.list` — all 4
+The 15 that stay as classes: `Prompt` and `Template` (variable editors,
+`{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
+fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
+`HtmlToText` (html-to-text), `SaveText`, `SaveTextFile`, `LoadTextAssets`,
+`LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
+operators).
 
-`Range` `RepeatEach` `RepeatValue` `Tile`
+### `nodetool.list` — 1 of 4
 
-`Array.from({length: n}, ...)` and `flatMap` cover the set.
+`Range` has the **Range** snippet. `RepeatEach`, `RepeatValue`, and `Tile` do
+not, and belong in the List category beside it.
 
-### `lib.validate` — all 5
+### `lib.datetime` — 4 of 5
 
-`Email` `IP` `URL` `String` `Sanitize`
+`Now` → Today / Now, `Add` → Add Time, `Diff` → Date Difference, `Format` →
+Format Date. `StartEnd` (start/end of day, week, month, year) has no snippet.
 
-Hand-rolled regex today (`core-nodes` has no dependencies at all), so there is
-nothing to lose in the move.
+**Tier 1 total: 39 node classes whose replacement already ships.** Removing them
+is a deletion plus a graph migration, not new authoring.
 
-### `lib.markdown` — all 6
+## Tier 2 — coverable, but no snippet exists yet
 
-`ExtractBulletLists` `ExtractCodeBlocks` `ExtractHeaders` `ExtractLinks`
-`ExtractNumberedLists` `ExtractTables`
+Write the snippet first, then remove the class. Most of these want a new
+category; none fit the ten that exist.
 
-Regex over a string, returning arrays.
+| Group | Nodes | Category |
+| --- | --- | --- |
+| `lib.os` path helpers — `AbsolutePath` `Basename` `Dirname` `FileExtension` `FileName` `FileNameMatch` `FilterFileNames` `GetDirectory` `GetPathInfo` `JoinPaths` `NormalizePath` `PathToString` `RelativePath` `SplitExtension` `SplitPath` | 15 | **Path** (new) |
+| `lib.svg` element builders — `Circle` `ClipPath` `DropShadow` `Ellipse` `GaussianBlur` `Gradient` `Line` `Path` `Polygon` `Rect` `Text` `Transform` | 12 | **SVG** (new) |
+| `lib.http` — `GetText` `GetJSON` `GetBytes` `Post` `Put` `Patch` `Delete` | 7 | **HTTP** (new) |
+| `lib.markdown` — all 6 extractors | 6 | **Markdown** (new) |
+| `lib.html` — `BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata` `ExtractVideos`, via `data.selectHtml` | 6 | **HTML** (new) |
+| `lib.validate` — `Email` `IP` `URL` `String` `Sanitize` | 5 | **Validation** (new) |
+| `lib.graphql` — `Query` `QueryWithAuth` `BatchQuery` `Introspection` | 4 | HTTP |
+| `nodetool.list` — `RepeatEach` `RepeatValue` `Tile` | 3 | List |
+| `nodetool.constant.Date` `nodetool.constant.DateTime` — constructors with integer props, not value editors, unlike the rest of `nodetool.constant.*` | 2 | Date & Time |
+| `lib.datetime.StartEnd` | 1 | Date & Time |
+| `nodetool.text.HasLength` | 1 | Text |
+| `lib.secret.GetSecret` — `getSecret()` is in the sandbox; keep only if the node carries a secret *picker* | 1 | HTTP |
 
-### `lib.datetime` — all 5
+The HTTP category is the notable hole. The header comment in `codeSnippets.ts`
+lists `http` among the wrappers it replaced, but there is **no snippet
+containing `fetch(`** in the file, and `lib.http` and `lib.graphql` are still
+real node classes. Whatever happened there, the replacement never landed.
 
-`Add` `Diff` `Format` `Now` `StartEnd`
+`lib.svg` is the sharpest case in the catalog: twelve nodes each emit an element
+string, and nothing renders until `Document` or `SVGToImage` — those two stay,
+and they are where the preview is. A twelve-node graph produces markup a user
+could type.
 
-Also dependency-free hand-rolled arithmetic. `Format`'s token syntax is a
-reimplementation of what `format.date` already bridges to host `Intl`.
+**Tier 2 total: 63 nodes, roughly 55 new snippets across six new categories.**
 
-### `lib.html` — 6 of 8
+## Tier 3 — coverable, but blocked on a platform change
 
-`BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata`
-`ExtractVideos`
+| Group | Nodes | Blocker |
+| --- | --- | --- |
+| `nodetool.data` transforms — `AddColumn` `Aggregate` `Append` `DropDuplicates` `DropNA` `ExtractColumn` `FillNA` `Filter` `FindRow` `FromList` `ImportCSV` `Join` `JSONToDataframe` `Merge` `Pivot` `Rename` `SelectColumn` `Slice` `SortByColumn` `ToList` | 20 | The `dataframe` type renders as a table. `snippetMetadata.ts` types every output of a snippet from one `CATEGORY_TYPE` entry, so a returned `{columns, data}` cannot declare itself a dataframe and keep the table view. Needs per-snippet output typing. |
+| `lib.os` file operations — `ReadTextFile` `WriteTextFile` `ReadBinaryFile` `WriteBinaryFile` `ListFiles` `FileExists` `CreateDirectory` `GetFileSize` `IsFile` `IsDirectory` `AccessedTime` `CreatedTime` `ModifiedTime` `WorkspaceDirectory` `CopyFile` `MoveFile` | 16 | `workspace` covers read, write, list, `stat`, `mkdir`, `remove`, and the JSON category already ships Read File / Write File / List Files. Missing: **`workspace.copy` and `workspace.move`** — two bridge functions. |
 
-`data.selectHtml` is cheerio, the same engine. `HTMLToText` and
-`WebsiteContentExtractor` stay — they need html-to-text and Readability.
+`ShowNotification` and `OpenWorkspaceDirectory` stay — both are UI feedback by
+definition.
 
-### `lib.http` — all 7
+Data nodes that stay regardless: `Describe` (content card), `ForEachRow` and
+`FilterNone` (stream operators), `LoadCSVFile` `LoadCSVURL` `LoadCSVAssets`
+`SaveDataframe` `SaveCSVDataframeFile` (asset pickers), `Schema`.
 
-`GetText` `GetJSON` `GetBytes` `Post` `Put` `Patch` `Delete`
-
-Thin wrappers over a request. `fetch()` is in the sandbox and is the thing users
-already know.
-
-### `lib.os` path helpers — 15 of 33
-
-`AbsolutePath` `Basename` `Dirname` `FileExtension` `FileName` `FileNameMatch`
-`FilterFileNames` `GetDirectory` `GetPathInfo` `JoinPaths` `NormalizePath`
-`PathToString` `RelativePath` `SplitExtension` `SplitPath`
-
-String surgery on a path. Fifteen cards for what is `split("/")` and `pop()`.
-
-### `lib.svg` primitives — 12 of 14
-
-`Circle` `ClipPath` `DropShadow` `Ellipse` `GaussianBlur` `Gradient` `Line`
-`Path` `Polygon` `Rect` `Text` `Transform`
-
-Each emits an SVG element string. Nothing renders until `Document` or
-`SVGToImage` — those two stay, and they are where the preview lives. Building a
-twelve-node graph to produce markup a user could type is the clearest case in
-the catalog.
-
-### `lib.graphql` — all 4
-
-`Query` `QueryWithAuth` `BatchQuery` `Introspection`
-
-A POST with `{query, variables}`. `fetch()` plus `getSecret()`.
-
-## Tier B — retire once one gap closes (40 nodes)
-
-Covered in principle; each needs a decision or a small sandbox addition first.
-
-### `nodetool.data` transforms — 20 of 29
-
-`AddColumn` `Aggregate` `Append` `DropDuplicates` `DropNA` `ExtractColumn`
-`FillNA` `Filter` `FindRow` `FromList` `ImportCSV` `Join` `JSONToDataframe`
-`Merge` `Pivot` `Rename` `SelectColumn` `Slice` `SortByColumn` `ToList`
-
-All are array-of-objects manipulation, and `data.parseCsv` already handles
-`ImportCSV`. **The gap is typing, not capability**: the `dataframe` type renders
-as a table, and the Code node's dynamic outputs would need to declare that type
-for a returned `{columns, data}` to keep its table view. Close that and the
-twenty go.
-
-Staying regardless: `Describe` (content card), `ForEachRow` (stream operator),
-`LoadCSVFile` `LoadCSVURL` `LoadCSVAssets` `SaveDataframe`
-`SaveCSVDataframeFile` (asset pickers), `Schema`, `FilterNone` (stream).
-
-### `lib.os` file operations — 16 of 33
-
-`ReadTextFile` `WriteTextFile` `ReadBinaryFile` `WriteBinaryFile` `ListFiles`
-`FileExists` `CreateDirectory` `GetFileSize` `IsFile` `IsDirectory`
-`AccessedTime` `CreatedTime` `ModifiedTime` `WorkspaceDirectory` `CopyFile`
-`MoveFile`
-
-The `workspace` bridge covers reads, writes, listing, `stat`, `mkdir`, and
-`remove` — so most of these are already expressible. **Missing:
-`workspace.copy` and `workspace.move`.** Two bridge functions retire sixteen
-nodes. `ShowNotification` and `OpenWorkspaceDirectory` stay — both are UI
-feedback by definition.
-
-### Singles
-
-- `nodetool.text.ExtractJSON` — JSONPath has no sandbox equivalent, but plain
-  property access and `filter` are what most users want anyway. Retire and
-  document the idiom, or keep if JSONPath expressions are load-bearing in
-  shipped examples.
-- `lib.secret.GetSecret` — `getSecret()` is in the sandbox. The node's value is
-  the secret *picker*; if it has one, keep it, otherwise retire.
-- `nodetool.constant.Date`, `nodetool.constant.DateTime` — these are
-  constructors with integer props, not value editors. Unlike the rest of
-  `nodetool.constant.*`, nothing about them is a widget.
-
-## Tier C — keep
-
-Not because they are large, but because each has a reason:
+## Keep as node classes
 
 | Group | Reason |
 | --- | --- |
 | `nodetool.constant.*` (except `Date`/`DateTime`), `nodetool.input.*`, `nodetool.output.*` | value editors, dropzones, pickers — pure UI |
-| `nodetool.control.*` (22) | actor-model stream semantics: fan-out, per-item emission, back-pressure. The sandbox runs once and returns once. |
-| `nodetool.image.*`, `nodetool.audio.*`, `nodetool.video.*`, `nodetool.model3d.*`, `lib.image.*`, `lib.audio.*`, `lib.grid.*`, `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
+| `nodetool.control.*` (22) | actor-model stream semantics: fan-out, per-item emission, back-pressure. The sandbox runs once and returns once. The five Streaming snippets cover the generator patterns one node can express; the rest is kernel-level. |
+| `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
 | `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.excel` `lib.convert` `lib.ocr` `lib.charts` | native/binary document tooling |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.mail` `lib.twilio` `lib.google` `lib.apple` `apify.*` `search.*` `messaging.*` | credential pickers and non-trivial protocol handling; `fetch()` alone is not the same offer |
@@ -206,44 +202,51 @@ Not because they are large, but because each has a reason:
 
 ## Totals
 
-| Tier | Nodes | Verdict |
+| Tier | Nodes | Work |
 | --- | --- | --- |
-| A | 99 | Retire — Code node covers them today |
-| B | 40 | Retire after one sandbox or typing change |
-| C | rest | Keep |
+| 1 | 39 | Delete the class, migrate saved graphs. The snippet ships today. |
+| 2 | 63 | ~55 new snippets in six new categories, then delete. |
+| 3 | 36 | `workspace.copy`/`move` (16) and per-snippet output typing (20), then delete. |
 
-139 of the 733 hand-written node classes are functions wearing a card.
+138 of the 733 hand-written node classes are functions wearing a card.
 
 ## Suggested order
 
-1. **`lib.svg` primitives and `lib.http`** (19). The most obviously redundant,
-   and neither has downstream typing questions.
-2. **`nodetool.text` Tier A** (35). The biggest single win, and the namespace
-   users hit first.
-3. **`workspace.copy`/`workspace.move`, then `lib.os`** (31). One small bridge
-   change unlocks the whole namespace.
-4. **Dataframe output typing on the Code node, then `nodetool.data`** (20). The
-   one that needs design, not just deletion.
-5. **The remainder** — `lib.validate`, `lib.markdown`, `lib.datetime`,
-   `lib.html`, `lib.graphql`, `nodetool.list`, singles (34).
+1. **`lib.http` + `lib.graphql` → an HTTP category** (11). Closes the gap the
+   header comment already claims is closed. `fetch()` plus `getSecret()`.
+2. **Tier 1 deletions** (39). No new snippets needed — the win is dropping the
+   duplicate implementation, and `nodetool.text` is the namespace users hit
+   first.
+3. **Path and SVG categories** (27). The two largest pure-string groups.
+4. **`workspace.copy`/`workspace.move`, then `lib.os` file ops** (16). Two
+   bridge functions unlock the rest of the namespace.
+5. **Markdown, HTML, Validation** (17), plus the singles.
+6. **Per-snippet output typing, then `nodetool.data`** (20). The one that needs
+   design, not just authoring.
 
-## Two things worth doing alongside
+## What a removal needs alongside it
 
-**Migration, not just removal.** A saved workflow using `nodetool.text.Slugify`
-must not break. Each retired node needs a graph-level rewrite to an equivalent
-Code node, the way `nodetool validate` already knows every node type — the
-mapping is mechanical for Tier A because each node is one expression.
+**Graph migration.** A saved workflow using `nodetool.text.Slugify` has to keep
+running. Each removed class needs a rewrite to the equivalent Code node —
+mechanical for Tier 1, because the snippet body *is* the replacement and the
+node's properties map onto the Code node's dynamic inputs.
 
-**Discoverability.** Deleting `ToUppercase` only helps if a user searching
-"uppercase" lands on the Code node with a filled-in snippet. Keyword aliases
-from retired types to Code-node templates should ship in the same change, or
-the removal reads as a regression.
+**Search parity.** A snippet is only a node if it is found like one.
+`generateSnippetMetadata` writes the snippet's `tags` into the description the
+node menu searches, so a removed node's name and keywords have to land in the
+tags of the snippet replacing it. Otherwise searching "uppercase" stops working
+and the change reads as a regression.
 
 ## Related
 
-- [CLOUD_NODE_CURATION.md](CLOUD_NODE_CURATION.md) — the cloud profile already
-  trims by namespace and admits the Code node by name. This audit is the same
-  argument applied to the OSS catalog.
+- `web/src/config/codeSnippets.ts` — the 112 snippets, and where new ones go.
+- `web/src/config/snippetMetadata.ts` — snippet → `NodeMetadata`, and where
+  per-snippet output typing would go.
+- `web/src/utils/instantiatePaletteNode.ts` — snippet → Code node on the canvas.
 - `packages/code-nodes/src/nodes/code-node.ts` — the node.
 - `packages/agents/src/js-sandbox.ts` — the sandbox bridge, and the file to
-  extend for Tier B.
+  extend for Tier 3.
+- [docs/plans/code-node-ai-authoring.md](plans/code-node-ai-authoring.md) — the
+  other half: describing a result instead of picking a snippet.
+- [CLOUD_NODE_CURATION.md](CLOUD_NODE_CURATION.md) — the cloud profile trims by
+  namespace and admits the Code node by name.
