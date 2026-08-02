@@ -3,6 +3,8 @@
 **Author:** Matti Georgi
 **Status:** Draft — for review
 **Last updated:** 2026-08-02
+**Design doc:** [mini-app-build-harness-design.md](mini-app-build-harness-design.md)
+**Implementation plan:** [mini-app-build-harness-implementation-plan.md](mini-app-build-harness-implementation-plan.md)
 **Related:** [mini-apps.md](mini-apps.md) · [app-builder.md](app-builder.md) · `nodetool app debug` (CLAUDE.md) · `packages/agents` app-tools eval
 
 ---
