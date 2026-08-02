@@ -25,6 +25,23 @@ export {
 export type { AppContext } from "./app-spec.js";
 export { bundleTarget } from "./bundle-target.js";
 export {
+  applicationTarget,
+  hostGraphFor,
+  inlineDocumentTarget
+} from "./application-target.js";
+export type {
+  AppApplicationRecord,
+  AppWorkflowLoader,
+  AppWorkflowRecord
+} from "./application-target.js";
+export { normalizeDebugGraph, debugGraphOf } from "./graph-shape.js";
+export { summarizeAppReport } from "./summarize.js";
+export type {
+  AppDebugSummary,
+  AppInvocationSummary,
+  AppWidgetSummary
+} from "./summarize.js";
+export {
   HeadlessAppRuntime,
   InMemoryResourceProvider,
   effectiveTimeoutMs,

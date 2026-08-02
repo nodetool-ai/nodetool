@@ -9,6 +9,7 @@ import {
   RunWorkflowTool,
   DebugWorkflowTool,
   ResolveWorkflowEscalationTool,
+  DebugAppTool,
   ValidateWorkflowTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -511,6 +512,40 @@ describe("ResolveWorkflowEscalationTool", () => {
   });
 });
 
+describe("DebugAppTool", () => {
+  const tool = new DebugAppTool();
+
+  it("posts the params straight to /api/applications/debug", async () => {
+    await tool.process(ctx, { application_id: "app-1", run: false });
+    expect(lastFetchUrl()).toContain("/api/applications/debug");
+    expect(lastFetchOpts().method).toBe("POST");
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.application_id).toBe("app-1");
+    expect(body.run).toBe(false);
+  });
+
+  it("carries an inline document and an interaction script", async () => {
+    const interact = [{ set: { key: "prompt", value: "hi" } }, { click: "Run" }];
+    await tool.process(ctx, { document: { root: {} }, interact });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.document).toEqual({ root: {} });
+    expect(body.interact).toEqual(interact);
+  });
+
+  it("requires neither target in the schema — the server enforces exactly one", () => {
+    expect(tool.jsonSchema.required).toEqual([]);
+    expect(Object.keys(tool.jsonSchema.properties)).toContain("application_id");
+    expect(Object.keys(tool.jsonSchema.properties)).toContain("document");
+  });
+
+  it("userMessage distinguishes the free wiring check from a run", () => {
+    expect(tool.userMessage({ application_id: "app-1", run: false })).toContain(
+      "Checking"
+    );
+    expect(tool.userMessage({ document: {} })).toContain("draft");
+  });
+});
+
 describe("ValidateWorkflowTool", () => {
   const tool = new ValidateWorkflowTool();
 
@@ -754,6 +789,8 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("create_workflow");
     expect(names).toContain("run_workflow");
     expect(names).toContain("validate_workflow");
+    expect(names).toContain("build_app");
+    expect(names).toContain("debug_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");
     expect(names).toContain("list_nodes");

@@ -28,15 +28,8 @@ import {
   type BuildReport,
   type BuildSpec
 } from "@nodetool-ai/agents";
-import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
-import { collectExecutionSummary } from "@nodetool-ai/execution/debug";
-import type {
-  AppServerRunInput,
-  AppServerRunOutcome
-} from "@nodetool-ai/execution/app-debug";
 import { getSecret, Workflow } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   FileStorageAdapter,
   ProcessingContext,
@@ -45,6 +38,7 @@ import {
   listRegisteredProviderIds,
   type BaseProvider
 } from "@nodetool-ai/runtime";
+import { createAppServerRunner } from "./app-run-server.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { throwApiError } from "../trpc/error-formatter.js";
 import {
@@ -119,62 +113,6 @@ async function loadConfiguredProviders(
     })
   );
   return providers;
-}
-
-/**
- * The Run stage's kernel runner: one `ExecutionSession` per interaction run,
- * from the graph the build holds in memory. Nothing is persisted — a build's
- * workflows have no rows until its bundle is imported.
- */
-function buildRunner(
-  userId: string,
-  registry: NodeRegistry
-): (input: AppServerRunInput) => Promise<AppServerRunOutcome> {
-  return async (input) => {
-    const startedAt = Date.now();
-    const jobId = `app-build-run-${randomUUID()}`;
-    const context = new ProcessingContext({
-      jobId,
-      workflowId: input.workflowId,
-      userId,
-      secretResolver: (key: string) => getSecret(key, userId),
-      storage: new FileStorageAdapter(getDefaultAssetsPath())
-    });
-    const session = await ExecutionSession.create({
-      graph: input.graph as unknown as RawGraphInput,
-      registry,
-      jobId,
-      workflowId: input.workflowId,
-      params: input.params,
-      context,
-      ...(input.timeoutMs !== undefined
-        ? { limits: { runTimeoutMs: input.timeoutMs } }
-        : {})
-    });
-    // `session.result` never rejects: a kernel failure resolves as
-    // `status: "failed"`, which the simulator turns into a complaint.
-    const result = await session.result;
-    const messages = (result.messages ?? []) as ProcessingMessage[];
-    const summary = collectExecutionSummary(messages);
-    summary.status = result.status ?? summary.status;
-    const timedOut = session.cancelReason === "timeout";
-    const error =
-      result.error ??
-      (timedOut ? `run exceeded timeout (${input.timeoutMs}ms)` : undefined);
-    if (error && !summary.error) summary.error = error;
-    return {
-      report: {
-        surface: "server",
-        ok: result.status === "completed",
-        status: result.status ?? summary.status,
-        error: error ?? summary.error ?? null,
-        durationMs: Date.now() - startedAt,
-        summary,
-        trace: null
-      },
-      rawMessages: messages
-    };
-  };
 }
 
 /** A body number that is a finite positive value, or undefined. */
@@ -290,7 +228,9 @@ export async function runApplicationBuild(
         context,
         registry,
         providers,
-        runOnServer: buildRunner(userId, registry),
+        runOnServer: createAppServerRunner(userId, registry, {
+          jobPrefix: "app-build-run"
+        }),
         loadWorkflow: async (id: string) => {
           const workflow = await Workflow.find(userId, id);
           const graph = workflow?.getGraph() as

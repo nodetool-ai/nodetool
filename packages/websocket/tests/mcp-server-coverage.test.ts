@@ -516,6 +516,7 @@ describe("bridged agent tools (workflow + creative)", () => {
       "debug_workflow",
       "resolve_workflow_escalation",
       "build_app",
+      "debug_app",
       "validate_workflow",
       "list_models",
       "get_example_workflow",
