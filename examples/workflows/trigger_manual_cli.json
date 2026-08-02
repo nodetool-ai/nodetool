@@ -1,0 +1,40 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "start",
+        "type": "nodetool.triggers.ManualTrigger",
+        "data": { "name": "run_button", "max_events": 1 }
+      },
+      {
+        "id": "data",
+        "type": "nodetool.output.Output",
+        "name": "data",
+        "data": { "name": "data" }
+      },
+      {
+        "id": "source",
+        "type": "nodetool.output.Output",
+        "name": "source",
+        "data": { "name": "source" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "start",
+        "sourceHandle": "data",
+        "target": "data",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "start",
+        "sourceHandle": "source",
+        "target": "source",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

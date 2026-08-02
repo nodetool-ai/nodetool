@@ -1,0 +1,121 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T11:00:00.000Z",
+  "updated_at": "2026-08-02T11:00:00.000Z",
+  "name": "A Webhook That Answers",
+  "tool_name": null,
+  "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+  "tags": ["example", "trigger", "webhook", "llm"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "hook",
+        "type": "nodetool.triggers.WebhookTrigger",
+        "data": {},
+        "ui_properties": {
+          "position": { "x": 0, "y": 120 },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Webhook"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "str",
+        "type": "nodetool.text.ToString",
+        "data": { "mode": "repr" },
+        "ui_properties": {
+          "position": { "x": 330, "y": 120 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Body as text"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You receive the JSON body of a webhook. Reply with one sentence stating what happened and whether it needs attention. No preamble.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": { "x": 620, "y": 120 },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Summarize"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "name": "summary",
+        "data": { "name": "summary", "description": "One line about the event" },
+        "ui_properties": {
+          "position": { "x": 970, "y": 120 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Summary"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "hook",
+        "sourceHandle": "body",
+        "target": "str",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "str",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
