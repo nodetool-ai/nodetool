@@ -605,6 +605,21 @@ export type {
   AppComponentSummary,
   SeedComponent
 } from "./evals/surfaces/app.js";
+/* App-build: the shared bridge and the generic tool-loop driver. */
+export type {
+  AppBridgeDocument,
+  AppToolBridge,
+  ComponentNode
+} from "./app-build/bridge.js";
+export {
+  runToolLoop,
+  DEFAULT_MAX_ITERATIONS as DEFAULT_TOOL_LOOP_ITERATIONS
+} from "./app-build/tool-loop.js";
+export type {
+  RunToolLoopOptions,
+  ToolLoopCallRecord,
+  ToolLoopRun
+} from "./app-build/tool-loop.js";
 export {
   createThreadMemoryToolBridge,
   THREAD_MEMORY_TOOL_LOOP_CASES

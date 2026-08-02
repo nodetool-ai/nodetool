@@ -25,8 +25,11 @@
  * the right thing a bit wastefully".
  */
 
-import type { BaseProvider, Message } from "@nodetool-ai/runtime";
-import { zodToJsonSchema } from "@nodetool-ai/runtime";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import {
+  runToolLoop,
+  type ToolLoopCallRecord
+} from "../app-build/tool-loop.js";
 import type { EvalCheck } from "./graph-planner-eval.js";
 import type { HeadlessTool, ToolLoopFinalState } from "./tool-loop-bridge.js";
 import { TOOL_LOOP_EVAL_CASES } from "./tool-loop-cases.js";
@@ -51,12 +54,7 @@ export interface HeadlessSurfaceBridge<TFinal = unknown> {
 }
 
 /** One tool call the model made, with its result and whether it errored. */
-export interface ToolCallRecord {
-  name: string;
-  args: Record<string, unknown>;
-  result: unknown;
-  isError: boolean;
-}
+export type ToolCallRecord = ToolLoopCallRecord;
 
 /** A named boolean assertion over a surface's final state. */
 export interface ToolLoopStatePredicate<TFinal = unknown> {
@@ -192,8 +190,6 @@ export interface RunToolLoopEvalOptions<TFinal = ToolLoopFinalState> {
   onEvent?: (line: string) => void;
 }
 
-const DEFAULT_MAX_ITERATIONS = 12;
-
 const DEFAULT_SYSTEM_PROMPT = `You are a workflow-graph building assistant operating a node-based editor through UI tools.
 
 Build the workflow the user asks for by calling the ui_* tools:
@@ -203,10 +199,6 @@ Build the workflow the user asks for by calling the ui_* tools:
 - Inspect your work with ui_get_graph when unsure.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
-
-function totalToolCalls(byName: Record<string, number>): number {
-  return Object.values(byName).reduce((a, b) => a + b, 0);
-}
 
 function buildUserPrompt(evalCase: {
   userPrompt?: string;
@@ -379,81 +371,41 @@ async function runCase<TFinal>(
   const escalation = evalCase.escalation
     ? createEscalationChannel(evalCase.escalation)
     : undefined;
-  const surfaceTools = escalation
+  const surfaceTools: HeadlessTool[] = escalation
     ? [...bridge.tools, escalation.tool]
     : bridge.tools;
-  const toolCalls: Record<string, number> = {};
-  const records: ToolCallRecord[] = [];
-  const costBefore = opts.provider.getTotalCost();
-  const startedAt = Date.now();
 
-  // Provider tools carry a self-contained `execute`, so `generateLoop`
-  // dispatches directly to the bridge and feeds the stringified result back to
-  // the model — exactly how the graph planner drives its tools.
-  const providerTools = surfaceTools.map((tool) => ({
-    name: tool.name,
-    description: tool.description,
-    inputSchema: zodToJsonSchema(tool.parameters),
-    execute: async (args: Record<string, unknown>): Promise<string> => {
-      toolCalls[tool.name] = (toolCalls[tool.name] ?? 0) + 1;
-      let result: unknown;
-      let isError = false;
-      try {
-        result = await tool.execute(args ?? {});
-      } catch (e) {
-        isError = true;
-        result = { error: e instanceof Error ? e.message : String(e) };
-      }
-      records.push({ name: tool.name, args: args ?? {}, result, isError });
-      opts.onEvent?.(`    [tool] ${tool.name}${isError ? " (error)" : ""}`);
-      return typeof result === "string" ? result : JSON.stringify(result);
-    }
-  }));
+  const run = await runToolLoop({
+    provider: opts.provider,
+    model: opts.model,
+    tools: surfaceTools,
+    // Per-case (surface-specific) prompt wins over the runner-wide override,
+    // which in turn wins over the graph-editor default.
+    systemPrompt:
+      evalCase.systemPrompt ?? opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
+    userPrompt: buildUserPrompt(evalCase),
+    maxIterations: opts.maxIterations,
+    signal: opts.signal,
+    onToolCall: (record) =>
+      opts.onEvent?.(
+        `    [tool] ${record.name}${record.isError ? " (error)" : ""}`
+      )
+  });
 
-  const messages: Message[] = [
-    {
-      role: "system",
-      // Per-case (surface-specific) prompt wins over the runner-wide override,
-      // which in turn wins over the graph-editor default.
-      content:
-        evalCase.systemPrompt ?? opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT
-    },
-    { role: "user", content: buildUserPrompt(evalCase) }
-  ];
-
-  let error: string | undefined;
-  try {
-    const stream = opts.provider.generateLoop({
-      messages,
-      model: opts.model,
-      tools: providerTools,
-      // Tools mutate shared graph state and read it back, so calls must be
-      // serialized.
-      sequentialTools: true,
-      maxIterations: opts.maxIterations ?? DEFAULT_MAX_ITERATIONS,
-      signal: opts.signal
-    });
-    // Drain the stream; side effects (tool execution, result feedback) happen
-    // inside `generateLoop`.
-    for await (const _item of stream) {
-      if (opts.signal?.aborted) break;
-    }
-  } catch (e) {
-    error = e instanceof Error ? e.message : String(e);
-  }
-
-  const durationMs = Date.now() - startedAt;
-  const costUsd = opts.provider.getTotalCost() - costBefore;
-  const accepted = error === undefined;
-
+  const accepted = run.completed;
   const observation: ToolLoopObservation<TFinal> = {
-    toolCalls: records,
+    toolCalls: run.calls,
     finalState: bridge.finalState(),
     escalations: escalation?.turns()
   };
 
   const checks: EvalCheck[] = [
-    { name: "accepted", pass: accepted, severity: "critical", detail: error }
+    {
+      name: "accepted",
+      pass: accepted,
+      severity: "critical",
+      detail: run.error
+    }
   ];
   if (accepted) {
     checks.push(...checkToolLoopExpectations(observation, evalCase.expect));
@@ -468,11 +420,11 @@ async function runCase<TFinal>(
     score,
     criticalFailures: countCriticalFailures(checks),
     checks,
-    toolCalls,
-    totalToolCalls: totalToolCalls(toolCalls),
-    durationMs,
-    costUsd,
-    error
+    toolCalls: run.countsByName,
+    totalToolCalls: run.totalCalls,
+    durationMs: run.durationMs,
+    costUsd: run.costUsd,
+    error: run.error
   };
 }
 
