@@ -4,6 +4,13 @@
 export { ExecutionSession } from "./session.js";
 export { normalizeGraph } from "./normalize-graph.js";
 export { DEFAULT_MESSAGE_BUFFER_LIMIT } from "./message-stream.js";
+export {
+  INTERVENTION_MARK,
+  formatInterventionLine,
+  formatSupervisedSummary,
+  summarizeInterventions
+} from "./supervisor.js";
+export type { SupervisedRunSummary } from "./supervisor.js";
 export type {
   BridgeFactory,
   Edge,
@@ -13,7 +20,8 @@ export type {
   NodeDescriptor,
   ProcessingMessage,
   RawGraphInput,
-  RunResult
+  RunResult,
+  SupervisorHandle
 } from "./types.js";
 export type { NodeTypeResolver, ResolvedNodeType } from "@nodetool-ai/kernel";
 
@@ -25,6 +33,7 @@ export {
 } from "./debug/collector.js";
 export {
   buildRunVerdict,
+  collectInterventionWarnings,
   collectRunIssues,
   describeErrors
 } from "./debug/verdict.js";

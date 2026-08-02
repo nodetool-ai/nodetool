@@ -8,8 +8,19 @@
  * session.
  */
 export { collectExecutionSummary, previewValue } from "./collector.js";
+// Intervention reporting lives one level up (it is not debug-only) but is
+// re-exported here so a host on this dependency-free subpath can print a
+// supervised run without pulling the session facade's runtime deps.
+export {
+  INTERVENTION_MARK,
+  formatInterventionLine,
+  formatSupervisedSummary,
+  summarizeInterventions
+} from "../supervisor.js";
+export type { SupervisedRunSummary } from "../supervisor.js";
 export {
   buildRunVerdict,
+  collectInterventionWarnings,
   collectRunIssues,
   describeErrors
 } from "./verdict.js";

@@ -34,7 +34,11 @@ export interface DebugTargetInfo {
 
 // The execution-summary vocabulary is shared with every other host that
 // reports on a run — see `@nodetool-ai/execution`.
-import type { ExecutionSummary } from "@nodetool-ai/execution/debug";
+import type {
+  ExecutionSummary,
+  SupervisedRunSummary
+} from "@nodetool-ai/execution/debug";
+import type { SupervisorRunConfig } from "../supervisor.js";
 
 export type {
   DebugError,
@@ -73,6 +77,15 @@ export interface ServerRunReport {
   messagesFile?: string;
   /** Bundle-relative path to the raw trace JSONL. */
   traceFile?: string;
+  /**
+   * Present only on a supervised run: who supervised it and the rollup of what
+   * they decided. The decisions themselves are `summary.interventions`.
+   */
+  supervised?: {
+    provider: string;
+    model: string;
+    summary: SupervisedRunSummary;
+  };
 }
 
 /** A canvas screenshot captured at one stage of the browser run. */
@@ -150,4 +163,10 @@ export interface DebugOptions {
   outDir?: string;
   /** Per-surface run timeout, ms. */
   timeoutMs?: number;
+  /**
+   * Supervise the server surface (`--supervise` and its bounds). The browser
+   * surface runs the workflow through the web runtime, which has no supervisor
+   * of its own until the editor toggle ships, so it is unaffected.
+   */
+  supervisor?: SupervisorRunConfig;
 }

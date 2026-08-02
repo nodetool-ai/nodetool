@@ -9,8 +9,19 @@
  * unit-testable.
  */
 import type { Command } from "commander";
+import {
+  formatInterventionLine,
+  formatSupervisedSummary,
+  summarizeInterventions
+} from "@nodetool-ai/execution/debug";
+import type { Intervention } from "@nodetool-ai/protocol";
+import {
+  addSupervisorOptions,
+  parseSupervisorFlags,
+  type SupervisorCliOptions
+} from "../supervisor.js";
 
-interface DebugCliOptions {
+interface DebugCliOptions extends SupervisorCliOptions {
   server?: boolean;
   browser?: boolean;
   trace?: boolean;
@@ -23,8 +34,9 @@ interface DebugCliOptions {
 }
 
 export function registerDebugCommands(program: Command): void {
-  program
-    .command("debug <workflow_id_or_file>")
+  addSupervisorOptions(
+    program
+      .command("debug <workflow_id_or_file>")
     .description(
       "Run a workflow end-to-end (server and/or browser) and collect a full debug bundle"
     )
@@ -51,12 +63,12 @@ export function registerDebugCommands(program: Command): void {
       "Per-surface run timeout in milliseconds",
       (v: string) => parseInt(v, 10)
     )
-    .option("--json", "Print the full DebugReport as JSON to stdout")
-    .option(
-      "--watch",
-      "Re-run on file change and print a diff of the verdict (file targets only)"
-    )
-    .action(async (ref: string, opts: DebugCliOptions) => {
+      .option("--json", "Print the full DebugReport as JSON to stdout")
+      .option(
+        "--watch",
+        "Re-run on file change and print a diff of the verdict (file targets only)"
+      )
+  ).action(async (ref: string, opts: DebugCliOptions) => {
       try {
         const { initDb, Workflow } = await import("@nodetool-ai/models");
         const { initMasterKey } = await import("@nodetool-ai/security");
@@ -84,8 +96,11 @@ export function registerDebugCommands(program: Command): void {
 
         // In watch mode keep a stable bundle dir so each re-run overwrites
         // rather than littering timestamped directories.
+        const supervisor = parseSupervisorFlags(opts);
+
         const runOptions = {
           server: opts.server,
+          ...(supervisor ? { supervisor } : {}),
           browser: opts.browser ?? false,
           trace: opts.trace ?? false,
           stages: opts.stages ?? false,
@@ -183,9 +198,13 @@ function watchSlug(ref: string): string {
 }
 
 function printSummary(report: {
-  verdict: { ok: boolean; headline: string; issues: string[] };
+  verdict: { ok: boolean; headline: string; issues: string[]; warnings?: string[] };
   bundleDir: string | null;
-  server: { status: string; summary: { counts: { errored: number } } } | null;
+  server: {
+    status: string;
+    summary: { counts: { errored: number }; interventions: Intervention[] };
+    supervised?: { provider: string; model: string };
+  } | null;
   browser: { status: string; unavailableReason?: string; consoleErrors: string[] } | null;
 }): void {
   const mark = report.verdict.ok ? "✅" : "❌";
@@ -194,6 +213,15 @@ function printSummary(report: {
     console.log(
       `  server:  ${report.server.status} (${report.server.summary.counts.errored} node error(s))`
     );
+    const interventions = report.server.summary.interventions;
+    if (report.server.supervised && interventions.length > 0) {
+      for (const intervention of interventions) {
+        console.log(`  ${formatInterventionLine(intervention)}`);
+      }
+      console.log(
+        `  ${formatSupervisedSummary(summarizeInterventions(interventions))}`
+      );
+    }
   }
   if (report.browser) {
     console.log(
@@ -205,6 +233,10 @@ function printSummary(report: {
   if (report.verdict.issues.length > 0) {
     console.log("\nIssues:");
     for (const issue of report.verdict.issues) console.log(`  - ${issue}`);
+  }
+  if (report.verdict.warnings && report.verdict.warnings.length > 0) {
+    console.log("\nWarnings:");
+    for (const warning of report.verdict.warnings) console.log(`  - ${warning}`);
   }
   if (report.bundleDir) {
     const parts = ["report.md / report.json", "workflow.json"];

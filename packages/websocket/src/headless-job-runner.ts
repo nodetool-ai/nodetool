@@ -25,7 +25,9 @@ import {
 } from "@nodetool-ai/execution";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
+import { createRunSupervisor } from "./run-supervisor.js";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
 
 const log = createLogger("nodetool.websocket.headless-job");
@@ -48,6 +50,16 @@ export interface StartHeadlessJobOptions {
   jobName?: string;
   /** Node registry to resolve executors from. Defaults to the bootstrapped server registry. */
   registry?: NodeRegistry;
+  /**
+   * Supervise this run (docs/workflow-supervisor-design.md). Off unless the
+   * caller asks — the trigger dispatcher passes the registration's own flag,
+   * which defaults to off. Without a configured supervisor model
+   * (`NODETOOL_SUPERVISOR_PROVIDER` / `NODETOOL_SUPERVISOR_MODEL`) the run
+   * proceeds unsupervised rather than failing.
+   */
+  supervise?: boolean;
+  /** Supervisor configuration. Ignored unless `supervise` is true. */
+  supervisor?: SupervisorRunOptions | null;
   /**
    * Called once the run is *accepted* — the workflow resolved and the `Job` row
    * exists — which is long before this function's promise settles on terminal
@@ -185,6 +197,12 @@ export async function startHeadlessJob(
   // → throw). `session.result` never rejects — kernel failures (including an
   // unknown node type) resolve as `status: "failed"` instead of throwing, so
   // the job still settles instead of leaving a phantom "running" row behind.
+  const supervisor = await createRunSupervisor({
+    supervise: options.supervise,
+    supervisor: options.supervisor,
+    context
+  });
+
   const session = await ExecutionSession.create({
     graph: graph as unknown as RawGraphInput,
     registry,
@@ -192,7 +210,8 @@ export async function startHeadlessJob(
     workflowId,
     params,
     triggerEvent: options.triggerEvent ?? null,
-    context
+    context,
+    ...(supervisor ? { supervisor } : {})
   });
 
   const result = await session.result;

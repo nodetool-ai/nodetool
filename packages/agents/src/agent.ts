@@ -26,12 +26,19 @@ import type {
   Chunk
 } from "@nodetool-ai/protocol";
 import { TaskUpdateEvent } from "@nodetool-ai/protocol";
+import { BoundedHandle, type SupervisorBounds } from "@nodetool-ai/kernel";
 import { TaskPlanner } from "./task-planner.js";
+import {
+  resolveAgentGraph,
+  runWorkflowAsAgent,
+  type AgentGraphSource
+} from "./workflow-agent.js";
+import { SupervisorAgent } from "./supervisor/supervisor-agent.js";
 import { TaskExecutor } from "./task-executor.js";
 import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
-import { AgentWorkflowRunner } from "./agent-workflow-runner.js";
+import { AgentWorkflowRunner, applyRunPolicy } from "./agent-workflow-runner.js";
 import { ScriptPlanner } from "./script-planner.js";
 import { ScriptRunner } from "./script-runner.js";
 import type { Tool } from "./tools/base-tool.js";
@@ -285,6 +292,28 @@ export interface AgentOptions {
    * script API.
    */
   script?: string;
+  /**
+   * Run an existing workflow as this agent: an inline graph, or
+   * `{ workflowId }` to hydrate one from the workflow table. There is no
+   * planning phase — the graph is the plan — and the agent supervises the run
+   * instead of authoring it, so `getResults()` returns the run's outputs.
+   * Requires {@link registry}. Takes precedence over every planning mode.
+   *
+   * Supervision is opt-in: without {@link supervise} the run is an ordinary
+   * kernel run that never constructs an escalation.
+   */
+  graph?: AgentGraphSource;
+  /**
+   * Supervise the {@link graph} run: a failing node invocation escalates to
+   * this agent, which answers with a verdict (retry / substitute / skip /
+   * end_stream / fail). Default `false` — the flip to default-on is gated on
+   * the eval suite, not on this option.
+   */
+  supervise?: boolean;
+  /** Decision, retry, and timeout ceilings for {@link supervise}. */
+  supervisorBounds?: SupervisorBounds;
+  /** Dollar ceiling on supervision for the whole run. */
+  maxSupervisorCostUsd?: number;
   /** Script mode: concurrent `agent()` calls beyond this queue. Default 8. */
   maxConcurrentAgents?: number;
   /** Script mode: lifetime `agent()` call cap per run. Default 100. */
@@ -374,6 +403,10 @@ export class Agent {
   private readonly useGraphPlanner: boolean;
   private readonly useScriptPlanner: boolean;
   private readonly script?: string;
+  private readonly graphSource?: AgentGraphSource;
+  private readonly supervise: boolean;
+  private readonly supervisorBounds?: SupervisorBounds;
+  private readonly maxSupervisorCostUsd?: number;
   private readonly registry?: NodeRegistry;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly securityMonitorEnabled: boolean;
@@ -416,6 +449,10 @@ export class Agent {
     this.useGraphPlanner = opts.useGraphPlanner === true;
     this.useScriptPlanner = opts.useScriptPlanner === true;
     this.script = opts.script;
+    this.graphSource = opts.graph;
+    this.supervise = opts.supervise === true;
+    this.supervisorBounds = opts.supervisorBounds;
+    this.maxSupervisorCostUsd = opts.maxSupervisorCostUsd;
     this.registry = opts.registry;
     this.providers = opts.providers;
     this.securityMonitorEnabled = opts.securityMonitor?.enabled === true;
@@ -686,6 +723,13 @@ export class Agent {
       this.workspace ??
       path.join(os.homedir(), "nodetool_workspace", Date.now().toString());
     await fs.mkdir(workspacePath, { recursive: true });
+
+    // A supplied graph is already the plan: no planner runs, and the agent's
+    // job is to supervise the run rather than author it.
+    if (this.graphSource) {
+      yield* this.executeSuppliedGraph(context, mergedSystemPrompt);
+      return;
+    }
 
     if (this.initialTask) {
       yield* this.executeSingleTask(
@@ -1261,6 +1305,100 @@ export class Agent {
       }
       yield item;
     }
+  }
+
+  /**
+   * Workflows as agents: run a supplied graph on the kernel with this agent as
+   * the run's supervisor. No planning phase — the graph is the plan — so the
+   * only judgment the model supplies is a verdict on a broken invocation.
+   *
+   * The run obeys the same {@link AgentPolicy} as every other mode: the policy's
+   * turn and token bounds are stamped onto model-less Agent nodes exactly as
+   * the graph-planner branch stamps them, and nothing here invents a second set
+   * of numbers. Supervision's own ceilings (decisions, retries, dollars) are the
+   * supervisor's, shared with every other surface that configures one.
+   */
+  private async *executeSuppliedGraph(
+    context: ProcessingContext,
+    systemPrompt: string | undefined
+  ): AsyncGenerator<ProcessingMessage> {
+    if (!this.registry) {
+      throw new Error(
+        "Agent({ graph }) requires a NodeRegistry to resolve node executors."
+      );
+    }
+
+    const graph = applyRunPolicy(
+      await resolveAgentGraph(this.graphSource!, context),
+      {
+        providerId: this.provider.provider,
+        modelId: this.model,
+        ...(systemPrompt ? { systemPrompt } : {}),
+        maxStepIterations: this.policy.maxStepIterations,
+        ...(this.policy.maxTokens !== undefined
+          ? { maxTokens: this.policy.maxTokens }
+          : {})
+      }
+    );
+
+    yield {
+      type: "log_update",
+      node_id: "workflow_executor",
+      node_name: this.name,
+      content: `Running workflow: ${graph.nodes.length} nodes, ${graph.edges.length} edges${
+        this.supervise ? " (supervised)" : ""
+      }...`,
+      severity: "info"
+    } satisfies LogUpdate;
+
+    const supervisor = this.supervise
+      ? new BoundedHandle(
+          new SupervisorAgent({
+            provider: this.provider,
+            model: this.reasoningModel,
+            // The supervisor reads and writes the run's memory (`supervisor:`
+            // keys) but must not push its own provider chatter into the run's
+            // message stream, so it gets a listener-free copy.
+            context: context.copy({
+              shareMemory: true,
+              inheritMessageListeners: false
+            }),
+            ...(this.maxSupervisorCostUsd !== undefined
+              ? { maxCostUsd: this.maxSupervisorCostUsd }
+              : {})
+          }),
+          this.supervisorBounds ?? {}
+        )
+      : undefined;
+
+    const run = runWorkflowAsAgent({
+      graph,
+      registry: this.registry,
+      context,
+      params: this.inputs,
+      ...(supervisor ? { supervisor } : {}),
+      ...(this.signal ? { signal: this.signal } : {})
+    });
+
+    let next = await run.next();
+    while (!next.done) {
+      yield next.value;
+      next = await run.next();
+    }
+    const result = next.value;
+
+    if (result.status === "failed") {
+      throw new Error(result.error ?? "Workflow run failed");
+    }
+
+    this.results = result.outputs ?? {};
+
+    log.info("Agent completed", {
+      name: this.name,
+      status: result.status,
+      interventions: result.interventions?.length ?? 0
+    });
+    this.persistAgentRunMemory();
   }
 
   /**

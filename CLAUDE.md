@@ -253,6 +253,49 @@ npm run dev:nodetool -- run workflow.ts            # Run a TypeScript DSL file
 npm run dev:nodetool -- run workflow.ts --json     # Output results as JSON
 ```
 
+### Supervised runs (`--supervise`)
+
+`--supervise` puts an agent on the failure path: a node invocation that throws
+after its own error handling raises an escalation, and the agent answers with
+one verdict — retry, repair the output, skip the item, or fail. Without the
+flag no escalation is ever constructed and the run is unchanged.
+
+Available on `nodetool run`, `nodetool workflows run`, and `nodetool debug`
+(server surface). The flags configure `ExecutionSessionOptions.supervisor` —
+the one integration point every surface shares; no CLI code touches
+`WorkflowRunner`.
+
+```bash
+npm run dev:nodetool -- workflows run <id> --supervise
+npm run dev:nodetool -- run workflow.ts --supervise --max-decisions 5
+npm run dev:nodetool -- debug <id> --supervise --supervisor-cost-cap 0.25
+npm run dev:nodetool -- workflows run <id> --supervise \
+  --supervisor-model openrouter/openai/gpt-5.4-mini --max-retries 1
+```
+
+```
+--supervise                       Supervise this run (off unless passed)
+--max-decisions <n>               Decisions allowed in the run (default 10)
+--max-retries <n>                 Retries per node invocation (default 2)
+--supervisor-cost-cap <usd>       Ceiling on supervisor spend (default 0.50)
+--supervisor-model <provider/model>  Default anthropic/claude-sonnet-4-6,
+                                  or NODETOOL_SUPERVISOR_MODEL
+```
+
+Each decision prints a `⛨` line as it happens and the run ends with a
+supervised summary (`⛨ supervised: 2 skipped, 1 retried, 3 decisions,
++$0.0200`). With `--json` the decisions appear as `interventions` (run
+commands; `nodetool run` wraps them as `{results, interventions}`) or
+`server.summary.interventions` plus a `server.supervised` rollup (`debug`).
+It is the `Intervention` record from `@nodetool-ai/protocol`, which the editor
+surface consumes unchanged. Supervisor spend goes into the prediction
+ledger `nodetool costs` reads, one row per billable decision, attributed to the
+run and tagged `supervisor` in `node_type`.
+
+Every supervisor failure (timeout, unparseable verdict, exhausted budget,
+cancelled run) resolves as `fail`. Details:
+[docs/workflow-supervisor-design.md](docs/workflow-supervisor-design.md).
+
 ### nodetool debug (Workflow Debug Harness)
 
 Runs a workflow end-to-end on the **server** (headless kernel `WorkflowRunner`)
@@ -282,6 +325,7 @@ npm run dev:nodetool -- debug <id> --no-server --browser   # browser only
 npm run dev:nodetool -- debug <id> --out ./mydebug         # custom bundle dir
 npm run dev:nodetool -- debug <id> --timeout 60000         # per-surface timeout (ms)
 npm run dev:nodetool -- debug workflow.json --watch        # re-run on file change, print a verdict diff
+npm run dev:nodetool -- debug <id> --supervise             # supervise the server surface (see above)
 ```
 
 The `--watch` flag (file targets only) re-runs after every save and prints just

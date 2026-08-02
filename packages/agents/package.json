@@ -20,6 +20,7 @@
     "@llamaindex/liteparse": "^1.5.2",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/execution": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",

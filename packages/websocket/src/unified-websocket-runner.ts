@@ -36,6 +36,7 @@ import {
   ExecutionSession,
   type RawGraphInput as ExecutionSessionRawGraph
 } from "@nodetool-ai/execution";
+import { createRunSupervisor } from "./run-supervisor.js";
 import {
   Application,
   Asset,
@@ -90,7 +91,8 @@ import type {
   HydratedGraphData,
   NodeDescriptor,
   ProcessingMessage,
-  ProviderCost
+  ProviderCost,
+  SupervisorRunOptions
 } from "@nodetool-ai/protocol";
 import {
   getSdkV1SafeErrorMessage,
@@ -1491,6 +1493,14 @@ export interface RunJobRequest {
     event_detail?: "full" | "outputs" | "terminal";
     asset_persistence?: "auto" | "temporary";
   };
+  /**
+   * Supervise this run (docs/workflow-supervisor-design.md). Off unless the
+   * client asks: supervision sends failure context to a model, so nothing else
+   * on the request implies it.
+   */
+  supervise?: boolean;
+  /** Supervisor configuration. Ignored unless `supervise` is true. */
+  supervisor?: SupervisorRunOptions | null;
   /** Internal monotonic timestamp captured when runJob accepts the request. */
   _accepted_at_ms?: number;
   settings?: Record<string, unknown>;
@@ -3003,6 +3013,17 @@ export class UnifiedWebSocketRunner {
     // is passed through as-is (not rebuilt from a registry+bridge) because
     // this class only ever holds the bootstrap-injected closure, never a
     // `NodeRegistry` instance.
+    // Opt-in per request; a run that asked for no supervisor gets none, and a
+    // supervisor that cannot be built leaves the run unsupervised rather than
+    // failing it.
+    const supervisor = await createRunSupervisor({
+      supervise: req.supervise,
+      supervisor: req.supervisor,
+      context,
+      defaultProvider: this.defaultProvider,
+      defaultModel: this.defaultModel
+    });
+
     const session = await ExecutionSession.create({
       graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
@@ -3014,7 +3035,8 @@ export class UnifiedWebSocketRunner {
       workflowId,
       context,
       params: req.params ?? {},
-      validateNode: this.validateNode
+      validateNode: this.validateNode,
+      ...(supervisor ? { supervisor } : {})
     });
 
     const active: ActiveJob = {
