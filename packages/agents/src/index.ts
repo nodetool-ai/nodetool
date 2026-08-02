@@ -578,7 +578,8 @@ export {
 } from "./evals/surfaces/timeline.js";
 export type {
   TimelineBridgeFinalState,
-  TimelineBridgeInitialState
+  TimelineBridgeInitialState,
+  TimelineBridgeSequenceSeed
 } from "./evals/surfaces/timeline.js";
 export {
   createStoryboardToolBridge,
