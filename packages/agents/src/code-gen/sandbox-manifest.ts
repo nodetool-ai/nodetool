@@ -459,7 +459,7 @@ function overridableLimits(): SandboxLimitDoc[] {
   // as something authored code can ask for.
   type NumericLimitKey = Exclude<
     keyof typeof defaults,
-    "allowPrivateNetwork" | "userAgent"
+    "allowPrivateNetwork" | "userAgent" | "filesystemAccess"
   >;
   const described: Record<
     NumericLimitKey,

@@ -155,6 +155,29 @@ export class CodeNode extends BaseNode {
   })
   declare max_response_mb: number;
 
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Allow Local Network",
+    description:
+      "Permit fetch() to reach localhost and private IP ranges. Off by default — " +
+      "sandboxed code is untrusted, so the SSRF guard is the norm. Turn it on " +
+      "only for a node that has to reach a service on this machine or network."
+  })
+  declare allow_local_network: boolean;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Allow Host Filesystem",
+    description:
+      "Let workspace.* reach any path the process can, with ~ expanded, instead " +
+      "of being confined to the workspace. Off by default — host mode can read " +
+      "credential files. Turn it on only for a node that has to work outside " +
+      "the workspace, the way the lib.os nodes do."
+  })
+  declare allow_host_filesystem: boolean;
+
   async initialize(): Promise<void> {
     this._state = {};
   }
@@ -181,15 +204,22 @@ export class CodeNode extends BaseNode {
   }
 
   /**
-   * Fetch policy from the node's props. The sandbox clamps
+   * Sandbox policy from the node's props. The sandbox clamps
    * `maxResponseBodyBytes` to its own ceiling, so no clamping here.
+   *
+   * The two capability switches default to the restrictive value and are only
+   * ever widened by an explicit choice on this node — nothing the guest code
+   * can reach.
    */
   private sandboxLimits(): SandboxLimits {
     const mb = Number(this.max_response_mb ?? 1);
     return {
       maxResponseBodyBytes: Number.isFinite(mb)
         ? Math.round(mb * 1024 * 1024)
-        : undefined
+        : undefined,
+      allowPrivateNetwork: this.allow_local_network === true,
+      filesystemAccess:
+        this.allow_host_filesystem === true ? "host" : "workspace"
     };
   }
 
@@ -288,7 +318,13 @@ export class CodeNode extends BaseNode {
 function extractDynamicInputs(
   inputs: Record<string, unknown>
 ): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout", "max_response_mb"]);
+  const reserved = new Set([
+    "code",
+    "timeout",
+    "max_response_mb",
+    "allow_local_network",
+    "allow_host_filesystem"
+  ]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;

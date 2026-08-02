@@ -1135,6 +1135,45 @@ describe("runInSandbox workspace binary I/O", () => {
     });
   });
 
+  it("confines workspace.* to the workspace unless the host opts into host mode", async () => {
+    const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-fs-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-fs-out-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "SECRET");
+      const context = {
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
+      } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
+      const code = `return await workspace.read(${JSON.stringify(join(outside, "secret.txt"))});`;
+
+      const confined = await runInSandbox({ code, context });
+      expect(confined.success).toBe(false);
+      expect(confined.error).toMatch(/outside the workspace/i);
+
+      const hostMode = await runInSandbox({
+        code,
+        context,
+        limits: { filesystemAccess: "host" }
+      });
+      expect(hostMode.success).toBe(true);
+      expect(hostMode.result).toBe("SECRET");
+
+      // Host-set only — a guest global of the same name must not reach it.
+      const spoofed = await runInSandbox({
+        code,
+        context,
+        globals: { filesystemAccess: "host" }
+      });
+      expect(spoofed.success).toBe(false);
+      expect(spoofed.error).toMatch(/outside the workspace/i);
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("blocks loopback by default and permits it only when the host opts in", async () => {
     const { createServer } = await import("node:http");
     const server = createServer((_req, res) => {

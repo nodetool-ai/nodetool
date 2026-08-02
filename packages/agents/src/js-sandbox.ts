@@ -108,6 +108,20 @@ export interface SandboxLimits {
   allowPrivateNetwork?: boolean;
   /** `User-Agent` for bridge fetches. Guest-set headers still win. */
   userAgent?: string;
+  /**
+   * `"workspace"` (default) confines every `workspace.*` call to the workspace
+   * root, symlinks included. `"host"` lifts that to the whole filesystem the
+   * process can reach, with `~` expanded.
+   *
+   * Off by default for the same reason as {@link allowPrivateNetwork}, and the
+   * stakes are higher — host mode can read credential files. It exists because
+   * roughly half the `lib.os` nodes already operate on arbitrary host paths
+   * (`expandUser` + raw `node:fs`), so a Code node replacing one needs the same
+   * reach. Host-set only, and the graph migration sets it only on nodes
+   * rewritten from such a node — a hand-written or model-authored Code node
+   * stays confined.
+   */
+  filesystemAccess?: "workspace" | "host";
 }
 
 export type ResolvedSandboxLimits = Required<SandboxLimits>;
@@ -161,7 +175,9 @@ export function resolveSandboxLimits(
     // Not clamped — these are capability switches, not magnitudes. Both
     // resolve to the restrictive value unless the host explicitly opts out.
     allowPrivateNetwork: limits?.allowPrivateNetwork === true,
-    userAgent: limits?.userAgent ?? ""
+    userAgent: limits?.userAgent ?? "",
+    filesystemAccess:
+      limits?.filesystemAccess === "host" ? "host" : "workspace"
   };
 }
 
@@ -998,62 +1014,70 @@ export function buildSandbox(
         return undefined;
       };
 
+  /**
+   * Resolve a guest path under the configured filesystem scope.
+   *
+   * `"workspace"` (the default) is the pre-existing behavior: resolve against
+   * the workspace root, then verify the symlink-resolved location is still
+   * inside it. `"host"` skips containment and expands `~`, matching what the
+   * `lib.os` nodes have always done. Host mode is reachable only when the host
+   * passes `filesystemAccess: "host"` — guest code cannot ask for it.
+   */
+  const resolveGuestPath = async (
+    ctx: ProcessingContext,
+    path: string,
+    isWrite: boolean
+  ): Promise<string> => {
+    const nodePath = await loadNodePath();
+    if (resolvedLimits.filesystemAccess === "host") {
+      const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
+      if (!os) {
+        throw new Error("host filesystem access requires a Node.js runtime");
+      }
+      const expanded =
+        path === "~"
+          ? os.homedir()
+          : path.startsWith("~/")
+            ? nodePath.join(os.homedir(), path.slice(2))
+            : path;
+      return nodePath.resolve(expanded);
+    }
+    const fullPath = ctx.resolveWorkspacePath(path);
+    const fs = await loadFsPromises();
+    await assertWorkspaceContained(ctx, fs, nodePath, fullPath, isWrite);
+    return fullPath;
+  };
+
   const workspace = context
     ? {
         read: async (path: string): Promise<string> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return fs.readFile(fullPath, "utf-8");
         },
         write: async (path: string, content: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, "utf-8");
         },
         list: async (path: string): Promise<string[]> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return fs.readdir(fullPath);
         },
         readBytes: async (path: string): Promise<Record<string, string>> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
         },
         writeBytes: async (path: string, data: unknown): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const bytes =
             data instanceof Uint8Array ? data : toNativeUint8Array(data);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, bytes);
         },
@@ -1062,16 +1086,14 @@ export function buildSandbox(
         // `lstat` (not `stat`) so a symlink reports as itself rather than as
         // whatever it points at.
         stat: async (path: string): Promise<Record<string, unknown>> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // Checked as a write, not a read: the queried path may legitimately
+          // Resolved as a write, not a read: the queried path may legitimately
           // not exist, and the read path resolves it with `realpath`, which
           // throws on a missing file and so would report every absent path as
           // an escape. The write path decides containment from the nearest
           // existing ancestor instead. A path that *does* exist is still
           // realpath-checked, so a symlink out of the workspace is caught.
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           let info;
           try {
             info = await fs.lstat(fullPath);
@@ -1103,44 +1125,36 @@ export function buildSandbox(
           return context.resolveWorkspacePath(".");
         },
         copy: async (src: string, dest: string): Promise<void> => {
-          const fullSrc = context.resolveWorkspacePath(src);
-          const fullDest = context.resolveWorkspacePath(dest);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
           // Source is a read, destination is a write — the asymmetry matters:
           // a write target may not exist yet, so it is checked via its nearest
           // existing ancestor.
-          await assertWorkspaceContained(context, fs, nodePath, fullSrc, false);
-          await assertWorkspaceContained(context, fs, nodePath, fullDest, true);
+          const fullSrc = await resolveGuestPath(context, src, false);
+          const fullDest = await resolveGuestPath(context, dest, true);
           await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
           await fs.copyFile(fullSrc, fullDest);
         },
         move: async (src: string, dest: string): Promise<void> => {
-          const fullSrc = context.resolveWorkspacePath(src);
-          const fullDest = context.resolveWorkspacePath(dest);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
           // A move unlinks the source, so it is a write on both ends.
-          await assertWorkspaceContained(context, fs, nodePath, fullSrc, true);
-          await assertWorkspaceContained(context, fs, nodePath, fullDest, true);
+          const fullSrc = await resolveGuestPath(context, src, true);
+          const fullDest = await resolveGuestPath(context, dest, true);
           await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
           await fs.rename(fullSrc, fullDest);
         },
         mkdir: async (path: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(fullPath, { recursive: true });
         },
         remove: async (path: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // Treated as a write for containment. `recursive: false` keeps this
-          // to one file or one empty directory — guest code cannot delete a
-          // whole workspace subtree in a single call.
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          // Resolved as a write. `recursive: false` keeps this to one file or
+          // one empty directory — guest code cannot delete a whole subtree in
+          // a single call, in either filesystem mode.
+          const fullPath = await resolveGuestPath(context, path, true);
           const info = await fs.lstat(fullPath);
           if (info.isDirectory()) {
             // rmdir refuses a non-empty directory, which is the point.
