@@ -1,0 +1,172 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T10:00:00.000Z",
+  "updated_at": "2026-08-02T10:00:00.000Z",
+  "name": "Read the Links Out of a Page",
+  "tool_name": null,
+  "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute \u2014 it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "url",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "https://nodetool.ai/guide/index.html"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Page URL"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "html",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "<html><head><title>Guide</title></head><body><a href=\"/docs\">Docs</a><a href=\"https://github.com/nodetool-ai/nodetool\">Source</a></body></html>"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  HTML"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "base",
+        "type": "lib.html.BaseUrl",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Base URL"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "links",
+        "type": "lib.html.ExtractLinks",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Anchors"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "o1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "base"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "base"
+      },
+      {
+        "id": "o2",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "links"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "links"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "url",
+        "sourceHandle": "output",
+        "target": "base",
+        "targetHandle": "url"
+      },
+      {
+        "id": "e2",
+        "source": "html",
+        "sourceHandle": "output",
+        "target": "links",
+        "targetHandle": "html"
+      },
+      {
+        "id": "e3",
+        "source": "base",
+        "sourceHandle": "output",
+        "target": "links",
+        "targetHandle": "base_url"
+      },
+      {
+        "id": "e4",
+        "source": "base",
+        "sourceHandle": "output",
+        "target": "o1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "links",
+        "sourceHandle": "links",
+        "target": "o2",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

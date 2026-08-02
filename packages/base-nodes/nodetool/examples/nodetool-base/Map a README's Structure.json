@@ -1,0 +1,250 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T10:00:00.000Z",
+  "updated_at": "2026-08-02T10:00:00.000Z",
+  "name": "Map a README's Structure",
+  "tool_name": null,
+  "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "md",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "# NodeTool\n\nVisual AI workflows.\n\n## Install\n\nSee the [docs](https://nodetool.ai/docs) and the [repo](https://github.com/nodetool-ai/nodetool).\n\n```bash\nnpm install\n```\n\n### Notes\n\n- runs locally\n- runs in the cloud\n"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  README"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "h",
+        "type": "lib.markdown.ExtractHeaders",
+        "data": {
+          "max_level": 3
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Outline"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "l",
+        "type": "lib.markdown.ExtractLinks",
+        "data": {
+          "include_titles": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Links"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "c",
+        "type": "lib.markdown.ExtractCodeBlocks",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Code blocks"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "b",
+        "type": "lib.markdown.ExtractBulletLists",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Bullets"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "o1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "headers"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "headers"
+      },
+      {
+        "id": "o2",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "links"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "links"
+      },
+      {
+        "id": "o3",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "code"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "code"
+      },
+      {
+        "id": "o4",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "bullets"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 560
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "bullets"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "md",
+        "sourceHandle": "output",
+        "target": "h",
+        "targetHandle": "markdown"
+      },
+      {
+        "id": "e2",
+        "source": "md",
+        "sourceHandle": "output",
+        "target": "l",
+        "targetHandle": "markdown"
+      },
+      {
+        "id": "e3",
+        "source": "md",
+        "sourceHandle": "output",
+        "target": "c",
+        "targetHandle": "markdown"
+      },
+      {
+        "id": "e4",
+        "source": "md",
+        "sourceHandle": "output",
+        "target": "b",
+        "targetHandle": "markdown"
+      },
+      {
+        "id": "e5",
+        "source": "h",
+        "sourceHandle": "output",
+        "target": "o1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "l",
+        "sourceHandle": "output",
+        "target": "o2",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "c",
+        "sourceHandle": "output",
+        "target": "o3",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "b",
+        "sourceHandle": "output",
+        "target": "o4",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
