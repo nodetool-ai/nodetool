@@ -1135,6 +1135,51 @@ describe("runInSandbox workspace binary I/O", () => {
     });
   });
 
+  it("blocks loopback by default and permits it only when the host opts in", async () => {
+    const { createServer } = await import("node:http");
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("local-service");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as { port: number }).port;
+    const url = `http://127.0.0.1:${port}/`;
+    try {
+      const blocked = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`
+      });
+      expect(blocked.success).toBe(false);
+      expect(blocked.error).toMatch(/internal\/private address/i);
+
+      const allowed = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`,
+        limits: { allowPrivateNetwork: true }
+      });
+      expect(allowed.success).toBe(true);
+      expect(allowed.result).toBe("local-service");
+
+      // The switch is host-only: a guest global of the same name must not
+      // reach the resolved limits.
+      const spoofed = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`,
+        globals: { allowPrivateNetwork: true, limits: { allowPrivateNetwork: true } }
+      });
+      expect(spoofed.success).toBe(false);
+      expect(spoofed.error).toMatch(/internal\/private address/i);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("keeps non-http schemes blocked even with private network allowed", async () => {
+    const result = await runInSandbox({
+      code: `return await fetch("file:///etc/passwd");`,
+      limits: { allowPrivateNetwork: true }
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/unsupported scheme/i);
+  });
+
   it("reports a missing path as exists:false instead of throwing", async () => {
     await withWorkspace(async (context) => {
       const result = await runInSandbox({

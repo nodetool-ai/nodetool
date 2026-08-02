@@ -93,6 +93,21 @@ export interface SandboxLimits {
   memoryLimitBytes?: number;
   stackLimitBytes?: number;
   fetchTimeoutMs?: number;
+  /**
+   * Permit fetches to loopback, link-local and private address ranges.
+   *
+   * Off by default: guest code is untrusted, so the SSRF guard is the norm and
+   * this is the exception. It exists because the trusted `lib.http` nodes have
+   * always been able to reach a local service, and a Code node replacing one
+   * must be able to do the same — a workflow pointing at `http://localhost:8000`
+   * would otherwise silently stop working.
+   *
+   * Host-set only: it is read from {@link RunSandboxOptions.limits} and never
+   * exposed to the guest, so sandboxed code cannot turn it on for itself.
+   */
+  allowPrivateNetwork?: boolean;
+  /** `User-Agent` for bridge fetches. Guest-set headers still win. */
+  userAgent?: string;
 }
 
 export type ResolvedSandboxLimits = Required<SandboxLimits>;
@@ -142,7 +157,11 @@ export function resolveSandboxLimits(
       FETCH_TIMEOUT_MS,
       100,
       120_000
-    )
+    ),
+    // Not clamped — these are capability switches, not magnitudes. Both
+    // resolve to the restrictive value unless the host explicitly opts out.
+    allowPrivateNetwork: limits?.allowPrivateNetwork === true,
+    userAgent: limits?.userAgent ?? ""
   };
 }
 
@@ -476,16 +495,19 @@ function isBlockedIpLiteral(host: string): boolean {
  * and hosts that resolve to loopback/link-local/private literals or localhost.
  * Throws on a blocked URL.
  */
-function assertFetchUrlAllowed(url: string): void {
+function assertFetchUrlAllowed(url: string, allowPrivate = false): void {
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
     throw new Error("fetch: invalid URL");
   }
+  // Scheme is checked even in private-network mode: `file:`, `gopher:` and
+  // friends are never reachable through the bridge, whatever the host allows.
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`fetch: unsupported scheme "${parsed.protocol}"`);
   }
+  if (allowPrivate) return;
   const host = parsed.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".localhost")) {
     throw new Error("fetch: access to localhost is blocked");
@@ -822,7 +844,9 @@ export function buildSandbox(
     // SSRF guard: untrusted guest code must not reach loopback, link-local
     // (incl. cloud metadata 169.254.169.254), or private ranges, nor non-http
     // schemes. Blocks the direct-literal attacks; DNS-rebinding is out of scope.
-    assertFetchUrlAllowed(url);
+    // The host can waive the address check for a node that replaces a trusted
+    // `lib.http` node; the scheme check is never waived.
+    assertFetchUrlAllowed(url, resolvedLimits.allowPrivateNetwork);
 
     const controller = new AbortController();
     const timer = setTimeout(
@@ -841,8 +865,16 @@ export function buildSandbox(
         signal: controller.signal
       };
 
+      const requestHeaders: Record<string, string> = {};
+      // Host default first so a guest-set User-Agent still wins.
+      if (resolvedLimits.userAgent) {
+        requestHeaders["User-Agent"] = resolvedLimits.userAgent;
+      }
       if (options?.headers && typeof options.headers === "object") {
-        fetchOptions.headers = options.headers as Record<string, string>;
+        Object.assign(requestHeaders, options.headers as Record<string, string>);
+      }
+      if (Object.keys(requestHeaders).length > 0) {
+        fetchOptions.headers = requestHeaders;
       }
       if (options?.body !== undefined) {
         const body = options.body;
