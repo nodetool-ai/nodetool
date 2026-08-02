@@ -443,6 +443,15 @@ export class Graph {
           descriptorDefaults.is_controlled ?? node.is_controlled ?? false,
         is_join_node:
           descriptorDefaults.is_join_node ?? node.is_join_node ?? false,
+        // Without this the flag is dropped, because saved workflow JSON never
+        // carries it and only the registry knows. `actor.ts` gates the trigger
+        // entry point on `node.is_trigger`, so a webhook/manual/file-watch
+        // event delivered to a graph hydrated here was accepted and then
+        // silently ignored — the node fell through to `genProcess()`, waited
+        // for a live adapter that a delivered-event run does not have, and
+        // emitted nothing. Every host that passes `resolveNodeType` took this
+        // path, including the websocket server.
+        is_trigger: descriptorDefaults.is_trigger ?? node.is_trigger ?? false,
         // Retry safety comes from the registry or not at all — note there is
         // no `?? node.retry_safe` here, unlike every flag above. Whether
         // re-running a node duplicates a payment or a publish is a property of

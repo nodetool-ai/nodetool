@@ -590,6 +590,13 @@ addSupervisorOptions(
       "--workspace <dir>",
       "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
     )
+    .option(
+      "--trigger-event <json>",
+      'Wake a trigger node as the scheduler/webhook adapter would: \'{"node_id":"watch","payload":{"path":"/tmp/a.csv","event":"created"}}\'. ' +
+        "Without it a webhook, file-watch or manual trigger has no event to " +
+        "emit and the run stalls until its timeout — so this is the only way " +
+        "to exercise a trigger-driven workflow from the CLI."
+    )
 )
   .action(
     async (
@@ -599,6 +606,7 @@ addSupervisorOptions(
         json?: boolean;
         assetOutputMode?: string;
         workspace?: string;
+        triggerEvent?: string;
       } & SupervisorCliOptions
     ) => {
       try {
@@ -609,6 +617,32 @@ addSupervisorOptions(
         const params = opts.params
           ? (JSON.parse(opts.params) as Record<string, unknown>)
           : {};
+
+        // A trigger node emits from `emitTriggerEvent`, not `genProcess`, and
+        // only when the run carries an event addressed to it. The kernel has
+        // always accepted one (`RunJobRequest.trigger_event`); nothing on the
+        // CLI could supply it, so a webhook or file-watch workflow could be
+        // validated but never executed. `input_id` defaults because every
+        // caller would otherwise invent the same throwaway id.
+        const triggerEvent = opts.triggerEvent
+          ? (() => {
+              const parsed = JSON.parse(opts.triggerEvent) as {
+                node_id?: string;
+                payload?: unknown;
+                input_id?: string;
+              };
+              if (!parsed.node_id) {
+                throw new Error(
+                  '--trigger-event needs a "node_id" naming the trigger node to wake.'
+                );
+              }
+              return {
+                node_id: parsed.node_id,
+                payload: parsed.payload ?? {},
+                input_id: parsed.input_id ?? `cli-${Date.now()}`
+              };
+            })()
+          : null;
 
         // Determine if argument is a file path or workflow ID
         if (
@@ -797,6 +831,7 @@ addSupervisorOptions(
           workflowId,
           params,
           context,
+          ...(triggerEvent ? { triggerEvent } : {}),
           // Message capture is retention, so it stays off unless a supervised
           // run needs the stream to print its `⛨` lines as they happen.
           ...(supervisor
