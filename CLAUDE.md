@@ -537,18 +537,27 @@ npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
 ```
 
-Alongside `graph-planner` (one-shot DSL) there are seven **tool-loop** suites
+Alongside `graph-planner` (one-shot DSL) there are eight **tool-loop** suites
 that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
-structurally: `tool-loop` (graph editor), `script-tools`, `sketch-tools`,
-`timeline-tools`, `storyboard-tools`, `model3d-tools`, `app-tools`. Same flags,
-metrics, and `--min-success` CI gate as `graph-planner`. Details:
+structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
+`sketch-tools`, `timeline-tools`, `storyboard-tools`, `model3d-tools`,
+`app-tools`. Same flags, metrics, and `--min-success` CI gate as
+`graph-planner`. Details:
 [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md).
+
+`workflow-escalation` runs the graph tools over objectives that are missing
+something only the user can decide — a name, permission to delete, a choice
+between two node types — plus an `ask_user` tool wired to a scripted user. Each
+case scores both the question the model asked and whether the graph it went on
+to build matches the answer, and one case pins every value so that asking at all
+is the failure.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
 npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
+npm run dev:nodetool -- eval workflow-escalation -p anthropic -m claude-sonnet-5
 ```
 
 ### nodetool affected (Changed-File → Workspace Mapping)

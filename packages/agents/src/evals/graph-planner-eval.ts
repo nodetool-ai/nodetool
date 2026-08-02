@@ -62,6 +62,12 @@ export interface EvalCheck {
   name: string;
   pass: boolean;
   detail?: string;
+  /**
+   * How much this check matters. `critical` = the behavior the case exists to
+   * test, `standard` = correctness that isn't the objective, `advisory` =
+   * efficiency and hygiene. Suites that don't set it score every check equally.
+   */
+  severity?: "critical" | "standard" | "advisory";
 }
 
 export interface GraphPlannerCaseResult {
@@ -287,10 +293,7 @@ async function runCase(
   let graph: GraphData | null = null;
   let error: string | undefined;
   try {
-    const gen = planner.plan(
-      evalCase.objective,
-      {} as ProcessingContext
-    );
+    const gen = planner.plan(evalCase.objective, {} as ProcessingContext);
     let res = await gen.next();
     while (!res.done) {
       const m = res.value as { type?: string } & Record<string, unknown>;
@@ -322,9 +325,7 @@ async function runCase(
   if (graph) {
     checks.push(...checkExpectations(graph, evalCase.expect));
   }
-  const score = graph
-    ? checks.filter((c) => c.pass).length / checks.length
-    : 0;
+  const score = graph ? checks.filter((c) => c.pass).length / checks.length : 0;
 
   return {
     caseId: evalCase.id,
@@ -396,9 +397,7 @@ export async function runGraphPlannerEval(
     accepted: acceptedResults.length,
     successRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
     meanScore:
-      ran.length > 0
-        ? ran.reduce((a, r) => a + r.score, 0) / ran.length
-        : 0,
+      ran.length > 0 ? ran.reduce((a, r) => a + r.score, 0) / ran.length : 0,
     oneShotRate:
       acceptedResults.length > 0
         ? acceptedResults.filter((r) => r.submitRounds === 1).length /

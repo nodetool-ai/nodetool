@@ -528,7 +528,31 @@ export type {
   HeadlessNode,
   HeadlessEdge
 } from "./evals/tool-loop-bridge.js";
-export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+export {
+  TOOL_LOOP_EVAL_CASES,
+  TOOL_LOOP_NODE_CATALOG
+} from "./evals/tool-loop-cases.js";
+export {
+  scoreToolLoopChecks,
+  countCriticalFailures,
+  CRITICAL_FAILURE_SCORE_CAP
+} from "./evals/tool-loop-eval.js";
+
+// Interactive escalation: an `ask_user` tool backed by a scripted user, plus
+// the workflow-tool cases that require escalating before acting.
+export {
+  createEscalationChannel,
+  checkEscalationExpectations,
+  DEFAULT_ESCALATION_TOOL_NAME
+} from "./evals/escalation.js";
+export type {
+  EscalationConfig,
+  EscalationReply,
+  EscalationTurn,
+  EscalationChannel,
+  EscalationExpectations
+} from "./evals/escalation.js";
+export { WORKFLOW_ESCALATION_TOOL_LOOP_CASES } from "./evals/escalation-cases.js";
 
 // Editor-surface tool-loop suites (script, sketch, timeline, storyboard, 3D)
 export {
