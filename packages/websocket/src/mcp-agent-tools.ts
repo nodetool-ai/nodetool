@@ -1,14 +1,21 @@
 /**
  * Bridges the canonical agent tools (`@nodetool-ai/agents`) onto the MCP
- * server so external agents (Claude Code, ChatGPT, …) get the full
- * workflow-building and creative toolset — not just the read/render tools
- * defined natively in `mcp-server.ts`.
+ * server so external agents (Claude Code, ChatGPT, …) get the same toolbelt
+ * the in-app chat agent runs on — not just the read/render tools defined
+ * natively in `mcp-server.ts`.
+ *
+ * The bridged set is *derived*, not hand-listed: `getBuiltinTools()` plus
+ * `getAllMcpTools()` plus the Google Workspace tools are exactly what
+ * `unified-websocket-runner` assembles for a chat turn, so a tool added to
+ * either catalog reaches MCP with no edit here. Only tools whose constructor
+ * needs something the catalogs can't supply (a timeline loader, the lazily
+ * probed provider map) are named individually below.
  *
  * Each bridged tool reuses its agent `Tool.process()` handler verbatim; this
  * module only adapts the tool's JSON-Schema into the Zod shape the MCP SDK
- * expects and wraps the result in an MCP tool response. Names already owned by
- * the native registration (run_workflow, list_workflows, list_nodes, …) are
- * intentionally not bridged — the native versions render thumbnails and Apps.
+ * expects and wraps the result in an MCP tool response. Names the native
+ * registration already owns (run_workflow, list_workflows, list_nodes, …) are
+ * skipped — the native versions render thumbnails and Apps.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -17,20 +24,7 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import { ProcessingContext as ProcessingContextImpl } from "@nodetool-ai/runtime";
 import {
   Tool,
-  CreateWorkflowTool,
-  DebugWorkflowTool,
-  ResolveWorkflowEscalationTool,
-  BuildAppTool,
-  DebugAppTool,
-  ValidateWorkflowTool,
   ValidateTimelineTool,
-  GetExampleWorkflowTool,
-  ExportWorkflowDigraphTool,
-  GetJobLogsTool,
-  StartBackgroundJobTool,
-  ListModelsTool,
-  SaveAssetTool,
-  ReadAssetTool,
   FindModelTool,
   GenerateImageTool,
   EditImageTool,
@@ -39,13 +33,21 @@ import {
   GenerateSpeechTool,
   TranscribeAudioTool,
   EmbedTextTool,
-  createWorkflowDocumentTools
+  getBuiltinTools,
+  getAllMcpTools,
+  getGoogleWorkspaceTools
 } from "@nodetool-ai/agents";
+import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { TimelineLoader } from "@nodetool-ai/agents";
 import { getSecret, Asset, TimelineSequence } from "@nodetool-ai/models";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
-import { createLogger } from "@nodetool-ai/config";
+import {
+  createLogger,
+  getNodetoolDataDir,
+  isGoogleWorkspaceEnabled
+} from "@nodetool-ai/config";
+import { join } from "node:path";
 import { getAssetAdapter } from "./lib/storage.js";
 import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
 import type { McpServerOptions } from "./mcp-server.js";
@@ -77,20 +79,40 @@ const MIME_TO_EXT: Record<string, string> = {
 };
 
 /**
+ * Per-user workspace directory the bridged file tools (read_file, write_file,
+ * glob, grep, …) are rooted at. Kept under the NodeTool data dir rather than a
+ * temp dir because an MCP session is long-lived and spans many calls — a file
+ * written on one call has to still be there on the next. One directory per
+ * user, so a multi-user mount cannot let one caller read another's files.
+ */
+function mcpWorkspaceDir(userId: string): string {
+  // A user id reaches the filesystem as a path segment here, so allow only
+  // characters that cannot traverse out of the parent directory.
+  const safeUserId = userId.replace(/[^A-Za-z0-9_-]/g, "_") || "default";
+  return join(getNodetoolDataDir(), "mcp-workspaces", safeUserId);
+}
+
+/** Test-only: expose the workspace path rule for isolation assertions. */
+export const __mcpWorkspaceDirForTests = mcpWorkspaceDir;
+
+/**
  * Build the shared ProcessingContext the bridged tools run against. REST-backed
  * tools (create_workflow, list_models, …) read `NODETOOL_API_URL` from the
  * inherited environment; media tools resolve providers via the secret resolver;
- * save/media tools persist artifacts through `createAsset`.
+ * save/media tools persist artifacts through `createAsset`; file tools read and
+ * write under the session's workspace directory.
  */
 function buildAgentToolContext(userId: string): ProcessingContext {
   const storage = getAssetAdapter();
+  const workspaceDir = mcpWorkspaceDir(userId);
   const context = new ProcessingContextImpl({
     jobId: "mcp-agent-tools",
     userId,
     // Bind secret lookups to the scoped user — never a global default.
     secretResolver: (key: string) => getSecret(key, userId),
     storage,
-    workspaceStorage: storage
+    workspaceDir,
+    workspaceStorage: new FileStorageAdapter(workspaceDir)
   });
   context.setModelInterfaces({
     createAsset: async (args) => {
@@ -279,14 +301,59 @@ function errorResponse(err: unknown) {
 }
 
 /**
- * Register the workflow-building and creative agent tools on `server`.
- * Called from `createMcpServer` after the native tools are registered, so a
- * name collision would surface as an SDK error rather than silently shadowing.
+ * Every agent tool the bridge offers, in registration order. Derived from the
+ * same catalogs `unified-websocket-runner` assembles a chat toolbelt from, so
+ * the two surfaces cannot drift.
+ *
+ * `providers` is the map `find_model` reads at call time — it is passed by
+ * reference and filled in lazily, so it is empty here.
+ */
+function collectBridgedTools(
+  options: McpServerOptions | undefined,
+  providers: Record<string, BaseProvider>
+): Tool[] {
+  return [
+    // The chat agent's built-ins: files, search, browser, code, PDF, math,
+    // vision, critique, thread memory, asset library, todo.
+    ...getBuiltinTools(),
+    // Workflow / node / job / asset / app tools, plus the ui_* workflow
+    // document tools. The read tools among them (list_workflows, get_asset, …)
+    // collide with the native registrations and are skipped by the caller.
+    ...getAllMcpTools({ registry: options?.registry }),
+    // Google Workspace runs on the token from the user's Google sign-in, so it
+    // only exists on deployments that have a login — same gate the runner uses.
+    ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
+    // Timelines have no REST route (the API is tRPC-only), so this tool takes a
+    // loader instead of fetching, and `getAllMcpTools` cannot construct it.
+    new ValidateTimelineTool(loadTimelineForUser),
+    // `getAllMcpTools` only offers the media tools when handed a populated
+    // provider map. Here they resolve providers from the scoped user's secrets
+    // at call time, so offer them unconditionally rather than probing every
+    // provider during server construction.
+    new GenerateImageTool(),
+    new EditImageTool(),
+    new GenerateVideoTool(),
+    new AnimateImageTool(),
+    new GenerateSpeechTool(),
+    new TranscribeAudioTool(),
+    new EmbedTextTool(),
+    new FindModelTool(providers)
+  ];
+}
+
+/**
+ * Register the agent toolbelt on `server`.
+ *
+ * Called from `createMcpServer` after the native tools are registered.
+ * `reservedNames` carries the names those registrations took; a bridged tool
+ * whose name is already spoken for is skipped rather than shadowing the native
+ * version (which renders thumbnails and Apps).
  */
 export function registerAgentMcpTools(
   server: McpServer,
   options?: McpServerOptions,
-  executeFrontendDocumentTool?: FrontendDocumentToolExecutor
+  executeFrontendDocumentTool?: FrontendDocumentToolExecutor,
+  reservedNames?: ReadonlySet<string>
 ): void {
   // Every bridged tool runs against one user's secrets and assets, so a
   // session without an explicit user binding gets no bridged tools at all —
@@ -344,33 +411,24 @@ export function registerAgentMcpTools(
     );
   };
 
-  const bridged: Tool[] = [
-    ...createWorkflowDocumentTools(options?.registry),
-    new CreateWorkflowTool(),
-    new DebugWorkflowTool(),
-    new ResolveWorkflowEscalationTool(),
-    new BuildAppTool(),
-    new DebugAppTool(),
-    new ValidateWorkflowTool(options?.registry),
-    new ValidateTimelineTool(loadTimelineForUser),
-    new GetExampleWorkflowTool(),
-    new ExportWorkflowDigraphTool(),
-    new GetJobLogsTool(),
-    new StartBackgroundJobTool(),
-    new ListModelsTool(),
-    new SaveAssetTool(),
-    new ReadAssetTool(),
-    new GenerateImageTool(),
-    new EditImageTool(),
-    new GenerateVideoTool(),
-    new AnimateImageTool(),
-    new GenerateSpeechTool(),
-    new TranscribeAudioTool(),
-    new EmbedTextTool()
-  ];
-  for (const tool of bridged) register(tool);
-
-  // find_model reads the configured-providers map at call time, so populate it
-  // before the handler runs.
-  register(new FindModelTool(sharedProviders), ensureProviders);
+  const taken = new Set<string>(reservedNames ?? []);
+  const skipped: string[] = [];
+  let registered = 0;
+  for (const tool of collectBridgedTools(options, sharedProviders)) {
+    if (taken.has(tool.name)) {
+      skipped.push(tool.name);
+      continue;
+    }
+    taken.add(tool.name);
+    // find_model reads the configured-providers map at call time, so populate
+    // it before the handler runs.
+    register(tool, tool instanceof FindModelTool ? ensureProviders : undefined);
+    registered += 1;
+  }
+  log.info("Registered agent MCP tools", {
+    userId: scope.userId,
+    source: scope.source,
+    registered,
+    skipped
+  });
 }
