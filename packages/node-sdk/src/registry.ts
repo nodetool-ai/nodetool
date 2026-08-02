@@ -646,6 +646,14 @@ export function createGraphNodeTypeResolver(
           is_streaming_output: metadata.is_streaming_output ?? false,
           is_controlled: metadata.is_controlled ?? false,
           is_join_node: metadata.is_join_node ?? false,
+          // Same reason as the flags above, and the one that was missing:
+          // `actor.ts` gates the trigger entry point on this, and saved
+          // workflow JSON never carries it. Omitted here, every
+          // resolver-hydrated graph read `is_trigger: false`, so a delivered
+          // webhook/manual/file-watch event was accepted and silently
+          // dropped — the node fell through to `genProcess()` and emitted
+          // nothing.
+          is_trigger: metadata.is_trigger ?? false,
           retry_safe: metadata.retry_safe ?? false,
           ...(metadata.input_mode && { input_mode: metadata.input_mode }),
           ...(metadata.output_correlation && {
