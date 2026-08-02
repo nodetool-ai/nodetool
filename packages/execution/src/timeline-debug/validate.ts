@@ -14,7 +14,7 @@ import {
   type TimelineClip,
   type TimelineDocument
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
+import { ANIMATION_PRESETS, sourceRate } from "@nodetool-ai/timeline";
 
 import type { TimelineDebugIssue, TimelineValidation } from "./types.js";
 
@@ -30,15 +30,6 @@ const PRESET_IDS = new Set<string>(ANIMATION_PRESETS.map((preset) => preset.id))
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
-
-/**
- * Effective source-playback rate: one timeline-ms consumes this many
- * source-ms. Mirrors `sourceRate` in `@nodetool-ai/timeline` (not re-exported
- * from its entry point) so the in/out consistency check reads the same
- * quantity split and trim write.
- */
-const sourceRateOf = (clip: TimelineClip): number =>
-  clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1);
 
 const clipLabel = (clip: TimelineClip): string => `${clip.name || clip.id}`;
 
@@ -197,7 +188,7 @@ function checkClip(
     // Timeline duration and source span are different quantities: the source
     // consumes `rate` ms per timeline ms. Comparing them without the rate is
     // the bug `sourceRate` exists to prevent.
-    const rate = sourceRateOf(clip);
+    const rate = sourceRate(clip);
     const expected = clip.durationMs * rate;
     const actual = outPointMs - inPointMs;
     if (Math.abs(actual - expected) > 1) {
@@ -322,14 +313,17 @@ function checkDocumentLevel(doc: TimelineDocument): TimelineDebugIssue[] {
     }
   }
 
+  // Only visual tracks composite, so only they compete for z-order. Audio
+  // tracks sharing an index with anything is normal and harmless.
   const indexes = new Map<number, string>();
   for (const track of doc.tracks) {
+    if (track.type === "audio") continue;
     const previous = indexes.get(track.index);
     if (previous !== undefined) {
       issues.push({
         severity: "warning",
         code: "duplicate_track_index",
-        message: `Tracks "${previous}" and "${track.id}" both claim index ${track.index} — their stacking order is undefined.`,
+        message: `Visual tracks "${previous}" and "${track.id}" both claim index ${track.index} — their stacking order is undefined.`,
         trackId: track.id
       });
     } else {

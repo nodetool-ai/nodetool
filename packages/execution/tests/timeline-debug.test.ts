@@ -345,11 +345,18 @@ describe("validateTimelineSequence — structural checks", () => {
     expect(codes(result.errors).filter((c) => c === "duplicate_id")).toHaveLength(3);
   });
 
-  it("flags duplicate track indexes", () => {
+  it("flags duplicate indexes on visual tracks", () => {
     const result = validateTimelineSequence(
       doc({ tracks: [track(), track({ id: "track-2" })] })
     );
     expect(codes(result.warnings)).toContain("duplicate_track_index");
+  });
+
+  it("ignores an audio track sharing an index with a video track", () => {
+    const result = validateTimelineSequence(
+      doc({ tracks: [track(), track({ id: "track-2", type: "audio" })] })
+    );
+    expect(codes(result.warnings)).not.toContain("duplicate_track_index");
   });
 
   it("flags caption words outside the clip window", () => {
