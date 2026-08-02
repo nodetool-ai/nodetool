@@ -1,0 +1,174 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T10:00:00.000Z",
+  "updated_at": "2026-08-02T10:00:00.000Z",
+  "name": "Chunk a Transcript for Indexing",
+  "tool_name": null,
+  "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters \u2014 a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "t",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light guttered where it had once held steady. Ships began to pass wider of the point."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Transcript"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ch",
+        "type": "nodetool.text.Chunk",
+        "data": {
+          "length": 12,
+          "overlap": 3,
+          "separator": " "
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  12 words, 3 overlap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fan",
+        "type": "nodetool.control.Collection",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Fan out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "n",
+        "type": "nodetool.control.Count",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  How many"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "o1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "chunks"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "chunks"
+      },
+      {
+        "id": "o2",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "chunk_count"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "chunk_count"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "t",
+        "sourceHandle": "output",
+        "target": "ch",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "ch",
+        "sourceHandle": "output",
+        "target": "o1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "ch",
+        "sourceHandle": "output",
+        "target": "fan",
+        "targetHandle": "items"
+      },
+      {
+        "id": "e4",
+        "source": "fan",
+        "sourceHandle": "output",
+        "target": "n",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e5",
+        "source": "n",
+        "sourceHandle": "output",
+        "target": "o2",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

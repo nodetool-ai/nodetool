@@ -1,0 +1,211 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T10:00:00.000Z",
+  "updated_at": "2026-08-02T10:00:00.000Z",
+  "name": "Redact and Tidy a Log Line",
+  "tool_name": null,
+  "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "raw",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "2026-08-02  WARN   user=ada.lovelace@example.com   ip=10.0.0.7    retry=3"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Log line"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mail",
+        "type": "nodetool.text.RegexReplace",
+        "data": {
+          "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
+          "replacement": "<email>",
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Redact email"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ip",
+        "type": "nodetool.text.RegexReplace",
+        "data": {
+          "pattern": "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b",
+          "replacement": "<ip>",
+          "count": 0
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Redact IP"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tidy",
+        "type": "nodetool.text.CollapseWhitespace",
+        "data": {
+          "preserve_newlines": false,
+          "replacement": " ",
+          "trim_edges": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Collapse spaces"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "nums",
+        "type": "nodetool.text.FindAllRegex",
+        "data": {
+          "regex": "\\d+",
+          "dotall": false,
+          "ignorecase": false,
+          "multiline": false
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  Every number"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "o1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "redacted"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "redacted"
+      },
+      {
+        "id": "o2",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "numbers"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "numbers"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "raw",
+        "sourceHandle": "output",
+        "target": "mail",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "mail",
+        "sourceHandle": "output",
+        "target": "ip",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e3",
+        "source": "ip",
+        "sourceHandle": "output",
+        "target": "tidy",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e4",
+        "source": "tidy",
+        "sourceHandle": "output",
+        "target": "nums",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e5",
+        "source": "tidy",
+        "sourceHandle": "output",
+        "target": "o1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "nums",
+        "sourceHandle": "output",
+        "target": "o2",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

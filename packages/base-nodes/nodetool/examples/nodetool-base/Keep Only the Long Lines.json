@@ -1,0 +1,201 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T10:00:00.000Z",
+  "updated_at": "2026-08-02T10:00:00.000Z",
+  "name": "Keep Only the Long Lines",
+  "tool_name": null,
+  "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out \u2014 a list fed straight into a stream operator arrives as one item \u2014 and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+  "tags": [
+    "data",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "src",
+        "type": "nodetool.constant.List",
+        "data": {
+          "value": [
+            "ok",
+            "a much longer line worth keeping",
+            "no",
+            "another long enough line"
+          ]
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "1  Lines"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fan",
+        "type": "nodetool.control.Collection",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "2  Fan out"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "keep",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item.length > 10"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "3  Longer than 10"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gather",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 960,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "4  Gather"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "n",
+        "type": "nodetool.control.Count",
+        "data": {},
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "5  How many"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "o1",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "kept"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 320,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "kept"
+      },
+      {
+        "id": "o2",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "count"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 640,
+            "y": 340
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "count"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "src",
+        "sourceHandle": "output",
+        "target": "fan",
+        "targetHandle": "items"
+      },
+      {
+        "id": "e2",
+        "source": "fan",
+        "sourceHandle": "output",
+        "target": "keep",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e3",
+        "source": "keep",
+        "sourceHandle": "output",
+        "target": "gather",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e4",
+        "source": "keep",
+        "sourceHandle": "output",
+        "target": "n",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e5",
+        "source": "gather",
+        "sourceHandle": "output",
+        "target": "o1",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "n",
+        "sourceHandle": "output",
+        "target": "o2",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
