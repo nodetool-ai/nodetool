@@ -56,6 +56,11 @@ import {
 } from "./author.js";
 import type { AppBridgeDocument } from "./bridge.js";
 import { completeInteractions } from "./interactions.js";
+import {
+  runJudgeStage,
+  type JudgeInteractionInput,
+  type JudgeWidgetState
+} from "./judge.js";
 import { runSpecStage, specFromFile } from "./spec.js";
 import {
   issueFingerprint,
@@ -100,6 +105,21 @@ export interface BuildLedgerAttribution {
   workflowId?: string | null;
 }
 
+/**
+ * How the Judge stage runs. The provider and model default to the builder's,
+ * but a caller that can reach a second model should pass one: a model grading
+ * its own work is the weakest reviewer available (`resolveJudgeModelSpec` in
+ * `judge.ts` picks one).
+ */
+export interface BuildJudgeOptions {
+  /** False skips the stage; the verdict then records that nothing scored it. */
+  enabled?: boolean;
+  provider?: BaseProvider;
+  model?: string;
+  /** Wall clock for one judgement. Exhausted ⇒ that interaction is not achieved. */
+  timeoutMs?: number;
+}
+
 export interface BuildAppOptions {
   /** The request, when the spec is to be written by the model. */
   prompt?: string;
@@ -133,6 +153,8 @@ export interface BuildAppOptions {
   costCapUsd?: number;
   /** Turn cap per authoring round. */
   maxAuthorTurns?: number;
+  /** The Judge stage. Omitted ⇒ it runs, on the builder's own model. */
+  judge?: BuildJudgeOptions;
   /** Spend admission. Defaults to a cap-carrying budget over `costCapUsd`. */
   turnBudget?: TurnBudget;
 
@@ -677,6 +699,28 @@ function checkExpectation(
   }
 }
 
+/**
+ * What each widget was left showing, in the spec's vocabulary — the evidence
+ * the Judge reads. The value is what the user would see: the rendered `format`
+ * template when the widget has one, else the bound value.
+ */
+function judgeWidgetStates(
+  spec: BuildSpec,
+  report: AppDebugReport
+): JudgeWidgetState[] {
+  return report.widgets.map((widget) => {
+    const declared = spec.widgets.find(
+      (candidate) => placedWidget(report.spec, candidate)?.id === widget.id
+    );
+    return {
+      widget: declared?.role ?? widget.id,
+      type: widget.type,
+      ...(declared?.label ? { label: declared.label } : {}),
+      value: widget.display ?? widget.value
+    };
+  });
+}
+
 /** Run: one simulator pass per interaction, then that interaction's expectations. */
 async function runRunStage(
   opts: BuildAppOptions,
@@ -685,9 +729,16 @@ async function runRunStage(
   interactions: CompletedInteraction[],
   appSpec: AppSpec | null,
   round: number
-): Promise<{ report: AppDebugReport | null; issues: BuildIssue[]; record: StageRecord }> {
+): Promise<{
+  report: AppDebugReport | null;
+  issues: BuildIssue[];
+  record: StageRecord;
+  /** One entry per interaction that actually ran, for the Judge. */
+  judged: JudgeInteractionInput[];
+}> {
   const startedAt = Date.now();
   const issues: BuildIssue[] = [];
+  const judged: JudgeInteractionInput[] = [];
   let last: AppDebugReport | null = null;
 
   for (const interaction of interactions) {
@@ -717,6 +768,7 @@ async function runRunStage(
       }
     );
     last = report;
+    judged.push({ interaction, widgets: judgeWidgetStates(spec, report) });
 
     for (const step of report.interactions) {
       if (!step.error) continue;
@@ -747,6 +799,7 @@ async function runRunStage(
   return {
     report: last,
     issues,
+    judged,
     record: record(
       "run",
       round,
@@ -758,31 +811,20 @@ async function runRunStage(
 }
 
 /**
- * Judge: a stub until PR 7. It scores every interaction as achieved and the
- * verdict says so in `notSimulated`, so nobody reads a green build as
- * "an LLM confirmed this does what was asked".
+ * What a build whose Judge never ran cannot claim. Kept out of the verdict once
+ * a judge scores the interactions, so `notSimulated` stays accurate either way.
  */
-const JUDGE_STUB_NOTE =
-  "Whether each interaction achieves the spec's intent — the judge stage is not implemented yet, so every interaction is recorded as achieved without being scored.";
+const JUDGE_SKIPPED_NOTE =
+  "Whether each interaction achieves the spec's intent — the judge stage did not run for this build, so no model scored the app against what was asked.";
 
-function runJudgeStage(
-  interactions: CompletedInteraction[],
-  round: number
-): { judge: JudgeRecord; record: StageRecord } {
-  const startedAt = Date.now();
-  return {
-    judge: {
-      model: "none",
-      interactions: interactions.map((interaction) => ({
-        interaction: interaction.name,
-        achieved: true,
-        confidence: 0,
-        reasons: ["not judged — the judge stage lands in a later change"]
-      }))
-    },
-    record: record("judge", round, startedAt, [], "skipped (not implemented)")
-  };
-}
+/** The `notSimulated` list, with the judge note only when nothing judged. */
+const notSimulated = (
+  appDebug: AppDebugReport | null,
+  judge: JudgeRecord | null
+): string[] => [
+  ...(appDebug?.notSimulated ?? []),
+  ...(judge ? [] : [JUDGE_SKIPPED_NOTE])
+];
 
 // ---------------------------------------------------------------------------
 // The orchestrator
@@ -796,7 +838,8 @@ function failedReport(
   stages: StageRecord[],
   repairs: BuildComplaint[],
   appDebug: AppDebugReport | null,
-  reason: string
+  reason: string,
+  judge: JudgeRecord | null = null
 ): BuildReport {
   return {
     target,
@@ -811,11 +854,11 @@ function failedReport(
     stages,
     repairs,
     appDebug,
-    judge: null,
+    judge,
     verdict: {
       ok: false,
       reason,
-      notSimulated: [...(appDebug?.notSimulated ?? []), JUDGE_STUB_NOTE]
+      notSimulated: notSimulated(appDebug, judge)
     },
     cost: costOf(stages),
     bundle: null
@@ -861,13 +904,20 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   const options: BuildAppOptions = { ...opts, turnBudget: budget };
 
   const costAtStart = opts.provider.getTotalCost();
+  /** What the Judge spent, when it runs on a provider of its own. */
+  let judgeSpentUsd = 0;
   /**
    * What the build has spent. The budget's own number is authoritative where a
    * provider reserves against it; a provider that does not is still held to the
    * cap by its own running cost, so the ceiling never becomes advisory.
    */
   const spentUsd = (): number =>
-    Math.max(budget.spentUsd, opts.provider.getTotalCost() - costAtStart);
+    Math.max(budget.spentUsd, opts.provider.getTotalCost() - costAtStart) +
+    judgeSpentUsd;
+
+  const judgeEnabled = opts.judge?.enabled !== false;
+  const judgeProvider = opts.judge?.provider ?? opts.provider;
+  const judgeModel = opts.judge?.model ?? opts.model;
 
   const target: BuildReport["target"] = {
     prompt: opts.prompt ?? "",
@@ -962,7 +1012,7 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
   for (let round = 0; round <= maxRepairs; round++) {
     const stop = budgetStop();
     if (stop) {
-      return failedReport(target, spec, interactions, stages, repairs, appDebug, stop);
+      return failedReport(target, spec, interactions, stages, repairs, appDebug, stop, judge);
     }
 
     const authorWorkflows: AuthorWorkflow[] = workflows.map((workflow) => ({
@@ -988,7 +1038,16 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     stages.push(authored.record);
     document = authored.document;
     if (opts.signal?.aborted) {
-      return failedReport(target, spec, interactions, stages, repairs, appDebug, "cancelled");
+      return failedReport(
+        target,
+        spec,
+        interactions,
+        stages,
+        repairs,
+        appDebug,
+        "cancelled",
+        judge
+      );
     }
 
     bundle = assembleBundle(
@@ -1025,15 +1084,50 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       roundIssues.push(...ran.issues);
 
       if (errorsOf(ran.issues).length === 0) {
-        const judged = await withSpan("app.build.judge", {}, async () =>
-          runJudgeStage(interactions, round)
-        );
-        stages.push(judged.record);
-        judge = judged.judge;
-        const failedInteractions = judged.judge.interactions.filter(
-          (i) => !i.achieved
-        );
-        if (failedInteractions.length === 0) {
+        // The judge only ever sees a Check+Run-green app: nothing is scored for
+        // intent until it demonstrably works.
+        const judged = judgeEnabled
+          ? await withSpan(
+              "app.build.judge",
+              { "app.build.round": round, "app.build.judge.model": judgeModel },
+              () =>
+                runJudgeStage({
+                  spec,
+                  ...(opts.prompt !== undefined ? { prompt: opts.prompt } : {}),
+                  interactions: ran.judged,
+                  provider: judgeProvider,
+                  model: judgeModel,
+                  round,
+                  ...(opts.judge?.timeoutMs !== undefined
+                    ? { timeoutMs: opts.judge.timeoutMs }
+                    : {}),
+                  ...(opts.signal ? { signal: opts.signal } : {}),
+                  ...(opts.onLog ? { onLog: opts.onLog } : {})
+                })
+            )
+          : null;
+        if (judged) {
+          stages.push(judged.record);
+          judge = judged.judge;
+          // Only a judge on its own provider adds spend the builder's running
+          // cost does not already carry.
+          if (judgeProvider !== opts.provider) {
+            judgeSpentUsd += judged.record.costUsd;
+          }
+        } else {
+          stages.push({
+            stage: "judge",
+            round,
+            status: "skipped",
+            startedAt: new Date().toISOString(),
+            durationMs: 0,
+            issues: [],
+            costUsd: 0,
+            detail: "skipped (--no-judge)"
+          });
+        }
+        const judgeIssues = judged?.record.issues ?? [];
+        if (judgeIssues.length === 0) {
           // A build that overran its dollar cap is not a green build, however
           // good the app is: the money is spent, and the report says so
           // rather than handing back a bundle that cost more than allowed.
@@ -1045,11 +1139,21 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
               stages,
               repairs,
               appDebug,
-              `cost budget exhausted ($${costCapUsd.toFixed(2)}) — the app was built but overran its cap`
+              `cost budget exhausted ($${costCapUsd.toFixed(2)}) — the app was built but overran its cap`,
+              judge
             );
           }
           if (opts.signal?.aborted) {
-            return failedReport(target, spec, interactions, stages, repairs, appDebug, "cancelled");
+            return failedReport(
+              target,
+              spec,
+              interactions,
+              stages,
+              repairs,
+              appDebug,
+              "cancelled",
+              judge
+            );
           }
           return okReport(
             target,
@@ -1058,20 +1162,12 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
             stages,
             repairs,
             appDebug,
-            judged.judge,
+            judge,
             bundle,
             round
           );
         }
-        roundIssues.push(
-          ...failedInteractions.map((verdict) =>
-            issue(
-              "judge",
-              "goal_not_achieved",
-              `interaction "${verdict.interaction}": ${verdict.reasons.join("; ")}`
-            )
-          )
-        );
+        roundIssues.push(...judgeIssues);
       }
     }
 
@@ -1095,7 +1191,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
           stages,
           repairs,
           appDebug,
-          `oscillating: ${reappeared.join(", ")} was fixed in round ${round - 1} and is back in round ${round}`
+          `oscillating: ${reappeared.join(", ")} was fixed in round ${round - 1} and is back in round ${round}`,
+          judge
         );
       }
     }
@@ -1110,7 +1207,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
         stages,
         repairs,
         appDebug,
-        `repair budget exhausted (${maxRepairs} repair round(s)); ${errors.length} issue(s) remain: ${errors[0]?.message ?? ""}`
+        `repair budget exhausted (${maxRepairs} repair round(s)); ${errors.length} issue(s) remain: ${errors[0]?.message ?? ""}`,
+        judge
       );
     }
 
@@ -1161,7 +1259,8 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
     stages,
     repairs,
     appDebug,
-    "the build loop ended without a verdict"
+    "the build loop ended without a verdict",
+    judge
   );
 }
 
@@ -1172,7 +1271,7 @@ function okReport(
   stages: StageRecord[],
   repairs: BuildComplaint[],
   appDebug: AppDebugReport | null,
-  judge: JudgeRecord,
+  judge: JudgeRecord | null,
   bundle: ApplicationBundle,
   round: number
 ): BuildReport {
@@ -1190,7 +1289,7 @@ function okReport(
         round === 0
           ? "green on the first pass"
           : `green after ${round} repair round(s)`,
-      notSimulated: [...(appDebug?.notSimulated ?? []), JUDGE_STUB_NOTE]
+      notSimulated: notSimulated(appDebug, judge)
     },
     cost: costOf(stages),
     bundle

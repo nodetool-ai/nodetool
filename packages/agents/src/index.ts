@@ -799,6 +799,22 @@ export {
 } from "./app-build/build.js";
 export type {
   BuildAppOptions,
+  BuildJudgeOptions,
   BuildLedgerAttribution
 } from "./app-build/build.js";
+export {
+  DEFAULT_JUDGE_TIMEOUT_MS,
+  JUDGE_MODEL_CANDIDATES,
+  judgeInteraction,
+  parseJudgeAnswer,
+  renderJudgePrompt,
+  resolveJudgeModelSpec,
+  runJudgeStage
+} from "./app-build/judge.js";
+export type {
+  JudgeInteractionInput,
+  JudgeModelResolution,
+  JudgeStageOptions,
+  JudgeWidgetState
+} from "./app-build/judge.js";
 export { renderBuildReportMarkdown } from "./app-build/markdown.js";

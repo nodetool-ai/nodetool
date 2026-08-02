@@ -111,6 +111,13 @@ function scriptedProvider(
     turns: 0,
     hasToolSupport: async () => true,
     getTotalCost: () => cost,
+    // The judge stage's one call per interaction: green unless a case says
+    // otherwise, so these cases score the orchestration and not the judge.
+    generateMessageTraced: async () => ({
+      role: "assistant",
+      content:
+        '{"achieved": true, "confidence": 0.9, "reasons": ["the draft widget shows a drafted note"]}'
+    }),
     async *generateLoop(args: {
       tools?: ProviderTool[];
       signal?: AbortSignal;
@@ -256,8 +263,9 @@ describe("buildApp", () => {
     ]);
     expect(report.bundle?.workflows.map((w) => w.key)).toEqual(["wf-draft"]);
     expect(report.bundle?.app.operations[0]?.workflowId).toBe("wf-draft");
-    // The judge is a stub, and the verdict says so rather than implying a score.
-    expect(report.verdict.notSimulated.join(" ")).toMatch(/judge stage/i);
+    // The judge ran, so nothing claims the intent went unscored.
+    expect(report.verdict.notSimulated.join(" ")).not.toMatch(/judge stage/i);
+    expect(report.judge?.model).toBe("scripted/m");
     expect(report.judge?.interactions[0]?.achieved).toBe(true);
   });
 

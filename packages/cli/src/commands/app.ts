@@ -17,7 +17,12 @@
  */
 import { resolve } from "node:path";
 import type { Command } from "commander";
-import type { BuildReport } from "@nodetool-ai/agents";
+import type {
+  BuildJudgeOptions,
+  BuildReport,
+  resolveJudgeModelSpec
+} from "@nodetool-ai/agents";
+import type { BaseProvider } from "@nodetool-ai/runtime";
 
 interface AppDebugCliOptions {
   params?: string;
@@ -144,7 +149,7 @@ export function registerAppCommands(program: Command): void {
     .option("-m, --model <id>", "Builder model id")
     .option(
       "--judge-model <provider/model>",
-      "Model that judges each interaction (default: NODETOOL_APP_JUDGE_MODEL)"
+      "Model that judges each interaction (env: NODETOOL_APP_JUDGE_MODEL; default: a configured model other than the builder's)"
     )
     .option(
       "--workflow <id>",
@@ -181,7 +186,7 @@ async function runAppBuild(
   }
 
   const [
-    { buildApp, renderBuildReportMarkdown },
+    { buildApp, renderBuildReportMarkdown, resolveJudgeModelSpec },
     { createProviderStrict, buildConfiguredProviders },
     { buildFullRegistry },
     { runOnServer },
@@ -214,6 +219,21 @@ async function runAppBuild(
   const outDir = opts.out ? resolve(opts.out) : defaultBuildOutDir(ref);
 
   const provider = await createProviderStrict(opts.provider);
+  const providers = await buildConfiguredProviders();
+  const judge: BuildJudgeOptions =
+    opts.judge === false
+      ? { enabled: false }
+      : resolveJudge({
+          builder: provider,
+          builderModel: opts.model,
+          explicit: opts.judgeModel,
+          providers,
+          resolveSpec: resolveJudgeModelSpec
+        });
+  if (judge.provider && !opts.json) {
+    console.error(`judge: ${judge.provider.provider}/${judge.model}`);
+  }
+
   const context = new ProcessingContext({
     jobId: buildId,
     workflowId: null,
@@ -228,7 +248,8 @@ async function runAppBuild(
     model: opts.model,
     context,
     registry: buildFullRegistry(),
-    providers: await buildConfiguredProviders(),
+    providers,
+    judge,
     runOnServer,
     loadWorkflow: async (id: string) => {
       const workflow = (await Workflow.get(id)) as {
@@ -260,6 +281,40 @@ async function runAppBuild(
     printBuildSummary(report, outDir);
   }
   return report.verdict.ok ? 0 : 1;
+}
+
+/**
+ * Which model judges the build. Availability is the set of configured
+ * providers, so the default never picks a model this machine cannot reach; an
+ * explicit `--judge-model` naming an unconfigured provider is an error rather
+ * than a silent fallback to the builder grading itself.
+ */
+function resolveJudge(init: {
+  builder: BaseProvider;
+  builderModel: string;
+  explicit?: string;
+  providers: Record<string, BaseProvider>;
+  resolveSpec: typeof resolveJudgeModelSpec;
+}): { provider: BaseProvider; model: string } {
+  const resolution = init.resolveSpec({
+    explicit: init.explicit,
+    builderProviderId: init.builder.provider,
+    builderModel: init.builderModel,
+    isAvailable: (id) => id === init.builder.provider || id in init.providers
+  });
+  const provider =
+    resolution.providerId === init.builder.provider
+      ? init.builder
+      : init.providers[resolution.providerId];
+  if (!provider) {
+    if (init.explicit) {
+      throw new Error(
+        `--judge-model names provider "${resolution.providerId}", which is not configured. Configure it or pass a model on ${init.builder.provider}.`
+      );
+    }
+    return { provider: init.builder, model: init.builderModel };
+  }
+  return { provider, model: resolution.model };
 }
 
 function printBuildSummary(report: BuildReport, outDir: string): void {
