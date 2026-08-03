@@ -17,6 +17,7 @@
 import type { Command } from "commander";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { parseNumericOption } from "../numeric-options.js";
 
 interface EvalCliOptions {
   provider?: string;
@@ -29,6 +30,8 @@ interface EvalCliOptions {
   maxIterations?: string;
   timeout?: string;
   minSuccess?: string;
+  /** `provider/model` for the suites that judge their own output. */
+  judgeModel?: string;
   /** commander negated flag: `--no-find-model` sets this to false. */
   findModel?: boolean;
 }
@@ -58,6 +61,17 @@ interface EvalRunDeps {
   maxIterations?: number;
   /** Per-case execution timeout (ms), for suites that run what they plan. */
   timeoutMs?: number;
+  /**
+   * Judge provider/model for the suites that grade their own output
+   * (`graph-e2e`, `app-build`), from `--judge-model`. Undefined leaves each
+   * suite's own default in place.
+   */
+  judge?: { provider: BaseProvider; model: string };
+  /**
+   * Human-facing line (suite preamble). A no-op under `--json`, so stdout
+   * carries exactly one JSON document.
+   */
+  log: (line: string) => void;
   /** Progress callback (one line per event, for CLI display). */
   onEvent: (line: string) => void;
 }
@@ -123,7 +137,7 @@ const graphPlannerSuite: EvalSuite = {
 
     const cases = selectCases(GRAPH_PLANNER_EVAL_CASES, deps.caseIds);
 
-    console.log(
+    deps.log(
       `Running ${cases.length} case(s) with ${deps.providerId}/${deps.model}` +
         (deps.providers && Object.keys(deps.providers).length > 0
           ? ` (find_model: ${Object.keys(deps.providers).join(", ")})`
@@ -176,7 +190,7 @@ const graphE2eSuite: EvalSuite = {
 
     const cases = selectCases(GRAPH_E2E_EVAL_CASES, deps.caseIds);
 
-    console.log(
+    deps.log(
       `Running ${cases.length} graph-e2e case(s) with ${deps.providerId}/${deps.model}` +
         (deps.providers && Object.keys(deps.providers).length > 0
           ? ` (find_model: ${Object.keys(deps.providers).join(", ")})`
@@ -190,6 +204,10 @@ const graphE2eSuite: EvalSuite = {
       providers: deps.providers,
       runGraph: createEvalGraphRunner(),
       cases,
+      // Without this the judge is the run's own provider/model grading itself.
+      ...(deps.judge
+        ? { judgeProvider: deps.judge.provider, judgeModel: deps.judge.model }
+        : {}),
       maxRetries: deps.maxRetries,
       timeoutMs: deps.timeoutMs,
       onEvent: deps.onEvent
@@ -226,7 +244,7 @@ const codeGenSuite: EvalSuite = {
       await import("@nodetool-ai/agents");
 
     const cases = selectCases(CODE_GEN_EVAL_CASES, deps.caseIds);
-    console.log(
+    deps.log(
       `Running ${cases.length} code-gen case(s) with ${deps.providerId}/${deps.model}`
     );
 
@@ -264,7 +282,7 @@ const subtaskSuite: EvalSuite = {
 
     const cases = selectCases(SUBTASK_EVAL_CASES, deps.caseIds);
 
-    console.log(
+    deps.log(
       `Running ${cases.length} subtask case(s) with ${deps.providerId}/${deps.model}` +
         (deps.providers && Object.keys(deps.providers).length > 0
           ? ""
@@ -309,7 +327,7 @@ const taskPlannerSuite: EvalSuite = {
     } = await import("@nodetool-ai/agents");
 
     const cases = selectCases(TASK_PLANNER_EVAL_CASES, deps.caseIds);
-    console.log(
+    deps.log(
       `Running ${cases.length} task-planner case(s) with ${deps.providerId}/${deps.model}`
     );
 
@@ -351,7 +369,7 @@ const scriptPlannerSuite: EvalSuite = {
     } = await import("@nodetool-ai/agents");
 
     const cases = selectCases(SCRIPT_PLANNER_EVAL_CASES, deps.caseIds);
-    console.log(
+    deps.log(
       `Running ${cases.length} script-planner case(s) with ${deps.providerId}/${deps.model}`
     );
 
@@ -410,7 +428,7 @@ const appBuildSuite: EvalSuite = {
     ]);
 
     const cases = selectCases(APP_BUILD_EVAL_CASES, deps.caseIds);
-    console.log(
+    deps.log(
       `Running ${cases.length} app-build case(s) with ${deps.providerId}/${deps.model}` +
         (deps.providers && Object.keys(deps.providers).length > 0
           ? ` (find_model: ${Object.keys(deps.providers).join(", ")})`
@@ -429,6 +447,16 @@ const appBuildSuite: EvalSuite = {
         storage: new FileStorageAdapter(getDefaultAssetsPath())
       }),
       ...(deps.providers ? { providers: deps.providers } : {}),
+      // `--judge-model` overrides `buildApp`'s own judge default.
+      ...(deps.judge
+        ? {
+            judge: {
+              enabled: true,
+              provider: deps.judge.provider,
+              model: deps.judge.model
+            }
+          }
+        : {}),
       runOnServer,
       cases,
       ...(deps.timeoutMs !== undefined ? { timeoutMs: deps.timeoutMs } : {}),
@@ -496,7 +524,7 @@ function makeToolLoopSuite(
         deps.caseIds
       );
 
-      console.log(
+      deps.log(
         `Running ${cases.length} ${id} case(s) with ${deps.providerId}/${deps.model}`
       );
 
@@ -589,7 +617,12 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
  */
 async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
   if (opts.list) {
-    for (const c of await suite.listCases()) {
+    const cases = await suite.listCases();
+    if (opts.json) {
+      console.log(JSON.stringify(cases, null, 2));
+      return;
+    }
+    for (const c of cases) {
       console.log(
         `${c.id.padEnd(24)} ${c.description}` +
           (c.needsModelProviders ? " (needs model providers)" : "")
@@ -599,7 +632,9 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
   }
 
   if (!opts.provider || !opts.model) {
-    console.error("--provider and --model are required (or use --list)");
+    const message = "--provider and --model are required (or use --list)";
+    console.error(message);
+    if (opts.json) console.log(JSON.stringify({ error: message }, null, 2));
     process.exitCode = 1;
     return;
   }
@@ -623,6 +658,10 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
           .filter(Boolean)
       : undefined;
 
+    const judge = opts.judgeModel
+      ? await resolveJudge(opts.judgeModel, createProviderStrict)
+      : undefined;
+
     const result = await suite.run({
       provider,
       providerId: opts.provider,
@@ -630,11 +669,31 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       registry,
       providers,
       caseIds,
-      maxRetries: opts.maxRetries ? Number(opts.maxRetries) : undefined,
-      maxIterations: opts.maxIterations
-        ? Number(opts.maxIterations)
-        : undefined,
-      timeoutMs: opts.timeout ? Number(opts.timeout) : undefined,
+      ...(judge ? { judge } : {}),
+      maxRetries:
+        opts.maxRetries !== undefined
+          ? parseNumericOption(opts.maxRetries, "--max-retries", {
+              integer: true,
+              min: 0
+            })
+          : undefined,
+      maxIterations:
+        opts.maxIterations !== undefined
+          ? parseNumericOption(opts.maxIterations, "--max-iterations", {
+              integer: true,
+              min: 1
+            })
+          : undefined,
+      timeoutMs:
+        opts.timeout !== undefined
+          ? parseNumericOption(opts.timeout, "--timeout", {
+              integer: true,
+              min: 0
+            })
+          : undefined,
+      log: (line) => {
+        if (!opts.json) console.log(line);
+      },
       onEvent: (line) => {
         if (!opts.json) console.log(line);
       }
@@ -647,7 +706,7 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
         JSON.stringify(result.report, null, 2),
         "utf-8"
       );
-      console.log(`Report written to ${opts.out}`);
+      if (!opts.json) console.log(`Report written to ${opts.out}`);
     }
 
     if (opts.json) {
@@ -657,7 +716,10 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
     }
 
     if (opts.minSuccess !== undefined) {
-      const threshold = Number(opts.minSuccess);
+      const threshold = parseNumericOption(opts.minSuccess, "--min-success", {
+        min: 0,
+        max: 1
+      });
       if (result.successRate < threshold) {
         console.error(
           `Success rate ${result.successRate.toFixed(2)} below threshold ${threshold}`
@@ -666,9 +728,34 @@ async function runSuite(suite: EvalSuite, opts: EvalCliOptions): Promise<void> {
       }
     }
   } catch (err) {
-    console.error(err instanceof Error ? err.message : String(err));
+    const message = err instanceof Error ? err.message : String(err);
+    console.error(message);
+    // An agent reading `--json` gets parseable output on the failure path too.
+    if (opts.json) console.log(JSON.stringify({ error: message }, null, 2));
     process.exitCode = 1;
   }
+}
+
+/**
+ * Resolve `--judge-model` (`provider/model`) into a live provider. Model ids
+ * carry slashes themselves, so the split is decided by the provider registry,
+ * exactly as `--supervisor-model` does.
+ */
+async function resolveJudge(
+  spec: string,
+  createProvider: (id: string) => Promise<BaseProvider>
+): Promise<{ provider: BaseProvider; model: string }> {
+  const { listRegisteredProviderIds } = await import("@nodetool-ai/runtime");
+  const registered = listRegisteredProviderIds();
+  const cut = spec.indexOf("/");
+  const head = cut === -1 ? spec : spec.slice(0, cut).toLowerCase();
+  if (cut === -1 || !registered.includes(head)) {
+    throw new Error(
+      `--judge-model must be "<provider>/<model>" with a registered provider ` +
+        `(got "${spec}"). Example: openai/gpt-5.4-mini.`
+    );
+  }
+  return { provider: await createProvider(head), model: spec.slice(cut + 1) };
 }
 
 export function registerEvalCommand(program: Command): void {
@@ -700,6 +787,10 @@ export function registerEvalCommand(program: Command): void {
       .option(
         "--timeout <ms>",
         "Per-case execution timeout for suites that run what they plan (graph-e2e; default 300000)"
+      )
+      .option(
+        "--judge-model <provider/model>",
+        "Model that judges outputs for the self-judging suites (graph-e2e, app-build). Default: the run's own provider/model, which grades its own work"
       )
       .option(
         "--min-success <rate>",

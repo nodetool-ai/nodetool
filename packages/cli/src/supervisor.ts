@@ -20,6 +20,7 @@ import type { SupervisorHandle } from "@nodetool-ai/execution";
 import type { Intervention, ProcessingMessage } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Command } from "commander";
+import { parseNumericOption } from "./numeric-options.js";
 
 /**
  * Model used when `--supervise` is given without `--supervisor-model`.
@@ -75,19 +76,11 @@ export function addSupervisorOptions(command: Command): Command {
 }
 
 function positiveInt(value: string, flag: string): number {
-  const n = Number(value);
-  if (!Number.isInteger(n) || n < 0) {
-    throw new Error(`${flag} must be a non-negative integer (got "${value}")`);
-  }
-  return n;
+  return parseNumericOption(value, flag, { integer: true, min: 0 });
 }
 
 function positiveNumber(value: string, flag: string): number {
-  const n = Number(value);
-  if (!Number.isFinite(n) || n < 0) {
-    throw new Error(`${flag} must be a non-negative number (got "${value}")`);
-  }
-  return n;
+  return parseNumericOption(value, flag, { min: 0 });
 }
 
 /**

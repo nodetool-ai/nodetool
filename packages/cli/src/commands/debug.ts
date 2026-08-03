@@ -20,6 +20,8 @@ import {
   parseSupervisorFlags,
   type SupervisorCliOptions
 } from "../supervisor.js";
+import { numericOptionParser } from "../numeric-options.js";
+import { printCommandError } from "../command-errors.js";
 
 interface DebugCliOptions extends SupervisorCliOptions {
   server?: boolean;
@@ -61,7 +63,7 @@ export function registerDebugCommands(program: Command): void {
     .option(
       "--timeout <ms>",
       "Per-surface run timeout in milliseconds",
-      (v: string) => parseInt(v, 10)
+      numericOptionParser("--timeout", { integer: true, min: 0 })
     )
       .option("--json", "Print the full DebugReport as JSON to stdout")
       .option(
@@ -149,7 +151,7 @@ export function registerDebugCommands(program: Command): void {
         });
         process.exit(0);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });
