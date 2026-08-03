@@ -805,3 +805,177 @@ describe("slot_type_alias", () => {
     expect(report.issues.some((i) => i.code === "slot_type_alias")).toBe(false);
   });
 });
+
+describe("validateGraph — cycles", () => {
+  const registry = fakeRegistry({
+    "a.N": meta("a.N", { in: "str" }, { out: "str" })
+  });
+  const node = (id: string) => ({ id, type: "a.N" });
+  const edge = (id: string, source: string, target: string) => ({
+    id,
+    source,
+    sourceHandle: "out",
+    target,
+    targetHandle: "in"
+  });
+
+  it("flags a self-loop", () => {
+    const report = validateGraph(
+      { nodes: [node("1")], edges: [edge("e1", "1", "1")] },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const issue = report.issues.find((i) => i.code === "cycle");
+    expect(issue?.nodeId).toBe("1");
+    expect(issue?.message).toContain("connected to itself");
+  });
+
+  it("flags a self-loop on a control edge too", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1")],
+        edges: [{ ...edge("e1", "1", "1"), edge_type: "control" }]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(true);
+  });
+
+  it("flags a multi-node cycle and names every node in it", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2"), node("3")],
+        edges: [
+          edge("e1", "1", "2"),
+          edge("e2", "2", "3"),
+          edge("e3", "3", "1")
+        ]
+      },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const issue = report.issues.find((i) => i.message.includes("Cycle detected"));
+    expect(issue?.code).toBe("cycle");
+    expect(issue?.message).toContain("1, 2, 3");
+  });
+
+  it("ignores control edges when looking for cycles (the kernel does)", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2")],
+        edges: [
+          edge("e1", "1", "2"),
+          { ...edge("e2", "2", "1"), edge_type: "control" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("does not flag a diamond", () => {
+    const registryList = fakeRegistry({
+      "a.N": meta("a.N", { in: "str" }, { out: "str" }),
+      "a.Join": meta("a.Join", { in: "list[str]" }, { out: "str" })
+    });
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2"), node("3"), { id: "4", type: "a.Join" }],
+        edges: [
+          edge("e1", "1", "2"),
+          edge("e2", "1", "3"),
+          edge("e3", "2", "4"),
+          edge("e4", "3", "4")
+        ]
+      },
+      registryList
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("handles a long chain without recursing", () => {
+    const nodes = Array.from({ length: 20000 }, (_, i) => node(`n${i}`));
+    const edges = Array.from({ length: 19999 }, (_, i) =>
+      edge(`e${i}`, `n${i}`, `n${i + 1}`)
+    );
+    const report = validateGraph({ nodes, edges }, registry);
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+});
+
+describe("validateGraph — node/edge shape", () => {
+  const registry = fakeRegistry(
+    {
+      "a.Source": meta("a.Source", {}, { out: "str" }),
+      "a.LLM": meta("a.LLM", { prompt: "str" }, { out: "str" })
+    },
+    { "a.LLM": ["prompt"] }
+  );
+
+  it("reads properties from the editor's nested data.properties", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "1",
+            type: "a.LLM",
+            data: { properties: { prompt: "hello" }, dynamic_properties: {} }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it("still reads a flattened data bag", () => {
+    const report = validateGraph(
+      { nodes: [{ id: "1", type: "a.LLM", data: { prompt: "hello" } }], edges: [] },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toEqual([]);
+  });
+
+  it("flags an edge that names no handles", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.Source" },
+          { id: "2", type: "a.LLM", properties: { prompt: "x" } }
+        ],
+        edges: [{ id: "e1", source: "1", target: "2" }]
+      },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const missing = report.issues.filter((i) => i.code === "missing_handle");
+    expect(missing).toHaveLength(2);
+    expect(missing.map((i) => i.nodeId).sort()).toEqual(["1", "2"]);
+  });
+
+  it("flags a node with no id", () => {
+    const report = validateGraph(
+      { nodes: [{ type: "a.Source" }], edges: [] },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    expect(report.issues.some((i) => i.code === "missing_id")).toBe(true);
+  });
+
+  it("reports a duplicate id's properties only once", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "dup", type: "a.LLM", properties: {} },
+          { id: "dup", type: "a.LLM", properties: {} }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toHaveLength(1);
+    expect(report.issues.filter((i) => i.code === "duplicate_id")).toHaveLength(1);
+  });
+});
