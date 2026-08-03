@@ -13,6 +13,7 @@ import { ExecutionSession } from "@nodetool-ai/execution";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
 import { summarizeInterventions } from "@nodetool-ai/execution/debug";
+import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "../node-registry.js";
 import {
   createSupervisorHandle,
@@ -85,6 +86,15 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
   const session = await ExecutionSession.create({
     graph,
     registry,
+    // Registry alone hydrates node flags but not `propertyTypes`, and
+    // correlation analysis reads list-ness only from that map — so every
+    // `list[...]` handle read as non-list here and a stream arriving on one
+    // collapsed to empty scope, keeping the last value. `Directed Film to
+    // Timeline` animated one shot of N under `debug` and all N under
+    // `workflows run`, which is backwards for a harness whose whole job is
+    // to reproduce a run. Same resolver `workflows run` and the websocket
+    // runner already pass.
+    resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
     jobId,
     workflowId,
     params,

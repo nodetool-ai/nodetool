@@ -577,6 +577,119 @@ describe("unknown_provider", () => {
   });
 });
 
+describe("unknown_model", () => {
+  const KIE_MODELS = [
+    "kling/v3-turbo-image-to-video",
+    "kling/v3-turbo-text-to-video",
+    "wan/2-7-image-to-video",
+    "gpt-image-2-text-to-image"
+  ];
+  const registry = {
+    has: () => true,
+    getMetadata: () => ({ properties: [], outputs: [] }) as never,
+    validateNode: () => [],
+    listProviderIds: () => ["kie", "openai"],
+    // Mirrors the real index: manifest-backed provider, and only the model
+    // types a manifest classifies. ASR is deliberately absent.
+    listModelIds: (provider: string, modelType: string) =>
+      provider === "kie" && modelType === "video_model" ? KIE_MODELS : undefined
+  };
+  const graphWith = (provider: string, id: string, type = "video_model") => ({
+    nodes: [
+      {
+        id: "n",
+        type: "nodetool.video.ImageToVideo",
+        data: { model: { type, provider, id } }
+      }
+    ],
+    edges: []
+  });
+
+  it("flags an id the provider does not offer", () => {
+    const report = validateGraph(
+      graphWith("kie", "totally-not-a-real-model-xyz"),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "unknown_model");
+    expect(issue?.message).toContain("totally-not-a-real-model-xyz");
+    expect(report.ok).toBe(false);
+  });
+
+  it("accepts an id the provider offers", () => {
+    const report = validateGraph(
+      graphWith("kie", "wan/2-7-image-to-video"),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  it("suggests the near-miss behind a typo", () => {
+    const report = validateGraph(
+      graphWith("kie", "kling/v3-turbo-image-to-vid"),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "unknown_model");
+    expect(issue?.message).toContain("kling/v3-turbo-image-to-video");
+  });
+
+  // A catalog only reachable over the network cannot prove an id wrong.
+  it("skips providers whose models cannot be enumerated offline", () => {
+    const report = validateGraph(
+      graphWith("openai", "no-such-openai-model"),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  it("skips the check when the caller supplies no model lister", () => {
+    const { listModelIds: _omit, ...noModels } = registry;
+    const report = validateGraph(
+      graphWith("kie", "totally-not-a-real-model-xyz"),
+      noModels
+    );
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  // An unregistered provider is already reported; naming its model too would
+  // be a second complaint about one mistake.
+  it("does not also flag the model of an unregistered provider", () => {
+    const report = validateGraph(
+      graphWith("nonesuch", "totally-not-a-real-model-xyz"),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(true);
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  // An unselected model is the registry's own required-property complaint.
+  it("ignores a blank model id", () => {
+    const report = validateGraph(graphWith("kie", ""), registry);
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  // Regression: a flat per-provider id list flagged every real ASR selection.
+  // `openai/whisper-large-v3` on fal_ai is a working model that appears in no
+  // manifest, because manifests do not classify ASR at all. The catalog a
+  // model must appear in is chosen by its type, not just its provider.
+  it("does not flag a model type the index cannot enumerate", () => {
+    const report = validateGraph(
+      graphWith("kie", "openai/whisper-large-v3", "asr_model"),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(false);
+  });
+
+  // The same id under a type the index does cover stays a real finding, so the
+  // fix above did not simply switch the check off.
+  it("still flags an unknown id under a covered type", () => {
+    const report = validateGraph(
+      graphWith("kie", "openai/whisper-large-v3", "video_model"),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_model")).toBe(true);
+  });
+});
+
 describe("Code nodes", () => {
   const CODE = "nodetool.code.Code";
   const codeMeta = meta(CODE, { code: "str", timeout: "int" }, {}, {

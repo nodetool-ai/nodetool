@@ -125,6 +125,18 @@ export interface GraphValidationRegistry {
    * provider check is skipped rather than guessing.
    */
   listProviderIds?(): readonly string[];
+  /**
+   * Model ids `provider` is known to offer, or undefined when they cannot be
+   * enumerated without a network call. Undefined means "cannot tell", never
+   * "no such model" — a provider whose catalog is only reachable online must
+   * not have its models reported as absent. Optional for the same reason
+   * {@link listProviderIds} is: a caller that cannot reach the provider
+   * registry omits it and the check is skipped rather than guessed at.
+   */
+  listModelIds?(
+    provider: string,
+    modelType: string
+  ): readonly string[] | undefined;
 }
 
 /**
@@ -337,6 +349,66 @@ function detectCycles(
   return issues;
 }
 
+/**
+ * Model id of a model-reference property value. A blank id is an unselected
+ * model, which the registry's own property check already reports.
+ */
+function modelIdOf(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const rec = value as Record<string, unknown>;
+  const kind = rec.type;
+  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
+  const id = rec.id;
+  if (typeof id !== "string" || id === "") return undefined;
+  return id;
+}
+
+/**
+ * The `_model` type tag of a model reference. Which catalog an id has to appear
+ * in depends on it: a provider's ASR ids and its image ids are separate lists,
+ * and only some are knowable offline.
+ */
+function modelKindOf(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const kind = (value as Record<string, unknown>).type;
+  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
+  return kind;
+}
+
+/**
+ * The few known ids closest to `id`, to turn "not a model" into a fix. Manifest
+ * ids are long and slash-separated (`fal-ai/ltx-2/image-to-video/fast`), so a
+ * shared prefix locates a near-miss far better than edit distance over the
+ * whole string; ties break toward the closest length.
+ */
+function nearestModelIds(
+  id: string,
+  known: readonly string[],
+  limit = 3
+): string[] {
+  const needle = id.toLowerCase();
+  const prefixLen = (candidate: string): number => {
+    const other = candidate.toLowerCase();
+    let i = 0;
+    while (i < needle.length && i < other.length && needle[i] === other[i]) i++;
+    return i;
+  };
+  return [...known]
+    .map((candidate) => ({ candidate, score: prefixLen(candidate) }))
+    // A single shared character is noise, not a suggestion.
+    .filter((entry) => entry.score >= 3)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        Math.abs(a.candidate.length - id.length) -
+          Math.abs(b.candidate.length - id.length) ||
+        a.candidate.localeCompare(b.candidate)
+    )
+    .slice(0, limit)
+    .map((entry) => entry.candidate);
+}
+
+
 export function validateGraph(
   graph: GraphValidationInput,
   registry: GraphValidationRegistry
@@ -516,17 +588,43 @@ export function validateGraph(
       const props = readProperties(node);
       for (const [propName, value] of Object.entries(props)) {
         const provider = modelProviderOf(value);
-        if (provider === undefined || knownProviders.has(provider)) continue;
+        if (provider === undefined) continue;
+        if (!knownProviders.has(provider)) {
+          issues.push({
+            severity: "error",
+            code: "unknown_provider",
+            nodeId: id,
+            nodeType: type,
+            message:
+              `Property "${propName}" selects provider "${provider}", which is ` +
+              `not registered. Known providers: ${[...knownProviders]
+                .sort()
+                .join(", ")}`
+          });
+          continue;
+        }
+
+        // The provider is real; the id it names may still not be. A model id
+        // is only checkable where the catalog is known offline — undefined
+        // from the registry means unknown, so nothing is reported.
+        const modelId = modelIdOf(value);
+        const modelKind = modelKindOf(value);
+        if (modelId === undefined || modelKind === undefined) continue;
+        const knownModels = registry.listModelIds?.(provider, modelKind);
+        if (!knownModels || knownModels.length === 0) continue;
+        if (knownModels.includes(modelId)) continue;
+        const suggestions = nearestModelIds(modelId, knownModels);
         issues.push({
           severity: "error",
-          code: "unknown_provider",
+          code: "unknown_model",
           nodeId: id,
           nodeType: type,
           message:
-            `Property "${propName}" selects provider "${provider}", which is ` +
-            `not registered. Known providers: ${[...knownProviders]
-              .sort()
-              .join(", ")}`
+            `Property "${propName}" selects model "${modelId}", which provider ` +
+            `"${provider}" does not offer.` +
+            (suggestions.length > 0
+              ? ` Did you mean: ${suggestions.join(", ")}?`
+              : "")
         });
       }
     }

@@ -49,6 +49,30 @@ export function unregisterProvider(providerId: string): boolean {
 }
 
 /**
+ * Environment variable names accepted in place of a credential key, in order.
+ *
+ * A provider's own SDK often reads a different name than NodeTool's registered
+ * key, so a machine set up for that SDK looks unconfigured here and the run
+ * fails with a 401 that names the wrong thing. Only names the vendor itself
+ * documents belong in this list — it is an interop shim, not a guessing game.
+ */
+const CREDENTIAL_ENV_ALIASES: Record<string, readonly string[]> = {
+  // fal's own JS and Python clients read FAL_KEY.
+  FAL_API_KEY: ["FAL_KEY"]
+};
+
+/** `process.env[key]`, falling back to the names that vendor's SDK uses. */
+export function readCredentialEnv(key: string): string | undefined {
+  const direct = process.env[key];
+  if (direct) return direct;
+  for (const alias of CREDENTIAL_ENV_ALIASES[key] ?? []) {
+    const value = process.env[alias];
+    if (value) return value;
+  }
+  return undefined;
+}
+
+/**
  * Build a fresh provider instance, resolving any unset credential kwargs via
  * `getSecret` first, then `process.env` as fallback. The caller owns any
  * caching — instance reuse is a property of a ProcessingContext, not a module
@@ -74,7 +98,7 @@ export async function getProvider(
         kwargs[key] = fromSecret;
         continue;
       }
-      const envVal = process.env[key];
+      const envVal = readCredentialEnv(key);
       if (envVal) {
         kwargs[key] = envVal;
       }
@@ -145,7 +169,7 @@ export async function isProviderConfigured(
 
   for (const key of required) {
     let value = await getSecret(key);
-    if (!value) value = process.env[key];
+    if (!value) value = readCredentialEnv(key);
     if (!value) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log, not asserted.
       log.debug("isProviderConfigured: missing credential", {

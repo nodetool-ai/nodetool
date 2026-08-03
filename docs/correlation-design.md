@@ -742,3 +742,4 @@ moment the gap is closed. Each skipped test references the gap id below.
   `list[...]` handle are not yet aggregated at runtime; `_runCorrelatedImpl`
   delivers only the last value. (Multi-edge into a non-list handle is rejected
   by analysis — see §4.) Skipped test: `e2e/actor-modes.test.ts` (ACTOR-005).
+

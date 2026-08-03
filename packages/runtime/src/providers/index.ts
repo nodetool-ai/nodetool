@@ -147,9 +147,14 @@ export {
   getProviderSecretKey,
   isProviderConfigured,
   listRegisteredProviderIds,
+  readCredentialEnv,
   unregisterProvider
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
+export {
+  listOfflineModelIds,
+  offlineModelIndexProviders
+} from "./offline-model-index.js";
 // OpenAI OAuth subsystem is intentionally NOT re-exported here. Its callback
 // server, browser launcher and keychain access are Node-only (they statically
 // import node:http / node:child_process), and this barrel is pulled into the

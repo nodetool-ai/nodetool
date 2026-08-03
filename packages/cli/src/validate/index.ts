@@ -5,7 +5,10 @@
  * unit-tested in node-sdk's graph-validation.test.ts.
  */
 import { validateGraph, type GraphValidationReport } from "@nodetool-ai/node-sdk";
-import { listRegisteredProviderIds } from "@nodetool-ai/runtime";
+import {
+  listRegisteredProviderIds,
+  listOfflineModelIds
+} from "@nodetool-ai/runtime";
 import { buildFullRegistry } from "../node-registry.js";
 import { resolveTarget } from "../debug/index.js";
 import type { DebugGraph, DebugTargetInfo } from "../debug/types.js";
@@ -32,7 +35,12 @@ export async function runValidate(
     has: (t) => registry.has(t),
     getMetadata: (t) => registry.getMetadata(t),
     validateNode: (d, h) => registry.validateNode(d, h),
-    listProviderIds: () => listRegisteredProviderIds()
+    listProviderIds: () => listRegisteredProviderIds(),
+    // Manifest-backed providers and manifest-classified model types only;
+    // everything else returns undefined and goes unchecked rather than guessed
+    // at. ASR and language catalogs are not in any manifest.
+    listModelIds: (provider, modelType) =>
+      listOfflineModelIds(provider, modelType)
   });
   return { target: resolved.info, report };
 }
