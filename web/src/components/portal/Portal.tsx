@@ -9,10 +9,8 @@ import { usePortalChat } from "./usePortalChat";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import useSecretsStore from "../../stores/SecretsStore";
-import { useEnsureChatConnected } from "../../hooks/useEnsureChatConnected";
 import { usePanelStore } from "../../stores/PanelStore";
-import { Message, MessageContent, LanguageModel } from "../../stores/ApiTypes";
-import ComposerSlot from "../chat/composer/ComposerSlot";
+import { LanguageModel } from "../../stores/ApiTypes";
 import PortalSetupFlow from "./PortalSetupFlow";
 import DashboardHero from "./DashboardHero";
 import DashboardDownloads from "./DashboardDownloads";
@@ -77,18 +75,14 @@ const Portal: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [portalState, setPortalState] = useState<PortalState>("idle");
-  const [pendingMessage, setPendingMessage] = useState<string | null>(null);
   const [pendingTrack, setPendingTrack] = useState<WelcomeTrackId | null>(null);
-
-  useEnsureChatConnected({ disconnectOnUnmount: false });
 
   // The dashboard wants the full width; collapse the left panel on entry.
   useEffect(() => {
     usePanelStore.getState().setVisibility(false);
   }, []);
 
-  const { selectedModel, sendMessage, newThread, setSelectedModel } =
-    usePortalChat();
+  const { setSelectedModel } = usePortalChat();
   const { sortedWorkflows, isLoadingWorkflows } = useDashboardData();
   const { handleCreateNewWorkflow } = useWorkflowActions();
 
@@ -137,38 +131,8 @@ const Portal: React.FC = () => {
     navigate("/dashboard");
   }, [navigate]);
 
-  const sendAndNavigate = useCallback(
-    async (content: MessageContent[], _prompt: string) => {
-      const threadId = await newThread();
-      if (!threadId) return;
-      const message: Message = {
-        type: "message",
-        role: "user",
-        content,
-        thread_id: threadId,
-        created_at: new Date().toISOString(),
-        model: selectedModel?.id
-      };
-      await sendMessage(message);
-      navigate(`/chat/${threadId}`);
-    },
-    [newThread, sendMessage, navigate, selectedModel]
-  );
-
-  const handleSendMessage = useCallback(
-    async (content: MessageContent[], prompt: string) => {
-      if (!hasConfiguredProvider) {
-        setPendingMessage(prompt);
-        setPortalState("setup");
-        return;
-      }
-      await sendAndNavigate(content, prompt);
-    },
-    [hasConfiguredProvider, sendAndNavigate]
-  );
-
   const handleSetupComplete = useCallback(
-    async (defaultModel: string | null) => {
+    (defaultModel: string | null) => {
       if (defaultModel) {
         const [provider, ...idParts] = defaultModel.split(":");
         const id = idParts.join(":");
@@ -186,26 +150,13 @@ const Portal: React.FC = () => {
         const trackId = pendingTrack;
         setPendingTrack(null);
         createStarterWorkflow(trackId);
-        return;
-      }
-      if (pendingMessage) {
-        const text = pendingMessage;
-        setPendingMessage(null);
-        await sendAndNavigate([{ type: "text", text }], text);
       }
     },
-    [
-      pendingTrack,
-      pendingMessage,
-      setSelectedModel,
-      createStarterWorkflow,
-      sendAndNavigate
-    ]
+    [pendingTrack, setSelectedModel, createStarterWorkflow]
   );
 
   const handleSetupBack = useCallback(() => {
     setPendingTrack(null);
-    setPendingMessage(null);
     setPortalState("idle");
   }, []);
 
@@ -246,12 +197,6 @@ const Portal: React.FC = () => {
             onPickTrack={handlePickTrack}
             onOpenEmptyCanvas={handleCreateNewWorkflow}
             onOpenSettings={handleOpenSettings}
-            composer={
-              <ComposerSlot
-                className="chat-input-section"
-                onSend={handleSendMessage}
-              />
-            }
           />
           <GettingStartedChecklist
             hasConfiguredProvider={hasConfiguredProvider}

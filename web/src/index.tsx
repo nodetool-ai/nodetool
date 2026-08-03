@@ -193,16 +193,16 @@ function getRoutes() {
       element: <NavigateToStart />
     },
     {
+      path: "/dashboard",
+      element: (
+        <ProtectedRoute>
+          <Portal />
+        </ProtectedRoute>
+      )
+    },
+    {
       element: <ChatComposerLayout />,
       children: [
-        {
-          path: "/dashboard",
-          element: (
-            <ProtectedRoute>
-              <Portal />
-            </ProtectedRoute>
-          )
-        },
         {
           path: "/chat/:thread_id?",
           element: (

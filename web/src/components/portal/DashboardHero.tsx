@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, type ReactNode } from "react";
+import { memo } from "react";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import WelcomeFlow from "./WelcomeFlow";
 import { wrapStyles } from "./dashboardChrome";
@@ -35,10 +35,6 @@ const heroStyles = (theme: Theme) =>
         paddingTop: getSpacingPx(SPACING.md),
         paddingBottom: getSpacingPx(SPACING.md)
       }
-    },
-    ".hero-composer": {
-      margin: `${getSpacingPx(7)} auto 0`, // was 26px auto 0
-      maxWidth: 720
     },
     ".hero-foot": {
       marginTop: getSpacingPx(SPACING.md),
@@ -89,15 +85,12 @@ interface DashboardHeroProps {
   onPickTrack: (trackId: WelcomeTrackId) => void;
   onOpenEmptyCanvas: () => void;
   onOpenSettings: () => void;
-  /** The persistent-composer slot, anchored below the modality cards. */
-  composer: ReactNode;
 }
 
 const DashboardHero: React.FC<DashboardHeroProps> = ({
   onPickTrack,
   onOpenEmptyCanvas,
-  onOpenSettings,
-  composer
+  onOpenSettings
 }) => {
   const theme = useTheme();
 
@@ -111,8 +104,6 @@ const DashboardHero: React.FC<DashboardHeroProps> = ({
           fullWidth
           hideFooter
         />
-
-        <div className="hero-composer">{composer}</div>
 
         <div className="hero-foot">
           <button

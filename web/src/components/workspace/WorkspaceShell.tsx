@@ -16,7 +16,8 @@ import {
 } from "../../config/constants";
 import WorkspaceTabBar from "./WorkspaceTabBar";
 import TabContent from "./TabContent";
-import { Caption, Z_INDEX } from "../ui_primitives";
+import WorkspaceEmptyView from "./WorkspaceEmptyView";
+import { Z_INDEX } from "../ui_primitives";
 
 const ACTIVE_TAB_STYLE: React.CSSProperties = {
   opacity: 1,
@@ -88,16 +89,6 @@ const styles = (theme: Theme) =>
       flexDirection: "column",
       minHeight: 0,
       minWidth: 0
-    },
-    "& .workspace-empty": {
-      position: "absolute",
-      inset: 0,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      textAlign: "center",
-      padding: theme.spacing(0, 3),
-      color: theme.vars.palette.text.secondary
     }
   });
 
@@ -174,13 +165,7 @@ const WorkspaceShell = () => {
             className="workspace-content"
             style={{ marginLeft: contentMarginLeft }}
           >
-            {tabs.length === 0 && (
-              <div className="workspace-empty">
-                <Caption color="secondary">
-                  No tabs open — use + to open or create a document.
-                </Caption>
-              </div>
-            )}
+            {tabs.length === 0 && <WorkspaceEmptyView />}
             {tabs.map((tab) => {
               const isActive = tab.id === activeTabId;
               return (
