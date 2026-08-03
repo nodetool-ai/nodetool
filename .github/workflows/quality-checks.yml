@@ -27,6 +27,9 @@ on:
 # "workflow does not contain permissions" rule.
 permissions:
   contents: read
+  # The `docker` leg reads main's buildcache from GHCR. Read-only: it never
+  # pushes an image or writes the cache.
+  packages: read
 
 jobs:
   # Static checks that need no built packages. Kept independent of `build` so
@@ -288,13 +291,126 @@ jobs:
           ${{ matrix.command }}
           echo "::endgroup::"
 
+  # The deploy artifact. docker.yml only builds after a merge to main, so until
+  # this leg existed nothing verified the image before it landed: a Dockerfile
+  # that could not build survived 49 commits on main, taking the Fly deploy with
+  # it (fly-deploy.yml gates on docker.yml). Runs here, inside the gate, so it
+  # blocks through the existing required check rather than a new one.
+  #
+  # Independent of `build` — it builds its own image and shares no artifact, so
+  # it starts immediately instead of queueing behind the package build.
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Login to GitHub Container Registry
+        # Only to read the buildcache. Fork PRs get a token that cannot, so a
+        # failure here costs cache hits, not the leg.
+        continue-on-error: true
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Chromium downloads while nothing else needs the runner, so the browser
+      # is ready the moment the container is.
+      #
+      # Installed in a scratch directory, never the repo: `npm install` at the
+      # workspace root would reify all 60-odd workspaces, which is minutes of
+      # work this leg has no use for — it talks to the container over HTTP and
+      # needs nothing from the source tree but the script itself.
+      #
+      # No --with-deps: the ubuntu-latest image already carries the shared
+      # libraries Chromium links against, and the apt update it triggers costs
+      # more than the browser download.
+      - name: Install Playwright Chromium
+        run: |
+          mkdir -p /tmp/smoke
+          cp scripts/docker-smoke.mjs /tmp/smoke/
+          cd /tmp/smoke
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.60.0
+          npx playwright install chromium
+
+      - name: Build image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: nodetool:ci
+          build-args: |
+            GIT_COMMIT_HASH=${{ github.event.pull_request.head.sha || github.sha }}
+            BUILD_NUMBER=${{ github.run_number }}
+          # Reuse the layers main already published. cache-to is deliberately
+          # absent — a PR must not overwrite the cache main builds from. A PR
+          # that touches nothing in the image context hits cache throughout.
+          cache-from: type=registry,ref=ghcr.io/nodetool-ai/nodetool:buildcache
+          provenance: false
+          sbom: false
+
+      # --network host so requests reach the server over loopback. Under a
+      # published port they arrive from the bridge gateway, which `local` auth
+      # mode treats as remote and answers 401.
+      - name: Start container
+        run: |
+          docker run -d --name nodetool-smoke --network host \
+            -e DB_PATH=/workspace/nodetool.sqlite \
+            -e SECRETS_MASTER_KEY="RE9DS0VSX1NNT0tFX0tFWV9ET19OT1RfVVNFISE=" \
+            nodetool:ci
+
+      - name: Wait for health
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fs http://localhost:7777/health >/dev/null; then
+              echo "Healthy after ${attempt}s."
+              exit 0
+            fi
+            if [ -z "$(docker ps -q -f name=nodetool-smoke)" ]; then
+              echo "::error::Container exited before serving /health."
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error::/health did not answer within 60s."
+          exit 1
+
+      - name: Load the app in a browser
+        working-directory: /tmp/smoke
+        run: node docker-smoke.mjs http://localhost:7777
+
+      - name: Dump container logs
+        if: failure()
+        run: docker logs nodetool-smoke 2>&1 | tail -100
+
+      - name: Upload screenshot
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-smoke-screenshot
+          path: /tmp/smoke/docker-smoke.png
+          if-no-files-found: ignore
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f nodetool-smoke || true
+
   # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
   # status check stays "Quality Gate (npm run check) / quality" — the existing
   # REQUIRED check, so branch protection needs no change. Fails iff any leg or
   # the build failed (or was skipped because an upstream job failed).
   quality:
     name: quality
-    needs: [static, build, built]
+    needs: [static, build, built, docker]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -307,13 +423,14 @@ jobs:
           static="${{ needs.static.result }}"
           build="${{ needs.build.result }}"
           built="${{ needs.built.result }}"
+          docker="${{ needs.docker.result }}"
           echo "## Quality Gate" >> $GITHUB_STEP_SUMMARY
-          if [ "$static" == "success" ] && [ "$build" == "success" ] && [ "$built" == "success" ]; then
+          if [ "$static" == "success" ] && [ "$build" == "success" ] && [ "$built" == "success" ] && [ "$docker" == "success" ]; then
             echo "all-passed=true" >> $GITHUB_OUTPUT
             echo "✅ **All quality checks passed.**" >> $GITHUB_STEP_SUMMARY
           else
             echo "all-passed=false" >> $GITHUB_OUTPUT
-            echo "❌ **One or more quality checks failed** (static: \`$static\`, build: \`$build\`, built: \`$built\`)." >> $GITHUB_STEP_SUMMARY
+            echo "❌ **One or more quality checks failed** (static: \`$static\`, build: \`$build\`, built: \`$built\`, docker: \`$docker\`)." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "See the individual check legs above to find which one." >> $GITHUB_STEP_SUMMARY
             exit 1
