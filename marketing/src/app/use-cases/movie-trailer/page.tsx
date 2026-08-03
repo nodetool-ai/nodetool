@@ -83,14 +83,14 @@ const tweaks = [
 
 const models = [
   {
-    name: "GPT-5 mini",
+    name: "Gemini 3.1 Pro Preview",
     role: "Directs the storyboard",
-    provider: "OpenAI",
+    provider: "Gemini",
   },
   {
-    name: "FLUX.1 Schnell",
+    name: "GPT Image-2",
     role: "Renders each shot's key art",
-    provider: "fal.ai",
+    provider: "kie",
   },
   {
     name: "Veo 3.1 Preview",

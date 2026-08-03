@@ -106,8 +106,8 @@ any of them for a better model the day it ships.
 
 | Model | Role | Provider |
 | --- | --- | --- |
-| GPT-5 mini | Directs the storyboard | OpenAI |
-| FLUX.1 Schnell | Renders each shot's key art | fal.ai |
+| Gemini 3.1 Pro Preview | Directs the storyboard | Gemini |
+| GPT Image-2 | Renders each shot's key art | kie |
 | Veo 3.1 Preview | Animates the frames into video | Gemini |
 
 See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to set up keys.
