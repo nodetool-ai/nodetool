@@ -169,12 +169,10 @@ this; locally, `apt-get install -y mesa-vulkan-drivers` or see
 [AGENTS.md § WebGPU on a headless machine](../../AGENTS.md#webgpu-on-a-headless-machine)
 for the no-root route.
 
-**`npm run workflow` does not exit after one of these.** The run itself finishes
-and prints its outputs, but the process then hangs: nothing destroys the Dawn
-`GPUDevice` acquired in `packages/gpu/src/context.ts`, so the event loop never
-drains. Interrupt it once you have the output, and don't put an image workflow
-in a script that waits on the exit code. Workflows with no image node exit
-normally, and the test harness is unaffected.
+These used to hang the CLI after printing their results: Dawn keeps a handle on
+the event loop for the process lifetime, so a host that waits for the loop to
+drain never exits. `scripts/run-workflow.mjs` now exits explicitly once the run
+is done, so they finish normally and the exit code is usable in a script.
 
 ```bash
 # Background, radial/angular/diamond gradients, seeded noise

@@ -37,7 +37,15 @@
         "vitest.config.*",
         "jest.config.*",
         "tsconfig*.json",
-        "package.json"
+        "package.json",
+        // Fixtures the base-nodes suites read from outside their own package:
+        // the shipped example graphs. Without these, editing an example does
+        // not change the test task's hash, so turbo replays a cached pass and
+        // the suites that assert on those very files never run. CI restores
+        // `.turbo/cache` with a prefix `restore-keys`, so the stale hit
+        // survives across runs and a broken example reports green.
+        "$TURBO_ROOT$/examples/workflows/**",
+        "$TURBO_ROOT$/packages/base-nodes/nodetool/examples/**"
       ],
       "outputs": [],
       "env": ["NODETOOL_LOG_LEVEL"]
