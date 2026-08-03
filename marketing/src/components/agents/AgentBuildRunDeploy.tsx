@@ -23,12 +23,12 @@ export default function AgentBuildRunDeploy() {
             <div className="relative mx-auto max-w-6xl w-full z-10">
                 <div className="mb-12 text-center max-w-2xl mx-auto">
                     <h2 className="text-4xl md:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400 mb-4 tracking-tight">
-                        Brief it. Direct it. Iterate.
+                        Say it. Watch it build. Keep it.
                     </h2>
                     <p className="text-slate-400 text-lg">
-                        Hand your agent a creative brief, watch it pick models and generate
-                        variants, then save the winning run as a node you can rerun for the
-                        next campaign.
+                        The agent works with the same tools you click. It builds the actual
+                        workflow on your canvas, runs it in front of you, and leaves behind
+                        something you can rerun — not a chat transcript.
                     </p>
                 </div>
 
@@ -44,8 +44,8 @@ export default function AgentBuildRunDeploy() {
 
                 <div className="grid grid-cols-1 gap-8 md:grid-cols-3 relative z-10">
                     <Card
-                        title="Write the brief"
-                        subtitle="Set the look, the mood, and what you need delivered. Choose the image, video, and audio models the agent should direct: Flux, Seedance, Veo, Suno, ElevenLabs."
+                        title="Say what you want"
+                        subtitle="Describe the spot, the app, or the pipeline in chat. The agent plans the steps and authors the graph itself — picks the nodes, wires the edges, selects the models: Flux, Seedance, Veo, Suno, ElevenLabs."
                         step={1}
                         accentColor="blue"
                     >
@@ -53,8 +53,8 @@ export default function AgentBuildRunDeploy() {
                     </Card>
 
                     <Card
-                        title="Watch it direct"
-                        subtitle="See the agent think through the shot, choose a model, produce variations, and try again when a render misses the brief. Every decision is on screen."
+                        title="Watch it work"
+                        subtitle="Every tool call lands on your screen: nodes appear, renders come back, the timeline fills. When a render misses the brief the agent retries, and when a call is yours to make it stops and asks."
                         step={2}
                         accentColor="purple"
                     >
@@ -62,8 +62,8 @@ export default function AgentBuildRunDeploy() {
                     </Card>
 
                     <Card
-                        title="Iterate the cut"
-                        subtitle="Adjust the prompt, swap a model, or re-run one part. You can also save the whole agent and use it again on the next campaign."
+                        title="Keep what it built"
+                        subtitle="The result is a workflow or mini app you can inspect, edit, and rerun for the next campaign — with an agent supervising the failure path on a decision and cost budget you set."
                         step={3}
                         accentColor="emerald"
                     >
@@ -312,16 +312,16 @@ function RunGraphic() {
                     <span>Brief: &quot;Sneaker launch, 9:16, neon noir&quot;</span>
                 </div>
                 <div className="flex items-start gap-2 text-blue-400 animate-[fadeIn_0.5s_ease-out_1.5s_both]">
-                    <span className="shrink-0">[DIRECTOR]</span>
-                    <span>Plan: 4 stills, then animate the hero shot.</span>
+                    <span className="shrink-0">[PLAN]</span>
+                    <span>4 stills, animate the hero shot, score it.</span>
                 </div>
                 <div className="flex items-start gap-2 text-yellow-400 animate-[fadeIn_0.5s_ease-out_2.5s_both]">
-                    <span className="shrink-0">[MODEL]</span>
-                    <span>flux_pro(prompt=&quot;rain-soaked alley, chrome accents&quot;)</span>
+                    <span className="shrink-0">[TOOL]</span>
+                    <span>ui_add_node(&quot;flux_pro&quot;) · ui_connect_nodes · ui_run_workflow</span>
                 </div>
                 <div className="flex items-start gap-2 text-purple-400 animate-[fadeIn_0.5s_ease-out_3.5s_both]">
-                    <span className="shrink-0">[RENDER]</span>
-                    <span>4 variants ready · routing best to Seedance…</span>
+                    <span className="shrink-0">[RETRY]</span>
+                    <span>Variant 2 missed the brief · new prompt, rerunning…</span>
                 </div>
             </div>
         </div>

@@ -1,0 +1,190 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "llm",
+        "type": "nodetool.input.LanguageModelInput",
+        "data": {
+          "name": "llm",
+          "value": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-4-6",
+            "name": "Claude Sonnet 4.6"
+          }
+        }
+      },
+      {
+        "id": "image_model",
+        "type": "nodetool.input.ImageModelInput",
+        "data": {
+          "name": "image_model",
+          "value": {
+            "type": "image_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/flux/schnell",
+            "name": "FLUX schnell"
+          }
+        }
+      },
+      {
+        "id": "video_model",
+        "type": "nodetool.input.VideoModelInput",
+        "data": {
+          "name": "video_model",
+          "value": {
+            "type": "video_model",
+            "provider": "fal_ai",
+            "id": "fal-ai/kling-video",
+            "name": "Kling"
+          }
+        }
+      },
+      {
+        "id": "asr",
+        "type": "nodetool.input.ASRModelInput",
+        "data": {
+          "name": "asr",
+          "value": {
+            "type": "asr_model",
+            "provider": "openai",
+            "id": "whisper-1",
+            "name": "Whisper"
+          }
+        }
+      },
+      {
+        "id": "tts",
+        "type": "nodetool.input.TTSModelInput",
+        "data": {
+          "name": "tts",
+          "value": {
+            "type": "tts_model",
+            "provider": "openai",
+            "id": "tts-1",
+            "name": "TTS 1",
+            "voices": ["alloy", "echo"],
+            "selected_voice": "echo"
+          }
+        }
+      },
+      {
+        "id": "embedding",
+        "type": "nodetool.input.EmbeddingModelInput",
+        "data": {
+          "name": "embedding",
+          "value": {
+            "type": "embedding_model",
+            "provider": "openai",
+            "id": "text-embedding-3-small",
+            "name": "Text Embedding 3 Small",
+            "dimensions": 1536
+          }
+        }
+      },
+      {
+        "id": "hf",
+        "type": "nodetool.input.HuggingFaceModelInput",
+        "data": {
+          "name": "hf",
+          "value": { "type": "hf.model", "repo_id": "black-forest-labs/FLUX.1-schnell" }
+        }
+      },
+
+      {
+        "id": "out_llm",
+        "type": "nodetool.output.Output",
+        "name": "llm",
+        "data": { "name": "llm" }
+      },
+      {
+        "id": "out_image_model",
+        "type": "nodetool.output.Output",
+        "name": "image_model",
+        "data": { "name": "image_model" }
+      },
+      {
+        "id": "out_video_model",
+        "type": "nodetool.output.Output",
+        "name": "video_model",
+        "data": { "name": "video_model" }
+      },
+      {
+        "id": "out_asr",
+        "type": "nodetool.output.Output",
+        "name": "asr",
+        "data": { "name": "asr" }
+      },
+      {
+        "id": "out_tts",
+        "type": "nodetool.output.Output",
+        "name": "tts",
+        "data": { "name": "tts" }
+      },
+      {
+        "id": "out_embedding",
+        "type": "nodetool.output.Output",
+        "name": "embedding",
+        "data": { "name": "embedding" }
+      },
+      {
+        "id": "out_hf",
+        "type": "nodetool.output.Output",
+        "name": "hf",
+        "data": { "name": "hf" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "llm",
+        "sourceHandle": "output",
+        "target": "out_llm",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "image_model",
+        "sourceHandle": "output",
+        "target": "out_image_model",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "video_model",
+        "sourceHandle": "output",
+        "target": "out_video_model",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "asr",
+        "sourceHandle": "output",
+        "target": "out_asr",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "tts",
+        "sourceHandle": "output",
+        "target": "out_tts",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "embedding",
+        "sourceHandle": "output",
+        "target": "out_embedding",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "hf",
+        "sourceHandle": "output",
+        "target": "out_hf",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

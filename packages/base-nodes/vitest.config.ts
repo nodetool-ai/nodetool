@@ -4,6 +4,19 @@ import { resolve } from "path";
 export default defineConfig({
   resolve: {
     alias: {
+      "@nodetool-ai/execution/app-debug": resolve(
+        __dirname,
+        "../execution/src/app-debug/index.ts"
+      ),
+      "@nodetool-ai/execution/debug": resolve(
+        __dirname,
+        "../execution/src/debug/index.ts"
+      ),
+      "@nodetool-ai/execution/timeline-debug": resolve(
+        __dirname,
+        "../execution/src/timeline-debug/index.ts"
+      ),
+      "@nodetool-ai/execution": resolve(__dirname, "../execution/src/index.ts"),
       "@nodetool-ai/kernel": resolve(__dirname, "../kernel/src/index.ts"),
       "@nodetool-ai/protocol": resolve(__dirname, "../protocol/src"),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
@@ -38,7 +51,12 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/e2e/**/*.test.ts"],
-    passWithNoTests: true
+    exclude: ["tests/e2e/**/*.test.ts"]
+    // No `passWithNoTests`: this package has 31 suites, and two blocking CI
+    // commands select from them by filename substring — the `parity` leg
+    // (`npm test -w @nodetool-ai/base-nodes -- parity example-workflows`) and
+    // `test:integration` (`-- example-workflows-execute`). With
+    // passWithNoTests, renaming a targeted file made those filters match
+    // nothing and exit 0, so the gate reported green while running no tests.
   }
 });

@@ -105,6 +105,8 @@ export interface GraphE2eEvalCase {
   /**
    * Skip the LLM judge — for cases whose outputs are fully pinned down by
    * `requiredOutputPatterns` (pure string mechanics, exact arithmetic).
+   * `goalAchieved` then follows the output checks, and no separate
+   * `goal-achieved` check is scored: it would count those same checks twice.
    */
   skipJudge?: boolean;
 }
@@ -428,9 +430,16 @@ async function runCase(
   if (!run?.ok) {
     goalDetail = graph ? "run did not complete" : "no graph to run";
   } else if (evalCase.skipJudge) {
-    // Judge-free case: the output checks pin the result down exactly.
-    goalAchieved = outputChecks.every((c) => c.pass);
-    goalDetail = goalAchieved ? undefined : "output checks failed";
+    // Judge-free case: the output checks pin the result down exactly. They are
+    // already in `checks` and scored there, so no `goal-achieved` check is
+    // pushed below — it would weigh the same failures a second time. A case
+    // with no output checks pins nothing, so it cannot claim the goal.
+    goalAchieved = outputChecks.length > 0 && outputChecks.every((c) => c.pass);
+    goalDetail = goalAchieved
+      ? undefined
+      : outputChecks.length === 0
+        ? "skipJudge case declares no output checks"
+        : "output checks failed";
   } else {
     judge = await judgeGoalAchievement({
       provider: opts.judgeProvider ?? opts.provider,
@@ -444,11 +453,13 @@ async function runCase(
     goalAchieved = judge.achieved;
     goalDetail = judge.error ?? judge.reasoning;
   }
-  checks.push({
-    name: "goal-achieved",
-    pass: goalAchieved,
-    detail: goalDetail
-  });
+  if (!evalCase.skipJudge) {
+    checks.push({
+      name: "goal-achieved",
+      pass: goalAchieved,
+      detail: goalDetail
+    });
+  }
 
   const score = checks.filter((c) => c.pass).length / checks.length;
 

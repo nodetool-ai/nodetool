@@ -5,8 +5,10 @@ import type { Session, User, Provider } from "@supabase/supabase-js"; // Import 
 import {
   getRuntimeConfig,
   isAuthRequired,
-  isGoogleWorkspaceEnabled
+  isGoogleWorkspaceEnabled,
+  isRuntimeConfigFromBackend
 } from "../lib/runtimeConfig";
+import { getBuildEnv } from "../lib/buildEnv";
 import { syncGoogleProviderToken } from "../lib/googleSession";
 
 type OAuthProviderSupabase = Extract<Provider, "google" | "facebook">;
@@ -32,23 +34,7 @@ export const getAuthRedirectUrl = (): string => {
   if (fromRuntime) {
     return fromRuntime;
   }
-  // Try to use process.env first (for Jest tests) to avoid SyntaxError with import.meta outside a module
-  let configured;
-  if (typeof process !== "undefined" && process.env && process.env.VITE_AUTH_REDIRECT_URL) {
-      configured = process.env.VITE_AUTH_REDIRECT_URL;
-  } else {
-      // Use Function constructor to hide import.meta from Jest's Babel transformer
-      try {
-          const getEnv = new Function('return typeof import.meta !== "undefined" ? import.meta.env : undefined;');
-          const env = getEnv();
-          if (env) {
-              configured = env.VITE_AUTH_REDIRECT_URL;
-          }
-      } catch (_) {
-          // Ignore — import.meta may not be available in all environments
-      }
-  }
-
+  const configured = getBuildEnv("VITE_AUTH_REDIRECT_URL");
   if (typeof configured === "string" && configured.length > 0) {
     return configured;
   }
@@ -128,7 +114,12 @@ export const useAuth = create<LoginStore>((set, get) => ({
 
     if (!isAuthRequired()) {
       // Backend runs in Local mode — no login screen, single local user.
-      console.info("Auth: Local mode, setting state to logged_in.");
+      console.info(
+        isRuntimeConfigFromBackend()
+          ? "Auth: Local mode, setting state to logged_in."
+          : "Auth: Local mode inferred (backend config unreachable, no " +
+              "build-time Supabase credentials); setting state to logged_in."
+      );
       set({
         state: "logged_in", // Assume logged in for local dev
         session: null,

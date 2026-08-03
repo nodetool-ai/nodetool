@@ -38,3 +38,20 @@
   lands exactly on the input.
 - **Exclude the moving entity's own footprint from overlap/collision checks**
   (`excludeClipIds`) — otherwise a dragged clip reports overlapping itself.
+
+## Rendering (`src/render`, `@nodetool-ai/timeline/render`)
+
+- **One scene model, one compositor, three hosts.** The live preview, the
+  browser export and the server-side `RenderTimeline` node all resolve layers
+  with `computeActiveLayers` + `resolveAnimatedLayerProps` and place them with
+  `buildTransformMatrix`. A rule that lives in only one host is a rule the other
+  two will drift from — put it here.
+- **Nothing in `src/render` may be re-exported from the package root.** The root
+  export stays runtime-dependency-free (mobile compiles it from source); the
+  render module pulls in WebGPU through `@nodetool-ai/gpu`.
+- **Never read a WebGPU flag namespace (`GPUTextureUsage`, `GPUShaderStage`) at
+  module scope.** Under Node those globals only exist after the Dawn adapter
+  installs them with the device, so a module-scope read throws on import.
+- **Draw code takes a `RasterContext2D`, not a concrete canvas.** The browser
+  passes an `OffscreenCanvas` context and the server `@napi-rs/canvas`; a type
+  that only one of them satisfies breaks the other silently at build time.

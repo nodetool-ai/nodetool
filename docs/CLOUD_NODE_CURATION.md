@@ -11,11 +11,9 @@ office-doc tooling, local model runtimes) that is powerful but "nerdy" — it
 dilutes the creative mission and balloons the support surface. The cloud profile
 drops it.
 
-> **One exception:** the **sandboxed Code node** (`nodetool.code.Code`, vm-based
-> JavaScript) is kept. It is the intentional power-user escape hatch. The rest
-> of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners) stays
-> out — arbitrary process/Docker execution isn't appropriate for a managed
-> multi-tenant cloud.
+> **One exception:** the **sandboxed Code node** (`nodetool.code.Code`, QuickJS
+> WASM JavaScript) is kept. It is the intentional power-user escape hatch, and
+> it is admitted by name rather than by namespace.
 
 ## How it's enabled
 
@@ -119,10 +117,10 @@ host-filesystem nodes, which are dropped via `CLOUD_NODE_DENYLIST`:
 
 | From `nodetool.code`   | Kept node                                     |
 | ---------------------- | --------------------------------------------- |
-| `Code`                 | Sandboxed (vm) JavaScript only                |
+| `Code`                 | Sandboxed (QuickJS WASM) JavaScript only      |
 
-The rest of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners)
-is dropped.
+Admitting it by name rather than whole-listing the namespace keeps any future
+`nodetool.code` node out of the cloud until it is reviewed.
 
 ### Creative media toolkit
 

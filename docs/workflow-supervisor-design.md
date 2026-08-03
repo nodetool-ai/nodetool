@@ -64,6 +64,7 @@ export interface Escalation {
   failureSignature?: string;       // stable categorical code; absent ⇒ stickiness disabled
   candidateOutput?: unknown;       // from RecoverableNodeError — the malformed value, redacted+truncated
   inputs: Record<string, unknown>; // the invocation's input values, redacted+truncated
+  declaredOutputs: Record<string, string>; // the node's declared output types, per slot
   attempt: number;                 // 1-based, per (nodeId, invocationKey)
   spentCostUsd: number;            // provider cost recorded by this invocation
   createdAssets: boolean;
@@ -86,6 +87,13 @@ export type Verdict =
 `fail.reason` is not decoration: when a supervised run ends in `fail`, the runner surfaces `reason` as the job's user-facing error summary (the PRD's "one-sentence reason written by the agent") while the original thrown error is preserved in the intervention record and node error detail. The pseudocode's rethrow carries the original error; the runner attaches the reason at job-status level.
 
 `applyTo: "signature"` is the sticky form: the handle caches the verdict keyed by `(nodeId, failureSignature)` and resolves later escalations that match without waking the agent (PRD scenario 2 — 7 identical failures, 1 LLM call). Keying by signature rather than node keeps one login-required error from silently skipping later, unrelated timeouts on the same node. A signature exists only when the error carries a **stable categorical code** — HTTP status, provider error code, validation path — extracted by a small registry of error-shape recognizers. A plain `Error` gets **no** signature (error class alone is not one; every generic throw would collide), and with no signature stickiness is simply off: each such failure escalates individually. Signatures never derive from message text with embedded values. Only `skip` and `fail` may stick; a sticky `retry` or `substitute` would blindly replay a decision made against different inputs.
+
+`declaredOutputs` is what makes `substitute` authorable at all: a repair has to
+be typed per slot, and the escalation is the only thing the supervisor sees.
+It is also what the agent-side acceptance hook validates against before the
+verdict is allowed to become terminal, so the model learns its repair was the
+wrong shape while its conversation is still open. Type metadata, so nothing to
+redact.
 
 `RecoverableNodeError` (node-sdk) is how a node hands the supervisor the thing that needs repairing: a parser that throws on broken JSON attaches the raw response as `candidateOutput` instead of losing it. **No `candidateOutput`, no `substitute`** — without the broken value in hand, "repair" is fabrication: the model would invent a structurally valid output the runtime validator cannot semantically vet. A plain thrown error offers retry/skip/fail only.
 
@@ -231,6 +239,7 @@ Surfaces do not construct `WorkflowRunner` directly anymore — CLI, debug, head
 2. **CLI** — `nodetool run --supervise [--max-decisions N] [--max-retries N] [--supervisor-cost-cap USD] [--supervisor-model id]` and the same flags on `nodetool debug`. Interventions print inline (`⛨` lines) and appear in `--json` reports.
 3. **`Agent({ graph })`** — a fourth branch in `Agent._executeImpl` alongside `executeScriptPlan`/`executeGraphPlan`: hydrate the graph, start a `WorkflowRunner` with itself as supervisor, forward the runner's message stream, return run outputs from `getResults()`. No planning phase — the graph is the plan.
 4. **API/web** — `supervise: true` on the run request; the websocket runner constructs the handle and forwards `supervisor_*` messages to the client for the intervention feed. Trigger rows carry the flag, **off by default** until the plan's PR 8 gate passes; the eventual flip covers newly created triggers only (§6.1 consent).
+5. **Interactive (agent tools)** — `interactive: true` on `POST /api/workflows/:id/run|debug` makes the *calling* agent the supervisor: `InteractiveEscalationHandle` (`packages/websocket/src/debug-sessions.ts`) parks each `decide()` until a verdict arrives on `POST /api/debug/sessions/:id/verdict`, and the escalated HTTP response carries the `Escalation` record itself. The agent-facing `run_workflow`/`debug_workflow` tools expose the flag and `resolve_workflow_escalation` answers; the handle is wrapped in the same `BoundedHandle` (caps, sticky verdicts, a timeout sized for a tool round trip — 10 min — that fails closed), and the kernel still enforces `allowedActions` whatever arrives.
 
 ## 8. Replay
 

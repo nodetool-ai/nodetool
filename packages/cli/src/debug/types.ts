@@ -10,70 +10,32 @@
  * returned so an agent can iterate without re-parsing files.
  */
 
-/** A workflow graph in kernel/runner shape (properties, not data). */
-export interface DebugGraph {
-  nodes: Array<Record<string, unknown>>;
-  edges: Array<Record<string, unknown>>;
-}
-
-/** How the workflow target was provided and what it resolved to. */
-export interface DebugTargetInfo {
-  /** Original CLI argument (id, path/to/file.json, or path/to/file.ts). */
-  ref: string;
-  /**
-   * How `ref` was interpreted. `application` and `bundle` only occur for app
-   * targets: an application row read from the database, and an
-   * `ApplicationBundle` JSON file.
-   */
-  source: "id" | "json" | "dsl" | "application" | "bundle";
-  /** Workflow id when known (DB id, or `id`/`workflow_id` field in a file). */
-  workflowId: string | null;
-  nodeCount: number;
-  edgeCount: number;
-}
-
-// The execution-summary vocabulary is shared with every other host that
-// reports on a run — see `@nodetool-ai/execution`.
-import type { ExecutionSummary } from "@nodetool-ai/execution/debug";
+// The target, execution-summary, and server-run vocabulary is shared with
+// every other host that reports on a run — see `@nodetool-ai/execution`.
+import type {
+  DebugGraph,
+  DebugTargetInfo,
+  DebugVerdict,
+  ExecutionSummary,
+  ServerRunReport
+} from "@nodetool-ai/execution/debug";
+import type { SupervisorRunConfig } from "../supervisor.js";
 
 export type {
   DebugError,
+  DebugGraph,
+  DebugTargetInfo,
+  DebugVerdict,
   EdgeDebug,
   ExecutionSummary,
   LlmCallDebug,
   LogEntry,
   NodeDebug,
   NodeOutput,
-  RunVerdict
+  RunVerdict,
+  ServerRunReport,
+  TraceSummary
 } from "@nodetool-ai/execution/debug";
-
-/** Rolled-up OpenTelemetry spans for the run. */
-export interface TraceSummary {
-  spanCount: number;
-  /** Wall-clock span over all spans (max end − min start), ms. */
-  totalDurationMs: number | null;
-  tokens: { input: number; output: number; total: number };
-  costUsd: number;
-  /** Count + total self-time by span name (llm.chat, node.process, …). */
-  byName: Record<string, { count: number; totalDurationMs: number }>;
-  /** Slowest spans, descending. */
-  slowest: Array<{ name: string; durationMs: number; status: string }>;
-}
-
-export interface ServerRunReport {
-  surface: "server";
-  /** True when the job reached the `completed` status. */
-  ok: boolean;
-  status: string;
-  error: string | null;
-  durationMs: number;
-  summary: ExecutionSummary;
-  trace: TraceSummary | null;
-  /** Bundle-relative path to the raw messages JSONL. */
-  messagesFile?: string;
-  /** Bundle-relative path to the raw trace JSONL. */
-  traceFile?: string;
-}
 
 /** A canvas screenshot captured at one stage of the browser run. */
 export interface BrowserStageShot {
@@ -101,18 +63,6 @@ export interface BrowserRunReport {
   recordFile?: string;
   /** Set when the browser surface could not run (missing deps / browser). */
   unavailableReason?: string;
-}
-
-export interface DebugVerdict {
-  ok: boolean;
-  headline: string;
-  /** Human-readable problems found, ordered most-actionable first. */
-  issues: string[];
-  /**
-   * Things worth looking at that are not failures — a run cannot decide them
-   * either way. Unlike `issues`, these do not clear `ok`.
-   */
-  warnings?: string[];
 }
 
 export interface DebugReport {
@@ -150,4 +100,10 @@ export interface DebugOptions {
   outDir?: string;
   /** Per-surface run timeout, ms. */
   timeoutMs?: number;
+  /**
+   * Supervise the server surface (`--supervise` and its bounds). The browser
+   * surface runs the workflow through the web runtime, which has no supervisor
+   * of its own until the editor toggle ships, so it is unaffected.
+   */
+  supervisor?: SupervisorRunConfig;
 }

@@ -212,16 +212,17 @@ export default function CloudPage() {
                   id="cloud-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  Visual AI workflows
+                  The agent-first workspace
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-cyan-300">
                     in your browser.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
-                  NodeTool Cloud is the hosted version of the same open-source
-                  app. There is nothing to install and no hardware to set up:
-                  sign in and start building. Bring your own API keys for
+                  NodeTool Cloud is the hosted version of the same open-source,
+                  agent-first app. There is nothing to install and no hardware
+                  to set up: sign in, say what you want, and the agent builds
+                  the workflow and runs it. Bring your own API keys for
                   whichever providers you want to use.
                 </p>
                 <div className="mt-6 rounded-lg border border-amber-500/30 bg-amber-500/[0.06] p-4 text-sm text-amber-100/90 max-w-xl">

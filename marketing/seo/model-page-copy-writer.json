@@ -247,10 +247,13 @@
       },
       {
         "id": "save",
-        "type": "lib.os.WriteTextFile",
+        "type": "nodetool.code.Code",
         "data": {
-          "encoding": "utf-8",
-          "append": false
+          "code": "await workspace.write(path, content);\nreturn { output: path };",
+          "timeout": 30,
+          "max_response_mb": 1,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
         },
         "ui_properties": {
           "position": { "x": 1250, "y": 380 },
@@ -261,8 +264,10 @@
           "selectable": true,
           "bypassed": false
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": { "path": "", "content": "" },
+        "dynamic_outputs": {
+          "output": { "type": "any", "type_args": [], "optional": false }
+        }
       },
       {
         "id": "preview_draft",

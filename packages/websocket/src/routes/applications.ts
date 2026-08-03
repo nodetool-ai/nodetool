@@ -14,6 +14,8 @@
  *   GET    /api/applications/:id/released-document  → ApplicationReleaseResponse | null
  *   GET    /api/applications/:id/export-bundle      → ApplicationBundle (download)
  *   POST   /api/applications/import-bundle          → ApplicationResponse
+ *   POST   /api/applications/build                  → BuildReport | {session_id}
+ *   POST   /api/applications/debug                  → AppDebugSummary | {session_id}
  *   GET    /api/applications/examples               → ExampleAppSummary[]
  *   GET    /api/applications/examples/:slug         → ApplicationBundle
  *   POST   /api/applications/examples/:slug/install → ApplicationResponse
@@ -47,9 +49,23 @@ import {
   updateApplication,
   updateApplicationInput
 } from "../lib/applications-service.js";
+import {
+  runApplicationBuild,
+  type AppBuildDeps,
+  type AppBuildRequest
+} from "../lib/app-build-service.js";
+import {
+  runApplicationDebug,
+  type AppDebugDeps,
+  type AppDebugRequest
+} from "../lib/app-debug-service.js";
 
 interface RouteOptions {
   apiOptions: HttpApiOptions;
+  /** Build dependencies — overridden only by tests. */
+  appBuild?: AppBuildDeps;
+  /** Debug dependencies — overridden only by tests. */
+  appDebug?: AppDebugDeps;
 }
 
 function jsonResponse(data: unknown, status = 200): Response {
@@ -138,6 +154,40 @@ const applicationsRoutes: FastifyPluginAsync<RouteOptions> = async (
           await readJsonBody(request)
         );
         return importApplicationBundle(userIdOf(request), input);
+      })
+    );
+  });
+
+  // Build an app from a prompt or a spec. The response is the BuildReport —
+  // the bundle it carries is offered, never installed: turning a green build
+  // into an application is a separate call to `import-bundle` above.
+  app.post("/api/applications/build", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const body = (await readJsonBody(request)) as AppBuildRequest;
+        return runApplicationBuild(
+          userIdOf(request),
+          body,
+          apiOptions,
+          opts.appBuild ?? {}
+        );
+      })
+    );
+  });
+
+  // Debug an app: a saved one by id, or the live draft posted inline. The
+  // response is the compacted report — the verdict, what each widget ended up
+  // showing, and how each invocation went.
+  app.post("/api/applications/debug", async (req, reply) => {
+    await bridge(req, reply, (request) =>
+      respond(async () => {
+        const body = (await readJsonBody(request)) as AppDebugRequest;
+        return runApplicationDebug(
+          userIdOf(request),
+          body,
+          apiOptions,
+          opts.appDebug ?? {}
+        );
       })
     );
   });

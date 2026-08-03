@@ -16,7 +16,6 @@ import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import AddIcon from "@mui/icons-material/Add";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 
 import {
@@ -708,54 +707,3 @@ export const AddClipMenu: React.FC<AddClipMenuProps> = memo(
 );
 
 AddClipMenu.displayName = "AddClipMenu";
-
-// ── Convenience trigger button ─────────────────────────────────────────────
-
-export interface AddClipButtonProps
-  extends Omit<AddClipMenuProps, "anchorEl" | "onClose"> {
-  /** Optional tooltip override */
-  tooltip?: string;
-}
-
-/**
- * AddClipButton — convenience wrapper that owns its own anchor-el state and
- * renders `AddClipMenu` when clicked.
- */
-export const AddClipButton: React.FC<AddClipButtonProps> = memo(
-  ({ trackId, startMs, trackType, tooltip = "Add generated clip" }) => {
-    const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
-
-    const handleOpen = useCallback(
-      (e: React.MouseEvent<HTMLElement>) => {
-        setAnchorEl(e.currentTarget);
-      },
-      []
-    );
-
-    const handleClose = useCallback(() => {
-      setAnchorEl(null);
-    }, []);
-
-    return (
-      <>
-        <ToolbarIconButton
-          icon={<AddIcon />}
-          tooltip={tooltip}
-          onClick={handleOpen}
-          aria-label={tooltip}
-        />
-        {anchorEl && (
-          <AddClipMenu
-            trackId={trackId}
-            startMs={startMs}
-            trackType={trackType}
-            anchorEl={anchorEl}
-            onClose={handleClose}
-          />
-        )}
-      </>
-    );
-  }
-);
-
-AddClipButton.displayName = "AddClipButton";

@@ -326,6 +326,23 @@ export class CostCalculator {
     return 0.0;
   }
 
+  /**
+   * Token cost in USD, or `null` when no price is known for the model.
+   *
+   * {@link calculate} answers 0 for an unpriced model because accounting must
+   * never break a generation that already ran. A budget decides whether a call
+   * happens *at all*, and there "unknown" must not read as "free" — so the
+   * missing-price case is a distinct answer here, and callers that reserve
+   * against a cap fail closed on it.
+   */
+  static estimateTokenCostUsd(
+    modelId: string,
+    usage: UsageInfo,
+    provider: ProviderId
+  ): number | null {
+    return calcTokenPriceUsd(modelId, usage, provider);
+  }
+
   /** Cost for a local non-token modality tier, in USD. */
   private static _calculateForTier(
     tier: PricingTier,

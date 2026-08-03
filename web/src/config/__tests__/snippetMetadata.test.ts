@@ -5,6 +5,10 @@ import {
   generateSnippetMetadata
 } from "../snippetMetadata";
 import { CODE_SNIPPETS } from "../codeSnippets";
+import {
+  inferInputKeysFromCode,
+  inferOutputKeysFromCode
+} from "../../utils/codeOutputInference";
 
 describe("snippetMetadata", () => {
   describe("snippetNodeType", () => {
@@ -106,6 +110,140 @@ describe("snippetMetadata", () => {
       for (const entry of Object.values(metadata)) {
         expect(entry.outputs.length).toBeGreaterThanOrEqual(1);
       }
+    });
+  });
+
+  describe("declared slot types", () => {
+    const metadataFor = (id: string) => {
+      const snippet = CODE_SNIPPETS.find((s) => s.id === id);
+      if (!snippet) throw new Error(`no snippet ${id}`);
+      return generateSnippetMetadata()[snippetNodeType(snippet)];
+    };
+
+    it("types a declared output from the snippet, not the category", () => {
+      const entry = metadataFor("svg-circle");
+      expect(entry.outputs).toEqual([
+        {
+          name: "output",
+          type: { type: "svg_element", type_args: [], optional: false },
+          stream: false
+        }
+      ]);
+    });
+
+    it("types each declared input independently", () => {
+      const byName = new Map(
+        metadataFor("svg-circle").properties.map((p) => [p.name, p])
+      );
+      expect(byName.get("cx")?.type.type).toBe("int");
+      expect(byName.get("radius")?.type.type).toBe("int");
+      expect(byName.get("fill")?.type.type).toBe("color");
+      expect(byName.get("stroke_width")?.type.type).toBe("float");
+    });
+
+    it("carries declared default, min, max and description", () => {
+      const byName = new Map(
+        metadataFor("svg-gradient").properties.map((p) => [p.name, p])
+      );
+      expect(byName.get("x2")).toMatchObject({
+        default: 100,
+        min: 0,
+        max: 100,
+        required: false
+      });
+      const points = metadataFor("svg-polygon").properties.find(
+        (p) => p.name === "points"
+      );
+      expect(points?.description).toContain("Vertices");
+    });
+
+    it("omits min/max/description when the snippet declares none", () => {
+      const cx = metadataFor("svg-circle").properties.find(
+        (p) => p.name === "cx"
+      );
+      expect(cx && "min" in cx).toBe(false);
+      expect(cx && "max" in cx).toBe(false);
+      expect(cx && "description" in cx).toBe(false);
+    });
+
+    it("declares only slots the inferred code produces", () => {
+      const entry = metadataFor("svg-transform");
+      const names = entry.properties.map((p) => p.name).sort();
+      expect(names).toEqual(
+        [...(inferInputKeysFromCode(
+          CODE_SNIPPETS.find((s) => s.id === "svg-transform")!.code
+        ) ?? [])].sort()
+      );
+    });
+  });
+
+  describe("undeclared snippets keep the category fallback", () => {
+    /**
+     * Frozen copy of the pre-declaration generator. 160 shipped snippets
+     * declare nothing and must be byte-identical to what this produces.
+     */
+    const legacyEntry = (snippet: (typeof CODE_SNIPPETS)[number]) => {
+      const CATEGORY_TYPE: Record<string, string> = {
+        "Boolean & Logic": "bool",
+        Math: "float",
+        Text: "str",
+        Regex: "str",
+        List: "list",
+        Dictionary: "dict",
+        "Date & Time": "str",
+        UUID: "str",
+        JSON: "str",
+        Streaming: "str",
+        Path: "str",
+        SVG: "svg_element",
+        HTTP: "str",
+        Markdown: "list",
+        HTML: "list",
+        Validation: "bool"
+      };
+      const defaultType = CATEGORY_TYPE[snippet.category] || "str";
+      const inputKeys = inferInputKeysFromCode(snippet.code) || [];
+      const outputKeys = inferOutputKeysFromCode(snippet.code) || ["output"];
+      return {
+        properties: inputKeys.map((name) => ({
+          name,
+          type: { type: defaultType, type_args: [], optional: false },
+          default:
+            defaultType === "bool"
+              ? false
+              : defaultType === "float"
+                ? 0
+                : defaultType === "list"
+                  ? []
+                  : defaultType === "dict"
+                    ? {}
+                    : "",
+          required: false
+        })),
+        outputs: outputKeys.map((name) => ({
+          name,
+          type: { type: defaultType, type_args: [], optional: false },
+          stream: false
+        }))
+      };
+    };
+
+    it("matches the legacy generator for every undeclared snippet", () => {
+      const metadata = generateSnippetMetadata();
+      const undeclared = CODE_SNIPPETS.filter((s) => !s.inputs && !s.outputs);
+      expect(undeclared.length).toBeGreaterThan(100);
+      for (const snippet of undeclared) {
+        const entry = metadata[snippetNodeType(snippet)];
+        const legacy = legacyEntry(snippet);
+        expect(entry.properties).toEqual(legacy.properties);
+        expect(entry.outputs).toEqual(legacy.outputs);
+      }
+    });
+
+    it("covers every snippet as either declared or legacy-identical", () => {
+      const declared = CODE_SNIPPETS.filter((s) => s.inputs || s.outputs);
+      const undeclared = CODE_SNIPPETS.filter((s) => !s.inputs && !s.outputs);
+      expect(declared.length + undeclared.length).toBe(CODE_SNIPPETS.length);
     });
   });
 });

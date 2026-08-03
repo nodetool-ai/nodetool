@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
 import { keyframes } from "@emotion/react";
-import ReactMarkdown from "react-markdown";
+import ReactMarkdown, { type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 
 import {
@@ -37,6 +37,8 @@ import {
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
 import { useWidgetRuntime, WidgetBindingMode } from "./useWidgetRuntime";
+
+const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 
 /** Vertical stack styling for a Puck slot's drop zone (spaces its children).
  * `minWidth: 0` lets a zone shrink inside a grid track instead of letting its
@@ -172,11 +174,14 @@ const VideoItem: React.FC<{ src: string; height: number }> = ({
   />
 );
 
-export const MarkdownBlock: React.FC<{ text: string }> = ({ text }) => (
-  <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
-    <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
-  </Box>
+export const MarkdownBlock: React.FC<{ text: string }> = React.memo(
+  ({ text }) => (
+    <Box className="appbuilder-markdown" sx={{ width: "100%" }}>
+      <ReactMarkdown remarkPlugins={REMARK_PLUGINS}>{text}</ReactMarkdown>
+    </Box>
+  )
 );
+MarkdownBlock.displayName = "MarkdownBlock";
 
 const JsonBlock: React.FC<{ value: unknown }> = ({ value }) => {
   let formatted: string;
@@ -411,7 +416,12 @@ export const TableWidget: React.FC<WidgetCommon & {
   maxHeight?: number;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const items = asItems(value).filter((item) => item != null);
+  // Memoized because the column/row derivation below depends on it, and that
+  // stringifies every cell.
+  const items = React.useMemo(
+    () => asItems(value).filter((item) => item != null),
+    [value]
+  );
 
   const { columns, rows } = React.useMemo(() => {
     const objectRows = items.filter(

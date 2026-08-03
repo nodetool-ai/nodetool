@@ -76,11 +76,6 @@ import {
   ConstantLanguageModelNode,
   ConstantTTSModelNode,
   ConstantVideoModelNode,
-  // workspace
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
   // triggers
   WaitNode,
   ManualTriggerNode,
@@ -835,102 +830,6 @@ describe("constant nodes — full coverage", () => {
 // ============================================================
 // WORKSPACE NODES
 // ============================================================
-describe("workspace nodes — full coverage", () => {
-  let tmpDir: string;
-
-  async function freshDir(): Promise<string> {
-    return mkdtemp(path.join(tmpdir(), "nodetool-ws-test-"));
-  }
-
-  it("WriteTextFileNode and ReadTextFileNode round-trip", async () => {
-    tmpDir = await freshDir();
-    const write = new WriteTextFileNode();
-    const read = new ReadTextFileNode();
-    write.assign({
-      workspace_dir: tmpDir,
-      path: "test.txt",
-      content: "data123"
-    });
-    await write.process();
-    read.assign({ workspace_dir: tmpDir, path: "test.txt" });
-    const result = await read.process();
-    expect(result).toEqual({ output: "data123" });
-  });
-
-  it("WriteTextFileNode appends when append is true", async () => {
-    tmpDir = await freshDir();
-    const write = new WriteTextFileNode();
-    write.assign({
-      workspace_dir: tmpDir,
-      path: "log.txt",
-      content: "line1\n"
-    });
-    await write.process();
-    write.assign({
-      workspace_dir: tmpDir,
-      path: "log.txt",
-      content: "line2\n",
-      append: true
-    });
-    await write.process();
-    const read = new ReadTextFileNode();
-    read.assign({ workspace_dir: tmpDir, path: "log.txt" });
-    const result = await read.process();
-    expect(result).toEqual({ output: "line1\nline2\n" });
-  });
-
-  it("ReadBinaryFileNode and WriteBinaryFileNode round-trip", async () => {
-    tmpDir = await freshDir();
-    const b64 = Buffer.from("binary-data").toString("base64");
-    const write = new WriteBinaryFileNode();
-    write.assign({ workspace_dir: tmpDir, path: "bin.dat", content: b64 });
-    await write.process();
-    const read = new ReadBinaryFileNode();
-    read.assign({ workspace_dir: tmpDir, path: "bin.dat" });
-    const result = await read.process();
-    expect(result.output).toBe(b64);
-  });
-
-  it("workspace node defaults are accessible", () => {
-    expect(new ReadTextFileNode().serialize()).toEqual({
-      path: "",
-      encoding: "utf-8"
-    });
-    expect(new WriteTextFileNode().serialize()).toEqual({
-      path: "",
-      content: "",
-      encoding: "utf-8",
-      append: false
-    });
-    expect(new ReadBinaryFileNode().serialize()).toEqual({ path: "" });
-    expect(new WriteBinaryFileNode().serialize()).toEqual({
-      path: "",
-      content: ""
-    });
-  });
-
-  it("workspace path validation rejects absolute paths", async () => {
-    tmpDir = await freshDir();
-    const node = new ReadTextFileNode();
-    node.assign({ workspace_dir: tmpDir, path: "/etc/passwd" });
-    await expect(node.process()).rejects.toThrow("Absolute");
-  });
-
-  it("workspace path validation rejects parent traversal", async () => {
-    tmpDir = await freshDir();
-    const node = new ReadTextFileNode();
-    node.assign({ workspace_dir: tmpDir, path: "../etc/passwd" });
-    await expect(node.process()).rejects.toThrow("Parent directory");
-  });
-
-  it("workspace path validation rejects empty path", async () => {
-    tmpDir = await freshDir();
-    const node = new ReadTextFileNode();
-    node.assign({ workspace_dir: tmpDir, path: "" });
-    await expect(node.process()).rejects.toThrow("empty");
-  });
-});
-
 // ============================================================
 // TRIGGER NODES
 // ============================================================

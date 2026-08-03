@@ -55,9 +55,22 @@ Still no LLM. Depends on PR 1.
 
 ## Phase B — the agent and the CLI
 
-### PR 3 — SupervisorAgent
+### PR 3 — SupervisorAgent — **shipped**
 
 Depends on PR 2.
+
+Two additions the plan did not name, both forced by what the agent has to see:
+`Escalation.declaredOutputs` (a repair cannot be typed, or accepted, without
+the node's declared output types) and a kernel-side **`RunStateReader`** handed
+to the handle via `SupervisorHandle.attach()` — the tools are pull-based over
+runner state, and a handle is configured before the runner exists. Output
+recording for `read_node_output` is bounded per node and happens only on a
+supervised run.
+
+Host-side schema validation checks the schema **as the caller wrote it**, not
+the sanitized copy sent to the provider: the sanitizer injects
+`additionalProperties: false` for strict structured-output modes, and enforcing
+that would reject results no author ever forbade.
 
 - `packages/agents/src/supervisor/supervisor-agent.ts`: `SupervisorHandle` via one `StepExecutor` per decision, verdict `outputSchema` (mirroring the escalation's allowed set), serialized queue; the `decide()` signal threads through `StepExecutor` into `provider.generateLoop({signal})` so abort kills the in-flight LLM request.
 - **`TurnBudget` in the runtime provider layer** (design §6): `reserve/commit` object accepted via `generateLoop` options, honored before every model turn by the base loop and by native loop overrides (Claude Agent SDK provider explicitly). Worst-case reservation from the pricing catalog with explicit `supervisorMaxOutputTokens` (default 2048, never unset); no pricing entry ⇒ fail closed. This is a `packages/runtime` change with its own provider-contract test, not a wrapper in the agents package — a wrapper around `generateLoop()` cannot see individual turns.
@@ -68,9 +81,34 @@ Depends on PR 2.
 - `supervisor:` memory keys for decisions + rationales.
 - Tests: mock provider returning scripted tool-calls/verdicts; malformed verdict exercises the `finish_step` bounce loop; an unresolvable substitute ref bounces back into the open conversation; supervisor exceptions and timeouts resolve as `fail`; abort mid-decision cancels the provider call; a secret value planted in a `read_node_output` result never appears in the outbound prompt; in a fan-out, `read_node_output` refuses a sibling item's output; reservation blocks the $0.49+$0.30 overshoot mid-decision.
 
-### PR 4 — CLI surface ∥ (with PR 5)
+### PR 4 — CLI surface ∥ (with PR 5) — **shipped**
 
 Depends on PR 3.
+
+Two deviations the plan did not anticipate.
+
+**`nodetool run` is a DSL command, not a session command.** `nodetool run
+<dsl-file>` executes through `@nodetool-ai/dsl`'s own `run()`, which constructs
+a `WorkflowRunner` directly — one of the grandfathered sites this PR is
+forbidden to grow supervision on. So `--supervise` switches that command onto
+`ExecutionSession` (`packages/cli/src/run-dsl-supervised.ts`) and the
+unsupervised path stays byte-identical on the old one. One user-visible
+consequence: the supervised path does not rethrow the first node error the way
+the DSL path does. A node error the supervisor resolved is not a run failure;
+only the run's terminal status decides.
+
+**The summary line's item counts do not exist at run level.** "198/200 items"
+presumes a batch the kernel never names: it counts invocations, not the items a
+user thinks in. `formatSupervisedSummary` takes an optional item total for a
+caller that knows one and otherwise reports decisions — `⛨ supervised: 2
+skipped, 1 retried, 3 decisions, +$0.0200`.
+
+The intervention record shipped as `Intervention` from `@nodetool-ai/protocol`
+(minted in PR 1), unchanged — `RunResult.interventions`, the
+`supervisor_decision` message, and the `--json` block are the same record, so
+PR 6 has one shape to consume. The rollup and the two printed lines live in
+`@nodetool-ai/execution` beside the debug reducer, so the CLI, the debug
+bundle, and the HTTP debug endpoint cannot drift.
 
 - **`ExecutionSessionOptions.supervisor`** in `packages/execution` — the single integration point; CLI and websocket surfaces configure the facade, never `WorkflowRunner` directly (design §7). Grandfathered direct-construction sites are out of scope but must not gain supervision ad hoc.
 - `--supervise`, `--max-decisions`, `--max-retries`, `--supervisor-cost-cap`, `--supervisor-model` on `nodetool run` and `nodetool debug` (the latter through the shared debug service in `@nodetool-ai/execution`, not around it).
@@ -78,13 +116,40 @@ Depends on PR 3.
 - Supervisor cost attributed through the existing cost tracking so `nodetool costs` sees it (PRD open question 3 resolved: attributed to the run, tagged `supervisor`).
 - Docs: CLI section in root `CLAUDE.md` + `docs/cli.md`.
 
-### PR 5 — Workflows as agents ∥ (with PR 4)
+### PR 5 — Workflows as agents ∥ (with PR 4) — **shipped**
 
 Depends on PR 3.
 
+Three things the plan did not anticipate, all forced by the websocket half.
+
+A `supervise` flag alone cannot start a supervisor: something has to name the
+model. The run request therefore carries an optional `supervisor`
+(`SupervisorRunOptions`: provider, model, the three bounds, cost cap) next to
+the flag, falling back to the connection's configured default model and then to
+`NODETOOL_SUPERVISOR_PROVIDER` / `NODETOOL_SUPERVISOR_MODEL` — the last exists
+because trigger-driven headless runs have no connection defaults at all. A
+request that asks for supervision it cannot get runs **unsupervised** rather
+than failing, which is the same fail-closed rule every other supervisor failure
+follows.
+
+The trigger flag is a real column (`trigger_registrations.supervise`, default
+`0`, migration `20260801_000001`), read by the dispatcher into the headless run.
+Registration sync mutates existing rows in place, so re-syncing a workflow never
+resets it.
+
+The supervisor gets a **dedicated provider instance** (`getProvider`, not the
+context's cached one) and a listener-free context copy: per-turn spend is
+reconciled from the provider's own running cost, so a second caller on the same
+instance would corrupt the dollar cap, and the decision's own provider traffic
+is not the run's message stream. The escalation and the verdict still cross the
+websocket — they are emitted by the kernel on the run's context.
+
+`ExecutionSessionOptions.supervisor` is PR 4's deliverable and landed here
+because PR 5 needs it; the two branches carry the same three-line change.
+
 - `AgentOptions.graph?: GraphData | { workflowId: string }`; fourth branch in `Agent._executeImpl`: hydrate, run through `ExecutionSession` with self as supervisor, forward messages, `getResults()` returns run outputs. The branch adopts the common `AgentPolicy` object (`packages/agents/src/agent-policy.ts`); it does not add a fifth ad-hoc policy.
 - Websocket: `supervise` flag on run requests; forward `supervisor_*` messages to clients. Trigger rows carry the flag but it **defaults to off** — the flip to default-on belongs to PR 8's gate, nowhere earlier.
-- Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream.
+- Tests: `Agent({graph})` returns identical outputs to a bare runner on a clean graph; interventions surface in the message stream. Plus what makes the branch trustworthy: a scripted `skip` completes a run that otherwise fails and a scripted `fail` does not, a clean supervised run emits no `supervisor_*` message at all, an aborted signal cancels the run, and `createRunSupervisor` returns no handle without an explicit flag and a resolvable model.
 
 ## Phase C — the product surface
 

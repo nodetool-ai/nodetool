@@ -23,12 +23,6 @@ import {
   S3GetPresignedUrlLibNode
 } from "@nodetool-ai/integration-nodes";
 import {
-  GraphQLQueryLibNode,
-  GraphQLQueryWithAuthLibNode,
-  GraphQLIntrospectionLibNode,
-  GraphQLBatchQueryLibNode
-} from "@nodetool-ai/integration-nodes";
-import {
   SentimentAnalysisLibNode,
   TokenizeLibNode,
   StemLibNode,
@@ -138,35 +132,6 @@ describe("lib.s3 nodes", () => {
 // ---------------------------------------------------------------------------
 // GraphQL
 // ---------------------------------------------------------------------------
-
-describe("lib.graphql nodes", () => {
-  it("GraphQLQueryLibNode has correct metadata", () => {
-    expect(GraphQLQueryLibNode.nodeType).toBe("lib.graphql.Query");
-    expect(GraphQLQueryLibNode.title).toBe("GraphQL Query");
-  });
-
-  it("GraphQLQueryWithAuthLibNode has correct metadata", () => {
-    expect(GraphQLQueryWithAuthLibNode.nodeType).toBe(
-      "lib.graphql.QueryWithAuth"
-    );
-  });
-
-  it("GraphQLIntrospectionLibNode has correct metadata", () => {
-    expect(GraphQLIntrospectionLibNode.nodeType).toBe(
-      "lib.graphql.Introspection"
-    );
-  });
-
-  it("GraphQLBatchQueryLibNode has correct metadata", () => {
-    expect(GraphQLBatchQueryLibNode.nodeType).toBe("lib.graphql.BatchQuery");
-  });
-
-  it("GraphQLQueryLibNode throws on empty URL", async () => {
-    await expect(
-      new GraphQLQueryLibNode({ url: "", query: "{ test }" }).process()
-    ).rejects.toThrow();
-  });
-});
 
 // ---------------------------------------------------------------------------
 // NLP

@@ -19,6 +19,7 @@ import type {
   ToolCall,
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
+import type { TurnBudget } from "@nodetool-ai/runtime";
 import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
@@ -40,6 +41,10 @@ import { ControlNodeTool } from "./tools/control-tool.js";
 import { FinishStepTool } from "./tools/finish-step-tool.js";
 import { getMemoryTools } from "./tools/memory-tools.js";
 import { truncateToolResult } from "./constants.js";
+import {
+  formatViolations,
+  validateAgainstSchema
+} from "./utils/json-schema-validate.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -242,6 +247,19 @@ function validateAndSanitizeSchema(
   return cleanSchemaRecursive(result) as Record<string, unknown>;
 }
 
+/**
+ * The authored schema, deep-copied and given a `type` when it omits one, so
+ * host validation reads exactly what the caller declared and nothing more.
+ */
+function normalizeDeclaredSchema(
+  raw: unknown
+): Record<string, unknown> | null {
+  if (raw === null || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const copy = JSON.parse(JSON.stringify(raw)) as Record<string, unknown>;
+  if (!("type" in copy) && "properties" in copy) copy["type"] = "object";
+  return copy;
+}
+
 // ---------------------------------------------------------------------------
 // Think-tag removal
 // ---------------------------------------------------------------------------
@@ -334,7 +352,34 @@ export interface StepExecutorOptions {
   upstreamMemoryKeys?: string[];
   /** External cancellation. Aborts the provider loop mid-flight. */
   signal?: AbortSignal;
+  /**
+   * Final say on a schema-valid result, for contracts whose acceptance can
+   * only be decided asynchronously — a repaired value that must resolve
+   * against run storage, say. A rejection is not a failure: it returns to the
+   * model as a tool error inside the still-open conversation, so the next
+   * attempt has the reason. After {@link MAX_REPAIR_ROUNDS} rejections the
+   * step fails rather than looping on an answer the model cannot produce.
+   */
+  acceptResult?: (result: unknown) => Promise<StepResultAcceptance>;
+  /**
+   * Spend admission consulted before every provider turn. Forwarded to
+   * `generateLoop`; a refusal ends the loop, which surfaces here as a step
+   * that never completed.
+   */
+  turnBudget?: TurnBudget;
 }
+
+/** Answer from {@link StepExecutorOptions.acceptResult}. */
+export type StepResultAcceptance =
+  | { accepted: true }
+  | { accepted: false; reason: string };
+
+/**
+ * Rejections by the acceptance callback before the step gives up. Three is
+ * enough for the model to read the reason and correct course; more is a model
+ * that cannot satisfy the contract, and looping costs real money.
+ */
+export const MAX_REPAIR_ROUNDS = 3;
 
 export class StepExecutor {
   private history: Message[] = [];
@@ -352,6 +397,8 @@ export class StepExecutor {
   private result: unknown = null;
   private finishStepTool: FinishStepTool | null = null;
   private resultSchema: Record<string, unknown> | null = null;
+  /** The schema as the caller wrote it — what host validation checks. */
+  private declaredSchema: Record<string, unknown> | null = null;
   private iterations = 0;
   private generationFailures = 0;
   private sources: string[] = [];
@@ -362,6 +409,11 @@ export class StepExecutor {
   }> = [];
   private threadId?: string;
   private upstreamMemoryKeys: string[];
+  private acceptResult?: (result: unknown) => Promise<StepResultAcceptance>;
+  private turnBudget?: TurnBudget;
+  private repairRounds = 0;
+  /** Set when acceptance rejected the result once too often. */
+  private acceptanceError: string | null = null;
 
   constructor(opts: StepExecutorOptions) {
     this.task = opts.task;
@@ -376,6 +428,8 @@ export class StepExecutor {
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.signal = opts.signal;
+    this.acceptResult = opts.acceptResult;
+    this.turnBudget = opts.turnBudget;
 
     this.resultSchema = this.loadResultSchema();
 
@@ -410,9 +464,17 @@ export class StepExecutor {
         typeof this.step.outputSchema === "string"
           ? JSON.parse(this.step.outputSchema)
           : this.step.outputSchema;
+      // Two schemas, on purpose. The sanitized one is what the provider is
+      // shown — it injects `additionalProperties: false` because strict
+      // structured-output modes demand it. The authored one is the contract,
+      // and it is what the host validates against: an author who wrote
+      // `properties: {}` meant "an object", not "an empty object", and
+      // enforcing a transport artifact would reject a result nobody forbade.
+      this.declaredSchema = normalizeDeclaredSchema(raw);
       return validateAndSanitizeSchema(raw, defaultDescription);
     } catch {
       // Fallback: permissive object schema
+      this.declaredSchema = null;
       return { type: "object", description: defaultDescription };
     }
   }
@@ -462,41 +524,15 @@ export class StepExecutor {
       return [true, null, normalized];
     }
 
-    // Basic structural validation: check required keys from schema
-    if (
-      this.resultSchema["type"] === "object" &&
-      typeof normalized === "object" &&
-      normalized !== null
-    ) {
-      const requiredKeys = this.resultSchema["required"];
-      if (Array.isArray(requiredKeys)) {
-        const obj = normalized as Record<string, unknown>;
-        for (const key of requiredKeys) {
-          // `requiredKeys` is LLM/planner-authored; use Object.hasOwn so a
-          // required key like "toString"/"constructor" can't be satisfied by
-          // the prototype chain when the model never produced it.
-          if (!Object.hasOwn(obj, key as string)) {
-            return [false, `Missing required key: ${key}`, normalized];
-          }
-        }
-      }
-    }
-
-    // Type check
-    const expectedType = this.resultSchema["type"];
-    if (expectedType === "string" && typeof normalized !== "string") {
-      return [false, `Expected string, got ${typeof normalized}`, normalized];
-    }
-    if (
-      expectedType === "object" &&
-      (typeof normalized !== "object" ||
-        normalized === null ||
-        Array.isArray(normalized))
-    ) {
-      return [false, `Expected object, got ${typeof normalized}`, normalized];
-    }
-    if (expectedType === "array" && !Array.isArray(normalized)) {
-      return [false, `Expected array, got ${typeof normalized}`, normalized];
+    // The whole declared schema, not its outline. Backends vary in how much of
+    // a tool-parameter schema they enforce — enums and unions are routinely
+    // dropped — so a contract holds only where the host checks it.
+    const violations = validateAgainstSchema(
+      normalized,
+      this.declaredSchema ?? this.resultSchema
+    );
+    if (violations.length > 0) {
+      return [false, formatViolations(violations), normalized];
     }
 
     return [true, null, normalized];
@@ -939,6 +975,24 @@ export class StepExecutor {
         normalizedResult !== null &&
         normalizedResult !== undefined
       ) {
+        if (this.acceptResult) {
+          const acceptance = await this.acceptResult(normalizedResult);
+          if (!acceptance.accepted) {
+            this.repairRounds++;
+            if (this.repairRounds >= MAX_REPAIR_ROUNDS) {
+              // Out of rounds. Stop the loop rather than pay for another
+              // attempt at a contract this model is not meeting.
+              this.acceptanceError = acceptance.reason;
+              abort.abort();
+              return JSON.stringify({
+                error: `Result rejected: ${acceptance.reason}`
+              });
+            }
+            return JSON.stringify({
+              error: `Result rejected: ${acceptance.reason}. Call finish_step again with a corrected result.`
+            });
+          }
+        }
         emitCompletion(normalizedResult);
         abort.abort();
         return '{"status": "completed"}';
@@ -1031,6 +1085,7 @@ export class StepExecutor {
         maxIterations: this.maxIterations,
         maxTokens: this.maxTokens,
         sequentialTools: true,
+        turnBudget: this.turnBudget,
         signal: abort.signal
       });
 
@@ -1104,9 +1159,11 @@ export class StepExecutor {
     if (!this.step.completed) {
       this.step.endTime = Date.now();
 
-      const message = generationError
-        ? `Step failed: ${generationError.message}`
-        : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
+      const message = this.acceptanceError
+        ? `Step failed: result rejected after ${MAX_REPAIR_ROUNDS} attempts — ${this.acceptanceError}`
+        : generationError
+          ? `Step failed: ${generationError.message}`
+          : `Step failed: exceeded ${this.maxIterations} iterations without completion`;
       this.step.failed = true;
       this.step.error = message;
 

@@ -231,7 +231,6 @@ export {
   MARGIN,
   getSpacingPx,
   createPadding,
-  createMargin,
   resolveSpacing,
   snapSpacing
 } from "./spacing";

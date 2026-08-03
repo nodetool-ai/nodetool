@@ -251,16 +251,9 @@ export class SamServiceStub implements SamService {
 /** Singleton service instance. */
 let serviceInstance: SamService | null = null;
 let currentBackend: SegmentBackend | null = null;
-/** True when the instance was set explicitly via setSamService. */
-let manualOverride = false;
 
 export function getSamService(backend?: SegmentBackend): SamService {
   const requestedBackend = backend ?? "fal";
-
-  // Return manually-overridden instance unless a specific backend was requested
-  if (serviceInstance && manualOverride && backend === undefined) {
-    return serviceInstance;
-  }
 
   // Return cached instance if backend matches
   if (serviceInstance && currentBackend === requestedBackend) {
@@ -285,15 +278,5 @@ export function getSamService(backend?: SegmentBackend): SamService {
 
   serviceInstance = newService;
   currentBackend = requestedBackend;
-  manualOverride = false;
   return newService;
-}
-
-/**
- * Override the service instance (useful for testing or switching to a real backend).
- */
-export function setSamService(service: SamService): void {
-  serviceInstance = service;
-  currentBackend = null;
-  manualOverride = true;
 }

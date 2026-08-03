@@ -108,7 +108,11 @@ export {
   CreateWorkflowTool,
   RunWorkflowTool,
   DebugWorkflowTool,
+  ResolveWorkflowEscalationTool,
+  BuildAppTool,
+  DebugAppTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -125,7 +129,11 @@ export {
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
-export type { PlanWorkflowGraphToolOptions } from "./tools/mcp-tools.js";
+export type {
+  PlanWorkflowGraphToolOptions,
+  TimelineLoader,
+  TimelineToolRecord
+} from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,
@@ -527,7 +535,31 @@ export type {
   HeadlessNode,
   HeadlessEdge
 } from "./evals/tool-loop-bridge.js";
-export { TOOL_LOOP_EVAL_CASES } from "./evals/tool-loop-cases.js";
+export {
+  TOOL_LOOP_EVAL_CASES,
+  TOOL_LOOP_NODE_CATALOG
+} from "./evals/tool-loop-cases.js";
+export {
+  scoreToolLoopChecks,
+  countCriticalFailures,
+  CRITICAL_FAILURE_SCORE_CAP
+} from "./evals/tool-loop-eval.js";
+
+// Interactive escalation: an `ask_user` tool backed by a scripted user, plus
+// the workflow-tool cases that require escalating before acting.
+export {
+  createEscalationChannel,
+  checkEscalationExpectations,
+  DEFAULT_ESCALATION_TOOL_NAME
+} from "./evals/escalation.js";
+export type {
+  EscalationConfig,
+  EscalationReply,
+  EscalationTurn,
+  EscalationChannel,
+  EscalationExpectations
+} from "./evals/escalation.js";
+export { WORKFLOW_ESCALATION_TOOL_LOOP_CASES } from "./evals/escalation-cases.js";
 
 // Editor-surface tool-loop suites (script, sketch, timeline, storyboard, 3D)
 export {
@@ -552,7 +584,8 @@ export {
 } from "./evals/surfaces/timeline.js";
 export type {
   TimelineBridgeFinalState,
-  TimelineBridgeInitialState
+  TimelineBridgeInitialState,
+  TimelineBridgeSequenceSeed
 } from "./evals/surfaces/timeline.js";
 export {
   createStoryboardToolBridge,
@@ -580,6 +613,21 @@ export type {
   AppComponentSummary,
   SeedComponent
 } from "./evals/surfaces/app.js";
+/* App-build: the shared bridge and the generic tool-loop driver. */
+export type {
+  AppBridgeDocument,
+  AppToolBridge,
+  ComponentNode
+} from "./app-build/bridge.js";
+export {
+  runToolLoop,
+  DEFAULT_MAX_ITERATIONS as DEFAULT_TOOL_LOOP_ITERATIONS
+} from "./app-build/tool-loop.js";
+export type {
+  RunToolLoopOptions,
+  ToolLoopCallRecord,
+  ToolLoopRun
+} from "./app-build/tool-loop.js";
 export {
   createThreadMemoryToolBridge,
   THREAD_MEMORY_TOOL_LOOP_CASES
@@ -663,6 +711,32 @@ export {
   PLANNER_TOOL_NAMES
 } from "./evals/planner-tools.js";
 
+// Mini-app build evaluation harness (`nodetool eval app-build`)
+export {
+  runAppBuildEval,
+  formatAppBuildReport,
+  checkAppBuild,
+  APP_BUILD_TRAITS
+} from "./evals/app-build-eval.js";
+export type {
+  AppBuildEvalCase,
+  AppBuildExpectations,
+  AppBuildCheck,
+  AppBuildCaseResult,
+  AppBuildEvalReport,
+  AppBuildEvalSummary,
+  AppBuildTrait,
+  AppBuildGraph,
+  DeterministicAppBuild,
+  ScriptedToolCall,
+  RunAppBuildEvalOptions
+} from "./evals/app-build-eval.js";
+export {
+  APP_BUILD_EVAL_CASES,
+  APP_BUILD_DETERMINISTIC_CASE_IDS,
+  uncoveredAppBuildTraits
+} from "./evals/app-build-cases.js";
+
 // Graph-native planning & execution
 export { evaluateGraphDsl } from "./graph-dsl.js";
 export type { GraphDslResult, EvaluateGraphDslOptions } from "./graph-dsl.js";
@@ -684,3 +758,98 @@ export type {
   AgentWorkflowRunnerOptions,
   RunPolicy
 } from "./agent-workflow-runner.js";
+export { resolveAgentGraph, runWorkflowAsAgent } from "./workflow-agent.js";
+export type {
+  AgentGraphSource,
+  WorkflowAgentRunOptions
+} from "./workflow-agent.js";
+export {
+  SupervisorAgent,
+  DEFAULT_MAX_SUPERVISOR_COST_USD,
+  DEFAULT_SUPERVISOR_MAX_OUTPUT_TOKENS
+} from "./supervisor/supervisor-agent.js";
+export type { SupervisorAgentOptions } from "./supervisor/supervisor-agent.js";
+export { buildVerdictSchema } from "./supervisor/verdict-schema.js";
+export { buildSupervisorPrompt } from "./supervisor/prompt.js";
+export {
+  createSupervisorTools,
+  GetRunStateTool,
+  ReadNodeOutputTool
+} from "./supervisor/tools.js";
+export {
+  validateAgainstSchema,
+  formatViolations
+} from "./utils/json-schema-validate.js";
+export type { SchemaViolation } from "./utils/json-schema-validate.js";
+export { issueFingerprint } from "./app-build/types.js";
+export type {
+  BuildComplaint,
+  BuildExpectation,
+  BuildExpectCheck,
+  BuildIssue,
+  BuildReport,
+  BuildSpec,
+  BuildSpecInput,
+  BuildSpecInteraction,
+  BuildSpecOperation,
+  BuildSpecOutput,
+  BuildSpecVariable,
+  BuildSpecWidget,
+  BuildStage,
+  BuildSupervision,
+  CompletedInteraction,
+  JudgeInteractionVerdict,
+  JudgeRecord,
+  StageRecord
+} from "./app-build/types.js";
+export {
+  BUILD_SPEC_SCHEMA,
+  buildSpecPrompt,
+  operationsExercised,
+  parseBuildSpec,
+  resolveSpecWidget,
+  runSpecStage,
+  specFromFile,
+  validateBuildSpec
+} from "./app-build/spec.js";
+export type { SpecStageOptions, SpecStageResult } from "./app-build/spec.js";
+export { completeInteractions } from "./app-build/interactions.js";
+export {
+  runAuthorStage,
+  renderAuthorSystemPrompt,
+  renderComplaintPrompt,
+  AUTHORED_APP_ID,
+  DEFAULT_AUTHOR_TURNS
+} from "./app-build/author.js";
+export type {
+  AuthorStageOptions,
+  AuthorStageResult,
+  AuthorWorkflow
+} from "./app-build/author.js";
+export {
+  buildApp,
+  DEFAULT_MAX_REPAIRS,
+  DEFAULT_BUILD_TIMEOUT_MS,
+  DEFAULT_BUILD_COST_CAP_USD
+} from "./app-build/build.js";
+export type {
+  BuildAppOptions,
+  BuildJudgeOptions,
+  BuildLedgerAttribution
+} from "./app-build/build.js";
+export {
+  DEFAULT_JUDGE_TIMEOUT_MS,
+  JUDGE_MODEL_CANDIDATES,
+  judgeInteraction,
+  parseJudgeAnswer,
+  renderJudgePrompt,
+  resolveJudgeModelSpec,
+  runJudgeStage
+} from "./app-build/judge.js";
+export type {
+  JudgeInteractionInput,
+  JudgeModelResolution,
+  JudgeStageOptions,
+  JudgeWidgetState
+} from "./app-build/judge.js";
+export { renderBuildReportMarkdown } from "./app-build/markdown.js";

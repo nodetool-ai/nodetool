@@ -17,8 +17,7 @@ import type {
   Property,
   PropertyTypeMetadata,
   OutputSlot,
-  Node as GraphNode,
-  Edge as GraphEdge
+  Node as GraphNode
 } from "../stores/ApiTypes";
 
 export interface RawGraph {
@@ -233,10 +232,10 @@ export async function buildRenderGraph(raw: RawGraph): Promise<RenderGraph> {
   }
 
   const rfNodes = (workflow.graph?.nodes ?? []).map((n) =>
-    graphNodeToReactFlowNode(workflow, n as GraphNode)
+    graphNodeToReactFlowNode(workflow, n)
   );
   const rfEdges = (workflow.graph?.edges ?? []).map((e) =>
-    graphEdgeToReactFlowEdge(e as GraphEdge)
+    graphEdgeToReactFlowEdge(e)
   );
 
   for (const node of rfNodes) {

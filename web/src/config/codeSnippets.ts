@@ -16,7 +16,30 @@ export type SnippetCategory =
   | "Date & Time"
   | "UUID"
   | "JSON"
-  | "Streaming";
+  | "Streaming"
+  | "Path"
+  | "Files"
+  | "SVG"
+  | "HTTP"
+  | "Markdown"
+  | "HTML"
+  | "Validation";
+
+/**
+ * Type declaration for one snippet input slot.
+ *
+ * `type` is a NodeTool type name the editor knows — see
+ * `config/data_types.ts` for the handle-colour registry and
+ * `components/node/PropertyInput.resolver.tsx` for the editor a type resolves
+ * to (`color` and `svg_element` live only in the latter).
+ */
+export interface SnippetInputDeclaration {
+  type: string;
+  default?: unknown;
+  description?: string;
+  min?: number;
+  max?: number;
+}
 
 export interface CodeSnippet {
   id: string;
@@ -25,6 +48,15 @@ export interface CodeSnippet {
   category: SnippetCategory;
   code: string;
   tags: string[];
+  /**
+   * Per-input types, keyed by the input name the code references. Optional:
+   * any input left undeclared falls back to the category default. Names that
+   * the code does not reference are ignored (an authoring error — the
+   * `codeSnippets` test pins that every declared name is inferred).
+   */
+  inputs?: Record<string, SnippetInputDeclaration>;
+  /** Per-output types, keyed by the key of the returned object literal. */
+  outputs?: Record<string, string>;
 }
 
 export const SNIPPET_CATEGORIES: SnippetCategory[] = [
@@ -38,6 +70,13 @@ export const SNIPPET_CATEGORIES: SnippetCategory[] = [
   "UUID",
   "JSON",
   "Streaming",
+  "Path",
+  "Files",
+  "SVG",
+  "HTTP",
+  "Markdown",
+  "HTML",
+  "Validation",
 ];
 
 export const CODE_SNIPPETS: CodeSnippet[] = [
@@ -523,6 +562,35 @@ return { output: groups };`,
     code: `return { output: list.reduce((acc, item) => acc + item, 0) };`,
     tags: ["reduce", "fold", "accumulate", "aggregate"],
   },
+  {
+    id: "list-repeat-each",
+    title: "Repeat Each Item",
+    description: "Repeat each list item consecutively N times: [A,B] x 2 → [A,A,B,B]",
+    category: "List",
+    code: `const times = 2;
+return { output: list.flatMap(item => Array(times).fill(item)) };`,
+    tags: ["repeat", "each", "duplicate", "interleave", "expand", "multiply"],
+  },
+  {
+    id: "list-repeat-value",
+    title: "Repeat Value",
+    description: "Duplicate a single value into a list N times",
+    category: "List",
+    code: `const times = 3;
+return { output: Array(times).fill(value) };`,
+    tags: ["repeat", "duplicate", "fill", "scalar", "constant", "expand"],
+  },
+  {
+    id: "list-tile",
+    title: "Tile List",
+    description: "Repeat an entire list end-to-end N times: [A,B] x 2 → [A,B,A,B]",
+    category: "List",
+    code: `const times = 3;
+const output = [];
+for (let t = 0; t < times; t++) output.push(...list);
+return { output };`,
+    tags: ["tile", "repeat", "cycle", "loop", "concatenate", "duplicate"],
+  },
 
   // ---------------------------------------------------------------------------
   // Dictionary
@@ -736,6 +804,61 @@ while (d <= e) {
 return { output: dates };`,
     tags: ["range", "sequence", "between", "generate"],
   },
+  {
+    id: "date-start-end",
+    title: "Start / End of Period",
+    description: "Start and end of the day, week, month, or year containing a date",
+    category: "Date & Time",
+    code: `// unit: "day" | "week" | "month" | "year" — the week starts on Sunday
+const unit = "week";
+const start = new Date(date);
+if (unit === "year") start.setMonth(0, 1);
+if (unit === "month") start.setDate(1);
+if (unit === "week") start.setDate(start.getDate() - start.getDay());
+start.setHours(0, 0, 0, 0);
+const next = new Date(start);
+if (unit === "year") next.setFullYear(next.getFullYear() + 1);
+else if (unit === "month") next.setMonth(next.getMonth() + 1);
+else next.setDate(next.getDate() + (unit === "week" ? 7 : 1));
+const end = new Date(next.getTime() - 1);
+return {
+  start_iso: start.toISOString(),
+  end_iso: end.toISOString(),
+  start,
+  end
+};`,
+    tags: ["start", "end", "period", "boundary", "day", "week", "month", "year"],
+  },
+  {
+    id: "date-constant",
+    title: "Make Date",
+    description: "Build a date object from year, month, and day numbers",
+    category: "Date & Time",
+    code: `// month is 1-12, day is 1-31
+return { output: { year, month, day } };`,
+    tags: ["date", "make", "create", "constant", "year", "month", "day"],
+  },
+  {
+    id: "date-constant-datetime",
+    title: "Make Date Time",
+    description: "Build a datetime object from year, month, day, hour, minute, and second",
+    category: "Date & Time",
+    code: `// utc_offset is in seconds and describes the wall-clock fields above
+return {
+  output: {
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    microsecond: 0,
+    tzinfo: "UTC",
+    utc_offset: 0
+  }
+};`,
+    tags: ["datetime", "make", "create", "constant", "hour", "minute", "second", "timezone"],
+  },
 
   // ---------------------------------------------------------------------------
   // UUID
@@ -874,34 +997,222 @@ return {};`,
   },
 
   // ---------------------------------------------------------------------------
-  // File / Workspace
+  // Files
   // ---------------------------------------------------------------------------
   {
     id: "file-read",
     title: "Read File",
     description: "Read a text file from the workspace",
-    category: "JSON",
+    category: "Files",
     code: `const content = await workspace.read(path);
 return { output: content };`,
     tags: ["file", "read", "workspace", "load", "text"],
+    inputs: { path: { type: "str", description: "Path relative to the workspace" } },
+    outputs: { output: "str" },
   },
   {
     id: "file-write",
     title: "Write File",
-    description: "Write text content to a workspace file",
-    category: "JSON",
+    description: "Write text content to a workspace file, creating parent directories",
+    category: "Files",
     code: `await workspace.write(path, content);
 return { output: path };`,
     tags: ["file", "write", "save", "workspace", "export"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-append",
+    title: "Append To File",
+    description: "Append text to a workspace file, creating it when missing",
+    category: "Files",
+    code: `const info = await workspace.stat(path);
+const existing = info.exists ? await workspace.read(path) : "";
+await workspace.write(path, existing + content);
+return { output: path };`,
+    tags: ["file", "append", "write", "log", "workspace"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str" },
+    },
+    outputs: { output: "str" },
   },
   {
     id: "file-list",
     title: "List Files",
-    description: "List files in a workspace directory",
-    category: "JSON",
+    description: "List the entry names of a workspace directory",
+    category: "Files",
     code: `const files = await workspace.list(path);
 return { output: files };`,
     tags: ["file", "list", "directory", "ls", "workspace"],
+    inputs: { path: { type: "str", default: "." } },
+    outputs: { output: "list" },
+  },
+  {
+    id: "file-list-match",
+    title: "Find Files",
+    description:
+      "Find files matching a wildcard pattern, optionally recursing; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `const pattern = "*"; // wildcard on the file name, e.g. *.txt
+const recursive = false;
+const rx = new RegExp(
+  "^" +
+    pattern
+      .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
+      .replace(/\\*/g, ".*")
+      .replace(/\\?/g, ".") +
+    "$",
+  "i"
+);
+const found = [];
+const scan = async (dir) => {
+  for (const name of await workspace.list(dir)) {
+    const full = dir.replace(/\\/+$/, "") + "/" + name;
+    const info = await workspace.stat(full);
+    if (info.isDirectory) {
+      if (recursive) await scan(full);
+    } else if (rx.test(name)) {
+      found.push(full);
+    }
+  }
+};
+await scan(folder);
+return { output: found, file: found[0] ?? "" };`,
+    tags: ["file", "find", "glob", "pattern", "recursive", "walk", "directory"],
+    inputs: {
+      folder: { type: "str", default: ".", description: "Directory to scan" },
+    },
+    outputs: { output: "list", file: "str" },
+  },
+  {
+    id: "file-read-binary",
+    title: "Read Binary File",
+    description: "Read a workspace file as a base64 string",
+    category: "Files",
+    code: `const bytes = await workspace.readBytes(path);
+return { output: toBase64(bytes) };`,
+    tags: ["file", "binary", "read", "base64", "bytes"],
+    inputs: { path: { type: "str", description: "Path relative to the workspace" } },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-write-binary",
+    title: "Write Binary File",
+    description: "Write base64 content to a workspace file as raw bytes",
+    category: "Files",
+    code: `await workspace.writeBytes(path, fromBase64(content));
+return { output: path };`,
+    tags: ["file", "binary", "write", "base64", "bytes", "save"],
+    inputs: {
+      path: { type: "str", description: "Path relative to the workspace" },
+      content: { type: "str", description: "Base64-encoded bytes" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-exists",
+    title: "File Exists",
+    description:
+      "Check whether a path exists; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `return { output: (await workspace.stat(path)).exists };`,
+    tags: ["file", "exists", "check", "missing", "branch"],
+    inputs: { path: { type: "str" } },
+    outputs: { output: "bool" },
+  },
+  {
+    id: "file-stat",
+    title: "File Info",
+    description:
+      "Size, kind and timestamps of a path in one call; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `const info = await workspace.stat(path);
+return {
+  exists: info.exists,
+  size: info.size,
+  is_file: info.isFile,
+  is_directory: info.isDirectory,
+  created: new Date(info.createdMs).toISOString(),
+  modified: new Date(info.modifiedMs).toISOString(),
+  accessed: new Date(info.accessedMs).toISOString()
+};`,
+    tags: [
+      "file",
+      "stat",
+      "size",
+      "metadata",
+      "is file",
+      "is directory",
+      "created",
+      "modified",
+      "accessed",
+      "time",
+    ],
+    inputs: { path: { type: "str" } },
+    outputs: {
+      exists: "bool",
+      size: "int",
+      is_file: "bool",
+      is_directory: "bool",
+      created: "str",
+      modified: "str",
+      accessed: "str",
+    },
+  },
+  {
+    id: "file-mkdir",
+    title: "Create Directory",
+    description:
+      "Create a directory and its parents; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.mkdir(path);
+return { output: path };`,
+    tags: ["directory", "folder", "create", "mkdir"],
+    inputs: { path: { type: "str" } },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-copy",
+    title: "Copy File",
+    description:
+      "Copy a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.copy(source, destination);
+return { output: destination };`,
+    tags: ["file", "copy", "duplicate", "backup"],
+    inputs: {
+      source: { type: "str" },
+      destination: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-move",
+    title: "Move File",
+    description:
+      "Move or rename a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
+    category: "Files",
+    code: `await workspace.move(source, destination);
+return { output: destination };`,
+    tags: ["file", "move", "rename", "archive", "organize"],
+    inputs: {
+      source: { type: "str" },
+      destination: { type: "str" },
+    },
+    outputs: { output: "str" },
+  },
+  {
+    id: "file-workspace-dir",
+    title: "Workspace Directory",
+    description: "Absolute path of the workspace root — the base for relative paths",
+    category: "Files",
+    code: `return { output: await workspace.root() };`,
+    tags: ["workspace", "directory", "root", "path", "base"],
+    outputs: { output: "str" },
   },
 
   // ---------------------------------------------------------------------------
@@ -1066,6 +1377,20 @@ return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
 return { output: result, equal: a === b };`,
     tags: ["compare", "sort", "order", "equal", "lexical"],
   },
+  {
+    id: "text-has-length",
+    title: "Check Length",
+    description: "Check text length against a minimum, maximum, or exact length",
+    category: "Text",
+    code: `// 0 means unset; an exact length wins over min/max
+const minLength = 3, maxLength = 10, exactLength = 0;
+const len = text.length;
+if (exactLength > 0) return { output: len === exactLength };
+if (minLength > 0 && len < minLength) return { output: false };
+if (maxLength > 0 && len > maxLength) return { output: false };
+return { output: true };`,
+    tags: ["length", "check", "compare", "validate", "min", "max", "exact", "size"],
+  },
 
   // ---------------------------------------------------------------------------
   // Regex (replaces text-extra regex nodes)
@@ -1166,7 +1491,1244 @@ return { output: current.length === 1 ? current[0] : current };`,
     tags: ["json", "jsonpath", "extract", "nested", "wildcard"],
   },
 
-  // Date & Time, HTML parsing, and validation snippets have been removed —
-  // the corresponding work is done by dedicated nodes (lib.datetime.*,
-  // lib.html.*, lib.validate.*) so the JS sandbox can stay library-free.
+  // ---------------------------------------------------------------------------
+  // Path
+  // ---------------------------------------------------------------------------
+  {
+    id: "path-basename",
+    title: "Basename / File Name",
+    description: "Get the file name from a path, with and without extension",
+    category: "Path",
+    code: `const p = String(path).replace(/\\/+$/, "");
+const base = p.slice(p.lastIndexOf("/") + 1);
+const dot = base.lastIndexOf(".");
+const ext = dot > 0 && base !== ".." ? base.slice(dot) : "";
+return { output: base, stem: ext ? base.slice(0, -ext.length) : base };`,
+    tags: [
+      "basename",
+      "filename",
+      "file name",
+      "name",
+      "path",
+      "stem",
+      "remove extension",
+    ],
+  },
+  {
+    id: "path-dirname",
+    title: "Dirname / Get Directory",
+    description: "Get the directory containing a path",
+    category: "Path",
+    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+const i = p.lastIndexOf("/");
+return { output: i < 0 ? "." : i === 0 ? "/" : p.slice(0, i) };`,
+    tags: [
+      "dirname",
+      "directory",
+      "folder",
+      "parent",
+      "get directory",
+      "path",
+    ],
+  },
+  {
+    id: "path-split",
+    title: "Split Path",
+    description: "Split a path into directory and file name",
+    category: "Path",
+    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+const i = p.lastIndexOf("/");
+return {
+  dirname: i < 0 ? "." : i === 0 ? "/" : p.slice(0, i),
+  basename: p.slice(i + 1)
+};`,
+    tags: ["split", "split path", "dirname", "basename", "path", "components"],
+  },
+  {
+    id: "path-split-extension",
+    title: "Split Extension",
+    description:
+      "Split a path into root and extension (dotfiles have no extension)",
+    category: "Path",
+    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+const base = p.slice(p.lastIndexOf("/") + 1);
+const dot = base.lastIndexOf(".");
+const extension = dot > 0 && base !== ".." ? base.slice(dot) : "";
+return { root: extension ? p.slice(0, -extension.length) : p, extension };`,
+    tags: [
+      "extension",
+      "file extension",
+      "splitext",
+      "split extension",
+      "suffix",
+      "path",
+      "split",
+    ],
+  },
+  {
+    id: "path-join",
+    title: "Join Paths",
+    description: "Join path components into one normalized path",
+    category: "Path",
+    code: `const joined = paths.map(String).filter(Boolean).join("/");
+const abs = joined.startsWith("/");
+const trail = joined.length > 1 && joined.endsWith("/");
+const out = [];
+for (const seg of joined.split("/")) {
+  if (!seg || seg === ".") continue;
+  if (seg === ".." && out.length && out[out.length - 1] !== "..") out.pop();
+  else if (seg !== ".." || !abs) out.push(seg);
+}
+let result = (abs ? "/" : "") + out.join("/");
+if (!result) result = ".";
+return { output: trail && !result.endsWith("/") ? result + "/" : result };`,
+    tags: ["join", "join paths", "combine", "concat", "path", "build path"],
+  },
+  {
+    id: "path-normalize",
+    title: "Normalize Path",
+    description: "Collapse redundant separators, '.' and '..' segments",
+    category: "Path",
+    code: `const p = String(path);
+const abs = p.startsWith("/");
+const trail = p.length > 1 && p.endsWith("/");
+const out = [];
+for (const seg of p.split("/")) {
+  if (!seg || seg === ".") continue;
+  if (seg === ".." && out.length && out[out.length - 1] !== "..") out.pop();
+  else if (seg !== ".." || !abs) out.push(seg);
+}
+let result = (abs ? "/" : "") + out.join("/");
+if (!result) result = ".";
+return { output: trail && !result.endsWith("/") ? result + "/" : result };`,
+    tags: ["normalize", "clean", "canonical", "path", "dot dot", "separators"],
+  },
+  {
+    id: "path-absolute",
+    title: "Absolute Path",
+    description: "Resolve a path against a base directory",
+    category: "Path",
+    code: `const base = "/workspace"; // directory relative paths resolve against
+const p = String(path);
+const joined = p.startsWith("/") ? p : base.replace(/\\/+$/, "") + "/" + p;
+const out = [];
+for (const seg of joined.split("/")) {
+  if (!seg || seg === ".") continue;
+  if (seg === ".." && out.length) out.pop();
+  else if (seg !== "..") out.push(seg);
+}
+return { output: "/" + out.join("/") };`,
+    tags: ["absolute", "absolute path", "resolve", "full path", "path"],
+  },
+  {
+    id: "path-relative",
+    title: "Relative Path",
+    description:
+      "Path from a start directory to a target (both anchored the same way)",
+    category: "Path",
+    code: `const segs = (s) => {
+  const out = [];
+  for (const seg of String(s).split("/")) {
+    if (!seg || seg === ".") continue;
+    if (seg === "..") out.pop();
+    else out.push(seg);
+  }
+  return out;
+};
+const from = segs(start_path);
+const to = segs(target_path);
+let i = 0;
+while (i < from.length && i < to.length && from[i] === to[i]) i++;
+const up = new Array(from.length - i).fill("..");
+return { output: [...up, ...to.slice(i)].join("/") };`,
+    tags: ["relative", "relative path", "relpath", "between", "path", "portable"],
+  },
+  {
+    id: "path-info",
+    title: "Path Info",
+    description: "All components of a path in one dictionary",
+    category: "Path",
+    code: `const base_dir = "/workspace"; // directory relative paths resolve against
+const p = String(path);
+const trimmed = p.replace(/(?!^)\\/+$/, "");
+const i = trimmed.lastIndexOf("/");
+const basename = trimmed.slice(i + 1);
+const dot = basename.lastIndexOf(".");
+const extension = dot > 0 && basename !== ".." ? basename.slice(dot) : "";
+const out = [];
+const joined = p.startsWith("/") ? p : base_dir.replace(/\\/+$/, "") + "/" + p;
+for (const seg of joined.split("/")) {
+  if (!seg || seg === ".") continue;
+  if (seg === ".." && out.length) out.pop();
+  else if (seg !== "..") out.push(seg);
+}
+return {
+  output: {
+    dirname: i < 0 ? "." : i === 0 ? "/" : trimmed.slice(0, i),
+    basename,
+    extension,
+    stem: extension ? basename.slice(0, -extension.length) : basename,
+    absolute: "/" + out.join("/"),
+    is_absolute: p.startsWith("/")
+  }
+};`,
+    tags: [
+      "path info",
+      "info",
+      "metadata",
+      "components",
+      "parse path",
+      "dirname",
+      "basename",
+      "extension",
+      "path",
+    ],
+  },
+  {
+    id: "path-to-string",
+    title: "Path To String",
+    description: "Get the raw string from a file path value",
+    category: "Path",
+    code: `return {
+  output: typeof file_path === "string" ? file_path : String(file_path?.path ?? "")
+};`,
+    tags: ["path to string", "string", "convert", "file path", "path", "raw"],
+  },
+  {
+    id: "path-match",
+    title: "File Name Match",
+    description: "Match a file name against a Unix wildcard pattern",
+    category: "Path",
+    code: `const case_sensitive = true; // set false to ignore case
+// Wildcards: * matches any run of characters, ? matches one
+const rx = new RegExp(
+  "^" +
+    String(pattern)
+      .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
+      .replace(/\\*/g, ".*")
+      .replace(/\\?/g, ".") +
+    "$",
+  case_sensitive ? "" : "i"
+);
+return { output: rx.test(String(filename)) };`,
+    tags: [
+      "match",
+      "file name match",
+      "pattern",
+      "wildcard",
+      "glob",
+      "fnmatch",
+      "path",
+    ],
+  },
+  {
+    id: "path-filter-names",
+    title: "Filter File Names",
+    description: "Keep the file names matching a Unix wildcard pattern",
+    category: "Path",
+    code: `const case_sensitive = true; // set false to ignore case
+// Wildcards: * matches any run of characters, ? matches one
+const rx = new RegExp(
+  "^" +
+    String(pattern)
+      .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
+      .replace(/\\*/g, ".*")
+      .replace(/\\?/g, ".") +
+    "$",
+  case_sensitive ? "" : "i"
+);
+return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
+    tags: [
+      "filter",
+      "filter file names",
+      "pattern",
+      "wildcard",
+      "glob",
+      "list",
+      "path",
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // SVG
+  // ---------------------------------------------------------------------------
+  // Each snippet returns an `svg_element` object — `{ name, attributes, children,
+  // content }` — the exact shape `lib.svg.Document` / `lib.svg.SVGToImage` accept
+  // in their `elements` list. Attribute values and text content are escaped by
+  // the document node when it serializes, so never pre-escape here.
+  {
+    id: "svg-rect",
+    title: "Rectangle",
+    description: "SVG rectangle element with position, size, and styling",
+    category: "SVG",
+    code: `return {
+  output: {
+    name: "rect",
+    attributes: {
+      x, y, width, height,
+      fill,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: ["rect", "rectangle", "square", "shape", "vector", "svg", "box"],
+    inputs: {
+      x: { type: "int", default: 0 },
+      y: { type: "int", default: 0 },
+      width: { type: "int", default: 100, min: 0 },
+      height: { type: "int", default: 100, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-circle",
+    title: "Circle",
+    description: "SVG circle element with center, radius, and styling",
+    category: "SVG",
+    code: `return {
+  output: {
+    name: "circle",
+    attributes: {
+      cx, cy,
+      r: radius,
+      fill,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: ["circle", "round", "dot", "shape", "vector", "svg"],
+    inputs: {
+      cx: { type: "int", default: 0 },
+      cy: { type: "int", default: 0 },
+      radius: { type: "int", default: 50, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-ellipse",
+    title: "Ellipse",
+    description: "SVG ellipse element with center, x/y radii, and styling",
+    category: "SVG",
+    code: `return {
+  output: {
+    name: "ellipse",
+    attributes: {
+      cx, cy, rx, ry,
+      fill,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: ["ellipse", "oval", "shape", "vector", "svg"],
+    inputs: {
+      cx: { type: "int", default: 0 },
+      cy: { type: "int", default: 0 },
+      rx: { type: "int", default: 50, min: 0 },
+      ry: { type: "int", default: 30, min: 0 },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-line",
+    title: "Line",
+    description: "SVG line element between two points",
+    category: "SVG",
+    code: `return {
+  output: {
+    name: "line",
+    attributes: {
+      x1, y1, x2, y2,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: ["line", "segment", "connector", "divider", "shape", "vector", "svg"],
+    inputs: {
+      x1: { type: "int", default: 0 },
+      y1: { type: "int", default: 0 },
+      x2: { type: "int", default: 100 },
+      y2: { type: "int", default: 100 },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-polygon",
+    title: "Polygon",
+    description: "SVG polygon element from a list of vertices",
+    category: "SVG",
+    code: `// points: "x1,y1 x2,y2 x3,y3 ..."
+return {
+  output: {
+    name: "polygon",
+    attributes: {
+      points,
+      fill,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: [
+      "polygon",
+      "triangle",
+      "star",
+      "points",
+      "shape",
+      "vector",
+      "svg",
+    ],
+    inputs: {
+      points: {
+        type: "str",
+        default: "",
+        description: 'Vertices as "x1,y1 x2,y2 x3,y3 …"',
+      },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-path",
+    title: "Path",
+    description: "SVG path element from path data commands",
+    category: "SVG",
+    code: `// path_data: the "d" attribute, e.g. "M10 10 C 20 20, 40 20, 50 10"
+return {
+  output: {
+    name: "path",
+    attributes: {
+      d: path_data,
+      fill,
+      stroke,
+      "stroke-width": stroke_width
+    }
+  }
+};`,
+    tags: ["path", "curve", "bezier", "d", "shape", "vector", "svg", "icon"],
+    inputs: {
+      path_data: {
+        type: "str",
+        default: "",
+        description: 'The "d" attribute, e.g. "M10 10 C 20 20, 40 20, 50 10"',
+      },
+      fill: { type: "color", default: "#000000" },
+      stroke: { type: "color", default: "#000000" },
+      stroke_width: { type: "float", default: 1, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-text",
+    title: "Text Element",
+    description: "SVG text element with font, size, color, and anchor",
+    category: "SVG",
+    code: `// text_anchor: start | middle | end. Content is escaped when the
+// document is serialized, so pass it through raw.
+return {
+  output: {
+    name: "text",
+    attributes: {
+      x, y,
+      "font-family": font_family,
+      "font-size": font_size,
+      fill,
+      "text-anchor": text_anchor
+    },
+    content: text
+  }
+};`,
+    tags: ["text", "label", "typography", "font", "caption", "vector", "svg"],
+    inputs: {
+      x: { type: "int", default: 0 },
+      y: { type: "int", default: 0 },
+      text: { type: "str", default: "" },
+      font_family: { type: "str", default: "sans-serif" },
+      font_size: { type: "int", default: 16, min: 1 },
+      fill: { type: "color", default: "#000000" },
+      text_anchor: {
+        type: "str",
+        default: "start",
+        description: "start | middle | end",
+      },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-gaussian-blur",
+    title: "Gaussian Blur Filter",
+    description: "SVG blur filter definition, referenced by filter=url(#id)",
+    category: "SVG",
+    code: `const id = "blur1"; // elements reference it as filter="url(#blur1)"
+return {
+  output: {
+    name: "filter",
+    attributes: { id },
+    children: [
+      { name: "feGaussianBlur", attributes: { stdDeviation: std_deviation } }
+    ]
+  }
+};`,
+    tags: ["blur", "gaussian", "filter", "effects", "soften", "svg", "vector"],
+    inputs: {
+      std_deviation: { type: "float", default: 3, min: 0 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-drop-shadow",
+    title: "Drop Shadow Filter",
+    description: "SVG drop shadow filter definition, referenced by filter=url(#id)",
+    category: "SVG",
+    code: `const id = "shadow1"; // elements reference it as filter="url(#shadow1)"
+return {
+  output: {
+    name: "filter",
+    attributes: { id },
+    children: [
+      {
+        name: "feGaussianBlur",
+        attributes: { in: "SourceAlpha", stdDeviation: std_deviation }
+      },
+      { name: "feOffset", attributes: { dx, dy } },
+      { name: "feFlood", attributes: { "flood-color": color } },
+      { name: "feComposite", attributes: { operator: "in", in2: "SourceAlpha" } },
+      {
+        name: "feMerge",
+        children: [
+          { name: "feMergeNode" },
+          { name: "feMergeNode", attributes: { in: "SourceGraphic" } }
+        ]
+      }
+    ]
+  }
+};`,
+    tags: [
+      "shadow",
+      "drop shadow",
+      "filter",
+      "effects",
+      "depth",
+      "elevation",
+      "svg",
+      "vector",
+    ],
+    inputs: {
+      std_deviation: { type: "float", default: 3, min: 0 },
+      dx: { type: "int", default: 2 },
+      dy: { type: "int", default: 2 },
+      color: { type: "color", default: "#000000" },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-gradient",
+    title: "Gradient",
+    description: "Linear or radial gradient definition, referenced by fill=url(#id)",
+    category: "SVG",
+    code: `const id = "grad1"; // elements reference it as fill="url(#grad1)"
+const radial = false; // true for a radial gradient
+return {
+  output: {
+    name: radial ? "radialGradient" : "linearGradient",
+    attributes: radial
+      ? { id, cx: x1 + "%", cy: y1 + "%", r: x2 + "%" }
+      : { id, x1: x1 + "%", y1: y1 + "%", x2: x2 + "%", y2: y2 + "%" },
+    children: [
+      {
+        name: "stop",
+        attributes: {
+          offset: "0%",
+          style: "stop-color:" + color1 + ";stop-opacity:1"
+        }
+      },
+      {
+        name: "stop",
+        attributes: {
+          offset: "100%",
+          style: "stop-color:" + color2 + ";stop-opacity:1"
+        }
+      }
+    ]
+  }
+};`,
+    tags: [
+      "gradient",
+      "linear",
+      "radial",
+      "color",
+      "fill",
+      "stops",
+      "svg",
+      "vector",
+    ],
+    inputs: {
+      x1: { type: "float", default: 0, min: 0, max: 100 },
+      y1: { type: "float", default: 0, min: 0, max: 100 },
+      x2: { type: "float", default: 100, min: 0, max: 100 },
+      y2: { type: "float", default: 0, min: 0, max: 100 },
+      color1: { type: "color", default: "#000000" },
+      color2: { type: "color", default: "#ffffff" },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-transform",
+    title: "Transform",
+    description: "Translate, rotate, and scale an SVG element",
+    category: "SVG",
+    code: `const parts = [];
+if (translate_x || translate_y) {
+  parts.push("translate(" + translate_x + "," + translate_y + ")");
+}
+if (rotate) parts.push("rotate(" + rotate + ")");
+if (scale_x !== 1 || scale_y !== 1) {
+  parts.push("scale(" + scale_x + "," + scale_y + ")");
+}
+const attributes = { ...content.attributes };
+if (parts.length) attributes.transform = parts.join(" ");
+return { output: { ...content, attributes } };`,
+    tags: [
+      "transform",
+      "translate",
+      "rotate",
+      "scale",
+      "move",
+      "svg",
+      "vector",
+    ],
+    inputs: {
+      content: { type: "svg_element" },
+      translate_x: { type: "float", default: 0 },
+      translate_y: { type: "float", default: 0 },
+      rotate: { type: "float", default: 0, min: -360, max: 360 },
+      scale_x: { type: "float", default: 1 },
+      scale_y: { type: "float", default: 1 },
+    },
+    outputs: { output: "svg_element" },
+  },
+  {
+    id: "svg-clip-path",
+    title: "Clip Path",
+    description: "Clip an SVG element with the shape of another element",
+    category: "SVG",
+    code: `const id = "clip1";
+return {
+  output: {
+    name: "g",
+    children: [
+      { name: "clipPath", attributes: { id }, children: [clip_content] },
+      {
+        ...content,
+        attributes: { ...content.attributes, "clip-path": "url(#" + id + ")" }
+      }
+    ]
+  }
+};`,
+    tags: ["clip", "clip path", "mask", "crop", "shape", "svg", "vector"],
+    inputs: {
+      content: { type: "svg_element" },
+      clip_content: {
+        type: "svg_element",
+        description: "Element whose shape clips `content`",
+      },
+    },
+    outputs: { output: "svg_element" },
+  },
+
+  // ---------------------------------------------------------------------------
+  // HTTP (replaces lib.http.* and lib.graphql.* nodes)
+  // ---------------------------------------------------------------------------
+  {
+    id: "http-get-text",
+    title: "GET Text",
+    description: "Fetch text content from a URL",
+    category: "HTTP",
+    code: `const res = await fetch(url, { headers: { ...headers } });
+return { output: await res.text(), status: res.status };`,
+    tags: ["http", "get", "text", "fetch", "request", "api", "url", "download"],
+  },
+  {
+    id: "http-get-json",
+    title: "GET JSON",
+    description: "Fetch and parse JSON from a URL",
+    category: "HTTP",
+    code: `const res = await fetch(url, { headers: { Accept: "application/json", ...headers } });
+if (res.json === undefined) throw new Error("Response is not JSON (status " + res.status + ")");
+return { output: res.json, status: res.status };`,
+    tags: ["http", "get", "json", "fetch", "request", "api", "rest", "parse"],
+  },
+  {
+    id: "http-get-bytes",
+    title: "GET Bytes",
+    description: "Download binary data from a URL as a Uint8Array",
+    category: "HTTP",
+    code: `const res = await fetch(url, { headers: { ...headers } });
+return { output: await res.bytes(), status: res.status };`,
+    tags: ["http", "get", "bytes", "binary", "download", "fetch", "request", "api"],
+  },
+  {
+    id: "http-post",
+    title: "POST JSON",
+    description: "Send a POST request with a JSON body",
+    category: "HTTP",
+    code: `const res = await fetch(url, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", ...headers },
+  body: JSON.stringify(body)
+});
+return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
+    tags: ["http", "post", "json", "send", "request", "api", "rest", "submit"],
+  },
+  {
+    id: "http-put",
+    title: "PUT JSON",
+    description: "Send a PUT request with a JSON body",
+    category: "HTTP",
+    code: `const res = await fetch(url, {
+  method: "PUT",
+  headers: { "Content-Type": "application/json", ...headers },
+  body: JSON.stringify(body)
+});
+return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
+    tags: ["http", "put", "update", "replace", "request", "api", "rest", "json"],
+  },
+  {
+    id: "http-patch",
+    title: "PATCH JSON",
+    description: "Send a PATCH request with a JSON body",
+    category: "HTTP",
+    code: `const res = await fetch(url, {
+  method: "PATCH",
+  headers: { "Content-Type": "application/json", ...headers },
+  body: JSON.stringify(body)
+});
+return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
+    tags: ["http", "patch", "update", "modify", "request", "api", "rest", "json"],
+  },
+  {
+    id: "http-delete",
+    title: "DELETE",
+    description: "Send a DELETE request and report whether it succeeded",
+    category: "HTTP",
+    code: `const res = await fetch(url, { method: "DELETE", headers: { ...headers } });
+return { output: res.ok, status: res.status };`,
+    tags: ["http", "delete", "remove", "destroy", "request", "api", "rest"],
+  },
+  {
+    id: "http-bearer-auth",
+    title: "Request with Bearer Token",
+    description: "Call an API with a bearer token read from the secret store",
+    category: "HTTP",
+    code: `// Rename the secret to whatever you stored under Settings -> Secrets
+const token = await getSecret("API_TOKEN");
+const res = await fetch(url, {
+  headers: { Accept: "application/json", Authorization: "Bearer " + token }
+});
+return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
+    tags: ["http", "auth", "bearer", "token", "secret", "api", "request", "header"],
+  },
+  {
+    id: "http-graphql-query",
+    title: "GraphQL Query",
+    description: "Run a GraphQL query or mutation against any endpoint",
+    category: "HTTP",
+    code: `// Add operationName here for multi-operation documents
+const res = await fetch(url, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+  body: JSON.stringify({ query, variables })
+});
+const json = res.json ?? {};
+return { data: json.data ?? null, errors: json.errors ?? [], status: res.status };`,
+    tags: ["graphql", "query", "mutation", "api", "post", "http", "request", "gql"],
+  },
+  {
+    id: "http-graphql-auth",
+    title: "GraphQL Query with Auth",
+    description: "Run a GraphQL query with a bearer token from the secret store",
+    category: "HTTP",
+    code: `const reqHeaders = { "Content-Type": "application/json", Accept: "application/json" };
+const token = await getSecret("GRAPHQL_AUTH_TOKEN");
+if (token) reqHeaders.Authorization = "Bearer " + token;
+const res = await fetch(url, {
+  method: "POST",
+  headers: reqHeaders,
+  body: JSON.stringify({ query, variables })
+});
+const json = res.json ?? {};
+return { data: json.data ?? null, errors: json.errors ?? [], status: res.status };`,
+    tags: ["graphql", "query", "mutation", "api", "auth", "bearer", "token", "secret", "http"],
+  },
+  {
+    id: "http-graphql-batch",
+    title: "GraphQL Batch Query",
+    description: "Send several GraphQL operations in one batched request",
+    category: "HTTP",
+    code: `// queries: [{ query, variables?, operationName? }, ...]
+const res = await fetch(url, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+  body: JSON.stringify(queries)
+});
+const json = res.json ?? [];
+return { output: Array.isArray(json) ? json : [json], status: res.status };`,
+    tags: ["graphql", "batch", "bulk", "query", "mutation", "api", "http", "multiple"],
+  },
+  {
+    id: "http-graphql-introspection",
+    title: "GraphQL Introspection",
+    description: "Fetch a GraphQL endpoint's schema via an introspection query",
+    category: "HTTP",
+    code: `const query = "{ __schema { queryType { name } mutationType { name } subscriptionType { name } " +
+  "types { name kind fields { name type { name kind ofType { name kind } } } } } }";
+const res = await fetch(url, {
+  method: "POST",
+  headers: { "Content-Type": "application/json", Accept: "application/json" },
+  body: JSON.stringify({ query })
+});
+const schema = res.json?.data?.__schema ?? null;
+return { output: res.json ?? {}, types: schema ? schema.types.map(t => t.name) : [] };`,
+    tags: ["graphql", "introspection", "schema", "types", "api", "http", "discover"],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Markdown
+  // ---------------------------------------------------------------------------
+  {
+    id: "md-extract-headers",
+    title: "Extract Headers",
+    description: "Extract markdown headers as an outline (level, text, index)",
+    category: "Markdown",
+    code: `const maxLevel = 6; // deepest header level to keep (1-6)
+const headers = [];
+for (const line of String(markdown).split("\\n")) {
+  const m = line.match(/^(#{1,6})\\s+(.+)$/);
+  if (m && m[1].length <= maxLevel) {
+    headers.push({ level: m[1].length, text: m[2].trim(), index: headers.length });
+  }
+}
+return { output: headers };`,
+    tags: [
+      "markdown",
+      "headers",
+      "heading",
+      "outline",
+      "structure",
+      "table of contents",
+      "toc",
+      "extract",
+    ],
+  },
+  {
+    id: "md-extract-links",
+    title: "Extract Links",
+    description: "Extract inline links and autolinks from markdown",
+    category: "Markdown",
+    code: `const includeTitles = true; // keep the [text] part as the link title
+const links = [];
+// Autolinks need a scheme so inline HTML like <div> is not read as a link.
+const pattern = /\\[([^\\]]+)\\]\\(([^)]+)\\)|<([a-zA-Z][a-zA-Z0-9+.-]*:[^>\\s]+)>/g;
+for (const m of String(markdown).matchAll(pattern)) {
+  if (m[1] && m[2]) links.push({ url: m[2], title: includeTitles ? m[1] : "" });
+  else if (m[3]) links.push({ url: m[3], title: "" });
+}
+return { output: links };`,
+    tags: [
+      "markdown",
+      "links",
+      "urls",
+      "references",
+      "citations",
+      "extract",
+    ],
+  },
+  {
+    id: "md-extract-code-blocks",
+    title: "Extract Code Blocks",
+    description: "Extract fenced code blocks and their languages from markdown",
+    category: "Markdown",
+    code: `const blocks = [];
+for (const m of String(markdown).matchAll(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g)) {
+  blocks.push({ language: m[1] || "text", code: m[2].trim() });
+}
+return { output: blocks };`,
+    tags: [
+      "markdown",
+      "code blocks",
+      "code",
+      "fenced",
+      "language",
+      "snippets",
+      "extract",
+    ],
+  },
+  {
+    id: "md-extract-bullet-lists",
+    title: "Extract Bullet Lists",
+    description: "Extract unordered lists from markdown, grouped per list",
+    category: "Markdown",
+    code: `const lists = [];
+let current = [];
+for (const line of String(markdown).split("\\n")) {
+  const m = line.match(/^\\s*[-*+]\\s+(.+)$/);
+  if (m) current.push({ text: m[1].trim() });
+  else if (current.length) { lists.push(current); current = []; }
+}
+if (current.length) lists.push(current);
+return { output: lists };`,
+    tags: [
+      "markdown",
+      "lists",
+      "bullets",
+      "bullet lists",
+      "unordered",
+      "items",
+      "extract",
+    ],
+  },
+  {
+    id: "md-extract-numbered-lists",
+    title: "Extract Numbered Lists",
+    description: "Extract ordered lists from markdown, grouped per list",
+    category: "Markdown",
+    code: `const lists = [];
+let current = [];
+for (const line of String(markdown).split("\\n")) {
+  const m = line.match(/^\\s*\\d+\\.\\s+(.+)$/);
+  if (m) current.push(m[1].trim());
+  else if (current.length) { lists.push(current); current = []; }
+}
+if (current.length) lists.push(current);
+return { output: lists };`,
+    tags: [
+      "markdown",
+      "lists",
+      "numbered",
+      "ordered",
+      "enumerated",
+      "steps",
+      "extract",
+    ],
+  },
+  {
+    id: "md-extract-tables",
+    title: "Extract Table",
+    description: "Convert the first markdown table into dataframe rows",
+    category: "Markdown",
+    code: `const table = [];
+for (const line of String(markdown).split("\\n")) {
+  if (line.includes("|")) {
+    table.push(line.split("|").slice(1, -1).map(c => c.trim()));
+  } else if (table.length) break;
+}
+if (table.length < 2) return { output: { rows: [] } };
+const headers = table[0];
+// Skip row 2 only when it really is the |---|---| separator.
+const body = table.slice(table[1].every(c => /^:?-+:?$/.test(c)) ? 2 : 1);
+const rows = body.map(r =>
+  Object.fromEntries(headers.map((h, i) => [h, r[i] ?? ""]))
+);
+return { output: { rows } };`,
+    tags: [
+      "markdown",
+      "tables",
+      "table",
+      "dataframe",
+      "rows",
+      "tabular",
+      "data",
+      "extract",
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // HTML
+  // ---------------------------------------------------------------------------
+  {
+    id: "html-base-url",
+    title: "Base URL",
+    description: "Extract scheme + host (the site root) from a full URL",
+    category: "HTML",
+    code: `const parsed = new URL(url);
+return { output: parsed.protocol + "//" + parsed.host };`,
+    tags: [
+      "base url",
+      "url",
+      "domain",
+      "host",
+      "origin",
+      "root",
+      "parse",
+      "web",
+    ],
+  },
+  {
+    id: "html-extract-links",
+    title: "Extract Links",
+    description:
+      "Extract every <a href> with its text, classified internal or external",
+    category: "HTML",
+    code: `const baseUrl = ""; // page URL — decides internal vs external
+const hrefs = await data.selectHtml(html, "a[href]", { attr: "href", limit: 1000 });
+const texts = await data.selectHtml(html, "a[href]", { limit: 1000 });
+const isInternal = (href) => {
+  if (!href || href.startsWith("#")) return true;
+  if (/^(mailto|tel|javascript):/i.test(href)) return false;
+  if (baseUrl) {
+    try {
+      return new URL(href, baseUrl).origin === new URL(baseUrl).origin;
+    } catch {
+      // Unparseable href/base — fall through to the scheme heuristic.
+    }
+  }
+  return !/^[a-z][a-z0-9+.-]*:|^\\/\\//i.test(href);
+};
+const links = hrefs.map((href, i) => ({
+  href,
+  text: texts[i] ?? "",
+  type: isInternal(href) ? "internal" : "external"
+}));
+return { links, href: links[0]?.href ?? "", text: links[0]?.text ?? "" };`,
+    tags: [
+      "html",
+      "links",
+      "urls",
+      "anchor",
+      "href",
+      "internal",
+      "external",
+      "web scraping",
+      "extract",
+    ],
+  },
+  {
+    id: "html-extract-images",
+    title: "Extract Images",
+    description: "Collect every <img src> from HTML, resolved against a base URL",
+    category: "HTML",
+    code: `const baseUrl = ""; // page URL — resolves relative src values
+const srcs = await data.selectHtml(html, "img[src]", { attr: "src", limit: 1000 });
+const resolve = (s) => {
+  try { return new URL(s, baseUrl || undefined).href; } catch { return s; }
+};
+const images = srcs.map(s => ({ uri: resolve(s), type: "image" }));
+return { images, image: images[0] ?? { uri: "", type: "image" } };`,
+    tags: [
+      "html",
+      "images",
+      "img",
+      "src",
+      "pictures",
+      "gallery",
+      "web scraping",
+      "extract",
+    ],
+  },
+  {
+    id: "html-extract-audio",
+    title: "Extract Audio",
+    description: "Collect <audio> and <audio><source> sources from HTML",
+    category: "HTML",
+    code: `const baseUrl = ""; // page URL — resolves relative src values
+const srcs = await data.selectHtml(html, "audio[src], audio source[src]", {
+  attr: "src",
+  limit: 1000
+});
+const resolve = (s) => {
+  try { return new URL(s, baseUrl || undefined).href; } catch { return s; }
+};
+const audios = srcs.map(s => ({ uri: resolve(s), type: "audio" }));
+return { audios, audio: audios[0] ?? { uri: "", type: "audio" } };`,
+    tags: [
+      "html",
+      "audio",
+      "sound",
+      "src",
+      "media",
+      "playlist",
+      "web scraping",
+      "extract",
+    ],
+  },
+  {
+    id: "html-extract-videos",
+    title: "Extract Videos",
+    description: "Collect <video>, <video><source> and <iframe> sources from HTML",
+    category: "HTML",
+    code: `const baseUrl = ""; // page URL — resolves relative src values
+const srcs = await data.selectHtml(
+  html,
+  "video[src], video source[src], iframe[src]",
+  { attr: "src", limit: 1000 }
+);
+const resolve = (s) => {
+  try { return new URL(s, baseUrl || undefined).href; } catch { return s; }
+};
+const videos = srcs.map(s => ({ uri: resolve(s), type: "video" }));
+return { videos, video: videos[0] ?? { uri: "", type: "video" } };`,
+    tags: [
+      "html",
+      "videos",
+      "video",
+      "iframe",
+      "embed",
+      "media",
+      "src",
+      "web scraping",
+      "extract",
+    ],
+  },
+  {
+    id: "html-extract-metadata",
+    title: "Extract Metadata",
+    description: "Read the page title and the description / keywords meta tags",
+    category: "HTML",
+    code: `const first = async (selector, attr) =>
+  (await data.selectHtml(html, selector, attr ? { attr, limit: 1 } : { limit: 1 }))[0] ?? null;
+return {
+  title: (await first("title")) || null,
+  description: await first('meta[name="description"]', "content"),
+  keywords: await first('meta[name="keywords"]', "content")
+};`,
+    tags: [
+      "html",
+      "metadata",
+      "meta",
+      "seo",
+      "title",
+      "description",
+      "keywords",
+      "page info",
+      "extract",
+    ],
+  },
+
+  // ---------------------------------------------------------------------------
+  // Validation (replaces the lib.validate nodes)
+  // ---------------------------------------------------------------------------
+  {
+    id: "validate-email",
+    title: "Validate Email",
+    description: "Check whether a value is a syntactically valid email address",
+    category: "Validation",
+    code: `return { output: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(String(value).trim()) };`,
+    tags: ["validate", "email", "check", "address", "valid"],
+  },
+  {
+    id: "validate-url",
+    title: "Validate URL",
+    description: "Check whether a value is a syntactically valid absolute URL",
+    category: "Validation",
+    code: `let ok = false;
+try {
+  const u = new URL(value);
+  ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) && u.host.length > 0;
+} catch (e) {
+  ok = false;
+}
+return { output: ok };`,
+    tags: ["validate", "url", "link", "check", "http", "uri"],
+  },
+  {
+    id: "validate-ip",
+    title: "Validate IP Address",
+    description: "Check whether a value is a valid IPv4 or IPv6 address",
+    category: "Validation",
+    code: `const v = String(value);
+const SEG = /^(25[0-5]|2[0-4]\\d|1\\d\\d|\\d{1,2})$/;
+const isIPv4 = (s) => {
+  const parts = s.split(".");
+  return parts.length === 4 && parts.every((p) => SEG.test(p));
+};
+const isIPv6 = (s) => {
+  if (s.indexOf(":") === -1) return false;
+  let t = s;
+  const m = /^(.*:)(\\d{1,3}(?:\\.\\d{1,3}){3})$/.exec(t);
+  if (m) {
+    if (!isIPv4(m[2])) return false;
+    t = m[1] + "0:0";
+  }
+  const isGroup = (p) => /^[0-9a-fA-F]{1,4}$/.test(p);
+  const halves = t.split("::");
+  if (halves.length > 2) return false;
+  if (halves.length === 2) {
+    const left = halves[0] === "" ? [] : halves[0].split(":");
+    const right = halves[1] === "" ? [] : halves[1].split(":");
+    return [...left, ...right].every(isGroup) && left.length + right.length <= 7;
+  }
+  const parts = t.split(":");
+  return parts.length === 8 && parts.every(isGroup);
+};
+const v4 = isIPv4(v), v6 = isIPv6(v);
+return { is_ip: v4 || v6, is_ipv4: v4, is_ipv6: v6 };`,
+    tags: ["validate", "ip", "ipv4", "ipv6", "address", "network", "check"],
+  },
+  {
+    id: "validate-string",
+    title: "Validate String",
+    description: "Run common string checks at once and return one bool per check",
+    category: "Validation",
+    code: `const v = String(value);
+let isUrl = false;
+try {
+  isUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v) && new URL(v).host.length > 0;
+} catch (e) {
+  isUrl = false;
+}
+let isJson = true;
+try {
+  JSON.parse(v);
+} catch (e) {
+  isJson = false;
+}
+return {
+  is_email: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(v.trim()),
+  is_url: isUrl,
+  is_uuid: /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v),
+  is_json: isJson,
+  is_numeric: v.trim() !== "" && !Number.isNaN(Number(v)),
+  is_alpha: /^[A-Za-z]+$/.test(v),
+  is_alphanumeric: /^[A-Za-z0-9]+$/.test(v)
+};`,
+    tags: ["validate", "check", "string", "email", "url", "uuid", "json", "numeric", "alpha", "alphanumeric"],
+  },
+  {
+    id: "validate-sanitize",
+    title: "Sanitize String",
+    description: "HTML-escape and trim a string, plus the normalized email when applicable",
+    category: "Validation",
+    code: `const v = String(value);
+const trimmed = v.trim();
+const lowered = trimmed.toLowerCase();
+const isEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(lowered);
+return {
+  escaped: v
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#x27;")
+    .replace(/\\//g, "&#x2F;"),
+  trimmed,
+  normalized_email: isEmail ? lowered : ""
+};`,
+    tags: ["sanitize", "escape", "html", "xss", "clean", "trim", "normalize", "email"],
+  },
 ];

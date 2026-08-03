@@ -8,8 +8,13 @@
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { listRegisteredProviderIds } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
+import {
+  validateTimelineSequence,
+  type TimelineValidation
+} from "@nodetool-ai/execution/timeline-debug";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
@@ -592,10 +597,31 @@ export class CreateWorkflowTool extends Tool {
   }
 }
 
+/**
+ * Escalated run payloads name the follow-up tool, so the model driving the
+ * loop knows how to answer without reading endpoint docs.
+ */
+function annotateEscalatedRun(run: unknown): unknown {
+  if (!run || typeof run !== "object") return run;
+  const record = run as Record<string, unknown>;
+  if (record["status"] !== "escalated") return run;
+  return {
+    ...record,
+    next_tool:
+      "A node invocation failed and the run is parked awaiting your verdict. " +
+      "Call resolve_workflow_escalation with this session_id and " +
+      "escalation_id and one of the escalation's allowedActions."
+  };
+}
+
 export class RunWorkflowTool extends Tool {
   readonly name = "run_workflow";
   readonly description =
-    "Execute a workflow with given parameters and return results.";
+    "Execute a workflow with given parameters and return results. With " +
+    "interactive=true a failing node invocation pauses the run and returns " +
+    "an escalation (status \"escalated\") for you to answer via " +
+    "resolve_workflow_escalation — retry, substitute, skip, or fail — " +
+    "instead of the whole run failing outright.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -606,6 +632,12 @@ export class RunWorkflowTool extends Tool {
       params: {
         type: "object" as const,
         description: "Dictionary of input parameters for the workflow"
+      },
+      interactive: {
+        type: "boolean" as const,
+        description:
+          "Bubble node failures up as escalations you answer, instead of " +
+          "failing the run (default false)"
       }
     },
     required: ["workflow_id"]
@@ -615,9 +647,15 @@ export class RunWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, `/api/workflows/${params["workflow_id"]}/run`, {
-      params: params["params"] ?? {}
-    });
+    const run = await apiPost(
+      context,
+      `/api/workflows/${params["workflow_id"]}/run`,
+      {
+        params: params["params"] ?? {},
+        ...(params["interactive"] === true ? { interactive: true } : {})
+      }
+    );
+    return annotateEscalatedRun(run);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -653,7 +691,10 @@ export class DebugWorkflowTool extends Tool {
     "Run a workflow end-to-end and return a consolidated debug report: a " +
     "pass/fail verdict with the issues behind it, per-node status and errors, " +
     "logs, LLM calls, outputs, job record, and the workflow graph overview. " +
-    "Use this to troubleshoot a failing or misbehaving workflow and iterate.";
+    "Use this to troubleshoot a failing or misbehaving workflow and iterate. " +
+    "With interactive=true a failing node invocation pauses the run and " +
+    "returns an escalation (status \"escalated\") for you to answer via " +
+    "resolve_workflow_escalation before the report is produced.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -664,6 +705,12 @@ export class DebugWorkflowTool extends Tool {
       params: {
         type: "object" as const,
         description: "Input parameters keyed by input-node name"
+      },
+      interactive: {
+        type: "boolean" as const,
+        description:
+          "Bubble node failures up as escalations you answer mid-run, " +
+          "instead of only reading them post-mortem (default false)"
       },
       include_graph: {
         type: "boolean" as const,
@@ -697,7 +744,10 @@ export class DebugWorkflowTool extends Tool {
     const debugRun = await apiPostWithStatus(
       context,
       `/api/workflows/${workflowId}/debug`,
-      { params: params["params"] ?? {} }
+      {
+        params: params["params"] ?? {},
+        ...(params["interactive"] === true ? { interactive: true } : {})
+      }
     );
     const endpointMissing =
       !debugRun.ok && (debugRun.status === 404 || debugRun.status === 405);
@@ -706,6 +756,17 @@ export class DebugWorkflowTool extends Tool {
       run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
         params: params["params"] ?? {}
       });
+    }
+
+    // An escalated run has produced no report yet — the job is parked on the
+    // failing node. Hand the escalation back for a verdict; the final report
+    // arrives from resolve_workflow_escalation once the run settles.
+    if (
+      run &&
+      typeof run === "object" &&
+      (run as Record<string, unknown>)["status"] === "escalated"
+    ) {
+      return { workflow_id: workflowId, run: annotateEscalatedRun(run) };
     }
 
     const report: Record<string, unknown> = { workflow_id: workflowId, run };
@@ -729,6 +790,243 @@ export class DebugWorkflowTool extends Tool {
 
   userMessage(params: Record<string, unknown>): string {
     return `Debugging workflow ${params["workflow_id"]}`;
+  }
+}
+
+export class ResolveWorkflowEscalationTool extends Tool {
+  readonly name = "resolve_workflow_escalation";
+  readonly description =
+    "Answer an escalation raised by an interactive run_workflow/debug_workflow " +
+    "run. The run is parked on the failing node until you decide: retry the " +
+    "invocation, substitute repaired outputs (only when the escalation carries " +
+    "a candidateOutput), skip the invocation, end the stream (streaming nodes), " +
+    "or fail the node. Only the escalation's allowedActions are accepted; the " +
+    "kernel enforces the same set. Returns the next escalation (answer it the " +
+    "same way) or the run's final report.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      session_id: {
+        type: "string" as const,
+        description: "The debug session id from the escalated response"
+      },
+      escalation_id: {
+        type: "string" as const,
+        description: "The escalation id being answered"
+      },
+      action: {
+        type: "string" as const,
+        enum: ["retry", "substitute", "skip", "end_stream", "fail"],
+        description: "The verdict — must be one of the escalation's allowedActions"
+      },
+      outputs: {
+        type: "object" as const,
+        description:
+          "For substitute: repaired output values keyed by the node's " +
+          "declared output slots"
+      },
+      reason: {
+        type: "string" as const,
+        description:
+          "For fail: a one-sentence reason surfaced as the run's error summary"
+      },
+      apply_to: {
+        type: "string" as const,
+        enum: ["invocation", "signature"],
+        description:
+          "For skip/fail: \"signature\" also resolves later failures with the " +
+          "same failureSignature without asking again (default \"invocation\")"
+      }
+    },
+    required: ["session_id", "escalation_id", "action"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const action = String(params["action"]);
+    const verdict: Record<string, unknown> = { action };
+    if (action === "substitute" && params["outputs"] !== undefined) {
+      verdict["outputs"] = params["outputs"];
+    }
+    if (action === "fail" && typeof params["reason"] === "string") {
+      verdict["reason"] = params["reason"];
+    }
+    if (
+      (action === "skip" || action === "fail") &&
+      typeof params["apply_to"] === "string"
+    ) {
+      verdict["applyTo"] = params["apply_to"];
+    }
+    const result = await apiPost(
+      context,
+      `/api/debug/sessions/${params["session_id"]}/verdict`,
+      { escalation_id: params["escalation_id"], verdict }
+    );
+    return annotateEscalatedRun(result);
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return `Resolving workflow escalation with "${params["action"]}"`;
+  }
+}
+
+export class BuildAppTool extends Tool {
+  readonly name = "build_app";
+  readonly description =
+    "Build a mini app from one sentence of intent and return the build " +
+    "report: the pinned spec, what each stage did, the issues repair rounds " +
+    "fixed, the simulated run of every interaction, a pass/fail verdict, and " +
+    "— only behind a passing verdict — the ApplicationBundle. The bundle is " +
+    "offered, not installed: show the user the verdict and install it with " +
+    "POST /api/applications/import-bundle once they agree. A build takes " +
+    "minutes; pass poll=true to get a session id back immediately, then read " +
+    "GET /api/debug/sessions/<id> until it settles or cancel it with POST " +
+    "/api/debug/sessions/<id>/cancel.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      prompt: {
+        type: "string" as const,
+        description: "What the app should do, in the user's own terms"
+      },
+      spec: {
+        type: "object" as const,
+        description:
+          "A pinned BuildSpec to build instead of writing one from the prompt"
+      },
+      provider: {
+        type: "string" as const,
+        description: "Provider id for the build's own model calls"
+      },
+      model: {
+        type: "string" as const,
+        description: "Model id the build authors with"
+      },
+      workflow_ids: {
+        type: "array" as const,
+        items: { type: "string" as const },
+        description:
+          "Existing workflow ids to pin, in the spec's operation order — " +
+          "these are bound instead of planned"
+      },
+      max_repairs: {
+        type: "number" as const,
+        description: "Repair rounds allowed after the first pass (default 3)"
+      },
+      cost_cap_usd: {
+        type: "number" as const,
+        description: "Ceiling on what the build may spend (default 2)"
+      },
+      timeout_ms: {
+        type: "number" as const,
+        description: "Wall clock for the whole build (default 600000)"
+      },
+      poll: {
+        type: "boolean" as const,
+        description:
+          "Return a session id as soon as the build starts instead of " +
+          "waiting for it (default false)"
+      }
+    },
+    required: []
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    return apiPost(context, "/api/applications/build", params);
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const prompt = params["prompt"];
+    return typeof prompt === "string" && prompt.trim()
+      ? `Building an app: ${prompt}`
+      : "Building an app from the given spec";
+  }
+}
+
+export class DebugAppTool extends Tool {
+  readonly name = "debug_app";
+  readonly description =
+    "Debug a mini APP (not a workflow): validate every widget binding, " +
+    "simulate the app the way the web runtime does, execute its operations " +
+    "on the kernel, and return each widget's final state plus a pass/fail " +
+    "verdict with the issues behind it. Pass `application_id` for a saved " +
+    "app or `document` for an unsaved one — exactly one of them. With " +
+    "run=false this is a static wiring check that runs in milliseconds and " +
+    "costs nothing; use it after every wiring change. A full run executes " +
+    "the real workflows and spends real money, so run it to confirm the app " +
+    "works, not to explore. Use `interact` to script the user actions to " +
+    "simulate. A long run takes minutes; pass poll=true to get a session id " +
+    "back immediately, then read GET /api/debug/sessions/<id> until it " +
+    "settles.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      application_id: {
+        type: "string" as const,
+        description:
+          "The ID of a saved application to debug. Give this or `document`, not both."
+      },
+      document: {
+        type: "object" as const,
+        description:
+          "An application document to debug inline, for an app that is not " +
+          "saved (or whose draft differs from the saved row). Give this or " +
+          "`application_id`, not both."
+      },
+      params: {
+        type: "object" as const,
+        description: "Input values keyed by input name, seeded before the run"
+      },
+      interact: {
+        type: "array" as const,
+        items: { type: "object" as const },
+        description:
+          "User actions to simulate, in order. Each step is one of " +
+          "{set: {key, value, operationId?}}, {click: <widget>}, " +
+          "{change: {…}}, {run: <operationId>}, {cancel: <operationId>}, " +
+          "{seedResource: {id, items}}. Widgets are named by component id, " +
+          "by a type only one widget has, or by a unique label. Omit this " +
+          "to click the app's natural run trigger."
+      },
+      run: {
+        type: "boolean" as const,
+        description:
+          "Execute the app's operations (default true). false checks the " +
+          "wiring only — free and instant."
+      },
+      timeout_ms: {
+        type: "number" as const,
+        description: "Wall clock for the whole debug run"
+      },
+      poll: {
+        type: "boolean" as const,
+        description:
+          "Return a session id as soon as the run starts instead of waiting " +
+          "for it (default false)"
+      }
+    },
+    required: []
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    return apiPost(context, "/api/applications/debug", params);
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const target = params["application_id"];
+    const label =
+      typeof target === "string" && target.trim() ? ` ${target}` : " draft";
+    return params["run"] === false
+      ? `Checking app${label} wiring`
+      : `Debugging app${label}`;
   }
 }
 
@@ -759,7 +1057,19 @@ export class ValidateWorkflowTool extends Tool {
   // When a registry is available the tool validates locally; without one it
   // falls back to fetching the workflow so the tool still returns something
   // useful in registry-free contexts (e.g. the multi-task planner).
-  constructor(private readonly registry?: NodeRegistry) {
+  /**
+   * `listProviderIds` is supplied here rather than living on NodeRegistry: the
+   * registry also runs in the browser, which has no provider registry to reach.
+   * Without it `validateGraph` skips the `unknown_provider` check entirely, so
+   * a model naming a provider the runtime cannot construct passed silently on
+   * the agent surface. This tool always runs server-side, so the runtime's
+   * registry is the right default.
+   */
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly listProviderIds: () => readonly string[] = () =>
+      listRegisteredProviderIds()
+  ) {
     super();
   }
 
@@ -787,6 +1097,15 @@ export class ValidateWorkflowTool extends Tool {
       };
     }
 
+    // `edges` reaches `.map()` inside validateGraph — a non-array would throw a
+    // raw TypeError past the tool's structured error shape.
+    if (graph.edges !== undefined && !Array.isArray(graph.edges)) {
+      return {
+        error:
+          "`graph.edges` must be an array of edges ({source, sourceHandle, target, targetHandle})."
+      };
+    }
+
     if (!this.registry) {
       // Returning the graph with a note read as a pass to every caller that
       // checks for issues rather than for prose. A validator with no registry
@@ -798,9 +1117,16 @@ export class ValidateWorkflowTool extends Tool {
       };
     }
 
+    const registry = this.registry;
     return validateGraph(
       { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
-      this.registry
+      {
+        has: (type) => registry.has(type),
+        getMetadata: (type) => registry.getMetadata(type),
+        validateNode: (descriptor, connectedHandles) =>
+          registry.validateNode(descriptor, connectedHandles),
+        listProviderIds: () => this.listProviderIds()
+      }
     );
   }
 
@@ -808,6 +1134,158 @@ export class ValidateWorkflowTool extends Tool {
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
+  }
+}
+
+/** What a host must hand back for a saved timeline row. */
+export interface TimelineToolRecord {
+  /** The stored document — a JSON string or an already-parsed object. */
+  document: unknown;
+  fps?: number;
+  width?: number;
+  height?: number;
+  name?: string;
+}
+
+/** Reads a `timeline_sequences` row for the caller. */
+export type TimelineLoader = (
+  context: ProcessingContext,
+  id: string
+) => Promise<TimelineToolRecord | null>;
+
+/** A positive finite number from a tool param, or undefined. */
+function numberParam(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
+}
+
+/** Unwrap a stored document that may still be JSON text. */
+function parseTimelineDocument(document: unknown): unknown {
+  if (typeof document !== "string") return document;
+  try {
+    return JSON.parse(document);
+  } catch {
+    return undefined;
+  }
+}
+
+function timelineSummary(validation: TimelineValidation): string {
+  const errors = validation.errors.length;
+  const warnings = validation.warnings.length;
+  if (errors === 0 && warnings === 0) return "No issues found.";
+  const parts: string[] = [];
+  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
+  if (warnings > 0)
+    parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
+  return parts.join(", ");
+}
+
+export class ValidateTimelineTool extends Tool {
+  readonly name = "validate_timeline";
+  readonly description =
+    "Statically validate a timeline sequence WITHOUT rendering or playing it: " +
+    "clips on tracks the document lacks, duplicate ids, overlapping clips, " +
+    "fades and transitions longer than the clip, in/out points that cannot " +
+    "render, unknown animation presets, incomplete bindings, and fields a " +
+    "schema round trip would strip. Pass an inline `document` to check one you " +
+    "are building, or `timeline_id` to validate a saved sequence. Run it after " +
+    "timeline edits and before rendering.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      timeline_id: {
+        type: "string" as const,
+        description: "The ID of a saved timeline sequence to validate"
+      },
+      document: {
+        type: "object" as const,
+        description:
+          "Inline TimelineDocument to validate ({ tracks, clips, markers }). " +
+          "Takes precedence over timeline_id."
+      },
+      fps: {
+        type: "number" as const,
+        description:
+          "Frame rate the inline document renders at (default 30). Timing " +
+          "checks are frame-based, so a document authored at another fps " +
+          "validates against the wrong grid without this. Ignored for timeline_id."
+      },
+      width: {
+        type: "number" as const,
+        description: "Render width of the inline document. Ignored for timeline_id."
+      },
+      height: {
+        type: "number" as const,
+        description: "Render height of the inline document. Ignored for timeline_id."
+      }
+    }
+  };
+
+  // The timeline API is tRPC-only, so there is no REST route to fall back on:
+  // a host that wants the `timeline_id` path injects a loader. Without one the
+  // tool still validates inline documents.
+  constructor(private readonly loadTimeline?: TimelineLoader) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const inline = params["document"];
+    const timelineId = params["timeline_id"] as string | undefined;
+
+    let document = inline;
+    // An inline document carries no stored render settings, so the caller
+    // supplies them; the timeline_id path overwrites these from the row.
+    let meta: { fps?: number; width?: number; height?: number } = {
+      fps: numberParam(params["fps"]),
+      width: numberParam(params["width"]),
+      height: numberParam(params["height"])
+    };
+    let name: string | undefined;
+
+    if (document === undefined && timelineId) {
+      if (!this.loadTimeline) {
+        return {
+          error:
+            "Cannot load a saved timeline in this process: no timeline loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
+          validated: false
+        };
+      }
+      const record = await this.loadTimeline(context, timelineId);
+      if (!record) {
+        return {
+          error: `Timeline ${timelineId} was not found.`,
+          validated: false
+        };
+      }
+      document = parseTimelineDocument(record.document);
+      meta = { fps: record.fps, width: record.width, height: record.height };
+      name = record.name;
+    }
+
+    if (document === undefined || document === null) {
+      return {
+        error:
+          "No timeline to validate — pass an inline `document` ({tracks, clips, markers}) or a valid `timeline_id`."
+      };
+    }
+
+    const validation = validateTimelineSequence(document, meta);
+    return {
+      ...validation,
+      ...(timelineId ? { timeline_id: timelineId } : {}),
+      ...(name ? { name } : {}),
+      summary: timelineSummary(validation)
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return params["timeline_id"]
+      ? `Validating timeline ${params["timeline_id"]}`
+      : "Validating timeline document";
   }
 }
 
@@ -1441,6 +1919,9 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new CreateWorkflowTool(),
     new RunWorkflowTool(),
     new DebugWorkflowTool(),
+    new ResolveWorkflowEscalationTool(),
+    new BuildAppTool(),
+    new DebugAppTool(),
     new ValidateWorkflowTool(options.registry),
     new GetExampleWorkflowTool(),
     new ExportWorkflowDigraphTool(),

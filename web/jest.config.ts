@@ -27,6 +27,8 @@ export default {
     "^@nodetool-ai/runtime/zod-schema$":
       "<rootDir>/../packages/runtime/src/zod-schema.ts",
     "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
+    "^@nodetool-ai/timeline/render$":
+      "<rootDir>/../packages/timeline/src/render/index.ts",
     // node-sdk ships ESM-only dist; the cost-estimate subpath is a pure module
     // (protocol + pricing-bundle types only), so map it to src rather than
     // pull the heavy barrel (pack-loader, registry) into jsdom.

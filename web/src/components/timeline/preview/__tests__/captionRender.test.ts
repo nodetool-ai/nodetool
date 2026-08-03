@@ -1,5 +1,5 @@
 import { captionSignature } from "../captionRender";
-import type { ResolvedCaption } from "../sceneModel";
+import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
 
 describe("captionRender", () => {
   describe("captionSignature", () => {

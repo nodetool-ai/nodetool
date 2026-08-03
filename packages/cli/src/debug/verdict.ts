@@ -6,7 +6,11 @@
  * debug endpoint and the agent-facing `debug_workflow` tool reach the same
  * verdict for the same run; this module only composes the two surfaces.
  */
-import { collectRunIssues, describeErrors } from "@nodetool-ai/execution/debug";
+import {
+  collectInterventionWarnings,
+  collectRunIssues,
+  describeErrors
+} from "@nodetool-ai/execution/debug";
 import type {
   BrowserRunReport,
   DebugVerdict,
@@ -75,5 +79,17 @@ export function buildVerdict(
     headline = `Workflow has issues — ${first}`;
   }
 
-  return { ok, headline, issues };
+  // Supervisor decisions are warnings, never issues: a run the supervisor
+  // rescued is still a run that completed, but a reader has to be told what
+  // was skipped or repaired to get there.
+  const warnings = server
+    ? collectInterventionWarnings("Server", server.summary)
+    : [];
+
+  return {
+    ok,
+    headline: ok && warnings.length > 0 ? `${headline} (supervised)` : headline,
+    issues,
+    ...(warnings.length > 0 ? { warnings } : {})
+  };
 }

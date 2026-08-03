@@ -5,6 +5,16 @@ export class AppError extends Error {
   }
 }
 
+const hasErrorMessage = (error: unknown): error is { message: string } =>
+  typeof error === "object" &&
+  error !== null &&
+  "message" in error &&
+  typeof error.message === "string";
+
+/** The message of a thrown value, or `fallback` when it carries none. */
+export const getErrorMessage = (error: unknown, fallback = ""): string =>
+  hasErrorMessage(error) ? error.message : fallback;
+
 export const createErrorMessage = (
   error: unknown,
   defaultMessage: string

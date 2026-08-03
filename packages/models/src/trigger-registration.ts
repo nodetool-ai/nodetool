@@ -25,6 +25,8 @@ export class TriggerRegistration extends DBModel {
   declare run_count: number;
   declare expires_at: string | null;
   declare max_runs: number | null;
+  /** 1 when runs from this trigger are supervised. Off (0) by default. */
+  declare supervise: number;
   declare created_at: string;
   declare updated_at: string;
 
@@ -42,6 +44,7 @@ export class TriggerRegistration extends DBModel {
     this.run_count ??= 0;
     this.expires_at ??= null;
     this.max_runs ??= null;
+    this.supervise ??= 0;
     this.created_at ??= now;
     this.updated_at ??= now;
   }

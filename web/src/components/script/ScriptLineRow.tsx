@@ -39,6 +39,7 @@ import {
 import { voiceLine } from "../../stores/script/scriptVoicing";
 import { useAssetStore } from "../../stores/AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
+import { getErrorMessage } from "../../utils/errorHandling";
 import ScriptTakeGallery from "./ScriptTakeGallery";
 
 /**
@@ -195,7 +196,7 @@ const ScriptLineRow = ({
     try {
       await voiceLine(scriptId, line.id);
     } catch (error) {
-      setVoiceError((error as Error).message ?? "Voicing failed");
+      setVoiceError(getErrorMessage(error, "Voicing failed"));
     }
   }, [scriptId, line.id]);
 

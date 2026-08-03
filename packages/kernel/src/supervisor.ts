@@ -17,6 +17,7 @@ import type {
   VerdictAction,
   DecidedBy
 } from "@nodetool-ai/protocol";
+import type { RunStateReader } from "./run-state.js";
 
 // ---------------------------------------------------------------------------
 // The interface
@@ -32,6 +33,18 @@ export interface DecisionOutcome {
 
 export interface SupervisorHandle {
   decide(e: Escalation, signal: AbortSignal): Promise<DecisionOutcome>;
+  /**
+   * True when the handle already enforces the run's bounds. Set by
+   * `BoundedHandle`; `ensureBounded` reads it so a handle bounded by its
+   * caller is not wrapped a second time.
+   */
+  readonly bounded?: boolean;
+  /**
+   * Handed the run's read-only state once, before any actor starts. A handle
+   * is configured before the runner exists, so the reader cannot be a
+   * constructor argument. Optional: a scripted handle needs no run state.
+   */
+  attach?(reader: RunStateReader): void;
   close(): void;
 }
 
@@ -257,6 +270,7 @@ export const DEFAULT_SUPERVISOR_BOUNDS = {
  * deterministic, never a cheaper model.
  */
 export class BoundedHandle implements SupervisorHandle {
+  readonly bounded = true;
   private readonly _inner: SupervisorHandle;
   private readonly _bounds: Required<SupervisorBounds>;
   private _decisions = 0;
@@ -269,6 +283,10 @@ export class BoundedHandle implements SupervisorHandle {
   constructor(inner: SupervisorHandle, opts: SupervisorBounds = {}) {
     this._inner = inner;
     this._bounds = { ...DEFAULT_SUPERVISOR_BOUNDS, ...stripUndefined(opts) };
+  }
+
+  attach(reader: RunStateReader): void {
+    this._inner.attach?.(reader);
   }
 
   async decide(e: Escalation, signal: AbortSignal): Promise<DecisionOutcome> {
@@ -285,7 +303,12 @@ export class BoundedHandle implements SupervisorHandle {
   ): Promise<DecisionOutcome> {
     if (e.failureSignature !== undefined) {
       const hit = this._sticky.get(stickyKey(e));
-      if (hit) return { verdict: hit, decidedBy: "sticky" };
+      // A cached verdict is only a shortcut for a decision this escalation
+      // could have received anyway. Replaying one the escalation does not
+      // allow buys nothing: the actor overrules it to `fail`. Decide afresh.
+      if (hit && e.allowedActions.includes(hit.action)) {
+        return { verdict: hit, decidedBy: "sticky" };
+      }
     }
 
     if (this._decisions >= this._bounds.maxDecisions) {
@@ -358,6 +381,21 @@ export class BoundedHandle implements SupervisorHandle {
   close(): void {
     this._inner.close();
   }
+}
+
+/**
+ * Bound a handle, once. `WorkflowRunnerOptions.supervisor` takes any
+ * `SupervisorHandle`, and an unbounded one — a handle that answers `retry`
+ * forever, or whose `decide()` never resolves — spins or parks an actor for
+ * the life of the process. The ceilings are the kernel's, not the caller's,
+ * so the runner applies them itself; a handle its caller already bounded is
+ * returned untouched.
+ */
+export function ensureBounded(
+  handle: SupervisorHandle,
+  opts: SupervisorBounds = {}
+): SupervisorHandle {
+  return handle.bounded === true ? handle : new BoundedHandle(handle, opts);
 }
 
 function stickyKey(e: Escalation): string {

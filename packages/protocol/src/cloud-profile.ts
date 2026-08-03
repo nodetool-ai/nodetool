@@ -78,8 +78,8 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
   "nodetool.llm", // generic Chat node (also surfaces Anthropic/Groq)
 
   // — Creative generation core —
-  // (nodetool.code is NOT a whole-namespace allow: only the sandboxed Code
-  // node is kept via CLOUD_NODE_ALLOWLIST below.)
+  // (nodetool.code is NOT a whole-namespace allow: the sandboxed Code node is
+  // admitted by name via CLOUD_NODE_ALLOWLIST below.)
   "nodetool.text", // text toolkit + ASR; file-I/O nodes trimmed by CLOUD_NODE_DENYLIST
   "nodetool.image",
   "nodetool.sketch",
@@ -109,10 +109,9 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
  * Individual node types kept even though their namespace is *not* whole-listed
  * above. Used to admit a narrow slice of an otherwise-trimmed namespace:
  *
- * - `nodetool.code.Code` — the sandboxed (vm-based) JavaScript node only. The
- *   rest of `nodetool.code` (Python/Bash/Ruby/Lua subprocess + Docker runners)
- *   stays out: arbitrary process/Docker execution isn't appropriate for a
- *   managed multi-tenant cloud.
+ * - `nodetool.code.Code` — the sandboxed (QuickJS WASM) JavaScript node only.
+ *   Admitting it by name rather than whole-listing `nodetool.code` keeps any
+ *   future node in that namespace out of the cloud until it is reviewed.
  */
 export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
   // Sandboxed code only.

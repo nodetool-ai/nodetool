@@ -9,6 +9,7 @@ import { createLogger, importHidden } from "@nodetool-ai/config";
 import { BaseProvider, splitToolResultImages } from "./base-provider.js";
 import { hashSystemPrompt } from "./provider-session.js";
 import { sniffAudioMime } from "./audio-mime.js";
+import type { TurnBudget } from "../turn-budget.js";
 
 /** Extension for each mime `sniffAudioMime` can return; anything else is mp3. */
 const AUDIO_MIME_EXT: Record<string, string> = {
@@ -1367,6 +1368,7 @@ export class OpenAIProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
       sequentialTools?: boolean;
+      turnBudget?: TurnBudget;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     if (!this.usesResponsesApi(args.model)) {
@@ -1378,6 +1380,7 @@ export class OpenAIProvider extends BaseProvider {
       executeTool,
       maxIterations: _omitMaxIterations,
       sequentialTools,
+      turnBudget,
       ...turnArgs
     } = args;
     const systemHash = hashSystemPrompt(responsesSystemPrompt(args.messages));
@@ -1401,7 +1404,8 @@ export class OpenAIProvider extends BaseProvider {
           firstMessages,
           firstPreviousResponseId: prior.token,
           systemHash,
-          firstTurnState
+          firstTurnState,
+          turnBudget
         });
         return;
       } catch (err) {
@@ -1425,7 +1429,8 @@ export class OpenAIProvider extends BaseProvider {
       firstMessages: freshMessages,
       firstPreviousResponseId: null,
       systemHash,
-      firstTurnState: this.createResponsesTurnState(null)
+      firstTurnState: this.createResponsesTurnState(null),
+      turnBudget
     });
   }
 
@@ -1508,6 +1513,7 @@ export class OpenAIProvider extends BaseProvider {
     firstPreviousResponseId: string | null;
     systemHash: string;
     firstTurnState: StreamTurnState;
+    turnBudget?: TurnBudget;
   }): AsyncGenerator<ProviderStreamItem> {
     const toolMap = new Map<string, ProviderTool>(
       (config.args.tools ?? []).map((tool) => [tool.name, tool])
@@ -1518,21 +1524,42 @@ export class OpenAIProvider extends BaseProvider {
     );
     let state = config.firstTurnState;
 
+    // Responses carries prior turns server-side behind `previousResponseId`,
+    // so `input` holds only the delta. Reserving against the delta would price
+    // a turn as if the conversation restarted; the transcript is tracked here
+    // so the reservation grows with the turn it is admitting.
+    const transcript: Message[] = [...config.firstMessages];
+
     for (let iteration = 0; iteration < config.maxIterations; iteration++) {
       if (config.args.signal?.aborted) return;
+      if (
+        config.turnBudget &&
+        !this._admitTurn(config.turnBudget, config.args.model, transcript)
+      ) {
+        return;
+      }
+      const costBeforeTurn = config.turnBudget ? this.getTotalCost() : 0;
 
-      const request = await this.buildResponsesRequest(config.args, {
-        input,
-        stream: true,
-        store: true,
-        previousResponseId
-      });
-      yield* this.collectResponsesTurn(
-        config.args,
-        request,
-        config.systemHash,
-        state
-      );
+      // The reservation covers exactly one turn, so it has to be reconciled
+      // even when that turn throws. Left outstanding, a single provider error
+      // would shrink the run's headroom for good — the budget is run-level and
+      // outlives the decision that hit the error.
+      try {
+        const request = await this.buildResponsesRequest(config.args, {
+          input,
+          stream: true,
+          store: true,
+          previousResponseId
+        });
+        yield* this.collectResponsesTurn(
+          config.args,
+          request,
+          config.systemHash,
+          state
+        );
+      } finally {
+        config.turnBudget?.commit(this.getTotalCost() - costBeforeTurn);
+      }
 
       previousResponseId = state.responseId;
       // Native image_generation results ride the assistant message as image
@@ -1547,6 +1574,7 @@ export class OpenAIProvider extends BaseProvider {
         toolCalls: state.pending.length > 0 ? state.pending : null
       };
       yield { type: "message", message: assistantMsg };
+      transcript.push(assistantMsg);
 
       if (state.pending.length === 0) {
         return;
@@ -1587,9 +1615,13 @@ export class OpenAIProvider extends BaseProvider {
           content: toolContent
         };
         toolMessages.push(toolMsg);
+        transcript.push(toolMsg);
         yield { type: "message", message: toolMsg };
         if (imageMessage) {
           toolMessages.push(imageMessage);
+          // It rides the next turn's input, so it is part of what that turn
+          // is billed for — and therefore part of what its reservation covers.
+          transcript.push(imageMessage);
         }
       };
 

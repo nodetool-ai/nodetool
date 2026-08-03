@@ -93,6 +93,35 @@ export interface SandboxLimits {
   memoryLimitBytes?: number;
   stackLimitBytes?: number;
   fetchTimeoutMs?: number;
+  /**
+   * Permit fetches to loopback, link-local and private address ranges.
+   *
+   * Off by default: guest code is untrusted, so the SSRF guard is the norm and
+   * this is the exception. It exists because the trusted `lib.http` nodes have
+   * always been able to reach a local service, and a Code node replacing one
+   * must be able to do the same — a workflow pointing at `http://localhost:8000`
+   * would otherwise silently stop working.
+   *
+   * Host-set only: it is read from {@link RunSandboxOptions.limits} and never
+   * exposed to the guest, so sandboxed code cannot turn it on for itself.
+   */
+  allowPrivateNetwork?: boolean;
+  /** `User-Agent` for bridge fetches. Guest-set headers still win. */
+  userAgent?: string;
+  /**
+   * `"workspace"` (default) confines every `workspace.*` call to the workspace
+   * root, symlinks included. `"host"` lifts that to the whole filesystem the
+   * process can reach, with `~` expanded.
+   *
+   * Off by default for the same reason as {@link allowPrivateNetwork}, and the
+   * stakes are higher — host mode can read credential files. It exists because
+   * roughly half the `lib.os` nodes already operate on arbitrary host paths
+   * (`expandUser` + raw `node:fs`), so a Code node replacing one needs the same
+   * reach. Host-set only, and the graph migration sets it only on nodes
+   * rewritten from such a node — a hand-written or model-authored Code node
+   * stays confined.
+   */
+  filesystemAccess?: "workspace" | "host";
 }
 
 export type ResolvedSandboxLimits = Required<SandboxLimits>;
@@ -142,7 +171,13 @@ export function resolveSandboxLimits(
       FETCH_TIMEOUT_MS,
       100,
       120_000
-    )
+    ),
+    // Not clamped — these are capability switches, not magnitudes. Both
+    // resolve to the restrictive value unless the host explicitly opts out.
+    allowPrivateNetwork: limits?.allowPrivateNetwork === true,
+    userAgent: limits?.userAgent ?? "",
+    filesystemAccess:
+      limits?.filesystemAccess === "host" ? "host" : "workspace"
   };
 }
 
@@ -476,16 +511,19 @@ function isBlockedIpLiteral(host: string): boolean {
  * and hosts that resolve to loopback/link-local/private literals or localhost.
  * Throws on a blocked URL.
  */
-function assertFetchUrlAllowed(url: string): void {
+function assertFetchUrlAllowed(url: string, allowPrivate = false): void {
   let parsed: URL;
   try {
     parsed = new URL(url);
   } catch {
     throw new Error("fetch: invalid URL");
   }
+  // Scheme is checked even in private-network mode: `file:`, `gopher:` and
+  // friends are never reachable through the bridge, whatever the host allows.
   if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
     throw new Error(`fetch: unsupported scheme "${parsed.protocol}"`);
   }
+  if (allowPrivate) return;
   const host = parsed.hostname.toLowerCase();
   if (host === "localhost" || host.endsWith(".localhost")) {
     throw new Error("fetch: access to localhost is blocked");
@@ -636,6 +674,57 @@ function webCryptoSubtle(): SubtleCrypto {
   return subtle;
 }
 
+/** Depth ceiling for the binary-preserving walk — guards pathological nesting. */
+const SERIALIZE_MAX_DEPTH = 32;
+
+/**
+ * True if a typed array sits anywhere inside `value`. Cycle-safe: a revisited
+ * object reports false, which drops the value onto the JSON path, where
+ * `JSON.stringify` throws on the cycle and the caller falls back to `String` —
+ * the behavior cyclic values already had.
+ */
+function containsTypedArray(
+  value: unknown,
+  depth = 0,
+  seen = new WeakSet<object>()
+): boolean {
+  if (isTypedArray(value)) return true;
+  if (value === null || typeof value !== "object") return false;
+  if (depth >= SERIALIZE_MAX_DEPTH) return false;
+  const obj = value as object;
+  if (seen.has(obj)) return false;
+  seen.add(obj);
+  const values = Array.isArray(value)
+    ? value
+    : Object.values(value as Record<string, unknown>);
+  return values.some((v) => containsTypedArray(v, depth + 1, seen));
+}
+
+/**
+ * Rebuild `value`, converting every typed array at any depth to a native
+ * Uint8Array and leaving everything else structurally intact.
+ */
+function convertTypedArraysDeep(
+  value: unknown,
+  depth = 0,
+  seen = new WeakSet<object>()
+): unknown {
+  if (isTypedArray(value)) return toNativeUint8Array(value);
+  if (value === null || typeof value !== "object") return value;
+  if (depth >= SERIALIZE_MAX_DEPTH) return value;
+  const obj = value as object;
+  if (seen.has(obj)) return null;
+  seen.add(obj);
+  if (Array.isArray(value)) {
+    return value.map((v) => convertTypedArraysDeep(v, depth + 1, seen));
+  }
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+    out[k] = convertTypedArraysDeep(v, depth + 1, seen);
+  }
+  return out;
+}
+
 /**
  * Recursively serialize a value returned from the sandbox, converting typed
  * arrays to native Uint8Array and enforcing output size limits.
@@ -660,27 +749,14 @@ export function serializeResult(
     return toNativeUint8Array(result);
   }
   if (typeof result === "object") {
-    let hasBinary = false;
-    if (Array.isArray(result)) {
-      hasBinary = result.some(isTypedArray);
-    } else {
-      for (const v of Object.values(result as Record<string, unknown>)) {
-        if (isTypedArray(v)) {
-          hasBinary = true;
-          break;
-        }
-      }
-    }
-    if (hasBinary) {
-      if (Array.isArray(result)) {
-        return result.map((v) => (isTypedArray(v) ? toNativeUint8Array(v) : v));
-      }
-      const obj = result as Record<string, unknown>;
-      const out: Record<string, unknown> = {};
-      for (const [k, v] of Object.entries(obj)) {
-        out[k] = isTypedArray(v) ? toNativeUint8Array(v) : v;
-      }
-      return out;
+    // The scan and the rebuild are both deep. They used to look one level in,
+    // so a typed array nested any deeper fell through to the JSON path below —
+    // and `JSON.stringify(new Uint8Array([137, 80]))` is `{"0":137,"1":80}`,
+    // which is lossy and indistinguishable from a user's own integer map. The
+    // streaming path hit this every time: `genProcess` returns an array of
+    // yielded objects, so the bytes are always at depth 2.
+    if (containsTypedArray(result)) {
+      return convertTypedArraysDeep(result);
     }
     try {
       const json = JSON.stringify(result);
@@ -784,7 +860,9 @@ export function buildSandbox(
     // SSRF guard: untrusted guest code must not reach loopback, link-local
     // (incl. cloud metadata 169.254.169.254), or private ranges, nor non-http
     // schemes. Blocks the direct-literal attacks; DNS-rebinding is out of scope.
-    assertFetchUrlAllowed(url);
+    // The host can waive the address check for a node that replaces a trusted
+    // `lib.http` node; the scheme check is never waived.
+    assertFetchUrlAllowed(url, resolvedLimits.allowPrivateNetwork);
 
     const controller = new AbortController();
     const timer = setTimeout(
@@ -803,8 +881,16 @@ export function buildSandbox(
         signal: controller.signal
       };
 
+      const requestHeaders: Record<string, string> = {};
+      // Host default first so a guest-set User-Agent still wins.
+      if (resolvedLimits.userAgent) {
+        requestHeaders["User-Agent"] = resolvedLimits.userAgent;
+      }
       if (options?.headers && typeof options.headers === "object") {
-        fetchOptions.headers = options.headers as Record<string, string>;
+        Object.assign(requestHeaders, options.headers as Record<string, string>);
+      }
+      if (Object.keys(requestHeaders).length > 0) {
+        fetchOptions.headers = requestHeaders;
       }
       if (options?.body !== undefined) {
         const body = options.body;
@@ -928,99 +1014,147 @@ export function buildSandbox(
         return undefined;
       };
 
+  /**
+   * Resolve a guest path under the configured filesystem scope.
+   *
+   * `"workspace"` (the default) is the pre-existing behavior: resolve against
+   * the workspace root, then verify the symlink-resolved location is still
+   * inside it. `"host"` skips containment and expands `~`, matching what the
+   * `lib.os` nodes have always done. Host mode is reachable only when the host
+   * passes `filesystemAccess: "host"` — guest code cannot ask for it.
+   */
+  const resolveGuestPath = async (
+    ctx: ProcessingContext,
+    path: string,
+    isWrite: boolean
+  ): Promise<string> => {
+    const nodePath = await loadNodePath();
+    if (resolvedLimits.filesystemAccess === "host") {
+      const os = await importNodeBuiltin<typeof import("node:os")>("node:os");
+      if (!os) {
+        throw new Error("host filesystem access requires a Node.js runtime");
+      }
+      const expanded =
+        path === "~"
+          ? os.homedir()
+          : path.startsWith("~/")
+            ? nodePath.join(os.homedir(), path.slice(2))
+            : path;
+      return nodePath.resolve(expanded);
+    }
+    const fullPath = ctx.resolveWorkspacePath(path);
+    const fs = await loadFsPromises();
+    await assertWorkspaceContained(ctx, fs, nodePath, fullPath, isWrite);
+    return fullPath;
+  };
+
   const workspace = context
     ? {
         read: async (path: string): Promise<string> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return fs.readFile(fullPath, "utf-8");
         },
         write: async (path: string, content: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, content, "utf-8");
         },
         list: async (path: string): Promise<string[]> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return fs.readdir(fullPath);
         },
         readBytes: async (path: string): Promise<Record<string, string>> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
+          const fullPath = await resolveGuestPath(context, path, false);
           return toGuestBytes(new Uint8Array(await fs.readFile(fullPath)));
         },
         writeBytes: async (path: string, data: unknown): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const bytes =
             data instanceof Uint8Array ? data : toNativeUint8Array(data);
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(nodePath.dirname(fullPath), { recursive: true });
           await fs.writeFile(fullPath, bytes);
         },
+        // A missing path is an answer, not a failure: guest code asking
+        // "does this exist?" should not have to wrap the call in try/catch.
+        // `lstat` (not `stat`) so a symlink reports as itself rather than as
+        // whatever it points at.
         stat: async (path: string): Promise<Record<string, unknown>> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          await assertWorkspaceContained(
-            context,
-            fs,
-            nodePath,
-            fullPath,
-            false
-          );
-          const info = await fs.stat(fullPath);
+          // Resolved as a write, not a read: the queried path may legitimately
+          // not exist, and the read path resolves it with `realpath`, which
+          // throws on a missing file and so would report every absent path as
+          // an escape. The write path decides containment from the nearest
+          // existing ancestor instead. A path that *does* exist is still
+          // realpath-checked, so a symlink out of the workspace is caught.
+          const fullPath = await resolveGuestPath(context, path, true);
+          let info;
+          try {
+            info = await fs.lstat(fullPath);
+          } catch {
+            return {
+              exists: false,
+              size: 0,
+              isDirectory: false,
+              isFile: false,
+              isSymlink: false,
+              modifiedMs: 0,
+              createdMs: 0,
+              accessedMs: 0
+            };
+          }
           return {
+            exists: true,
             size: info.size,
             isDirectory: info.isDirectory(),
             isFile: info.isFile(),
-            modifiedMs: info.mtimeMs
+            isSymlink: info.isSymbolicLink(),
+            modifiedMs: info.mtimeMs,
+            createdMs: info.birthtimeMs,
+            accessedMs: info.atimeMs
           };
         },
-        mkdir: async (path: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
+        /** Absolute path of the workspace root — the base for relative paths. */
+        root: async (): Promise<string> => {
+          return context.resolveWorkspacePath(".");
+        },
+        copy: async (src: string, dest: string): Promise<void> => {
           const fs = await loadFsPromises();
           const nodePath = await loadNodePath();
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          // Source is a read, destination is a write — the asymmetry matters:
+          // a write target may not exist yet, so it is checked via its nearest
+          // existing ancestor.
+          const fullSrc = await resolveGuestPath(context, src, false);
+          const fullDest = await resolveGuestPath(context, dest, true);
+          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+          await fs.copyFile(fullSrc, fullDest);
+        },
+        move: async (src: string, dest: string): Promise<void> => {
+          const fs = await loadFsPromises();
+          const nodePath = await loadNodePath();
+          // A move unlinks the source, so it is a write on both ends.
+          const fullSrc = await resolveGuestPath(context, src, true);
+          const fullDest = await resolveGuestPath(context, dest, true);
+          await fs.mkdir(nodePath.dirname(fullDest), { recursive: true });
+          await fs.rename(fullSrc, fullDest);
+        },
+        mkdir: async (path: string): Promise<void> => {
+          const fs = await loadFsPromises();
+          const fullPath = await resolveGuestPath(context, path, true);
           await fs.mkdir(fullPath, { recursive: true });
         },
         remove: async (path: string): Promise<void> => {
-          const fullPath = context.resolveWorkspacePath(path);
           const fs = await loadFsPromises();
-          const nodePath = await loadNodePath();
-          // Treated as a write for containment. `recursive: false` keeps this
-          // to one file or one empty directory — guest code cannot delete a
-          // whole workspace subtree in a single call.
-          await assertWorkspaceContained(context, fs, nodePath, fullPath, true);
+          // Resolved as a write. `recursive: false` keeps this to one file or
+          // one empty directory — guest code cannot delete a whole subtree in
+          // a single call, in either filesystem mode.
+          const fullPath = await resolveGuestPath(context, path, true);
           const info = await fs.lstat(fullPath);
           if (info.isDirectory()) {
             // rmdir refuses a non-empty directory, which is the point.
@@ -1052,6 +1186,15 @@ export function buildSandbox(
         },
         stat: async (_path: string): Promise<Record<string, unknown>> => {
           throw new Error("workspace.stat is not available without a context");
+        },
+        root: async (): Promise<string> => {
+          throw new Error("workspace.root is not available without a context");
+        },
+        copy: async (_src: string, _dest: string): Promise<void> => {
+          throw new Error("workspace.copy is not available without a context");
+        },
+        move: async (_src: string, _dest: string): Promise<void> => {
+          throw new Error("workspace.move is not available without a context");
         },
         mkdir: async (_path: string): Promise<void> => {
           throw new Error("workspace.mkdir is not available without a context");
@@ -1705,6 +1848,9 @@ globalThis.workspace = {
   readBytes: __wrap(__ws.readBytes),
   writeBytes: __wrap(__ws.writeBytes),
   stat: __wrap(__ws.stat),
+  root: __wrap(__ws.root),
+  copy: __wrap(__ws.copy),
+  move: __wrap(__ws.move),
   mkdir: __wrap(__ws.mkdir),
   remove: __wrap(__ws.remove)
 };

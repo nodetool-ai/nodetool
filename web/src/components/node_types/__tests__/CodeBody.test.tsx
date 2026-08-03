@@ -138,9 +138,9 @@ const renderWithTheme = (ui: React.ReactElement) =>
 
 const makeProps = (overrides: Record<string, unknown> = {}) => ({
   id: "node-1",
-  nodeType: "nodetool.code.ExecutePython",
+  nodeType: "nodetool.code.Code",
   nodeMetadata: {
-    node_type: "nodetool.code.ExecutePython",
+    node_type: "nodetool.code.Code",
     inline_fields: ["code"],
     properties: [
       { name: "code", type: { type: "str", type_args: [], optional: false } }
@@ -152,7 +152,7 @@ const makeProps = (overrides: Record<string, unknown> = {}) => ({
     layout: "default"
   } as unknown as Parameters<typeof CodeBody>[0]["nodeMetadata"],
   data: {
-    properties: { code: "print('hello')" }
+    properties: { code: "return { x: 1 };" }
   } as unknown as Parameters<typeof CodeBody>[0]["data"],
   workflowId: "wf-1",
   isOutputNode: false,
@@ -167,17 +167,17 @@ describe("CodeBody", () => {
 
   it("renders the language label and seeds the editor from the code property", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
-    expect(screen.getByText("Python")).toBeInTheDocument();
+    expect(screen.getByText("JavaScript")).toBeInTheDocument();
     const editor = screen.getByTestId("monaco") as HTMLTextAreaElement;
-    expect(editor.value).toBe("print('hello')");
-    expect(editor).toHaveAttribute("data-language", "python");
+    expect(editor.value).toBe("return { x: 1 };");
+    expect(editor).toHaveAttribute("data-language", "javascript");
   });
 
   it("writes the code property on change", () => {
     renderWithTheme(<CodeBody {...makeProps()} />);
     const editor = screen.getByTestId("monaco");
-    fireEvent.change(editor, { target: { value: "print('bye')" } });
-    expect(mockSetProperty).toHaveBeenCalledWith("code", "print('bye')");
+    fireEvent.change(editor, { target: { value: "return { x: 2 };" } });
+    expect(mockSetProperty).toHaveBeenCalledWith("code", "return { x: 2 };");
   });
 
   it("uses plaintext for unknown code node types", () => {
@@ -215,19 +215,21 @@ describe("CodeBody", () => {
     fireEvent.click(screen.getByRole("button", { name: /open editor/i }));
     expect(screen.getByTestId("text-editor-modal")).toHaveAttribute(
       "data-language",
-      "python"
+      "javascript"
     );
   });
 
-  it("keeps the add input/output form for Execute* code nodes", () => {
-    renderWithTheme(<CodeBody {...makeProps()} />);
+  it("keeps the add input/output form for other nodes with inline code", () => {
+    renderWithTheme(
+      <CodeBody {...makeProps({ nodeType: "nodetool.other.Thing" })} />
+    );
     expect(screen.getByTestId("node-property-form")).toBeInTheDocument();
     expect(
       screen.queryByText(/reference an undefined variable to add an input/i)
     ).not.toBeInTheDocument();
   });
 
-  it("shows the IO hint instead of the form for the universal Code node", () => {
+  it("shows the IO hint instead of the form for the Code node", () => {
     renderWithTheme(
       <CodeBody
         {...makeProps({
@@ -242,7 +244,7 @@ describe("CodeBody", () => {
     expect(screen.queryByTestId("node-property-form")).not.toBeInTheDocument();
   });
 
-  it("derives dynamic inputs/outputs from code for the universal Code node", () => {
+  it("derives dynamic inputs/outputs from code for the Code node", () => {
     renderWithTheme(
       <CodeBody
         {...makeProps({
@@ -264,21 +266,22 @@ describe("CodeBody", () => {
     });
   });
 
-  it("offers Ask AI on the universal Code node only", () => {
+  it("offers Ask AI on the Code node only", () => {
     const { unmount } = renderWithTheme(
-      <CodeBody
-        {...makeProps({
-          nodeType: "nodetool.code.Code",
-          data: { properties: { code: "" } }
-        })}
-      />
+      <CodeBody {...makeProps({ data: { properties: { code: "" } } })} />
     );
     expect(screen.getByRole("button", { name: /ask ai/i })).toBeInTheDocument();
     unmount();
 
-    // The other 19 `nodetool.code.*` executors run real interpreters and have
-    // no generator yet.
-    renderWithTheme(<CodeBody {...makeProps()} />);
+    // Any other node with an inline `code` property has no generator.
+    renderWithTheme(
+      <CodeBody
+        {...makeProps({
+          nodeType: "nodetool.other.Thing",
+          data: { properties: { code: "" } }
+        })}
+      />
+    );
     expect(
       screen.queryByRole("button", { name: /ask ai/i })
     ).not.toBeInTheDocument();
@@ -346,8 +349,10 @@ describe("CodeBody", () => {
     );
   });
 
-  it("does not derive IO for non-universal code executors", () => {
-    renderWithTheme(<CodeBody {...makeProps()} />);
+  it("does not derive IO for other nodes with inline code", () => {
+    renderWithTheme(
+      <CodeBody {...makeProps({ nodeType: "nodetool.other.Thing" })} />
+    );
     fireEvent.change(screen.getByTestId("monaco"), {
       target: { value: "return { x: y };" }
     });

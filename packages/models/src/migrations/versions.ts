@@ -2422,6 +2422,29 @@ export const migrations: MigrationDef[] = [
       // The `user_id` columns stay: SQLite cannot drop a column portably and
       // the column is inert to code that does not read it.
     }
+  },
+
+  // ── Workflow supervision opt-in on trigger_registrations ───────────
+  // A trigger run can be supervised: a failing node escalates to a model
+  // instead of failing the run outright. The column defaults to 0 and no
+  // existing registration is touched — enabling supervision shares failure
+  // context with a model, so consent is per-registration and forward-looking
+  // (docs/workflow-supervisor-design.md §6.1).
+  {
+    version: "20260801_000001",
+    name: "add_trigger_registration_supervise",
+    createsTables: [],
+    modifiesTables: ["trigger_registrations"],
+    async up(db) {
+      if (!(await db.tableExists("trigger_registrations"))) return;
+      if (await db.columnExists("trigger_registrations", "supervise")) return;
+      await db.execute(
+        "ALTER TABLE trigger_registrations ADD COLUMN supervise INTEGER NOT NULL DEFAULT 0"
+      );
+    },
+    async down() {
+      // no-op: SQLite cannot drop columns portably, and leaving it is inert.
+    }
   }
 ];
 

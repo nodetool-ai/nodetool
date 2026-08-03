@@ -12,7 +12,14 @@ import { getSecret } from "@nodetool-ai/models";
 import { ExecutionSession } from "@nodetool-ai/execution";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { summarizeInterventions } from "@nodetool-ai/execution/debug";
 import { buildFullRegistry } from "../node-registry.js";
+import {
+  createSupervisorHandle,
+  recordSupervisorCost,
+  streamInterventionLines,
+  type SupervisorRunConfig
+} from "../supervisor.js";
 import { collectExecutionSummary } from "./collector.js";
 import { readTraceSummary } from "./trace.js";
 import type { DebugGraph, ServerRunReport } from "./types.js";
@@ -24,6 +31,10 @@ export interface ServerRunInput {
   /** Absolute path telemetry was told to write spans to; read back for trace summary. */
   tracePath?: string | null;
   timeoutMs?: number;
+  /** Supervise this run (`--supervise` and its bounds). */
+  supervisor?: SupervisorRunConfig;
+  /** Sink for the inline `⛨` lines. Defaults to stderr. */
+  onInterventionLine?: (line: string) => void;
 }
 
 export interface ServerRunOutcome {
@@ -65,6 +76,12 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
   // resolving a synthetic result while abandoning a still-running kernel, the
   // facade calls `session.cancel("timeout")`, which actually tears the run
   // down, and `session.result` only settles once that teardown completes.
+  // Supervision plumbs through the facade — the one integration point every
+  // surface shares (docs/workflow-supervisor-design.md §7).
+  const supervisor = input.supervisor
+    ? await createSupervisorHandle({ config: input.supervisor, context })
+    : null;
+
   const session = await ExecutionSession.create({
     graph,
     registry,
@@ -72,13 +89,27 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     workflowId,
     params,
     context,
-    limits: { runTimeoutMs: input.timeoutMs }
+    limits: { runTimeoutMs: input.timeoutMs },
+    // Capture is retention, so it stays off unless a supervised run needs the
+    // stream to print its `⛨` lines as they happen.
+    ...(supervisor
+      ? { supervisor: supervisor.handle, captureMessages: true }
+      : {})
   });
+
+  const interventionLines = supervisor
+    ? streamInterventionLines(
+        session.messages,
+        input.onInterventionLine ?? ((line) => console.error(line))
+      )
+    : Promise.resolve();
 
   // `session.result` never rejects — kernel failures (including an unknown
   // node type surfaced during executor resolution) resolve as `status:
   // "failed"` instead of throwing, so no try/catch is needed here.
   const result = await session.result;
+  await interventionLines;
+  supervisor?.handle.close();
   const timedOut = session.cancelReason === "timeout";
 
   const messages = (result.messages ?? []) as ProcessingMessage[];
@@ -101,6 +132,18 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     trace = await readTraceSummary(input.tracePath);
   }
 
+  const interventions = result.interventions ?? [];
+  if (supervisor && interventions.length > 0) {
+    await recordSupervisorCost({
+      interventions,
+      jobId,
+      workflowId,
+      userId: "1",
+      providerId: supervisor.providerId,
+      model: supervisor.model
+    });
+  }
+
   const report: ServerRunReport = {
     surface: "server",
     ok: result.status === "completed",
@@ -108,7 +151,16 @@ export async function runOnServer(input: ServerRunInput): Promise<ServerRunOutco
     error: error ?? summary.error,
     durationMs: Date.now() - startedAt,
     summary,
-    trace
+    trace,
+    ...(supervisor
+      ? {
+          supervised: {
+            provider: supervisor.providerId,
+            model: supervisor.model,
+            summary: summarizeInterventions(interventions)
+          }
+        }
+      : {})
   };
 
   return { report, rawMessages: messages };

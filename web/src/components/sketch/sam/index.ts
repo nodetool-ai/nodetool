@@ -2,7 +2,7 @@
  * SAM module barrel export.
  */
 
-export { SamServiceStub, getSamService, setSamService } from "./SamService";
+export { SamServiceStub, getSamService } from "./SamService";
 export {
   FAL_SAM_CAPABILITIES,
   DEFAULT_SAM_MODEL_ID,
@@ -32,7 +32,7 @@ export {
   projectSegmentationMasksToDocumentSpace
 } from "./segmentationDocumentSpace";
 
-export { WebSocketNodeExecutor, getNodeExecutor, setNodeExecutor } from "./NodeExecutor";
+export { WebSocketNodeExecutor, getNodeExecutor } from "./NodeExecutor";
 export type { NodeExecutor, GraphNode, GraphEdge, InlineGraph, NodeExecutionResult } from "./NodeExecutor";
 
 export {

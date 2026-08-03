@@ -8,7 +8,10 @@ import {
   CreateWorkflowTool,
   RunWorkflowTool,
   DebugWorkflowTool,
+  ResolveWorkflowEscalationTool,
+  DebugAppTool,
   ValidateWorkflowTool,
+  ValidateTimelineTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListNodesTool,
@@ -335,6 +338,29 @@ describe("RunWorkflowTool", () => {
     expect(lastFetchUrl()).toContain("/api/workflows/wf-456/run");
     expect(lastFetchOpts().method).toBe("POST");
   });
+
+  it("forwards interactive and annotates an escalated response", async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "escalated",
+        session_id: "sess-1",
+        escalation_id: "esc-1",
+        escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
+      }),
+      text: async () => ""
+    });
+
+    const result = (await tool.process(ctx, {
+      workflow_id: "wf-456",
+      interactive: true
+    })) as Record<string, unknown>;
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.interactive).toBe(true);
+    expect(result.status).toBe("escalated");
+    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+  });
 });
 
 describe("DebugWorkflowTool", () => {
@@ -393,6 +419,132 @@ describe("DebugWorkflowTool", () => {
     const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
     expect(urls.some((u) => u.endsWith("/run"))).toBe(true);
   });
+
+  it("returns the escalation directly when the interactive run parks", async () => {
+    respondTo({
+      "/debug": {
+        body: {
+          status: "escalated",
+          session_id: "sess-9",
+          escalation_id: "esc-1",
+          escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
+        }
+      }
+    });
+
+    const report = (await tool.process(ctx, {
+      workflow_id: "wf-1",
+      interactive: true
+    })) as Record<string, unknown>;
+
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.interactive).toBe(true);
+    const run = report.run as Record<string, unknown>;
+    expect(run.status).toBe("escalated");
+    expect(String(run.next_tool)).toContain("resolve_workflow_escalation");
+    // No report exists yet, so neither the job nor the graph is fetched.
+    expect(fetchSpy.mock.calls).toHaveLength(1);
+  });
+});
+
+describe("ResolveWorkflowEscalationTool", () => {
+  const tool = new ResolveWorkflowEscalationTool();
+
+  it("posts the verdict to the session endpoint", async () => {
+    await tool.process(ctx, {
+      session_id: "sess-9",
+      escalation_id: "esc-1",
+      action: "skip",
+      apply_to: "signature"
+    });
+
+    expect(lastFetchUrl()).toContain("/api/debug/sessions/sess-9/verdict");
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.escalation_id).toBe("esc-1");
+    expect(body.verdict).toEqual({ action: "skip", applyTo: "signature" });
+  });
+
+  it("carries substitute outputs and fail reasons, nothing else", async () => {
+    await tool.process(ctx, {
+      session_id: "s",
+      escalation_id: "e",
+      action: "substitute",
+      outputs: { value: "repaired" },
+      reason: "ignored for substitute"
+    });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.verdict).toEqual({
+      action: "substitute",
+      outputs: { value: "repaired" }
+    });
+
+    fetchSpy.mockClear();
+    await tool.process(ctx, {
+      session_id: "s",
+      escalation_id: "e",
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+    const failBody = JSON.parse(lastFetchOpts().body as string);
+    expect(failBody.verdict).toEqual({
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+  });
+
+  it("annotates a follow-up escalation so the loop continues", async () => {
+    fetchSpy.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        status: "escalated",
+        session_id: "sess-9",
+        escalation_id: "esc-2",
+        escalation: { nodeId: "n2", allowedActions: ["skip", "fail"] }
+      }),
+      text: async () => ""
+    });
+
+    const result = (await tool.process(ctx, {
+      session_id: "sess-9",
+      escalation_id: "esc-1",
+      action: "skip"
+    })) as Record<string, unknown>;
+    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+  });
+});
+
+describe("DebugAppTool", () => {
+  const tool = new DebugAppTool();
+
+  it("posts the params straight to /api/applications/debug", async () => {
+    await tool.process(ctx, { application_id: "app-1", run: false });
+    expect(lastFetchUrl()).toContain("/api/applications/debug");
+    expect(lastFetchOpts().method).toBe("POST");
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.application_id).toBe("app-1");
+    expect(body.run).toBe(false);
+  });
+
+  it("carries an inline document and an interaction script", async () => {
+    const interact = [{ set: { key: "prompt", value: "hi" } }, { click: "Run" }];
+    await tool.process(ctx, { document: { root: {} }, interact });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.document).toEqual({ root: {} });
+    expect(body.interact).toEqual(interact);
+  });
+
+  it("requires neither target in the schema — the server enforces exactly one", () => {
+    expect(tool.jsonSchema.required).toEqual([]);
+    expect(Object.keys(tool.jsonSchema.properties)).toContain("application_id");
+    expect(Object.keys(tool.jsonSchema.properties)).toContain("document");
+  });
+
+  it("userMessage distinguishes the free wiring check from a run", () => {
+    expect(tool.userMessage({ application_id: "app-1", run: false })).toContain(
+      "Checking"
+    );
+    expect(tool.userMessage({ document: {} })).toContain("draft");
+  });
 });
 
 describe("ValidateWorkflowTool", () => {
@@ -413,6 +565,93 @@ describe("ValidateWorkflowTool", () => {
     expect(result.error).toContain("no node registry");
     expect(result.validated).toBe(false);
     expect(result.graph).toBeUndefined();
+  });
+});
+
+describe("ValidateTimelineTool", () => {
+  const track = {
+    id: "t1",
+    name: "Video",
+    type: "video" as const,
+    index: 0,
+    visible: true,
+    locked: false
+  };
+  const clip = (trackId: string) => ({
+    id: "c1",
+    trackId,
+    name: "Shot",
+    startMs: 0,
+    durationMs: 2000,
+    mediaType: "video" as const,
+    sourceType: "imported" as const,
+    status: "generated" as const,
+    locked: false,
+    versions: []
+  });
+  const doc = (trackId: string) => ({
+    tracks: [track],
+    clips: [clip(trackId)],
+    markers: []
+  });
+
+  it("validates an inline document and summarizes a clean result", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { document: doc("t1") })) as {
+      ok: boolean;
+      errors: unknown[];
+      summary: string;
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.summary).toBe("No issues found.");
+  });
+
+  it("reports a clip on a track the document lacks", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { document: doc("missing") })) as {
+      ok: boolean;
+      errors: Array<{ code: string }>;
+      summary: string;
+    };
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain("clip_track_missing");
+    expect(result.summary).toContain("1 error");
+  });
+
+  it("loads a saved timeline through the injected loader", async () => {
+    const loader = vi.fn().mockResolvedValue({
+      // Stored documents are JSON text; the tool parses them.
+      document: JSON.stringify(doc("missing")),
+      fps: 24,
+      width: 1920,
+      height: 1080,
+      name: "My sequence"
+    });
+    const tool = new ValidateTimelineTool(loader);
+    const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
+      ok: boolean;
+      timeline_id: string;
+      name: string;
+    };
+
+    expect(loader).toHaveBeenCalledWith(ctx, "seq-1");
+    expect(result.ok).toBe(false);
+    expect(result.timeline_id).toBe("seq-1");
+    expect(result.name).toBe("My sequence");
+  });
+
+  it("reports an error when given an id but wired with no loader", async () => {
+    const tool = new ValidateTimelineTool();
+    const result = (await tool.process(ctx, { timeline_id: "seq-1" })) as {
+      error: string;
+      validated: boolean;
+    };
+
+    expect(result.error).toContain("no timeline loader");
+    expect(result.validated).toBe(false);
   });
 });
 
@@ -638,6 +877,8 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("create_workflow");
     expect(names).toContain("run_workflow");
     expect(names).toContain("validate_workflow");
+    expect(names).toContain("build_app");
+    expect(names).toContain("debug_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");
     expect(names).toContain("list_nodes");

@@ -62,7 +62,7 @@ export const useMediaSrc = (
     typeof value === "string" && value && !value.startsWith("memory://")
       ? value
       : v && typeof v.uri === "string" && !v.uri.startsWith("memory://")
-        ? (v.uri as string)
+        ? v.uri
         : undefined;
   const signedUrl = useSignedUrl(rawUri);
 

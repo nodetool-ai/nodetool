@@ -89,7 +89,9 @@ export async function runDebug(
       workflowId: resolved.info.workflowId,
       params,
       tracePath,
-      timeoutMs: options.timeoutMs
+      timeoutMs: options.timeoutMs,
+      ...(options.supervisor ? { supervisor: options.supervisor } : {}),
+      onInterventionLine: log
     });
 
     const messagesPath = join(serverDir, "messages.jsonl");

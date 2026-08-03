@@ -31,7 +31,7 @@ story. [See all use cases →]({{ '/use-cases' | relative_url }})
     <div class="usecase-body">
       <span class="usecase-tag">Film</span>
       <h3><a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator</a></h3>
-      <p>One logline becomes a treatment, a shot list, key art, and a cut teaser.</p>
+      <p>One logline becomes a storyboard, key art, and a cut teaser.</p>
     </div>
   </article>
   <article class="usecase-card">

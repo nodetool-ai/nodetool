@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "Build AI Workflows in Your Browser — NodeTool Cloud (Alpha)";
+const TITLE = "The Agent-First Workspace in Your Browser — NodeTool Cloud (Alpha)";
 const DESCRIPTION =
-  "Build AI workflows in your browser — no install, no GPU required. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
+  "The agent-first workspace in your browser — no install, no GPU required. Tell the agent what you want and it builds and runs the workflow. NodeTool Cloud is the hosted, browser-based edition of the open-source NodeTool platform, currently in alpha (not yet generally available). Bring your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more. AGPL-3.0.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   },
   keywords: [
     "NodeTool Cloud",
+    "agent-first workspace",
+    "browser AI agent",
     "hosted AI workflows",
     "browser AI workflow builder",
     "BYOK AI",
@@ -52,7 +54,7 @@ export default function CloudLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Cloud",
           description:
-            "Hosted, browser-based edition of the open-source NodeTool platform (alpha). Build AI workflows with no install and no GPU, bringing your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more.",
+            "Hosted, browser-based edition of the open-source, agent-first NodeTool platform (alpha). Tell the agent what you want and it builds and runs the workflow — no install, no GPU, bringing your own API keys for OpenAI, Anthropic, Gemini, Replicate, and more.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "Web browser",
           url: "https://nodetool.ai/cloud",

@@ -36,7 +36,7 @@ Structured result (validated against output JSON schema)
 | Class | When to Use | Source |
 |---|---|---|
 | **Agent** | Multi-step objectives needing decomposition (full DAG planning + execution) | `packages/agents/src/agent.ts` |
-| **AgentExecutor** | Lightweight value extraction | `packages/agents/src/agent-executor.ts` |
+| **ParallelTaskExecutor** | Execute independent tasks of a plan concurrently | `packages/agents/src/parallel-task-executor.ts` |
 | **TaskPlanner** | Decompose an objective into a task DAG | `packages/agents/src/task-planner.ts` |
 | **TaskExecutor** | Walk the step DAG, respecting dependency order | `packages/agents/src/task-executor.ts` |
 | **StepExecutor** | Run the tool-calling loop for a single step | `packages/agents/src/step-executor.ts` |
@@ -185,7 +185,7 @@ abstract class Tool {
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
 | **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
-| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool`, `ListModelsTool` | `mcp-tools.ts` |
+| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool`, `ListModelsTool` | `mcp-tools.ts` |
 
 ### Workflow Harness Tools
 
@@ -200,6 +200,13 @@ from inside an agent:
   the expensive `debug`.
 - **`debug_workflow`** — run a workflow and return status, outputs, errors, job
   logs, and a graph overview in one call.
+- **`build_app`** — build a mini app from a prompt (or a pinned `BuildSpec`) and
+  return the `BuildReport`: stages, repairs, the simulated interactions, a
+  verdict, and — only behind a passing verdict — the `ApplicationBundle`. Posts
+  to `POST /api/applications/build`. Minutes, not seconds: with `poll: true` it
+  returns a session id to read at `GET /api/debug/sessions/:id` or cancel at
+  `POST /api/debug/sessions/:id/cancel`. The bundle is offered, never installed
+  — install it with `POST /api/applications/import-bundle`.
 - **`run_workflow`** / **`start_background_job`** — execute synchronously or as a
   background job (poll with `get_job` / `get_job_logs`).
 - **`create_workflow`**, **`search_nodes`**, **`list_nodes`**, **`get_node_info`**,

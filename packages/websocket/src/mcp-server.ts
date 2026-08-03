@@ -334,6 +334,32 @@ function getRuntimeEnvironment(
 }
 
 /**
+ * Record the name of every tool registered on `server` into the returned set.
+ *
+ * The agent-tool bridge registers a toolbelt derived from the agent catalogs,
+ * which overlaps the native registrations by design (list_workflows, get_asset,
+ * …). It needs to know which names are already taken so it can skip them
+ * instead of throwing on the duplicate. Collecting them here — rather than
+ * keeping a second hand-written list of native names — means adding a native
+ * tool cannot silently break the bridge. Both entry points are wrapped:
+ * `tool()` for plain registrations, `registerTool()` for the MCP-App ones that
+ * `registerAppTool` goes through.
+ */
+function trackRegisteredToolNames(server: McpServer): Set<string> {
+  const names = new Set<string>();
+  const wrap = <T extends (name: string, ...rest: never[]) => unknown>(
+    original: T
+  ): T =>
+    ((name: string, ...rest: never[]) => {
+      names.add(name);
+      return original(name, ...rest);
+    }) as T;
+  server.tool = wrap(server.tool.bind(server));
+  server.registerTool = wrap(server.registerTool.bind(server));
+  return names;
+}
+
+/**
  * Create a configured MCP server with all NodeTool tools registered.
  */
 export function createMcpServer(options?: McpServerOptions): McpServer {
@@ -341,6 +367,7 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     name: "NodeTool API Server",
     version: "1.0.0"
   });
+  const registeredToolNames = trackRegisteredToolNames(server);
 
   const rendererIdParam = {
     renderer_id: z
@@ -863,19 +890,24 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     }
   );
 
-  // ── Workflow-building + creative tools (bridged from @nodetool-ai/agents) ──
-  // Registered last so any name collision with a native tool throws loudly.
-  registerAgentMcpTools(server, options, async (toolName, args) => {
-    const transport = resolveFrontendTransport();
-    if (!transport || !transport.isAlive) return { handled: false };
-    const result = await transport.executeTool(
-      transport.id,
-      `mcp-ui-${toolName}-${crypto.randomUUID()}`,
-      toolName,
-      args
-    );
-    return { handled: true, result };
-  });
+  // ── The agent toolbelt (bridged from @nodetool-ai/agents) ──
+  // Registered last, so the native tools above win every shared name.
+  registerAgentMcpTools(
+    server,
+    options,
+    async (toolName, args) => {
+      const transport = resolveFrontendTransport();
+      if (!transport || !transport.isAlive) return { handled: false };
+      const result = await transport.executeTool(
+        transport.id,
+        `mcp-ui-${toolName}-${crypto.randomUUID()}`,
+        toolName,
+        args
+      );
+      return { handled: true, result };
+    },
+    registeredToolNames
+  );
 
   return server;
 }

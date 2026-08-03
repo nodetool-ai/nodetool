@@ -67,6 +67,7 @@ describe("createGraphNodeTypeResolver", () => {
         is_streaming_output: true,
         is_controlled: false,
         is_join_node: false,
+        is_trigger: false,
         retry_safe: false,
         input_mode: "buffered",
         output_correlation: {
@@ -135,6 +136,7 @@ describe("createGraphNodeTypeResolver", () => {
       is_streaming_output: true,
       is_controlled: false,
       is_join_node: false,
+      is_trigger: false,
       retry_safe: false,
       input_mode: "buffered",
       output_correlation: {

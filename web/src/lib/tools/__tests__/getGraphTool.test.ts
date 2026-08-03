@@ -246,4 +246,59 @@ describe("ui_get_graph tool", () => {
     const typed = result as { validation: { suggestions: string[] } };
     expect(typed.validation.suggestions).toHaveLength(0);
   });
+
+  describe("Code nodes", () => {
+    const codeGraph = async (
+      data: Record<string, unknown>,
+      edges: Array<{ id: string; source: string; target: string; sourceHandle?: string | null; targetHandle?: string | null }> = [],
+      extraNodes: Array<{ id: string; type?: string; position: { x: number; y: number }; data: Record<string, unknown> }> = []
+    ) => {
+      const nodes = [
+        { id: "c1", type: "nodetool.code.Code", position: { x: 0, y: 0 }, data },
+        ...extraNodes,
+      ];
+      const state = createMockState({
+        nodeMetadata: { "nodetool.code.Code": { properties: [] } as never },
+        getNodeStore: jest.fn().mockReturnValue(createMockNodeStore(nodes, edges)),
+      });
+      const result = await FrontendToolRegistry.call(
+        "ui_get_graph",
+        {},
+        "tc-code",
+        { getState: () => state }
+      );
+      return (result as { validation: { errors: string[] } }).validation.errors;
+    };
+
+    it("reports a body that does not parse", async () => {
+      const errors = await codeGraph({ properties: { code: "return { x: };" } });
+      expect(errors.join("\n")).toContain("does not parse");
+    });
+
+    it("reports a name that is neither a sandbox API nor an input", async () => {
+      const errors = await codeGraph({
+        properties: { code: "return { out: lodash.sum(rows) };" },
+        dynamic_properties: { rows: [] },
+      });
+      expect(errors.join("\n")).toContain('"lodash"');
+    });
+
+    it("accepts inputs that arrive over an edge", async () => {
+      const errors = await codeGraph(
+        { properties: { code: "return { out: text.length };" } },
+        [{ id: "e1", source: "s1", target: "c1", sourceHandle: "output", targetHandle: "text" }],
+        [{ id: "s1", type: "nodetool.constant.String", position: { x: -200, y: 0 }, data: {} }]
+      );
+      expect(errors).toHaveLength(0);
+    });
+
+    it("leaves a body it cannot see alone", async () => {
+      const errors = await codeGraph(
+        { properties: { code: "" } },
+        [{ id: "e1", source: "s1", target: "c1", sourceHandle: "output", targetHandle: "code" }],
+        [{ id: "s1", type: "nodetool.constant.String", position: { x: -200, y: 0 }, data: {} }]
+      );
+      expect(errors).toHaveLength(0);
+    });
+  });
 });

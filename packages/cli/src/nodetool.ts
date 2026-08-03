@@ -21,6 +21,7 @@ import { spawnSync } from "node:child_process";
 import { createInterface } from "node:readline";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import type { Intervention } from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   initDb,
@@ -53,6 +54,15 @@ import {
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
+import {
+  addSupervisorOptions,
+  createSupervisorHandle,
+  parseSupervisorFlags,
+  printSupervisedSummary,
+  recordSupervisorCost,
+  streamInterventionLines,
+  type SupervisorCliOptions
+} from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
@@ -64,6 +74,7 @@ import { registerDebugCommands } from "./commands/debug.js";
 import { registerAppCommands } from "./commands/app.js";
 import { registerAppsCommands } from "./commands/apps.js";
 import { registerValidateCommand } from "./commands/validate.js";
+import { registerTimelineCommands } from "./commands/timeline.js";
 import { registerReliabilityCommands } from "./commands/reliability.js";
 import { registerNodeCommands } from "./commands/node.js";
 import { registerGenerateCommand } from "./commands/generate.js";
@@ -312,11 +323,13 @@ function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
 // run — execute a TypeScript/JavaScript DSL workflow file
 // ---------------------------------------------------------------------------
 
-program
-  .command("run <dsl-file>")
-  .description("Run a TypeScript/JavaScript DSL workflow file")
-  .option("--json", "Output results as JSON (default: pretty-print)")
-  .action(async (dslFile: string, opts: { json?: boolean }) => {
+addSupervisorOptions(
+  program
+    .command("run <dsl-file>")
+    .description("Run a TypeScript/JavaScript DSL workflow file")
+    .option("--json", "Output results as JSON (default: pretty-print)")
+)
+  .action(async (dslFile: string, opts: { json?: boolean } & SupervisorCliOptions) => {
     try {
       const { resolve } = await import("node:path");
       const { runDslFile } = await import("./run-dsl.js");
@@ -325,11 +338,38 @@ program
 
       registerBaseNodes(NodeRegistry.global);
 
+      const supervisorConfig = parseSupervisorFlags(opts);
       const absolutePath = resolve(dslFile);
-      const results = await runDslFile(absolutePath);
+      let results: Record<string, Record<string, unknown>>;
+      let interventions: Intervention[] = [];
+      if (supervisorConfig) {
+        // The supervisor's provider key comes from the secret store, and its
+        // spend is written to the local ledger — both need the DB.
+        await setupDb();
+        const { runDslFileSupervised } = await import(
+          "./run-dsl-supervised.js"
+        );
+        const run = await runDslFileSupervised(
+          absolutePath,
+          supervisorConfig,
+          opts.json === true
+        );
+        results = run.results;
+        interventions = run.interventions;
+      } else {
+        results = await runDslFile(absolutePath);
+      }
 
       if (opts.json) {
-        console.log(JSON.stringify(results, null, 2));
+        // A supervised run reports what the supervisor did alongside the
+        // outputs; an unsupervised one keeps the bare results shape.
+        console.log(
+          JSON.stringify(
+            supervisorConfig ? { results, interventions } : results,
+            null,
+            2
+          )
+        );
       } else {
         for (const [workflowName, outputs] of Object.entries(results)) {
           console.log(`\n${workflowName}:`);
@@ -536,20 +576,29 @@ workflows
     }
   });
 
-workflows
-  .command("run <workflow_id_or_file>")
-  .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
-  .option("--params <json>", "JSON params string")
-  .option("--json", "Output as JSON")
-  .option(
-    "--asset-output-mode <mode>",
-    "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
-    "native"
-  )
-  .option(
-    "--workspace <dir>",
-    "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
-  )
+addSupervisorOptions(
+  workflows
+    .command("run <workflow_id_or_file>")
+    .description("Run a workflow by ID, JSON file, or TypeScript DSL file")
+    .option("--params <json>", "JSON params string")
+    .option("--json", "Output as JSON")
+    .option(
+      "--asset-output-mode <mode>",
+      "How media outputs are materialized: native | raw | data_uri | workspace | storage_url | temp_url",
+      "native"
+    )
+    .option(
+      "--workspace <dir>",
+      "Workspace directory for workspace-mode asset output (default: ./nodetool-output)"
+    )
+    .option(
+      "--trigger-event <json>",
+      'Wake a trigger node as the scheduler/webhook adapter would: \'{"node_id":"watch","payload":{"path":"/tmp/a.csv","event":"created"}}\'. ' +
+        "Without it a webhook, file-watch or manual trigger has no event to " +
+        "emit and the run stalls until its timeout — so this is the only way " +
+        "to exercise a trigger-driven workflow from the CLI."
+    )
+)
   .action(
     async (
       idOrFile: string,
@@ -558,15 +607,43 @@ workflows
         json?: boolean;
         assetOutputMode?: string;
         workspace?: string;
-      }
+        triggerEvent?: string;
+      } & SupervisorCliOptions
     ) => {
       try {
+        const supervisorConfig = parseSupervisorFlags(opts);
         await setupDb();
         let graph: { nodes: any[]; edges: any[] };
         let workflowId: string | null = null;
         const params = opts.params
           ? (JSON.parse(opts.params) as Record<string, unknown>)
           : {};
+
+        // A trigger node emits from `emitTriggerEvent`, not `genProcess`, and
+        // only when the run carries an event addressed to it. The kernel has
+        // always accepted one (`RunJobRequest.trigger_event`); nothing on the
+        // CLI could supply it, so a webhook or file-watch workflow could be
+        // validated but never executed. `input_id` defaults because every
+        // caller would otherwise invent the same throwaway id.
+        const triggerEvent = opts.triggerEvent
+          ? (() => {
+              const parsed = JSON.parse(opts.triggerEvent) as {
+                node_id?: string;
+                payload?: unknown;
+                input_id?: string;
+              };
+              if (!parsed.node_id) {
+                throw new Error(
+                  '--trigger-event needs a "node_id" naming the trigger node to wake.'
+                );
+              }
+              return {
+                node_id: parsed.node_id,
+                payload: parsed.payload ?? {},
+                input_id: parsed.input_id ?? `cli-${Date.now()}`
+              };
+            })()
+          : null;
 
         // Determine if argument is a file path or workflow ID
         if (
@@ -723,8 +800,19 @@ workflows
           }
         });
 
+        const supervisor = supervisorConfig
+          ? await createSupervisorHandle({
+              config: supervisorConfig,
+              context
+            })
+          : null;
+
         console.error(
-          `Running workflow${workflowId ? ` ${workflowId}` : ""}...`
+          `Running workflow${workflowId ? ` ${workflowId}` : ""}` +
+            (supervisor
+              ? ` supervised by ${supervisor.providerId}/${supervisor.model}`
+              : "") +
+            "..."
         );
 
         // ExecutionSession owns graph hydration, Python-bridge connection
@@ -743,10 +831,34 @@ workflows
           jobId,
           workflowId,
           params,
-          context
+          context,
+          ...(triggerEvent ? { triggerEvent } : {}),
+          // Message capture is retention, so it stays off unless a supervised
+          // run needs the stream to print its `⛨` lines as they happen.
+          ...(supervisor
+            ? { supervisor: supervisor.handle, captureMessages: true }
+            : {})
         });
 
+        const interventionLines = supervisor
+          ? streamInterventionLines(session.messages)
+          : Promise.resolve();
+
         const result = await session.result;
+        await interventionLines;
+        supervisor?.handle.close();
+
+        const interventions = result.interventions ?? [];
+        if (supervisor && interventions.length > 0) {
+          await recordSupervisorCost({
+            interventions,
+            jobId,
+            workflowId,
+            userId: "1",
+            providerId: supervisor.providerId,
+            model: supervisor.model
+          });
+        }
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));
@@ -763,6 +875,7 @@ workflows
               }
             }
           }
+          printSupervisedSummary(interventions);
         }
 
         process.exit(result.status === "completed" ? 0 : 1);
@@ -2148,6 +2261,7 @@ registerDebugCommands(program);
 registerAppCommands(program);
 registerAppsCommands(program);
 registerValidateCommand(program);
+registerTimelineCommands(program);
 registerReliabilityCommands(program);
 registerNodeCommands(program);
 registerGenerateCommand(program);

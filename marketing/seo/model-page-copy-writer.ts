@@ -16,7 +16,7 @@
 // the sibling `model-page-copy-writer.json`. The Comment node is UI-only chrome
 // with no runtime executor, so it is intentionally omitted from this runnable
 // export.
-import { agents, createNode, input, libOs, workflow, workflowsBase_node } from "@nodetool-ai/dsl";
+import { agents, createNode, input, workflow, workflowsBase_node } from "@nodetool-ai/dsl";
 
 // nodetool.text.Template takes dynamic {{ VAR }} inputs beyond its typed
 // `string` field. The generated `text.template()` factory only types `string`,
@@ -72,13 +72,16 @@ const templateNode = createNode<TemplateNode>("nodetool.text.Template", {
   SLUG: stringInput.output()
 }, { outputNames: ["output"], defaultOutput: "output" });
 
-// save — lib.os.WriteTextFile
-const writeTextFile = libOs.writeTextFile({
-  encoding: "utf-8",
-  append: false,
-  content: agent.output("text"),
-  path: templateNode.output()
-});
+// save — nodetool.code.Code (workspace.write)
+const writeTextFile = createNode<{ output: string }>(
+  "nodetool.code.Code",
+  {
+    code: 'await workspace.write(path, content);\nreturn { output: path };',
+    content: agent.output("text"),
+    path: templateNode.output()
+  },
+  { outputNames: ["output"], defaultOutput: "output" }
+);
 
 // preview_draft — nodetool.workflows.base_node.Preview
 const preview = workflowsBase_node.preview({

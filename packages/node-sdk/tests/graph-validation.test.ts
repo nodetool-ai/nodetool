@@ -576,3 +576,406 @@ describe("unknown_provider", () => {
     expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(false);
   });
 });
+
+describe("Code nodes", () => {
+  const CODE = "nodetool.code.Code";
+  const codeMeta = meta(CODE, { code: "str", timeout: "int" }, {}, {
+    supports_dynamic_inputs: true,
+    supports_dynamic_outputs: true
+  } as Partial<NodeMetadata>);
+  const registry = fakeRegistry({
+    [CODE]: codeMeta,
+    "a.Sink": meta("a.Sink", { in: "str" }, {}),
+    "a.IntSink": meta("a.IntSink", { in: "int" }, {})
+  });
+
+  /** A Code node plus an edge into a sink reading `out`. */
+  const graph = (node: Record<string, unknown>) => ({
+    nodes: [
+      { id: "c", type: CODE, ...node },
+      { id: "s", type: "a.Sink", properties: {} }
+    ],
+    edges: [
+      { id: "e1", source: "c", sourceHandle: "out", target: "s", targetHandle: "in" }
+    ]
+  });
+
+  it("passes a well-formed Code node", () => {
+    const report = validateGraph(
+      graph({
+        properties: { code: "return { out: String(text) };" },
+        dynamic_inputs: { text: { type: { type: "str" } } },
+        dynamic_outputs: { out: { type: "str" } }
+      }),
+      registry
+    );
+    expect(report.issues).toEqual([]);
+  });
+
+  it("reports a syntax error against the node", () => {
+    const report = validateGraph(
+      graph({
+        properties: { code: "return { out: };" },
+        dynamic_outputs: { out: { type: "str" } }
+      }),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "code_syntax");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.nodeId).toBe("c");
+    expect(report.ok).toBe(false);
+  });
+
+  it("flags code reading an input the node does not have", () => {
+    const report = validateGraph(
+      graph({
+        properties: { code: "return { out: missing };" },
+        dynamic_outputs: { out: { type: "str" } }
+      }),
+      registry
+    );
+    expect(
+      report.issues.find((i) => i.code === "code_undefined_name")?.message
+    ).toContain('"missing"');
+  });
+
+  it("counts a connected handle as an input the code may read", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "src", type: "a.Sink", properties: {} },
+          {
+            id: "c",
+            type: CODE,
+            properties: { code: "return { out: text };" },
+            dynamic_outputs: { out: { type: "str" } }
+          }
+        ],
+        edges: [
+          { id: "e", source: "src", sourceHandle: "in", target: "c", targetHandle: "text" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "code_undefined_name")).toBe(false);
+  });
+
+  it("uses the edges into the node when nothing declares an output", () => {
+    const report = validateGraph(
+      graph({ properties: { code: "const x = 1;" } }),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "code_no_return");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain('"out"');
+  });
+
+  it("leaves non-code nodes alone", () => {
+    const report = validateGraph(
+      {
+        nodes: [{ id: "s", type: "a.Sink", properties: { in: "return {" } }],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code.startsWith("code_"))).toBe(false);
+  });
+
+  it("type-checks an edge out of a declared dynamic output", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "c",
+            type: CODE,
+            properties: { code: "return { out: 1 };" },
+            dynamic_outputs: { out: { type: "int" } }
+          },
+          { id: "s", type: "a.Sink", properties: {} }
+        ],
+        edges: [
+          { id: "e", source: "c", sourceHandle: "out", target: "s", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    const mismatch = report.issues.find((i) => i.code === "type_mismatch");
+    expect(mismatch?.message).toContain("int");
+  });
+
+  it("flags an edge out of an output the node never declares", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "c",
+            type: CODE,
+            properties: { code: "return { out: 'x' };" },
+            dynamic_outputs: { out: { type: "str" } }
+          },
+          { id: "s", type: "a.Sink", properties: {} }
+        ],
+        edges: [
+          { id: "e", source: "c", sourceHandle: "ghost", target: "s", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "unknown_handle");
+    expect(issue?.message).toContain('"ghost"');
+    expect(issue?.message).toContain('"out"');
+  });
+
+  it("stays quiet about handles on a node that declares no dynamic outputs", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "c",
+            type: CODE,
+            properties: { code: "return { out: 'x' };" },
+            dynamic_outputs: {}
+          },
+          { id: "s", type: "a.Sink", properties: {} }
+        ],
+        edges: [
+          { id: "e", source: "c", sourceHandle: "out", target: "s", targetHandle: "in" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_handle")).toBe(false);
+  });
+});
+
+describe("slot_type_alias", () => {
+  const registry = fakeRegistry({
+    "a.Dyn": meta("a.Dyn", {}, {}, {
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: true
+    } as Partial<NodeMetadata>)
+  });
+
+  it("flags a JSON-Schema spelling on a dynamic input", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "n", type: "a.Dyn", dynamic_inputs: { count: { type: { type: "integer" } } } }
+        ],
+        edges: []
+      },
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "slot_type_alias");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain('use "int"');
+  });
+
+  it("walks type arguments", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "n",
+            type: "a.Dyn",
+            dynamic_outputs: {
+              rows: { type: "list", type_args: [{ type: "string" }] }
+            }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(
+      report.issues.find((i) => i.code === "slot_type_alias")?.message
+    ).toContain('use "str"');
+  });
+
+  it("accepts a custom type name it does not recognize", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "n", type: "a.Dyn", dynamic_outputs: { x: { type: "my.custom.Thing" } } }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "slot_type_alias")).toBe(false);
+  });
+});
+
+describe("validateGraph — cycles", () => {
+  const registry = fakeRegistry({
+    "a.N": meta("a.N", { in: "str" }, { out: "str" })
+  });
+  const node = (id: string) => ({ id, type: "a.N" });
+  const edge = (id: string, source: string, target: string) => ({
+    id,
+    source,
+    sourceHandle: "out",
+    target,
+    targetHandle: "in"
+  });
+
+  it("flags a self-loop", () => {
+    const report = validateGraph(
+      { nodes: [node("1")], edges: [edge("e1", "1", "1")] },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const issue = report.issues.find((i) => i.code === "cycle");
+    expect(issue?.nodeId).toBe("1");
+    expect(issue?.message).toContain("connected to itself");
+  });
+
+  it("flags a self-loop on a control edge too", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1")],
+        edges: [{ ...edge("e1", "1", "1"), edge_type: "control" }]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(true);
+  });
+
+  it("flags a multi-node cycle and names every node in it", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2"), node("3")],
+        edges: [
+          edge("e1", "1", "2"),
+          edge("e2", "2", "3"),
+          edge("e3", "3", "1")
+        ]
+      },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const issue = report.issues.find((i) => i.message.includes("Cycle detected"));
+    expect(issue?.code).toBe("cycle");
+    expect(issue?.message).toContain("1, 2, 3");
+  });
+
+  it("ignores control edges when looking for cycles (the kernel does)", () => {
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2")],
+        edges: [
+          edge("e1", "1", "2"),
+          { ...edge("e2", "2", "1"), edge_type: "control" }
+        ]
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("does not flag a diamond", () => {
+    const registryList = fakeRegistry({
+      "a.N": meta("a.N", { in: "str" }, { out: "str" }),
+      "a.Join": meta("a.Join", { in: "list[str]" }, { out: "str" })
+    });
+    const report = validateGraph(
+      {
+        nodes: [node("1"), node("2"), node("3"), { id: "4", type: "a.Join" }],
+        edges: [
+          edge("e1", "1", "2"),
+          edge("e2", "1", "3"),
+          edge("e3", "2", "4"),
+          edge("e4", "3", "4")
+        ]
+      },
+      registryList
+    );
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+
+  it("handles a long chain without recursing", () => {
+    const nodes = Array.from({ length: 20000 }, (_, i) => node(`n${i}`));
+    const edges = Array.from({ length: 19999 }, (_, i) =>
+      edge(`e${i}`, `n${i}`, `n${i + 1}`)
+    );
+    const report = validateGraph({ nodes, edges }, registry);
+    expect(report.issues.some((i) => i.code === "cycle")).toBe(false);
+  });
+});
+
+describe("validateGraph — node/edge shape", () => {
+  const registry = fakeRegistry(
+    {
+      "a.Source": meta("a.Source", {}, { out: "str" }),
+      "a.LLM": meta("a.LLM", { prompt: "str" }, { out: "str" })
+    },
+    { "a.LLM": ["prompt"] }
+  );
+
+  it("reads properties from the editor's nested data.properties", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "1",
+            type: "a.LLM",
+            data: { properties: { prompt: "hello" }, dynamic_properties: {} }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toEqual([]);
+    expect(report.ok).toBe(true);
+  });
+
+  it("still reads a flattened data bag", () => {
+    const report = validateGraph(
+      { nodes: [{ id: "1", type: "a.LLM", data: { prompt: "hello" } }], edges: [] },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toEqual([]);
+  });
+
+  it("flags an edge that names no handles", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "1", type: "a.Source" },
+          { id: "2", type: "a.LLM", properties: { prompt: "x" } }
+        ],
+        edges: [{ id: "e1", source: "1", target: "2" }]
+      },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    const missing = report.issues.filter((i) => i.code === "missing_handle");
+    expect(missing).toHaveLength(2);
+    expect(missing.map((i) => i.nodeId).sort()).toEqual(["1", "2"]);
+  });
+
+  it("flags a node with no id", () => {
+    const report = validateGraph(
+      { nodes: [{ type: "a.Source" }], edges: [] },
+      registry
+    );
+    expect(report.ok).toBe(false);
+    expect(report.issues.some((i) => i.code === "missing_id")).toBe(true);
+  });
+
+  it("reports a duplicate id's properties only once", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          { id: "dup", type: "a.LLM", properties: {} },
+          { id: "dup", type: "a.LLM", properties: {} }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.filter((i) => i.code === "property")).toHaveLength(1);
+    expect(report.issues.filter((i) => i.code === "duplicate_id")).toHaveLength(1);
+  });
+});

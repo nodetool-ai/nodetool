@@ -139,6 +139,127 @@ describe("instantiatePaletteNode", () => {
     });
   });
 
+  it("seeds declared slot types onto the created node", () => {
+    const snippet = {
+      id: "svg-circle",
+      title: "Circle",
+      code: "return { output: { cx, r: radius, fill } };",
+      description: "A circle",
+      tags: ["svg"],
+      category: "SVG" as const,
+      inputs: {
+        cx: { type: "int", default: 0 },
+        radius: { type: "int", default: 50, min: 0 },
+        fill: { type: "color", default: "#000000", description: "Fill colour" }
+      },
+      outputs: { output: "svg_element" }
+    };
+    mockFindSnippet.mockReturnValue(snippet);
+    mockInferOutputs.mockReturnValue(["output"]);
+    mockInferInputs.mockReturnValue(["cx", "radius", "fill"]);
+
+    const codeMetadata = makeMetadata("nodetool.code.Code");
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(codeMetadata)
+    });
+
+    const result = instantiatePaletteNode(
+      makeMetadata("nodetool.svg.svg_circle"),
+      { x: 0, y: 0 },
+      makeCreateNode()
+    );
+
+    expect(result.afterAdd!.dynamic_outputs).toEqual({
+      output: { type: "svg_element", type_args: [], optional: false }
+    });
+    expect(result.afterAdd!.dynamic_inputs).toEqual({
+      cx: {
+        type: { type: "int", type_args: [], optional: false },
+        default: 0
+      },
+      radius: {
+        type: { type: "int", type_args: [], optional: false },
+        default: 50,
+        min: 0
+      },
+      fill: {
+        type: { type: "color", type_args: [], optional: false },
+        default: "#000000",
+        description: "Fill colour"
+      }
+    });
+    expect(result.afterAdd!.dynamic_properties).toEqual({
+      cx: 0,
+      radius: 50,
+      fill: "#000000"
+    });
+  });
+
+  it("leaves undeclared slots untyped", () => {
+    const snippet = {
+      id: "partly-typed",
+      title: "Partly typed",
+      code: "return { output: a, other: b };",
+      description: "One declared slot",
+      tags: [],
+      category: "Math" as const,
+      inputs: { a: { type: "float" } },
+      outputs: { output: "dataframe" }
+    };
+    mockFindSnippet.mockReturnValue(snippet);
+    mockInferOutputs.mockReturnValue(["output", "other"]);
+    mockInferInputs.mockReturnValue(["a", "b"]);
+
+    const codeMetadata = makeMetadata("nodetool.code.Code");
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(codeMetadata)
+    });
+
+    const result = instantiatePaletteNode(
+      makeMetadata("nodetool.math.partly_typed"),
+      { x: 0, y: 0 },
+      makeCreateNode()
+    );
+
+    expect(result.afterAdd!.dynamic_outputs).toEqual({
+      output: { type: "dataframe", type_args: [], optional: false },
+      other: { type: "any", type_args: [], optional: false }
+    });
+    expect(Object.keys(result.afterAdd!.dynamic_inputs!)).toEqual(["a"]);
+    expect(result.afterAdd!.dynamic_properties).toEqual({ a: 0, b: "" });
+  });
+
+  it("omits dynamic_inputs entirely when nothing is declared", () => {
+    const snippet = {
+      id: "plain",
+      title: "Plain",
+      code: "return { output: a };",
+      description: "Untyped",
+      tags: [],
+      category: "Text" as const
+    };
+    mockFindSnippet.mockReturnValue(snippet);
+    mockInferOutputs.mockReturnValue(["output"]);
+    mockInferInputs.mockReturnValue(["a"]);
+
+    const codeMetadata = makeMetadata("nodetool.code.Code");
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn().mockReturnValue(codeMetadata)
+    });
+
+    const result = instantiatePaletteNode(
+      makeMetadata("nodetool.text.plain"),
+      { x: 0, y: 0 },
+      makeCreateNode()
+    );
+
+    expect(result.afterAdd!.dynamic_inputs).toBeUndefined();
+    expect(result.afterAdd!.dynamic_outputs).toEqual({
+      output: { type: "any", type_args: [], optional: false }
+    });
+    expect(result.afterAdd!.dynamic_properties).toEqual({ a: "" });
+  });
+
   it("returns no afterAdd when snippet has no inferred IO", () => {
     const snippet = {
       id: "bare-snippet",

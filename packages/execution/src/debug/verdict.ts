@@ -38,6 +38,30 @@ export function collectRunIssues(
   return issues;
 }
 
+/**
+ * What supervision decided, as things worth reading but not failures — a
+ * skipped invocation leaves the run `completed` with less output than the
+ * graph promised, which no status field says out loud.
+ */
+export function collectInterventionWarnings(
+  prefix: string,
+  summary: ExecutionSummary,
+  limit = 5
+): string[] {
+  if (summary.interventions.length === 0) return [];
+  const warnings = summary.interventions
+    .slice(0, limit)
+    .map(
+      (i) =>
+        `${prefix} supervisor ${i.verdict.action} on ${i.escalation.nodeId}` +
+        `${i.escalation.invocationKey ? ` [${i.escalation.invocationKey}]` : ""}` +
+        `: ${i.escalation.detail.replace(/\s+/g, " ").slice(0, 200)}`
+    );
+  const rest = summary.interventions.length - warnings.length;
+  if (rest > 0) warnings.push(`${prefix} …${rest} more supervisor decision(s)`);
+  return warnings;
+}
+
 /** Verdict for a single-surface run. */
 export function buildRunVerdict(
   summary: ExecutionSummary,

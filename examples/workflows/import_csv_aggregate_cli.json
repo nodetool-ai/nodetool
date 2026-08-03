@@ -1,17 +1,48 @@
 {
   "graph": {
     "nodes": [
-      { "id": "csv", "type": "test.Input", "name": "csv_data" },
-      { "id": "groups", "type": "test.Input", "name": "columns" },
-      { "id": "agg_name", "type": "test.Input", "name": "aggregation" },
-      { "id": "import", "type": "nodetool.data.ImportCSV" },
-      { "id": "aggregate", "type": "nodetool.data.Aggregate" },
-      { "id": "sink", "type": "nodetool.control.Reroute", "name": "grouped" }
+      {
+        "id": "csv",
+        "type": "nodetool.input.StringInput",
+        "name": "csv_data",
+        "data": {
+          "name": "csv_data"
+        }
+      },
+      {
+        "id": "groups",
+        "type": "nodetool.input.StringInput",
+        "name": "columns",
+        "data": {
+          "name": "columns"
+        }
+      },
+      {
+        "id": "agg_name",
+        "type": "nodetool.input.StringInput",
+        "name": "aggregation",
+        "data": {
+          "name": "aggregation"
+        }
+      },
+      {
+        "id": "import",
+        "type": "nodetool.data.ImportCSV"
+      },
+      {
+        "id": "aggregate",
+        "type": "nodetool.data.Aggregate"
+      },
+      {
+        "id": "sink",
+        "type": "nodetool.control.Reroute",
+        "name": "grouped"
+      }
     ],
     "edges": [
       {
         "source": "csv",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "import",
         "targetHandle": "csv_data"
       },
@@ -23,13 +54,13 @@
       },
       {
         "source": "groups",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "aggregate",
         "targetHandle": "columns"
       },
       {
         "source": "agg_name",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "aggregate",
         "targetHandle": "aggregation"
       },
@@ -47,4 +78,3 @@
     "aggregation": "sum"
   }
 }
-

@@ -43,6 +43,17 @@ let devicePromise: Promise<GPUDevice> | null = null;
  * then fires after the instance is finalized, it locks a freed mutex and the
  * process dies with `SIGSEGV` in `dawn::native::InstanceBase::ProcessEvents`
  * (no JS error, just a hard crash). Retaining every instance prevents that.
+ *
+ * The cost of retaining is that **the Node event loop never drains again**: the
+ * re-scheduled `ProcessEvents()` stays an active handle for the process
+ * lifetime. A long-lived host (the server, the Electron backend) does not care.
+ * A one-shot host must call `process.exit()` once its work is done rather than
+ * setting `process.exitCode` and returning, or it hangs after printing its
+ * results — with the workflow having completed perfectly. `nodetool workflows
+ * run` and `scripts/run-workflow.mjs` both exit explicitly for this reason.
+ *
+ * There is deliberately no teardown export here: destroying the device does not
+ * stop the runner, and releasing the instance is the SIGSEGV above.
  */
 const retainedDawnInstances: GPU[] = [];
 

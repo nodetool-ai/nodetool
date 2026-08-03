@@ -26,6 +26,7 @@ import { RootStackParamList } from '../navigation/types';
 import { type CollectionResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Collections'>;
@@ -38,6 +39,54 @@ interface CreateState {
   embedding_model: string;
   saving: boolean;
 }
+
+const keyExtractor = (collection: CollectionResponse) => collection.name;
+
+const CollectionRow = React.memo(function CollectionRow({
+  collection,
+  colors,
+  shadows,
+  onDelete,
+}: {
+  collection: CollectionResponse;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onDelete: (collection: CollectionResponse) => void;
+}) {
+  const handleDelete = useCallback(() => onDelete(collection), [onDelete, collection]);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: colors.accentMuted }]}>
+        <Ionicons name="library-outline" size={20} color={colors.accent} />
+      </View>
+      <View style={styles.meta}>
+        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
+          {collection.name}
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
+          {collection.count.toLocaleString()} {collection.count === 1 ? 'item' : 'items'}
+          {collection.workflow_name ? ` · ${collection.workflow_name}` : ''}
+        </Text>
+      </View>
+      <TouchableOpacity
+        onPress={handleDelete}
+        style={styles.deleteBtn}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete ${collection.name}`}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.error} />
+      </TouchableOpacity>
+    </View>
+  );
+});
 
 export default function CollectionsScreen({ navigation: _navigation }: Props) {
   const { colors, shadows } = useTheme();
@@ -119,36 +168,16 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
     );
   }, [deleteCollection]);
 
-  const renderItem = ({ item }: { item: CollectionResponse }) => (
-    <View
-      style={[
-        styles.card,
-        shadows.small,
-        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-      ]}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: colors.accentMuted }]}>
-        <Ionicons name="library-outline" size={20} color={colors.accent} />
-      </View>
-      <View style={styles.meta}>
-        <Text style={[styles.name, { color: colors.text }]} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]} numberOfLines={1}>
-          {item.count.toLocaleString()} {item.count === 1 ? 'item' : 'items'}
-          {item.workflow_name ? ` · ${item.workflow_name}` : ''}
-        </Text>
-      </View>
-      <TouchableOpacity
-        onPress={() => handleDelete(item)}
-        style={styles.deleteBtn}
-        accessibilityRole="button"
-        accessibilityLabel={`Delete ${item.name}`}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="trash-outline" size={18} color={colors.error} />
-      </TouchableOpacity>
-    </View>
+  const renderItem = useCallback(
+    ({ item }: { item: CollectionResponse }) => (
+      <CollectionRow
+        collection={item}
+        colors={colors}
+        shadows={shadows}
+        onDelete={handleDelete}
+      />
+    ),
+    [colors, shadows, handleDelete],
   );
 
   if (isLoading) {
@@ -191,7 +220,7 @@ export default function CollectionsScreen({ navigation: _navigation }: Props) {
 
       <FlatList
         data={filtered}
-        keyExtractor={(c) => c.name}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={

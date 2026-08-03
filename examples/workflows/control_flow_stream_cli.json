@@ -1,0 +1,349 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "ticks",
+        "type": "nodetool.control.RepeatCount",
+        "data": {
+          "count": 6
+        }
+      },
+      {
+        "id": "evens",
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item % 2 === 0"
+        }
+      },
+      {
+        "id": "after_warmup",
+        "type": "nodetool.control.DropWhile",
+        "data": {
+          "predicate": "item < 3"
+        }
+      },
+      {
+        "id": "tap",
+        "type": "nodetool.control.Tap",
+        "data": {
+          "label": "tick"
+        }
+      },
+      {
+        "id": "route_hit",
+        "type": "nodetool.control.Switch",
+        "data": {
+          "value": "beta",
+          "cases": [
+            "alpha",
+            "beta",
+            "gamma"
+          ],
+          "input": "payload"
+        }
+      },
+      {
+        "id": "route_miss",
+        "type": "nodetool.control.Switch",
+        "data": {
+          "value": "delta",
+          "cases": [
+            "alpha",
+            "beta",
+            "gamma"
+          ],
+          "input": "payload"
+        }
+      },
+      {
+        "id": "fallback_used",
+        "type": "nodetool.control.TryCatch",
+        "data": {
+          "value": null,
+          "fallback": "default-value"
+        }
+      },
+      {
+        "id": "fallback_unused",
+        "type": "nodetool.control.TryCatch",
+        "data": {
+          "value": "present",
+          "fallback": "default-value"
+        }
+      },
+      {
+        "id": "out_evens",
+        "type": "nodetool.output.Output",
+        "name": "evens",
+        "data": {
+          "name": "evens"
+        }
+      },
+      {
+        "id": "out_after_warmup",
+        "type": "nodetool.output.Output",
+        "name": "after_warmup",
+        "data": {
+          "name": "after_warmup"
+        }
+      },
+      {
+        "id": "out_tapped",
+        "type": "nodetool.output.Output",
+        "name": "tapped",
+        "data": {
+          "name": "tapped"
+        }
+      },
+      {
+        "id": "out_matched",
+        "type": "nodetool.output.Output",
+        "name": "matched",
+        "data": {
+          "name": "matched"
+        }
+      },
+      {
+        "id": "out_matched_index",
+        "type": "nodetool.output.Output",
+        "name": "matched_index",
+        "data": {
+          "name": "matched_index"
+        }
+      },
+      {
+        "id": "out_default",
+        "type": "nodetool.output.Output",
+        "name": "routed_to_default",
+        "data": {
+          "name": "routed_to_default"
+        }
+      },
+      {
+        "id": "out_default_index",
+        "type": "nodetool.output.Output",
+        "name": "default_index",
+        "data": {
+          "name": "default_index"
+        }
+      },
+      {
+        "id": "out_fallback",
+        "type": "nodetool.output.Output",
+        "name": "fallback",
+        "data": {
+          "name": "fallback"
+        }
+      },
+      {
+        "id": "out_fallback_flag",
+        "type": "nodetool.output.Output",
+        "name": "fallback_flag",
+        "data": {
+          "name": "fallback_flag"
+        }
+      },
+      {
+        "id": "out_passthrough",
+        "type": "nodetool.output.Output",
+        "name": "passthrough",
+        "data": {
+          "name": "passthrough"
+        }
+      },
+      {
+        "id": "out_passthrough_flag",
+        "type": "nodetool.output.Output",
+        "name": "passthrough_flag",
+        "data": {
+          "name": "passthrough_flag"
+        }
+      },
+      {
+        "id": "collect_evens",
+        "type": "nodetool.control.Collect"
+      },
+      {
+        "id": "collect_after_warmup",
+        "type": "nodetool.control.Collect"
+      },
+      {
+        "id": "collect_tapped",
+        "type": "nodetool.control.Collect"
+      },
+      {
+        "id": "sparse_items",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": [
+            "alpha",
+            null,
+            "beta",
+            null,
+            "gamma"
+          ],
+          "limit": -1
+        }
+      },
+      {
+        "id": "drop_nulls",
+        "type": "nodetool.data.FilterNone"
+      },
+      {
+        "id": "collect_present",
+        "type": "nodetool.control.Collect"
+      },
+      {
+        "id": "out_present",
+        "type": "nodetool.output.Output",
+        "name": "present",
+        "data": {
+          "name": "present"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "ticks",
+        "sourceHandle": "output",
+        "target": "evens",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e2",
+        "source": "ticks",
+        "sourceHandle": "output",
+        "target": "after_warmup",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e3",
+        "source": "ticks",
+        "sourceHandle": "output",
+        "target": "tap",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e4a",
+        "source": "evens",
+        "sourceHandle": "output",
+        "target": "collect_evens",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e4b",
+        "source": "collect_evens",
+        "sourceHandle": "output",
+        "target": "out_evens",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5a",
+        "source": "after_warmup",
+        "sourceHandle": "output",
+        "target": "collect_after_warmup",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e5b",
+        "source": "collect_after_warmup",
+        "sourceHandle": "output",
+        "target": "out_after_warmup",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6a",
+        "source": "tap",
+        "sourceHandle": "output",
+        "target": "collect_tapped",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e6b",
+        "source": "collect_tapped",
+        "sourceHandle": "output",
+        "target": "out_tapped",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "route_hit",
+        "sourceHandle": "matched",
+        "target": "out_matched",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "route_hit",
+        "sourceHandle": "index",
+        "target": "out_matched_index",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e9",
+        "source": "route_miss",
+        "sourceHandle": "default",
+        "target": "out_default",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e10",
+        "source": "route_miss",
+        "sourceHandle": "index",
+        "target": "out_default_index",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e11",
+        "source": "fallback_used",
+        "sourceHandle": "output",
+        "target": "out_fallback",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e12",
+        "source": "fallback_used",
+        "sourceHandle": "has_error",
+        "target": "out_fallback_flag",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e13",
+        "source": "fallback_unused",
+        "sourceHandle": "output",
+        "target": "out_passthrough",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e14",
+        "source": "fallback_unused",
+        "sourceHandle": "has_error",
+        "target": "out_passthrough_flag",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e15",
+        "source": "sparse_items",
+        "sourceHandle": "output",
+        "target": "drop_nulls",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e16",
+        "source": "drop_nulls",
+        "sourceHandle": "output",
+        "target": "collect_present",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e17",
+        "source": "collect_present",
+        "sourceHandle": "output",
+        "target": "out_present",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

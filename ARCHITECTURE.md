@@ -101,7 +101,6 @@ nodetool/
 │   ├── agents/             #   Agent system with task planning & tools
 │   ├── chat/               #   Chat protocol & runtime integration
 │   ├── vectorstore/        #   SQLite-vec vector database
-│   ├── code-runners/       #   Sandboxed code execution (Docker/subprocess)
 │   ├── dsl/                #   Type-safe workflow DSL
 │   ├── websocket/          #   HTTP + WebSocket server (entry point)
 │   ├── cli/                #   Terminal UI (React + Ink)
@@ -179,8 +178,7 @@ Foundational Layer
   ├── protocol ──────────────────────────── Types & messages (Zod)
   ├── config ────────────────────────────── Environment management
   ├── storage ───────────────────────────── Asset storage adapters
-  ├── auth ──────────────────────────────── Authentication providers
-  └── code-runners ──────────────────────── Sandboxed code execution
+  └── auth ──────────────────────────────── Authentication providers
 ```
 
 ### Foundational Layer
@@ -194,8 +192,6 @@ These packages have no internal dependencies and form the base of the stack.
 **`storage`** — Pluggable asset storage with a shared `AbstractStorage` interface (`store`, `retrieve`, `exists`). Four backend implementations: `FileStorage` (local filesystem), `MemoryStorage` (tests), `S3Storage` (AWS S3 via dynamic import), and `SupabaseStorage` (Supabase cloud). SDKs are loaded lazily to keep them as optional runtime-only dependencies.
 
 **`auth`** — JWT-based authentication with multiple provider implementations: `LocalAuthProvider` (file-based users), `StaticTokenProvider` (fixed tokens), `MultiUserAuthProvider`, and `SupabaseAuthProvider`. Provides middleware (`createAuthMiddleware`), token extraction, and a `UserManager` abstraction with role-based access control.
-
-**`code-runners`** — Sandboxed code execution for Python, JavaScript, Bash, Ruby, and Lua. Supports subprocess-based and Docker container-based runners with streaming stdout/stderr capture.
 
 ### Infrastructure Layer
 
@@ -792,7 +788,7 @@ npm run clean            # Remove dependencies and build artifacts
 Packages must be built in dependency order. The root `build:packages` script handles this:
 
 ```
-protocol → config → security → storage → auth → code-runners
+protocol → config → security → storage → auth
     → runtime → vectorstore → models → kernel → node-sdk
     → agents → base-nodes → dsl → chat → huggingface
     → replicate-nodes → fal-nodes → elevenlabs-nodes → minimax-nodes

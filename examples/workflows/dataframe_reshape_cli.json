@@ -1,0 +1,143 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "sales",
+        "type": "nodetool.constant.DataFrame",
+        "data": {
+          "value": {
+            "type": "dataframe",
+            "columns": [
+              { "name": "region", "data_type": "string" },
+              { "name": "quarter", "data_type": "string" },
+              { "name": "amount", "data_type": "int" }
+            ],
+            "data": [
+              ["north", "Q1", 10],
+              ["north", "Q2", 15],
+              ["south", "Q1", 7],
+              ["south", "Q2", 3]
+            ]
+          }
+        }
+      },
+      {
+        "id": "pivot",
+        "type": "nodetool.data.Pivot",
+        "data": {
+          "index": "region",
+          "columns": "quarter",
+          "values": "amount",
+          "aggfunc": "sum"
+        }
+      },
+      { "id": "rows", "type": "nodetool.data.ForEachRow" },
+      { "id": "collect_rows", "type": "nodetool.control.Collect" },
+
+      {
+        "id": "schema",
+        "type": "nodetool.data.Schema",
+        "data": {
+          "columns": {
+            "type": "record_type",
+            "columns": [
+              { "name": "region", "data_type": "string" },
+              { "name": "amount", "data_type": "int" }
+            ]
+          }
+        }
+      },
+
+      {
+        "id": "repeat",
+        "type": "nodetool.control.RepeatValue",
+        "data": { "value": "tick", "count": 3 }
+      },
+      { "id": "collect_repeat", "type": "nodetool.control.Collect" },
+
+      {
+        "id": "out_pivot",
+        "type": "nodetool.output.Output",
+        "name": "pivoted",
+        "data": { "name": "pivoted" }
+      },
+      {
+        "id": "out_rows",
+        "type": "nodetool.output.Output",
+        "name": "rows",
+        "data": { "name": "rows" }
+      },
+      {
+        "id": "out_schema",
+        "type": "nodetool.output.Output",
+        "name": "schema",
+        "data": { "name": "schema" }
+      },
+      {
+        "id": "out_repeat",
+        "type": "nodetool.output.Output",
+        "name": "repeated",
+        "data": { "name": "repeated" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "sales",
+        "sourceHandle": "output",
+        "target": "pivot",
+        "targetHandle": "dataframe"
+      },
+      {
+        "id": "e2",
+        "source": "sales",
+        "sourceHandle": "output",
+        "target": "rows",
+        "targetHandle": "dataframe"
+      },
+      {
+        "id": "e3",
+        "source": "rows",
+        "sourceHandle": "row",
+        "target": "collect_rows",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e4",
+        "source": "collect_rows",
+        "sourceHandle": "output",
+        "target": "out_rows",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "pivot",
+        "sourceHandle": "output",
+        "target": "out_pivot",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "schema",
+        "sourceHandle": "output",
+        "target": "out_schema",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "repeat",
+        "sourceHandle": "output",
+        "target": "collect_repeat",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e8",
+        "source": "collect_repeat",
+        "sourceHandle": "output",
+        "target": "out_repeat",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

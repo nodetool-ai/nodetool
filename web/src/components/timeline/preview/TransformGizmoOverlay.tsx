@@ -21,8 +21,11 @@
 import React, { useRef, useState } from "react";
 import type { ClipTransform } from "@nodetool-ai/timeline";
 
-import { buildTransformMatrix, containBaseScale } from "./gpu/transform";
-import { PREVIEW_OVERLAY_Z } from "./sceneModel";
+import {
+  buildTransformMatrix,
+  containBaseScale
+} from "@nodetool-ai/timeline/render";
+import { PREVIEW_OVERLAY_Z } from "@nodetool-ai/timeline/render";
 import {
   HANDLE_SIZE,
   ROTATION_HANDLE_OFFSET,

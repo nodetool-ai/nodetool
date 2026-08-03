@@ -2,9 +2,9 @@
 
 Code-execution and agent-tool nodes for [NodeTool](https://nodetool.ai).
 
-Run Python, JavaScript, Bash, Ruby, and Lua inside visual AI workflows — in a
-subprocess, a sandbox, or a Docker container — and drive single-purpose LLM
-tool agents for shell, browser, filesystem, git, media, and document tasks.
+Run JavaScript inside visual AI workflows in a QuickJS WASM sandbox, and drive
+single-purpose LLM tool agents for shell, browser, filesystem, git, media, and
+document tasks.
 
 ## Install
 
@@ -14,11 +14,9 @@ npm install @nodetool-ai/code-nodes
 
 ## Nodes
 
-**Code execution** (`nodetool.code.*`) — run a script and capture its output:
-`ExecutePython`, `ExecuteJavaScript`, `ExecuteBash`, `ExecuteRuby`,
-`ExecuteLua`, `ExecuteCommand`. Command variants (`RunPythonCommand`,
-`RunBashCommand`, `RunShellCommand`, …) and Docker-isolated variants
-(`RunPythonCommandDocker`, `RunBashCommandDocker`, …).
+**Code execution** — `nodetool.code.Code` runs JavaScript in a QuickJS WASM
+sandbox with `fetch()`, workspace file access, secrets, and data helpers.
+Dynamic inputs arrive as globals; the returned object becomes the outputs.
 
 **Sandbox** (`nodetool.sandbox.*`) — `SandboxShell`, `SandboxFile`.
 

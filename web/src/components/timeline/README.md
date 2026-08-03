@@ -53,9 +53,12 @@ The **Export** action in the `TopBar` renders the sequence to an MP4 entirely
 in the browser. It reuses the *same* compositor and scene description as the
 live preview, so an exported frame is identical to what playback showed:
 
-- `preview/sceneModel.ts` — the single source of truth for "what is on screen
-  at time *t*" (`computeActiveLayers`). Both `PreviewCompositor` (live) and the
-  renderer drive their GPU layer lists from it.
+- `@nodetool-ai/timeline/render` — the shared render module: the scene model
+  ("what is on screen at time *t*", `computeActiveLayers`), the placement math,
+  the caption/text/shape drawing rules, and the effects pre-pass. The live
+  `PreviewCompositor`, this renderer, and the server-side
+  `nodetool.timeline.RenderTimeline` node all drive their layer lists from it,
+  so a render is the same picture wherever it runs.
 - `render/TimelineRenderer.ts` — steps the playhead in exact `1 / fps`
   increments, seeks each video element to the precise source frame (waiting for
   `seeked` so decoding is deterministic, not best-effort), composites at full
@@ -66,6 +69,12 @@ live preview, so an exported frame is identical to what playback showed:
   `OfflineAudioContext`.
 - `useTimelineExport` (`hooks/timeline/`) — wires the store + asset URLs to the
   renderer, reports progress, and downloads the resulting file.
+
+The same sequence renders server-side through `RenderTimeline`
+(`packages/video-nodes`), which drives the shared scene model and the headless
+`HeadlessFrameCompositor` with ffmpeg on both ends (decode to RGBA, encode the
+composited frames) — see that node for what it needs (a WebGPU device) and what
+it falls back to without one.
 
 The renderer composites at the sequence's true `width × height` (clamped to even
 dimensions for H.264). mediabunny and the WebGPU compositor are dynamically

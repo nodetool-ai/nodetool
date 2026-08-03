@@ -12,11 +12,7 @@
 export * from "./castTypes";
 export { DemoEngine, seedCastMetadata } from "./demoEngine";
 export type { DemoEngineOptions } from "./demoEngine";
-export {
-  DemoPlayer,
-  default as DemoPlayerDefault,
-  useDemoClock,
-} from "./DemoPlayer";
+export { DemoPlayer, default as DemoPlayerDefault } from "./DemoPlayer";
 export type { DemoPlayerProps } from "./DemoPlayer";
 export { CastRecorder, downloadCastJson } from "./recorder";
 export type {

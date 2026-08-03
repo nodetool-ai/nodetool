@@ -12,7 +12,7 @@ import {
   resolveAnimatedLayerProps,
   resolveTextStaggerContext,
   type ActiveLayer
-} from "../sceneModel";
+} from "@nodetool-ai/timeline/render";
 
 const CANVAS = { width: 1920, height: 1080 };
 

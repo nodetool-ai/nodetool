@@ -1,0 +1,907 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "lib.image.draw.LinearGradient",
+        "data": {
+          "width": 48,
+          "height": 32,
+          "color_a": { "type": "color", "value": "#102040" },
+          "color_b": { "type": "color", "value": "#e0c090" },
+          "angle": 30,
+          "midpoint": 0.5
+        }
+      },
+
+      {
+        "id": "exposure_neutral",
+        "type": "lib.image.color.Exposure",
+        "data": { "stops": 0 }
+      },
+      {
+        "id": "exposure_up",
+        "type": "lib.image.color.Exposure",
+        "data": { "stops": 1.5 }
+      },
+      {
+        "id": "grade",
+        "type": "lib.image.color.Grade",
+        "data": {
+          "brightness": 0.2,
+          "contrast": 1.3,
+          "saturation": 1.4,
+          "hue": 15,
+          "temperature": 0.2,
+          "tint": -0.1,
+          "shadows": 0.1,
+          "highlights": -0.1
+        }
+      },
+      {
+        "id": "channel_split",
+        "type": "lib.image.color.ChannelSplit",
+        "data": { "mode": 0 }
+      },
+
+      {
+        "id": "cdl",
+        "type": "lib.image.color_grading.CDL",
+        "data": {
+          "slope_r": 1.1,
+          "slope_g": 1,
+          "slope_b": 0.9,
+          "offset_r": 0.02,
+          "offset_g": 0,
+          "offset_b": -0.02,
+          "power_r": 1,
+          "power_g": 1,
+          "power_b": 1.1,
+          "saturation": 1.2
+        }
+      },
+      {
+        "id": "color_balance",
+        "type": "lib.image.color_grading.ColorBalance",
+        "data": { "temperature": 0.3, "tint": -0.2 }
+      },
+      {
+        "id": "curves",
+        "type": "lib.image.color_grading.Curves",
+        "data": {
+          "black_point": 0.05,
+          "white_point": 0.95,
+          "shadows": 0.1,
+          "midtones": 0.2,
+          "highlights": -0.1,
+          "red_midtones": 0.05,
+          "green_midtones": 0,
+          "blue_midtones": -0.05
+        }
+      },
+      {
+        "id": "film_look",
+        "type": "lib.image.color_grading.FilmLook",
+        "data": { "preset": "teal_orange", "intensity": 0.8 }
+      },
+      {
+        "id": "hsl",
+        "type": "lib.image.color_grading.HSLAdjust",
+        "data": {
+          "color_range": "blues",
+          "hue_shift": 20,
+          "saturation": 0.3,
+          "luminance": 0.1
+        }
+      },
+      {
+        "id": "lgg",
+        "type": "lib.image.color_grading.LiftGammaGain",
+        "data": {
+          "lift_r": 0.02,
+          "lift_g": 0,
+          "lift_b": -0.02,
+          "lift_master": 0.01,
+          "gamma_r": 1,
+          "gamma_g": 1.1,
+          "gamma_b": 1,
+          "gamma_master": 1,
+          "gain_r": 1.05,
+          "gain_g": 1,
+          "gain_b": 0.95,
+          "gain_master": 1
+        }
+      },
+      {
+        "id": "split_toning",
+        "type": "lib.image.color_grading.SplitToning",
+        "data": {
+          "shadow_hue": 210,
+          "shadow_saturation": 0.4,
+          "highlight_hue": 40,
+          "highlight_saturation": 0.3,
+          "balance": 0
+        }
+      },
+      {
+        "id": "vignette",
+        "type": "lib.image.color_grading.Vignette",
+        "data": { "amount": 0.6, "midpoint": 0.5, "feather": 0.5 }
+      },
+
+      {
+        "id": "adaptive_contrast",
+        "type": "lib.image.enhance.AdaptiveContrast",
+        "data": { "clip_limit": 2, "grid_size": 8 }
+      },
+      { "id": "detail", "type": "lib.image.enhance.Detail" },
+      { "id": "edge_enhance", "type": "lib.image.enhance.EdgeEnhance" },
+      { "id": "equalize", "type": "lib.image.enhance.Equalize" },
+      {
+        "id": "rank_filter",
+        "type": "lib.image.enhance.RankFilter",
+        "data": { "size": 3, "rank": 4 }
+      },
+      {
+        "id": "levels",
+        "type": "nodetool.image.Levels",
+        "data": {
+          "r_black": 10,
+          "r_gamma": 1.1,
+          "r_white": 245,
+          "g_black": 0,
+          "g_gamma": 1,
+          "g_white": 255,
+          "b_black": 5,
+          "b_gamma": 0.9,
+          "b_white": 250
+        }
+      },
+
+      {
+        "id": "cmp_exposure_neutral",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "exposure 0" }
+      },
+      {
+        "id": "cmp_exposure_up",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "exposure +1.5" }
+      },
+      {
+        "id": "cmp_grade",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "grade" }
+      },
+      {
+        "id": "cmp_channel_split",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "channel split" }
+      },
+      {
+        "id": "cmp_cdl",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "cdl" }
+      },
+      {
+        "id": "cmp_color_balance",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "colour balance" }
+      },
+      {
+        "id": "cmp_curves",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "curves" }
+      },
+      {
+        "id": "cmp_film_look",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "film look" }
+      },
+      {
+        "id": "cmp_hsl",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "hsl" }
+      },
+      {
+        "id": "cmp_lgg",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "lift/gamma/gain" }
+      },
+      {
+        "id": "cmp_split_toning",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "split toning" }
+      },
+      {
+        "id": "cmp_vignette",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "vignette" }
+      },
+      {
+        "id": "cmp_adaptive",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "adaptive contrast" }
+      },
+      {
+        "id": "cmp_detail",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "detail" }
+      },
+      {
+        "id": "cmp_edge",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "edge enhance" }
+      },
+      {
+        "id": "cmp_equalize",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "equalize" }
+      },
+      {
+        "id": "cmp_rank",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "rank filter" }
+      },
+      {
+        "id": "cmp_levels",
+        "type": "nodetool.compare.CompareImages",
+        "data": { "label_a": "source", "label_b": "levels" }
+      },
+
+      { "id": "meta_vignette", "type": "nodetool.image.GetMetadata" },
+
+      {
+        "id": "o_exposure_neutral",
+        "type": "nodetool.output.Output",
+        "name": "exposure_neutral_equal",
+        "data": { "name": "exposure_neutral_equal" }
+      },
+      {
+        "id": "o_exposure_up",
+        "type": "nodetool.output.Output",
+        "name": "exposure_up_equal",
+        "data": { "name": "exposure_up_equal" }
+      },
+      {
+        "id": "o_grade",
+        "type": "nodetool.output.Output",
+        "name": "grade_equal",
+        "data": { "name": "grade_equal" }
+      },
+      {
+        "id": "o_channel_split",
+        "type": "nodetool.output.Output",
+        "name": "channel_split_equal",
+        "data": { "name": "channel_split_equal" }
+      },
+      {
+        "id": "o_cdl",
+        "type": "nodetool.output.Output",
+        "name": "cdl_equal",
+        "data": { "name": "cdl_equal" }
+      },
+      {
+        "id": "o_color_balance",
+        "type": "nodetool.output.Output",
+        "name": "color_balance_equal",
+        "data": { "name": "color_balance_equal" }
+      },
+      {
+        "id": "o_curves",
+        "type": "nodetool.output.Output",
+        "name": "curves_equal",
+        "data": { "name": "curves_equal" }
+      },
+      {
+        "id": "o_film_look",
+        "type": "nodetool.output.Output",
+        "name": "film_look_equal",
+        "data": { "name": "film_look_equal" }
+      },
+      {
+        "id": "o_hsl",
+        "type": "nodetool.output.Output",
+        "name": "hsl_equal",
+        "data": { "name": "hsl_equal" }
+      },
+      {
+        "id": "o_lgg",
+        "type": "nodetool.output.Output",
+        "name": "lgg_equal",
+        "data": { "name": "lgg_equal" }
+      },
+      {
+        "id": "o_split_toning",
+        "type": "nodetool.output.Output",
+        "name": "split_toning_equal",
+        "data": { "name": "split_toning_equal" }
+      },
+      {
+        "id": "o_vignette",
+        "type": "nodetool.output.Output",
+        "name": "vignette_equal",
+        "data": { "name": "vignette_equal" }
+      },
+      {
+        "id": "o_adaptive",
+        "type": "nodetool.output.Output",
+        "name": "adaptive_equal",
+        "data": { "name": "adaptive_equal" }
+      },
+      {
+        "id": "o_detail",
+        "type": "nodetool.output.Output",
+        "name": "detail_equal",
+        "data": { "name": "detail_equal" }
+      },
+      {
+        "id": "o_edge",
+        "type": "nodetool.output.Output",
+        "name": "edge_equal",
+        "data": { "name": "edge_equal" }
+      },
+      {
+        "id": "o_equalize",
+        "type": "nodetool.output.Output",
+        "name": "equalize_equal",
+        "data": { "name": "equalize_equal" }
+      },
+      {
+        "id": "o_rank",
+        "type": "nodetool.output.Output",
+        "name": "rank_equal",
+        "data": { "name": "rank_equal" }
+      },
+      {
+        "id": "o_levels",
+        "type": "nodetool.output.Output",
+        "name": "levels_equal",
+        "data": { "name": "levels_equal" }
+      },
+      {
+        "id": "o_vig_w",
+        "type": "nodetool.output.Output",
+        "name": "vignette_width",
+        "data": { "name": "vignette_width" }
+      },
+      {
+        "id": "o_vig_h",
+        "type": "nodetool.output.Output",
+        "name": "vignette_height",
+        "data": { "name": "vignette_height" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "s1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "exposure_neutral",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s2",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "exposure_up",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "grade",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s4",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "channel_split",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s5",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cdl",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s6",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "color_balance",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s7",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "curves",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s8",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "film_look",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s9",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "hsl",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s10",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "lgg",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s11",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "split_toning",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s12",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "vignette",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s13",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "adaptive_contrast",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s14",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "detail",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s15",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "edge_enhance",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s16",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "equalize",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s17",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "rank_filter",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s18",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "levels",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "ca1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_exposure_neutral",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb1",
+        "source": "exposure_neutral",
+        "sourceHandle": "output",
+        "target": "cmp_exposure_neutral",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca2",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_exposure_up",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb2",
+        "source": "exposure_up",
+        "sourceHandle": "output",
+        "target": "cmp_exposure_up",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_grade",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb3",
+        "source": "grade",
+        "sourceHandle": "output",
+        "target": "cmp_grade",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca4",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_channel_split",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb4",
+        "source": "channel_split",
+        "sourceHandle": "output",
+        "target": "cmp_channel_split",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca5",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_cdl",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb5",
+        "source": "cdl",
+        "sourceHandle": "output",
+        "target": "cmp_cdl",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca6",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_color_balance",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb6",
+        "source": "color_balance",
+        "sourceHandle": "output",
+        "target": "cmp_color_balance",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca7",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_curves",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb7",
+        "source": "curves",
+        "sourceHandle": "output",
+        "target": "cmp_curves",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca8",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_film_look",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb8",
+        "source": "film_look",
+        "sourceHandle": "output",
+        "target": "cmp_film_look",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca9",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_hsl",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb9",
+        "source": "hsl",
+        "sourceHandle": "output",
+        "target": "cmp_hsl",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca10",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_lgg",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb10",
+        "source": "lgg",
+        "sourceHandle": "output",
+        "target": "cmp_lgg",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca11",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_split_toning",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb11",
+        "source": "split_toning",
+        "sourceHandle": "output",
+        "target": "cmp_split_toning",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca12",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_vignette",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb12",
+        "source": "vignette",
+        "sourceHandle": "output",
+        "target": "cmp_vignette",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca13",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_adaptive",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb13",
+        "source": "adaptive_contrast",
+        "sourceHandle": "output",
+        "target": "cmp_adaptive",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca14",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_detail",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb14",
+        "source": "detail",
+        "sourceHandle": "output",
+        "target": "cmp_detail",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca15",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_edge",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb15",
+        "source": "edge_enhance",
+        "sourceHandle": "output",
+        "target": "cmp_edge",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca16",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_equalize",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb16",
+        "source": "equalize",
+        "sourceHandle": "output",
+        "target": "cmp_equalize",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca17",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_rank",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb17",
+        "source": "rank_filter",
+        "sourceHandle": "output",
+        "target": "cmp_rank",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca18",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_levels",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb18",
+        "source": "levels",
+        "sourceHandle": "output",
+        "target": "cmp_levels",
+        "targetHandle": "image_b"
+      },
+
+      {
+        "id": "mv",
+        "source": "vignette",
+        "sourceHandle": "output",
+        "target": "meta_vignette",
+        "targetHandle": "image"
+      },
+
+      {
+        "id": "z1",
+        "source": "cmp_exposure_neutral",
+        "sourceHandle": "equal",
+        "target": "o_exposure_neutral",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z2",
+        "source": "cmp_exposure_up",
+        "sourceHandle": "equal",
+        "target": "o_exposure_up",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z3",
+        "source": "cmp_grade",
+        "sourceHandle": "equal",
+        "target": "o_grade",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z4",
+        "source": "cmp_channel_split",
+        "sourceHandle": "equal",
+        "target": "o_channel_split",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z5",
+        "source": "cmp_cdl",
+        "sourceHandle": "equal",
+        "target": "o_cdl",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z6",
+        "source": "cmp_color_balance",
+        "sourceHandle": "equal",
+        "target": "o_color_balance",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z7",
+        "source": "cmp_curves",
+        "sourceHandle": "equal",
+        "target": "o_curves",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z8",
+        "source": "cmp_film_look",
+        "sourceHandle": "equal",
+        "target": "o_film_look",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z9",
+        "source": "cmp_hsl",
+        "sourceHandle": "equal",
+        "target": "o_hsl",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z10",
+        "source": "cmp_lgg",
+        "sourceHandle": "equal",
+        "target": "o_lgg",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z11",
+        "source": "cmp_split_toning",
+        "sourceHandle": "equal",
+        "target": "o_split_toning",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z12",
+        "source": "cmp_vignette",
+        "sourceHandle": "equal",
+        "target": "o_vignette",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z13",
+        "source": "cmp_adaptive",
+        "sourceHandle": "equal",
+        "target": "o_adaptive",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z14",
+        "source": "cmp_detail",
+        "sourceHandle": "equal",
+        "target": "o_detail",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z15",
+        "source": "cmp_edge",
+        "sourceHandle": "equal",
+        "target": "o_edge",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z16",
+        "source": "cmp_equalize",
+        "sourceHandle": "equal",
+        "target": "o_equalize",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z17",
+        "source": "cmp_rank",
+        "sourceHandle": "equal",
+        "target": "o_rank",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z18",
+        "source": "cmp_levels",
+        "sourceHandle": "equal",
+        "target": "o_levels",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z19",
+        "source": "meta_vignette",
+        "sourceHandle": "width",
+        "target": "o_vig_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z20",
+        "source": "meta_vignette",
+        "sourceHandle": "height",
+        "target": "o_vig_h",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

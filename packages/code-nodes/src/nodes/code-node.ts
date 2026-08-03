@@ -3,10 +3,10 @@
  *
  * Runs user code in an isolated QuickJS WebAssembly guest (see
  * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus the bridge
- * APIs: fetch(), workspace (text/bytes/stat/mkdir/remove), getSecret(), uuid(),
- * sleep(), progress(), crypto, format, data (CSV/HTML parsing) and the
- * base64/hex helpers. Dynamic inputs are injected as global variables in the
- * sandbox.
+ * APIs: fetch(), workspace (text/bytes/stat/mkdir/remove/copy/move/root),
+ * getSecret(), uuid(), sleep(), progress(), crypto, format, data (CSV/HTML
+ * parsing) and the base64/hex helpers. Dynamic inputs are injected as global
+ * variables in the sandbox.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
@@ -19,7 +19,10 @@
 
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { runInSandbox } from "@nodetool-ai/agents/js-sandbox";
+import {
+  runInSandbox,
+  type SandboxLimits
+} from "@nodetool-ai/agents/js-sandbox";
 import { ALL_PLATFORMS } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
@@ -101,7 +104,7 @@ export class CodeNode extends BaseNode {
   static readonly title = "Code";
   static readonly description =
     "Execute vanilla JavaScript in a sandboxed environment. " +
-    "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove(), " +
+    "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root(), " +
     "getSecret(), uuid(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
     "format.number/date/relativeTime/list, data.parseCsv/selectHtml, " +
     "toBase64/fromBase64/toHex/fromHex. " +
@@ -122,7 +125,8 @@ export class CodeNode extends BaseNode {
     description:
       "JavaScript code to execute. " +
       "Dynamic inputs are available as variables. " +
-      "APIs: fetch(url, options), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove, " +
+      "APIs: fetch(url, options), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root, " +
+      "workspace.stat(path) returns {exists, size, isDirectory, isFile, isSymlink, modifiedMs, createdMs, accessedMs}, " +
       "getSecret(name), uuid(), sleep(ms), progress(percent, message), " +
       "crypto.randomUUID/getRandomValues/digest/hmac, " +
       "format.number/date/relativeTime/list, " +
@@ -141,6 +145,38 @@ export class CodeNode extends BaseNode {
     description: "Max seconds before execution is aborted (0 = no limit)."
   })
   declare timeout: number;
+
+  @prop({
+    type: "int",
+    default: 1,
+    title: "Max Response Size",
+    description:
+      "Megabytes of response body a single fetch() may read before it is aborted."
+  })
+  declare max_response_mb: number;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Allow Local Network",
+    description:
+      "Permit fetch() to reach localhost and private IP ranges. Off by default — " +
+      "sandboxed code is untrusted, so the SSRF guard is the norm. Turn it on " +
+      "only for a node that has to reach a service on this machine or network."
+  })
+  declare allow_local_network: boolean;
+
+  @prop({
+    type: "bool",
+    default: false,
+    title: "Allow Host Filesystem",
+    description:
+      "Let workspace.* reach any path the process can, with ~ expanded, instead " +
+      "of being confined to the workspace. Off by default — host mode can read " +
+      "credential files. Turn it on only for a node that has to work outside " +
+      "the workspace."
+  })
+  declare allow_host_filesystem: boolean;
 
   async initialize(): Promise<void> {
     this._state = {};
@@ -167,6 +203,26 @@ export class CodeNode extends BaseNode {
     };
   }
 
+  /**
+   * Sandbox policy from the node's props. The sandbox clamps
+   * `maxResponseBodyBytes` to its own ceiling, so no clamping here.
+   *
+   * The two capability switches default to the restrictive value and are only
+   * ever widened by an explicit choice on this node — nothing the guest code
+   * can reach.
+   */
+  private sandboxLimits(): SandboxLimits {
+    const mb = Number(this.max_response_mb ?? 1);
+    return {
+      maxResponseBodyBytes: Number.isFinite(mb)
+        ? Math.round(mb * 1024 * 1024)
+        : undefined,
+      allowPrivateNetwork: this.allow_local_network === true,
+      filesystemAccess:
+        this.allow_host_filesystem === true ? "host" : "workspace"
+    };
+  }
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
     const timeout = Number(this.timeout ?? 30);
@@ -190,6 +246,7 @@ export class CodeNode extends BaseNode {
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
       globals,
+      limits: this.sandboxLimits(),
       onProgress: this.progressSink(context)
     });
 
@@ -234,6 +291,7 @@ export class CodeNode extends BaseNode {
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
       globals,
+      limits: this.sandboxLimits(),
       onProgress: this.progressSink(context)
     });
 
@@ -260,7 +318,13 @@ export class CodeNode extends BaseNode {
 function extractDynamicInputs(
   inputs: Record<string, unknown>
 ): Record<string, unknown> {
-  const reserved = new Set(["code", "timeout"]);
+  const reserved = new Set([
+    "code",
+    "timeout",
+    "max_response_mb",
+    "allow_local_network",
+    "allow_host_filesystem"
+  ]);
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
     if (reserved.has(key) || key.startsWith("_")) continue;
@@ -293,63 +357,21 @@ function deepCopyInputs(
   return result;
 }
 
-/** Check if value is a binary type that should be wrapped, not spread.
- *  Uses constructor name check because vm sandbox creates objects with
- *  different prototypes than the outer context (instanceof fails). */
-function isBinaryLike(value: unknown): boolean {
-  if (value === null || value === undefined || typeof value !== "object") return false;
-  const name = (value as object).constructor?.name;
-  if (!name) return false;
-  return (
-    name === "Uint8Array" ||
-    name === "Buffer" ||
-    name === "ArrayBuffer" ||
-    name === "SharedArrayBuffer" ||
-    name === "DataView" ||
-    name === "Int8Array" ||
-    name === "Uint8ClampedArray" ||
-    name === "Int16Array" ||
-    name === "Uint16Array" ||
-    name === "Int32Array" ||
-    name === "Uint32Array" ||
-    name === "Float32Array" ||
-    name === "Float64Array"
-  );
-}
-
-/** Convert a sandbox binary value to a real Uint8Array.
- *  VM sandbox typed arrays have .length and numeric indexing but fail instanceof. */
-function toRealUint8Array(value: unknown): Uint8Array {
-  const v = value as { length?: number; [i: number]: number };
-  if (typeof v.length === "number" && v.length > 0) {
-    const arr = new Uint8Array(v.length);
-    for (let i = 0; i < v.length; i++) arr[i] = v[i];
-    return arr;
-  }
-  return new Uint8Array();
-}
-
-/** Recursively convert sandbox binary values in an output object. */
-function convertBinaryValues(obj: Record<string, unknown>): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(obj)) {
-    result[key] = isBinaryLike(value) ? toRealUint8Array(value) : value;
-  }
-  return result;
-}
-
-/** Normalize return value to Record<string, unknown>. */
+/**
+ * Normalize return value to Record<string, unknown>.
+ *
+ * The sandbox hands back real `Uint8Array`s for typed arrays at any depth
+ * (`serializeResult`), so binary values need no conversion here — only the
+ * decision of whether the value is an output bag or a single `output`.
+ */
 function normalizeOutput(value: unknown): Record<string, unknown> {
   if (value === null || value === undefined) return {};
-  if (isBinaryLike(value)) {
-    return { output: toRealUint8Array(value) };
-  }
   if (
     typeof value === "object" &&
     !Array.isArray(value) &&
     (value as object).constructor?.name === "Object"
   ) {
-    return convertBinaryValues(value as Record<string, unknown>);
+    return value as Record<string, unknown>;
   }
   return { output: value };
 }

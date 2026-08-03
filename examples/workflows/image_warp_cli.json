@@ -1,0 +1,809 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "lib.image.draw.Checkerboard",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "cell_size": 8,
+          "color_a": {
+            "type": "color",
+            "value": "#ffffff"
+          },
+          "color_b": {
+            "type": "color",
+            "value": "#204080"
+          }
+        }
+      },
+      {
+        "id": "stamp",
+        "type": "lib.image.draw.Background",
+        "data": {
+          "width": 8,
+          "height": 8,
+          "color": {
+            "type": "color",
+            "value": "#ff0000"
+          }
+        }
+      },
+      {
+        "id": "displacement",
+        "type": "lib.image.draw.RadialGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_inner": {
+            "type": "color",
+            "value": "#ffffff"
+          },
+          "color_outer": {
+            "type": "color",
+            "value": "#000000"
+          },
+          "radius": 0.6
+        }
+      },
+      {
+        "id": "offset_zero",
+        "type": "lib.image.warp.Offset",
+        "data": {
+          "dx": 0,
+          "dy": 0,
+          "wrap": 1
+        }
+      },
+      {
+        "id": "offset_shift",
+        "type": "lib.image.warp.Offset",
+        "data": {
+          "dx": 0.25,
+          "dy": 0,
+          "wrap": 1
+        }
+      },
+      {
+        "id": "spherize_zero",
+        "type": "lib.image.warp.Spherize",
+        "data": {
+          "amount": 0
+        }
+      },
+      {
+        "id": "spherize_bulge",
+        "type": "lib.image.warp.Spherize",
+        "data": {
+          "amount": 0.6
+        }
+      },
+      {
+        "id": "affine_identity",
+        "type": "lib.image.warp.Affine",
+        "data": {
+          "target_width": 40,
+          "target_height": 24,
+          "m00": 1,
+          "m01": 0,
+          "tx": 0,
+          "m10": 0,
+          "m11": 1,
+          "ty": 0
+        }
+      },
+      {
+        "id": "affine_scaled",
+        "type": "lib.image.warp.Affine",
+        "data": {
+          "target_width": 60,
+          "target_height": 48,
+          "m00": 0.5,
+          "m01": 0,
+          "tx": 4,
+          "m10": 0,
+          "m11": 0.5,
+          "ty": 2
+        }
+      },
+      {
+        "id": "cornerpin_identity",
+        "type": "lib.image.warp.CornerPin",
+        "data": {
+          "h00": 1,
+          "h01": 0,
+          "h02": 0,
+          "h10": 0,
+          "h11": 1,
+          "h12": 0,
+          "h20": 0,
+          "h21": 0
+        }
+      },
+      {
+        "id": "cornerpin_skew",
+        "type": "lib.image.warp.CornerPin",
+        "data": {
+          "h00": 1,
+          "h01": 0.2,
+          "h02": 0,
+          "h10": 0.1,
+          "h11": 1,
+          "h12": 0,
+          "h20": 0,
+          "h21": 0
+        }
+      },
+      {
+        "id": "padded",
+        "type": "lib.image.warp.Pad",
+        "data": {
+          "left": 0.25,
+          "top": 0.5,
+          "right": 0.25,
+          "bottom": 0.5,
+          "color": {
+            "type": "color",
+            "value": "#000000"
+          }
+        }
+      },
+      {
+        "id": "polar",
+        "type": "lib.image.warp.PolarRemap",
+        "data": {
+          "mode": 0
+        }
+      },
+      {
+        "id": "displaced",
+        "type": "lib.image.warp.Displace",
+        "data": {
+          "amount_x": 4,
+          "amount_y": 4
+        }
+      },
+      {
+        "id": "pasted",
+        "type": "nodetool.image.Paste",
+        "data": {
+          "left": 4,
+          "top": 4
+        }
+      },
+      {
+        "id": "meta_pad",
+        "type": "nodetool.image.GetMetadata"
+      },
+      {
+        "id": "meta_affine",
+        "type": "nodetool.image.GetMetadata"
+      },
+      {
+        "id": "meta_paste",
+        "type": "nodetool.image.GetMetadata"
+      },
+      {
+        "id": "cmp_offset_zero",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "offset 0"
+        }
+      },
+      {
+        "id": "cmp_offset_shift",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "offset 8,4"
+        }
+      },
+      {
+        "id": "cmp_spherize_zero",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "spherize 0"
+        }
+      },
+      {
+        "id": "cmp_spherize_bulge",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "spherize 0.6"
+        }
+      },
+      {
+        "id": "cmp_affine_identity",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "affine identity"
+        }
+      },
+      {
+        "id": "cmp_cornerpin_identity",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "cornerpin identity"
+        }
+      },
+      {
+        "id": "cmp_cornerpin_skew",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "cornerpin skew"
+        }
+      },
+      {
+        "id": "cmp_polar",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "polar remap"
+        }
+      },
+      {
+        "id": "cmp_displaced",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "displaced"
+        }
+      },
+      {
+        "id": "cmp_pasted",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "pasted"
+        }
+      },
+      {
+        "id": "o_offset_zero",
+        "type": "nodetool.output.Output",
+        "name": "offset_zero_equal",
+        "data": {
+          "name": "offset_zero_equal"
+        }
+      },
+      {
+        "id": "o_offset_shift",
+        "type": "nodetool.output.Output",
+        "name": "offset_shift_equal",
+        "data": {
+          "name": "offset_shift_equal"
+        }
+      },
+      {
+        "id": "o_spherize_zero",
+        "type": "nodetool.output.Output",
+        "name": "spherize_zero_equal",
+        "data": {
+          "name": "spherize_zero_equal"
+        }
+      },
+      {
+        "id": "o_spherize_bulge",
+        "type": "nodetool.output.Output",
+        "name": "spherize_bulge_equal",
+        "data": {
+          "name": "spherize_bulge_equal"
+        }
+      },
+      {
+        "id": "o_affine_identity",
+        "type": "nodetool.output.Output",
+        "name": "affine_identity_equal",
+        "data": {
+          "name": "affine_identity_equal"
+        }
+      },
+      {
+        "id": "o_cornerpin_identity",
+        "type": "nodetool.output.Output",
+        "name": "cornerpin_identity_equal",
+        "data": {
+          "name": "cornerpin_identity_equal"
+        }
+      },
+      {
+        "id": "o_cornerpin_skew",
+        "type": "nodetool.output.Output",
+        "name": "cornerpin_skew_equal",
+        "data": {
+          "name": "cornerpin_skew_equal"
+        }
+      },
+      {
+        "id": "o_polar",
+        "type": "nodetool.output.Output",
+        "name": "polar_equal",
+        "data": {
+          "name": "polar_equal"
+        }
+      },
+      {
+        "id": "o_displaced",
+        "type": "nodetool.output.Output",
+        "name": "displaced_equal",
+        "data": {
+          "name": "displaced_equal"
+        }
+      },
+      {
+        "id": "o_pasted",
+        "type": "nodetool.output.Output",
+        "name": "pasted_equal",
+        "data": {
+          "name": "pasted_equal"
+        }
+      },
+      {
+        "id": "o_pad_w",
+        "type": "nodetool.output.Output",
+        "name": "pad_width",
+        "data": {
+          "name": "pad_width"
+        }
+      },
+      {
+        "id": "o_pad_h",
+        "type": "nodetool.output.Output",
+        "name": "pad_height",
+        "data": {
+          "name": "pad_height"
+        }
+      },
+      {
+        "id": "o_affine_w",
+        "type": "nodetool.output.Output",
+        "name": "affine_width",
+        "data": {
+          "name": "affine_width"
+        }
+      },
+      {
+        "id": "o_affine_h",
+        "type": "nodetool.output.Output",
+        "name": "affine_height",
+        "data": {
+          "name": "affine_height"
+        }
+      },
+      {
+        "id": "o_paste_w",
+        "type": "nodetool.output.Output",
+        "name": "paste_width",
+        "data": {
+          "name": "paste_width"
+        }
+      },
+      {
+        "id": "offset_full",
+        "type": "lib.image.warp.Offset",
+        "data": {
+          "dx": 1,
+          "dy": 0,
+          "wrap": 1
+        }
+      },
+      {
+        "id": "cmp_offset_full",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "offset dx=1 (full width)"
+        }
+      },
+      {
+        "id": "o_offset_full",
+        "type": "nodetool.output.Output",
+        "name": "offset_full_equal",
+        "data": {
+          "name": "offset_full_equal"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "s1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "offset_zero",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s2",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "offset_shift",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "spherize_zero",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s4",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "spherize_bulge",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s5",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "affine_identity",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s6",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "affine_scaled",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s7",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cornerpin_identity",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s8",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cornerpin_skew",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s9",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "padded",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s10",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "polar",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s11",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "displaced",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s12",
+        "source": "displacement",
+        "sourceHandle": "output",
+        "target": "displaced",
+        "targetHandle": "displacement"
+      },
+      {
+        "id": "s13",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "pasted",
+        "targetHandle": "image"
+      },
+      {
+        "id": "s14",
+        "source": "stamp",
+        "sourceHandle": "output",
+        "target": "pasted",
+        "targetHandle": "paste"
+      },
+      {
+        "id": "m1",
+        "source": "padded",
+        "sourceHandle": "output",
+        "target": "meta_pad",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m2",
+        "source": "affine_scaled",
+        "sourceHandle": "output",
+        "target": "meta_affine",
+        "targetHandle": "image"
+      },
+      {
+        "id": "m3",
+        "source": "pasted",
+        "sourceHandle": "output",
+        "target": "meta_paste",
+        "targetHandle": "image"
+      },
+      {
+        "id": "ca1",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_offset_zero",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb1",
+        "source": "offset_zero",
+        "sourceHandle": "output",
+        "target": "cmp_offset_zero",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca2",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_offset_shift",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb2",
+        "source": "offset_shift",
+        "sourceHandle": "output",
+        "target": "cmp_offset_shift",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca3",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_spherize_zero",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb3",
+        "source": "spherize_zero",
+        "sourceHandle": "output",
+        "target": "cmp_spherize_zero",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca4",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_spherize_bulge",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb4",
+        "source": "spherize_bulge",
+        "sourceHandle": "output",
+        "target": "cmp_spherize_bulge",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca5",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_affine_identity",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb5",
+        "source": "affine_identity",
+        "sourceHandle": "output",
+        "target": "cmp_affine_identity",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca6",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_cornerpin_identity",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb6",
+        "source": "cornerpin_identity",
+        "sourceHandle": "output",
+        "target": "cmp_cornerpin_identity",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca7",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_cornerpin_skew",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb7",
+        "source": "cornerpin_skew",
+        "sourceHandle": "output",
+        "target": "cmp_cornerpin_skew",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca8",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_polar",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb8",
+        "source": "polar",
+        "sourceHandle": "output",
+        "target": "cmp_polar",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca9",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_displaced",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb9",
+        "source": "displaced",
+        "sourceHandle": "output",
+        "target": "cmp_displaced",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "ca10",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_pasted",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb10",
+        "source": "pasted",
+        "sourceHandle": "output",
+        "target": "cmp_pasted",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "z1",
+        "source": "cmp_offset_zero",
+        "sourceHandle": "equal",
+        "target": "o_offset_zero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z2",
+        "source": "cmp_offset_shift",
+        "sourceHandle": "equal",
+        "target": "o_offset_shift",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z3",
+        "source": "cmp_spherize_zero",
+        "sourceHandle": "equal",
+        "target": "o_spherize_zero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z4",
+        "source": "cmp_spherize_bulge",
+        "sourceHandle": "equal",
+        "target": "o_spherize_bulge",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z5",
+        "source": "cmp_affine_identity",
+        "sourceHandle": "equal",
+        "target": "o_affine_identity",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z6",
+        "source": "cmp_cornerpin_identity",
+        "sourceHandle": "equal",
+        "target": "o_cornerpin_identity",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z7",
+        "source": "cmp_cornerpin_skew",
+        "sourceHandle": "equal",
+        "target": "o_cornerpin_skew",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z8",
+        "source": "cmp_polar",
+        "sourceHandle": "equal",
+        "target": "o_polar",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z9",
+        "source": "cmp_displaced",
+        "sourceHandle": "equal",
+        "target": "o_displaced",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z10",
+        "source": "cmp_pasted",
+        "sourceHandle": "equal",
+        "target": "o_pasted",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z11",
+        "source": "meta_pad",
+        "sourceHandle": "width",
+        "target": "o_pad_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z12",
+        "source": "meta_pad",
+        "sourceHandle": "height",
+        "target": "o_pad_h",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z13",
+        "source": "meta_affine",
+        "sourceHandle": "width",
+        "target": "o_affine_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z14",
+        "source": "meta_affine",
+        "sourceHandle": "height",
+        "target": "o_affine_h",
+        "targetHandle": "value"
+      },
+      {
+        "id": "z15",
+        "source": "meta_paste",
+        "sourceHandle": "width",
+        "target": "o_paste_w",
+        "targetHandle": "value"
+      },
+      {
+        "id": "s15",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "offset_full",
+        "targetHandle": "image"
+      },
+      {
+        "id": "ca11",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_offset_full",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "cb11",
+        "source": "offset_full",
+        "sourceHandle": "output",
+        "target": "cmp_offset_full",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "z16",
+        "source": "cmp_offset_full",
+        "sourceHandle": "equal",
+        "target": "o_offset_full",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

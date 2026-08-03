@@ -2,15 +2,18 @@ import type { Metadata, Viewport } from "next";
 import JsonLd from "../../components/JsonLd";
 
 export const metadata: Metadata = {
-  title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
+  title: "NodeTool for Developers | Agent-First SDK, API & MCP Server",
   description:
-    "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production. Open source under AGPL-3.0.",
+    "Build creative AI applications with NodeTool's TypeScript SDK and REST API — or let an agent do it: every editor is exposed as tools, around 120 in all, over MCP for Claude Code and any MCP-aware agent. Write custom nodes in TypeScript or Python, validate and debug workflows from the CLI, deploy to production. Open source under AGPL-3.0.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/developers",
   },
   keywords: [
     "AI SDK",
+    "MCP server",
+    "agent tools API",
+    "agent-first platform",
     "TypeScript AI framework",
     "Python AI framework",
     "AI workflow API",
@@ -25,9 +28,9 @@ export const metadata: Metadata = {
     "model-agnostic SDK",
   ],
   openGraph: {
-    title: "NodeTool for Developers | Open-Source AI Workflow SDK & API",
+    title: "NodeTool for Developers | Agent-First SDK, API & MCP Server",
     description:
-      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Workflows run in an async Node.js runner. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
+      "Build creative AI applications with NodeTool's TypeScript SDK and REST API — or point your agent at the MCP server and let it build them. Write custom nodes in TypeScript or Python, integrate with any model, and deploy to production.",
     url: "https://nodetool.ai/developers",
     siteName: "NodeTool",
     images: [
@@ -43,7 +46,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for Developers",
     description:
-      "Build creative AI applications with NodeTool's TypeScript SDK and REST API. Open source under AGPL-3.0.",
+      "Agent-first SDK, API, and MCP server for creative AI applications. Open source under AGPL-3.0.",
     images: ["/preview.png"],
   },
 };
@@ -66,7 +69,7 @@ export default function DevelopersLayout({
           "@type": "SoftwareSourceCode",
           name: "NodeTool",
           description:
-            "Open-source creative AI workspace. TypeScript SDK and REST API; write custom nodes in TypeScript or Python, drive the canvas from a CLI, and generate workflows in code.",
+            "Open-source, agent-first creative workspace. TypeScript SDK, REST API, and an MCP server exposing every editor as agent tools; write custom nodes in TypeScript or Python, drive the canvas from a CLI, and generate workflows in code.",
           codeRepository: "https://github.com/nodetool-ai/nodetool",
           programmingLanguage: ["TypeScript", "Python"],
           license: "https://github.com/nodetool-ai/nodetool/blob/main/LICENSE",

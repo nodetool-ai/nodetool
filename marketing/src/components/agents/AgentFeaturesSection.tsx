@@ -23,44 +23,44 @@ export default function AgentFeaturesSection({
   const features = [
     {
       icon: Brain,
-      title: "Briefs become storyboards",
+      title: "The whole app is the toolbelt",
       description:
-        "Give it a one-line prompt or a full mood board. The agent plans the shots, picks a model for each one, and lays out a board you can rearrange before anything is rendered.",
+        "Around 120 tools cover every editor: the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder. If you can click it, an agent can drive it.",
       color: "teal",
     },
     {
       icon: GitFork,
-      title: "Batch variants in parallel",
+      title: "Agents build workflows",
       description:
-        "Need ten versions of the hero frame in five aspect ratios? The agent spreads the work across providers, runs them at the same time, and brings the results back ranked for review.",
+        "Describe the pipeline and the agent authors the graph itself — picks the nodes, wires the edges, selects the models — and validates it before anything runs. What it leaves behind is a workflow you can inspect, edit, and rerun.",
       color: "blue",
     },
     {
-      icon: Users,
-      title: "A crew, not a single model",
+      icon: Wand2,
+      title: "Agents build apps — and test them",
       description:
-        "Run a director, a stylist, and a colorist as separate agents that hand work to each other on a shared board. Each gets the model and prompt that suits its job.",
+        "Ask for a mini app and the agent plans the workflows, places the widgets, wires them together, then runs every interaction and has a second model judge whether the result does what you asked. No passing verdict, no app.",
       color: "cyan",
     },
     {
-      icon: Wand2,
-      title: "Image, video, music — one room",
+      icon: Users,
+      title: "An agent on the failure path",
       description:
-        "Agents can call Flux, Nano Banana, and Ideogram for stills, Seedance, Veo, Kling, and Runway for motion, Suno for score, and ElevenLabs for voice. All on one canvas.",
+        "Supervised runs put an agent on call: when a step fails mid-run, it decides — retry, repair the output, skip the item, or stop — inside a decision and cost budget you set, with every intervention logged.",
       color: "emerald",
     },
     {
       icon: Eye,
-      title: "See every decision",
+      title: "It asks instead of guessing",
       description:
-        "Watch the agent think through the composition, switch models when a render misses the mark, and record every prompt it tried. Nothing is hidden when the deadline is close.",
+        "When a job is missing something only you can decide — a name, a look, permission to delete — the agent stops and asks. Every plan, tool call, prompt, and dollar of model spend is on the record.",
       color: "pink",
     },
     {
       icon: Sparkles,
-      title: "Bottle your art direction",
+      title: "Bring your own agent",
       description:
-        "Save a style guide once (palette, lens, mood, and the prompts behind them) and every agent on your canvas follows it automatically.",
+        "The full toolbelt is exposed over MCP. Point Claude Desktop, Claude Code, or any MCP-aware agent at NodeTool and it gets the same tools the built-in chat uses: build workflows, run them, read the results.",
       color: "amber",
     },
   ];
@@ -93,9 +93,9 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Built to{" "}
+            Agent-first,{" "}
             <span className="text-white">
-              direct, not babysit.
+              not agent-flavored.
             </span>
           </motion.h2>
 
@@ -106,9 +106,10 @@ export default function AgentFeaturesSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            An agent sits on the same canvas as your image, video, and audio
-            work. The difference is that it arrives with a plan, an eye for the
-            brief, and the ability to try again when a render misses.
+            Most tools bolted a chat panel onto an editor. NodeTool went the
+            other way: the entire app is built as tools an agent can operate.
+            Agents don&apos;t just answer questions about your work — they do
+            the work, on the same surfaces you use.
           </motion.p>
         </div>
 

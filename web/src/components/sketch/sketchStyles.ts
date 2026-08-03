@@ -85,8 +85,7 @@ export const SKETCH_Z_INDEX = {
  * Minimal, professional slider — thin 2px track, small 10px thumb, no shadows.
  * Apply directly: `<Slider sx={sketchSliderSx} />`
  */
-export const sketchSliderSx: SxProps<Theme> = (theme) => {
-  const t = theme as Theme;
+export const sketchSliderSx: SxProps<Theme> = (t) => {
   return {
     padding: `${SKETCH_SPACING.lg} 0`,
     "& .MuiSlider-rail": {
@@ -241,8 +240,7 @@ export const colorPickerSliderThumbSx = {
  * Layout + `.setting-row` styles when tool settings panels render outside the top bar
  * (e.g. context menu): vertical stack, full-width sliders.
  */
-export const sketchToolSettingsContainerSx: SxProps<Theme> = (theme) => {
-  const t = theme as Theme;
+export const sketchToolSettingsContainerSx: SxProps<Theme> = (t) => {
   return {
     display: "flex",
     flexDirection: "column",

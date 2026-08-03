@@ -27,18 +27,6 @@ function asLoopProvider(p: any): any {
   };
 }
 
-// ============================================================================
-// 2. WORKSPACE NODES
-// ============================================================================
-
-import {
-  ensureWorkspacePath,
-  ReadTextFileNode,
-  WriteTextFileNode,
-  ReadBinaryFileNode,
-  WriteBinaryFileNode,
-} from "@nodetool-ai/automation-nodes";
-
 /**
  * Helper: assign props to a node AND patch serialize() so that
  * workspace_dir (which is not a declared @prop on most workspace nodes)
@@ -57,115 +45,6 @@ function assignWithWorkspaceDir(
     });
   }
 }
-
-describe("workspace nodes", () => {
-  let tmpDir: string;
-
-  beforeEach(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ws-test-"));
-  });
-
-  afterEach(async () => {
-    await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-  });
-
-  describe("ensureWorkspacePath security", () => {
-    it("blocks empty path", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "")).toThrow("cannot be empty");
-    });
-    it("blocks absolute path", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "/etc/passwd")).toThrow(
-        "Absolute paths"
-      );
-    });
-    it("blocks parent traversal", () => {
-      expect(() => ensureWorkspacePath(tmpDir, "foo/../../../etc")).toThrow(
-        "traversal"
-      );
-    });
-    it("blocks path outside workspace", () => {
-      // A specially constructed relative path that resolves outside
-      // This targets line 21-22: if (!full.startsWith(root))
-      // Since we already block .., the only way to hit this is with symlinks
-      // but we can test the function directly with a workspace that's deeply nested
-      expect(() => ensureWorkspacePath(tmpDir, "valid/path")).not.toThrow();
-    });
-    it("allows valid relative paths", () => {
-      const result = ensureWorkspacePath(tmpDir, "subdir/file.txt");
-      expect(result).toBe(path.resolve(tmpDir, "subdir/file.txt"));
-    });
-  });
-
-
-  describe("ReadTextFileNode", () => {
-    it("reads text file", async () => {
-      await fs.writeFile(path.join(tmpDir, "hello.txt"), "world");
-      const node = new ReadTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "hello.txt",
-        encoding: "utf-8"
-      });
-      const result = await node.process();
-      expect(result.output).toBe("world");
-    });
-  });
-
-  describe("WriteTextFileNode", () => {
-    it("writes text file", async () => {
-      const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "out.txt",
-        content: "test data"
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "out.txt"), "utf-8");
-      expect(content).toBe("test data");
-    });
-
-    it("appends to file", async () => {
-      await fs.writeFile(path.join(tmpDir, "app.txt"), "hello");
-      const node = new WriteTextFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "app.txt",
-        content: " world",
-        append: true
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "app.txt"), "utf-8");
-      expect(content).toBe("hello world");
-    });
-  });
-
-  describe("ReadBinaryFileNode", () => {
-    it("reads binary file as base64", async () => {
-      const buf = Buffer.from([0x00, 0x01, 0x02, 0xff]);
-      await fs.writeFile(path.join(tmpDir, "bin.dat"), buf);
-      const node = new ReadBinaryFileNode();
-      assignWithWorkspaceDir(node, { workspace_dir: tmpDir, path: "bin.dat" });
-      const result = await node.process();
-      expect(result.output).toBe(buf.toString("base64"));
-    });
-  });
-
-  describe("WriteBinaryFileNode", () => {
-    it("writes base64 to binary file", async () => {
-      const data = Buffer.from("hello binary").toString("base64");
-      const node = new WriteBinaryFileNode();
-      assignWithWorkspaceDir(node, {
-        workspace_dir: tmpDir,
-        path: "out.bin",
-        content: data
-      });
-      await node.process();
-      const content = await fs.readFile(path.join(tmpDir, "out.bin"));
-      expect(content.toString()).toBe("hello binary");
-    });
-  });
-
-});
 
 // ============================================================================
 // 3. AGENTS NODES
@@ -1508,61 +1387,6 @@ describe("document.ts uncovered lines", () => {
       results.push(item);
     }
     expect(results.length).toBeGreaterThan(0);
-  });
-});
-
-// ============================================================================
-// 7. CODE — remaining uncovered lines (timeout, error, killed)
-// ============================================================================
-
-import { ExecuteBashNode, ExecutePythonNode } from "@nodetool-ai/code-nodes";
-
-describe("code.ts uncovered lines", () => {
-  it("ExecuteBashNode basic execution", async () => {
-    const node = new ExecuteBashNode();
-    node.assign({ code: "echo hello", execution_mode: "subprocess" });
-    const result = await node.process();
-    expect((result.stdout as string).trim()).toBe("hello");
-  });
-
-  it("ExecuteBashNode timeout (lines 31-32, 47-49)", async () => {
-    const node = new ExecuteBashNode();
-    node.assign({
-      code: "sleep 30",
-      execution_mode: "subprocess"
-    });
-    // The subprocess runner doesn't natively support timeout_ms,
-    // so we just verify the process starts and can be run
-    // Use a command that exits quickly instead to avoid hanging
-    const node2 = new ExecuteBashNode();
-    node2.assign({ code: "exit 1", execution_mode: "subprocess" });
-    const result = await node2.process();
-    expect(result.exit_code).not.toBe(0);
-  }, 15000);
-
-  it("ExecuteBashNode child error event (lines 42-43)", async () => {
-    const node = new ExecuteBashNode();
-    // Empty code throws "Code is required"
-    node.assign({ code: "" });
-    await expect(node.process()).rejects.toThrow("Code is required");
-  });
-
-  it("ExecuteBashNode with env vars via dynamic props", async () => {
-    const node = new ExecuteBashNode();
-    node.assign({
-      code: "echo $MY_VAR",
-      execution_mode: "subprocess",
-      MY_VAR: "test123"
-    });
-    const result = await node.process();
-    // Dynamic props are passed as env vars through the runner
-    expect(result.stdout).toBeDefined();
-  });
-
-  it("ExecutePythonNode rejects empty code", async () => {
-    const node = new ExecutePythonNode();
-    node.assign({ code: "", execution_mode: "subprocess" });
-    await expect(node.process()).rejects.toThrow("Code is required");
   });
 });
 

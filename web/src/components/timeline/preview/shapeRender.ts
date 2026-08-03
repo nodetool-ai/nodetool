@@ -1,52 +1,13 @@
+/**
+ * shapeRender — rasterise a shape clip to an `ImageBitmap`. The geometry is
+ * drawn by `@nodetool-ai/timeline/render`, shared with the server-side
+ * renderer; the bitmap cache stays here.
+ */
+
 import type { ClipShapeStyle } from "@nodetool-ai/timeline";
+import { drawShape, shapeStyleSignature } from "@nodetool-ai/timeline/render";
 
 const MAX_CACHE_ENTRIES = 64;
-
-function number(value: number | undefined, fallback: number): number {
-  return value ?? fallback;
-}
-
-function shapeStyleSignature(
-  style: ClipShapeStyle,
-  width: number,
-  height: number
-): string {
-  return `${width}x${height}|${JSON.stringify(style)}`;
-}
-
-function drawShape(
-  ctx: OffscreenCanvasRenderingContext2D,
-  style: ClipShapeStyle,
-  width: number,
-  height: number
-): void {
-  const x = number(style.x, 0.25) * width;
-  const y = number(style.y, 0.25) * height;
-  const shapeWidth = number(style.width, 0.5) * width;
-  const shapeHeight = number(style.height, 0.5) * height;
-  ctx.fillStyle = style.fill ?? "transparent";
-  ctx.strokeStyle = style.stroke ?? "transparent";
-  ctx.lineWidth = number(style.strokeWidthPx, 0);
-  ctx.beginPath();
-  if (style.kind === "rect") ctx.rect(x, y, shapeWidth, shapeHeight);
-  if (style.kind === "ellipse") {
-    ctx.ellipse(
-      x + shapeWidth / 2,
-      y + shapeHeight / 2,
-      shapeWidth / 2,
-      shapeHeight / 2,
-      0,
-      0,
-      Math.PI * 2
-    );
-  }
-  if (style.kind === "line") {
-    ctx.moveTo(x, y);
-    ctx.lineTo(number(style.x2, 0.75) * width, number(style.y2, 0.75) * height);
-  }
-  if (style.fill) ctx.fill();
-  if (style.stroke && ctx.lineWidth > 0) ctx.stroke();
-}
 
 export class ShapeRasterizer {
   private cache = new Map<string, ImageBitmap>();

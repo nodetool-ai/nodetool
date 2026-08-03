@@ -1,5 +1,8 @@
 import type { MediaBox } from "./mediaAspectResize";
 
+/** The only element types `MEDIA_SELECTOR` can match. */
+type MediaElement = HTMLImageElement | HTMLCanvasElement | HTMLVideoElement;
+
 /**
  * Intrinsic aspect ratio (width / height) of a media element, or `null` when it
  * has no usable dimensions yet (image not decoded, empty canvas, …).
@@ -32,17 +35,17 @@ const MEDIA_SELECTOR =
   ".image-output img, .image-output canvas, .image-output video, " +
   ".preview-area img, .preview-area canvas, .preview-area video";
 
-function findMediaElement(nodeEl: HTMLElement): Element | null {
+function findMediaElement(nodeEl: HTMLElement): MediaElement | null {
   // Prefer media inside a known preview container.
-  const scoped = nodeEl.querySelectorAll(MEDIA_SELECTOR);
+  const scoped = nodeEl.querySelectorAll<MediaElement>(MEDIA_SELECTOR);
   for (const el of Array.from(scoped)) {
     if (intrinsicRatio(el) !== null) {
       return el;
     }
   }
   // Fall back to any media element that has reported intrinsic dimensions.
-  const any = nodeEl.querySelectorAll("img, canvas, video");
-  for (const el of Array.from(any)) {
+  const unscoped = nodeEl.querySelectorAll<MediaElement>("img, canvas, video");
+  for (const el of Array.from(unscoped)) {
     if (intrinsicRatio(el) !== null) {
       return el;
     }
@@ -77,8 +80,8 @@ export function measureNodeMedia(
 
   const container =
     media.closest<HTMLElement>(MEDIA_CONTAINER_SELECTOR) ??
-    (media.parentElement as HTMLElement | null) ??
-    (media as HTMLElement);
+    media.parentElement ??
+    media;
 
   const rect = container.getBoundingClientRect();
   const boxWidth = rect.width / zoom;

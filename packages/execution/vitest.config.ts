@@ -25,7 +25,10 @@ export default defineConfig({
       ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
-      "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts")
+      "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts"),
+      // Dependency-free source, so the app-debug tests exercise the real
+      // runtime core rather than a build of it.
+      "@nodetool-ai/app-runtime": resolve(__dirname, "../app-runtime/src/index.ts")
     }
   },
   test: {

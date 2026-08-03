@@ -1,0 +1,82 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "range",
+        "type": "nodetool.list.Range",
+        "data": { "start": 0, "stop": 10, "step": 2, "count": 10 }
+      },
+      {
+        "id": "repeat_value",
+        "type": "nodetool.list.RepeatValue",
+        "data": { "value": "ok", "times": 3 }
+      },
+      {
+        "id": "tile",
+        "type": "nodetool.list.Tile",
+        "data": { "input_list": ["a", "b"], "times": 3 }
+      },
+      {
+        "id": "repeat_each",
+        "type": "nodetool.list.RepeatEach",
+        "data": { "input_list": ["a", "b"], "times": 3 }
+      },
+
+      {
+        "id": "out_range",
+        "type": "nodetool.output.Output",
+        "name": "range",
+        "data": { "name": "range" }
+      },
+      {
+        "id": "out_repeat_value",
+        "type": "nodetool.output.Output",
+        "name": "repeat_value",
+        "data": { "name": "repeat_value" }
+      },
+      {
+        "id": "out_tile",
+        "type": "nodetool.output.Output",
+        "name": "tile",
+        "data": { "name": "tile" }
+      },
+      {
+        "id": "out_repeat_each",
+        "type": "nodetool.output.Output",
+        "name": "repeat_each",
+        "data": { "name": "repeat_each" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "range",
+        "sourceHandle": "output",
+        "target": "out_range",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "repeat_value",
+        "sourceHandle": "output",
+        "target": "out_repeat_value",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "tile",
+        "sourceHandle": "output",
+        "target": "out_tile",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "repeat_each",
+        "sourceHandle": "output",
+        "target": "out_repeat_each",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

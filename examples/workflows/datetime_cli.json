@@ -1,0 +1,129 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "format",
+        "type": "lib.datetime.Format",
+        "data": {
+          "date": "2026-08-02T10:30:00Z",
+          "pattern": "YYYY-MM-DD"
+        }
+      },
+      {
+        "id": "add_days",
+        "type": "lib.datetime.Add",
+        "data": { "date": "2026-08-02T00:00:00Z", "amount": 30, "unit": "day" }
+      },
+      {
+        "id": "diff",
+        "type": "lib.datetime.Diff",
+        "data": {
+          "date_a": "2026-08-02T00:00:00Z",
+          "date_b": "2026-09-01T00:00:00Z",
+          "unit": "day"
+        }
+      },
+      {
+        "id": "month",
+        "type": "lib.datetime.StartEnd",
+        "data": { "date": "2026-08-02T10:30:00Z", "unit": "month" }
+      },
+      { "id": "now", "type": "lib.datetime.Now" },
+
+      {
+        "id": "out_formatted",
+        "type": "nodetool.output.Output",
+        "name": "formatted",
+        "data": { "name": "formatted" }
+      },
+      {
+        "id": "out_added",
+        "type": "nodetool.output.Output",
+        "name": "added_iso",
+        "data": { "name": "added_iso" }
+      },
+      {
+        "id": "out_diff",
+        "type": "nodetool.output.Output",
+        "name": "diff_days",
+        "data": { "name": "diff_days" }
+      },
+      {
+        "id": "out_is_before",
+        "type": "nodetool.output.Output",
+        "name": "a_is_before_b",
+        "data": { "name": "a_is_before_b" }
+      },
+      {
+        "id": "out_month_start",
+        "type": "nodetool.output.Output",
+        "name": "month_start",
+        "data": { "name": "month_start" }
+      },
+      {
+        "id": "out_month_end",
+        "type": "nodetool.output.Output",
+        "name": "month_end",
+        "data": { "name": "month_end" }
+      },
+      {
+        "id": "out_now_epoch",
+        "type": "nodetool.output.Output",
+        "name": "now_epoch_ms",
+        "data": { "name": "now_epoch_ms" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "format",
+        "sourceHandle": "formatted",
+        "target": "out_formatted",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "add_days",
+        "sourceHandle": "iso",
+        "target": "out_added",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e3",
+        "source": "diff",
+        "sourceHandle": "diff",
+        "target": "out_diff",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e4",
+        "source": "diff",
+        "sourceHandle": "is_before",
+        "target": "out_is_before",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "month",
+        "sourceHandle": "start_iso",
+        "target": "out_month_start",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "month",
+        "sourceHandle": "end_iso",
+        "target": "out_month_end",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "now",
+        "sourceHandle": "epoch_ms",
+        "target": "out_now_epoch",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

@@ -9,6 +9,7 @@ export * from "./defaults.js";
 // import it directly from "@nodetool-ai/timeline/dependencyHash".
 export * from "./splitClip.js";
 export * from "./trimClip.js";
+export * from "./sourceRate.js";
 export * from "./snap.js";
 export * from "./staleSet.js";
 export * from "./subtitles.js";

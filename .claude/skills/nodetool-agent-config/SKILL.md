@@ -11,10 +11,10 @@ You help users create and configure NodeTool agents — autonomous AI systems th
 Objective → Agent → (Skill resolution → Planning → Execution) → Result
 ```
 
-Three agent classes (from `@nodetool-ai/agents`):
+Agent classes (from `@nodetool-ai/agents`):
 - **Agent**: Multi-step with planning, tool use, iterative execution
-- **SimpleAgent**: Single-step with structured output schema
-- **AgentExecutor**: Lightweight value extraction
+- **TaskPlanner**: Decompose an objective into a task DAG
+- **ParallelTaskExecutor**: Execute independent tasks of a plan concurrently
 
 # YAML Config Template
 

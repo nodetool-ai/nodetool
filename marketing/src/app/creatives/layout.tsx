@@ -2,14 +2,16 @@ import JsonLd from "../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "NodeTool for working creatives | The open creative AI workspace",
+  title: "NodeTool for working creatives | The agent-first creative workspace",
   description:
-    "The open creative AI workspace, made for working artists, motion designers, and AI-native illustrators. Every major model from every major provider, called with your own keys, on one node-based canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
+    "The agent-first creative workspace, made for working artists, motion designers, and AI-native illustrators. Describe the piece and the agent plans the shots, builds the workflow, and runs every major model with your own keys — on one canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/creatives",
   },
   keywords: [
+    "agent-first creative workspace",
+    "creative AI agent",
     "creative AI workspace",
     "BYOK creative AI",
     "ComfyUI alternative for creatives",
@@ -23,9 +25,9 @@ export const metadata: Metadata = {
     "AI tools for illustrators",
   ],
   openGraph: {
-    title: "NodeTool for working creatives | The open creative AI workspace",
+    title: "NodeTool for working creatives | The agent-first creative workspace",
     description:
-      "Every model. Your keys. Your canvas. The open-source creative AI workspace for working artists, motion designers, and illustrators.",
+      "Every model. Your keys. Your agent. The open-source, agent-first creative workspace for working artists, motion designers, and illustrators.",
     url: "https://nodetool.ai/creatives",
     siteName: "NodeTool",
     images: [
@@ -41,7 +43,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for working creatives",
     description:
-      "Every model. Your keys. Your canvas. The open creative AI workspace.",
+      "Every model. Your keys. Your agent. The open, agent-first creative workspace.",
     images: ["/preview.png"],
   },
 };
@@ -64,7 +66,7 @@ export default function CreativesLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool for Creatives",
           description:
-            "The open creative AI workspace for working artists, motion designers, and AI-native illustrators. Every major model from every major provider, called with your own keys, on one node-based canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
+            "The agent-first creative workspace for working artists, motion designers, and AI-native illustrators. Describe the piece and the agent plans the shots, builds the workflow, and runs every major model with your own keys — on one canvas with masks, inpaint, outpaint, relight, upscale, and compositing built in.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/creatives",

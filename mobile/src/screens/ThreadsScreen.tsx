@@ -23,6 +23,7 @@ import { RootStackParamList } from '../navigation/types';
 import { type Thread } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Threads'>;
@@ -42,6 +43,60 @@ function formatRelative(iso: string | null | undefined): string {
   if (days < 7) { return `${days}d ago`; }
   return new Date(iso).toLocaleDateString();
 }
+
+const keyExtractor = (thread: Thread) => thread.id;
+
+const ThreadRow = React.memo(function ThreadRow({
+  thread,
+  colors,
+  shadows,
+  onOpen,
+  onDelete,
+}: {
+  thread: Thread;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onOpen: (thread: Thread) => void;
+  onDelete: (thread: Thread) => void;
+}) {
+  const handleOpen = useCallback(() => onOpen(thread), [onOpen, thread]);
+  const handleDelete = useCallback(() => onDelete(thread), [onDelete, thread]);
+
+  return (
+    <TouchableOpacity
+      onPress={handleOpen}
+      activeOpacity={0.7}
+      style={[
+        styles.card,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Open thread ${thread.title || 'untitled'}`}
+    >
+      <View style={[styles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
+        <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
+      </View>
+      <View style={styles.meta}>
+        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
+          {thread.title || 'Untitled conversation'}
+        </Text>
+        <Text style={[styles.subtitle, { color: colors.textTertiary }]}>
+          {formatRelative(thread.updated_at || thread.created_at)}
+        </Text>
+      </View>
+      <TouchableOpacity
+        onPress={handleDelete}
+        style={styles.deleteBtn}
+        accessibilityRole="button"
+        accessibilityLabel={`Delete thread ${thread.title || 'untitled'}`}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Ionicons name="trash-outline" size={18} color={colors.error} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
 
 export default function ThreadsScreen({ navigation }: Props) {
   const { colors, shadows } = useTheme();
@@ -94,39 +149,17 @@ export default function ThreadsScreen({ navigation }: Props) {
     );
   }, [deleteThread]);
 
-  const renderItem = ({ item }: { item: Thread }) => (
-    <TouchableOpacity
-      onPress={() => handleOpen(item)}
-      activeOpacity={0.7}
-      style={[
-        styles.card,
-        shadows.small,
-        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-      ]}
-      accessibilityRole="button"
-      accessibilityLabel={`Open thread ${item.title || 'untitled'}`}
-    >
-      <View style={[styles.iconWrap, { backgroundColor: colors.primaryMuted }]}>
-        <Ionicons name="chatbubble-ellipses-outline" size={18} color={colors.primary} />
-      </View>
-      <View style={styles.meta}>
-        <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
-          {item.title || 'Untitled conversation'}
-        </Text>
-        <Text style={[styles.subtitle, { color: colors.textTertiary }]}>
-          {formatRelative(item.updated_at || item.created_at)}
-        </Text>
-      </View>
-      <TouchableOpacity
-        onPress={() => handleDelete(item)}
-        style={styles.deleteBtn}
-        accessibilityRole="button"
-        accessibilityLabel={`Delete thread ${item.title || 'untitled'}`}
-        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      >
-        <Ionicons name="trash-outline" size={18} color={colors.error} />
-      </TouchableOpacity>
-    </TouchableOpacity>
+  const renderItem = useCallback(
+    ({ item }: { item: Thread }) => (
+      <ThreadRow
+        thread={item}
+        colors={colors}
+        shadows={shadows}
+        onOpen={handleOpen}
+        onDelete={handleDelete}
+      />
+    ),
+    [colors, shadows, handleOpen, handleDelete],
   );
 
   if (isLoading) {
@@ -169,7 +202,7 @@ export default function ThreadsScreen({ navigation }: Props) {
 
       <FlatList
         data={filtered}
-        keyExtractor={(t) => t.id}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={

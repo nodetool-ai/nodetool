@@ -36,6 +36,7 @@ import {
   ExecutionSession,
   type RawGraphInput as ExecutionSessionRawGraph
 } from "@nodetool-ai/execution";
+import { createRunSupervisor } from "./run-supervisor.js";
 import {
   Application,
   Asset,
@@ -90,7 +91,8 @@ import type {
   HydratedGraphData,
   NodeDescriptor,
   ProcessingMessage,
-  ProviderCost
+  ProviderCost,
+  SupervisorRunOptions
 } from "@nodetool-ai/protocol";
 import {
   getSdkV1SafeErrorMessage,
@@ -1220,7 +1222,7 @@ function createRuntimeContext(opts: {
  * multi-step / parallel work. Planning is not forced — it is one of the
  * choices the agent can make.
  */
-const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
+export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Reply in clear, concise prose.
 
 # How to think about effort
 - For simple questions, answer directly without any tool calls.
@@ -1289,6 +1291,19 @@ When the user wants a workflow built, drive this loop:
 Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
 hand-fix small issues in a planned graph rather than re-planning.
 
+# Debugging mini apps
+A mini app is not a workflow: \`debug_workflow\` says nothing about whether a
+binding resolves or a widget shows anything. After editing an app with the
+\`ui_app_*\` tools, or when a user reports one behaving wrong, call
+\`debug_app\`. It returns each widget's final state and a pass/fail verdict.
+- \`run: false\` is the free, instant wiring check — use it after every
+  wiring change.
+- One \`run: true\` before you call the app done. A run executes the real
+  workflows and spends real money: check often, run once.
+- In the App Builder pass \`document\` with the live draft (the
+  \`ui_app_debug\` tool does this) — the saved row is stale mid-edit. Use
+  \`application_id\` for a saved app you are not editing.
+
 # Image and media
 When tools return media URLs, embed them as markdown image / link tags.
 Image URIs often use the \`asset://<id>.<ext>\` scheme (e.g.
@@ -1348,7 +1363,7 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
  * alongside; the long tail (collections, files, web, media, other MCP tools,
  * and all client `ui_*` tools) is deferred and loaded on demand.
  */
-const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
+export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives.
   "run_subtask",
   "run_search",
@@ -1366,7 +1381,10 @@ const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "plan_workflow_graph",
   "validate_workflow",
   "create_workflow",
-  "debug_workflow"
+  "debug_workflow",
+  // The app half of the same loop: the only tool that can tell the agent
+  // whether a mini app it edited actually works.
+  "debug_app"
 ]);
 
 /**
@@ -1449,6 +1467,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
   lines.push(
     "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
   );
+
+  const hasTimeline =
+    focused?.type === "timeline" || open.some((ref) => ref.type === "timeline");
+  if (hasTimeline) {
+    lines.push(
+      "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
+    );
+  }
   return lines.join("\n");
 }
 
@@ -1491,6 +1517,14 @@ export interface RunJobRequest {
     event_detail?: "full" | "outputs" | "terminal";
     asset_persistence?: "auto" | "temporary";
   };
+  /**
+   * Supervise this run (docs/workflow-supervisor-design.md). Off unless the
+   * client asks: supervision sends failure context to a model, so nothing else
+   * on the request implies it.
+   */
+  supervise?: boolean;
+  /** Supervisor configuration. Ignored unless `supervise` is true. */
+  supervisor?: SupervisorRunOptions | null;
   /** Internal monotonic timestamp captured when runJob accepts the request. */
   _accepted_at_ms?: number;
   settings?: Record<string, unknown>;
@@ -3003,6 +3037,17 @@ export class UnifiedWebSocketRunner {
     // is passed through as-is (not rebuilt from a registry+bridge) because
     // this class only ever holds the bootstrap-injected closure, never a
     // `NodeRegistry` instance.
+    // Opt-in per request; a run that asked for no supervisor gets none, and a
+    // supervisor that cannot be built leaves the run unsupervised rather than
+    // failing it.
+    const supervisor = await createRunSupervisor({
+      supervise: req.supervise,
+      supervisor: req.supervisor,
+      context,
+      defaultProvider: this.defaultProvider,
+      defaultModel: this.defaultModel
+    });
+
     const session = await ExecutionSession.create({
       graph: graph as unknown as ExecutionSessionRawGraph,
       resolveExecutor: (node) =>
@@ -3014,7 +3059,8 @@ export class UnifiedWebSocketRunner {
       workflowId,
       context,
       params: req.params ?? {},
-      validateNode: this.validateNode
+      validateNode: this.validateNode,
+      ...(supervisor ? { supervisor } : {})
     });
 
     const active: ActiveJob = {

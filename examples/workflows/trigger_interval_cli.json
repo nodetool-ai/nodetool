@@ -1,0 +1,40 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "every",
+        "type": "nodetool.triggers.IntervalTrigger",
+        "data": { "interval_seconds": 60, "max_events": 1 }
+      },
+      {
+        "id": "tick",
+        "type": "nodetool.output.Output",
+        "name": "tick",
+        "data": { "name": "tick" }
+      },
+      {
+        "id": "elapsed",
+        "type": "nodetool.output.Output",
+        "name": "elapsed",
+        "data": { "name": "elapsed" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "every",
+        "sourceHandle": "tick",
+        "target": "tick",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "every",
+        "sourceHandle": "elapsed_seconds",
+        "target": "elapsed",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

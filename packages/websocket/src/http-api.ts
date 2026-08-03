@@ -61,11 +61,22 @@ import {
   type NodeExecutor,
   type PythonBridge
 } from "@nodetool-ai/runtime";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { BoundedHandle, WorkflowRunner } from "@nodetool-ai/kernel";
+import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   buildRunVerdict,
-  collectExecutionSummary
+  collectExecutionSummary,
+  collectInterventionWarnings,
+  normalizeGraph
 } from "@nodetool-ai/execution";
+import {
+  debugSessions,
+  DebugSession,
+  InteractiveEscalationHandle,
+  INTERACTIVE_DECISION_TIMEOUT_MS,
+  TooManyDebugSessionsError,
+  type DebugSessionEvent
+} from "./debug-sessions.js";
 import {
   resolveWorkflowWorkspace,
   buildWorkspaceExecutionContext
@@ -876,54 +887,25 @@ export async function handleWorkflowRun(
   const body = await parseJsonBody<{
     params?: Record<string, unknown>;
     background?: boolean;
+    /**
+     * Bubble node failures up to the caller instead of resolving them
+     * server-side: the response returns as soon as a node invocation
+     * escalates, and the run stays parked until a verdict arrives on
+     * `POST /api/debug/sessions/:id/verdict`. See debug-sessions.ts.
+     */
+    interactive?: boolean;
+    max_decisions?: number;
+    max_retries_per_node?: number;
+    decision_timeout_ms?: number;
   }>(request);
   const params = body?.params ?? {};
+  const interactive = body?.interactive === true;
 
-  const graph = workflow.getGraph();
-  const runnableGraph: {
-    nodes: Array<{
-      id: string;
-      type: string;
-      [key: string]: unknown;
-    }>;
-    edges: Array<{
-      id?: string | null;
-      source: string;
-      target: string;
-      sourceHandle: string;
-      targetHandle: string;
-      edge_type?: "data" | "control";
-      [key: string]: unknown;
-    }>;
-  } = {
-    nodes: graph.nodes.map((node) => {
-      const record = node as Record<string, unknown>;
-      return {
-        ...record,
-        id: String(record.id ?? ""),
-        type: String(record.type ?? ""),
-        properties: (record.properties ?? record.data ?? {}) as Record<
-          string,
-          unknown
-        >
-      };
-    }),
-    edges: graph.edges.map((edge) => {
-      const record = edge as Record<string, unknown>;
-      return {
-        ...record,
-        id:
-          typeof record.id === "string" || record.id == null
-            ? (record.id as string | null | undefined)
-            : String(record.id),
-        source: String(record.source ?? ""),
-        target: String(record.target ?? ""),
-        sourceHandle: String(record.sourceHandle ?? ""),
-        targetHandle: String(record.targetHandle ?? ""),
-        edge_type: record.edge_type === "control" ? "control" : "data"
-      };
-    })
-  };
+  // One normalization for every host: `data` → `properties`, editor-only
+  // nodes (Comment/Group/Reroute) pruned, and edges typed from `edge_type` or
+  // the legacy `type`. Hand-rolling it here drifted from the CLI — a graph
+  // with a Comment node ran there and failed here with "Unknown node type".
+  const runnableGraph = normalizeGraph(workflow.getGraph());
 
   const runtime = await getWorkflowRuntimeEnvironment(options);
   const hasPythonNode = runnableGraph.nodes.some((node) => {
@@ -938,21 +920,55 @@ export async function handleWorkflowRun(
     await runtime.ensurePythonBridge();
   }
 
-  const job = await Job.create({
+  const job = (await Job.create({
     workflow_id: workflowId,
     user_id: userId,
     status: "running",
     params,
     graph: runnableGraph
-  });
+  })) as Job;
 
   // Everything after the row exists must finalize it. Workspace resolution,
   // node-flag hydration and the run itself can all throw (fs, registry) — a
   // bare throw here returned a 500 and stranded the row at "running" forever.
-  let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
+  let runner: WorkflowRunner;
+  let hydratedGraph: ReturnType<typeof hydrateGraphNodeFlags>;
+  let interactiveHandle: InteractiveEscalationHandle | null = null;
+  let supervisorHandle: BoundedHandle | null = null;
   try {
     const workspaceDir = await resolveWorkflowWorkspace(workflowId, userId);
-    const runner = new WorkflowRunner(job.id, {
+    if (interactive) {
+      // The caller answers escalations itself, so the handle parks each one
+      // until a verdict arrives over HTTP. `BoundedHandle` keeps the same
+      // guarantees an LLM supervisor gets — decision/retry caps, a per-decision
+      // timeout that fails closed, sticky verdicts — just with a timeout sized
+      // for an agent's tool round trip instead of one model call.
+      // These are API inputs: anything but a sane integer (NaN, Infinity,
+      // negatives, fractions) falls back to the default rather than reaching
+      // `BoundedHandle` — a NaN timeout would fail every decision instantly.
+      const maxDecisions = boundedRunOption(
+        body?.max_decisions,
+        1,
+        MAX_INTERACTIVE_DECISIONS
+      );
+      const maxRetriesPerNode = boundedRunOption(
+        body?.max_retries_per_node,
+        0,
+        MAX_INTERACTIVE_RETRIES_PER_NODE
+      );
+      interactiveHandle = new InteractiveEscalationHandle();
+      supervisorHandle = new BoundedHandle(interactiveHandle, {
+        ...(maxDecisions !== undefined ? { maxDecisions } : {}),
+        ...(maxRetriesPerNode !== undefined ? { maxRetriesPerNode } : {}),
+        decisionTimeoutMs:
+          boundedRunOption(
+            body?.decision_timeout_ms,
+            1,
+            MAX_INTERACTIVE_DECISION_TIMEOUT_MS
+          ) ?? INTERACTIVE_DECISION_TIMEOUT_MS
+      });
+    }
+    runner = new WorkflowRunner(job.id, {
       resolveExecutor: (node) =>
         runtime.resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
@@ -962,29 +978,147 @@ export async function handleWorkflowRun(
         workflowId,
         userId,
         workspaceDir
-      })
+      }),
+      ...(supervisorHandle ? { supervisor: supervisorHandle } : {})
     });
-    result = await runner.run(
-      { job_id: job.id, workflow_id: workflowId, params },
-      hydrateGraphNodeFlags(
-        runnableGraph as unknown as GraphData,
-        runtime.registry
-      )
+    hydratedGraph = hydrateGraphNodeFlags(
+      runnableGraph as unknown as GraphData,
+      runtime.registry
     );
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    try {
-      job.markFailed(message);
-      await job.save();
-    } catch (saveError) {
-      log.warn("failed to persist failed job status", {
-        jobId: job.id,
-        error: String(saveError)
-      });
-    }
+    await markJobFailed(job, message);
     throw error instanceof Error ? error : new Error(message);
   }
 
+  if (!interactive) {
+    let result: Awaited<ReturnType<WorkflowRunner["run"]>>;
+    try {
+      result = await runner.run(
+        { job_id: job.id, workflow_id: workflowId, params },
+        hydratedGraph
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await markJobFailed(job, message);
+      throw error instanceof Error ? error : new Error(message);
+    }
+
+    await finalizeWorkflowRunJob(job, result);
+    return jsonResponse(
+      buildWorkflowRunPayload(job.id, workflowId, result, debug, {
+        background: body?.background ?? false
+      })
+    );
+  }
+
+  // Interactive: the run keeps going between HTTP round trips, so a failure
+  // finalizes the job inside the run promise and becomes the final report —
+  // there is no request left to 500. The promise never rejects; the session
+  // depends on that.
+  const runPromise = (async (): Promise<Record<string, unknown>> => {
+    try {
+      const result = await runner.run(
+        { job_id: job.id, workflow_id: workflowId, params },
+        hydratedGraph
+      );
+      await finalizeWorkflowRunJob(job, result);
+      return buildWorkflowRunPayload(job.id, workflowId, result, debug, {
+        background: false
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      await markJobFailed(job, message);
+      // Keep the payload shape of a failed run — the debug surface still gets
+      // a summary and verdict — instead of a bare {status, error} object.
+      const failed: WorkflowRunResult = {
+        status: "failed",
+        error: message,
+        messages: [],
+        outputs: {}
+      };
+      return buildWorkflowRunPayload(job.id, workflowId, failed, debug, {
+        background: false
+      });
+    } finally {
+      supervisorHandle?.close();
+    }
+  })();
+
+  let session: DebugSession;
+  try {
+    session = debugSessions.create({
+      userId,
+      workflowId,
+      jobId: job.id,
+      handle: interactiveHandle!,
+      done: runPromise,
+      cancel: () => runner.cancel()
+    });
+  } catch (error) {
+    // The run is already going; without a session nobody can answer it, so
+    // cancel it rather than leave an unreachable run behind.
+    runner.cancel();
+    if (error instanceof TooManyDebugSessionsError) {
+      return errorResponse(429, error.message);
+    }
+    throw error instanceof Error ? error : new Error(String(error));
+  }
+  const event = await session.waitForEvent();
+  return jsonResponse(debugSessionEventPayload(session, event));
+}
+
+type WorkflowRunResult = Awaited<ReturnType<WorkflowRunner["run"]>>;
+
+/**
+ * Server-side ceilings for the interactive bounds a caller may ask for. The
+ * request body is an API input, so a number nobody would type by hand — a
+ * decision timeout of a day, ten thousand decisions — is clamped rather than
+ * honored. `DEFAULT_SUPERVISOR_BOUNDS` sets the shape of what is reasonable;
+ * these are the generous end of it.
+ */
+const MAX_INTERACTIVE_DECISIONS = 100;
+const MAX_INTERACTIVE_RETRIES_PER_NODE = 20;
+const MAX_INTERACTIVE_DECISION_TIMEOUT_MS = 30 * 60_000;
+
+/**
+ * An interactive-run bound from the request body: an integer in `[min, max]`,
+ * or undefined. Out-of-range highs clamp to `max`; anything that is not a sane
+ * integer (NaN, Infinity, negatives, fractions) is undefined so the caller
+ * gets the default instead of a bound that fails every decision instantly.
+ */
+function boundedRunOption(
+  value: unknown,
+  min: number,
+  max: number
+): number | undefined {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < min) {
+    return undefined;
+  }
+  return Math.min(value, max);
+}
+
+/**
+ * Mark a job failed and persist it. Persistence is best effort: the run has
+ * already failed, and a save error must not replace the caller's error with a
+ * database one.
+ */
+async function markJobFailed(job: Job, message: string): Promise<void> {
+  try {
+    job.markFailed(message);
+    await job.save();
+  } catch (saveError) {
+    log.warn("failed to persist failed job status", {
+      jobId: job.id,
+      error: String(saveError)
+    });
+  }
+}
+
+async function finalizeWorkflowRunJob(
+  job: Job,
+  result: WorkflowRunResult
+): Promise<void> {
   if (result.status === "completed") {
     job.markCompleted();
   } else if (result.status === "cancelled") {
@@ -993,37 +1127,155 @@ export async function handleWorkflowRun(
     job.markFailed(result.error ?? "Workflow run failed");
   }
   await job.save();
+}
 
+function buildWorkflowRunPayload(
+  jobId: string,
+  workflowId: string,
+  result: WorkflowRunResult,
+  debug: boolean,
+  extras: { background: boolean }
+): Record<string, unknown> {
   if (debug) {
     // The debug surface reports what actually happened — per-node status and
     // errors, logs, edges, LLM calls, outputs — plus the same verdict the CLI
     // harness computes, instead of leaving a caller to infer a run's health
     // from a status string.
     const summary = collectExecutionSummary(result.messages);
-    return jsonResponse({
-      job_id: job.id,
+    const verdict = buildRunVerdict(summary, {
+      ok: result.status === "completed",
+      status: result.status,
+      error: result.error ?? null
+    });
+    // Supervisor decisions are warnings, never issues — a rescued run still
+    // completed — but without them a supervised run reads as "ran clean".
+    // Same composition the CLI harness's cross-surface verdict does.
+    const warnings = collectInterventionWarnings("Server", summary);
+    return {
+      job_id: jobId,
       workflow_id: workflowId,
       status: result.status,
       outputs: result.outputs,
       error: result.error ?? null,
       summary,
-      verdict: buildRunVerdict(summary, {
-        ok: result.status === "completed",
-        status: result.status,
-        error: result.error ?? null
-      })
-    });
+      verdict:
+        warnings.length > 0
+          ? {
+              ...verdict,
+              headline: verdict.ok
+                ? `${verdict.headline} (supervised)`
+                : verdict.headline,
+              warnings
+            }
+          : verdict
+    };
   }
 
-  return jsonResponse({
-    job_id: job.id,
+  return {
+    job_id: jobId,
     workflow_id: workflowId,
     status: result.status,
     outputs: result.outputs,
     error: result.error ?? null,
     message_count: result.messages.length,
-    background: body?.background ?? false
-  });
+    background: extras.background
+  };
+}
+
+/** One escalated/running/done payload shape for every interactive response. */
+function debugSessionEventPayload(
+  session: DebugSession,
+  event: DebugSessionEvent
+): Record<string, unknown> {
+  switch (event.kind) {
+    case "done":
+      return { ...event.report, session_id: session.id };
+    case "escalated":
+      return {
+        status: "escalated",
+        session_id: session.id,
+        job_id: session.jobId,
+        workflow_id: session.workflowId,
+        escalation_id: event.escalationId,
+        escalation: event.escalation,
+        resolve:
+          `POST /api/debug/sessions/${session.id}/verdict with ` +
+          `{"escalation_id": "${event.escalationId}", "verdict": {"action": ...}} — ` +
+          `allowed actions: ${event.escalation.allowedActions.join(", ")}. ` +
+          "The run is parked on this node until a verdict arrives; an " +
+          "unanswered escalation fails closed on the decision timeout."
+      };
+    case "running":
+      return {
+        status: "running",
+        session_id: session.id,
+        job_id: session.jobId,
+        workflow_id: session.workflowId
+      };
+  }
+}
+
+/**
+ * `/api/debug/sessions/:id[/verdict|/cancel]` — the caller's half of an
+ * interactive run. GET peeks at the session, `verdict` answers the parked
+ * escalation and waits for the next event, `cancel` cancels the run and
+ * returns the final report.
+ */
+export async function handleDebugSessionRequest(
+  request: Request,
+  sessionId: string,
+  subPath: string | null,
+  options: HttpApiOptions = {}
+): Promise<Response> {
+  const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+  const session = debugSessions.get(sessionId, userId);
+  if (!session) return errorResponse(404, "Debug session not found");
+
+  if (subPath === null) {
+    if (request.method !== "GET") {
+      return errorResponse(405, "Method not allowed");
+    }
+    return jsonResponse(debugSessionEventPayload(session, session.peek()));
+  }
+
+  if (subPath === "verdict") {
+    if (request.method !== "POST") {
+      return errorResponse(405, "Method not allowed");
+    }
+    const body = await parseJsonBody<{
+      escalation_id?: string;
+      verdict?: unknown;
+    }>(request);
+    if (!body || typeof body.escalation_id !== "string") {
+      return errorResponse(400, "Body must carry escalation_id and verdict");
+    }
+    const parsed = verdictSchema.safeParse(body.verdict);
+    if (!parsed.success) {
+      return errorResponse(
+        400,
+        `Invalid verdict: ${parsed.error.issues
+          .map((issue) => issue.message)
+          .join("; ")}`
+      );
+    }
+    const rejected = await session.submitVerdict(
+      body.escalation_id,
+      parsed.data
+    );
+    if (rejected) return errorResponse(400, rejected.error);
+    const event = await session.waitForEvent();
+    return jsonResponse(debugSessionEventPayload(session, event));
+  }
+
+  if (subPath === "cancel") {
+    if (request.method !== "POST") {
+      return errorResponse(405, "Method not allowed");
+    }
+    const report = await session.cancel();
+    return jsonResponse({ ...report, session_id: session.id });
+  }
+
+  return errorResponse(404, "Not found");
 }
 
 // ── Autosave ──────────────────────────────────────────────────────────
@@ -2627,6 +2879,22 @@ export async function handleApiRequest(
     );
     if (!workflowId) return errorResponse(404, "Not found");
     return handlePublicWorkflowById(request, workflowId);
+  }
+
+  // ── Interactive debug sessions ─────────────────────────────────────
+  // Pattern: /api/debug/sessions/{id}[/verdict|/cancel]
+  {
+    const debugSessionMatch = pathname.match(
+      /^\/api\/debug\/sessions\/([^/]+)(?:\/([a-z]+))?$/
+    );
+    if (debugSessionMatch) {
+      return handleDebugSessionRequest(
+        request,
+        decodeURIComponent(debugSessionMatch[1]),
+        debugSessionMatch[2] ?? null,
+        options
+      );
+    }
   }
 
   // ── Workflow sub-resource routes ───────────────────────────────────

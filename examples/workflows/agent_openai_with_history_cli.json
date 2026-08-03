@@ -1,35 +1,76 @@
 {
   "graph": {
     "nodes": [
-      { "id": "system", "type": "test.Input", "name": "system" },
-      { "id": "prompt", "type": "test.Input", "name": "prompt" },
-      { "id": "history", "type": "test.Input", "name": "history" },
-      { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
-      { "id": "agent", "type": "nodetool.agents.Agent" },
-      { "id": "sink", "type": "nodetool.control.Reroute", "name": "agent_text" }
+      {
+        "id": "system",
+        "type": "nodetool.input.StringInput",
+        "name": "system",
+        "data": {
+          "name": "system"
+        }
+      },
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "name": "prompt",
+        "data": {
+          "name": "prompt"
+        }
+      },
+      {
+        "id": "history",
+        "type": "nodetool.input.MessageListInput",
+        "name": "history",
+        "data": {
+          "name": "history"
+        }
+      },
+      {
+        "id": "model",
+        "type": "nodetool.input.LanguageModelInput",
+        "name": "model",
+        "data": {
+          "value": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-4o",
+            "name": "GPT-4o"
+          },
+          "name": "model"
+        }
+      },
+      {
+        "id": "agent",
+        "type": "nodetool.agents.Agent"
+      },
+      {
+        "id": "sink",
+        "type": "nodetool.control.Reroute",
+        "name": "agent_text"
+      }
     ],
     "edges": [
       {
         "source": "system",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "system"
       },
       {
         "source": "prompt",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "prompt"
       },
       {
         "source": "history",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "history"
       },
       {
         "source": "model",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "model"
       },
@@ -45,8 +86,14 @@
     "system": "You are a coding assistant.",
     "prompt": "Continue from history and suggest one next action.",
     "history": [
-      { "role": "user", "content": "I built a workflow runner in TS." },
-      { "role": "assistant", "content": "Great. Add provider support next." }
+      {
+        "role": "user",
+        "content": "I built a workflow runner in TS."
+      },
+      {
+        "role": "assistant",
+        "content": "Great. Add provider support next."
+      }
     ],
     "model": {
       "provider": "openai",
@@ -55,4 +102,3 @@
     }
   }
 }
-

@@ -625,14 +625,15 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
-        "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+        "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
         "tags": [
           "video",
           "generation",
           "ai",
           "storytelling",
           "creative",
-          "trailer"
+          "trailer",
+          "storyboard"
         ]
       },
       {
@@ -1261,6 +1262,16 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": []
       },
       {
+        "slug": "a-webhook-that-answers",
+        "name": "A Webhook That Answers",
+        "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+        "tags": [
+          "trigger",
+          "webhook",
+          "llm"
+        ]
+      },
+      {
         "slug": "ad-copy-in-three-registers",
         "name": "Ad Copy in Three Registers",
         "description": "The same offer written plain, playful and premium. Register is usually the variable a team argues about, so produce all three and let the work settle it.",
@@ -1303,6 +1314,22 @@ export const templateCatalog: CatalogCategory[] = [
           "retrieval",
           "llm",
           "citations"
+        ]
+      },
+      {
+        "slug": "check-a-url-and-an-ip",
+        "name": "Check a URL and an IP",
+        "description": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "chunk-a-transcript-for-indexing",
+        "name": "Chunk a Transcript for Indexing",
+        "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+        "tags": [
+          "text"
         ]
       },
       {
@@ -1416,6 +1443,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "map-a-readmes-structure",
+        "name": "Map a README's Structure",
+        "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "one-tagline-six-markets",
         "name": "One Tagline, Six Markets",
         "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
@@ -1452,12 +1487,11 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "read-stderr-from-code",
-        "name": "Read Stderr from Code",
-        "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
+        "slug": "read-the-links-out-of-a-page",
+        "name": "Read the Links Out of a Page",
+        "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
         "tags": [
-          "code",
-          "utility"
+          "text"
         ]
       },
       {
@@ -1469,47 +1503,19 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "rewrite-this-so-a-customer-understands-it",
-        "name": "Rewrite This So a Customer Understands It",
-        "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
+        "slug": "redact-and-tidy-a-log-line",
+        "name": "Redact and Tidy a Log Line",
+        "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
         "tags": [
           "text"
         ]
       },
       {
-        "slug": "run-javascript-in-a-sandbox",
-        "name": "Run JavaScript in a Sandbox",
-        "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
+        "slug": "rewrite-this-so-a-customer-understands-it",
+        "name": "Rewrite This So a Customer Understands It",
+        "description": "Jargon in, plain language out, at a stated reading level. The most common editing job there is, and the one most worth a repeatable workflow.",
         "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-lua-in-a-sandbox",
-        "name": "Run Lua in a Sandbox",
-        "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-python-in-a-sandbox",
-        "name": "Run Python in a Sandbox",
-        "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
-        ]
-      },
-      {
-        "slug": "run-a-shell-command",
-        "name": "Run a Shell Command",
-        "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
-        "tags": [
-          "code",
-          "utility"
+          "text"
         ]
       },
       {
@@ -1640,6 +1646,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "validate-a-signup-payload",
+        "name": "Validate a Signup Payload",
+        "description": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "wrap-a-value-in-quotes",
         "name": "Wrap a Value in Quotes",
         "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
@@ -1670,6 +1684,16 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "data",
           "utility"
+        ]
+      },
+      {
+        "slug": "a-run-button-for-any-job",
+        "name": "A Run Button for Any Job",
+        "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+        "tags": [
+          "trigger",
+          "manual",
+          "automation"
         ]
       },
       {
@@ -1753,6 +1777,16 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "every-hour-on-the-hour",
+        "name": "Every Hour, On the Hour",
+        "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+        "tags": [
+          "trigger",
+          "interval",
+          "automation"
+        ]
+      },
+      {
         "slug": "fill-a-template",
         "name": "Fill a Template",
         "description": "Substitute values into a text template. This is the seam between a workflow's inputs and a model prompt - keep the wording in one Template node rather than scattering it across several prompt fields.",
@@ -1791,15 +1825,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "generate-a-table-in-code",
-        "name": "Generate a Table in Code",
-        "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
-        "tags": [
-          "code",
-          "data"
-        ]
-      },
-      {
         "slug": "json-to-a-table",
         "name": "JSON to a Table",
         "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
@@ -1809,18 +1834,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "javascript-to-a-table",
-        "name": "JavaScript to a Table",
-        "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
+        "slug": "join-two-tables-on-a-key",
+        "name": "Join Two Tables on a Key",
+        "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
         "tags": [
-          "code",
           "data"
         ]
       },
       {
-        "slug": "join-two-tables-on-a-key",
-        "name": "Join Two Tables on a Key",
-        "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
+        "slug": "keep-only-the-long-lines",
+        "name": "Keep Only the Long Lines",
+        "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
         "tags": [
           "data"
         ]
@@ -1964,6 +1988,16 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "text",
           "data"
+        ]
+      },
+      {
+        "slug": "watch-a-folder-act-on-what-lands",
+        "name": "Watch a Folder, Act on What Lands",
+        "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+        "tags": [
+          "trigger",
+          "file-watch",
+          "automation"
         ]
       }
     ]

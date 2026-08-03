@@ -87,11 +87,28 @@ const fullTextStyleParams = z.object({
   maxWidthFrac: z.number().optional()
 });
 
+/** A whole sequence handed to the bridge as-is, fields and all. */
+export interface TimelineBridgeSequenceSeed {
+  fps?: number;
+  width?: number;
+  height?: number;
+  tracks: TimelineTrack[];
+  clips: TimelineClip[];
+}
+
 /** Case-supplied starting point for a run. */
 export interface TimelineBridgeInitialState {
   fps?: number;
   width?: number;
   height?: number;
+  /**
+   * A real sequence to start from — every track and clip field preserved
+   * (effects, animations, generation bindings, styles). Wins over the
+   * `tracks`/`clips` shorthand below, which only carries what an eval case
+   * needs to state a starting position. The bridge deep-clones it, so a caller
+   * can hand over state it still owns.
+   */
+  sequence?: TimelineBridgeSequenceSeed;
   tracks?: { name?: string; type: "video" | "audio" | "overlay" | "subtitle" }[];
   clips?: {
     name: string;
@@ -120,6 +137,13 @@ export interface TimelineBridgeFinalState {
     prompt?: string;
     animations: { role: string; preset: string }[];
   }[];
+  /**
+   * The full tracks and clips, not the reduced view above. Predicates read the
+   * reduced shape; a host that has to reconstruct a document from the session
+   * (the `nodetool timeline debug` harness) needs every field back.
+   */
+  documentTracks: TimelineTrack[];
+  documentClips: TimelineClip[];
 }
 
 function tool(
@@ -154,9 +178,10 @@ function capitalize(s: string): string {
 export function createTimelineToolBridge(
   initial: TimelineBridgeInitialState = {}
 ): HeadlessSurfaceBridge<TimelineBridgeFinalState> {
-  const fps = initial.fps ?? 30;
-  const width = initial.width ?? 1920;
-  const height = initial.height ?? 1080;
+  const seed = initial.sequence;
+  const fps = seed?.fps ?? initial.fps ?? 30;
+  const width = seed?.width ?? initial.width ?? 1920;
+  const height = seed?.height ?? initial.height ?? 1080;
 
   let playheadMs = 0;
   let selectedClipIds: string[] = [];
@@ -166,9 +191,18 @@ export function createTimelineToolBridge(
   const tracks: TimelineTrack[] = [];
   let clips: TimelineClip[] = [];
 
-  const nextTrackId = () => `track_${++trackSeq}`;
-  const nextClipId = () => `clip_${++clipSeq}`;
-  const nextAnimId = () => `anim_${++animSeq}`;
+  // Ids the sequence already uses. A seeded document brings its own, which the
+  // `track_1`/`clip_1` counters would otherwise collide with on the first edit.
+  const usedIds = new Set<string>();
+  const mint = (prefix: string, next: () => number): string => {
+    let id = `${prefix}_${next()}`;
+    while (usedIds.has(id)) id = `${prefix}_${next()}`;
+    usedIds.add(id);
+    return id;
+  };
+  const nextTrackId = () => mint("track", () => ++trackSeq);
+  const nextClipId = () => mint("clip", () => ++clipSeq);
+  const nextAnimId = () => mint("anim", () => ++animSeq);
 
   function addTrackInternal(
     type: TimelineTrack["type"],
@@ -270,11 +304,27 @@ export function createTimelineToolBridge(
     };
   }
 
+  // Seed from a real sequence when one was handed over, otherwise from the
+  // shorthand. Cloned, so the bridge never writes through to the caller's state.
+  if (seed) {
+    for (const track of seed.tracks) {
+      const copy = structuredClone(track);
+      usedIds.add(copy.id);
+      tracks.push(copy);
+    }
+    for (const clip of seed.clips) {
+      const copy = structuredClone(clip);
+      usedIds.add(copy.id);
+      for (const animation of copy.animations ?? []) usedIds.add(animation.id);
+      clips.push(copy);
+    }
+  }
+
   // Seed initial tracks and clips.
-  for (const t of initial.tracks ?? []) {
+  for (const t of seed ? [] : (initial.tracks ?? [])) {
     addTrackInternal(t.type, t.name);
   }
-  for (const c of initial.clips ?? []) {
+  for (const c of seed ? [] : (initial.clips ?? [])) {
     const track = tracks[c.trackIndex];
     if (!track) {
       throw new Error(
@@ -855,7 +905,9 @@ export function createTimelineToolBridge(
           role: a.role,
           preset: a.preset
         }))
-      }))
+      })),
+      documentTracks: tracks.map((t) => structuredClone(t)),
+      documentClips: clips.map((c) => structuredClone(c))
     })
   };
 }

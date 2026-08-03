@@ -78,7 +78,6 @@ packages/           # 58 npm workspace packages (TypeScript backend)
   agents/           # Planning agent system (TaskPlanner → TaskExecutor → StepExecutor)
   chat/             # Chat message processing, token counting
   base-nodes/       # Core workflow nodes (text, image, LLM, agents)
-  code-runners/     # Secure code execution (Docker, subprocess)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
   cli/              # nodetool CLI
   vectorstore/      # SQLite-vec for RAG
@@ -116,7 +115,7 @@ protocol → config → security → auth → storage
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
-- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), SimpleAgent (single-step), AgentExecutor (value extraction)
+- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), StepExecutor (tool-calling loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
 - **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
@@ -150,7 +149,7 @@ npm run typecheck   # Must pass before committing
 - **Node.js 22.22.1 is required**. This matches Electron 39's embedded Node (`process.versions.node === "22.22.1"`). Pinning the major keeps API parity between dev and the packaged app. The backend (dev and prod) runs on vanilla Node, not Electron's embedded Node, so the one source-built native module — `better-sqlite3` — is rebuilt against **Node** headers by the root `postinstall` (`electron/scripts/rebuild-native.mjs`). N-API modules (`bufferutil`, `sharp`, `keytar`, `sqlite-vec`) are ABI-stable, ship their own prebuilds via their normal install scripts, and are not rebuilt here.
 - **base-nodes, node-sdk, fal-nodes, replicate-nodes, elevenlabs-nodes** use decorators and load from `dist/`. After changing these, run `npm run build:packages` before `npm run dev`.
 - **Package build order matters**. Use `npm run build:packages` which builds in dependency order, not `npm run build` on individual packages that have unbuilt dependencies.
-- **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount). A push to `main` builds the image (`docker.yml`) and then auto-deploys it to Fly (`fly-deploy.yml`), so both backend and frontend changes ship in a new image. Migrations run once per release via Fly's `release_command` (see `fly.toml`).
+- **Deploy = the GHCR image, self-contained**. The prod server runs on **Fly.io** (`fly.toml`, app `nodetool`, https://nodetool.fly.dev / https://api.nodetool.ai). The deploy unit is the GHCR image built by `.github/workflows/docker.yml`; `web/dist` and workflow examples are baked into it (no host bind-mount). A push to `main` builds the image (`docker.yml`) and then auto-deploys it to Fly (`fly-deploy.yml`), so both backend and frontend changes ship in a new image. Migrations run once per release via Fly's `release_command` (see `fly.toml`). Because `docker.yml` runs only after a merge, the Quality Gate carries a `docker` leg that builds the image on the PR, boots it, and loads the app in a browser (`scripts/docker-smoke.mjs`) — run it locally against any server with `node scripts/docker-smoke.mjs http://localhost:7777`. The container needs `--network host`: in `local` auth mode the server trusts only loopback *inside* the container, so behind a published port every API call answers 401.
 - **Self-hosting** (outside Fly) uses `docker-compose.yml` (reference compose) or the `packages/deploy` tooling. The old self-hosted `deploy.sh`/`npm run redeploy` box was decommissioned once Fly took over.
 - **Packaged Electron backend flattens file paths**. esbuild bundles the backend into one `server.mjs`, so anything resolved relative to `import.meta.url` (provider `*-manifest.json`, examples, `package://` assets) lives elsewhere in the packaged app than in dev. Data files a package loads at runtime must be declared in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and loaded via `loadPackageAssetJson` from `@nodetool-ai/config` — the registry drives staging (`scripts/bundle-backend.mjs`) and artifact verification (`scripts/verify-backend-bundle.mjs`), and unregistered loads throw in dev. See [electron/src/AGENTS.md § Packaged file layout](electron/src/AGENTS.md).
 - **The packaged backend only resolves what `bundle-backend.mjs` stages, in a flat `_modules/`**. One version per package name wins, so a dependency npm hoisted for an older major can take the slot a newer one needs — invisible in dev, fatal in the artifact. `npm run backend:smoke` stages the bundle and boots `server.mjs` against `/health`; run it after touching `scripts/bundle-backend.mjs`, a native dependency, or anything the backend loads lazily. CI runs it as the Quality Gate `bundle` leg and again per-OS in `release.yaml`.
@@ -160,6 +159,7 @@ npm run typecheck   # Must pass before committing
 - **Mobile typecheck** requires building protocol first: `cd packages/protocol && npm run build`. The one shared package mobile compiles from **source** (no build) is `@nodetool-ai/app-runtime`, wired in `mobile/metro.config.js`, `tsconfig.json` and `jest.config.js` — all three must agree.
 - **`mobile/` is intentionally NOT a root workspace** (it has its own Expo/React Native dependency tree that must not be hoisted). Its scripts use `npm --prefix mobile …`, not `npm --workspace=mobile …` — the latter will fail. Do not "standardize" these to `--workspace`.
 - **`npm install` fails in sandboxed/proxied environments** (CI sandboxes, Claude Code on the web): `keytar` needs `apt-get install -y libsecret-1-dev` first; `electron` and `onnxruntime-node` download binaries in postinstall, which proxies can 403 (`ELECTRON_SKIP_BINARY_DOWNLOAD=1` covers Electron; onnxruntime has no skip var). Any postinstall failure rolls back the whole `node_modules` tree. For lint/typecheck-only work, `npm install --ignore-scripts` sidesteps all of it. Details: [AGENTS.md § Install in sandboxed / proxied environments](AGENTS.md#install-in-sandboxed--proxied-environments).
+- **"No WebGPU adapter available (Node/Dawn)" is a missing driver, not a broken test.** The image nodes (`lib.image.*` generators, every `nodetool.image` transform) reach WebGPU through Dawn, which has no software fallback of its own. CI installs `mesa-vulkan-drivers` — lavapipe, a CPU Vulkan ICD — on the `test-packages` leg of `quality-checks.yml` and the browser job in `test.yml`, so these tests pass there. Do not conclude that shader-backed nodes are untestable headlessly, and do not skip a test over it. With root: `apt-get install -y mesa-vulkan-drivers`. Without root: extract the deb and point `VK_DRIVER_FILES` at the `lvp_icd.json` inside it. Details: [AGENTS.md § WebGPU on a headless machine](AGENTS.md#webgpu-on-a-headless-machine).
 - **Native module install is a single command**: a clean checkout builds with `npm ci` (or `npm install`) alone — no manual follow-up. The native `better-sqlite3` rebuild runs from the **root** `postinstall` (`electron/scripts/rebuild-native.mjs`), which fires *after* npm has fully reified the tree. It deliberately does **not** run from the electron workspace's own postinstall: that fired mid-reify and raced npm's atomic renames of node-gyp's deps (`tinyglobby`), giving intermittent `Cannot find module 'tinyglobby'` failures. If you ever hit a `NODE_MODULE_VERSION` mismatch, force a rebuild with `npm run rebuild:native` (root) or `npm --prefix electron run rebuild:native`.
 - **Claude Agent Provider in nested sessions (e.g. Claude Code web)**: The SDK spawns a subprocess via `node cli.js`. In environments like Claude Code on the web (`claude.ai/code`), you must: (1) strip all `CLAUDE_CODE_*` / `CLAUDE_SESSION_*` / `CLAUDE_ENABLE_*` / `CLAUDE_AFTER_*` / `CLAUDE_AUTO_*` env vars — not just `CLAUDECODE`; (2) run as a non-root user — the SDK refuses `--dangerously-skip-permissions` when uid=0; (3) keep `ANTHROPIC_BASE_URL` and `HTTP_PROXY`/`HTTPS_PROXY` vars for API routing. See `docs/AGENTS.md` § Claude Agent SDK for full details.
 
@@ -177,36 +177,40 @@ npm run nodetool -- <command>
 npm run chat -- [flags]
 ```
 
-### nodetool chat (Agent Mode)
+### nodetool chat
+
+Every chat session runs the unified agent loop. There is no mode to select:
+`-a, --agent` and `--no-agent` are accepted for backwards compatibility and do
+nothing (`packages/cli/src/index.ts` marks both `[deprecated] No-op`).
 
 ```bash
-# Interactive agent chat
-npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
-npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-5
+# Interactive chat
+npm run dev:chat -- --provider openai --model gpt-5.4-mini
+npm run dev:chat -- --provider anthropic --model claude-sonnet-5
 
 # Piped input (non-interactive)
-echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
+echo "research 5 AI topics" | npm run dev:chat -- --provider openai --model gpt-5.4-mini
 
 # Connect to running WebSocket server
-npm run dev:chat -- --agent --url ws://localhost:7777/ws
+npm run dev:chat -- --url ws://localhost:7777/ws
 ```
 
 Chat flags:
 ```
--a, --agent [mode]       Agent mode: off | loop | plan | graph | multi-agent
-                         (default: plan when --agent is given without a value)
---no-agent               Force agent mode off
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, together, openrouter,
-                         huggingface, replicate, kie, aki, ollama, lmstudio
+                         huggingface, replicate, kie, aki, ollama, lmstudio,
+                         claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
+-a, --agent [mode]       [deprecated] No-op
+--no-agent               [deprecated] No-op
 ```
 
-Interactive commands: `/agent <off|loop|plan|graph|multi-agent>`, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
+Interactive commands: `/help`, `/new`, `/clear`, `/compact [instructions]`, `/model <id>`, `/provider <name>`, `/tools`, `/exit`, `/quit`
 
 ### nodetool serve
 
@@ -253,6 +257,49 @@ npm run dev:nodetool -- run workflow.ts            # Run a TypeScript DSL file
 npm run dev:nodetool -- run workflow.ts --json     # Output results as JSON
 ```
 
+### Supervised runs (`--supervise`)
+
+`--supervise` puts an agent on the failure path: a node invocation that throws
+after its own error handling raises an escalation, and the agent answers with
+one verdict — retry, repair the output, skip the item, or fail. Without the
+flag no escalation is ever constructed and the run is unchanged.
+
+Available on `nodetool run`, `nodetool workflows run`, and `nodetool debug`
+(server surface). The flags configure `ExecutionSessionOptions.supervisor` —
+the one integration point every surface shares; no CLI code touches
+`WorkflowRunner`.
+
+```bash
+npm run dev:nodetool -- workflows run <id> --supervise
+npm run dev:nodetool -- run workflow.ts --supervise --max-decisions 5
+npm run dev:nodetool -- debug <id> --supervise --supervisor-cost-cap 0.25
+npm run dev:nodetool -- workflows run <id> --supervise \
+  --supervisor-model openrouter/openai/gpt-5.4-mini --max-retries 1
+```
+
+```
+--supervise                       Supervise this run (off unless passed)
+--max-decisions <n>               Decisions allowed in the run (default 10)
+--max-retries <n>                 Retries per node invocation (default 2)
+--supervisor-cost-cap <usd>       Ceiling on supervisor spend (default 0.50)
+--supervisor-model <provider/model>  Default anthropic/claude-sonnet-4-6,
+                                  or NODETOOL_SUPERVISOR_MODEL
+```
+
+Each decision prints a `⛨` line as it happens and the run ends with a
+supervised summary (`⛨ supervised: 2 skipped, 1 retried, 3 decisions,
++$0.0200`). With `--json` the decisions appear as `interventions` (run
+commands; `nodetool run` wraps them as `{results, interventions}`) or
+`server.summary.interventions` plus a `server.supervised` rollup (`debug`).
+It is the `Intervention` record from `@nodetool-ai/protocol`, which the editor
+surface consumes unchanged. Supervisor spend goes into the prediction
+ledger `nodetool costs` reads, one row per billable decision, attributed to the
+run and tagged `supervisor` in `node_type`.
+
+Every supervisor failure (timeout, unparseable verdict, exhausted budget,
+cancelled run) resolves as `fail`. Details:
+[docs/workflow-supervisor-design.md](docs/workflow-supervisor-design.md).
+
 ### nodetool debug (Workflow Debug Harness)
 
 Runs a workflow end-to-end on the **server** (headless kernel `WorkflowRunner`)
@@ -282,6 +329,7 @@ npm run dev:nodetool -- debug <id> --no-server --browser   # browser only
 npm run dev:nodetool -- debug <id> --out ./mydebug         # custom bundle dir
 npm run dev:nodetool -- debug <id> --timeout 60000         # per-surface timeout (ms)
 npm run dev:nodetool -- debug workflow.json --watch        # re-run on file change, print a verdict diff
+npm run dev:nodetool -- debug <id> --supervise             # supervise the server surface (see above)
 ```
 
 The `--watch` flag (file targets only) re-runs after every save and prints just
@@ -308,7 +356,20 @@ tool. It posts to `POST /api/workflows/:id/debug`, which runs the workflow and
 returns the same execution summary and verdict the CLI harness computes —
 per-node status and errors, logs, LLM calls, outputs — plus the job record and
 the graph overview. The summary reducer and triage live in
-`@nodetool-ai/execution/debug`, so CLI and agent surfaces cannot drift. The browser surface is exposed in `web/` as
+`@nodetool-ai/execution/debug`, so CLI and agent surfaces cannot drift.
+
+With `interactive: true`, `run_workflow` and `debug_workflow` put the calling
+agent on the failure path the way `--supervise` puts an LLM supervisor there:
+a failing node invocation parks the run and the tool returns the escalation
+(`status: "escalated"` with the supervisor's `Escalation` record — redacted
+inputs, error detail, `allowedActions`). The agent answers via
+**`resolve_workflow_escalation`** — retry, substitute, skip, end_stream, or
+fail, kernel-enforced against the allowed set — and gets back either the next
+escalation or the run's final report. HTTP surface:
+`POST /api/workflows/:id/run|debug {interactive: true}` plus
+`GET/POST /api/debug/sessions/:id[/verdict|/cancel]`
+(`packages/websocket/src/debug-sessions.ts`). Escalations the agent leaves
+unanswered fail closed on the decision timeout (default 10 min). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
 
@@ -362,11 +423,24 @@ The bundle (`nodetool-debug/app-<id>-<ts>/`) contains `report.json`/`report.md`,
 `server/run-N.messages.jsonl` per triggered run. The report carries final
 variable values, the activity label stream, and each invocation's policy
 decision, so an agent can see why a run was replaced, queued, or timed out.
-Harness code: `packages/cli/src/app-debug/`.
+Simulator code: `packages/execution/src/app-debug/`
+(`@nodetool-ai/execution/app-debug`), so every host — the CLI, the agent build
+loop, the server — simulates an app the same way. The CLI keeps target
+resolution and bundle writing in `packages/cli/src/app-debug/`.
 
-Not simulated headlessly: `visibleWhen`/`disabledWhen`/`format`, so a widget
-hidden by a condition is reported as if visible; and `from: "resource"` params,
-which have no provider outside the browser.
+Conditions and formatting are simulated: after every fold the harness evaluates
+each widget's `visibleWhen`/`disabledWhen`, a click or change on a widget that
+is hidden or disabled fails the step and names the condition, a run trigger
+whose condition never held is an error, and a widget with a `format` template
+reports what the template renders. Resource collections come from an in-memory
+provider the script seeds — `{"seedResource":{"id":"<binding>","items":[…]}}`
+as an interaction step, or a `resource:<binding>` key in `--params`. A
+`from: "resource"` input then resolves through it, resource widgets report their
+collection in the report, and a `resourceCommand` mutates it; running an
+operation whose input reads an unseeded binding fails and says how to seed it.
+Not simulated headlessly (the report lists this too, under `notSimulated`):
+layout, styling, focus, and scroll; and the stored collections themselves — a
+run never reads the database, and `openResource` has no editor to open.
 
 The shipped example apps are curated `ApplicationBundle` files in
 `packages/base-nodes/nodetool/examples/apps/`, built from the spec in
@@ -374,7 +448,14 @@ The shipped example apps are curated `ApplicationBundle` files in
 build resolves every workflow, input, and output by name against the shipped
 template graphs, validates each bundle with `nodetool app debug --no-run`, and
 writes the preview bundles in `web/public/app-preview/`. Example workflows
-carry no `app_doc`. The server lists them at `GET /api/applications/examples`
+carry no `app_doc`. `--regen -p <provider> -m <model>` answers a different
+question — would `nodetool app build` produce these apps today? It derives a
+`BuildSpec` from each shipped bundle, builds it, and prints the drift
+(operations, variables, and widgets compared by what they show, not by their
+ids, so two builds of one app differ only where they really differ). It writes
+nothing: the curated bundles stay hand-approved, and drift between two model
+runs is a signal to read, not a patch to apply. Add `--app <slug>` for one app.
+The server lists them at `GET /api/applications/examples`
 and installs one with `POST /api/applications/examples/:slug/install`, which
 goes through the normal bundle import. Marketing
 screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
@@ -382,13 +463,123 @@ screenshots come from `web/scripts/screenshot-app-previews.mjs` (renders
 the `/apps/*` landing pages are generated by
 `marketing/scripts/generate-miniapp-entries.mjs` (`npm run gen:apps`).
 
+### nodetool app build (Mini-App Build Harness)
+
+Turns a prompt — or a hand-written `spec.json` — into a verified
+`ApplicationBundle`, without touching the database. Six stages run in order:
+**spec** pins what the app must do, **plan** builds one workflow per operation
+with `GraphPlanner` (or binds one you pin), **author** drives the real `ui_app_*`
+tool contract to place and wire the widgets, **check** validates the app's
+wiring against those graphs, **run** replays every interaction on the kernel and
+asserts what each widget ends up showing, and **judge** asks a model whether
+each interaction achieved what was asked — the one question a structural check
+cannot answer.
+
+The judge sees only a Check+Run-green app, one call per interaction, given the
+spec's intent, the steps, and the widget states they left behind. A verdict of
+not-achieved becomes the round's complaint and routes to the Author with the
+judge's reasons. It fails closed: a judge that times out, errors, or answers
+with something unparseable scores that interaction as not achieved. Its model is
+configured apart from the builder's (`--judge-model`,
+`NODETOOL_APP_JUDGE_MODEL`), defaulting to a configured model the builder did
+not use, because a model grading its own work is the weakest reviewer
+available; `report.judge.model` records which one ran. `--no-judge` skips the
+stage, and the verdict's `notSimulated` then says nothing scored the app.
+
+Everything wrong at the end of a pass becomes one complaint, and the next round
+*edits* the document rather than rebuilding it. The loop fails closed: a budget
+that runs out, an issue that reappears after being fixed, or a cancelled signal
+ends the build as failed with the reason named — there is no bundle behind a
+failed verdict.
+
+```bash
+npm run dev:nodetool -- app build "an app that drafts a note from a prompt" -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- app build spec.json -p openai -m gpt-5.4-mini --json
+npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --workflow <id>   # bind, never plan
+npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --max-repairs 1 --cost-cap 1.00
+npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --judge-model openai/gpt-5.4-mini
+npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --no-judge   # structural only
+npm run dev:nodetool -- app build "..." -p anthropic -m claude-sonnet-5 --supervise
+npm run dev:nodetool -- app build spec.json -p anthropic -m claude-sonnet-5 --watch
+```
+
+```
+-p, --provider <name>  -m, --model <id>   builder provider/model (required)
+--judge-model <provider/model>            judge model (env NODETOOL_APP_JUDGE_MODEL;
+                                          default: a configured model ≠ the builder's)
+--workflow <id>                           pin an existing workflow (repeatable, operation order)
+--max-repairs <n>   --cost-cap <usd>   --timeout <ms>
+--out <dir>   --json   --no-judge   --watch
+--supervise   --max-decisions <n>   --max-retries <n>
+--supervisor-cost-cap <usd>   --supervisor-model <provider/model>
+```
+
+`--supervise` and its four bounds are the same flags `nodetool run`, `workflows
+run`, and `debug` carry, with the same defaults (env:
+`NODETOOL_SUPERVISOR_MODEL`); see [Supervised runs](#supervised-runs---supervise)
+above. They apply to the **Run** stage, whose interactions execute on the kernel
+— `buildApp` itself is never supervised. Each decision lands in that
+interaction's run report and rolls up into `report.supervision` (the
+`Intervention` records plus the run summary), and the CLI prints the usual `⛨`
+lines. A supervised run's shape is a decision rather than a defect: once the
+supervisor has skipped or repaired something, what the run produced less of is
+recorded as a warning instead of an issue the Author is asked to repair. The
+interaction's expectations stay errors — supervision does not excuse the
+contract the spec pinned.
+
+`--watch` (spec-file targets only) re-builds after every save and prints just
+what changed since the last build — verdict ok/fail transitions, the stage it
+ended on, issues that appeared and resolved, and cost movement. It reuses
+`debug --watch`'s differ, so both harnesses read the same. The bundle directory
+stays at `nodetool-debug/app-build-<slug>-watch` so each re-build overwrites the
+last. A build is a model run: every save spends money.
+
+The bundle (`nodetool-debug/app-build-<slug>-<ts>/`) holds `report.json` (the
+`BuildReport`), `report.md`, `spec.json`, `app.bundle.json` (the deliverable,
+written only for a green build), and `interactions/<name>/run-N.messages.jsonl`
+per replayed run. Exit code 0 only when `verdict.ok`. Build spend lands in the
+prediction ledger `nodetool costs` reads, one row per stage, tagged `app-build`.
+
+Harness code: `packages/agents/src/app-build/` (`buildApp`, the spec/author/judge
+stages, the `ui_app_*` bridge the `app-tools` eval also scores); the CLI keeps
+the flags and the bundle. Design:
+[docs/mini-app-build-harness-design.md](docs/mini-app-build-harness-design.md).
+
+#### On the server: `POST /api/applications/build` and `build_app`
+
+The same `buildApp` runs on the server:
+`POST /api/applications/build {prompt | spec, provider, model, workflow_ids,
+max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`, and an agent
+reaches it through the **`build_app`** tool. Provider and model come from the
+body, or from `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`; the
+cost cap defaults to the harness's own $2.
+
+A build runs for minutes, so `poll: true` returns a session id immediately and
+the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
+`POST /api/debug/sessions/:id/cancel` — the same session machinery an
+interactive `debug_workflow` run uses (`packages/websocket/src/debug-sessions.ts`).
+A cancelled build settles as `failed` with `reason: "cancelled"`.
+
+The bundle behind a green verdict is offered, never installed: it becomes an
+application through the normal `POST /api/applications/import-bundle`. Server
+code: `packages/websocket/src/lib/app-build-service.ts`.
+
 ### nodetool validate (Static Workflow Check)
 
 Checks a workflow against the node registry **without running it** — unknown
 node types, missing required properties, unselected models, dangling and
-mis-typed edges. Returns in well under a second, so it's the cheap pre-flight
-before an expensive `debug` run. Accepts a workflow id, JSON file, or DSL `.ts`
-file. File/DSL targets need no database.
+mis-typed edges, dynamic slots typed with a JSON-Schema/TypeScript name instead
+of NodeTool's (`integer` → `int`), and Code node bodies. Returns in well under a
+second, so it's the cheap pre-flight before an expensive `debug` run. Accepts a
+workflow id, JSON file, or DSL `.ts` file. File/DSL targets need no database.
+
+A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
+not valid JavaScript, uses `import`/`export` (the sandbox has no module loader),
+reads a name that is neither a sandbox API nor one of the node's inputs
+(a ReferenceError at run time), never returns, or leaves a declared output
+unset on some return path is reported against the node. The analysis lives in
+`@nodetool-ai/node-sdk` (`code-analysis.ts`, `code-node-validation.ts`), so the
+graph validator, the `submit_code` planner and the editor read one AST.
 
 ```bash
 npm run dev:nodetool -- validate <workflow_id>
@@ -401,6 +592,47 @@ The same check is exposed to agents through the **`validate_workflow`** tool:
 pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 `workflow_id` to fetch and validate a saved one. The validator core is
 `validateGraph` in `@nodetool-ai/node-sdk`.
+
+### nodetool timeline validate / debug (Timeline Harness)
+
+Checks a timeline sequence without rendering it, and replays a scripted edit
+session against it. The target is a timeline JSON file — a bare
+`TimelineDocument` or anything carrying one under `document`, so a
+`GET /api/timeline/:id` response works as-is — or a `timeline_sequences` row
+id. A path that exists on disk wins over an id.
+
+```bash
+npm run dev:nodetool -- timeline validate <timeline_id>
+npm run dev:nodetool -- timeline validate sequence.json --json
+npm run dev:nodetool -- timeline validate <id> --warnings-as-errors
+
+npm run dev:nodetool -- timeline debug sequence.json \
+  --interact '[{"tool":"add_track","input":{"type":"audio","name":"Music"}},
+               {"tool":"animate_clip","input":{"target":"shot","animations":[{"role":"in","preset":"fade"}]}}]'
+npm run dev:nodetool -- timeline debug <id> --out ./mydebug --json
+```
+
+`validate` reads what a headless check can decide: a clip on a track the
+document does not have, a field the schema round trip would strip, an animation
+preset that does not exist, timings that cannot render. `debug` runs the same
+check, then executes each `--interact` step against the headless
+`ui_timeline_*` bridge — the one the `timeline-tools` eval drives — and
+validates the document the session left behind. A step names a tool with or
+without the `ui_timeline_` prefix; a failing step is recorded and the script
+continues, so one bad target does not hide everything after it. Rendering,
+playback, decode, and generation are not simulated; the report lists that under
+`notSimulated`.
+
+The same static check is exposed to agents through the **`validate_timeline`**
+tool: pass an inline `document` to check a timeline being built, or a
+`timeline_id` to validate a saved sequence (scoped to the requesting user). The
+timeline assistant is told to call it after edits, before the user renders.
+
+The bundle (`nodetool-debug/timeline-<id>-<ts>/`) holds `report.json`,
+`report.md`, and `timeline.json` (the input document). Exit code 0 only when
+the verdict is ok. Validation and report rules live in
+`@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
+interaction script, and the bundle.
 
 ### nodetool node run (Single-Node Harness)
 
@@ -480,18 +712,46 @@ npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
 ```
 
-Alongside `graph-planner` (one-shot DSL) there are seven **tool-loop** suites
+Alongside `graph-planner` (one-shot DSL) there are eight **tool-loop** suites
 that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
-structurally: `tool-loop` (graph editor), `script-tools`, `sketch-tools`,
-`timeline-tools`, `storyboard-tools`, `model3d-tools`, `app-tools`. Same flags,
-metrics, and `--min-success` CI gate as `graph-planner`. Details:
+structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
+`sketch-tools`, `timeline-tools`, `storyboard-tools`, `model3d-tools`,
+`app-tools`. Same flags, metrics, and `--min-success` CI gate as
+`graph-planner`. Details:
 [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md).
+
+`workflow-escalation` runs the graph tools over objectives that are missing
+something only the user can decide — a name, permission to delete, a choice
+between two node types — plus an `ask_user` tool wired to a scripted user. Each
+case scores both the question the model asked and whether the graph it went on
+to build matches the answer, and one case pins every value so that asking at all
+is the failure.
 
 ```bash
 npm run dev:nodetool -- eval timeline-tools --list
 npm run dev:nodetool -- eval script-tools -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval sketch-tools -p ollama -m qwen-3.5:4b --min-success 0.8
+npm run dev:nodetool -- eval workflow-escalation -p anthropic -m claude-sonnet-5
+```
+
+An **`app-build`** suite scores `nodetool app build` end to end: eight
+medium-complexity prompts (two operations, a persisted setting, a streaming
+output, a gated second step, a condition that hides something) go through
+spec → plan → author → check → run → judge, and a case counts as green only
+when the build's verdict is ok *and* the delivered bundle has the shape asked
+for. It reports the one-shot rate (green with zero repair rounds — the PRD's
+north star), the green-within-budget rate that `--min-success` gates on, repair
+rounds, cost, and wall clock. Two deterministic cases author from a script over
+template graphs, call no provider, and run on every PR in the Quality Gate; the
+full suite runs nightly (`.github/workflows/app-build-eval.yml`).
+
+```bash
+npm run dev:nodetool -- eval app-build --list
+npm run dev:nodetool -- eval app-build -p anthropic -m claude-sonnet-5
+# The deterministic cases — no API key needed; the provider is never called.
+npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish \
+  -p ollama -m none --no-find-model --min-success 1
 ```
 
 ### nodetool affected (Changed-File → Workspace Mapping)

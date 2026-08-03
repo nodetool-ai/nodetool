@@ -1,17 +1,51 @@
 {
   "graph": {
     "nodes": [
-      { "id": "message", "type": "nodetool.input.MessageInput", "name": "message" },
-      { "id": "extract", "type": "nodetool.input.MessageDeconstructor" },
-      { "id": "system", "type": "test.Input", "name": "system" },
-      { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
-      { "id": "agent", "type": "nodetool.agents.Agent" },
-      { "id": "sink", "type": "nodetool.control.Reroute", "name": "agent_text" }
+      {
+        "id": "message",
+        "type": "nodetool.input.MessageInput",
+        "name": "message"
+      },
+      {
+        "id": "extract",
+        "type": "nodetool.input.MessageDeconstructor"
+      },
+      {
+        "id": "system",
+        "type": "nodetool.input.StringInput",
+        "name": "system",
+        "data": {
+          "name": "system"
+        }
+      },
+      {
+        "id": "model",
+        "type": "nodetool.input.LanguageModelInput",
+        "name": "model",
+        "data": {
+          "value": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-4o",
+            "name": "GPT-4o"
+          },
+          "name": "model"
+        }
+      },
+      {
+        "id": "agent",
+        "type": "nodetool.agents.Agent"
+      },
+      {
+        "id": "sink",
+        "type": "nodetool.control.Reroute",
+        "name": "agent_text"
+      }
     ],
     "edges": [
       {
         "source": "message",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "extract",
         "targetHandle": "value"
       },
@@ -23,13 +57,13 @@
       },
       {
         "source": "system",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "system"
       },
       {
         "source": "model",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "model"
       },
@@ -49,7 +83,12 @@
       "role": "user",
       "provider": "openai",
       "model": "gpt-4o",
-      "content": [{ "type": "text", "text": "Summarize why provider abstractions matter." }]
+      "content": [
+        {
+          "type": "text",
+          "text": "Summarize why provider abstractions matter."
+        }
+      ]
     },
     "model": {
       "provider": "openai",
@@ -58,4 +97,3 @@
     }
   }
 }
-

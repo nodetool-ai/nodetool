@@ -1,5 +1,18 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+import {
+  describe,
+  it,
+  expect,
+  beforeAll,
+  afterAll,
+  beforeEach,
+  afterEach,
+  vi
+} from "vitest";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
+import { getBuiltinTools, getAllMcpTools } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { AgentTransport } from "../src/agent/transport.js";
 
@@ -495,7 +508,7 @@ describe("getLocalMcpServerUrl", () => {
   });
 });
 
-describe("bridged agent tools (workflow + creative)", () => {
+describe("bridged agent tools (the full agent toolbelt)", () => {
   function toolNames(server: ReturnType<typeof createMcpServer>): string[] {
     const tools = (
       server as unknown as {
@@ -507,6 +520,25 @@ describe("bridged agent tools (workflow + creative)", () => {
 
   const scope = { userId: "1", source: "stdio-local" as const };
 
+  // The bridged file tools are rooted under the NodeTool data dir, and
+  // constructing the server creates that directory. Point it at a temp dir so
+  // the suite never touches the developer's real workspace.
+  let dataDir: string;
+  const dataDirEnv = process.platform === "win32" ? "APPDATA" : "XDG_DATA_HOME";
+  let previousDataDir: string | undefined;
+
+  beforeAll(() => {
+    previousDataDir = process.env[dataDirEnv];
+    dataDir = mkdtempSync(join(tmpdir(), "nodetool-mcp-test-"));
+    process.env[dataDirEnv] = dataDir;
+  });
+
+  afterAll(() => {
+    if (previousDataDir === undefined) delete process.env[dataDirEnv];
+    else process.env[dataDirEnv] = previousDataDir;
+    rmSync(dataDir, { recursive: true, force: true });
+  });
+
   it("registers the workflow-building and creative tools alongside native ones", () => {
     const server = createMcpServer({ agentToolsScope: scope });
     const names = new Set(toolNames(server));
@@ -514,7 +546,11 @@ describe("bridged agent tools (workflow + creative)", () => {
     for (const t of [
       "create_workflow",
       "debug_workflow",
+      "resolve_workflow_escalation",
+      "build_app",
+      "debug_app",
       "validate_workflow",
+      "validate_timeline",
       "list_models",
       "get_example_workflow",
       "export_workflow_digraph",
@@ -542,6 +578,77 @@ describe("bridged agent tools (workflow + creative)", () => {
     for (const t of ["run_workflow", "list_workflows", "list_nodes", "get_job"]) {
       expect(names.has(t)).toBe(true);
     }
+  });
+
+  it("exposes every built-in agent tool, except names a native tool owns", () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const names = new Set(toolNames(server));
+    const native = new Set(toolNames(createMcpServer()));
+    for (const tool of getBuiltinTools()) {
+      if (native.has(tool.name)) continue;
+      expect(names.has(tool.name)).toBe(true);
+    }
+  });
+
+  it("exposes the agent MCP catalog, except names a native tool owns", () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const names = new Set(toolNames(server));
+    const native = new Set(toolNames(createMcpServer()));
+    for (const tool of getAllMcpTools({})) {
+      if (native.has(tool.name)) continue;
+      expect(names.has(tool.name)).toBe(true);
+    }
+  });
+
+  it("lets the native tool win every name the bridge also offers", () => {
+    // The native list_workflows / get_asset / list_nodes render thumbnails and
+    // MCP Apps; the agent catalog offers plain-JSON tools under the same names.
+    // The bridge must skip those rather than shadow them or throw.
+    const bridgedNames = new Set(
+      [...getBuiltinTools(), ...getAllMcpTools({})].map((t) => t.name)
+    );
+    const native = new Set(toolNames(createMcpServer()));
+    const overlap = [...bridgedNames].filter((n) => native.has(n));
+    expect(overlap.length).toBeGreaterThan(0);
+
+    const server = createMcpServer({ agentToolsScope: scope });
+    const tools = (
+      server as unknown as {
+        _registeredTools: Record<string, { description?: string }>;
+      }
+    )._registeredTools;
+    const nativeServer = (
+      createMcpServer() as unknown as {
+        _registeredTools: Record<string, { description?: string }>;
+      }
+    )._registeredTools;
+    for (const name of overlap) {
+      expect(tools[name].description).toBe(nativeServer[name].description);
+    }
+  });
+
+  it("roots file tools in a per-user workspace directory", async () => {
+    const { __mcpWorkspaceDirForTests } = await import(
+      "../src/mcp-agent-tools.js"
+    );
+    expect(__mcpWorkspaceDirForTests("user-a")).not.toBe(
+      __mcpWorkspaceDirForTests("user-b")
+    );
+    // A user id reaches the filesystem as a path segment — it must not escape.
+    expect(__mcpWorkspaceDirForTests("../../etc")).not.toContain("..");
+  });
+
+  it("write_file and read_file round-trip through the workspace", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const written = await callTool(server, "write_file", {
+      file_path: "mcp-roundtrip.txt",
+      content: "hello"
+    });
+    expect(written.isError).toBeUndefined();
+    const read = await callTool(server, "read_file", {
+      file_path: "mcp-roundtrip.txt"
+    });
+    expect(read.content[0].text).toContain("hello");
   });
 
   it("does NOT register bridged tools on a session without a user scope", () => {
@@ -572,6 +679,19 @@ describe("bridged agent tools (workflow + creative)", () => {
     expect(res.isError).toBe(true);
     const body = JSON.parse(res.content[0].text!) as { error: string };
     expect(body.error).toContain("No graph to validate");
+  });
+
+  it("validate_timeline validates an inline document", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const res = await callTool(server, "validate_timeline", {
+      document: { tracks: [], clips: [], markers: [] }
+    });
+    const body = JSON.parse(res.content[0].text!) as {
+      ok: boolean;
+      summary: string;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.summary).toBe("No issues found.");
   });
 
   it("save_asset reports an actionable error when nothing to save", async () => {

@@ -26,10 +26,6 @@ export default defineConfig({
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
       "@nodetool-ai/base-nodes": resolve(__dirname, "../base-nodes/src/index.ts"),
       "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts"),
-      "@nodetool-ai/code-runners": resolve(
-        __dirname,
-        "../code-runners/src/index.ts"
-      ),
       "@nodetool-ai/elevenlabs-nodes": resolve(
         __dirname,
         "../elevenlabs-nodes/src/index.ts"

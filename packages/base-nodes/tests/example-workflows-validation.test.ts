@@ -60,9 +60,6 @@ const ALLOWED_UNREGISTERED_TYPES = new Set<string>([
 
   // ── 3. Python-only nodes referenced by Python-era templates ────────────
   // (Listed individually so adding a TS port surfaces as a test failure.)
-  "lib.http.GetRequest",
-  "lib.http.GetRequestDocument",
-  "lib.http.DownloadFiles",
   "lib.json.StringifyJSON",
   "lib.pymupdf.ExtractText",
   "nodetool.boolean.Compare",

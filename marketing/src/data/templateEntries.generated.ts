@@ -601,6 +601,199 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/a-run-button-for-any-job",
+    "title": "A Run Button for Any Job — NodeTool AI Workflow Template",
+    "description": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "a-run-button-for-any-job",
+    "name": "A Run Button for Any Job",
+    "summary": "The trigger you reach for when nothing external should decide the timing — a person does. It waits, and whatever payload you hand it comes out of `data`, with the caller in `source` so two senders stay distinguishable. Useful as the front of a pipeline you want to fire by hand, from a script, or from another workflow.",
+    "tags": [
+      "example",
+      "trigger",
+      "manual",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.triggers.ManualTrigger",
+        "label": "Manual Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "start",
+          "type": "nodetool.triggers.ManualTrigger",
+          "title": "Manual Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "payload",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "source",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 220,
+          "width": 240
+        },
+        {
+          "id": "at",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 330,
+          "y": 400,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "start",
+          "sourceHandle": "data",
+          "target": "payload",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "start",
+          "sourceHandle": "source",
+          "target": "source",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "start",
+          "sourceHandle": "timestamp",
+          "target": "at",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/a-webhook-that-answers",
+    "title": "A Webhook That Answers — NodeTool AI Workflow Template",
+    "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "a-webhook-that-answers",
+    "name": "A Webhook That Answers",
+    "summary": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
+    "tags": [
+      "example",
+      "trigger",
+      "webhook",
+      "llm"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToString",
+        "label": "To String",
+        "count": 1
+      },
+      {
+        "type": "nodetool.triggers.WebhookTrigger",
+        "label": "Webhook Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "hook",
+          "type": "nodetool.triggers.WebhookTrigger",
+          "title": "Webhook Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "str",
+          "type": "nodetool.text.ToString",
+          "title": "To String",
+          "x": 330,
+          "y": 120,
+          "width": 240
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 620,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 970,
+          "y": 120,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "hook",
+          "sourceHandle": "body",
+          "target": "str",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "str",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/ai-spokesperson",
     "title": "AI Spokesperson — NodeTool AI Workflow Template",
     "description": "Give a presenter clip a new script. Text-to-speech voices the script, then a lip-sync model redrives the mouth in the source footage so the delivery matches. Useful for localising a take, fixing a fluffed line, or spinning one recording into many variants. Both the speech and lip-sync steps are paid per run.",
@@ -3618,6 +3811,280 @@ export const templateEntries: TemplateEntry[] = [
           "target": "answer_output",
           "targetHandle": "value",
           "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/check-a-url-and-an-ip",
+    "title": "Check a URL and an IP — NodeTool AI Workflow Template",
+    "description": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "check-a-url-and-an-ip",
+    "name": "Check a URL and an IP",
+    "summary": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 2
+      },
+      {
+        "type": "lib.validate.IP",
+        "label": "IP",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.URL",
+        "label": "URL",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "u",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "https://nodetool.ai/docs?q=1"
+        },
+        {
+          "id": "a",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "2001:db8::8a2e:370:7334"
+        },
+        {
+          "id": "vu",
+          "type": "lib.validate.URL",
+          "title": "URL",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "vi",
+          "type": "lib.validate.IP",
+          "title": "IP",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "u",
+          "sourceHandle": "output",
+          "target": "vu",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "vi",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vu",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vi",
+          "sourceHandle": "is_ipv6",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vi",
+          "sourceHandle": "is_ipv4",
+          "target": "o3",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/chunk-a-transcript-for-indexing",
+    "title": "Chunk a Transcript for Indexing — NodeTool AI Workflow Template",
+    "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "chunk-a-transcript-for-indexing",
+    "name": "Chunk a Transcript for Indexing",
+    "summary": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Chunk",
+        "label": "Chunk",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "t",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light…"
+        },
+        {
+          "id": "ch",
+          "type": "nodetool.text.Chunk",
+          "title": "Chunk",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fan",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "n",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "ch",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "fan",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "fan",
+          "sourceHandle": "output",
+          "target": "n",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "n",
+          "sourceHandle": "output",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
         }
       ]
     }
@@ -7488,6 +7955,102 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/every-hour-on-the-hour",
+    "title": "Every Hour, On the Hour — NodeTool AI Workflow Template",
+    "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "every-hour-on-the-hour",
+    "name": "Every Hour, On the Hour",
+    "summary": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
+    "tags": [
+      "example",
+      "trigger",
+      "interval",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.triggers.IntervalTrigger",
+        "label": "Interval Trigger",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.ToString",
+        "label": "To String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "every",
+          "type": "nodetool.triggers.IntervalTrigger",
+          "title": "Interval Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "label",
+          "type": "nodetool.text.ToString",
+          "title": "To String",
+          "x": 330,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "tick",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 620,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "at",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 620,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "every",
+          "sourceHandle": "tick",
+          "target": "label",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "label",
+          "sourceHandle": "output",
+          "target": "tick",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "every",
+          "sourceHandle": "timestamp",
+          "target": "at",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/executive-summary-of-a-long-document",
     "title": "Executive Summary of a Long Document — NodeTool AI Workflow Template",
     "description": "One page for someone who will not read twelve. Leading with the decision required is what makes it a briefing rather than a précis.",
@@ -8935,86 +9498,6 @@ export const templateEntries: TemplateEntry[] = [
       "edges": [
         {
           "source": "sil",
-          "sourceHandle": "output",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/generate-a-table-in-code",
-    "title": "Generate a Table in Code — NodeTool AI Workflow Template",
-    "description": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "generate-a-table-in-code",
-    "name": "Generate a Table in Code",
-    "summary": "Let a Python snippet produce CSV, then parse it into a dataframe. The pattern for pulling in data that has no loader node yet - compute it in code, hand it to the data nodes, and keep the rest of the graph declarative.",
-    "tags": [
-      "code",
-      "data",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecutePython",
-        "label": "Execute Python",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.ImportCSV",
-        "label": "Import CSV",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 3,
-    "thumbnail": "/templates/generate-a-table-in-code.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "py",
-          "type": "nodetool.code.ExecutePython",
-          "title": "Execute Python",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "csv",
-          "type": "nodetool.data.ImportCSV",
-          "title": "Import CSV",
-          "x": 440,
-          "y": 180,
-          "width": 280
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 800,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "py",
-          "sourceHandle": "stdout",
-          "target": "csv",
-          "targetHandle": "csv_data",
-          "color": "any"
-        },
-        {
-          "source": "csv",
           "sourceHandle": "output",
           "target": "out",
           "targetHandle": "value",
@@ -10477,106 +10960,6 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/javascript-to-a-table",
-    "title": "JavaScript to a Table — NodeTool AI Workflow Template",
-    "description": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "javascript-to-a-table",
-    "name": "JavaScript to a Table",
-    "summary": "A JS snippet emits CSV, the data nodes parse and sort it. The JS counterpart to the Python version - same seam, different runtime, which is the thing worth checking.",
-    "tags": [
-      "code",
-      "data",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecuteJavaScript",
-        "label": "Execute Java Script",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.ImportCSV",
-        "label": "Import CSV",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.data.SortByColumn",
-        "label": "Sort By Column",
-        "count": 1
-      }
-    ],
-    "nodeCount": 4,
-    "thumbnail": "/templates/javascript-to-a-table.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "js",
-          "type": "nodetool.code.ExecuteJavaScript",
-          "title": "Execute Java Script",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "csv",
-          "type": "nodetool.data.ImportCSV",
-          "title": "Import CSV",
-          "x": 440,
-          "y": 180,
-          "width": 280
-        },
-        {
-          "id": "srt",
-          "type": "nodetool.data.SortByColumn",
-          "title": "Sort By Column",
-          "x": 800,
-          "y": 180,
-          "width": 280
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 1160,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "js",
-          "sourceHandle": "stdout",
-          "target": "csv",
-          "targetHandle": "csv_data",
-          "color": "any"
-        },
-        {
-          "source": "csv",
-          "sourceHandle": "output",
-          "target": "srt",
-          "targetHandle": "df",
-          "color": "any"
-        },
-        {
-          "source": "srt",
-          "sourceHandle": "output",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
     "route": "/templates/join-two-tables-on-a-key",
     "title": "Join Two Tables on a Key — NodeTool AI Workflow Template",
     "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
@@ -10664,6 +11047,160 @@ export const templateEntries: TemplateEntry[] = [
           "source": "j",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/keep-only-the-long-lines",
+    "title": "Keep Only the Long Lines — NodeTool AI Workflow Template",
+    "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "keep-only-the-long-lines",
+    "name": "Keep Only the Long Lines",
+    "summary": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.FilterCode",
+        "label": "Filter Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fan",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "keep",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "gather",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "n",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fan",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "fan",
+          "sourceHandle": "output",
+          "target": "keep",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "keep",
+          "sourceHandle": "output",
+          "target": "gather",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "keep",
+          "sourceHandle": "output",
+          "target": "n",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "gather",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "n",
+          "sourceHandle": "output",
+          "target": "o2",
           "targetHandle": "value",
           "color": "any"
         }
@@ -11182,6 +11719,191 @@ export const templateEntries: TemplateEntry[] = [
           "source": "tts",
           "sourceHandle": "audio",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/map-a-readme-s-structure",
+    "title": "Map a README's Structure — NodeTool AI Workflow Template",
+    "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "map-a-readme-s-structure",
+    "name": "Map a README's Structure",
+    "summary": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 4
+      },
+      {
+        "type": "lib.markdown.ExtractBulletLists",
+        "label": "Extract Bullet Lists",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractCodeBlocks",
+        "label": "Extract Code Blocks",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractHeaders",
+        "label": "Extract Headers",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractLinks",
+        "label": "Extract Links",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "md",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "# NodeTool Visual AI workflows. ## Install See the [docs](https://nodetool.ai/docs) and the [repo](https://github.com/nodetool-ai/nodetool)…"
+        },
+        {
+          "id": "h",
+          "type": "lib.markdown.ExtractHeaders",
+          "title": "Extract Headers",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "l",
+          "type": "lib.markdown.ExtractLinks",
+          "title": "Extract Links",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "c",
+          "type": "lib.markdown.ExtractCodeBlocks",
+          "title": "Extract Code Blocks",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "lib.markdown.ExtractBulletLists",
+          "title": "Extract Bullet Lists",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o4",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 560,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "h",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "c",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "b",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "h",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "c",
+          "sourceHandle": "output",
+          "target": "o3",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "o4",
           "targetHandle": "value",
           "color": "any"
         }
@@ -12272,13 +12994,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/movie-trailer-generator",
     "title": "Movie Trailer Generator — NodeTool AI Workflow Template",
-    "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "movie-trailer-generator",
     "name": "Movie Trailer Generator",
-    "summary": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "summary": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "tags": [
       "video",
       "generation",
@@ -12286,24 +13008,15 @@ export const templateEntries: TemplateEntry[] = [
       "storytelling",
       "creative",
       "trailer",
+      "storyboard",
       "example"
     ],
     "category": "Video",
     "nodeTypes": [
       {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 3
-      },
-      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
-        "count": 3
-      },
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
+        "count": 2
       },
       {
         "type": "nodetool.control.Collect",
@@ -12316,13 +13029,18 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.creative.Director",
+        "label": "Director",
+        "count": 1
+      },
+      {
         "type": "nodetool.video.ImageToVideo",
         "label": "Image To Video",
         "count": 1
       },
       {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
         "count": 1
       },
       {
@@ -12331,12 +13049,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.creative.ScreenplayShots",
+        "label": "Screenplay Shots",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 13,
+    "nodeCount": 10,
     "thumbnail": "/templates/movie-trailer-generator.jpg",
     "graph": {
       "nodes": [
@@ -12363,104 +13086,75 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 50,
-          "y": 373,
+          "y": 343,
           "width": 280,
-          "subtitle": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty"
+          "subtitle": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, har…"
         },
         {
           "id": "shot_count",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
           "x": 50,
           "y": 619,
-          "width": 280,
-          "subtitle": "6"
+          "width": 280
         },
         {
-          "id": "treatment_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 410,
-          "y": 50,
-          "width": 300,
-          "subtitle": "You are a trailer director. Turn this logline into a teaser treatment. Logline: {{ LOGLINE }} Visual style: {{ STYLE }} Shots: {{ COUNT }}…"
-        },
-        {
-          "id": "showrunner",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 740,
-          "y": 83,
-          "width": 332,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "shotlist_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1132,
-          "y": 323,
-          "width": 340,
-          "subtitle": "From this treatment, write exactly {{ COUNT }} cinematic shot descriptions for the teaser, one per line, no numbering or labels. Each line…"
-        },
-        {
-          "id": "shot_list",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 1502,
-          "y": 380,
-          "width": 331,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "keyframe_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1893,
-          "y": 428,
+          "id": "director",
+          "type": "nodetool.creative.Director",
+          "title": "Director",
+          "x": 430,
+          "y": 180,
           "width": 360,
-          "subtitle": "Cinematic film still, theatrical key art quality, 16:9. Shot: {{ SHOT }} Visual style: {{ STYLE }}. Anamorphic framing, dramatic volumetric…"
+          "subtitle": "gemini-3.1-pro-preview"
+        },
+        {
+          "id": "shots",
+          "type": "nodetool.creative.ScreenplayShots",
+          "title": "Screenplay Shots",
+          "x": 860,
+          "y": 300,
+          "width": 320
         },
         {
           "id": "keyframe",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2283,
-          "y": 467,
+          "x": 1250,
+          "y": 330,
           "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "subtitle": "gpt-image-2-text-to-image"
         },
         {
-          "id": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 2633,
-          "y": 550,
+          "x": 1640,
+          "y": 400,
           "width": 331,
           "subtitle": "veo-3.1-generate-preview"
         },
         {
-          "id": "b8622937-e6d7-445f-bb19-e254b49a23ef",
-          "type": "nodetool.video.Concat",
-          "title": "Concat",
-          "x": 3185,
-          "y": 534,
-          "width": 320
-        },
-        {
-          "id": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "id": "collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2994,
-          "y": 586,
+          "x": 2040,
+          "y": 436,
           "width": 161
+        },
+        {
+          "id": "concat",
+          "type": "nodetool.video.Concat",
+          "title": "Concat",
+          "x": 2260,
+          "y": 384,
+          "width": 320
         },
         {
           "id": "output-trailer",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 3505,
-          "y": 534,
+          "x": 2640,
+          "y": 384,
           "width": 280
         }
       ],
@@ -12468,103 +13162,61 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "logline",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "LOGLINE",
+          "target": "director",
+          "targetHandle": "brief",
           "color": "string"
         },
         {
           "source": "style",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "STYLE",
+          "target": "director",
+          "targetHandle": "style",
           "color": "string"
         },
         {
           "source": "shot_count",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "COUNT",
-          "color": "string"
+          "target": "director",
+          "targetHandle": "shot_count",
+          "color": "int"
         },
         {
-          "source": "treatment_prompt",
-          "sourceHandle": "output",
-          "target": "showrunner",
-          "targetHandle": "prompt",
-          "color": "string"
+          "source": "director",
+          "sourceHandle": "screenplay",
+          "target": "shots",
+          "targetHandle": "screenplay",
+          "color": "dict"
         },
         {
-          "source": "showrunner",
-          "sourceHandle": "text",
-          "target": "shotlist_prompt",
-          "targetHandle": "TREATMENT",
-          "color": "string"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "shotlist_prompt",
-          "targetHandle": "STYLE",
-          "color": "string"
-        },
-        {
-          "source": "shot_count",
-          "sourceHandle": "output",
-          "target": "shotlist_prompt",
-          "targetHandle": "COUNT",
-          "color": "string"
-        },
-        {
-          "source": "shotlist_prompt",
-          "sourceHandle": "output",
-          "target": "shot_list",
-          "targetHandle": "prompt",
-          "color": "string"
-        },
-        {
-          "source": "keyframe_prompt",
-          "sourceHandle": "output",
+          "source": "shots",
+          "sourceHandle": "shot_prompt",
           "target": "keyframe",
           "targetHandle": "prompt",
           "color": "string"
         },
         {
-          "source": "shot_list",
-          "sourceHandle": "item",
-          "target": "keyframe_prompt",
-          "targetHandle": "SHOT",
-          "color": "string"
-        },
-        {
           "source": "keyframe",
           "sourceHandle": "output",
-          "target": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "target": "animate",
           "targetHandle": "image",
           "color": "image"
         },
         {
-          "source": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "source": "animate",
           "sourceHandle": "output",
-          "target": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "target": "collect",
           "targetHandle": "input_item",
           "color": "video"
         },
         {
-          "source": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "source": "collect",
           "sourceHandle": "output",
-          "target": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+          "target": "concat",
           "targetHandle": "ImageToVideo",
           "color": "list"
         },
         {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "keyframe_prompt",
-          "targetHandle": "STYLE",
-          "color": "string"
-        },
-        {
-          "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+          "source": "concat",
           "sourceHandle": "output",
           "target": "output-trailer",
           "targetHandle": "value",
@@ -16617,66 +17269,6 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
-    "route": "/templates/read-stderr-from-code",
-    "title": "Read Stderr from Code — NodeTool AI Workflow Template",
-    "description": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "read-stderr-from-code",
-    "name": "Read Stderr from Code",
-    "summary": "Capture a snippet's stderr rather than its stdout. Worth having as its own template: a code node that 'returns nothing' is usually one whose real message went to the other stream.",
-    "tags": [
-      "code",
-      "utility",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecutePython",
-        "label": "Execute Python",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 2,
-    "thumbnail": "/templates/read-stderr-from-code.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "py",
-          "type": "nodetool.code.ExecutePython",
-          "title": "Execute Python",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 440,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "py",
-          "sourceHandle": "stderr",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
     "route": "/templates/read-a-clip-s-frame-rate",
     "title": "Read a Clip's Frame Rate — NodeTool AI Workflow Template",
     "description": "Fps reads the rate off the header without decoding the video. Cheap enough to run before deciding whether a clip needs conforming.",
@@ -16749,6 +17341,137 @@ export const templateEntries: TemplateEntry[] = [
           "source": "f",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/read-the-links-out-of-a-page",
+    "title": "Read the Links Out of a Page — NodeTool AI Workflow Template",
+    "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "read-the-links-out-of-a-page",
+    "name": "Read the Links Out of a Page",
+    "summary": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 2
+      },
+      {
+        "type": "lib.html.BaseUrl",
+        "label": "Base Url",
+        "count": 1
+      },
+      {
+        "type": "lib.html.ExtractLinks",
+        "label": "Extract Links",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "url",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "https://nodetool.ai/guide/index.html"
+        },
+        {
+          "id": "html",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "<html><head><title>Guide</title></head><body><a href=\"/docs\">Docs</a><a href=\"https://github.com/nodetool-ai/nodetool\">Source</a></body></h…"
+        },
+        {
+          "id": "base",
+          "type": "lib.html.BaseUrl",
+          "title": "Base Url",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "links",
+          "type": "lib.html.ExtractLinks",
+          "title": "Extract Links",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "url",
+          "sourceHandle": "output",
+          "target": "base",
+          "targetHandle": "url",
+          "color": "any"
+        },
+        {
+          "source": "html",
+          "sourceHandle": "output",
+          "target": "links",
+          "targetHandle": "html",
+          "color": "any"
+        },
+        {
+          "source": "base",
+          "sourceHandle": "output",
+          "target": "links",
+          "targetHandle": "base_url",
+          "color": "any"
+        },
+        {
+          "source": "base",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "links",
+          "sourceHandle": "links",
+          "target": "o2",
           "targetHandle": "value",
           "color": "any"
         }
@@ -16829,6 +17552,156 @@ export const templateEntries: TemplateEntry[] = [
           "source": "rr",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/redact-and-tidy-a-log-line",
+    "title": "Redact and Tidy a Log Line — NodeTool AI Workflow Template",
+    "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "redact-and-tidy-a-log-line",
+    "name": "Redact and Tidy a Log Line",
+    "summary": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.RegexReplace",
+        "label": "Regex Replace",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.CollapseWhitespace",
+        "label": "Collapse Whitespace",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.FindAllRegex",
+        "label": "Find All Regex",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "raw",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "2026-08-02 WARN user=ada.lovelace@example.com ip=10.0.0.7 retry=3"
+        },
+        {
+          "id": "mail",
+          "type": "nodetool.text.RegexReplace",
+          "title": "Regex Replace",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ip",
+          "type": "nodetool.text.RegexReplace",
+          "title": "Regex Replace",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "tidy",
+          "type": "nodetool.text.CollapseWhitespace",
+          "title": "Collapse Whitespace",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "nums",
+          "type": "nodetool.text.FindAllRegex",
+          "title": "Find All Regex",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "mail",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "mail",
+          "sourceHandle": "output",
+          "target": "ip",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ip",
+          "sourceHandle": "output",
+          "target": "tidy",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tidy",
+          "sourceHandle": "output",
+          "target": "nums",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tidy",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "nums",
+          "sourceHandle": "output",
+          "target": "o2",
           "targetHandle": "value",
           "color": "any"
         }
@@ -17232,6 +18105,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
         "type": "nodetool.control.Collect",
         "label": "Collect",
         "count": 2
@@ -17239,11 +18117,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.control.ForEach",
         "label": "For Each",
-        "count": 2
-      },
-      {
-        "type": "lib.http.GetText",
-        "label": "Get Text",
         "count": 2
       },
       {
@@ -17316,8 +18189,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "idx",
-          "type": "lib.http.GetText",
-          "title": "Get Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 280,
           "y": 80,
           "width": 280
@@ -17404,8 +18277,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "fetch-text",
-          "type": "lib.http.GetText",
-          "title": "Get Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 3420,
           "y": 80,
           "width": 260
@@ -18226,246 +19099,6 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "op",
           "sourceHandle": "output",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/run-javascript-in-a-sandbox",
-    "title": "Run JavaScript in a Sandbox — NodeTool AI Workflow Template",
-    "description": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "run-javascript-in-a-sandbox",
-    "name": "Run JavaScript in a Sandbox",
-    "summary": "Execute a JavaScript snippet and capture stdout. Same escape hatch as the Python runner, for when the logic is easier to express in JS. Runs locally - no model, no key, no cost.",
-    "tags": [
-      "code",
-      "utility",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecuteJavaScript",
-        "label": "Execute Java Script",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 2,
-    "thumbnail": "/templates/run-javascript-in-a-sandbox.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "run",
-          "type": "nodetool.code.ExecuteJavaScript",
-          "title": "Execute Java Script",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 440,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "run",
-          "sourceHandle": "stdout",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/run-lua-in-a-sandbox",
-    "title": "Run Lua in a Sandbox — NodeTool AI Workflow Template",
-    "description": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "run-lua-in-a-sandbox",
-    "name": "Run Lua in a Sandbox",
-    "summary": "Run a Lua snippet in the sandbox. The lightest of the four runtimes - handy when the sandbox image matters more than the language. Runs locally - no model, no key, no cost.",
-    "tags": [
-      "code",
-      "utility",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecuteLua",
-        "label": "Execute Lua",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 2,
-    "thumbnail": "/templates/run-lua-in-a-sandbox.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "run",
-          "type": "nodetool.code.ExecuteLua",
-          "title": "Execute Lua",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 440,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "run",
-          "sourceHandle": "stdout",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/run-python-in-a-sandbox",
-    "title": "Run Python in a Sandbox — NodeTool AI Workflow Template",
-    "description": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "run-python-in-a-sandbox",
-    "name": "Run Python in a Sandbox",
-    "summary": "Execute a Python snippet in the sandboxed runner and capture stdout. The escape hatch for the one transform no node covers - reach for it when a chain of five nodes would be less clear than four lines of code. Runs locally - no model, no key, no cost.",
-    "tags": [
-      "code",
-      "utility",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecutePython",
-        "label": "Execute Python",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 2,
-    "thumbnail": "/templates/run-python-in-a-sandbox.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "run",
-          "type": "nodetool.code.ExecutePython",
-          "title": "Execute Python",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 440,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "run",
-          "sourceHandle": "stdout",
-          "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/run-a-shell-command",
-    "title": "Run a Shell Command — NodeTool AI Workflow Template",
-    "description": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
-    "priority": 0.6,
-    "changeFrequency": "monthly",
-    "indexable": true,
-    "slug": "run-a-shell-command",
-    "name": "Run a Shell Command",
-    "summary": "Run a shell snippet in the sandbox. Useful for the small text-munging jobs that are one pipe in shell and an awkward graph anywhere else. Runs locally - no model, no key, no cost.",
-    "tags": [
-      "code",
-      "utility",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.code.ExecuteBash",
-        "label": "Execute Bash",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 1
-      }
-    ],
-    "nodeCount": 2,
-    "thumbnail": "/templates/run-a-shell-command.jpg",
-    "graph": {
-      "nodes": [
-        {
-          "id": "run",
-          "type": "nodetool.code.ExecuteBash",
-          "title": "Execute Bash",
-          "x": 0,
-          "y": 180,
-          "width": 360
-        },
-        {
-          "id": "out",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 440,
-          "y": 200,
-          "width": 240
-        }
-      ],
-      "edges": [
-        {
-          "source": "run",
-          "sourceHandle": "stdout",
           "target": "out",
           "targetHandle": "value",
           "color": "any"
@@ -24404,6 +25037,156 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/validate-a-signup-payload",
+    "title": "Validate a Signup Payload — NodeTool AI Workflow Template",
+    "description": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "validate-a-signup-payload",
+    "name": "Validate a Signup Payload",
+    "summary": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "lib.validate.Email",
+        "label": "Email",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.Sanitize",
+        "label": "Sanitize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "raw",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Ada.Lovelace+signup@Example.COM"
+        },
+        {
+          "id": "email",
+          "type": "lib.validate.Email",
+          "title": "Email",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "shape",
+          "type": "lib.validate.String",
+          "title": "String",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "clean",
+          "type": "lib.validate.Sanitize",
+          "title": "Sanitize",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "email",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "shape",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "clean",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "email",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "shape",
+          "sourceHandle": "is_alphanumeric",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "clean",
+          "sourceHandle": "normalized_email",
+          "target": "o3",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/vectorize-a-generated-logo",
     "title": "Vectorize a Generated Logo — NodeTool AI Workflow Template",
     "description": "Generate a flat mark, then trace it to true vector art. Raster generators cannot produce clean vectors, so the two steps are separate: FLUX draws the shape, Recraft converts it to SVG paths that scale without resampling.",
@@ -25016,6 +25799,103 @@ export const templateEntries: TemplateEntry[] = [
           "source": "cb",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/watch-a-folder-act-on-what-lands",
+    "title": "Watch a Folder, Act on What Lands — NodeTool AI Workflow Template",
+    "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "watch-a-folder-act-on-what-lands",
+    "name": "Watch a Folder, Act on What Lands",
+    "summary": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+    "tags": [
+      "example",
+      "trigger",
+      "file-watch",
+      "automation"
+    ],
+    "category": "Agents & Research",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.triggers.FileWatchTrigger",
+        "label": "File Watch Trigger",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "watch",
+          "type": "nodetool.triggers.FileWatchTrigger",
+          "title": "File Watch Trigger",
+          "x": 0,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 350,
+          "y": 220,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "event",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 350,
+          "y": 40,
+          "width": 240
+        },
+        {
+          "id": "note",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 700,
+          "y": 220,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "watch",
+          "sourceHandle": "event",
+          "target": "event",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "watch",
+          "sourceHandle": "path",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "note",
           "targetHandle": "value",
           "color": "any"
         }

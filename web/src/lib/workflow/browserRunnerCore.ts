@@ -114,8 +114,8 @@ export function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
 /**
  * The browser-portable node groups, imported via per-file subpaths.
  * We deliberately avoid the package indexes (core-nodes re-exports `vector` →
- * sqlite-vec / better-sqlite3 native bindings; `code-nodes` → code-runners /
- * Docker / ssh2) — neither bundles for the browser. The image node groups run
+ * sqlite-vec / better-sqlite3 native bindings; `code-nodes` → the Docker
+ * sandbox and ssh2) — neither bundles for the browser. The image node groups run
  * their pixel pass on `navigator.gpu` (OffscreenCanvas codec) and load `sharp`
  * lazily, so they bundle cleanly; `createBrowserRegistry` filters by platform
  * tag (e.g. image.ts's Load/Save/AI nodes are tagged server and dropped).
@@ -137,10 +137,10 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
   ],
   ["subgraph", () => import("@nodetool-ai/core-nodes/nodes/subgraph")],
   ["workflow", () => import("@nodetool-ai/core-nodes/nodes/workflow")],
-  // The universal Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
+  // The Code node (nodetool.code.Code) runs vanilla JS in a QuickJS
   // WebAssembly sandbox — no Node `vm`, no subprocess — so it runs client-side.
-  // Imported via its own subpath (not the code-nodes index, which pulls
-  // code-runners → Docker/ssh2). The sandbox pulls memfs, which needs the real
+  // Imported via its own subpath (not the code-nodes index, which pulls the
+  // Docker sandbox and ssh2). The sandbox pulls memfs, which needs the real
   // stream classes from vite's stream-stub (readable-stream) to evaluate.
   ["code-node", () => import("@nodetool-ai/code-nodes/nodes/code-node")],
   [

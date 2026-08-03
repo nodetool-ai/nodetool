@@ -26,6 +26,7 @@ import { RootStackParamList } from '../navigation/types';
 import { type SecretResponse } from '../services/api';
 import { trpc } from '../trpc/client';
 import { useTheme } from '../hooks/useTheme';
+import type { ThemeColors, ThemeShadows } from '../utils/theme';
 
 type Props = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Secrets'>;
@@ -38,6 +39,74 @@ interface EditorState {
   value: string;
   saving: boolean;
 }
+
+const keyExtractor = (secret: SecretResponse) => secret.key;
+
+const SecretRow = React.memo(function SecretRow({
+  secret,
+  colors,
+  shadows,
+  onEdit,
+  onDelete,
+}: {
+  secret: SecretResponse;
+  colors: ThemeColors;
+  shadows: ThemeShadows;
+  onEdit: (secret: SecretResponse) => void;
+  onDelete: (secret: SecretResponse) => void;
+}) {
+  const handleEdit = useCallback(() => onEdit(secret), [onEdit, secret]);
+  const handleDelete = useCallback(() => onDelete(secret), [onDelete, secret]);
+  const configured = secret.is_configured;
+
+  return (
+    <TouchableOpacity
+      onPress={handleEdit}
+      activeOpacity={0.7}
+      style={[
+        styles.card,
+        shadows.small,
+        { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
+      ]}
+      accessibilityRole="button"
+      accessibilityLabel={`Edit secret ${secret.key}`}
+    >
+      <View style={styles.cardRow}>
+        <View style={[
+          styles.statusDot,
+          { backgroundColor: configured ? colors.success : colors.textTertiary },
+        ]} />
+        <View style={styles.cardMeta}>
+          <Text style={[styles.keyText, { color: colors.text }]} numberOfLines={1}>
+            {secret.key}
+          </Text>
+          {secret.description ? (
+            <Text style={[styles.descText, { color: colors.textSecondary }]} numberOfLines={2}>
+              {secret.description}
+            </Text>
+          ) : (
+            <Text style={[styles.descText, { color: colors.textTertiary }]}>
+              {configured ? 'Configured' : 'Not configured'}
+            </Text>
+          )}
+        </View>
+        {configured ? (
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={styles.deleteBtn}
+            accessibilityRole="button"
+            accessibilityLabel={`Delete ${secret.key}`}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="trash-outline" size={18} color={colors.error} />
+          </TouchableOpacity>
+        ) : (
+          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+});
 
 export default function SecretsScreen({ navigation: _navigation }: Props) {
   const { colors, shadows } = useTheme();
@@ -136,56 +205,18 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
     );
   }, [deleteSecret]);
 
-  const renderItem = ({ item }: { item: SecretResponse }) => {
-    const configured = item.is_configured;
-    return (
-      <TouchableOpacity
-        onPress={() => openEdit(item)}
-        activeOpacity={0.7}
-        style={[
-          styles.card,
-          shadows.small,
-          { backgroundColor: colors.cardBg, borderColor: colors.borderLight },
-        ]}
-        accessibilityRole="button"
-        accessibilityLabel={`Edit secret ${item.key}`}
-      >
-        <View style={styles.cardRow}>
-          <View style={[
-            styles.statusDot,
-            { backgroundColor: configured ? colors.success : colors.textTertiary },
-          ]} />
-          <View style={styles.cardMeta}>
-            <Text style={[styles.keyText, { color: colors.text }]} numberOfLines={1}>
-              {item.key}
-            </Text>
-            {item.description ? (
-              <Text style={[styles.descText, { color: colors.textSecondary }]} numberOfLines={2}>
-                {item.description}
-              </Text>
-            ) : (
-              <Text style={[styles.descText, { color: colors.textTertiary }]}>
-                {configured ? 'Configured' : 'Not configured'}
-              </Text>
-            )}
-          </View>
-          {configured ? (
-            <TouchableOpacity
-              onPress={() => handleDelete(item)}
-              style={styles.deleteBtn}
-              accessibilityRole="button"
-              accessibilityLabel={`Delete ${item.key}`}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            >
-              <Ionicons name="trash-outline" size={18} color={colors.error} />
-            </TouchableOpacity>
-          ) : (
-            <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-          )}
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const renderItem = useCallback(
+    ({ item }: { item: SecretResponse }) => (
+      <SecretRow
+        secret={item}
+        colors={colors}
+        shadows={shadows}
+        onEdit={openEdit}
+        onDelete={handleDelete}
+      />
+    ),
+    [colors, shadows, openEdit, handleDelete],
+  );
 
   if (isLoading) {
     return (
@@ -227,7 +258,7 @@ export default function SecretsScreen({ navigation: _navigation }: Props) {
 
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.key}
+        keyExtractor={keyExtractor}
         renderItem={renderItem}
         contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 96 }]}
         refreshControl={

@@ -193,7 +193,8 @@ export class ExecutionSession {
       executionContext: context,
       validateNode: options.validateNode,
       bufferLimit: options.limits?.bufferLimit ?? null,
-      strict: options.strict
+      strict: options.strict,
+      ...(options.supervisor ? { supervisor: options.supervisor } : {})
     });
 
     try {

@@ -3,13 +3,13 @@ layout: page
 title: "nodetool Nodes"
 ---
 
-This namespace contains 388 node(s).
+This namespace contains 369 node(s).
 
 ## Sub-namespaces
 
-- **[agents](agents/)** - 28 node(s)
+- **[agents](agents/)** - 27 node(s)
 - **[audio](audio/)** - 39 node(s)
-- **[code](code/)** - 19 node(s)
+- **[code](code/)** - 1 node(s)
 - **[compare](compare/)** - 1 node(s)
 - **[constant](constant/)** - 30 node(s)
 - **[control](control/)** - 22 node(s)

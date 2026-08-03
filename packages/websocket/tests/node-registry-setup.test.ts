@@ -239,7 +239,6 @@ describe("applyCloudNodePolicy", () => {
     }
     // …nerdy namespaces are gone…
     for (const prefix of [
-      "lib.os.",
       "lib.sqlite.",
       "nodetool.data.",
       "nodetool.workspace.",
@@ -251,10 +250,8 @@ describe("applyCloudNodePolicy", () => {
     }
     // …developer-flavored agents are gone…
     expect(remaining).not.toContain("nodetool.agents.ShellAgent");
-    // …only the sandboxed Code node survives nodetool.code…
+    // …the sandboxed Code node is allowlisted out of nodetool.code…
     expect(remaining).toContain("nodetool.code.Code");
-    expect(remaining).not.toContain("nodetool.code.ExecutePython");
-    expect(remaining).not.toContain("nodetool.code.RunShellCommandDocker");
     // …the text namespace stays whole (toolkit + ASR + utilities)…
     expect(remaining).toContain("nodetool.text.Prompt");
     expect(remaining).toContain("nodetool.text.RegexMatch");
@@ -277,7 +274,9 @@ describe("applyCloudNodePolicy", () => {
     applyCloudNodePolicy(registry);
     expect(registry.list().length).toBe(before);
     // Nerdy namespaces survive without the profile.
-    expect(registry.list().some((t) => t.startsWith("lib.os."))).toBe(true);
+    expect(registry.list().some((t) => t.startsWith("lib.sqlite."))).toBe(
+      true
+    );
   });
 
   it("prunes to the curated surface under NODETOOL_NODE_PROFILE=cloud", () => {

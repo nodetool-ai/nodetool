@@ -7,7 +7,7 @@ export const contentType = ogContentType;
 export default function Image() {
   return ogImage(
     "AI Movie Trailer Generator",
-    "One logline becomes a treatment, a shot list, key art, and a cut trailer.",
+    "One logline becomes a storyboard, key art, and a cut trailer.",
     { image: "trailer-shot-1.png", accent: "amber", eyebrow: "Use case · Film" }
   );
 }

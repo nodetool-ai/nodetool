@@ -16,5 +16,14 @@ export {
 } from "./trace.js";
 export { buildVerdict } from "./verdict.js";
 export { renderReportMarkdown } from "./markdown.js";
-export { diffReports, diffIsEmpty, formatDiff, type DebugDiff } from "./diff.js";
+export {
+  diffReports,
+  diffRuns,
+  diffIsEmpty,
+  formatDiff,
+  snapshotDebugReport,
+  type DebugDiff,
+  type RunSnapshot
+} from "./diff.js";
+export { runWatchLoop, type FileWatcher, type WatchLoopInit } from "./watch.js";
 export type * from "./types.js";

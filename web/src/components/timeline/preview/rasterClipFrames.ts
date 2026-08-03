@@ -5,7 +5,7 @@ import {
   createAnimationCompileCache,
   resolveAnimatedLayerProps,
   resolveTextStaggerContext
-} from "./sceneModel";
+} from "@nodetool-ai/timeline/render";
 import { ShapeRasterizer } from "./shapeRender";
 import { TextRasterizer } from "./textRender";
 

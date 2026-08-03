@@ -11,94 +11,12 @@
  * with the currently-spoken word highlighted.
  */
 
-import type { ResolvedCaption } from "./sceneModel";
+import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
+import { captionSignature, drawCaption } from "@nodetool-ai/timeline/render";
 
-const INACTIVE_COLOR = "#FFFFFF";
-const ACTIVE_COLOR = "#FFD60A";
-const OUTLINE_COLOR = "rgba(0, 0, 0, 0.85)";
 const MAX_CACHE_ENTRIES = 64;
 
-/** @visibleForTesting */
-export function captionSignature(
-  caption: ResolvedCaption,
-  width: number,
-  height: number
-): string {
-  const words = caption.words
-    .map((w) => (w.active ? `*${w.text}` : w.text))
-    .join(" ");
-  return `${width}x${height}|${words}`;
-}
-
-interface MeasuredWord {
-  text: string;
-  active: boolean;
-  width: number;
-}
-
-function drawCaption(
-  ctx: OffscreenCanvasRenderingContext2D,
-  caption: ResolvedCaption,
-  width: number,
-  height: number
-): void {
-  const fontSize = Math.max(24, Math.round(height * 0.05));
-  ctx.font = `700 ${fontSize}px Inter, Arial, sans-serif`;
-  ctx.textBaseline = "alphabetic";
-  ctx.lineJoin = "round";
-
-  const spaceWidth = ctx.measureText(" ").width;
-  const maxWidth = width * 0.9;
-
-  const measured: MeasuredWord[] = caption.words.map((w) => ({
-    text: w.text,
-    active: w.active,
-    width: ctx.measureText(w.text).width
-  }));
-
-  // Greedy word-wrap into lines that fit `maxWidth`.
-  const lines: MeasuredWord[][] = [];
-  let current: MeasuredWord[] = [];
-  let currentWidth = 0;
-  for (const word of measured) {
-    const advance = (current.length > 0 ? spaceWidth : 0) + word.width;
-    if (current.length > 0 && currentWidth + advance > maxWidth) {
-      lines.push(current);
-      current = [word];
-      currentWidth = word.width;
-    } else {
-      current.push(word);
-      currentWidth += advance;
-    }
-  }
-  if (current.length > 0) lines.push(current);
-
-  const lineHeight = fontSize * 1.25;
-  const totalHeight = lines.length * lineHeight;
-  const bottomMargin = height * 0.12;
-  // Baseline of the first line.
-  let y = height - bottomMargin - totalHeight + fontSize;
-
-  ctx.lineWidth = Math.max(2, fontSize * 0.12);
-  ctx.strokeStyle = OUTLINE_COLOR;
-
-  for (const line of lines) {
-    const lineWidth = line.reduce(
-      (sum, w, i) => sum + w.width + (i > 0 ? spaceWidth : 0),
-      0
-    );
-    let x = (width - lineWidth) / 2;
-    for (let i = 0; i < line.length; i++) {
-      const word = line[i];
-      if (i > 0) x += spaceWidth;
-      ctx.fillStyle = word.active ? ACTIVE_COLOR : INACTIVE_COLOR;
-      ctx.strokeText(word.text, x, y);
-      ctx.fillText(word.text, x, y);
-      x += word.width;
-    }
-    y += lineHeight;
-  }
-}
+export { captionSignature };
 
 /**
  * Caches caption bitmaps by content signature so scrubbing or replaying the

@@ -8,9 +8,12 @@ on:
       - "web/**"
       - "electron/**"
       - "packages/**"
+      - "reliability/**"
       - "mobile/**"
       - "examples/**"
       - "scripts/**"
+      - "Dockerfile"
+      - ".dockerignore"
       - "package.json"
       - "package-lock.json"
       - "tsconfig.json"
@@ -39,6 +42,12 @@ jobs:
   quality:
     name: Quality Gate (npm run check)
     uses: ./.github/workflows/quality-checks.yml
+    # A called workflow's permissions are capped by the caller's, so the gate's
+    # `docker` leg only gets its read-only GHCR buildcache access if it is
+    # granted here too.
+    permissions:
+      contents: read
+      packages: read
     with:
       # false → every check leg (deps/typecheck/lint/tests) runs to completion
       # so each reports its own red/green instead of the first failure masking

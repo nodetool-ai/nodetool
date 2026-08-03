@@ -1,0 +1,133 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-02T11:00:00.000Z",
+  "updated_at": "2026-08-02T11:00:00.000Z",
+  "name": "Watch a Folder, Act on What Lands",
+  "tool_name": null,
+  "description": "A drop folder as an interface. Point `path` at a directory, narrow it with `patterns`, and the graph wakes whenever a matching file appears or changes — you get the event kind and the full path. The agent here just names what arrived; replace it with the work you actually want done on the file. `debounce_seconds` exists because editors write a file more than once.",
+  "tags": ["example", "trigger", "file-watch", "automation"],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "watch",
+        "type": "nodetool.triggers.FileWatchTrigger",
+        "data": {
+          "path": "./inbox",
+          "recursive": false,
+          "patterns": ["*.csv", "*.json"],
+          "ignore_patterns": [],
+          "events": ["created", "modified"],
+          "debounce_seconds": 0.5,
+          "max_events": 0
+        },
+        "ui_properties": {
+          "position": { "x": 0, "y": 120 },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Watch ./inbox"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "mode": "loop",
+          "system": "You are given the path of a file that just landed in a watched folder. Say in one line what kind of file it looks like and what a sensible next step would be. No preamble.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": { "x": 350, "y": 220 },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Describe it"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "event",
+        "type": "nodetool.output.Output",
+        "name": "event",
+        "data": {
+          "name": "event",
+          "description": "created, modified, deleted or moved"
+        },
+        "ui_properties": {
+          "position": { "x": 350, "y": 40 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "2  Event"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "note",
+        "type": "nodetool.output.Output",
+        "name": "note",
+        "data": { "name": "note", "description": "What arrived, in one line" },
+        "ui_properties": {
+          "position": { "x": 700, "y": 220 },
+          "zIndex": 0,
+          "width": 240,
+          "selectable": true,
+          "title": "4  Note"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "watch",
+        "sourceHandle": "event",
+        "target": "event",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e2",
+        "source": "watch",
+        "sourceHandle": "path",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "note",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

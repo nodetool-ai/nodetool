@@ -21,8 +21,6 @@ import {
   PitchShiftNode,
   TimeStretchNode,
   // lib-pdf (ExtractTablesPdfPlumberNode, ExtractMarkdownPyMuPdfNode removed)
-  // lib-os
-  OpenWorkspaceDirectoryLibNode,
   // lib-docx
   AddImageLibNode,
   // lib-excel
@@ -464,22 +462,6 @@ describe("lib-pedalboard-extra coverage", () => {
 });
 
 // ── lib-os: openPath ─────────────────────────────────────────────
-
-describe("lib-os OpenWorkspaceDirectory coverage", () => {
-  it("OpenWorkspaceDirectory returns empty when no context", async () => {
-    const result = await new OpenWorkspaceDirectoryLibNode({}).process();
-    expect(result).toEqual({});
-  });
-
-  it("OpenWorkspaceDirectory returns empty when no workspaceDir", async () => {
-    const result = await new OpenWorkspaceDirectoryLibNode({}).process(
-      {} as any
-    );
-    expect(result).toEqual({});
-  });
-
-});
-
 
 // ── lib-docx: AddImage edge cases ────────────────────────────────
 

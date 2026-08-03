@@ -36,6 +36,7 @@ export {
 export { NodeActor, type NodeExecutor, type ActorResult } from "./actor.js";
 export {
   BoundedHandle,
+  ensureBounded,
   FailClosedHandle,
   computeAllowedActions,
   failureSignature,
@@ -48,6 +49,13 @@ export {
   type SupervisorBounds,
   type AllowedActionsInput
 } from "./supervisor.js";
+export {
+  lineageRelated,
+  type RunStateReader,
+  type RunStateDigest,
+  type NodeRunState,
+  type NodeOutputRead
+} from "./run-state.js";
 export {
   validateSubstituteOutputs,
   hasFullValidatorCoverage,

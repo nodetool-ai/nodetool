@@ -1135,6 +1135,202 @@ describe("runInSandbox workspace binary I/O", () => {
     });
   });
 
+  it("confines workspace.* to the workspace unless the host opts into host mode", async () => {
+    const { mkdtemp, rm, writeFile } = await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-fs-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-fs-out-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "SECRET");
+      const context = {
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
+      } as unknown as import("@nodetool-ai/runtime").ProcessingContext;
+      const code = `return await workspace.read(${JSON.stringify(join(outside, "secret.txt"))});`;
+
+      const confined = await runInSandbox({ code, context });
+      expect(confined.success).toBe(false);
+      expect(confined.error).toMatch(/outside the workspace/i);
+
+      const hostMode = await runInSandbox({
+        code,
+        context,
+        limits: { filesystemAccess: "host" }
+      });
+      expect(hostMode.success).toBe(true);
+      expect(hostMode.result).toBe("SECRET");
+
+      // Host-set only — a guest global of the same name must not reach it.
+      const spoofed = await runInSandbox({
+        code,
+        context,
+        globals: { filesystemAccess: "host" }
+      });
+      expect(spoofed.success).toBe(false);
+      expect(spoofed.error).toMatch(/outside the workspace/i);
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
+  it("blocks loopback by default and permits it only when the host opts in", async () => {
+    const { createServer } = await import("node:http");
+    const server = createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "text/plain" });
+      res.end("local-service");
+    });
+    await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+    const port = (server.address() as { port: number }).port;
+    const url = `http://127.0.0.1:${port}/`;
+    try {
+      const blocked = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`
+      });
+      expect(blocked.success).toBe(false);
+      expect(blocked.error).toMatch(/internal\/private address/i);
+
+      const allowed = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`,
+        limits: { allowPrivateNetwork: true }
+      });
+      expect(allowed.success).toBe(true);
+      expect(allowed.result).toBe("local-service");
+
+      // The switch is host-only: a guest global of the same name must not
+      // reach the resolved limits.
+      const spoofed = await runInSandbox({
+        code: `const r = await fetch(${JSON.stringify(url)}); return await r.text();`,
+        globals: { allowPrivateNetwork: true, limits: { allowPrivateNetwork: true } }
+      });
+      expect(spoofed.success).toBe(false);
+      expect(spoofed.error).toMatch(/internal\/private address/i);
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("keeps non-http schemes blocked even with private network allowed", async () => {
+    const result = await runInSandbox({
+      code: `return await fetch("file:///etc/passwd");`,
+      limits: { allowPrivateNetwork: true }
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/unsupported scheme/i);
+  });
+
+  it("reports a missing path as exists:false instead of throwing", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("here.txt", "hello");
+          const present = await workspace.stat("here.txt");
+          const absent = await workspace.stat("nope.txt");
+          return {
+            present: present.exists,
+            absent: absent.exists,
+            absentSize: absent.size,
+            isSymlink: present.isSymlink,
+            hasCreated: typeof present.createdMs === "number",
+            hasAccessed: typeof present.accessedMs === "number"
+          };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        present: true,
+        absent: false,
+        absentSize: 0,
+        isSymlink: false,
+        hasCreated: true,
+        hasAccessed: true
+      });
+    });
+  });
+
+  it("returns the workspace root", async () => {
+    await withWorkspace(async (context, dir) => {
+      const result = await runInSandbox({
+        code: `return { root: await workspace.root() };`,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({ root: dir });
+    });
+  });
+
+  it("copies and moves files, creating parent directories", async () => {
+    await withWorkspace(async (context) => {
+      const result = await runInSandbox({
+        code: `
+          await workspace.write("a.txt", "payload");
+          await workspace.copy("a.txt", "nested/deep/b.txt");
+          const copied = await workspace.read("nested/deep/b.txt");
+          const srcStillThere = (await workspace.stat("a.txt")).exists;
+
+          await workspace.move("nested/deep/b.txt", "moved/c.txt");
+          const moved = await workspace.read("moved/c.txt");
+          const srcGone = !(await workspace.stat("nested/deep/b.txt")).exists;
+
+          return { copied, srcStillThere, moved, srcGone };
+        `,
+        context
+      });
+      expect(result.success).toBe(true);
+      expect(result.result).toEqual({
+        copied: "payload",
+        srcStillThere: true,
+        moved: "payload",
+        srcGone: true
+      });
+    });
+  });
+
+  it("blocks copy and move that escape the workspace via a symlink", async () => {
+    const { mkdtemp, rm, writeFile, symlink, readdir } =
+      await import("node:fs/promises");
+    const { tmpdir } = await import("node:os");
+    const { join, isAbsolute } = await import("node:path");
+    const ws = await mkdtemp(join(tmpdir(), "sbx-ws-"));
+    const outside = await mkdtemp(join(tmpdir(), "sbx-out-"));
+    try {
+      await writeFile(join(outside, "secret.txt"), "SECRET");
+      await writeFile(join(ws, "inside.txt"), "ok");
+      // A symlink pointing out of the workspace: lexical containment passes,
+      // so only the realpath check can catch it.
+      await symlink(join(outside, "secret.txt"), join(ws, "link.txt"));
+      await symlink(outside, join(ws, "outdir"));
+      const context = {
+        resolveWorkspacePath: (p: string) => (isAbsolute(p) ? p : join(ws, p))
+      } as never;
+      const { sandbox } = buildSandbox(context);
+      const workspace = sandbox.workspace as {
+        copy: (s: string, d: string) => Promise<void>;
+        move: (s: string, d: string) => Promise<void>;
+      };
+      // Reading out through a symlinked source.
+      await expect(workspace.copy("link.txt", "stolen.txt")).rejects.toThrow(
+        /outside the workspace/i
+      );
+      // Writing out through a symlinked destination directory.
+      await expect(
+        workspace.copy("inside.txt", "outdir/planted.txt")
+      ).rejects.toThrow(/outside the workspace/i);
+      await expect(
+        workspace.move("inside.txt", "outdir/planted.txt")
+      ).rejects.toThrow(/outside the workspace/i);
+      // Absolute escape, no symlink involved.
+      await expect(
+        workspace.copy("inside.txt", join(outside, "planted.txt"))
+      ).rejects.toThrow(/outside the workspace/i);
+      expect(await readdir(outside)).toEqual(["secret.txt"]);
+    } finally {
+      await rm(ws, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
+  });
+
   it("blocks binary writes through an escaping symlink", async () => {
     const { mkdtemp, rm, writeFile, symlink, readFile } =
       await import("node:fs/promises");
@@ -1665,5 +1861,42 @@ describe("data.selectHtml bridge", () => {
     });
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/exceeds the \d+ character limit/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// serializeResult — binary survives at depth
+// ---------------------------------------------------------------------------
+
+describe("serializeResult binary preservation", () => {
+  it("keeps typed arrays nested below the top level", () => {
+    const out = serializeResult({
+      // No top-level typed array: this used to fall through to JSON.stringify,
+      // which turned each Uint8Array into {"0":1,"1":2}.
+      items: [{ output: new Uint8Array([1, 2, 3]) }],
+      deep: { nested: { bytes: new Uint8Array([9]) } }
+    }) as {
+      items: { output: unknown }[];
+      deep: { nested: { bytes: unknown } };
+    };
+    expect(out.items[0].output).toBeInstanceOf(Uint8Array);
+    expect(Array.from(out.items[0].output as Uint8Array)).toEqual([1, 2, 3]);
+    expect(out.deep.nested.bytes).toBeInstanceOf(Uint8Array);
+  });
+
+  it("leaves a user's integer-keyed object alone", () => {
+    // The shape a JSON-ified Uint8Array takes. Nothing may guess it back into
+    // bytes — this is a plain object and must stay one.
+    const out = serializeResult({ counts: { 0: 5, 1: 200 } }) as {
+      counts: unknown;
+    };
+    expect(out.counts).not.toBeInstanceOf(Uint8Array);
+    expect(out.counts).toEqual({ 0: 5, 1: 200 });
+  });
+
+  it("falls back to String for a cyclic value, as before", () => {
+    const cyclic: Record<string, unknown> = {};
+    cyclic.self = cyclic;
+    expect(typeof serializeResult(cyclic)).toBe("string");
   });
 });
