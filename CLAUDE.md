@@ -768,21 +768,30 @@ npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
 
-### nodetool harness (Harness Registry & Coverage Audit)
+### nodetool harness (Registry, Coverage Audit, and the Gate)
 
 The machine-readable inventory behind harness-first engineering
 ([docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md)): every headless harness in
-the repo, every product surface, and which harnesses cover which surface. An
-uncovered surface must carry a written gap note; one without it fails `audit`
-and the registry test. Shipping a new surface means adding it to
-`packages/cli/src/harness/registry.ts` — with its harness or its debt written
-down.
+the repo, every product surface with the code paths it owns, and which
+harnesses cover which surface. An uncovered surface must carry a written gap
+note; one without it fails `audit` and the registry test. Shipping a new
+surface means adding it to `packages/cli/src/harness/registry.ts` — with its
+harness or its debt written down.
+
+`gate` makes the registry executable: it maps a diff onto surfaces by path
+and runs the selfcheck of every harness covering a touched surface — keyless,
+deterministic invocations like `validate:examples`, the Ring 0 reliability
+journeys, a shipped-bundle wiring check, the app-build deterministic cases.
+The diff selects the checks, not the author. Harnesses that need a target or
+key are printed as manual work, never silently skipped.
 
 ```bash
 npm run dev:nodetool -- harness list             # every harness + capabilities
 npm run dev:nodetool -- harness audit            # surface coverage + documented gaps
-npm run dev:nodetool -- harness audit --json     # machine-readable, for agents
 npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
+npm run dev:nodetool -- harness gate --base main # run the selfchecks this diff demands
+npm run dev:nodetool -- harness gate --dry-run   # plan only
+npm run dev:nodetool -- harness gate --all       # every selfcheck (--expensive to widen)
 ```
 
 ### nodetool workflows

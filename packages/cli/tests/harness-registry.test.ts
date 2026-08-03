@@ -9,7 +9,8 @@ import { describe, it, expect } from "vitest";
 import {
   HARNESSES,
   SURFACES,
-  auditHarnessCoverage
+  auditHarnessCoverage,
+  planGate
 } from "../src/harness/registry.js";
 
 describe("harness registry", () => {
@@ -47,8 +48,59 @@ describe("harness registry", () => {
 
   it("audit catches a dangling harness reference", () => {
     const result = auditHarnessCoverage(HARNESSES, [
-      { id: "s", title: "S", harnesses: ["does-not-exist"] }
+      { id: "s", title: "S", harnesses: ["does-not-exist"], paths: [] }
     ]);
     expect(result.unknownHarnessRefs).toEqual(["s → does-not-exist"]);
+  });
+
+  it("every surface declares owning paths", () => {
+    for (const s of SURFACES) {
+      expect(s.paths.length, s.id).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("harness gate", () => {
+  it("maps a kernel change to workflow-execution selfchecks", () => {
+    const plan = planGate(["packages/kernel/src/runner.ts"]);
+    expect(plan.surfaces.map((s) => s.id)).toEqual(["workflow-execution"]);
+    const ids = plan.checks.map((c) => c.harnessId).sort();
+    expect(ids).toContain("validate");
+    expect(ids).toContain("reliability-ring0");
+    expect(ids).toContain("node-run");
+    // debug has no selfcheck — it needs a target, so it lands in manual.
+    expect(plan.manual.map((m) => m.harnessId)).toContain("debug");
+  });
+
+  it("dedupes a selfcheck shared by several touched surfaces", () => {
+    const plan = planGate([
+      "packages/kernel/src/runner.ts",
+      "packages/agents/src/planner.ts"
+    ]);
+    const validate = plan.checks.filter((c) => c.harnessId === "validate");
+    expect(validate).toHaveLength(1);
+    expect(validate[0]!.surfaces.sort()).toEqual([
+      "workflow-authoring",
+      "workflow-execution"
+    ]);
+  });
+
+  it("reports files no surface claims", () => {
+    const plan = planGate(["README.md"]);
+    expect(plan.unmappedFiles).toEqual(["README.md"]);
+    expect(plan.checks).toEqual([]);
+  });
+
+  it("reports a touched gap surface as uncovered", () => {
+    const plan = planGate(["mobile/App.tsx"]);
+    expect(plan.uncoveredSurfaces).toEqual(["mobile"]);
+    expect(plan.checks).toEqual([]);
+  });
+
+  it("selfchecks are keyless npm/node commands from the repo root", () => {
+    for (const h of HARNESSES) {
+      if (!h.selfcheck) continue;
+      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node) /);
+    }
   });
 });
