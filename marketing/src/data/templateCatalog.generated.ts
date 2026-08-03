@@ -625,14 +625,15 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "movie-trailer-generator",
         "name": "Movie Trailer Generator",
-        "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+        "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
         "tags": [
           "video",
           "generation",
           "ai",
           "storytelling",
           "creative",
-          "trailer"
+          "trailer",
+          "storyboard"
         ]
       },
       {

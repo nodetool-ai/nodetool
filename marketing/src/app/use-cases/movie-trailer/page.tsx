@@ -8,9 +8,9 @@ import {
   Download,
   Play,
   FileText,
-  Sparkles,
   Image as ImageIcon,
   Film,
+  Clapperboard,
   RefreshCw,
   SlidersHorizontal,
   Wand2,
@@ -39,15 +39,15 @@ const steps = [
     detail: "A getaway driver outruns a collapsing bridge · gritty daylight · 6 shots",
   },
   {
-    icon: Sparkles,
-    title: "Treatment, then shots",
-    body: "A Prompt frames the brief, a showrunner agent returns a teaser treatment, and a list generator breaks it into concrete, one-line shots.",
-    detail: "Tone · beat arc · motifs · palette → 6 shots",
+    icon: Clapperboard,
+    title: "Direct the storyboard",
+    body: "One Director node writes the screenplay: a shot for every beat, each with its own camera direction, under one style bible.",
+    detail: "6 shots · framing, lens, angle, movement · one style bible",
   },
   {
     icon: ImageIcon,
     title: "Render the key art",
-    body: "Each shot is templated into a key-art prompt, then a text-to-image model renders it as a cinematic 16:9 frame.",
+    body: "Screenplay Shots turns each shot into an image prompt — action, camera, style — and a text-to-image model renders it as a cinematic 16:9 frame.",
     detail: "2K · anamorphic framing · film grain · no on-screen text",
   },
   {
@@ -62,17 +62,17 @@ const tweaks = [
   {
     icon: RefreshCw,
     title: "Swap the video model",
-    body: "Veo, Seedance, Kling, Runway. Change one node and the treatment, shots, and key art stay exactly the same.",
+    body: "Veo, Seedance, Kling, Runway. Change one node and the storyboard, shots, and key art stay exactly the same.",
   },
   {
     icon: SlidersHorizontal,
-    title: "Redirect the showrunner",
-    body: "Rewrite the agent's system prompt for horror, comedy, or arthouse without touching the pipeline.",
+    title: "Redirect the storyboard",
+    body: "Raise the shot count, change the aspect ratio, or point the Director at a different model. The rest of the graph is untouched.",
   },
   {
     icon: Wand2,
     title: "Restyle every shot",
-    body: "The visual-style input flows into each key-art prompt. Change one line and the whole trailer shifts mood.",
+    body: "The visual-style input becomes the screenplay's style bible, and the style bible lands in every shot prompt. Change one line and the whole trailer shifts mood.",
   },
   {
     icon: Repeat,
@@ -83,14 +83,14 @@ const tweaks = [
 
 const models = [
   {
-    name: "Gemini 3.1 Pro Preview",
-    role: "Writes the treatment and shot list",
-    provider: "Gemini",
+    name: "GPT-5 mini",
+    role: "Directs the storyboard",
+    provider: "OpenAI",
   },
   {
-    name: "GPT Image-2",
+    name: "FLUX.1 Schnell",
     role: "Renders each shot's key art",
-    provider: "kie",
+    provider: "fal.ai",
   },
   {
     name: "Veo 3.1 Preview",
@@ -154,10 +154,10 @@ export default function MovieTrailerUseCase() {
                 Movie Trailer Generator
               </h1>
               <p className="mt-6 text-lg md:text-xl text-slate-400 leading-relaxed">
-                Type one logline and the canvas builds the teaser: a treatment,
-                a shot list, key art for every beat — animated and cut into a
-                finished trailer. No editor, no studio, one canvas you can
-                re-run for any story.
+                Type one logline and the canvas builds the teaser: a Director
+                node storyboards it into shots, key art is rendered for every
+                beat, then animated and cut into a finished trailer. No editor,
+                no studio, one canvas you can re-run for any story.
               </p>
             </motion.div>
 
@@ -214,8 +214,8 @@ export default function MovieTrailerUseCase() {
                 How it works
               </h2>
               <p className="mt-4 text-lg text-slate-400 leading-relaxed">
-                A handful of nodes do the work. One line becomes a treatment, the
-                treatment becomes shots, the shots become a trailer.
+                A handful of nodes do the work. One line becomes a storyboard, the
+                storyboard becomes shots, the shots become a trailer.
               </p>
             </div>
 

@@ -22,9 +22,9 @@ us, and you can switch any model for a better one the day it ships.
     <div class="usecase-body">
       <span class="usecase-tag">Film</span>
       <h3><a href="{{ '/use-cases/movie-trailer' | relative_url }}">Movie Trailer Generator</a></h3>
-      <p>Type one logline and the canvas builds a cinematic teaser: a showrunner agent writes the treatment, a list generator breaks it into shots, each shot is rendered as key art, animated, and cut into a finished trailer.</p>
+      <p>Type one logline and the canvas builds a cinematic teaser: a Director node storyboards it into shots, each shot is rendered as key art, animated, and cut into a finished trailer.</p>
       <div class="pipeline-chips">
-        <span>Logline</span><span>Treatment</span><span>Shots</span><span>Key art</span><span>Trailer</span>
+        <span>Logline</span><span>Storyboard</span><span>Shots</span><span>Key art</span><span>Trailer</span>
       </div>
     </div>
   </article>

@@ -12994,13 +12994,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/movie-trailer-generator",
     "title": "Movie Trailer Generator — NodeTool AI Workflow Template",
-    "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "movie-trailer-generator",
     "name": "Movie Trailer Generator",
-    "summary": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
+    "summary": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together. Cost note: each shot runs through Veo 3.1 image-to-video, which is metered per second of generated video and is the most expensive step in the pipeline — a 6-shot trailer makes 6 Veo calls.",
     "tags": [
       "video",
       "generation",
@@ -13008,24 +13008,15 @@ export const templateEntries: TemplateEntry[] = [
       "storytelling",
       "creative",
       "trailer",
+      "storyboard",
       "example"
     ],
     "category": "Video",
     "nodeTypes": [
       {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 3
-      },
-      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
-        "count": 3
-      },
-      {
-        "type": "nodetool.agents.Agent",
-        "label": "Agent",
-        "count": 1
+        "count": 2
       },
       {
         "type": "nodetool.control.Collect",
@@ -13038,13 +13029,18 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.creative.Director",
+        "label": "Director",
+        "count": 1
+      },
+      {
         "type": "nodetool.video.ImageToVideo",
         "label": "Image To Video",
         "count": 1
       },
       {
-        "type": "nodetool.generators.ListGenerator",
-        "label": "List Generator",
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
         "count": 1
       },
       {
@@ -13053,12 +13049,17 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.creative.ScreenplayShots",
+        "label": "Screenplay Shots",
+        "count": 1
+      },
+      {
         "type": "nodetool.image.TextToImage",
         "label": "Text To Image",
         "count": 1
       }
     ],
-    "nodeCount": 13,
+    "nodeCount": 10,
     "thumbnail": "/templates/movie-trailer-generator.jpg",
     "graph": {
       "nodes": [
@@ -13085,104 +13086,75 @@ export const templateEntries: TemplateEntry[] = [
           "type": "nodetool.input.StringInput",
           "title": "String Input",
           "x": 50,
-          "y": 373,
+          "y": 343,
           "width": 280,
-          "subtitle": "high-contrast daylight, dust and sparks, handheld telephoto, motion blur, hard sun, blown-out sky, gritty"
+          "subtitle": "cinematic film still, theatrical key art, anamorphic framing, high-contrast daylight, dust and sparks, handheld telephoto, motion blur, har…"
         },
         {
           "id": "shot_count",
-          "type": "nodetool.input.StringInput",
-          "title": "String Input",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
           "x": 50,
           "y": 619,
-          "width": 280,
-          "subtitle": "6"
+          "width": 280
         },
         {
-          "id": "treatment_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 410,
-          "y": 50,
-          "width": 300,
-          "subtitle": "You are a trailer director. Turn this logline into a teaser treatment. Logline: {{ LOGLINE }} Visual style: {{ STYLE }} Shots: {{ COUNT }}…"
-        },
-        {
-          "id": "showrunner",
-          "type": "nodetool.agents.Agent",
-          "title": "Agent",
-          "x": 740,
-          "y": 83,
-          "width": 332,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "shotlist_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1132,
-          "y": 323,
-          "width": 340,
-          "subtitle": "From this treatment, write exactly {{ COUNT }} cinematic shot descriptions for the teaser, one per line, no numbering or labels. Each line…"
-        },
-        {
-          "id": "shot_list",
-          "type": "nodetool.generators.ListGenerator",
-          "title": "List Generator",
-          "x": 1502,
-          "y": 380,
-          "width": 331,
-          "subtitle": "gpt-5-mini"
-        },
-        {
-          "id": "keyframe_prompt",
-          "type": "nodetool.text.Prompt",
-          "title": "Prompt",
-          "x": 1893,
-          "y": 428,
+          "id": "director",
+          "type": "nodetool.creative.Director",
+          "title": "Director",
+          "x": 430,
+          "y": 180,
           "width": 360,
-          "subtitle": "Cinematic film still, theatrical key art quality, 16:9. Shot: {{ SHOT }} Visual style: {{ STYLE }}. Anamorphic framing, dramatic volumetric…"
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "shots",
+          "type": "nodetool.creative.ScreenplayShots",
+          "title": "Screenplay Shots",
+          "x": 860,
+          "y": 300,
+          "width": 320
         },
         {
           "id": "keyframe",
           "type": "nodetool.image.TextToImage",
           "title": "Text To Image",
-          "x": 2283,
-          "y": 467,
+          "x": 1250,
+          "y": 330,
           "width": 320,
           "subtitle": "fal-ai/flux/schnell"
         },
         {
-          "id": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "id": "animate",
           "type": "nodetool.video.ImageToVideo",
           "title": "Image To Video",
-          "x": 2633,
-          "y": 550,
+          "x": 1640,
+          "y": 400,
           "width": 331,
           "subtitle": "veo-3.1-generate-preview"
         },
         {
-          "id": "b8622937-e6d7-445f-bb19-e254b49a23ef",
-          "type": "nodetool.video.Concat",
-          "title": "Concat",
-          "x": 3185,
-          "y": 534,
-          "width": 320
-        },
-        {
-          "id": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "id": "collect",
           "type": "nodetool.control.Collect",
           "title": "Collect",
-          "x": 2994,
-          "y": 586,
+          "x": 2040,
+          "y": 436,
           "width": 161
+        },
+        {
+          "id": "concat",
+          "type": "nodetool.video.Concat",
+          "title": "Concat",
+          "x": 2260,
+          "y": 384,
+          "width": 320
         },
         {
           "id": "output-trailer",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 3505,
-          "y": 534,
+          "x": 2640,
+          "y": 384,
           "width": 280
         }
       ],
@@ -13190,103 +13162,61 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "logline",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "LOGLINE",
+          "target": "director",
+          "targetHandle": "brief",
           "color": "string"
         },
         {
           "source": "style",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "STYLE",
+          "target": "director",
+          "targetHandle": "style",
           "color": "string"
         },
         {
           "source": "shot_count",
           "sourceHandle": "output",
-          "target": "treatment_prompt",
-          "targetHandle": "COUNT",
-          "color": "string"
+          "target": "director",
+          "targetHandle": "shot_count",
+          "color": "int"
         },
         {
-          "source": "treatment_prompt",
-          "sourceHandle": "output",
-          "target": "showrunner",
-          "targetHandle": "prompt",
-          "color": "string"
+          "source": "director",
+          "sourceHandle": "screenplay",
+          "target": "shots",
+          "targetHandle": "screenplay",
+          "color": "dict"
         },
         {
-          "source": "showrunner",
-          "sourceHandle": "text",
-          "target": "shotlist_prompt",
-          "targetHandle": "TREATMENT",
-          "color": "string"
-        },
-        {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "shotlist_prompt",
-          "targetHandle": "STYLE",
-          "color": "string"
-        },
-        {
-          "source": "shot_count",
-          "sourceHandle": "output",
-          "target": "shotlist_prompt",
-          "targetHandle": "COUNT",
-          "color": "string"
-        },
-        {
-          "source": "shotlist_prompt",
-          "sourceHandle": "output",
-          "target": "shot_list",
-          "targetHandle": "prompt",
-          "color": "string"
-        },
-        {
-          "source": "keyframe_prompt",
-          "sourceHandle": "output",
+          "source": "shots",
+          "sourceHandle": "shot_prompt",
           "target": "keyframe",
           "targetHandle": "prompt",
           "color": "string"
         },
         {
-          "source": "shot_list",
-          "sourceHandle": "item",
-          "target": "keyframe_prompt",
-          "targetHandle": "SHOT",
-          "color": "string"
-        },
-        {
           "source": "keyframe",
           "sourceHandle": "output",
-          "target": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "target": "animate",
           "targetHandle": "image",
           "color": "image"
         },
         {
-          "source": "e3c7d2b6-dc63-46a0-8e90-3998601e0faf",
+          "source": "animate",
           "sourceHandle": "output",
-          "target": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "target": "collect",
           "targetHandle": "input_item",
           "color": "video"
         },
         {
-          "source": "403bb36a-0635-487b-ad4c-02b33ea1ff87",
+          "source": "collect",
           "sourceHandle": "output",
-          "target": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+          "target": "concat",
           "targetHandle": "ImageToVideo",
           "color": "list"
         },
         {
-          "source": "style",
-          "sourceHandle": "output",
-          "target": "keyframe_prompt",
-          "targetHandle": "STYLE",
-          "color": "string"
-        },
-        {
-          "source": "b8622937-e6d7-445f-bb19-e254b49a23ef",
+          "source": "concat",
           "sourceHandle": "output",
           "target": "output-trailer",
           "targetHandle": "value",
