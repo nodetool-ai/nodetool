@@ -514,7 +514,7 @@
     {
       "id": "movie_trailer_generator",
       "name": "Movie Trailer Generator",
-      "description": "Type a single logline and get back a cinematic teaser. Prompt nodes template the inputs into a treatment and turn each shot into full cinematic key art; the shots are animated and cut together into the final trailer.",
+      "description": "Type a single logline and get back a cinematic teaser. The Director node writes the storyboard — a screenplay of shots with camera direction and one style bible — Screenplay Shots turns each shot into an image prompt, and the frames are rendered, animated, and cut together.",
       "tags": [
         "video",
         "generation",
@@ -522,6 +522,7 @@
         "storytelling",
         "creative",
         "trailer",
+        "storyboard",
         "example"
       ]
     },

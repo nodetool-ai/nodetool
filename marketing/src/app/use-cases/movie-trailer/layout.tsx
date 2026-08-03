@@ -3,7 +3,7 @@ import type { Metadata, Viewport } from "next";
 
 const TITLE = "AI Movie Trailer Generator | NodeTool use case";
 const DESCRIPTION =
-  "Type one logline and the canvas builds a cinematic teaser. A showrunner agent writes the treatment, a list generator breaks it into shots, a text-to-image model renders the key art, and a video model animates and cuts it into a finished trailer, all on one open canvas with your own keys.";
+  "Type one logline and the canvas builds a cinematic teaser. A Director node storyboards it into shots, a text-to-image model renders the key art, and a video model animates and cuts it into a finished trailer, all on one open canvas with your own keys.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "AI Movie Trailer Generator",
     description:
-      "From one logline to a cinematic teaser: treatment, shot list, key art, and a cut trailer, on one open canvas.",
+      "From one logline to a cinematic teaser: a storyboard, key art, and a cut trailer, on one open canvas.",
   },
 };
 

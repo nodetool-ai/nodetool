@@ -84,5 +84,8 @@ describe("exported base node coverage audit", () => {
     );
 
     expect(missing).toEqual([]);
-  });
+    // Reads every test file in every package: fast locally (~0.3 s), but on a
+    // cold CI filesystem with the rest of the suite running in parallel it has
+    // overrun the 5 s default.
+  }, 30000);
 });
