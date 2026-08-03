@@ -26,7 +26,10 @@ function jsonResponse(data: unknown, status = 200): Response {
 }
 
 function errorResponse(status: number, code: string, message: string): Response {
-  return jsonResponse({ code, message, detail: message, retryable: false }, status);
+  return jsonResponse(
+    { code, message, detail: message, retryable: status >= 500 },
+    status
+  );
 }
 
 function rawQuery(request: Request): Record<string, string> {
