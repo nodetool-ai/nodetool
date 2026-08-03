@@ -25,8 +25,10 @@ import {
   DEFAULT_OPERATION_ID,
   eventToAction,
   parseBinding,
+  parseInputStateKey,
   resolveBinding,
   stateKey,
+  type InputSlot,
   type OperationBinding
 } from "@nodetool-ai/app-runtime";
 import {
@@ -41,6 +43,7 @@ import {
 import {
   effectiveTimeoutMs,
   HeadlessAppRuntime,
+  writeRefusal,
   type HeadlessOperationInit
 } from "./runtime.js";
 import type {
@@ -172,6 +175,46 @@ function conditionalNodeIds(graph: DebugGraph): Set<string> {
     }
   }
   return conditional;
+}
+
+/**
+ * Overlay the live values of node-property bindings onto the graph, the way the
+ * web runtime does before every run (`collectNodePropertyOverlays` →
+ * `withNodeProperties` in `web/src/components/appbuilder/nodeBinding.ts`).
+ *
+ * A widget bound `op:main/prop:node7#strength` writes an input slot keyed by
+ * node and property, which no input node reads — the value only reaches the run
+ * as a property of the node it names. The web helpers take ReactFlow nodes, so
+ * the mapping is repeated here against the kernel shape (`node.properties`);
+ * `parseInputStateKey` — the shared inverse of the state key — is what both
+ * sides actually agree on.
+ */
+export function withNodePropertyOverlays(
+  graph: DebugGraph,
+  inputs: Record<string, InputSlot>
+): DebugGraph {
+  const byNode = new Map<string, Record<string, unknown>>();
+  for (const [key, slot] of Object.entries(inputs)) {
+    if (slot.value === undefined) continue;
+    const parsed = parseInputStateKey(key);
+    if (!parsed?.property) continue;
+    const existing = byNode.get(parsed.nodeId);
+    if (existing) existing[parsed.property] = slot.value;
+    else byNode.set(parsed.nodeId, { [parsed.property]: slot.value });
+  }
+  if (byNode.size === 0) return graph;
+  return {
+    nodes: graph.nodes.map((node) => {
+      const overlay = typeof node.id === "string" ? byNode.get(node.id) : undefined;
+      if (!overlay) return node;
+      const properties =
+        typeof node.properties === "object" && node.properties !== null
+          ? (node.properties as Record<string, unknown>)
+          : {};
+      return { ...node, properties: { ...properties, ...overlay } };
+    }),
+    edges: graph.edges
+  };
 }
 
 /** Node ids keyed by the `name` their data carries, for name-form bindings. */
@@ -401,10 +444,11 @@ export async function simulateApp(
       bindingByOperation.set(binding.id, binding);
       context.operations.push(operationSpec(binding, operationIO, unavailable));
     }
+    // The first declared operation, exactly as the web runtime picks it
+    // (`operations[0]` in `useAppRuntime`) — so a bare-name binding resolves to
+    // the same operation headlessly and in the browser.
     context.defaultOperationId =
-      context.operations.find((op) => op.id === DEFAULT_OPERATION_ID)?.id ??
-      context.operations[0]?.id ??
-      DEFAULT_OPERATION_ID;
+      context.operations[0]?.id ?? DEFAULT_OPERATION_ID;
   }
 
   const { spec, issues: parseIssues, warnings: parseWarnings } = parseAppSpec(
@@ -465,7 +509,7 @@ export async function simulateApp(
     ) => {
       log(`Running operation "${operationId}"…`);
       const outcome = await deps.runOnServer({
-        graph,
+        graph: withNodePropertyOverlays(graph, runtime.state.inputs),
         workflowId,
         params,
         ...(timeoutMs != null ? { timeoutMs } : {})
@@ -546,18 +590,25 @@ export async function simulateApp(
       ...(options.timeoutMs != null ? { timeoutMs: options.timeoutMs } : {})
     });
 
-    /** Write a value addressed by name (a param, or an `--interact` set step). */
+    /**
+     * Write a value addressed by name (a param, or an `--interact` set step),
+     * returning why it did not land, or null once it did. Reading a name in
+     * write mode first and read mode second means an output name resolves — to
+     * a slot nothing can write, which is a failed step, not a silent no-op.
+     */
     const writeByName = (
       name: string,
       value: unknown,
       operationId = context.defaultOperationId
-    ): boolean => {
+    ): string | null => {
       const ref =
         resolveBinding(name, scope, "write", operationId) ??
         resolveBinding(name, scope, "read", operationId);
-      if (!ref) return false;
+      if (!ref) return `"${name}" matches no input, output, or variable.`;
+      const refusal = writeRefusal(ref);
+      if (refusal) return `"${name}" ${refusal}.`;
       runtime.write(ref, value);
-      return true;
+      return null;
     };
 
     /** Seed one collection, reporting why a bad seed did nothing. */
@@ -595,11 +646,8 @@ export async function simulateApp(
         if (failure) report.validation.warnings.push(failure);
         continue;
       }
-      if (!writeByName(key, value)) {
-        report.validation.warnings.push(
-          `Param "${key}" matches no input, output, or variable in the workflow.`
-        );
-      }
+      const failure = writeByName(key, value);
+      if (failure) report.validation.warnings.push(`Param ${failure}`);
     }
 
     /** Dispatch one action, tracking which run it produced. */
@@ -633,11 +681,9 @@ export async function simulateApp(
       report.interactions.push(record);
 
       if ("set" in step) {
-        if (writeByName(step.set.key, step.set.value, step.set.operationId)) {
-          record.actions.push(`set ${step.set.key}`);
-        } else {
-          record.error = `"${step.set.key}" matches no input, output, or variable.`;
-        }
+        const failure = writeByName(step.set.key, step.set.value, step.set.operationId);
+        if (failure) record.error = failure;
+        else record.actions.push(`set ${step.set.key}`);
         continue;
       }
 
@@ -690,7 +736,20 @@ export async function simulateApp(
         continue;
       }
       if ("change" in step && step.value !== undefined) {
-        if (found.ref) runtime.write(found.ref, step.value);
+        // A change whose value never landed must not go on to fire the widget's
+        // events: the run behind them would read the old value.
+        if (!found.ref) {
+          record.error = found.binding
+            ? `changed "${named}" but its binding "${found.binding}" resolves to nothing — nothing was set.`
+            : `changed "${named}", which has no binding to write to.`;
+          continue;
+        }
+        const refusal = writeRefusal(found.ref);
+        if (refusal) {
+          record.error = `changed "${named}", whose binding "${found.binding ?? ""}" ${refusal}.`;
+          continue;
+        }
+        runtime.write(found.ref, step.value);
         record.actions.push(`set ${found.stateKey ?? found.id}`);
       }
       // A run from a bound write widget carries its binding; the web engine
