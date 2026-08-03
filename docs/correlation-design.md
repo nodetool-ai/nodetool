@@ -743,19 +743,29 @@ moment the gap is closed. Each skipped test references the gap id below.
   delivers only the last value. (Multi-edge into a non-list handle is rejected
   by analysis — see §4.) Skipped test: `e2e/actor-modes.test.ts` (ACTOR-005).
 
-- **GAP-CORR-3 — a stream on a single-edge list handle.** One edge delivering
-  many values to a `list[...]` handle is not aggregated either. The values
-  arrive at empty scope, overwrite each other, and the node runs once on the
-  last — a `log.warn`, no error. Six shipped examples generate N images and
-  animate one; `Directed Film to Timeline` at `shot_count: 5` pays for five
-  stills and returns a single clip.
+- **GAP-CORR-3 — `Directed Film to Timeline` animates one shot of N.** Running
+  it at `shot_count: 2` generates two distinct keyframes and yields a single
+  clip. The kernel logs `Node "animate" handle "image" received multiple values
+  at empty scope; only the last is kept`, and `nodetool.video.ImageToVideo` is
+  invoked once.
 
-  Aggregating unconditionally is not the fix. `ForEach.input_list` wants the
-  whole stream as one list, while `ImageToVideo.image` wants one invocation per
-  item — its own description says "the first image is the primary frame;
-  additional images are used as references". Both are `list[...]`, and element
-  type cannot separate them, so the handle has to declare which it means.
-  Proposal: [stream-into-list-input-design.md](stream-into-list-input-design.md).
+  The obvious explanation — a `list[...]` handle fed by one edge carrying a
+  stream is never aggregated — is wrong, or at best incomplete. Three
+  reproductions of exactly that shape do not collapse:
 
-  Reported statically by `validateGraph` as `stream_into_list_input` (error),
-  so such a graph cannot ship unnoticed. Runtime behavior is unchanged.
+  | Graph | Result |
+  |---|---|
+  | `ScreenplayShots.shot_prompt` → `Join.strings` (`list[str]`) | Join runs twice |
+  | `ScreenplayShots` → `Concat` → `Join.strings` | Join runs twice |
+  | `ScreenplayShots` → `TextToImage` → `ImageToVideo.image` (`list[image]`) | ImageToVideo runs twice |
+
+  The third uses the film example's own topology and node types, and it works.
+  So the trigger is something else in that graph. One candidate is the
+  downstream `Collect` → `AddClips` chain changing the scope the analysis
+  computes for `animate`; that is untested.
+
+  Whatever it is, it is not decidable from node types and edge shape alone.
+  That is why there is no static check for it: a check keyed on "list handle
+  fed by a streaming source" flags all three graphs above, and all three are
+  fine.
+
