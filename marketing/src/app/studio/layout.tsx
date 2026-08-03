@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Studio — Local-First AI Workflow Desktop App";
+const TITLE = "NodeTool Studio — The Agent-First Desktop App";
 const DESCRIPTION =
-  "NodeTool Studio is the open-source desktop app for building AI workflows on your own hardware. Run Ollama, MLX, and GGUF models locally, work offline, keep your data on disk. macOS, Windows, Linux. AGPL-3.0.";
+  "NodeTool Studio is the open-source, agent-first desktop app: every editor is exposed to agents as tools, and the agent runs on your own hardware. Tell it what you want and it builds and runs workflows with Ollama, MLX, and GGUF models locally — offline, data on disk. macOS, Windows, Linux. AGPL-3.0.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -14,6 +14,8 @@ export const metadata: Metadata = {
   },
   keywords: [
     "NodeTool Studio",
+    "agent-first desktop app",
+    "local AI agent",
     "local AI workflows",
     "offline AI",
     "Ollama desktop",
@@ -52,7 +54,7 @@ export default function StudioLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Studio",
           description:
-            "Open-source desktop app for building AI workflows on your own hardware. Run Ollama, MLX, and GGUF models locally, work offline, and keep your data on disk.",
+            "Open-source, agent-first desktop app: every editor is exposed to agents as tools, and the agent runs on your own hardware. Build and run AI workflows with Ollama, MLX, and GGUF models locally, work offline, and keep your data on disk.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux",
           url: "https://nodetool.ai/studio",

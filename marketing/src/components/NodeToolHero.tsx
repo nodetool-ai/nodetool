@@ -26,17 +26,18 @@ export default function NodeToolHero() {
             id="hero-title"
             className="mt-6 text-5xl font-bold leading-[1.05] tracking-tight text-white md:text-6xl"
           >
-            The open creative
+            The agent-first
             <br />
             <span className="bg-gradient-to-r from-rose-400 via-fuchsia-400 to-amber-300 bg-clip-text text-transparent">
-              AI workspace.
+              creative workspace.
             </span>
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            Films, posters, product videos, and music, made start to finish on
-            one canvas. Every major model, your own keys, and no credits or
-            markups in between.
+            Say what you want and the agent builds the workflow on your canvas
+            and runs it — films, posters, product videos, and music, start to
+            finish. Every major model, your own keys, and no credits or markups
+            in between.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -57,7 +58,7 @@ export default function NodeToolHero() {
           <ul className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs font-medium text-slate-300">
             <li className="flex items-center gap-1.5">
               <Layers className="h-3.5 w-3.5 text-fuchsia-400" />
-              Image, video, audio, and text
+              Agents drive every editor
             </li>
             <li className="text-slate-700">•</li>
             <li className="flex items-center gap-1.5">

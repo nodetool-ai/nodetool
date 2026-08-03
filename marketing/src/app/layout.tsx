@@ -17,16 +17,19 @@ const jetBrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NodeTool — The open creative AI workspace",
+  title: "NodeTool — The agent-first creative workspace",
   description:
-    "NodeTool is the open-source creative AI workspace. Every major model from every major provider runs on one visual canvas, using your own keys, on your machine or in your browser. You pay providers directly: no credits, no markup, no lock-in.",
+    "NodeTool is the open-source, agent-first creative workspace. Every editor — canvas, sketch pad, storyboard, timeline, app builder — is exposed to agents as tools: say what you want and the agent builds the workflow and runs it across every major model, using your own keys. You pay providers directly: no credits, no markup, no lock-in.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/",
   },
   keywords: [
+    "agent-first creative workspace",
     "creative AI workspace",
     "open source creative AI",
+    "agents that build workflows",
+    "MCP creative tools",
     "BYOK AI canvas",
     "AI workflow canvas",
     "ComfyUI alternative",
@@ -49,9 +52,9 @@ export const metadata: Metadata = {
     other: [{ rel: "manifest", url: "/site.webmanifest" }],
   },
   openGraph: {
-    title: "NodeTool — The open creative AI workspace",
+    title: "NodeTool — The agent-first creative workspace",
     description:
-      "Every major model from every major provider on one visual canvas, using your own keys. Image, video, audio, and text in one place. Open source, and you pay provider prices.",
+      "Every editor is exposed to agents as tools: say what you want and the agent builds the workflow and runs it across every major model, using your own keys. Open source, and you pay provider prices.",
     url: "https://nodetool.ai",
     siteName: "NodeTool",
     images: [
@@ -65,9 +68,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "NodeTool — The open creative AI workspace",
+    title: "NodeTool — The agent-first creative workspace",
     description:
-      "Every model. Your keys. Your canvas. The open-source creative AI workspace: bring your own keys to every major provider and pay their published prices.",
+      "Every model. Your keys. Your agent. The open-source, agent-first creative workspace: an agent builds and runs your workflows across every major provider, at their published prices.",
     images: ["/preview.png"],
   },
 };
@@ -94,7 +97,7 @@ export default function RootLayout({
               "@context": "https://schema.org",
               "@type": "SoftwareApplication",
               "name": "NodeTool",
-              "description": "NodeTool is the open-source creative AI workspace. Every major model from every major provider runs on one visual canvas, using your own keys. Image, video, audio, and text sit side by side, with masks, inpaint, outpaint, relight, upscale, and compositing built in. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud.",
+              "description": "NodeTool is the open-source, agent-first creative workspace. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all: say what you want and the agent builds the workflow and runs it across every major model from every major provider, using your own keys. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud.",
               "applicationCategory": "MultimediaApplication",
               "applicationSubCategory": "Creative AI Workspace",
               "operatingSystem": "macOS, Windows, Linux",
@@ -113,6 +116,9 @@ export default function RootLayout({
               },
               "screenshot": "https://nodetool.ai/preview.png",
               "featureList": [
+                "Agent-first: every editor is exposed to agents as tools, around 120 in all",
+                "Agents plan, build, run, and repair workflows on the same surfaces you use",
+                "The full agent toolbelt speaks MCP, so Claude Desktop and Claude Code can drive NodeTool",
                 "One visual canvas for image, video, audio, and text",
                 "Bring your own keys to every major provider: FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, HuggingFace",
                 "Pay providers directly at provider prices, no credits, no markup",
@@ -148,7 +154,7 @@ export default function RootLayout({
                 "https://github.com/nodetool-ai/nodetool",
                 "https://discord.gg/WmQTWZRcYE"
               ],
-              "description": "NodeTool builds the open creative AI workspace: a visual canvas that connects every major model from every major provider using the user's own keys, available as a desktop app and as a hosted browser edition."
+              "description": "NodeTool builds the open, agent-first creative workspace: every editor is exposed to agents as tools, connecting every major model from every major provider using the user's own keys, available as a desktop app and as a hosted browser edition."
             })
           }}
         />
@@ -166,7 +172,7 @@ export default function RootLayout({
                   "name": "What is NodeTool?",
                   "acceptedAnswer": {
                     "@type": "Answer",
-                    "text": "NodeTool is the open-source creative AI workspace. Every major model from every major provider (FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more) runs on one visual canvas using your own keys. Image, video, audio, and text live side by side, with editing tools such as masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud."
+                    "text": "NodeTool is the open-source, agent-first creative workspace. Every editor is exposed to agents as tools: say what you want and the agent builds the workflow and runs it across every major model from every major provider (FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, and more) using your own keys. Image, video, audio, and text live side by side, with editing tools such as masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. It runs as a desktop app on macOS, Windows, and Linux, or in the browser with NodeTool Cloud."
                   }
                 },
                 {

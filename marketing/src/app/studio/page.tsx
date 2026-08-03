@@ -84,8 +84,8 @@ const proPoints = [
   },
   {
     icon: Code2,
-    title: "Custom Python and TypeScript nodes",
-    body: "Add your own code, install Python packages in the environment that ships with the app, or run code you do not trust inside Docker.",
+    title: "The agent lives here too",
+    body: "The chat agent drives every editor through the same tools you click, and the whole toolbelt speaks MCP — point Claude Desktop or Claude Code at Studio and they can build and run workflows on your machine.",
   },
 ];
 
@@ -206,17 +206,18 @@ export default function StudioPage() {
                   id="studio-hero-title"
                   className="mt-6 text-4xl md:text-6xl font-bold tracking-tight text-white leading-[1.05]"
                 >
-                  Build AI workflows that
+                  An agent-first studio that
                   <br />
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-orange-300">
-                    run on your machine.
+                    runs on your machine.
                   </span>
                 </h1>
                 <p className="mt-6 text-lg text-slate-300 leading-relaxed max-w-xl">
                   NodeTool Studio is the desktop app for people who want their
-                  models, data, and results to stay on their own machine. Run
-                  free local models with Ollama and MLX, and bring your own keys
-                  for a cloud provider whenever you need one.
+                  models, data — and their agent — on their own machine. Tell
+                  the agent what you want and it builds and runs the workflow
+                  with free local models via Ollama and MLX, or with your own
+                  keys for a cloud provider whenever you need one.
                 </p>
                 <div className="mt-8 flex flex-col gap-3">
                   <SmartDownloadButton

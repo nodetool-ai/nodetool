@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { motion } from "framer-motion";
-import { Code2, Terminal, Boxes, Rocket } from "lucide-react";
+import { Code2, Terminal, Boxes, Rocket, Bot } from "lucide-react";
 
 export default function DevelopersHero() {
   return (
@@ -29,9 +29,9 @@ export default function DevelopersHero() {
           transition={{ duration: 0.25, delay: 0.05 }}
           className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight"
         >
-          <span className="text-white">Extend the </span>
+          <span className="text-white">Built for code. </span>
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-purple-400 to-teal-400">
-            workspace.
+            Built for agents.
           </span>
         </motion.h1>
 
@@ -44,8 +44,10 @@ export default function DevelopersHero() {
         >
           TypeScript-first, async Node.js under the hood, the same open-source
           codebase that ships Studio and Cloud. Write a custom node, drive the
-          canvas from a CLI, generate workflows in code — and put the result in
-          front of your team without rewriting it for a different runtime.
+          canvas from a CLI, generate workflows in code — or point Claude Code
+          at the MCP server and let an agent do it: every editor is exposed as
+          tools, around 120 in all, with validators and debug harnesses built
+          for the agent loop.
         </motion.p>
 
         {/* Feature Pills */}
@@ -57,6 +59,7 @@ export default function DevelopersHero() {
         >
           {[
             { icon: Code2, text: "Developer SDK" },
+            { icon: Bot, text: "MCP Server" },
             { icon: Terminal, text: "Graph DSL" },
             { icon: Boxes, text: "Custom Nodes" },
             { icon: Rocket, text: "Cloud Deploy" },
