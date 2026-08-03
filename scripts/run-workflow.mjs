@@ -485,7 +485,16 @@ async function main() {
   }
 
   if (pythonBridge) pythonBridge.close();
-  process.exitCode = result.status === "completed" ? 0 : 1;
+  // Exit explicitly rather than setting `exitCode` and letting the loop drain.
+  // A workflow containing an image node acquires a Dawn GPU instance, and
+  // dawn.node's AsyncRunner re-schedules `ProcessEvents()` on the event loop
+  // for as long as that instance lives — which is the process lifetime, because
+  // releasing it segfaults (see `retainedDawnInstances` in
+  // packages/gpu/src/node.ts). The loop therefore never drains and the run
+  // hangs after printing its results. Every write above is awaited, so there is
+  // nothing buffered left to lose. `nodetool workflows run` already exits this
+  // way for the same reason.
+  process.exit(result.status === "completed" ? 0 : 1);
 }
 
 main().catch((err) => {

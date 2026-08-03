@@ -1,22 +1,47 @@
 {
   "graph": {
     "nodes": [
-      { "id": "payload", "type": "test.Input", "name": "payload" },
-      { "id": "condition", "type": "test.Input", "name": "condition" },
-      { "id": "if", "type": "nodetool.control.If" },
-      { "id": "true_sink", "type": "nodetool.control.Reroute", "name": "when_true" },
-      { "id": "false_sink", "type": "nodetool.control.Reroute", "name": "when_false" }
+      {
+        "id": "payload",
+        "type": "nodetool.input.StringInput",
+        "name": "payload",
+        "data": {
+          "name": "payload"
+        }
+      },
+      {
+        "id": "condition",
+        "type": "nodetool.input.BooleanInput",
+        "name": "condition",
+        "data": {
+          "name": "condition"
+        }
+      },
+      {
+        "id": "if",
+        "type": "nodetool.control.If"
+      },
+      {
+        "id": "true_sink",
+        "type": "nodetool.control.Reroute",
+        "name": "when_true"
+      },
+      {
+        "id": "false_sink",
+        "type": "nodetool.control.Reroute",
+        "name": "when_false"
+      }
     ],
     "edges": [
       {
         "source": "payload",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "if",
         "targetHandle": "value"
       },
       {
         "source": "condition",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "if",
         "targetHandle": "condition"
       },
@@ -35,10 +60,7 @@
     ]
   },
   "params": {
-    "payload": {
-      "kind": "example",
-      "value": 42
-    },
+    "payload": "{\"kind\": \"example\", \"value\": 42}",
     "condition": true
   }
 }

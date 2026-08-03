@@ -1,19 +1,67 @@
 {
   "graph": {
     "nodes": [
-      { "id": "title", "type": "test.Input", "name": "title" },
-      { "id": "system", "type": "test.Input", "name": "system" },
-      { "id": "prompt", "type": "test.Input", "name": "prompt" },
-      { "id": "model", "type": "nodetool.input.LanguageModelInput", "name": "model" },
-      { "id": "thread", "type": "nodetool.agents.CreateThread" },
-      { "id": "thread_sink", "type": "nodetool.control.Reroute", "name": "thread_id" },
-      { "id": "agent", "type": "nodetool.agents.Agent" },
-      { "id": "text_sink", "type": "nodetool.control.Reroute", "name": "agent_text" }
+      {
+        "id": "title",
+        "type": "nodetool.input.StringInput",
+        "name": "title",
+        "data": {
+          "name": "title"
+        }
+      },
+      {
+        "id": "system",
+        "type": "nodetool.input.StringInput",
+        "name": "system",
+        "data": {
+          "name": "system"
+        }
+      },
+      {
+        "id": "prompt",
+        "type": "nodetool.input.StringInput",
+        "name": "prompt",
+        "data": {
+          "name": "prompt"
+        }
+      },
+      {
+        "id": "model",
+        "type": "nodetool.input.LanguageModelInput",
+        "name": "model",
+        "data": {
+          "value": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-4o-mini",
+            "name": "GPT-4o Mini"
+          },
+          "name": "model"
+        }
+      },
+      {
+        "id": "thread",
+        "type": "nodetool.agents.CreateThread"
+      },
+      {
+        "id": "thread_sink",
+        "type": "nodetool.control.Reroute",
+        "name": "thread_id"
+      },
+      {
+        "id": "agent",
+        "type": "nodetool.agents.Agent"
+      },
+      {
+        "id": "text_sink",
+        "type": "nodetool.control.Reroute",
+        "name": "agent_text"
+      }
     ],
     "edges": [
       {
         "source": "title",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "thread",
         "targetHandle": "title"
       },
@@ -31,19 +79,19 @@
       },
       {
         "source": "system",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "system"
       },
       {
         "source": "prompt",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "prompt"
       },
       {
         "source": "model",
-        "sourceHandle": "value",
+        "sourceHandle": "output",
         "target": "agent",
         "targetHandle": "model"
       },
@@ -66,4 +114,3 @@
     }
   }
 }
-
