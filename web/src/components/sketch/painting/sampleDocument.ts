@@ -44,28 +44,6 @@ export function sampleCompositeColor(
   return null;
 }
 
-/**
- * Sample the composite RGBA value at a document-space point.
- *
- * Returns `[r, g, b, a]` or null when sampling fails. Useful for callers
- * that need the alpha channel (e.g. hit-testing for non-transparent pixels).
- */
-export function sampleCompositeRGBA(
-  ctx: ToolContext,
-  docPoint: Point
-): [number, number, number, number] | null {
-  const x = Math.round(docPoint.x);
-  const y = Math.round(docPoint.y);
-
-  const id = ctx.getFullCompositeImageData?.();
-  if (id && x >= 0 && y >= 0 && x < id.width && y < id.height) {
-    const i = (y * id.width + x) * 4;
-    return [id.data[i], id.data[i + 1], id.data[i + 2], id.data[i + 3]];
-  }
-
-  return null;
-}
-
 // ─── Per-layer hit testing ──────────────────────────────────────────────────
 
 /**
