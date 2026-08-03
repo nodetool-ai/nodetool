@@ -16,8 +16,12 @@ WORKDIR /app
 # --parents preserves the packages/<name>/ structure so npm resolves the whole
 # workspace graph without hand-listing every package.json. Adding/removing a
 # package needs no Dockerfile change. (Requires the dockerfile:1-labs frontend.)
+# reliability/harness is a workspace outside packages/ (see the root
+# package.json workspaces list) and a dependency of packages/cli, so its
+# manifest has to come along or npm resolves the graph without it.
 COPY package.json package-lock.json ./
 COPY --parents packages/*/package.json ./
+COPY --parents reliability/*/package.json ./
 COPY web/package.json web/
 # The root postinstall rebuilds better-sqlite3 via this script (see the root
 # package.json); it's re-included from the ignored electron/ tree in .dockerignore.
@@ -28,6 +32,9 @@ RUN npm ci
 FROM deps AS build
 
 COPY packages/ packages/
+# tsconfig.build.json and packages/cli/tsconfig.json both reference
+# reliability/harness as a TypeScript project, so tsc --build needs the sources.
+COPY reliability/ reliability/
 COPY scripts/ scripts/
 COPY tsconfig*.json ./
 COPY turbo.json ./
