@@ -1,9 +1,9 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "AI Agent Workflow Builder — Visual Canvas | NodeTool";
+const TITLE = "Agent-First Creative Workspace | NodeTool";
 const DESCRIPTION =
-  "Build and run AI agents visually — agents on a node canvas that plan the steps, pick the model, and do the work, no code required. Wire image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — into agents that ship the work. Open source, your own keys, runs on your machine.";
+  "NodeTool is agent-first: every editor — node canvas, sketch pad, storyboard, video timeline, script, 3D scene, app builder — is exposed to agents as tools, around 120 in all. Say what you want and the agent plans the steps, builds the workflow, runs it across Flux, Seedance, Veo, Kling, Suno, and ElevenLabs, and fixes what fails. Open source, your own keys, runs on your machine.";
 
 export const metadata: Metadata = {
   title: TITLE,
@@ -13,15 +13,18 @@ export const metadata: Metadata = {
     canonical: "/agents",
   },
   keywords: [
+    "agent-first app",
     "AI agent workflow builder",
     "visual AI agent builder",
     "no-code AI agents",
     "plan-act agents",
+    "agents that build workflows",
+    "agents that build apps",
+    "supervised agent runs",
+    "MCP creative tools",
     "creative AI agents",
     "art director agent",
     "brief to asset",
-    "automated brand pack",
-    "AI motion design agent",
     "creative workflow automation",
     "image generation agent",
     "video generation agent",
@@ -58,7 +61,7 @@ export default function AgentsLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool Agents",
           description:
-            "AI agents built visually on NodeTool's node canvas: give an agent a goal and it plans the steps, picks the model, and does the work across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs. Open source, your own keys, runs on your machine.",
+            "NodeTool is agent-first: every editor in the app is exposed to agents as tools. Give an agent a goal and it plans the steps, builds the workflow on the canvas, runs it across image, video, music, and voice models — Flux, Seedance, Veo, Kling, Suno, ElevenLabs — and repairs what fails. The same tools are exposed over MCP for outside agents. Open source, your own keys, runs on your machine.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/agents",
