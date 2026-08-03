@@ -162,6 +162,13 @@ this; locally, `apt-get install -y mesa-vulkan-drivers` or see
 [AGENTS.md § WebGPU on a headless machine](../../AGENTS.md#webgpu-on-a-headless-machine)
 for the no-root route.
 
+**`npm run workflow` does not exit after one of these.** The run itself finishes
+and prints its outputs, but the process then hangs: nothing destroys the Dawn
+`GPUDevice` acquired in `packages/gpu/src/context.ts`, so the event loop never
+drains. Interrupt it once you have the output, and don't put an image workflow
+in a script that waits on the exit code. Workflows with no image node exit
+normally, and the test harness is unaffected.
+
 ```bash
 # Background, radial/angular/diamond gradients, seeded noise
 npm run workflow -- ./examples/workflows/image_generators_cli.json
@@ -171,7 +178,32 @@ npm run workflow -- ./examples/workflows/image_geometry_cli.json
 
 # Invert, Posterize, compared pixel-wise with CompareImages
 npm run workflow -- ./examples/workflows/image_color_roundtrip_cli.json
+
+# CDL, curves, film look, HSL, lift/gamma/gain, split toning, vignette,
+# exposure, grade, levels, and the enhance filters
+npm run workflow -- ./examples/workflows/image_grading_cli.json
+
+# Affine, corner pin, displace, offset, pad, polar remap, spherize, paste
+npm run workflow -- ./examples/workflows/image_warp_cli.json
+
+# masks, channel shuffle/merge, chroma and luma keys, effects and filters
+npm run workflow -- ./examples/workflows/image_masks_effects_cli.json
 ```
+
+Three things about these nodes that the property names do not tell you:
+
+- **`lib.image.warp` distances are fractions of the image, not pixels.**
+  `Pad` with `left: 5` asks for five times the width, not a 5px border; use
+  `0.25`. `Offset` with `dx: 1` is a whole-width shift, so with wrap on it
+  returns the original image.
+- **Units are per-parameter elsewhere.** `filter.Expand.border`,
+  `effects.Outline.width` and `effects.DropShadow.radius` are pixels, while
+  `DropShadow.offset_x`/`offset_y` are fractions.
+- **`mask.Apply` reads coverage from the mask's alpha channel.**
+  `mask.FromImage` mode 0 reads alpha and mode 1 reads luminance, so deriving a
+  mask from an opaque image in mode 0 yields one that covers everything and
+  `Apply` silently does nothing. `DropShadow` and `Outline` likewise work on the
+  alpha silhouette and draw nothing against a fully opaque frame.
 
 `lib.image.warp.Tile` repeats the image *inside* the existing canvas rather
 than growing it: 3×2 tiles of a 64×64 image is still 64×64.
