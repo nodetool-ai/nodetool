@@ -209,9 +209,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "gemini",
+            "id": "gemini-3.1-pro-preview",
+            "name": "Gemini 3.1 Pro Preview",
             "path": null,
             "supported_tasks": []
           },
@@ -263,9 +263,9 @@
         "data": {
           "model": {
             "type": "image_model",
-            "provider": "fal_ai",
-            "id": "fal-ai/flux/schnell",
-            "name": "FLUX.1 Schnell",
+            "provider": "kie",
+            "id": "gpt-image-2-text-to-image",
+            "name": "GPT Image-2",
             "path": null,
             "supported_tasks": []
           },
