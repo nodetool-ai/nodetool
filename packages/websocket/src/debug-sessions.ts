@@ -386,15 +386,14 @@ class DebugSessionRegistry {
     if (this.liveCount(options.userId) >= MAX_LIVE_SESSIONS_PER_USER) {
       throw new TooManyDebugSessionsError(MAX_LIVE_SESSIONS_PER_USER);
     }
-    let lifetime: ReturnType<typeof setTimeout> | undefined;
     const session = new DebugSession(options, () => {
-      if (lifetime) clearTimeout(lifetime);
+      clearTimeout(lifetime);
       const timer = setTimeout(() => {
         this._sessions.delete(session.id);
       }, SESSION_DONE_TTL_MS);
       timer.unref?.();
     });
-    lifetime = setTimeout(() => {
+    const lifetime = setTimeout(() => {
       log.warn("debug session hit its lifetime ceiling", {
         sessionId: session.id,
         jobId: options.jobId
