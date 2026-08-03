@@ -9,6 +9,7 @@ import {
   type SdkV1ModelCatalogQuery
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
 import {
+  collectProviderCatalogModels,
   getAllModels,
   getAvailableProviderIds
 } from "../trpc/routers/models.js";
@@ -161,6 +162,32 @@ export function projectSdkModelCatalog(
   });
 }
 
+// The per-provider model enumeration fans out to remote provider APIs and is
+// the slow part of a catalog request. Its result is pure remote data (no
+// local download state), so a short TTL cache is safe and keeps repeated SDK
+// catalog polls fast.
+const PROVIDER_CATALOG_TTL_MS = 60_000;
+const providerCatalogCache = new Map<
+  string,
+  { at: number; models: readonly UnifiedModel[] }
+>();
+
+async function getCachedProviderCatalogModels(
+  userId: string
+): Promise<readonly UnifiedModel[]> {
+  const cached = providerCatalogCache.get(userId);
+  if (cached && Date.now() - cached.at < PROVIDER_CATALOG_TTL_MS) {
+    return cached.models;
+  }
+  const models = await collectProviderCatalogModels(userId);
+  providerCatalogCache.set(userId, { at: Date.now(), models });
+  return models;
+}
+
+export function clearProviderCatalogCache(): void {
+  providerCatalogCache.clear();
+}
+
 function dedupeCatalogModels(models: readonly UnifiedModel[]): UnifiedModel[] {
   const byKey = new Map<string, UnifiedModel>();
   for (const model of models) {
@@ -176,8 +203,12 @@ export async function getSdkV1ModelCatalog(args: {
   query: SdkV1ModelCatalogQuery;
   recommendedModels?: readonly UnifiedModel[];
   getWorkerModels?: () => Promise<readonly UnifiedModel[]>;
+  getProviderCatalogModels?: (
+    userId: string
+  ) => Promise<readonly UnifiedModel[]>;
 }): Promise<SdkV1ModelCatalog> {
   let availableModels: readonly UnifiedModel[];
+  let providerCatalogModels: readonly UnifiedModel[];
   let providerIds: readonly string[];
   if (args.query.scope === "worker") {
     if (!args.getWorkerModels) {
@@ -186,10 +217,14 @@ export async function getSdkV1ModelCatalog(args: {
       );
     }
     availableModels = await args.getWorkerModels();
+    providerCatalogModels = [];
     providerIds = [];
   } else {
-    [availableModels, providerIds] = await Promise.all([
+    [availableModels, providerCatalogModels, providerIds] = await Promise.all([
       getAllModels(args.userId),
+      (args.getProviderCatalogModels ?? getCachedProviderCatalogModels)(
+        args.userId
+      ),
       getAvailableProviderIds(args.userId)
     ]);
   }
@@ -199,6 +234,7 @@ export async function getSdkV1ModelCatalog(args: {
   ];
   const models = dedupeCatalogModels([
     ...availableModels,
+    ...providerCatalogModels,
     ...recommendedModels
   ]);
   const manager =

@@ -928,6 +928,53 @@ async function collectProviderModelsForKind(
   return out;
 }
 
+/**
+ * Every remote model the user's configured providers can enumerate, across all
+ * non-language modalities, for the SDK model catalog. Unlike
+ * `collectProviderModelsForKind` this makes one pass per provider (each
+ * `getAvailable*Models` called once, no task filtering) so text_to_image and
+ * image_to_image capable models are both included. Language models are not
+ * collected here — `getAllModels` already enumerates them.
+ */
+export async function collectProviderCatalogModels(
+  userId: string
+): Promise<UnifiedModel[]> {
+  const providerIds = await getAvailableProviderIds(userId);
+  const perProvider = await Promise.all(
+    providerIds.map((providerId) =>
+      safeProviderCall(
+        "catalogModels",
+        { provider: providerId, userId },
+        async () => {
+          const instance = await instantiateProvider(providerId, userId);
+          if (!instance) return [];
+          const collect = (
+            fetchModels: () => Promise<Parameters<typeof toUnifiedModel>[0][]>,
+            type: string
+          ) =>
+            safeProviderCall(
+              `catalogModels:${type}`,
+              { provider: providerId, userId },
+              async () => (await fetchModels()).map((m) => toUnifiedModel(m, type)),
+              [] as UnifiedModel[]
+            );
+          const lists = await Promise.all([
+            collect(() => instance.getAvailableImageModels(), "image_model"),
+            collect(() => instance.getAvailableEmbeddingModels(), "embedding_model"),
+            collect(() => instance.getAvailableTTSModels(), "tts_model"),
+            collect(() => instance.getAvailableMusicModels(), "music_model"),
+            collect(() => instance.getAvailableASRModels(), "asr_model"),
+            collect(() => instance.getAvailableVideoModels(), "video_model")
+          ]);
+          return lists.flat();
+        },
+        [] as UnifiedModel[]
+      )
+    )
+  );
+  return perProvider.flat();
+}
+
 function curatedForKind(kind: ModelSearchKind): UnifiedModel[] {
   const modality = KIND_TO_MODALITY[kind];
   // For text_generation/embedding/image/video, RECOMMENDED_MODELS entries are
