@@ -170,7 +170,7 @@ const MessageView: React.FC<{ msg: Message }> = memo(({ msg }) => {
   return (
     <li className={messageClass}>
       {msg.role === "assistant" && msg.tool_calls && (
-        <ToolCallsView toolCalls={msg.tool_calls as ToolCall[]} />
+        <ToolCallsView toolCalls={msg.tool_calls} />
       )}
       {typeof msg.content === "string" && (
         <MarkdownRenderer content={msg.content} />

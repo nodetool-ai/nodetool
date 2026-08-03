@@ -536,7 +536,7 @@ const AudioPreview: React.FC<{ value: unknown }> = ({ value }) => {
       : null;
   const inlineFormat = (v?.metadata as { format?: string } | undefined)?.format;
   const mimeType =
-    getMimeTypeFromUri(typeof v?.uri === "string" ? (v.uri as string) : "") ||
+    getMimeTypeFromUri(typeof v?.uri === "string" ? v.uri : "") ||
     (inlineFormat === "wav" ? "audio/wav" : "audio/mp3");
   // Pass mimeType so the in-memory blob is tagged for WaveSurfer to decode.
   const src = useMediaSrc(value, "audio", mimeType);
@@ -580,8 +580,8 @@ const Model3DPreview: React.FC<{ value: unknown }> = ({ value }) => {
       ? (value as Record<string, unknown>)
       : null;
   const name =
-    (typeof v?.name === "string" && (v.name as string)) ||
-    (typeof v?.uri === "string" && (v.uri as string).split("/").pop()) ||
+    (typeof v?.name === "string" && v.name) ||
+    (typeof v?.uri === "string" && v.uri.split("/").pop()) ||
     "3D model";
   return (
     <div className="model-3d-thumb">

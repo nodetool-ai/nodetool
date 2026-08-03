@@ -344,7 +344,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       // Bail out if a newer setLayerData call has already taken over.
       if (this.layerLoadGenerations.get(layerId) !== gen) {
         if (isImageBitmap) {
-          (source as ImageBitmap).close();
+          source.close();
         }
         return;
       }
@@ -366,7 +366,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         ctx.drawImage(source, 0, 0);
       }
       if (isImageBitmap) {
-        (source as ImageBitmap).close();
+        source.close();
       }
       onComplete?.();
     };

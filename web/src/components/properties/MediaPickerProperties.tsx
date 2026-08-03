@@ -241,7 +241,7 @@ export const MediaStrengthProperty = memo<PropertyProps>((props) => {
       header="Strength"
       icon={<TuneIcon fontSize="small" />}
       defaultValue={0.65}
-      formatLabel={(v) => `${(v as number).toFixed(2)} · ${strengthDescription(v as number)}`}
+      formatLabel={(v) => `${v.toFixed(2)} · ${strengthDescription(v)}`}
     />
   );
 }, isEqual);

@@ -252,9 +252,9 @@ const AssetActions = ({
 
   const handleChange = useCallback((event: Event, value: number | number[]) => {
     if (Array.isArray(value)) {
-      setAssetItemSize(value[0] as number);
+      setAssetItemSize(value[0]);
     } else {
-      setAssetItemSize(value as number);
+      setAssetItemSize(value);
     }
   }, [setAssetItemSize]);
 
