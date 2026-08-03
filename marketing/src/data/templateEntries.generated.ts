@@ -13105,7 +13105,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 430,
           "y": 180,
           "width": 360,
-          "subtitle": "gpt-5-mini"
+          "subtitle": "gemini-3.1-pro-preview"
         },
         {
           "id": "shots",
@@ -13122,7 +13122,7 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1250,
           "y": 330,
           "width": 320,
-          "subtitle": "fal-ai/flux/schnell"
+          "subtitle": "gpt-image-2-text-to-image"
         },
         {
           "id": "animate",
