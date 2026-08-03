@@ -8,6 +8,7 @@
  * tests), it falls back to writing the bytes to a workspace file.
  */
 
+import { formatResourceUri } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 export const MIME_TO_EXT: Record<string, string> = {
@@ -74,6 +75,8 @@ export function inferImageMime(bytes: Uint8Array): string {
 export interface SavedOutput {
   asset_id?: string;
   asset_uri?: string;
+  /** `nodetool://asset/<id>` — ready-made link for the agent's prose. */
+  url?: string;
   path?: string;
   bytes: number;
   mime_type: string;
@@ -102,6 +105,7 @@ export async function persistOutput(
       if (asset && typeof asset.id === "string") {
         result.asset_id = asset.id;
         result.asset_uri = `asset://${asset.id}.${ext}`;
+        result.url = formatResourceUri({ kind: "asset", id: asset.id });
       }
     } catch {
       // Fall through to filesystem fallback.

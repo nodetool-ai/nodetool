@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getScriptAgentHandler } from "../../../components/script/scriptAgentBridge";
+import { docUrl } from "./resourceLinks";
 
 /**
  * Frontend tools that let the agent write and voice the live Script surface —
@@ -63,7 +64,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ script_id, name, voice }) {
     const speaker = getScriptAgentHandler(script_id).addSpeaker(name, voice);
-    return { ok: true, speaker };
+    return { ok: true, speaker, url: docUrl("script", script_id) };
   }
 });
 
@@ -81,7 +82,7 @@ FrontendToolRegistry.register({
       speakerId,
       voice
     );
-    return { ok: true, speaker };
+    return { ok: true, speaker, url: docUrl("script", script_id) };
   }
 });
 
@@ -103,7 +104,7 @@ FrontendToolRegistry.register({
       direction,
       index
     });
-    return { ok: true, line };
+    return { ok: true, line, url: docUrl("script", script_id) };
   }
 });
 
@@ -118,7 +119,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ script_id, target, text }) {
     const line = getScriptAgentHandler(script_id).setLineText(target, text);
-    return { ok: true, line };
+    return { ok: true, line, url: docUrl("script", script_id) };
   }
 });
 
@@ -136,7 +137,7 @@ FrontendToolRegistry.register({
       target,
       speakerId
     );
-    return { ok: true, line };
+    return { ok: true, line, url: docUrl("script", script_id) };
   }
 });
 
@@ -147,7 +148,7 @@ FrontendToolRegistry.register({
   parameters: z.object({ script_id: scriptIdParam, target: lineTargetParam }),
   async execute({ script_id, target }) {
     const line = await getScriptAgentHandler(script_id).voiceLine(target);
-    return { ok: true, line };
+    return { ok: true, line, url: docUrl("script", script_id) };
   }
 });
 
@@ -158,7 +159,7 @@ FrontendToolRegistry.register({
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const result = await getScriptAgentHandler(script_id).voiceAll();
-    return { ok: true, ...result };
+    return { ok: true, ...result, url: docUrl("script", script_id) };
   }
 });
 
@@ -195,6 +196,6 @@ FrontendToolRegistry.register({
   parameters: z.object({ script_id: scriptIdParam }),
   async execute({ script_id }) {
     const result = await getScriptAgentHandler(script_id).sendToTimeline();
-    return { ok: true, ...result };
+    return { ok: true, ...result, url: docUrl("timeline", result.sequenceId) };
   }
 });

@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { FrontendToolRegistry } from "../frontendTools";
-import { getSketchAgentHandler } from "../../../components/sketch/sketchAgentBridge";
+import {
+  getSketchAgentHandler,
+  type SketchRenderedAssetResult
+} from "../../../components/sketch/sketchAgentBridge";
+import { docUrl } from "./resourceLinks";
 
 /**
  * Frontend tools that let the agent drive a live image / sketch editor —
@@ -67,6 +71,12 @@ const toolEnum = z.enum([
   "segment"
 ]);
 
+const withAssetLink = (asset: SketchRenderedAssetResult) => ({
+  ...asset,
+  url: docUrl("asset", asset.assetId),
+  asset_url: asset.url
+});
+
 FrontendToolRegistry.register({
   name: "ui_sketch_get_state",
   description:
@@ -92,8 +102,16 @@ FrontendToolRegistry.register({
       .describe("Hex color to fill the new layer with, e.g. #ff0000.")
   }),
   async execute({ sketch_id, name, type, fillColor }) {
-    const layer = getSketchAgentHandler(sketch_id).addLayer({ name, type, fillColor });
-    return { ok: true, layer };
+    const layer = getSketchAgentHandler(sketch_id).addLayer({
+      name,
+      type,
+      fillColor
+    });
+    return {
+      ok: true,
+      layer,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+    };
   }
 });
 
@@ -103,7 +121,7 @@ FrontendToolRegistry.register({
   parameters: z.object({ sketch_id: sketchIdParam, target: targetParam }),
   async execute({ sketch_id, target }) {
     const layer = getSketchAgentHandler(sketch_id).removeLayer(target);
-    return { ok: true, deleted: layer };
+    return { ok: true, deleted: layer, url: docUrl("sketch", sketch_id) };
   }
 });
 
@@ -114,7 +132,11 @@ FrontendToolRegistry.register({
   parameters: z.object({ sketch_id: sketchIdParam, target: targetParam }),
   async execute({ sketch_id, target }) {
     const layer = getSketchAgentHandler(sketch_id).duplicateLayer(target);
-    return { ok: true, layer };
+    return {
+      ok: true,
+      layer,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+    };
   }
 });
 
@@ -144,7 +166,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ sketch_id, target, ...patch }) {
     const layer = getSketchAgentHandler(sketch_id).setLayerProps(target, patch);
-    return { ok: true, layer };
+    return {
+      ok: true,
+      layer,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+    };
   }
 });
 
@@ -158,8 +184,15 @@ FrontendToolRegistry.register({
     direction: z.enum(["up", "down"])
   }),
   async execute({ sketch_id, target, direction }) {
-    const layer = getSketchAgentHandler(sketch_id).reorderLayer(target, direction);
-    return { ok: true, layer };
+    const layer = getSketchAgentHandler(sketch_id).reorderLayer(
+      target,
+      direction
+    );
+    return {
+      ok: true,
+      layer,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+    };
   }
 });
 
@@ -170,7 +203,13 @@ FrontendToolRegistry.register({
   parameters: z.object({ sketch_id: sketchIdParam, target: targetParam }),
   async execute({ sketch_id, target }) {
     const layer = getSketchAgentHandler(sketch_id).mergeLayerDown(target);
-    return { ok: true, layer };
+    return {
+      ok: true,
+      layer,
+      url: layer
+        ? docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+        : docUrl("sketch", sketch_id)
+    };
   }
 });
 
@@ -181,7 +220,11 @@ FrontendToolRegistry.register({
   parameters: z.object({ sketch_id: sketchIdParam }),
   async execute({ sketch_id }) {
     const layer = getSketchAgentHandler(sketch_id).flattenVisible();
-    return { ok: true, layer };
+    return {
+      ok: true,
+      layer,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: layer.id })
+    };
   }
 });
 
@@ -207,7 +250,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ sketch_id, ...args }) {
     const result = await getSketchAgentHandler(sketch_id).generate(args);
-    return { ok: true, ...result };
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("sketch", sketch_id, { key: "layer", value: result.layer.id })
+    };
   }
 });
 
@@ -229,7 +276,7 @@ FrontendToolRegistry.register({
     if (background !== undefined) {
       result.background = handler.setBackgroundColor(background);
     }
-    return { ok: true, ...result };
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
   }
 });
 
@@ -255,7 +302,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ sketch_id, width, height }) {
     const size = getSketchAgentHandler(sketch_id).resizeCanvas(width, height);
-    return { ok: true, ...size };
+    return { ok: true, ...size, url: docUrl("sketch", sketch_id) };
   }
 });
 
@@ -269,7 +316,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ sketch_id, op }) {
     const result = getSketchAgentHandler(sketch_id).setSelection(op);
-    return { ok: true, ...result };
+    return { ok: true, ...result, url: docUrl("sketch", sketch_id) };
   }
 });
 
@@ -307,7 +354,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_sketch_render_to_asset",
   description:
-    "Render the canvas to a PNG (or PNGs) and save it as a temporary asset, returning asset ids and URLs. Provide one of: nothing (or `target` null) → the flattened composite of all visible layers as one asset; a single `target` (id/name) → that one layer; or `targets` (a list of ids/names) → each layer as its own asset, unless `merge` is true, in which case the listed layers are composited (bottom-to-top, honoring opacity/blend) into a single asset. Use this to hand the artwork to another tool or workflow that needs an asset id rather than raw pixels. Assets are throwaway uploads — delete them when done. Returns `assets` (an array of {assetId, url, width, height, layerId, layerName}).",
+    "Render the canvas to a PNG (or PNGs) and save it as a temporary asset, returning asset ids and URLs. Provide one of: nothing (or `target` null) → the flattened composite of all visible layers as one asset; a single `target` (id/name) → that one layer; or `targets` (a list of ids/names) → each layer as its own asset, unless `merge` is true, in which case the listed layers are composited (bottom-to-top, honoring opacity/blend) into a single asset. Use this to hand the artwork to another tool or workflow that needs an asset id rather than raw pixels. Assets are throwaway uploads — delete them when done. Returns `assets` (an array of {assetId, url, asset_url, width, height, layerId, layerName}), where `url` is the linkable nodetool:// resource URI and `asset_url` the storage URL.",
   parameters: z.object({
     sketch_id: sketchIdParam,
     target: targetParam
@@ -338,9 +385,9 @@ FrontendToolRegistry.register({
         merge,
         name
       });
-      return { ok: true, assets };
+      return { ok: true, assets: assets.map(withAssetLink) };
     }
     const result = await handler.renderLayerToAsset(target ?? null, name);
-    return { ok: true, assets: [result] };
+    return { ok: true, assets: [withAssetLink(result)] };
   }
 });
