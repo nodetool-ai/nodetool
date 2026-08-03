@@ -724,6 +724,42 @@ Removed from production behavior:
 
 3. **Python worker rollout.** Python bridge compatibility remains a rollout concern for Python-backed nodes that need full output correlation metadata, lineage, `lineage_done`, and `lineage_scope_closed`.
 
+## Hydration: a surface that skips it disagrees with the runner
+
+Correlation analysis reads list-ness from `propertyTypes`, and nothing else.
+A saved workflow never carries that map — it is filled during hydration, from
+node metadata, and only on the path that gets a resolver:
+
+```ts
+ExecutionSession.create({ graph, registry })                       // flags only
+ExecutionSession.create({ graph, registry, resolveNodeType })      // + propertyTypes
+```
+
+On the first form every `list[...]` handle reads as non-list. A stream arriving
+on one collapses to empty scope and the node runs once, on the last value, with
+`received multiple values at empty scope` in the log. The run completes; it just
+produces less than the same graph does elsewhere.
+
+`nodetool debug` shipped on the first form. On one file:
+
+```
+workflows run   keyframe=2  animate=2
+debug           keyframe=2  animate=1
+```
+
+which made `Directed Film to Timeline` look like it generated N keyframes and
+animated one. It does that under `debug` and not under the runner, so the
+divergence was the harness, not the graph — after a debugging session spent
+looking for a kernel bug that was not there.
+
+Four other surfaces had the same omission: the eval graph runner, the workflow
+agent, the headless job runner, and the app run server. Callers that hydrate
+themselves (`Graph.loadFromDict` with their own resolver — the websocket
+runner) pass no `registry` and are unaffected.
+
+`packages/execution/tests/execution-session-hydration-audit.test.ts` fails, by
+filename, on any call site that passes a registry without a resolver.
+
 ## Known gaps and skipped tests
 
 These gaps are covered by `it.skip` regression tests that are kept (not

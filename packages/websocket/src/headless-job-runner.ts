@@ -24,7 +24,10 @@ import {
   type RunResult
 } from "@nodetool-ai/execution";
 import { Job, Workflow, getSecret } from "@nodetool-ai/models";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  createGraphNodeTypeResolver,
+  type NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import type { SupervisorRunOptions } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { createRunSupervisor } from "./run-supervisor.js";
@@ -206,6 +209,13 @@ export async function startHeadlessJob(
   const session = await ExecutionSession.create({
     graph: graph as unknown as RawGraphInput,
     registry,
+    // `normalizeGraph` fixes shape, not types: it never fills `propertyTypes`,
+    // and correlation analysis reads list-ness only from that map. Without the
+    // resolver every `list[...]` handle reads as non-list, so a stream
+    // arriving on one collapses to empty scope and the node runs once on the
+    // last value — the same job producing less than it does under
+    // `workflows run`.
+    resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
     jobId: job.id,
     workflowId,
     params,
