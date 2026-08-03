@@ -196,7 +196,8 @@ export default function AgentIntegrationsSection({
           <p className="text-slate-400 mb-6 max-w-2xl mx-auto">
             NodeTool is open source. Wrap any provider as a node, plug in a private
             checkpoint, or drive the canvas from the TypeScript SDK — agents pick it up
-            like a first-class tool the moment it lands on the canvas.
+            like a first-class tool the moment it lands on the canvas. And because the
+            whole toolbelt speaks MCP, outside agents get it too.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a

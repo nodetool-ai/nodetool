@@ -50,6 +50,8 @@ import {
   WIDGET_CATALOG,
   type AppDocMeta,
   type BindableWorkflow,
+  type BindingTargets,
+  type OperationTargets,
   type InputMapping,
   type OperationBinding,
   type OperationPatch,
@@ -133,6 +135,13 @@ export interface AppBridgeInitialState {
   workflowId?: string;
   /** Bindable surface of that host workflow: its input/output nodes and channels. */
   workflow?: BindableWorkflow;
+  /**
+   * Every other workflow this editor has loaded, keyed by workflow id. An app
+   * with one operation per workflow binds against all of them, so reporting
+   * node targets for the host alone would leave every further operation with
+   * no bindable surface.
+   */
+  workflows?: Readonly<Record<string, BindableWorkflow>>;
   /**
    * Offer `ui_app_finish` so the model can end the loop deliberately. Off by
    * default: the eval surface exposes the frontend contract and nothing else.
@@ -302,6 +311,33 @@ export function createAppToolBridge(
   let finishSummary: string | null = null;
   const hostWorkflowId = initial.workflowId ?? "wf-app";
   const hostWorkflow = initial.workflow ?? EMPTY_WORKFLOW;
+  const loadedWorkflows = new Map<string, BindableWorkflow>([
+    [hostWorkflowId, hostWorkflow],
+    ...Object.entries(initial.workflows ?? {})
+  ]);
+
+  /**
+   * Binding targets across every loaded workflow. `bindingTargets` resolves one
+   * host workflow per call, so each further one is resolved in its own call and
+   * its operations replace the empty entries the host pass produced.
+   */
+  const allBindingTargets = (): BindingTargets => {
+    const base = bindingTargets(meta, hostWorkflowId, hostWorkflow);
+    const resolved = new Map<string, OperationTargets>();
+    for (const [workflowId, workflow] of loadedWorkflows) {
+      if (workflowId === hostWorkflowId) continue;
+      for (const operation of bindingTargets(meta, workflowId, workflow)
+        .operations) {
+        if (operation.ioAvailable) resolved.set(operation.operationId, operation);
+      }
+    }
+    return {
+      ...base,
+      operations: base.operations.map(
+        (operation) => resolved.get(operation.operationId) ?? operation
+      )
+    };
+  };
   let idSeq = 0;
   // Track every id in use so generated ids never collide with an explicitly
   // seeded one (e.g. seeding "Heading-1" then adding a Heading).
@@ -884,10 +920,7 @@ export function createAppToolBridge(
         "operation over a workflow this editor has not loaded reports " +
         "ioAvailable: false and no node lists.",
       z.object({ application_id: applicationIdParam }),
-      async () => ({
-        ok: true,
-        ...bindingTargets(meta, hostWorkflowId, hostWorkflow)
-      })
+      async () => ({ ok: true, ...allBindingTargets() })
     )
   ];
 

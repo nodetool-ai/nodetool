@@ -274,9 +274,23 @@ function checkWidgets(spec: BuildSpec): BuildIssue[] {
   const issues: BuildIssue[] = [];
   const seen = new Set<string>();
   const variableIds = new Set(spec.variables.map((v) => v.id));
+  // The link from a spec role to the widget the author placed is the label it
+  // was told to use verbatim, so two widgets sharing one label resolve to
+  // neither and both are reported missing from an app that has them both.
+  const seenLabels = new Set<string>();
 
   for (const widget of spec.widgets) {
     const ref = { widget: widget.role };
+    if (widget.label !== "" && seenLabels.has(widget.label)) {
+      issues.push(
+        issue(
+          "duplicate_widget_label",
+          `two widgets share the label "${widget.label}" — labels are how a placed widget is matched back to its role, so each must be unique`,
+          ref
+        )
+      );
+    }
+    seenLabels.add(widget.label);
     if (seen.has(widget.role)) {
       issues.push(
         issue(

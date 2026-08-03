@@ -68,12 +68,18 @@ export type GraphValidationSeverity = "error" | "warning" | "info";
 export interface GraphValidationIssue {
   severity: GraphValidationSeverity;
   /**
-   * Stable category: "unknown_node" | "duplicate_id" | "property" |
-   * "dangling_edge" | "unknown_handle" | "type_mismatch" | "fan_in" |
-   * "untyped_dynamic_slot" | "dynamic_type_mismatch" | "unknown_provider" |
-   * "slot_type_alias", plus the `code_*` categories a Code node body produces
-   * (see {@link validateCodeNodeBody}).
+   * Stable category: "unknown_node" | "missing_id" | "duplicate_id" |
+   * "property" | "dangling_edge" | "unknown_handle" | "missing_handle" |
+   * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
+   * "dynamic_type_mismatch" | "unknown_provider" | "slot_type_alias", plus the
+   * `code_*` categories a Code node body produces (see
+   * {@link validateCodeNodeBody}).
    *
+   * - "missing_id" (error): a node with no id — unaddressable by any edge.
+   * - "missing_handle" (error): an edge whose endpoints both exist but which
+   *   names no source/target handle, so the kernel cannot route it.
+   * - "cycle" (error): a self-loop, or a cycle in the data subgraph the
+   *   kernel's correlation analysis requires to be a DAG.
    * - "untyped_dynamic_slot" (info): an edge targets a dynamic input that
    *   carries no `dynamic_inputs` declaration, so its type cannot be checked.
    *   Legacy graphs produce one per dynamic edge; never an error, and below
@@ -187,9 +193,22 @@ function readDynamicOutputs(
   );
 }
 
-/** The declared properties of a node, from either graph shape. */
+/**
+ * The declared properties of a node, from either graph shape.
+ *
+ * The editor's `NodeData` nests the props bag under `data.properties` (the same
+ * wrapper `readDynamicInputs` and friends unwrap). Reading `data` itself as the
+ * bag made every editor-exported node look like it was missing every required
+ * property. `data` is still the fallback for older/hand-written shapes that
+ * flattened the props onto it.
+ */
 function readProperties(node: GraphValidationNode): Record<string, unknown> {
-  return (node.properties ?? node.data ?? {}) as Record<string, unknown>;
+  return (
+    asRecord(node.properties) ??
+    asRecord(node.data?.properties) ??
+    asRecord(node.data) ??
+    {}
+  );
 }
 
 interface NormEdge {
@@ -243,6 +262,81 @@ function modelProviderOf(value: unknown): string | undefined {
   return provider;
 }
 
+/**
+ * Self-loops and cycles — both fatal at run time, neither visible before it.
+ *
+ * `Graph.validateEdgeEndpoints` (kernel) rejects a self-loop on *any* edge:
+ * the node waits on an input only its own completion can close, so the run
+ * hangs. `analyzeCorrelation` requires the **data** subgraph to be a DAG, and
+ * its topological sort skips control edges — so cycles are looked for over
+ * data edges only, matching the kernel exactly.
+ *
+ * Kahn's algorithm, iterative: a deep graph must not blow the stack.
+ */
+function detectCycles(
+  byId: ReadonlyMap<string, GraphValidationNode>,
+  normEdges: readonly NormEdge[]
+): GraphValidationIssue[] {
+  const issues: GraphValidationIssue[] = [];
+  const selfLooped = new Set<string>();
+  for (const e of normEdges) {
+    if (e.source !== e.target || !byId.has(e.source)) continue;
+    if (selfLooped.has(e.source)) continue;
+    selfLooped.add(e.source);
+    issues.push({
+      severity: "error",
+      code: "cycle",
+      nodeId: e.source,
+      nodeType: String(byId.get(e.source)?.type ?? ""),
+      edgeId: e.id,
+      message: `Node "${e.source}" is connected to itself by edge "${e.id}"; self-loop edges are not supported and deadlock the run`
+    });
+  }
+
+  const incoming = new Map<string, number>();
+  const outgoing = new Map<string, string[]>();
+  for (const id of byId.keys()) {
+    incoming.set(id, 0);
+    outgoing.set(id, []);
+  }
+  for (const e of normEdges) {
+    if (e.isControl) continue;
+    if (e.source === e.target) continue;
+    if (!byId.has(e.source) || !byId.has(e.target)) continue;
+    outgoing.get(e.source)!.push(e.target);
+    incoming.set(e.target, (incoming.get(e.target) ?? 0) + 1);
+  }
+
+  const queue: string[] = [];
+  for (const [id, count] of incoming) {
+    if (count === 0) queue.push(id);
+  }
+  let ordered = 0;
+  // Index instead of shift(): shift() on a large array is O(n) per call.
+  for (let head = 0; head < queue.length; head++) {
+    ordered++;
+    for (const target of outgoing.get(queue[head]) ?? []) {
+      const next = (incoming.get(target) ?? 0) - 1;
+      incoming.set(target, next);
+      if (next === 0) queue.push(target);
+    }
+  }
+
+  if (ordered < byId.size) {
+    const seen = new Set(queue);
+    const remaining = [...byId.keys()].filter((id) => !seen.has(id));
+    issues.push({
+      severity: "error",
+      code: "cycle",
+      nodeId: remaining[0],
+      nodeType: String(byId.get(remaining[0])?.type ?? ""),
+      message: `Cycle detected in graph; the kernel's correlation analysis requires a DAG. Involved nodes: ${remaining.join(", ")}`
+    });
+  }
+
+  return issues;
+}
+
 export function validateGraph(
   graph: GraphValidationInput,
   registry: GraphValidationRegistry
@@ -257,6 +351,16 @@ export function validateGraph(
   for (const node of nodes) {
     const id = String(node.id ?? "");
     const type = String(node.type ?? "");
+    if (!id) {
+      // Nothing can address this node: no edge can name it, and the runner
+      // keys every message by node id.
+      issues.push({
+        severity: "error",
+        code: "missing_id",
+        nodeType: type,
+        message: `Node of type "${type || "(no type)"}" has no id`
+      });
+    }
     if (id && seenIds.has(id)) {
       issues.push({
         severity: "error",
@@ -318,15 +422,16 @@ export function validateGraph(
   const knownProviders =
     providerIds && providerIds.length > 0 ? new Set(providerIds) : null;
 
-  for (const node of nodes) {
-    const id = String(node.id ?? "");
+  // `byId` holds one node per id — a duplicate id is already an error, and
+  // validating the shadowed copy's properties would report everything twice.
+  for (const [id, node] of byId) {
     const type = String(node.type ?? "");
     if (!type || !registry.has(type)) continue;
     const propIssues = registry.validateNode(
       {
         id,
         type,
-        properties: node.properties ?? node.data ?? {},
+        properties: readProperties(node),
         // Without these the registry cannot reach validateDynamicSlots, so a
         // slot declared `required` is never checked.
         dynamic_inputs: readDynamicInputs(node),
@@ -468,6 +573,9 @@ export function validateGraph(
     }
   }
 
+  // ── Cycles: the kernel requires a DAG ────────────────────────────────────
+  issues.push(...detectCycles(byId, normEdges));
+
   // ── Edges: endpoints, handles, type compatibility ────────────────────────
   for (const e of normEdges) {
     const sourceNode = byId.get(e.source);
@@ -489,6 +597,32 @@ export function validateGraph(
       });
     }
     if (!sourceNode || !targetNode) continue;
+
+    // Both endpoints exist but the edge names no handle: the kernel routes
+    // messages by `${source}:${sourceHandle}`, so an empty handle matches
+    // nothing and the edge silently carries no data. The handle checks below
+    // are all gated on a non-empty handle, so without this the edge would
+    // validate clean.
+    if (!e.sourceHandle) {
+      issues.push({
+        severity: "error",
+        code: "missing_handle",
+        edgeId: e.id,
+        nodeId: e.source,
+        nodeType: String(sourceNode.type ?? ""),
+        message: `Edge "${e.id}" names no source handle on node "${e.source}" — it cannot be routed`
+      });
+    }
+    if (!e.targetHandle) {
+      issues.push({
+        severity: "error",
+        code: "missing_handle",
+        edgeId: e.id,
+        nodeId: e.target,
+        nodeType: String(targetNode.type ?? ""),
+        message: `Edge "${e.id}" names no target handle on node "${e.target}" — it cannot be routed`
+      });
+    }
 
     const sourceMeta = registry.getMetadata(String(sourceNode.type ?? ""));
     const targetMeta = registry.getMetadata(String(targetNode.type ?? ""));

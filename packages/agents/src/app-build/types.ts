@@ -115,14 +115,28 @@ export interface BuildIssue {
   widget?: string;
   /** Operation id the issue is about, when it is about one. */
   operation?: string;
+  /** Interaction the issue arose in — Run-stage issues carry one. */
+  interaction?: string;
+  /** Index of the interaction step the issue is about, when it is about one. */
+  step?: number;
 }
 
 /**
  * The stable identity of an issue across rounds. The oscillation guard compares
  * these, so it must not carry anything that varies with wording or ordering.
+ *
+ * Run-stage issues add the interaction (and the step inside it) they arose in:
+ * without it every failed step of every interaction shares one fingerprint, and
+ * a build making real progress reads as oscillating.
  */
-export const issueFingerprint = (issue: BuildIssue): string =>
-  `${issue.stage}:${issue.code}:${issue.widget ?? issue.operation ?? "-"}`;
+export const issueFingerprint = (issue: BuildIssue): string => {
+  const ref = issue.widget ?? issue.operation ?? "-";
+  const where =
+    issue.interaction === undefined
+      ? ""
+      : `:${issue.interaction}${issue.step === undefined ? "" : `#${issue.step}`}`;
+  return `${issue.stage}:${issue.code}:${ref}${where}`;
+};
 
 /** One repair round's input: everything wrong, not a delta. */
 export interface BuildComplaint {
@@ -137,6 +151,10 @@ export interface StageRecord {
   stage: BuildStage;
   /** Repair round this execution belongs to; 0 is the first pass. */
   round: number;
+  /** Provider this execution billed to, when it is not the builder's. */
+  provider?: string;
+  /** Model this execution billed to, when it is not the builder's. */
+  model?: string;
   status: "ok" | "failed" | "skipped";
   startedAt: string;
   durationMs: number;

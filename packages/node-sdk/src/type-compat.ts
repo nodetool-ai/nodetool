@@ -110,9 +110,13 @@ export function valueIncompatibleWithType(
   switch (base) {
     case "str":
       return typeof value !== "string";
+    // NaN and ±Infinity are numbers to `typeof` but nothing downstream can use
+    // them: they do not survive JSON, and an `int` slot holding 3.5 is the same
+    // defect as one holding "3.5".
     case "int":
+      return !Number.isInteger(value);
     case "float":
-      return typeof value !== "number";
+      return typeof value !== "number" || !Number.isFinite(value);
     case "bool":
       return typeof value !== "boolean";
     default:

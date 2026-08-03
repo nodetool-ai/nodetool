@@ -16,7 +16,13 @@ import type { Escalation, Verdict } from "@nodetool-ai/protocol";
 import { WorkflowRunner, type RunResult } from "../src/runner.js";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
-import type { DecisionOutcome, SupervisorHandle } from "../src/supervisor.js";
+import {
+  BoundedHandle,
+  DEFAULT_SUPERVISOR_BOUNDS,
+  type DecisionOutcome,
+  type SupervisorHandle
+} from "../src/supervisor.js";
+import type { RunStateReader } from "../src/run-state.js";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Edge, NodeDescriptor } from "@nodetool-ai/protocol";
 
@@ -346,6 +352,18 @@ describe("supervisor — substitute", () => {
       }))
     });
     expect(result.status).toBe("failed");
+    // The audit trail must say what happened. A repair the kernel refused is
+    // a fail, and crediting the handle with a substitution it did not get to
+    // make would make the intervention record a lie.
+    expect(result.interventions).toHaveLength(1);
+    expect(result.interventions![0].verdict.action).toBe("fail");
+    expect(result.interventions![0].decidedBy).toBe("kernel");
+    const decisions = result.messages.filter(
+      (m) => (m as { type?: string }).type === "supervisor_decision"
+    ) as Array<{ verdict: { action: string }; decided_by: string }>;
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0].verdict.action).toBe("fail");
+    expect(decisions[0].decided_by).toBe("kernel");
   });
 
   it("is not offered without a candidate output — repair is not invention", async () => {
@@ -558,6 +576,111 @@ describe("supervisor — the kernel enforces its own allowed set", () => {
     });
     expect(result.status).toBe("failed");
     expect(result.error).toContain("boom");
+    // A failure *of* the supervisor is what the bounds absorb, so it is
+    // labelled like every other one — not "default", which means nobody was
+    // configured to decide.
+    expect(result.interventions![0].decidedBy).toBe("bounds");
+  });
+
+  it("caps a handle that answers retry forever", async () => {
+    // `WorkflowRunnerOptions.supervisor` takes any handle. An unbounded one
+    // that always says retry would spin the actor for the life of the process,
+    // so the runner applies the kernel's bounds itself.
+    const runaway: SupervisorHandle = {
+      async decide(): Promise<DecisionOutcome> {
+        return { verdict: { action: "retry" }, decidedBy: "agent" };
+      },
+      close() {}
+    };
+    let calls = 0;
+    const graph = chain({ retry_safe: true });
+    const result = await runGraph({
+      ...graph,
+      params: { x: "hi" },
+      executors: {
+        work: {
+          async process() {
+            calls++;
+            throw new Error("always");
+          }
+        }
+      },
+      supervisor: runaway
+    });
+
+    // First invocation plus DEFAULT_SUPERVISOR_BOUNDS.maxRetriesPerNode.
+    expect(calls).toBe(1 + DEFAULT_SUPERVISOR_BOUNDS.maxRetriesPerNode);
+    expect(result.status).toBe("failed");
+    expect(result.interventions!.at(-1)!.decidedBy).toBe("bounds");
+  });
+
+  it("does not bound a handle its caller already bounded", async () => {
+    const inner: SupervisorHandle = {
+      async decide(): Promise<DecisionOutcome> {
+        return { verdict: { action: "retry" }, decidedBy: "agent" };
+      },
+      close() {}
+    };
+    let calls = 0;
+    const graph = chain({ retry_safe: true });
+    await runGraph({
+      ...graph,
+      params: { x: "hi" },
+      executors: {
+        work: {
+          async process() {
+            calls++;
+            throw new Error("always");
+          }
+        }
+      },
+      supervisor: new BoundedHandle(inner, { maxRetriesPerNode: 1 })
+    });
+    // Double-wrapping would spend the outer budget on top of this one.
+    expect(calls).toBe(2);
+  });
+});
+
+describe("supervisor — the run digest is redacted", () => {
+  it("never hands a node's raw error text to the supervisor", async () => {
+    const SECRET = "sk-live-01234567890abcdef";
+    const context = new ProcessingContext({ jobId: "supervisor-test" });
+    context.setSecretResolver(() => SECRET);
+
+    let reader: RunStateReader | null = null;
+    const handle: SupervisorHandle = {
+      attach(r) {
+        reader = r;
+      },
+      async decide(): Promise<DecisionOutcome> {
+        return { verdict: { action: "fail" }, decidedBy: "agent" };
+      },
+      close() {}
+    };
+
+    const graph = chain();
+    await runGraph({
+      ...graph,
+      params: { x: "hi" },
+      context,
+      executors: {
+        work: {
+          async process(_ins, ctx) {
+            const key = await (ctx as ProcessingContext).getSecret("API_KEY");
+            throw new Error(
+              `request to https://api.example.com?key=${key} failed`
+            );
+          }
+        }
+      },
+      supervisor: handle
+    });
+
+    const digest = reader!.digest();
+    const failed = digest.nodes.find((n) => n.nodeId === "work");
+    expect(failed?.status).toBe("failed");
+    expect(failed?.error).toContain("«redacted»");
+    expect(JSON.stringify(digest)).not.toContain(SECRET);
   });
 });
 

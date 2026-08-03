@@ -1,5 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { typesIncompatible } from "../src/type-compat.js";
+import {
+  typesIncompatible,
+  valueIncompatibleWithType
+} from "../src/type-compat.js";
 
 describe("typesIncompatible", () => {
   it("flags clearly different scalars", () => {
@@ -31,5 +34,33 @@ describe("typesIncompatible", () => {
     expect(typesIncompatible("enum", "int")).toBe(true);
     expect(typesIncompatible("cv", "str")).toBe(true);
     expect(typesIncompatible("chunk", "image")).toBe(true);
+  });
+});
+
+describe("valueIncompatibleWithType — numbers", () => {
+  it("rejects a non-integer in an int slot", () => {
+    expect(valueIncompatibleWithType(3.5, "int")).toBe(true);
+    expect(valueIncompatibleWithType(3, "int")).toBe(false);
+    expect(valueIncompatibleWithType("3", "int")).toBe(true);
+  });
+
+  it("rejects non-finite numbers on both numeric types", () => {
+    for (const type of ["int", "float"]) {
+      expect(valueIncompatibleWithType(Number.NaN, type)).toBe(true);
+      expect(valueIncompatibleWithType(Number.POSITIVE_INFINITY, type)).toBe(true);
+      expect(valueIncompatibleWithType(Number.NEGATIVE_INFINITY, type)).toBe(true);
+    }
+  });
+
+  it("accepts whole and fractional values in a float slot", () => {
+    expect(valueIncompatibleWithType(3, "float")).toBe(false);
+    expect(valueIncompatibleWithType(3.5, "float")).toBe(false);
+    expect(valueIncompatibleWithType("3.5", "float")).toBe(true);
+  });
+
+  it("leaves null/undefined and containers alone", () => {
+    expect(valueIncompatibleWithType(null, "int")).toBe(false);
+    expect(valueIncompatibleWithType(undefined, "int")).toBe(false);
+    expect(valueIncompatibleWithType(3.5, "list[int]")).toBe(false);
   });
 });

@@ -65,7 +65,7 @@ import {
   type JudgeInteractionInput,
   type JudgeWidgetState
 } from "./judge.js";
-import { runSpecStage, specFromFile } from "./spec.js";
+import { resolveSpecWidget, runSpecStage, specFromFile } from "./spec.js";
 import {
   issueFingerprint,
   type BuildComplaint,
@@ -181,7 +181,12 @@ const issue = (
   stage: BuildIssue["stage"],
   code: string,
   message: string,
-  ref: { widget?: string; operation?: string } = {},
+  ref: {
+    widget?: string;
+    operation?: string;
+    interaction?: string;
+    step?: number;
+  } = {},
   severity: BuildIssue["severity"] = "error"
 ): BuildIssue => ({
   stage,
@@ -189,11 +194,17 @@ const issue = (
   severity,
   message,
   ...(ref.widget !== undefined ? { widget: ref.widget } : {}),
-  ...(ref.operation !== undefined ? { operation: ref.operation } : {})
+  ...(ref.operation !== undefined ? { operation: ref.operation } : {}),
+  ...(ref.interaction !== undefined ? { interaction: ref.interaction } : {}),
+  ...(ref.step !== undefined ? { step: ref.step } : {})
 });
 
 const errorsOf = (issues: readonly BuildIssue[]): BuildIssue[] =>
   issues.filter((i) => i.severity === "error");
+
+/** The provider failure an authoring round reported, when it reported one. */
+const providerErrorOf = (issues: readonly BuildIssue[]): string | null =>
+  issues.find((i) => i.code === "author_provider_error")?.message ?? null;
 
 /** What the build spent, in total and per stage. */
 const costOf = (stages: readonly StageRecord[]): BuildReport["cost"] => {
@@ -307,19 +318,22 @@ function bindSteps(
   appSpec: AppSpec | null
 ): { steps: InteractionStep[]; issues: BuildIssue[] } {
   const issues: BuildIssue[] = [];
-  const resolve = (role: string): string => {
-    const declared = spec.widgets.find((w) => w.role === role);
+  // A script may name a widget by role, label, or unique type — the same three
+  // ways the Spec stage resolved it. Resolving by role alone here would turn a
+  // spec the Spec gate accepted into a complaint the Author cannot satisfy.
+  const resolve = (ref: string): string => {
+    const declared = resolveSpecWidget(spec, ref);
     const placed = declared ? placedWidget(appSpec, declared) : null;
     if (placed) return placed.id;
     issues.push(
       issue(
         "check",
         "widget_missing",
-        `the script addresses widget "${role}", which is not in the app — place a ${declared?.type ?? "widget"} labelled "${declared?.label ?? role}"`,
-        { widget: role }
+        `the script addresses widget "${ref}", which is not in the app — place a ${declared?.type ?? "widget"} labelled "${declared?.label ?? ref}"`,
+        { widget: declared?.role ?? ref }
       )
     );
-    return role;
+    return ref;
   };
   const bound = steps.map((step) => {
     if ("click" in step) return { click: resolve(step.click) };
@@ -667,7 +681,7 @@ function checkExpectation(
       "run",
       "expect_widget_missing",
       `interaction "${interaction}" expects widget "${expectation.widget}", which the app does not have`,
-      { widget: expectation.widget }
+      { widget: expectation.widget, interaction }
     );
   }
   // The check sees what the user would see: the rendered `format` template
@@ -675,7 +689,8 @@ function checkExpectation(
   const shown = state.display ?? state.value;
   const fail = (why: string): BuildIssue =>
     issue("run", "expect_failed", `interaction "${interaction}": ${why}`, {
-      widget: expectation.widget
+      widget: expectation.widget,
+      interaction
     });
 
   if (expectation.check === "nonEmpty") {
@@ -807,17 +822,26 @@ async function runRunStage(
         `interaction "${interaction.name}"`,
         run.summary
       )) {
-        issues.push(issue("run", "supervised", line, {}, "warning"));
+        issues.push(
+          issue(
+            "run",
+            "supervised",
+            line,
+            { interaction: interaction.name },
+            "warning"
+          )
+        );
       }
     }
 
-    for (const step of report.interactions) {
+    for (const [index, step] of report.interactions.entries()) {
       if (!step.error) continue;
       issues.push(
         issue(
           "run",
           "step_failed",
-          `interaction "${interaction.name}" step ${step.step}: ${step.error}`
+          `interaction "${interaction.name}" step ${step.step}: ${step.error}`,
+          { interaction: interaction.name, step: index }
         )
       );
     }
@@ -834,13 +858,13 @@ async function runRunStage(
           "run",
           "run_issue",
           `interaction "${interaction.name}": ${problem}`,
-          { widget: widgetOf(problem) },
+          { widget: widgetOf(problem), interaction: interaction.name },
           runIssueSeverity
         )
       );
     }
     for (const expectation of interaction.expect) {
-      const declared = spec.widgets.find((w) => w.role === expectation.widget);
+      const declared = resolveSpecWidget(spec, expectation.widget);
       const placed = declared ? placedWidget(report.spec, declared) : null;
       const state = report.widgets.find((w) => w.id === placed?.id);
       const failure = checkExpectation(expectation, state, interaction.name);
@@ -1087,22 +1111,48 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
       key: workflow.key,
       io: workflow.io
     }));
-    const authored = await withSpan("app.build.author", { "app.build.round": round }, () =>
-      runAuthorStage({
-        spec,
-        workflows: authorWorkflows,
-        provider: options.provider,
-        model: options.model,
-        round,
-        maxTurns: opts.maxAuthorTurns ?? DEFAULT_AUTHOR_TURNS,
-        turnBudget: budget,
-        ...(document ? { resumeFrom: document } : {}),
-        ...(complaint ? { complaint } : {}),
-        ...(opts.signal ? { signal: opts.signal } : {}),
-        ...(opts.onLog ? { onLog: opts.onLog } : {})
-      })
-    );
+    const author = () =>
+      withSpan("app.build.author", { "app.build.round": round }, () =>
+        runAuthorStage({
+          spec,
+          workflows: authorWorkflows,
+          provider: options.provider,
+          model: options.model,
+          round,
+          maxTurns: opts.maxAuthorTurns ?? DEFAULT_AUTHOR_TURNS,
+          turnBudget: budget,
+          ...(document ? { resumeFrom: document } : {}),
+          ...(complaint ? { complaint } : {}),
+          ...(opts.signal ? { signal: opts.signal } : {}),
+          ...(opts.onLog ? { onLog: opts.onLog } : {})
+        })
+      );
+    let authored = await author();
     stages.push(authored.record);
+    // A provider that errored is infrastructure, not a defect the Author can
+    // repair: it gets one retry, and a second failure ends the build. Routing
+    // it through the complaint loop would ask the model to "fix: connection
+    // reset" and, since its fingerprint never varies, read as oscillation.
+    let providerError = providerErrorOf(authored.record.issues);
+    if (providerError && !budgetStop()) {
+      log_(`author: provider error (${providerError}) — retrying once`);
+      authored = await author();
+      stages.push(authored.record);
+      providerError = providerErrorOf(authored.record.issues);
+    }
+    if (providerError) {
+      return failedReport(
+        target,
+        spec,
+        interactions,
+        stages,
+        repairs,
+        appDebug,
+        `authoring failed: ${providerError}`,
+        judge,
+        supervision
+      );
+    }
     document = authored.document;
     if (opts.signal?.aborted) {
       return failedReport(
@@ -1316,6 +1366,24 @@ async function buildAppImpl(opts: BuildAppOptions): Promise<BuildReport> {
         })
       );
       stages.push(replanned.record);
+      // A replan that failed leaves the stale graph in place, so the next round
+      // would author against the same missing node and burn every remaining
+      // round on a complaint nothing can satisfy. Plan errors are terminal on
+      // the first pass; they are terminal here too.
+      const replanErrors = errorsOf(replanned.record.issues);
+      if (replanErrors.length > 0) {
+        return failedReport(
+          target,
+          spec,
+          interactions,
+          stages,
+          repairs,
+          appDebug,
+          `replanning failed: ${replanErrors[0]?.message ?? ""}`,
+          judge,
+          supervision
+        );
+      }
       for (const workflow of replanned.workflows) {
         const index = workflows.findIndex(
           (w) => w.operationId === workflow.operationId
@@ -1394,8 +1462,10 @@ async function recordBuildCost(
     try {
       await Prediction.create({
         user_id: opts.ledger.userId,
-        provider: opts.provider.provider,
-        model: opts.model,
+        // A stage that ran somewhere else — the Judge, on its own model — bills
+        // where it ran, not where the builder did.
+        provider: stage.provider ?? opts.provider.provider,
+        model: stage.model ?? opts.model,
         node_id: buildId,
         node_type: "app-build",
         workflow_id: opts.ledger.workflowId ?? null,

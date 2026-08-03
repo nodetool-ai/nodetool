@@ -216,9 +216,27 @@ describe("runToolLoopEval", () => {
     expect(report.summary.total).toBe(2);
     expect(report.summary.skipped).toBe(1);
     expect(report.summary.accepted).toBe(1);
+    expect(report.summary.successful).toBe(1);
     expect(report.summary.successRate).toBe(1);
+    expect(report.summary.completionRate).toBe(1);
     expect(report.summary.avgToolCalls).toBe(6);
     expect(report.summary.totalCostUsd).toBe(0);
+  });
+
+  it("does not count a loop that called no tool as a success", async () => {
+    // The failure this guards: `accepted` only means "no provider error", so a
+    // model that said nothing scored 100% on the gated metric.
+    const report = await runToolLoopEval({
+      provider: createScriptedProvider([]),
+      model: "test-model",
+      cases: [GOOD_CASE]
+    });
+    const r = report.cases[0];
+    expect(r.accepted).toBe(true);
+    expect(r.success).toBe(false);
+    expect(r.criticalFailures).toBeGreaterThan(0);
+    expect(report.summary.successRate).toBe(0);
+    expect(report.summary.completionRate).toBe(1);
   });
 
   it("penalizes error results and violated expectations", async () => {

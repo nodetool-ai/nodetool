@@ -3816,6 +3816,280 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/check-a-url-and-an-ip",
+    "title": "Check a URL and an IP — NodeTool AI Workflow Template",
+    "description": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "check-a-url-and-an-ip",
+    "name": "Check a URL and an IP",
+    "summary": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 2
+      },
+      {
+        "type": "lib.validate.IP",
+        "label": "IP",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.URL",
+        "label": "URL",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "u",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "https://nodetool.ai/docs?q=1"
+        },
+        {
+          "id": "a",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "2001:db8::8a2e:370:7334"
+        },
+        {
+          "id": "vu",
+          "type": "lib.validate.URL",
+          "title": "URL",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "vi",
+          "type": "lib.validate.IP",
+          "title": "IP",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "u",
+          "sourceHandle": "output",
+          "target": "vu",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "a",
+          "sourceHandle": "output",
+          "target": "vi",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vu",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vi",
+          "sourceHandle": "is_ipv6",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "vi",
+          "sourceHandle": "is_ipv4",
+          "target": "o3",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/chunk-a-transcript-for-indexing",
+    "title": "Chunk a Transcript for Indexing — NodeTool AI Workflow Template",
+    "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "chunk-a-transcript-for-indexing",
+    "name": "Chunk a Transcript for Indexing",
+    "summary": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Chunk",
+        "label": "Chunk",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "t",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "The keeper climbed the stair each evening. The lamp needed winding twice a night. By the third winter the mechanism had worn, and the light…"
+        },
+        {
+          "id": "ch",
+          "type": "nodetool.text.Chunk",
+          "title": "Chunk",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fan",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "n",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "t",
+          "sourceHandle": "output",
+          "target": "ch",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "ch",
+          "sourceHandle": "output",
+          "target": "fan",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "fan",
+          "sourceHandle": "output",
+          "target": "n",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "n",
+          "sourceHandle": "output",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/circles-and-lines",
     "title": "Circles and Lines — NodeTool AI Workflow Template",
     "description": "The remaining SVG primitives in one document — circle, ellipse and line — so the shape vocabulary is visible in one place.",
@@ -10780,6 +11054,160 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/keep-only-the-long-lines",
+    "title": "Keep Only the Long Lines — NodeTool AI Workflow Template",
+    "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "keep-only-the-long-lines",
+    "name": "Keep Only the Long Lines",
+    "summary": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
+    "tags": [
+      "data",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collection",
+        "label": "Collection",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Count",
+        "label": "Count",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.FilterCode",
+        "label": "Filter Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.List",
+        "label": "List",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "src",
+          "type": "nodetool.constant.List",
+          "title": "List",
+          "x": 0,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "fan",
+          "type": "nodetool.control.Collection",
+          "title": "Collection",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "keep",
+          "type": "nodetool.control.FilterCode",
+          "title": "Filter Code",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "gather",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "n",
+          "type": "nodetool.control.Count",
+          "title": "Count",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "src",
+          "sourceHandle": "output",
+          "target": "fan",
+          "targetHandle": "items",
+          "color": "any"
+        },
+        {
+          "source": "fan",
+          "sourceHandle": "output",
+          "target": "keep",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "keep",
+          "sourceHandle": "output",
+          "target": "gather",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "keep",
+          "sourceHandle": "output",
+          "target": "n",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "gather",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "n",
+          "sourceHandle": "output",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/keep-only-the-matches",
     "title": "Keep Only the Matches — NodeTool AI Workflow Template",
     "description": "Equality filter over a stream. `invert` turns it into a reject list without a second node.",
@@ -11291,6 +11719,191 @@ export const templateEntries: TemplateEntry[] = [
           "source": "tts",
           "sourceHandle": "audio",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/map-a-readme-s-structure",
+    "title": "Map a README's Structure — NodeTool AI Workflow Template",
+    "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "map-a-readme-s-structure",
+    "name": "Map a README's Structure",
+    "summary": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 4
+      },
+      {
+        "type": "lib.markdown.ExtractBulletLists",
+        "label": "Extract Bullet Lists",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractCodeBlocks",
+        "label": "Extract Code Blocks",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractHeaders",
+        "label": "Extract Headers",
+        "count": 1
+      },
+      {
+        "type": "lib.markdown.ExtractLinks",
+        "label": "Extract Links",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "md",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "# NodeTool Visual AI workflows. ## Install See the [docs](https://nodetool.ai/docs) and the [repo](https://github.com/nodetool-ai/nodetool)…"
+        },
+        {
+          "id": "h",
+          "type": "lib.markdown.ExtractHeaders",
+          "title": "Extract Headers",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "l",
+          "type": "lib.markdown.ExtractLinks",
+          "title": "Extract Links",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "c",
+          "type": "lib.markdown.ExtractCodeBlocks",
+          "title": "Extract Code Blocks",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "b",
+          "type": "lib.markdown.ExtractBulletLists",
+          "title": "Extract Bullet Lists",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 960,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o4",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 560,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "h",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "l",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "c",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "md",
+          "sourceHandle": "output",
+          "target": "b",
+          "targetHandle": "markdown",
+          "color": "any"
+        },
+        {
+          "source": "h",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "l",
+          "sourceHandle": "output",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "c",
+          "sourceHandle": "output",
+          "target": "o3",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "b",
+          "sourceHandle": "output",
+          "target": "o4",
           "targetHandle": "value",
           "color": "any"
         }
@@ -16805,6 +17418,137 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/read-the-links-out-of-a-page",
+    "title": "Read the Links Out of a Page — NodeTool AI Workflow Template",
+    "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "read-the-links-out-of-a-page",
+    "name": "Read the Links Out of a Page",
+    "summary": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 2
+      },
+      {
+        "type": "lib.html.BaseUrl",
+        "label": "Base Url",
+        "count": 1
+      },
+      {
+        "type": "lib.html.ExtractLinks",
+        "label": "Extract Links",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "url",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "https://nodetool.ai/guide/index.html"
+        },
+        {
+          "id": "html",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 320,
+          "y": 120,
+          "width": 280,
+          "subtitle": "<html><head><title>Guide</title></head><body><a href=\"/docs\">Docs</a><a href=\"https://github.com/nodetool-ai/nodetool\">Source</a></body></h…"
+        },
+        {
+          "id": "base",
+          "type": "lib.html.BaseUrl",
+          "title": "Base Url",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "links",
+          "type": "lib.html.ExtractLinks",
+          "title": "Extract Links",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "url",
+          "sourceHandle": "output",
+          "target": "base",
+          "targetHandle": "url",
+          "color": "any"
+        },
+        {
+          "source": "html",
+          "sourceHandle": "output",
+          "target": "links",
+          "targetHandle": "html",
+          "color": "any"
+        },
+        {
+          "source": "base",
+          "sourceHandle": "output",
+          "target": "links",
+          "targetHandle": "base_url",
+          "color": "any"
+        },
+        {
+          "source": "base",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "links",
+          "sourceHandle": "links",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/redact-email-addresses",
     "title": "Redact Email Addresses — NodeTool AI Workflow Template",
     "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
@@ -16878,6 +17622,156 @@ export const templateEntries: TemplateEntry[] = [
           "source": "rr",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/redact-and-tidy-a-log-line",
+    "title": "Redact and Tidy a Log Line — NodeTool AI Workflow Template",
+    "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "redact-and-tidy-a-log-line",
+    "name": "Redact and Tidy a Log Line",
+    "summary": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.RegexReplace",
+        "label": "Regex Replace",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.CollapseWhitespace",
+        "label": "Collapse Whitespace",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.FindAllRegex",
+        "label": "Find All Regex",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "raw",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "2026-08-02 WARN user=ada.lovelace@example.com ip=10.0.0.7 retry=3"
+        },
+        {
+          "id": "mail",
+          "type": "nodetool.text.RegexReplace",
+          "title": "Regex Replace",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "ip",
+          "type": "nodetool.text.RegexReplace",
+          "title": "Regex Replace",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "tidy",
+          "type": "nodetool.text.CollapseWhitespace",
+          "title": "Collapse Whitespace",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "nums",
+          "type": "nodetool.text.FindAllRegex",
+          "title": "Find All Regex",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "mail",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "mail",
+          "sourceHandle": "output",
+          "target": "ip",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "ip",
+          "sourceHandle": "output",
+          "target": "tidy",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tidy",
+          "sourceHandle": "output",
+          "target": "nums",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "tidy",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "nums",
+          "sourceHandle": "output",
+          "target": "o2",
           "targetHandle": "value",
           "color": "any"
         }
@@ -24206,6 +25100,156 @@ export const templateEntries: TemplateEntry[] = [
           "source": "rv",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/validate-a-signup-payload",
+    "title": "Validate a Signup Payload — NodeTool AI Workflow Template",
+    "description": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "validate-a-signup-payload",
+    "name": "Validate a Signup Payload",
+    "summary": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "lib.validate.Email",
+        "label": "Email",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.Sanitize",
+        "label": "Sanitize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.constant.String",
+        "label": "String",
+        "count": 1
+      },
+      {
+        "type": "lib.validate.String",
+        "label": "String",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "raw",
+          "type": "nodetool.constant.String",
+          "title": "String",
+          "x": 0,
+          "y": 120,
+          "width": 280,
+          "subtitle": "Ada.Lovelace+signup@Example.COM"
+        },
+        {
+          "id": "email",
+          "type": "lib.validate.Email",
+          "title": "Email",
+          "x": 320,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "shape",
+          "type": "lib.validate.String",
+          "title": "String",
+          "x": 640,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "clean",
+          "type": "lib.validate.Sanitize",
+          "title": "Sanitize",
+          "x": 960,
+          "y": 120,
+          "width": 280
+        },
+        {
+          "id": "o1",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o2",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 320,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "o3",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 640,
+          "y": 340,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "email",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "shape",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "raw",
+          "sourceHandle": "output",
+          "target": "clean",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "email",
+          "sourceHandle": "output",
+          "target": "o1",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "shape",
+          "sourceHandle": "is_alphanumeric",
+          "target": "o2",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "clean",
+          "sourceHandle": "normalized_email",
+          "target": "o3",
           "targetHandle": "value",
           "color": "any"
         }

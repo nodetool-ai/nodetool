@@ -621,9 +621,15 @@ graph it produced satisfied every state predicate. The same run of
 `escalate-missing-capability` escalated correctly, built the fallback the user
 described, and scored **0.92**, docked only for exceeding a call budget. Under
 weighting the first is capped at 0.5 and the second lands near 0.97, which is
-the ordering the numbers should have had. `criticalFailures` per case and
-`criticalCleanRate` in the summary make it visible without reading the check
-list, and the text report prefixes those failures with `[critical]`.
+the ordering the numbers should have had. `criticalFailures` per case makes it
+visible without reading the check list, and the text report prefixes those
+failures with `[critical]`.
+
+Severity also decides the gated metric. A case is a **success** only when the
+loop completed *and* no critical check failed, and `successRate` — what
+`--min-success` reads — counts those. "The loop ran to a stop without a
+provider error" is reported alongside as `completionRate`: it is a liveness
+signal, not a result, and a model that called zero tools scores 100% on it.
 
 Ten suites are registered:
 

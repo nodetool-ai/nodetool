@@ -110,6 +110,15 @@ describe("validateBuildSpec", () => {
     expect(codes).toContain("unknown_widget_type");
   });
 
+  it("rejects two widgets sharing one label", () => {
+    const spec = validSpec();
+    spec.widgets[2]!.label = "Prompt";
+    const issue = validateBuildSpec(spec).find(
+      (i) => i.code === "duplicate_widget_label"
+    );
+    expect(issue?.widget).toBe("draft-output");
+  });
+
   it("rejects a binding that names an input no operation declares", () => {
     const spec = validSpec();
     spec.widgets[0]!.binding = "op:draft/in:topic";

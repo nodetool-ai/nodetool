@@ -1183,11 +1183,10 @@ export class NodeActor {
         switch (verdict.action) {
           case "retry":
             continue;
-          case "substitute": {
-            const valid = await this._validateSubstitute(verdict.outputs);
-            if (valid) return verdict.outputs;
-            throw err;
-          }
+          // `_escalate` only returns `substitute` for outputs that passed
+          // validation, so what comes back here is ready to route.
+          case "substitute":
+            return verdict.outputs;
           case "skip":
             await this._skipInvocation();
             return SKIPPED;
@@ -1233,13 +1232,21 @@ export class NodeActor {
     try {
       outcome = await this._supervisor!.decide(escalation, this._cancelSignal);
     } catch {
-      outcome = { verdict: { action: "fail" }, decidedBy: "default" };
+      // A failure *of* the supervisor, which is what the bounds exist to
+      // absorb — same class, and so the same label, as a timed-out decision.
+      outcome = { verdict: { action: "fail" }, decidedBy: "bounds" };
     }
 
     // The record has to name who produced the verdict that was *applied*. When
     // the kernel overrules a handle, crediting the handle would hide exactly
-    // the case worth finding: a buggy or hostile supervisor.
-    const allowed = escalation.allowedActions.includes(outcome.verdict.action);
+    // the case worth finding: a buggy or hostile supervisor. A repair whose
+    // values do not match the node's declared outputs is overruled here, not
+    // after the fact: the intervention must record what happened, and a
+    // rejected repair is a `fail`, not a repair.
+    const allowed =
+      escalation.allowedActions.includes(outcome.verdict.action) &&
+      (outcome.verdict.action !== "substitute" ||
+        (await this._validateSubstitute(outcome.verdict.outputs)));
     const verdict = allowed ? outcome.verdict : ({ action: "fail" } as Verdict);
     const decidedBy: DecidedBy = allowed ? outcome.decidedBy : "kernel";
 

@@ -32,6 +32,8 @@ import {
   parseSupervisorFlags,
   type SupervisorCliOptions
 } from "../supervisor.js";
+import { numericOptionParser, parseNumericOption } from "../numeric-options.js";
+import { printCommandError } from "../command-errors.js";
 
 interface AppDebugCliOptions {
   params?: string;
@@ -80,8 +82,10 @@ export function registerAppCommands(program: Command): void {
       "--out <dir>",
       "Bundle output directory (default: nodetool-debug/app-<id>-<timestamp>)"
     )
-    .option("--timeout <ms>", "Per-run timeout in milliseconds", (v: string) =>
-      parseInt(v, 10)
+    .option(
+      "--timeout <ms>",
+      "Per-run timeout in milliseconds",
+      numericOptionParser("--timeout", { integer: true, min: 0 })
     )
     .option("--json", "Print the full AppDebugReport as JSON to stdout")
     .action(async (ref: string, opts: AppDebugCliOptions) => {
@@ -145,7 +149,7 @@ export function registerAppCommands(program: Command): void {
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });
@@ -187,7 +191,7 @@ export function registerAppCommands(program: Command): void {
       try {
         process.exit(await runAppBuild(ref, opts));
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     }
@@ -217,6 +221,31 @@ async function runAppBuild(
     return 1;
   }
   const supervisorConfig = parseSupervisorFlags(opts);
+  // Parsed before anything expensive is built: a mistyped bound must fail the
+  // command, not silently become `NaN` and disable the cap it configures.
+  const bounds = {
+    ...(opts.maxRepairs !== undefined
+      ? {
+          maxRepairs: parseNumericOption(opts.maxRepairs, "--max-repairs", {
+            integer: true,
+            min: 0
+          })
+        }
+      : {}),
+    ...(opts.costCap !== undefined
+      ? {
+          costCapUsd: parseNumericOption(opts.costCap, "--cost-cap", { min: 0 })
+        }
+      : {}),
+    ...(opts.timeout !== undefined
+      ? {
+          timeoutMs: parseNumericOption(opts.timeout, "--timeout", {
+            integer: true,
+            min: 0
+          })
+        }
+      : {})
+  };
 
   const [
     { buildApp, renderBuildReportMarkdown, resolveJudgeModelSpec },
@@ -310,9 +339,7 @@ async function runAppBuild(
           : null;
       },
       ...(opts.workflow ? { pinnedWorkflowIds: opts.workflow } : {}),
-      ...(opts.maxRepairs ? { maxRepairs: Number(opts.maxRepairs) } : {}),
-      ...(opts.costCap ? { costCapUsd: Number(opts.costCap) } : {}),
-      ...(opts.timeout ? { timeoutMs: Number(opts.timeout) } : {}),
+      ...bounds,
       buildId,
       ledger: { userId: "1" },
       onLog: (line) => {
