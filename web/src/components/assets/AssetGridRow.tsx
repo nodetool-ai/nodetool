@@ -104,11 +104,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
 
   const handleToggleExpanded = useCallback(() => {
     if (rowItems.length > 0 && rowItems[0]?.isDivider) {
-      const divider = rowItems[0] as {
-        isDivider: true;
-        type: string;
-        count: number;
-      };
+      const divider = rowItems[0];
       toggleExpanded(divider.type);
     }
   }, [rowItems, toggleExpanded]);
@@ -121,11 +117,7 @@ const AssetGridRow: React.FC<AssetGridRowProps> = ({ index, style, data }) => {
   const extraFooterSpace = getExtraFooterSpace(assetItemSize);
 
   if (isDividerRow) {
-    const divider = rowItems[0] as {
-      isDivider: true;
-      type: string;
-      count: number;
-    };
+    const divider = rowItems[0];
     const isExpanded = expandedTypes.has(divider.type);
 
     const typeLabel = TYPE_LABELS[divider.type] ?? divider.type;
