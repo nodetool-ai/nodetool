@@ -13,6 +13,7 @@ import {
   type GraphValidationIssue,
   type GraphValidationReport
 } from "@nodetool-ai/node-sdk";
+import { printCommandError } from "../command-errors.js";
 
 interface ValidateCliOptions {
   json?: boolean;
@@ -63,7 +64,7 @@ export function registerValidateCommand(program: Command): void {
           (opts.warningsAsErrors === true && report.counts.warnings > 0);
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });

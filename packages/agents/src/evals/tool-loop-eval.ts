@@ -23,6 +23,11 @@
  * {@link scoreToolLoopChecks} weighs them accordingly and caps a run that
  * missed a critical check, so "built the wrong thing" can never outscore "built
  * the right thing a bit wastefully".
+ *
+ * Severity also decides the suite's headline number: `successRate` counts the
+ * cases that completed *and* passed every critical check, so a model that
+ * called no tool at all cannot pass. How often the loop merely ran to a stop is
+ * reported separately as `completionRate`.
  */
 
 import type { BaseProvider } from "@nodetool-ai/runtime";
@@ -137,6 +142,13 @@ export interface ToolLoopCaseResult {
   /** The loop ran to a natural stop / cap without a fatal provider error. */
   accepted: boolean;
   /**
+   * The case did what it exists to test: the loop completed AND no `critical`
+   * check failed. This — not {@link accepted} — is what the suite's success
+   * rate and the `--min-success` gate read, because a model that made zero
+   * tool calls still "completes".
+   */
+  success: boolean;
+  /**
    * Severity-weighted fraction of checks passed, capped at
    * {@link CRITICAL_FAILURE_SCORE_CAP} when a critical check failed (0 when the
    * loop did not run).
@@ -163,12 +175,17 @@ export interface ToolLoopEvalReport {
     total: number;
     skipped: number;
     accepted: number;
-    /** accepted / (total - skipped) */
+    /** Cases that completed with every critical check passing. */
+    successful: number;
+    /**
+     * successful / (total - skipped) — the gated metric. A run that merely
+     * finished without a provider error is not a success.
+     */
     successRate: number;
+    /** accepted / (total - skipped): the loop ran, whatever it built. */
+    completionRate: number;
     /** Mean expectation score over non-skipped cases. */
     meanScore: number;
-    /** Fraction of non-skipped cases with no failing critical check. */
-    criticalCleanRate: number;
     avgToolCalls: number;
     totalCostUsd: number;
   };
@@ -411,14 +428,16 @@ async function runCase<TFinal>(
     checks.push(...checkToolLoopExpectations(observation, evalCase.expect));
   }
   const score = accepted ? scoreToolLoopChecks(checks) : 0;
+  const criticalFailures = countCriticalFailures(checks);
 
   return {
     caseId: evalCase.id,
     description: evalCase.description,
     skipped: false,
     accepted,
+    success: accepted && criticalFailures === 0,
     score,
-    criticalFailures: countCriticalFailures(checks),
+    criticalFailures,
     checks,
     toolCalls: run.countsByName,
     totalToolCalls: run.totalCalls,
@@ -446,6 +465,7 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
         description: evalCase.description,
         skipped: true,
         accepted: false,
+        success: false,
         score: 0,
         criticalFailures: 0,
         checks: [],
@@ -461,7 +481,7 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
     const result = await runCase(evalCase, opts);
     const failed = result.checks.filter((c) => !c.pass);
     opts.onEvent?.(
-      `  ${result.accepted ? "PASS" : "FAIL"} score=${result.score.toFixed(2)} ` +
+      `  ${result.success ? "PASS" : "FAIL"} score=${result.score.toFixed(2)} ` +
         `tools=${result.totalToolCalls} ${Math.round(result.durationMs / 1000)}s` +
         (failed.length > 0
           ? ` | failed: ${failed.map((c) => c.name).join(", ")}`
@@ -472,17 +492,16 @@ export async function runToolLoopEval<TFinal = ToolLoopFinalState>(
 
   const ran = results.filter((r) => !r.skipped);
   const acceptedResults = ran.filter((r) => r.accepted);
+  const successful = ran.filter((r) => r.success).length;
   const summary = {
     total: results.length,
     skipped: results.length - ran.length,
     accepted: acceptedResults.length,
-    successRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
+    successful,
+    successRate: ran.length > 0 ? successful / ran.length : 0,
+    completionRate: ran.length > 0 ? acceptedResults.length / ran.length : 0,
     meanScore:
       ran.length > 0 ? ran.reduce((a, r) => a + r.score, 0) / ran.length : 0,
-    criticalCleanRate:
-      ran.length > 0
-        ? ran.filter((r) => r.criticalFailures === 0).length / ran.length
-        : 0,
     avgToolCalls:
       ran.length > 0
         ? ran.reduce((a, r) => a + r.totalToolCalls, 0) / ran.length
@@ -521,7 +540,14 @@ export function formatToolLoopReport(report: ToolLoopEvalReport): string {
     lines.push(
       [
         r.caseId.padEnd(24),
-        (r.skipped ? "skip" : r.accepted ? "pass" : "FAIL").padEnd(7),
+        (r.skipped
+          ? "skip"
+          : r.success
+            ? "pass"
+            : r.accepted
+              ? "FAIL"
+              : "ERROR"
+        ).padEnd(7),
         (r.skipped ? "-" : r.score.toFixed(2)).padEnd(6),
         (r.skipped ? "-" : String(r.criticalFailures)).padEnd(5),
         String(r.totalToolCalls).padEnd(6),
@@ -539,9 +565,9 @@ export function formatToolLoopReport(report: ToolLoopEvalReport): string {
   const s = report.summary;
   lines.push("");
   lines.push(
-    `success ${s.accepted}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
+    `success ${s.successful}/${s.total - s.skipped} (${(s.successRate * 100).toFixed(0)}%)` +
+      `  completed ${(s.completionRate * 100).toFixed(0)}%` +
       `  mean score ${s.meanScore.toFixed(2)}` +
-      `  critical-clean ${(s.criticalCleanRate * 100).toFixed(0)}%` +
       `  avg tools ${s.avgToolCalls.toFixed(1)}` +
       (s.totalCostUsd > 0 ? `  cost $${s.totalCostUsd.toFixed(4)}` : "") +
       (s.skipped > 0 ? `  (${s.skipped} skipped)` : "")

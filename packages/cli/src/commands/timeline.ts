@@ -19,6 +19,7 @@ import type {
   TimelineValidation
 } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
+import { printCommandError } from "../command-errors.js";
 
 interface TimelineValidateCliOptions {
   json?: boolean;
@@ -90,7 +91,7 @@ export function registerTimelineCommands(program: Command): void {
           (opts.warningsAsErrors === true && validation.warnings.length > 0);
         process.exit(failed ? 1 : 0);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });
@@ -137,7 +138,7 @@ export function registerTimelineCommands(program: Command): void {
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });

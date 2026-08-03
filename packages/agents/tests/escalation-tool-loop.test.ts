@@ -356,8 +356,10 @@ describe("runToolLoopEval with an escalation channel", () => {
     const text = formatToolLoopReport(report);
 
     expect(text).toContain("[critical] tool:ask_user");
-    expect(text).toContain("critical-clean 0%");
-    expect(report.summary.criticalCleanRate).toBe(0);
+    expect(text).toContain("success 0/1 (0%)");
+    expect(report.summary.successRate).toBe(0);
+    // The loop itself ran fine; the case still fails, which is the point.
+    expect(report.summary.completionRate).toBe(1);
   });
 
   it("flags an off-script question and hands back the fallback answer", async () => {

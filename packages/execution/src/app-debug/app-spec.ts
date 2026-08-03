@@ -12,6 +12,7 @@ import {
   encodeBinding,
   parseApplicationDocument,
   parseBinding,
+  parseCondition,
   resolveBinding,
   stateKey,
   widgetBindingProps,
@@ -418,6 +419,29 @@ export function validateApp(
     op.io || op.id !== defaultOperationId ? op : { ...op, io }
   );
   const operationIds = new Set(operations.map((op) => op.id));
+  // Node ids per operation, for the operations whose workflow resolved. An
+  // operation with no `io` has no graph to check against, so its bindings are
+  // left alone rather than reported as missing nodes.
+  const nodeIdsByOperation = new Map<string, ReadonlySet<string>>(
+    operations
+      .filter((op) => op.io !== null)
+      .map((op) => [op.id, new Set(op.io?.nodeIds ?? [])])
+  );
+  /**
+   * The node an ID-form binding names, when the operation's graph does not have
+   * it. `parseBinding` accepts any well-formed token, so a widget bound to a
+   * node that was deleted (or never existed) resolves to a ref addressing a
+   * state slot no run ever fills — a silent blank widget without this check.
+   */
+  const missingNode = (
+    binding: string | null,
+    ref: BindingRef | null
+  ): { operationId: string; nodeId: string } | null => {
+    if (!parseBinding(binding) || !ref || !("nodeId" in ref)) return null;
+    const known = nodeIdsByOperation.get(ref.operationId);
+    if (!known || known.has(ref.nodeId)) return null;
+    return { operationId: ref.operationId, nodeId: ref.nodeId };
+  };
   const variableIds = knownVariableIds(io, context);
   const resourceIds = new Set(spec.resources.map((r) => r.id));
 
@@ -467,10 +491,33 @@ export function validateApp(
         );
       }
     }
+    const missing = missingNode(w.binding, w.ref);
+    if (missing) {
+      errors.push(
+        `${where}: bound to "${w.binding}" but operation "${missing.operationId}" runs a workflow with no node "${missing.nodeId}".`
+      );
+    }
+    // An unresolvable condition binding is not enforced at runtime — the widget
+    // shows and stays enabled — so the author sees a condition that quietly
+    // does nothing.
+    for (const [prop, props] of [
+      ["visibleWhen", w.visibleWhen],
+      ["disabledWhen", w.disabledWhen]
+    ] as const) {
+      if (!props?.binding || parseCondition(props, scope)) continue;
+      warnings.push(
+        `${where}: ${prop} reads "${props.binding}", which resolves to nothing — the condition never applies, so the widget stays visible and enabled.`
+      );
+    }
     for (const extra of w.extraBindings) {
+      const extraMissing = missingNode(extra.binding, extra.ref);
       if (!extra.ref) {
         errors.push(
           `${where}: ${extra.prop} is bound to "${extra.binding}" but the workflow has no output or variable with that name.`
+        );
+      } else if (extraMissing) {
+        errors.push(
+          `${where}: ${extra.prop} is bound to "${extra.binding}" but operation "${extraMissing.operationId}" runs a workflow with no node "${extraMissing.nodeId}".`
         );
       } else if (extra.ref.kind === "output") {
         displayedOutputs.add(`${extra.ref.operationId}:${extra.ref.nodeId}`);

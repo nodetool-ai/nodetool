@@ -20,6 +20,7 @@ import {
   evaluateCondition,
   formatTemplate,
   initialVariableValues,
+  isLiveInvocation,
   liveInvocations,
   messagesToEvents,
   operationError,
@@ -119,6 +120,24 @@ export const describeCondition = (
   const op = props.op ?? "notEmpty";
   const value = props.value === undefined || props.value === "" ? "" : ` ${props.value}`;
   return `${props.binding} ${op}${value}`;
+};
+
+/**
+ * Why a ref cannot be written, or null when it can.
+ *
+ * Only a run fills an output slot or an operation's execution state, so a
+ * script that writes one has named the wrong thing — the value would land in
+ * the inputs namespace, where nothing reads it.
+ */
+export const writeRefusal = (ref: BindingRef): string | null => {
+  switch (ref.kind) {
+    case "output":
+      return "resolves to an output, which only a run can fill, and cannot be set";
+    case "execution":
+      return "resolves to execution state, which only a run can fill, and cannot be set";
+    default:
+      return null;
+  }
 };
 
 /**
@@ -513,8 +532,16 @@ export class HeadlessAppRuntime {
     return this.errorFor(this.init.defaultOperationId);
   }
 
-  /** Write a value through its resolved binding. */
+  /**
+   * Write a value through its resolved binding.
+   *
+   * A ref {@link writeRefusal} rejects throws instead of landing in the inputs
+   * namespace: an output slot only a run fills, written as an input, is a value
+   * no reader ever sees, and the step that wrote it must not report success.
+   */
   write(ref: BindingRef, value: unknown): void {
+    const refusal = writeRefusal(ref);
+    if (refusal) throw new Error(refusal);
     const key = stateKey(ref);
     switch (ref.kind) {
       case "variable":
@@ -646,8 +673,13 @@ export class HeadlessAppRuntime {
 
   /** Cancel an operation's live invocations (or one named invocation). */
   cancel(operationId: string, invocationId?: string): string[] {
+    // A named invocation is filtered on liveness like the bare path: cancelling
+    // one that already completed or failed would overwrite what it reported.
     const targets = invocationId
-      ? [invocationId].filter((id) => this.state.invocations[id])
+      ? [invocationId].filter((id) => {
+          const invocation = this.state.invocations[id];
+          return invocation ? isLiveInvocation(invocation) : false;
+        })
       : liveInvocations(this.state, operationId).map((i) => i.id);
     for (const id of targets) {
       this.state = applyEvent(this.state, {
@@ -753,10 +785,12 @@ export class HeadlessAppRuntime {
     record.runIndex = outcome.runIndex;
 
     // The headless runner awaits the whole stream, so every message belongs to
-    // the invocation just started; stamp it where the server did not.
+    // the invocation just started — including the `job_update` and `edge_update`
+    // the kernel stamps with the *server's* job id, which the fold would
+    // otherwise fail to resolve and drop, losing a job-level failure.
     const stamped = outcome.messages.map((message) => ({
       ...message,
-      job_id: message.job_id ?? invocation.id
+      job_id: invocation.id
     }));
     const outputVariables = new Map(
       outputVariableTargets(operation.binding).map((t) => [t.nodeId, t.variableId])

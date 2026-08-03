@@ -36,6 +36,7 @@ export {
 export { NodeActor, type NodeExecutor, type ActorResult } from "./actor.js";
 export {
   BoundedHandle,
+  ensureBounded,
   FailClosedHandle,
   computeAllowedActions,
   failureSignature,

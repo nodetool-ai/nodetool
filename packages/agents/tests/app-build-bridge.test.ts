@@ -107,3 +107,74 @@ describe("document round-trip", () => {
     expect(first.finalState().components).toHaveLength(2);
   });
 });
+
+describe("ui_app_get_binding_targets", () => {
+  const workflow = (prefix: string) => ({
+    inputs: [{ nodeId: `${prefix}-in`, name: "prompt", label: "prompt" }],
+    outputs: [{ nodeId: `${prefix}-out`, name: "text", label: "text" }],
+    variables: []
+  });
+
+  it("reports node targets for every loaded workflow, not just the host", async () => {
+    const bridge = createAppToolBridge({
+      workflowId: "wf-draft",
+      workflow: workflow("draft"),
+      workflows: {
+        "wf-draft": workflow("draft"),
+        "wf-publish": workflow("publish")
+      }
+    });
+    const tools = toolsOf(bridge);
+    for (const [id, workflowId] of [
+      ["draft", "wf-draft"],
+      ["publish", "wf-publish"]
+    ]) {
+      await tools["ui_app_add_operation"].execute({
+        application_id: APP,
+        id,
+        target_workflow_id: workflowId
+      });
+    }
+
+    const targets = (await tools["ui_app_get_binding_targets"].execute({
+      application_id: APP
+    })) as {
+      operations: Array<{
+        operationId: string;
+        ioAvailable: boolean;
+        inputs: Array<{ binding: string }>;
+        outputs: Array<{ binding: string }>;
+      }>;
+    };
+
+    expect(targets.operations.map((o) => o.operationId)).toEqual([
+      "draft",
+      "publish"
+    ]);
+    expect(targets.operations.every((o) => o.ioAvailable)).toBe(true);
+    expect(targets.operations[1]?.inputs.map((i) => i.binding)).toEqual([
+      "op:publish/in:publish-in"
+    ]);
+    expect(targets.operations[1]?.outputs.map((o) => o.binding)).toEqual([
+      "op:publish/out:publish-out"
+    ]);
+  });
+
+  it("still reports no surface for a workflow it has not loaded", async () => {
+    const bridge = createAppToolBridge({
+      workflowId: "wf-draft",
+      workflow: workflow("draft")
+    });
+    const tools = toolsOf(bridge);
+    await tools["ui_app_add_operation"].execute({
+      application_id: APP,
+      id: "publish",
+      target_workflow_id: "wf-publish"
+    });
+
+    const targets = (await tools["ui_app_get_binding_targets"].execute({
+      application_id: APP
+    })) as { operations: Array<{ ioAvailable: boolean }> };
+    expect(targets.operations[0]?.ioAvailable).toBe(false);
+  });
+});

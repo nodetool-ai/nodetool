@@ -21,7 +21,7 @@ import type {
 } from "@nodetool-ai/execution/app-debug";
 import { collectExecutionSummary } from "@nodetool-ai/execution/debug";
 import { buildApp, type BuildAppOptions } from "../src/app-build/build.js";
-import type { BuildSpec } from "../src/app-build/types.js";
+import { issueFingerprint, type BuildSpec } from "../src/app-build/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 // --- fixtures ---------------------------------------------------------------
@@ -575,6 +575,95 @@ describe("buildApp", () => {
     expect(report.repairs[0]?.issues.map((i) => i.code)).toContain("run_issue");
   });
 
+  it("resolves a script's widget references by label, not only by role", async () => {
+    // The Spec gate accepts a reference by label; the loop must resolve it the
+    // same way, or the app it green-lit fails on a widget it does have.
+    const byLabel = spec();
+    byLabel.interactions[0]!.steps[1] = { click: "Draft it" };
+    byLabel.interactions[0]!.expect = [{ widget: "Draft", check: "nonEmpty" }];
+
+    const provider = scriptedProvider([goodAuthorScript()]);
+    const report = await buildApp(options(provider, { spec: byLabel }));
+
+    expect(report.verdict.ok).toBe(true);
+    const run = report.stages.find((s) => s.stage === "run");
+    expect(run?.issues).toEqual([]);
+  });
+
+  it("ends the build on a provider error instead of asking for a repair", async () => {
+    const provider = scriptedProvider([goodAuthorScript()]);
+    const failing = {
+      ...provider,
+      // eslint-disable-next-line require-yield
+      async *generateLoop(): AsyncGenerator<ProviderStreamItem> {
+        throw new Error("connection reset");
+      }
+    } as unknown as BaseProvider;
+    const report = await buildApp(options(failing, { maxRepairs: 3 }));
+
+    expect(report.verdict.ok).toBe(false);
+    expect(report.verdict.reason).toBe("authoring failed: connection reset");
+    // One retry, then the build stops — the complaint loop never sees it.
+    expect(report.stages.filter((s) => s.stage === "author")).toHaveLength(2);
+    expect(report.repairs).toEqual([]);
+  });
+
+  it("ends the build when a routed replan fails", async () => {
+    const provider = scriptedProvider([badBindingScript()]);
+    let loads = 0;
+    const report = await buildApp(
+      options(provider, {
+        maxRepairs: 3,
+        // The replan the binding complaint routes cannot load the workflow, so
+        // the stale graph would otherwise survive into every remaining round.
+        loadWorkflow: async (id: string) =>
+          id === "wf1" && loads++ === 0
+            ? { graph: GRAPH, name: "Drafter workflow" }
+            : null
+      })
+    );
+
+    expect(report.verdict.ok).toBe(false);
+    expect(report.verdict.reason).toMatch(/^replanning failed:/);
+    expect(report.stages.filter((s) => s.stage === "author")).toHaveLength(1);
+  });
+
+  it("writes the judge's ledger row against the judge's own model", async () => {
+    const builder = scriptedProvider([goodAuthorScript()], {
+      costPerCall: 0.01
+    });
+    const judgeProvider = {
+      provider: "judge-provider",
+      getTotalCost: (() => {
+        let calls = 0;
+        return () => (calls++ === 0 ? 0 : 0.5);
+      })(),
+      generateMessageTraced: async () => ({
+        role: "assistant",
+        content: '{"achieved": true, "confidence": 1, "reasons": ["ok"]}'
+      })
+    } as unknown as BaseProvider;
+    const create = vi.fn(async () => ({}));
+    vi.doMock("@nodetool-ai/models", () => ({ Prediction: { create } }));
+
+    await buildApp(
+      options(builder, {
+        ledger: { userId: "1" },
+        buildId: "build-judge",
+        judge: { provider: judgeProvider, model: "judge-model" }
+      })
+    );
+
+    const rows = create.mock.calls.map(
+      (call) => call[0] as unknown as { provider: string; model: string }
+    );
+    expect(rows).toContainEqual(
+      expect.objectContaining({ provider: "judge-provider", model: "judge-model" })
+    );
+    expect(rows.filter((r) => r.provider === "scripted")).not.toHaveLength(0);
+    vi.doUnmock("@nodetool-ai/models");
+  });
+
   it("writes one ledger row per billable stage when attributed", async () => {
     const provider = scriptedProvider([goodAuthorScript()], {
       costPerCall: 0.01
@@ -595,5 +684,34 @@ describe("buildApp", () => {
     expect(row.node_type).toBe("app-build");
     expect(row.node_id).toBe("build-1");
     vi.doUnmock("@nodetool-ai/models");
+  });
+});
+
+describe("issueFingerprint", () => {
+  it("separates the same run failure in two interactions", () => {
+    const failure = (interaction: string, step: number) =>
+      issueFingerprint({
+        stage: "run",
+        code: "step_failed",
+        severity: "error",
+        message: "…",
+        interaction,
+        step
+      });
+    expect(failure("draft", 0)).not.toBe(failure("publish", 0));
+    expect(failure("draft", 0)).not.toBe(failure("draft", 1));
+    expect(failure("draft", 0)).toBe(failure("draft", 0));
+  });
+
+  it("leaves an issue with no interaction unchanged", () => {
+    expect(
+      issueFingerprint({
+        stage: "check",
+        code: "widget_missing",
+        severity: "error",
+        message: "…",
+        widget: "draft-output"
+      })
+    ).toBe("check:widget_missing:draft-output");
   });
 });

@@ -203,6 +203,30 @@ describe("BoundedHandle — sticky verdicts", () => {
     expect(inner.calls).toBe(2);
   });
 
+  it("decides afresh when the cached verdict is not allowed here", async () => {
+    // The same signature can reach an escalation with a different allowed set
+    // — a streaming invocation that already emitted cannot be skipped. Serving
+    // the cached `skip` there only earns a kernel override to `fail`.
+    const inner = handleReturning({ action: "skip", applyTo: "signature" });
+    const bounded = new BoundedHandle(inner);
+    const first = await bounded.decide(
+      escalation({ failureSignature: "http:403" }),
+      never
+    );
+    expect(first.verdict.action).toBe("skip");
+
+    const narrowed = await bounded.decide(
+      escalation({
+        failureSignature: "http:403",
+        allowedActions: ["end_stream", "fail"],
+        emitted: true
+      }),
+      never
+    );
+    expect(narrowed.decidedBy).not.toBe("sticky");
+    expect(inner.calls).toBe(2);
+  });
+
   it("has nothing to key on without a signature", async () => {
     const inner = handleReturning({ action: "skip", applyTo: "signature" });
     const bounded = new BoundedHandle(inner);
@@ -443,6 +467,20 @@ describe("substitute validator", () => {
     expect(hasFullValidatorCoverage({ a: "image" }, true)).toBe(true);
     expect(hasFullValidatorCoverage({ a: "custom.Thing" }, true)).toBe(false);
     expect(hasFullValidatorCoverage({}, true)).toBe(false);
+  });
+
+  it("does not count `any` as coverage", async () => {
+    // A rule that accepts everything checks nothing: an all-`any` node would
+    // offer a repair no validator could ever reject.
+    expect(hasFullValidatorCoverage({ a: "any" }, true)).toBe(false);
+    expect(hasFullValidatorCoverage({ a: "str", b: "any" }, true)).toBe(false);
+
+    const result = await validateSubstituteOutputs(
+      { a: { anything: true } },
+      { declaredOutputs: { a: "any" } }
+    );
+    expect(result.ok).toBe(false);
+    expect(result.issues[0]).toContain("no runtime validation rule");
   });
 });
 

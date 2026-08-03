@@ -6,6 +6,7 @@
  * Heavy deps (registry + runtime) load lazily inside the action.
  */
 import type { Command } from "commander";
+import { printCommandError } from "../command-errors.js";
 
 interface NodeRunCliOptions {
   props?: string;
@@ -87,7 +88,7 @@ export function registerNodeCommands(program: Command): void {
         }
         process.exit(result.ok ? 0 : 1);
       } catch (e) {
-        console.error(String(e));
+        printCommandError(e, opts.json);
         process.exit(1);
       }
     });

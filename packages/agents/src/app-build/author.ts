@@ -100,10 +100,16 @@ export async function runAuthorStage(
   const costBefore = opts.provider.getTotalCost();
   const host = opts.workflows[0];
 
+  // Every operation's workflow is loaded, not just the first: an app with two
+  // operations binds against both, and a workflow the bridge does not hold
+  // reports no bindable surface at all.
   const bridge = createAppToolBridge({
     title: opts.spec.title,
     finishTool: true,
-    ...(host ? { workflowId: host.key, workflow: bindable(host.io) } : {})
+    ...(host ? { workflowId: host.key, workflow: bindable(host.io) } : {}),
+    workflows: Object.fromEntries(
+      opts.workflows.map((workflow) => [workflow.key, bindable(workflow.io)])
+    )
   });
   if (opts.resumeFrom) bridge.loadDocument(opts.resumeFrom);
 

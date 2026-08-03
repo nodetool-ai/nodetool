@@ -126,6 +126,36 @@ describe("HeadlessAppRuntime", () => {
     expect(rt.error).toBe("job died");
   });
 
+  it("folds messages the kernel stamped with the server's own job id", async () => {
+    // The kernel stamps `job_update` (and `edge_update`) with the job id the
+    // server minted, which never matches the harness's invocation id. Dropping
+    // those loses every job-level failure, so they are re-stamped before the
+    // fold.
+    const rt = runtime(async () => [
+      { type: "output_update", node_id: "out1", value: "partial" },
+      { type: "job_update", job_id: "debug-1730000000", status: "failed", error: "bad params" }
+    ]);
+    await rt.dispatch({ kind: "run", operationId: "main" });
+    expect(rt.state.invocations["headless-1"].status).toBe("failed");
+    expect(rt.error).toBe("bad params");
+  });
+
+  it("refuses to write a value into an output slot", () => {
+    const rt = runtime();
+    expect(() => rt.write(OUT_RESULT, "typed by hand")).toThrow(
+      /resolves to an output/
+    );
+    expect(rt.read(OUT_RESULT)).toBeUndefined();
+    expect(rt.state.inputs["main:out1"]).toBeUndefined();
+  });
+
+  it("leaves a settled invocation alone when a cancel names it", async () => {
+    const rt = runtime(async () => [{ type: "job_update", status: "completed" }]);
+    await rt.dispatch({ kind: "run", operationId: "main" });
+    expect(rt.cancel("main", "headless-1")).toEqual([]);
+    expect(rt.state.invocations["headless-1"].status).toBe("completed");
+  });
+
   it("mutates variables without running", async () => {
     const run = vi.fn(async () => []);
     const rt = runtime(run);

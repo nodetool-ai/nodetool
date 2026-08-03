@@ -8,6 +8,7 @@
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { listRegisteredProviderIds } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateGraph } from "@nodetool-ai/node-sdk";
 import {
@@ -1056,7 +1057,19 @@ export class ValidateWorkflowTool extends Tool {
   // When a registry is available the tool validates locally; without one it
   // falls back to fetching the workflow so the tool still returns something
   // useful in registry-free contexts (e.g. the multi-task planner).
-  constructor(private readonly registry?: NodeRegistry) {
+  /**
+   * `listProviderIds` is supplied here rather than living on NodeRegistry: the
+   * registry also runs in the browser, which has no provider registry to reach.
+   * Without it `validateGraph` skips the `unknown_provider` check entirely, so
+   * a model naming a provider the runtime cannot construct passed silently on
+   * the agent surface. This tool always runs server-side, so the runtime's
+   * registry is the right default.
+   */
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly listProviderIds: () => readonly string[] = () =>
+      listRegisteredProviderIds()
+  ) {
     super();
   }
 
@@ -1084,6 +1097,15 @@ export class ValidateWorkflowTool extends Tool {
       };
     }
 
+    // `edges` reaches `.map()` inside validateGraph — a non-array would throw a
+    // raw TypeError past the tool's structured error shape.
+    if (graph.edges !== undefined && !Array.isArray(graph.edges)) {
+      return {
+        error:
+          "`graph.edges` must be an array of edges ({source, sourceHandle, target, targetHandle})."
+      };
+    }
+
     if (!this.registry) {
       // Returning the graph with a note read as a pass to every caller that
       // checks for issues rather than for prose. A validator with no registry
@@ -1095,9 +1117,16 @@ export class ValidateWorkflowTool extends Tool {
       };
     }
 
+    const registry = this.registry;
     return validateGraph(
       { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
-      this.registry
+      {
+        has: (type) => registry.has(type),
+        getMetadata: (type) => registry.getMetadata(type),
+        validateNode: (descriptor, connectedHandles) =>
+          registry.validateNode(descriptor, connectedHandles),
+        listProviderIds: () => this.listProviderIds()
+      }
     );
   }
 
@@ -1123,6 +1152,13 @@ export type TimelineLoader = (
   context: ProcessingContext,
   id: string
 ) => Promise<TimelineToolRecord | null>;
+
+/** A positive finite number from a tool param, or undefined. */
+function numberParam(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) && value > 0
+    ? value
+    : undefined;
+}
 
 /** Unwrap a stored document that may still be JSON text. */
 function parseTimelineDocument(document: unknown): unknown {
@@ -1167,6 +1203,21 @@ export class ValidateTimelineTool extends Tool {
         description:
           "Inline TimelineDocument to validate ({ tracks, clips, markers }). " +
           "Takes precedence over timeline_id."
+      },
+      fps: {
+        type: "number" as const,
+        description:
+          "Frame rate the inline document renders at (default 30). Timing " +
+          "checks are frame-based, so a document authored at another fps " +
+          "validates against the wrong grid without this. Ignored for timeline_id."
+      },
+      width: {
+        type: "number" as const,
+        description: "Render width of the inline document. Ignored for timeline_id."
+      },
+      height: {
+        type: "number" as const,
+        description: "Render height of the inline document. Ignored for timeline_id."
       }
     }
   };
@@ -1186,7 +1237,13 @@ export class ValidateTimelineTool extends Tool {
     const timelineId = params["timeline_id"] as string | undefined;
 
     let document = inline;
-    let meta: { fps?: number; width?: number; height?: number } = {};
+    // An inline document carries no stored render settings, so the caller
+    // supplies them; the timeline_id path overwrites these from the row.
+    let meta: { fps?: number; width?: number; height?: number } = {
+      fps: numberParam(params["fps"]),
+      width: numberParam(params["width"]),
+      height: numberParam(params["height"])
+    };
     let name: string | undefined;
 
     if (document === undefined && timelineId) {

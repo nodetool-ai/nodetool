@@ -81,6 +81,10 @@ export async function validateSubstituteOutputs(
  * True when every declared output has a rule this validator can enforce.
  * `substitute` is offered only for full coverage — a partially-checked
  * substitution is an unchecked one for the slot that matters.
+ *
+ * `any` is not coverage: a rule that accepts everything checks nothing, so an
+ * all-`any` node would offer a repair no validator could reject. It is treated
+ * like a reference type the run cannot resolve — no substitute.
  */
 export function hasFullValidatorCoverage(
   declaredOutputs: Record<string, string>,
@@ -103,8 +107,7 @@ export function hasFullValidatorCoverage(
       base === "list" ||
       base === "array" ||
       base === "dict" ||
-      base === "object" ||
-      base === "any"
+      base === "object"
     );
   });
 }
@@ -124,8 +127,6 @@ async function validateOne(
   const base = baseType(type);
 
   switch (base) {
-    case "any":
-      return null;
     case "str":
     case "string":
       return typeof value === "string"

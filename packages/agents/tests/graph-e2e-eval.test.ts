@@ -271,6 +271,12 @@ describe("runGraphE2eEval", () => {
     expect(judged).toBe(0);
     expect(report.cases[0].goalAchieved).toBe(true);
     expect(report.cases[0].success).toBe(true);
+    // The output checks decide the goal; scoring them again under a
+    // `goal-achieved` check would weigh the same failures twice.
+    expect(report.cases[0].checks.some((c) => c.name === "goal-achieved")).toBe(
+      false
+    );
+    expect(report.cases[0].score).toBe(1);
   });
 
   it("skips model-dependent cases without configured providers", async () => {

@@ -47,6 +47,7 @@ describe("registerEvalCommand", () => {
           "--json",
           "--out",
           "--max-retries",
+          "--judge-model",
           "--min-success",
           "--no-find-model"
         ])
