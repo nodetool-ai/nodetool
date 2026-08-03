@@ -1,0 +1,1072 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "source",
+        "type": "lib.image.draw.LinearGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_a": {
+            "type": "color",
+            "value": "#ff0000"
+          },
+          "color_b": {
+            "type": "color",
+            "value": "#0000ff"
+          },
+          "angle": 0,
+          "midpoint": 0.5
+        }
+      },
+      {
+        "id": "alt",
+        "type": "lib.image.draw.Background",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color": {
+            "type": "color",
+            "value": "#00ff00"
+          }
+        }
+      },
+      {
+        "id": "grad",
+        "type": "lib.image.draw.RadialGradient",
+        "data": {
+          "width": 40,
+          "height": 24,
+          "color_inner": {
+            "type": "color",
+            "value": "#ffffff"
+          },
+          "color_outer": {
+            "type": "color",
+            "value": "#000000"
+          },
+          "radius": 0.5
+        }
+      },
+      {
+        "id": "silhouette",
+        "type": "lib.image.warp.Pad",
+        "data": {
+          "left": 0.25,
+          "top": 0.25,
+          "right": 0.25,
+          "bottom": 0.25,
+          "color": {
+            "type": "color",
+            "value": "#00000000"
+          }
+        }
+      },
+      {
+        "id": "mask_from",
+        "type": "lib.image.mask.FromImage",
+        "data": {
+          "mode": 1,
+          "invert": 0
+        }
+      },
+      {
+        "id": "mask_inv1",
+        "type": "lib.image.mask.Invert"
+      },
+      {
+        "id": "mask_inv2",
+        "type": "lib.image.mask.Invert"
+      },
+      {
+        "id": "mask_apply",
+        "type": "lib.image.mask.Apply",
+        "data": {
+          "invert": 0
+        }
+      },
+      {
+        "id": "tri_mask",
+        "type": "lib.image.Mask"
+      },
+      {
+        "id": "shuffle_id",
+        "type": "lib.image.channel.Shuffle",
+        "data": {
+          "r_from": 0,
+          "g_from": 1,
+          "b_from": 2,
+          "a_from": 3
+        }
+      },
+      {
+        "id": "shuffle_swap",
+        "type": "lib.image.channel.Shuffle",
+        "data": {
+          "r_from": 2,
+          "g_from": 1,
+          "b_from": 0,
+          "a_from": 3
+        }
+      },
+      {
+        "id": "merge",
+        "type": "lib.image.channel.Merge",
+        "data": {
+          "alpha_channel": 0
+        }
+      },
+      {
+        "id": "chroma",
+        "type": "lib.image.keyer.ChromaKey",
+        "data": {
+          "key_color": {
+            "type": "color",
+            "value": "#ff0000"
+          },
+          "tolerance": 0.4,
+          "softness": 0.1,
+          "spill": 0.2
+        }
+      },
+      {
+        "id": "luma",
+        "type": "lib.image.keyer.LumaKey",
+        "data": {
+          "low": 0.2,
+          "high": 0.8,
+          "softness": 0.1
+        }
+      },
+      {
+        "id": "fx_add",
+        "type": "lib.image.effects.Add",
+        "data": {
+          "gain": 0.5
+        }
+      },
+      {
+        "id": "fx_overlay_zero",
+        "type": "lib.image.effects.ColorOverlay",
+        "data": {
+          "color": {
+            "type": "color",
+            "value": "#00ff00"
+          },
+          "amount": 0
+        }
+      },
+      {
+        "id": "fx_overlay",
+        "type": "lib.image.effects.ColorOverlay",
+        "data": {
+          "color": {
+            "type": "color",
+            "value": "#00ff00"
+          },
+          "amount": 0.7
+        }
+      },
+      {
+        "id": "fx_shadow",
+        "type": "lib.image.effects.DropShadow",
+        "data": {
+          "color": {
+            "type": "color",
+            "value": "#000000"
+          },
+          "offset_x": 0.1,
+          "offset_y": 0.1,
+          "radius": 8,
+          "intensity": 1
+        }
+      },
+      {
+        "id": "fx_glow",
+        "type": "lib.image.effects.Glow",
+        "data": {
+          "threshold": 0.4,
+          "softness": 0.5,
+          "radius": 8,
+          "intensity": 1
+        }
+      },
+      {
+        "id": "fx_outline",
+        "type": "lib.image.effects.Outline",
+        "data": {
+          "color": {
+            "type": "color",
+            "value": "#ffff00"
+          },
+          "width": 3,
+          "threshold": 0.5
+        }
+      },
+      {
+        "id": "filt_contour",
+        "type": "lib.image.filter.Contour"
+      },
+      {
+        "id": "filt_smooth",
+        "type": "lib.image.filter.Smooth"
+      },
+      {
+        "id": "filt_expand",
+        "type": "lib.image.filter.Expand",
+        "data": {
+          "border": 4,
+          "fill": 0
+        }
+      },
+      {
+        "id": "cmp_mask_roundtrip",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "mask_from",
+          "label_b": "mask_inv2"
+        }
+      },
+      {
+        "id": "o_mask_roundtrip",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mask_roundtrip_equal"
+        },
+        "name": "mask_roundtrip_equal"
+      },
+      {
+        "id": "cmp_mask_inverted",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "mask_from",
+          "label_b": "mask_inv1"
+        }
+      },
+      {
+        "id": "o_mask_inverted",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mask_inverted_equal"
+        },
+        "name": "mask_inverted_equal"
+      },
+      {
+        "id": "cmp_mask_apply",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "mask_apply"
+        }
+      },
+      {
+        "id": "o_mask_apply",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mask_apply_equal"
+        },
+        "name": "mask_apply_equal"
+      },
+      {
+        "id": "cmp_tri_mask",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "tri_mask"
+        }
+      },
+      {
+        "id": "o_tri_mask",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "tri_mask_equal"
+        },
+        "name": "tri_mask_equal"
+      },
+      {
+        "id": "cmp_shuffle_identity",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "shuffle_id"
+        }
+      },
+      {
+        "id": "o_shuffle_identity",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "shuffle_identity_equal"
+        },
+        "name": "shuffle_identity_equal"
+      },
+      {
+        "id": "cmp_shuffle_swapped",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "shuffle_swap"
+        }
+      },
+      {
+        "id": "o_shuffle_swapped",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "shuffle_swapped_equal"
+        },
+        "name": "shuffle_swapped_equal"
+      },
+      {
+        "id": "cmp_merge",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "merge"
+        }
+      },
+      {
+        "id": "o_merge",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "merge_equal"
+        },
+        "name": "merge_equal"
+      },
+      {
+        "id": "cmp_chroma",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "chroma"
+        }
+      },
+      {
+        "id": "o_chroma",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "chroma_equal"
+        },
+        "name": "chroma_equal"
+      },
+      {
+        "id": "cmp_luma",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "luma"
+        }
+      },
+      {
+        "id": "o_luma",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "luma_equal"
+        },
+        "name": "luma_equal"
+      },
+      {
+        "id": "cmp_fx_add",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "fx_add"
+        }
+      },
+      {
+        "id": "o_fx_add",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "fx_add_equal"
+        },
+        "name": "fx_add_equal"
+      },
+      {
+        "id": "cmp_overlay_zero",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "fx_overlay_zero"
+        }
+      },
+      {
+        "id": "o_overlay_zero",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "overlay_zero_equal"
+        },
+        "name": "overlay_zero_equal"
+      },
+      {
+        "id": "cmp_overlay",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "fx_overlay"
+        }
+      },
+      {
+        "id": "o_overlay",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "overlay_equal"
+        },
+        "name": "overlay_equal"
+      },
+      {
+        "id": "cmp_shadow",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "silhouette",
+          "label_b": "fx_shadow"
+        }
+      },
+      {
+        "id": "o_shadow",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "shadow_equal"
+        },
+        "name": "shadow_equal"
+      },
+      {
+        "id": "cmp_glow",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "fx_glow"
+        }
+      },
+      {
+        "id": "o_glow",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "glow_equal"
+        },
+        "name": "glow_equal"
+      },
+      {
+        "id": "cmp_outline",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "silhouette",
+          "label_b": "fx_outline"
+        }
+      },
+      {
+        "id": "o_outline",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "outline_equal"
+        },
+        "name": "outline_equal"
+      },
+      {
+        "id": "cmp_contour",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "filt_contour"
+        }
+      },
+      {
+        "id": "o_contour",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "contour_equal"
+        },
+        "name": "contour_equal"
+      },
+      {
+        "id": "cmp_smooth",
+        "type": "nodetool.compare.CompareImages",
+        "data": {
+          "label_a": "source",
+          "label_b": "filt_smooth"
+        }
+      },
+      {
+        "id": "o_smooth",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "smooth_equal"
+        },
+        "name": "smooth_equal"
+      },
+      {
+        "id": "meta_expand",
+        "type": "nodetool.image.GetMetadata"
+      },
+      {
+        "id": "o_expand_width",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "expand_width"
+        },
+        "name": "expand_width"
+      },
+      {
+        "id": "o_expand_height",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "expand_height"
+        },
+        "name": "expand_height"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e0",
+        "source": "alt",
+        "sourceHandle": "output",
+        "target": "silhouette",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e1",
+        "source": "grad",
+        "sourceHandle": "output",
+        "target": "mask_from",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "mask_from",
+        "sourceHandle": "output",
+        "target": "mask_inv1",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e3",
+        "source": "mask_inv1",
+        "sourceHandle": "output",
+        "target": "mask_inv2",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "mask_apply",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e5",
+        "source": "mask_from",
+        "sourceHandle": "output",
+        "target": "mask_apply",
+        "targetHandle": "mask"
+      },
+      {
+        "id": "e6",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "tri_mask",
+        "targetHandle": "image1"
+      },
+      {
+        "id": "e7",
+        "source": "alt",
+        "sourceHandle": "output",
+        "target": "tri_mask",
+        "targetHandle": "image2"
+      },
+      {
+        "id": "e8",
+        "source": "mask_from",
+        "sourceHandle": "output",
+        "target": "tri_mask",
+        "targetHandle": "mask"
+      },
+      {
+        "id": "e9",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "shuffle_id",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e10",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "shuffle_swap",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e11",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "merge",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e12",
+        "source": "grad",
+        "sourceHandle": "output",
+        "target": "merge",
+        "targetHandle": "alpha"
+      },
+      {
+        "id": "e13",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "chroma",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e14",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "luma",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e15",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "fx_add",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e16",
+        "source": "alt",
+        "sourceHandle": "output",
+        "target": "fx_add",
+        "targetHandle": "over"
+      },
+      {
+        "id": "e17",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "fx_overlay_zero",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e18",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "fx_overlay",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e19",
+        "source": "silhouette",
+        "sourceHandle": "output",
+        "target": "fx_shadow",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e20",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "fx_glow",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e21",
+        "source": "silhouette",
+        "sourceHandle": "output",
+        "target": "fx_outline",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e22",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "filt_contour",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e23",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "filt_smooth",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e24",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "filt_expand",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e25",
+        "source": "mask_from",
+        "sourceHandle": "output",
+        "target": "cmp_mask_roundtrip",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e26",
+        "source": "mask_inv2",
+        "sourceHandle": "output",
+        "target": "cmp_mask_roundtrip",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e27",
+        "source": "cmp_mask_roundtrip",
+        "sourceHandle": "equal",
+        "target": "o_mask_roundtrip",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e28",
+        "source": "mask_from",
+        "sourceHandle": "output",
+        "target": "cmp_mask_inverted",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e29",
+        "source": "mask_inv1",
+        "sourceHandle": "output",
+        "target": "cmp_mask_inverted",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e30",
+        "source": "cmp_mask_inverted",
+        "sourceHandle": "equal",
+        "target": "o_mask_inverted",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e31",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_mask_apply",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e32",
+        "source": "mask_apply",
+        "sourceHandle": "output",
+        "target": "cmp_mask_apply",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e33",
+        "source": "cmp_mask_apply",
+        "sourceHandle": "equal",
+        "target": "o_mask_apply",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e34",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_tri_mask",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e35",
+        "source": "tri_mask",
+        "sourceHandle": "output",
+        "target": "cmp_tri_mask",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e36",
+        "source": "cmp_tri_mask",
+        "sourceHandle": "equal",
+        "target": "o_tri_mask",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e37",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_shuffle_identity",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e38",
+        "source": "shuffle_id",
+        "sourceHandle": "output",
+        "target": "cmp_shuffle_identity",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e39",
+        "source": "cmp_shuffle_identity",
+        "sourceHandle": "equal",
+        "target": "o_shuffle_identity",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e40",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_shuffle_swapped",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e41",
+        "source": "shuffle_swap",
+        "sourceHandle": "output",
+        "target": "cmp_shuffle_swapped",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e42",
+        "source": "cmp_shuffle_swapped",
+        "sourceHandle": "equal",
+        "target": "o_shuffle_swapped",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e43",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_merge",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e44",
+        "source": "merge",
+        "sourceHandle": "output",
+        "target": "cmp_merge",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e45",
+        "source": "cmp_merge",
+        "sourceHandle": "equal",
+        "target": "o_merge",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e46",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_chroma",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e47",
+        "source": "chroma",
+        "sourceHandle": "output",
+        "target": "cmp_chroma",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e48",
+        "source": "cmp_chroma",
+        "sourceHandle": "equal",
+        "target": "o_chroma",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e49",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_luma",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e50",
+        "source": "luma",
+        "sourceHandle": "output",
+        "target": "cmp_luma",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e51",
+        "source": "cmp_luma",
+        "sourceHandle": "equal",
+        "target": "o_luma",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e52",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_fx_add",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e53",
+        "source": "fx_add",
+        "sourceHandle": "output",
+        "target": "cmp_fx_add",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e54",
+        "source": "cmp_fx_add",
+        "sourceHandle": "equal",
+        "target": "o_fx_add",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e55",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_overlay_zero",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e56",
+        "source": "fx_overlay_zero",
+        "sourceHandle": "output",
+        "target": "cmp_overlay_zero",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e57",
+        "source": "cmp_overlay_zero",
+        "sourceHandle": "equal",
+        "target": "o_overlay_zero",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e58",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_overlay",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e59",
+        "source": "fx_overlay",
+        "sourceHandle": "output",
+        "target": "cmp_overlay",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e60",
+        "source": "cmp_overlay",
+        "sourceHandle": "equal",
+        "target": "o_overlay",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e61",
+        "source": "silhouette",
+        "sourceHandle": "output",
+        "target": "cmp_shadow",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e62",
+        "source": "fx_shadow",
+        "sourceHandle": "output",
+        "target": "cmp_shadow",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e63",
+        "source": "cmp_shadow",
+        "sourceHandle": "equal",
+        "target": "o_shadow",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e64",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_glow",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e65",
+        "source": "fx_glow",
+        "sourceHandle": "output",
+        "target": "cmp_glow",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e66",
+        "source": "cmp_glow",
+        "sourceHandle": "equal",
+        "target": "o_glow",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e67",
+        "source": "silhouette",
+        "sourceHandle": "output",
+        "target": "cmp_outline",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e68",
+        "source": "fx_outline",
+        "sourceHandle": "output",
+        "target": "cmp_outline",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e69",
+        "source": "cmp_outline",
+        "sourceHandle": "equal",
+        "target": "o_outline",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e70",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_contour",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e71",
+        "source": "filt_contour",
+        "sourceHandle": "output",
+        "target": "cmp_contour",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e72",
+        "source": "cmp_contour",
+        "sourceHandle": "equal",
+        "target": "o_contour",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e73",
+        "source": "source",
+        "sourceHandle": "output",
+        "target": "cmp_smooth",
+        "targetHandle": "image_a"
+      },
+      {
+        "id": "e74",
+        "source": "filt_smooth",
+        "sourceHandle": "output",
+        "target": "cmp_smooth",
+        "targetHandle": "image_b"
+      },
+      {
+        "id": "e75",
+        "source": "cmp_smooth",
+        "sourceHandle": "equal",
+        "target": "o_smooth",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e76",
+        "source": "filt_expand",
+        "sourceHandle": "output",
+        "target": "meta_expand",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e77",
+        "source": "meta_expand",
+        "sourceHandle": "width",
+        "target": "o_expand_width",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e78",
+        "source": "meta_expand",
+        "sourceHandle": "height",
+        "target": "o_expand_height",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}
