@@ -125,7 +125,7 @@ export default function MarketingSegmentPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-amber-500/30 bg-gradient-to-r from-amber-500/[0.08] via-emerald-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(245,158,11,0.35)]">
                   <Sparkles className="w-4 h-4 text-amber-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    The open canvas for marketing production
+                    The agent-first canvas for marketing production
                   </span>
                 </div>
 
@@ -137,10 +137,11 @@ export default function MarketingSegmentPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Product videos, ad creative, social calendars, and brand
-                  assets from every major model, run with your own keys on one
-                  visual canvas. No marked-up credits, nothing locking you in,
-                  and built for steady output rather than one-off polish.
+                  Hand the brief to an agent: it builds the workflow that turns
+                  out product videos, ad creative, social calendars, and brand
+                  assets from every major model, run with your own keys. No
+                  marked-up credits, nothing locking you in, and built for
+                  steady output rather than one-off polish.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">

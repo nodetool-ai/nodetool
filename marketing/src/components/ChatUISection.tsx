@@ -34,9 +34,9 @@ export default function ChatUISection() {
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Run your workflows <br />
+            An agent that <br />
             <span className="text-white">
-              by chatting
+              does the work
             </span>
           </motion.h2>
 
@@ -47,7 +47,10 @@ export default function ChatUISection() {
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Skip the canvas when you don&apos;t need it. Ask in plain English, the right workflow runs, and the results come back in the conversation.
+            The chat isn&apos;t a help panel — it&apos;s an agent with the whole
+            app as its toolbelt, around 120 tools across every editor. Ask in
+            plain English and it builds the workflow, runs it, and leaves
+            behind something you can inspect, edit, and rerun.
           </motion.p>
         </div>
 

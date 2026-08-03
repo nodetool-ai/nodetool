@@ -122,25 +122,26 @@ export default function CreativesPage() {
                 <div className="relative inline-flex items-center gap-2.5 px-6 py-2.5 rounded-full border border-rose-500/30 bg-gradient-to-r from-rose-500/[0.08] via-amber-500/[0.05] to-cyan-500/[0.08] mb-10 shadow-[0_0_40px_-10px_rgba(244,63,94,0.35)]">
                   <Sparkles className="w-4 h-4 text-rose-400" />
                   <span className="text-sm font-medium text-white tracking-wide">
-                    The open canvas for working creatives
+                    The agent-first canvas for working creatives
                   </span>
                 </div>
 
                 <h1 className="text-5xl md:text-7xl lg:text-[5.5rem] font-bold tracking-tight leading-[1.05] mb-10">
-                  <span className="text-white">Think it.</span>{" "}
+                  <span className="text-white">Say it.</span>{" "}
                   <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 via-emerald-300 to-cyan-400">
-                    Generate it.
+                    Watch it made.
                   </span>
                   <br />
                   <span className="text-white/90 text-3xl md:text-5xl lg:text-6xl">
-                    Image, music &amp; video in one studio.
+                    Image, music &amp; video in one agent-first studio.
                   </span>
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-12 max-w-3xl mx-auto leading-relaxed">
-                  Every model. Your keys. Your canvas. Bring Seedance, Kling, Veo,
-                  Runway, Luma, Suno, and Flux together in one open-source workspace,
-                  with no marked-up credits and nothing locking you in.
+                  Every model. Your keys. Your agent. Describe the piece and the
+                  agent plans the shots, builds the workflow, and runs Seedance,
+                  Kling, Veo, Runway, Luma, Suno, and Flux in one open-source
+                  workspace — no marked-up credits, nothing locking you in.
                 </p>
 
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-14">

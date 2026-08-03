@@ -28,10 +28,11 @@ const BASE_URL = "https://nodetool.ai";
 // --- Preamble prose (hand-written; edit here) --------------------------------
 const PREAMBLE = `# NodeTool
 
-> NodeTool is the open-source creative AI workspace: a node-based canvas that wires image, video, audio, and text models from every major provider into one workflow, plus planning agents that run multi-step jobs on the same canvas. Bring your own API keys. Runs as a free desktop app (Studio) or in the browser (Cloud). Licensed AGPL-3.0.
+> NodeTool is the open-source, agent-first creative workspace: every editor — a node-based canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools. An agent builds workflows that wire image, video, audio, and text models from every major provider, runs them, and repairs what fails. Bring your own API keys. Runs as a free desktop app (Studio) or in the browser (Cloud). Licensed AGPL-3.0.
 
 ## What NodeTool is
 
+- An agent-first workspace: every editor is exposed to agents as tools, around 120 in all, and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, the same app hosted in a browser (currently in alpha).
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -48,14 +49,14 @@ const PREAMBLE = `# NodeTool
 
 /** A short blurb per key page, keyed by route (falls back to entry.description). */
 const KEY_PAGE_BLURBS = {
-  "/": "what NodeTool is, Studio vs Cloud, what you can build.",
-  "/studio": "the free, open-source desktop app; local models, offline use.",
+  "/": "what NodeTool is, the agent-first model, Studio vs Cloud.",
+  "/studio": "the free, open-source desktop app; the agent and models run locally.",
   "/cloud": "the hosted, browser-based edition (alpha).",
   "/pricing": "edition comparison and how BYOK pricing works.",
-  "/agents": "building and running AI agents visually on the canvas.",
+  "/agents": "the agent-first model: every editor exposed to agents as tools.",
   "/creatives": "artists, motion designers, AI-native illustrators.",
-  "/developers": "TypeScript SDK, REST API, custom nodes in TypeScript or Python.",
-  "/marketing": "product videos, ad creative, and brand assets at campaign scale.",
+  "/developers": "TypeScript SDK, REST API, MCP server, custom nodes in TypeScript or Python.",
+  "/marketing": "hand a brief to an agent; campaign assets at volume.",
 };
 
 const KEY_PAGE_LABELS = {
@@ -97,8 +98,8 @@ function markdownPath(route) {
 const MARKDOWN_PAGES = {
   "index.md": {
     title: "NodeTool",
-    description: "The open-source creative AI workspace.",
-    body: `NodeTool is an open-source visual workspace for building and running AI workflows. It connects image, video, audio, language, agent, and data models on a node-based canvas.
+    description: "The open-source, agent-first creative workspace.",
+    body: `NodeTool is an open-source, agent-first visual workspace for building and running AI workflows. Every editor is exposed to [agents](${BASE_URL}/agents.md) as tools: an agent can build the workflow, run it, and repair what fails. The canvas connects image, video, audio, language, agent, and data models on a node-based graph.
 
 ## Editions
 
@@ -114,8 +115,8 @@ const MARKDOWN_PAGES = {
   },
   "studio.md": {
     title: "NodeTool Studio",
-    description: "The local-first NodeTool desktop application.",
-    body: `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows locally and can use local models or provider API keys.
+    description: "The local-first, agent-first NodeTool desktop application.",
+    body: `NodeTool Studio is the free desktop edition of NodeTool for macOS, Windows, and Linux. It runs workflows locally and can use local models or provider API keys. The agent runs locally too: it builds and runs workflows on your machine, and the full toolbelt is exposed over MCP for outside agents such as Claude Desktop and Claude Code.
 
 Use Studio when you need local execution, offline work, or control of workflow files and provider credentials.
 
@@ -124,14 +125,15 @@ See the [installation guide](https://docs.nodetool.ai/installation.md) for suppo
   "cloud.md": {
     title: "NodeTool Cloud",
     description: "The hosted browser edition of NodeTool.",
-    body: `NodeTool Cloud is the hosted browser edition of NodeTool. It provides the same workflow canvas without a desktop installation.
+    body: `NodeTool Cloud is the hosted browser edition of NodeTool. It provides the same agent-first workspace without a desktop installation: describe what you want and the agent builds and runs the workflow.
 
 Cloud uses bring-your-own provider keys. See [pricing](${BASE_URL}/pricing.md) and [technical documentation](https://docs.nodetool.ai/llms.txt) for deployment and configuration details.`,
   },
   "developers.md": {
     title: "NodeTool Developer Platform",
-    description: "Build, run, extend, and deploy NodeTool workflows with code.",
-    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime.
+    description:
+      "Build, run, extend, and deploy NodeTool workflows with code — or through an agent.",
+    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime. It is agent-first: every editor is exposed as tools, around 120 in all, and the full toolbelt speaks MCP, so Claude Code or any MCP-aware agent can build, validate, run, and debug workflows.
 
 Use the [CLI](https://docs.nodetool.ai/cli.md) for automation, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) to discover node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to extend NodeTool.`,
   },
@@ -150,13 +152,13 @@ Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for ins
   },
   "creatives.md": {
     title: "NodeTool for Creatives",
-    description: "A visual workspace for creative AI workflows.",
-    body: `NodeTool lets creative teams combine image, video, audio, and language models in reusable visual workflows. It supports local and cloud models, editing tools, and provider keys that stay under the user's control.`,
+    description: "An agent-first workspace for creative AI work.",
+    body: `NodeTool lets creative teams combine image, video, audio, and language models in reusable visual workflows — and lets an agent do the building: describe the piece and the agent plans the shots, authors the workflow, and runs it. It supports local and cloud models, editing tools, and provider keys that stay under the user's control.`,
   },
   "marketing.md": {
     title: "NodeTool for Marketing Teams",
-    description: "Generate and adapt campaign assets with AI workflows.",
-    body: `NodeTool helps marketing teams build repeatable workflows for campaign visuals, product videos, social assets, and research. Workflows can be shared as focused mini-app interfaces while preserving the underlying graph.`,
+    description: "Hand the brief to an agent; get campaign assets at volume.",
+    body: `NodeTool helps marketing teams turn a brief into repeatable workflows for campaign visuals, product videos, social assets, and research — an agent builds the workflow from the brief and runs it at campaign volume. Workflows can be shared as focused mini-app interfaces while preserving the underlying graph.`,
   },
 };
 

@@ -2,14 +2,16 @@ import JsonLd from "../../components/JsonLd";
 import type { Metadata, Viewport } from "next";
 
 export const metadata: Metadata = {
-  title: "NodeTool for marketing teams | AI production at campaign scale",
+  title: "NodeTool for marketing teams | Agent-first production at campaign scale",
   description:
-    "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No marked-up credits, no lock-in, output at campaign volume.",
+    "The agent-first workspace for marketing teams: hand the brief to an agent and it builds the workflow that turns out product videos, ad creative, social calendars, and brand assets from every major model, with your own keys. No marked-up credits, no lock-in, output at campaign volume.",
   metadataBase: new URL("https://nodetool.ai"),
   alternates: {
     canonical: "/marketing",
   },
   keywords: [
+    "AI marketing agent",
+    "agent-first marketing workspace",
     "AI product video generator",
     "AI content calendar tool",
     "brand asset generator AI",
@@ -18,9 +20,9 @@ export const metadata: Metadata = {
     "BYOK AI for marketing teams",
   ],
   openGraph: {
-    title: "NodeTool for marketing teams | AI production at campaign scale",
+    title: "NodeTool for marketing teams | Agent-first production at campaign scale",
     description:
-      "Product videos, ad creative, social calendars, and brand assets — every model, your keys, one canvas built for campaign volume.",
+      "Hand the brief to an agent: product videos, ad creative, social calendars, and brand assets — every model, your keys, built for campaign volume.",
     url: "https://nodetool.ai/marketing",
     siteName: "NodeTool",
     images: [
@@ -36,7 +38,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NodeTool for marketing teams",
     description:
-      "Every model. Your keys. Your canvas. AI production at campaign scale.",
+      "Every model. Your keys. Your agent. AI production at campaign scale.",
     images: ["/preview.png"],
   },
 };
@@ -59,7 +61,7 @@ export default function MarketingLayout({
           "@type": "SoftwareApplication",
           name: "NodeTool for Marketing Teams",
           description:
-            "The open AI workspace for marketing teams: product videos, ad creative, social calendars, and brand assets from every major model, called with your own keys, on one node-based canvas. No marked-up credits, no lock-in, output at campaign volume.",
+            "The agent-first workspace for marketing teams: hand the brief to an agent and it builds the workflow that turns out product videos, ad creative, social calendars, and brand assets from every major model, with your own keys. No marked-up credits, no lock-in, output at campaign volume.",
           applicationCategory: "MultimediaApplication",
           operatingSystem: "macOS, Windows, Linux, Web browser",
           url: "https://nodetool.ai/marketing",
