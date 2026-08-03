@@ -1,0 +1,141 @@
+name: Docker Smoke
+
+# Blocking PR check for the deploy artifact. `docker.yml` builds the image only
+# after a merge to main, so until this existed nothing verified the image before
+# it landed: a Dockerfile that could not build survived 49 commits on main,
+# taking the Fly deploy with it (fly-deploy.yml gates on docker.yml).
+#
+# This builds the same image, boots it, and loads the app in a real browser —
+# the three ways it can be broken while every other check stays green.
+on:
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "package.json"
+      - "package-lock.json"
+      - "packages/**"
+      - "reliability/**"
+      - "web/**"
+      - "scripts/**"
+      - "tsconfig*.json"
+      - "turbo.json"
+      - ".nvmrc"
+      - ".github/workflows/docker-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  # Read-only pull of main's buildcache layers. Never written from a PR.
+  packages: read
+
+# The newest push is the only one worth an image build.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  docker-smoke:
+    name: Image builds, serves, and loads
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      - name: Login to GitHub Container Registry
+        # Only to read the buildcache. Fork PRs get a token that cannot, so a
+        # failure here costs cache hits, not the check.
+        continue-on-error: true
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0 # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Chromium downloads while nothing else needs the runner, so the browser
+      # is ready the moment the container is.
+      #
+      # Installed in a scratch directory, never the repo: `npm install` at the
+      # workspace root would reify all 60-odd workspaces, which is minutes of
+      # work this check has no use for — it talks to the container over HTTP
+      # and needs nothing from the source tree but the script itself.
+      #
+      # No --with-deps: the ubuntu-latest image already carries the shared
+      # libraries Chromium links against, and the apt update it triggers costs
+      # more than the browser download.
+      - name: Install Playwright Chromium
+        run: |
+          mkdir -p /tmp/smoke
+          cp scripts/docker-smoke.mjs /tmp/smoke/
+          cd /tmp/smoke
+          npm init -y >/dev/null
+          npm install --no-audit --no-fund playwright@1.60.0
+          npx playwright install chromium
+
+      - name: Build image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: false
+          load: true
+          tags: nodetool:pr
+          build-args: |
+            GIT_COMMIT_HASH=${{ github.event.pull_request.head.sha }}
+            BUILD_NUMBER=${{ github.run_number }}
+          # Reuse the layers main already published. cache-to is deliberately
+          # absent — a PR must not overwrite the cache main builds from.
+          cache-from: type=registry,ref=ghcr.io/nodetool-ai/nodetool:buildcache
+          provenance: false
+          sbom: false
+
+      # --network host so requests reach the server over loopback. Under a
+      # published port they arrive from the bridge gateway, which `local` auth
+      # mode treats as remote and answers 401.
+      - name: Start container
+        run: |
+          docker run -d --name nodetool-smoke --network host \
+            -e DB_PATH=/workspace/nodetool.sqlite \
+            -e SECRETS_MASTER_KEY="RE9DS0VSX1NNT0tFX0tFWV9ET19OT1RfVVNFISE=" \
+            nodetool:pr
+
+      - name: Wait for health
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fs http://localhost:7777/health >/dev/null; then
+              echo "Healthy after ${attempt}s."
+              exit 0
+            fi
+            if [ -z "$(docker ps -q -f name=nodetool-smoke)" ]; then
+              echo "::error::Container exited before serving /health."
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "::error::/health did not answer within 60s."
+          exit 1
+
+      - name: Load the app in a browser
+        working-directory: /tmp/smoke
+        run: node docker-smoke.mjs http://localhost:7777
+
+      - name: Dump container logs
+        if: failure()
+        run: docker logs nodetool-smoke 2>&1 | tail -100
+
+      - name: Upload screenshot
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-smoke-screenshot
+          path: /tmp/smoke/docker-smoke.png
+          if-no-files-found: ignore
+
+      - name: Stop container
+        if: always()
+        run: docker rm -f nodetool-smoke || true
