@@ -115,7 +115,7 @@ protocol → config → security → auth → storage
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
-- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), SimpleAgent (single-step), AgentExecutor (value extraction)
+- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), StepExecutor (tool-calling loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
 - **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
@@ -177,36 +177,40 @@ npm run nodetool -- <command>
 npm run chat -- [flags]
 ```
 
-### nodetool chat (Agent Mode)
+### nodetool chat
+
+Every chat session runs the unified agent loop. There is no mode to select:
+`-a, --agent` and `--no-agent` are accepted for backwards compatibility and do
+nothing (`packages/cli/src/index.ts` marks both `[deprecated] No-op`).
 
 ```bash
-# Interactive agent chat
-npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
-npm run dev:chat -- --agent --provider anthropic --model claude-sonnet-5
+# Interactive chat
+npm run dev:chat -- --provider openai --model gpt-5.4-mini
+npm run dev:chat -- --provider anthropic --model claude-sonnet-5
 
 # Piped input (non-interactive)
-echo "research 5 AI topics" | npm run dev:chat -- --agent --provider openai --model gpt-5.4-mini
+echo "research 5 AI topics" | npm run dev:chat -- --provider openai --model gpt-5.4-mini
 
 # Connect to running WebSocket server
-npm run dev:chat -- --agent --url ws://localhost:7777/ws
+npm run dev:chat -- --url ws://localhost:7777/ws
 ```
 
 Chat flags:
 ```
--a, --agent [mode]       Agent mode: off | loop | plan | graph | multi-agent
-                         (default: plan when --agent is given without a value)
---no-agent               Force agent mode off
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
                          moonshot, minimax, cerebras, together, openrouter,
-                         huggingface, replicate, kie, aki, ollama, lmstudio
+                         huggingface, replicate, kie, aki, ollama, lmstudio,
+                         claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)
 -m, --model <id>         Model ID (e.g. claude-sonnet-5, gpt-5.4-mini)
 -w, --workspace <path>   Workspace directory for file tools
 --tools <list>           Comma-separated tool names
 -u, --url <ws-url>       Connect to WebSocket server instead of local provider
+-a, --agent [mode]       [deprecated] No-op
+--no-agent               [deprecated] No-op
 ```
 
-Interactive commands: `/agent <off|loop|plan|graph|multi-agent>`, `/model <id>`, `/provider <name>`, `/tools`, `/clear`, `/exit`
+Interactive commands: `/help`, `/new`, `/clear`, `/compact [instructions]`, `/model <id>`, `/provider <name>`, `/tools`, `/exit`, `/quit`
 
 ### nodetool serve
 

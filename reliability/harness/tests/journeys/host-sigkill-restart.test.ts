@@ -47,7 +47,14 @@ import { packWebSocketMessage, unpackWebSocketMessage } from "@nodetool-ai/webso
 import { initDb, closeDb, Job } from "@nodetool-ai/models";
 import { findRepoRoot, resolveTsxBin } from "../../src/drivers/repo-root.js";
 
-const BOOT_TIMEOUT_MS = 20_000;
+// This journey boots the server twice (once fresh, once after the SIGKILL),
+// and each boot pays `tsx`'s runtime TypeScript compile. On an idle machine the
+// whole test runs in ~29s; on a loaded CI runner doing a cold, fully-parallel
+// package run, a single boot alone overran the old 20s cap and the suite failed
+// with "never became healthy within 20000ms". Budget for the slow case rather
+// than the fast one — this is still a hard cap, just one wide enough that
+// tripping it means the server genuinely did not come up.
+const BOOT_TIMEOUT_MS = 60_000;
 
 function freePort(): Promise<number> {
   return new Promise((resolvePromise, reject) => {
@@ -199,7 +206,9 @@ describe("host-sigkill-restart (task D3)", () => {
 
   it(
     "SIGKILL mid-run + relaunch: the new process is healthy, a fresh run succeeds, and the killed run's Job row is never silently rewritten by the restart",
-    { timeout: 60_000 },
+    // Two boots at up to BOOT_TIMEOUT_MS each, plus the run itself — the old
+    // 60s budget could not fit even two worst-case boots.
+    { timeout: 180_000 },
     async () => {
       dbDir = await mkdtemp(join(tmpdir(), "reliability-sigkill-"));
       const dbPath = join(dbDir, "nodetool.sqlite3");

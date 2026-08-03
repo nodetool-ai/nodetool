@@ -36,7 +36,7 @@ Structured result (validated against output JSON schema)
 | Class | When to Use | Source |
 |---|---|---|
 | **Agent** | Multi-step objectives needing decomposition (full DAG planning + execution) | `packages/agents/src/agent.ts` |
-| **AgentExecutor** | Lightweight value extraction | `packages/agents/src/agent-executor.ts` |
+| **ParallelTaskExecutor** | Execute independent tasks of a plan concurrently | `packages/agents/src/parallel-task-executor.ts` |
 | **TaskPlanner** | Decompose an objective into a task DAG | `packages/agents/src/task-planner.ts` |
 | **TaskExecutor** | Walk the step DAG, respecting dependency order | `packages/agents/src/task-executor.ts` |
 | **StepExecutor** | Run the tool-calling loop for a single step | `packages/agents/src/step-executor.ts` |

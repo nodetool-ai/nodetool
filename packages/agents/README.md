@@ -1,7 +1,7 @@
 # @nodetool-ai/agents
 
 The planning agent system: `TaskPlanner` → `TaskExecutor` → `StepExecutor`,
-plus `SimpleAgent`, the parallel task executor, skills, and agent tools.
+plus `ParallelTaskExecutor`, skills, and agent tools.
 
 ## Responsibilities
 
