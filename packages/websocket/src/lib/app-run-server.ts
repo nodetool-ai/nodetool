@@ -21,7 +21,6 @@ import type {
   AppServerRunOutcome
 } from "@nodetool-ai/execution/app-debug";
 import { getSecret } from "@nodetool-ai/models";
-import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
@@ -50,12 +49,6 @@ export function createAppServerRunner(
     const session = await ExecutionSession.create({
       graph: input.graph as unknown as RawGraphInput,
       registry,
-      // Registry alone hydrates node flags but not `propertyTypes`, and
-      // correlation analysis reads list-ness only from that map — without the
-      // resolver every `list[...]` handle reads as non-list and a stream
-      // arriving on one collapses to empty scope. An app harness that runs a
-      // graph differently from the runner reports a defect that is its own.
-      resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
       jobId,
       workflowId: input.workflowId,
       params: input.params,

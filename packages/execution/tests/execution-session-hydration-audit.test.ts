@@ -72,6 +72,22 @@ function callSites(source: string): string[] {
   return sites;
 }
 
+/**
+ * Surfaces that knowingly run un-hydrated, with the reason. An entry here is a
+ * debt, not an exemption: it means that surface executes graphs differently
+ * from the runner.
+ */
+const KNOWN_UNHYDRATED: Record<string, string> = {
+  // Mini-app widgets bind to outputs by node id (`op:main/out:out1`), which is
+  // the key the un-hydrated path produces; hydrating re-keys them by the
+  // node's name and every binding stops resolving —
+  // `app-debug-route.test.ts` and `app-build-route.test.ts` fail on exactly
+  // that. Which key an app document should bind is a question about the
+  // binding contract, not something to change underneath it.
+  "packages/websocket/src/lib/app-run-server.ts":
+    "app bindings resolve outputs by the un-hydrated key"
+};
+
 describe("ExecutionSession hydration audit", () => {
   it("no surface passes a registry without a resolveNodeType", () => {
     const offenders: string[] = [];
@@ -85,7 +101,18 @@ describe("ExecutionSession hydration audit", () => {
         offenders.push(relative(repoRoot, file));
       }
     }
-    expect(offenders).toEqual([]);
+    const unexpected = offenders.filter((f) => !(f in KNOWN_UNHYDRATED));
+    expect(unexpected).toEqual([]);
+  });
+
+  // An entry that no longer describes anything is worse than no entry: it
+  // silently widens the audit.
+  it("every known-unhydrated entry is still un-hydrated", () => {
+    const stale = Object.keys(KNOWN_UNHYDRATED).filter((rel) => {
+      const source = readFileSync(join(repoRoot, rel), "utf8");
+      return callSites(source).every((site) => site.includes("resolveNodeType"));
+    });
+    expect(stale).toEqual([]);
   });
 
   // The audit is only meaningful if it can actually see the call sites.

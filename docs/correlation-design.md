@@ -757,6 +757,13 @@ agent, the headless job runner, and the app run server. Callers that hydrate
 themselves (`Graph.loadFromDict` with their own resolver — the websocket
 runner) pass no `registry` and are unaffected.
 
+Three of the four are fixed. The app run server is not: hydration also resolves
+`outputs`, and mini-app widgets bind to them by node id (`op:main/out:out1`),
+which is the key the un-hydrated path produces. Hydrating re-keys the outputs by
+the node's name and every binding stops resolving. Which key an app document
+should bind is a question about the binding contract, so it is recorded as a
+known exception rather than changed underneath it.
+
 `packages/execution/tests/execution-session-hydration-audit.test.ts` fails, by
 filename, on any call site that passes a registry without a resolver.
 
