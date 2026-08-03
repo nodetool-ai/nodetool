@@ -100,21 +100,24 @@ export default function AgentsGraphHero() {
                         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-500/10 border border-rose-500/20 mb-6">
                             <Sparkles className="w-4 h-4 text-rose-300" />
                             <span className="text-sm font-medium text-rose-200">
-                                Agents for creative work
+                                An agent-first creative workspace
                             </span>
                         </div>
 
                         <h1 className="text-5xl md:text-7xl font-bold tracking-tight text-white mb-8">
-                            An art director <br />
+                            The whole studio is <br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-rose-400 via-amber-300 to-cyan-400">
-                                that never sleeps.
+                                the agent&apos;s toolbelt.
                             </span>
                         </h1>
 
                         <p className="text-lg md:text-xl text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto">
-                            Drop an agent on the canvas, hand it a brief, and watch it plan the shot,
-                            pick the right model, generate variants, and stitch the cut — across Flux,
-                            Seedance, Veo, Kling, Suno, and ElevenLabs. You direct, it executes.
+                            NodeTool isn&apos;t a chat box bolted onto an editor. Every surface —
+                            the node canvas, the sketch pad, the storyboard, the video timeline,
+                            the app builder — is exposed to agents as tools, around 120 in all.
+                            Hand over a brief and the agent plans the shots, builds the workflow,
+                            runs it across Flux, Seedance, Veo, Kling, Suno, and ElevenLabs, and
+                            retries what misses. You direct, it executes.
                         </p>
 
                         <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -132,7 +135,7 @@ export default function AgentsGraphHero() {
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
                             <span>Your own keys, paid straight to the provider</span>
                             <span className="w-1 h-1 rounded-full bg-slate-700" />
-                            <span>Watch every step</span>
+                            <span>Every decision on screen</span>
                         </div>
                     </motion.div>
                 </div>

@@ -193,6 +193,15 @@ const seeds: FaqSeed[] = [
     surfaces: [],
   },
   {
+    slug: "what-does-agent-first-mean",
+    question: "What does it mean that NodeTool is agent-first?",
+    answerMd:
+      "Every editor in NodeTool — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all. An agent doesn't describe what you could do; it builds the workflow, runs it, and repairs what fails, on the same surfaces you use. The same tools are exposed over **MCP**, so outside agents such as Claude Desktop and Claude Code can drive NodeTool too.",
+    category: "general",
+    relatedRoute: "/agents",
+    surfaces: ["agents"],
+  },
+  {
     slug: "what-is-a-planning-agent",
     question: "What is a planning agent?",
     answerMd:
