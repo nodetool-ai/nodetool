@@ -25,6 +25,7 @@ import type {
   Intervention
 } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "@nodetool-ai/protocol";
+import { ensureBounded, redactValue } from "./supervisor.js";
 import type { SupervisorHandle } from "./supervisor.js";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
@@ -439,10 +440,20 @@ export class WorkflowRunner {
     return this._interventions.length > 0 ? this._interventions : undefined;
   }
 
+  /**
+   * The handle every escalation actually goes through: whatever the caller
+   * configured, under the kernel's bounds. Nothing else in the runner reads
+   * `_options.supervisor`.
+   */
+  private readonly _supervisor: SupervisorHandle | undefined;
+
   constructor(jobId: string, options: WorkflowRunnerOptions) {
     this.jobId = jobId;
     this._effectiveJobId = jobId;
     this._options = options;
+    this._supervisor = options.supervisor
+      ? ensureBounded(options.supervisor)
+      : undefined;
   }
 
   // -----------------------------------------------------------------------
@@ -844,6 +855,13 @@ export class WorkflowRunner {
   }
 
   private _runStateDigest(): RunStateDigest {
+    // A node error is raw `err.message` — an HTTP failure echoing its URL
+    // carries the key it was called with. The digest goes to the supervisor
+    // model, so it is redacted here, where the digest is built, exactly as the
+    // actor redacts an escalation's `detail`.
+    const secrets =
+      this._options.executionContext?.getResolvedSecretValues?.() ??
+      new Set<string>();
     const escalationsPerNode = new Map<string, number>();
     for (const intervention of this._interventions) {
       const nodeId = intervention.escalation.nodeId;
@@ -867,7 +885,9 @@ export class WorkflowRunner {
         emissions,
         escalations: escalationsPerNode.get(node.id) ?? 0
       };
-      if (error !== undefined) state.error = error;
+      if (error !== undefined) {
+        state.error = String(redactValue(error, secrets));
+      }
       return state;
     });
     return {
@@ -1374,7 +1394,7 @@ export class WorkflowRunner {
     // supervisor must never be worse for the run than no supervisor: it
     // proceeds without a reader and its decisions degrade to `fail`.
     try {
-      this._options.supervisor?.attach?.(this._runStateReader());
+      this._supervisor?.attach?.(this._runStateReader());
     } catch (error) {
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
       log.warn("Supervisor attach failed; running without a run-state view", {
@@ -1427,7 +1447,7 @@ export class WorkflowRunner {
         cancelSignal: this._abortController.signal,
         signalSlotEos: (sourceNodeId, slot) =>
           this._signalSlotEos(sourceNodeId, slot),
-        supervisor: this._options.supervisor,
+        supervisor: this._supervisor,
         onIntervention: (intervention) => this._interventions.push(intervention)
       });
 
@@ -1611,7 +1631,7 @@ export class WorkflowRunner {
       return;
     }
 
-    if (this._options.supervisor) {
+    if (this._supervisor) {
       this._recordNodeOutput(
         sourceNodeId,
         outputs,
