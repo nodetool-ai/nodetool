@@ -151,16 +151,6 @@ export const createPadding = (theme: Theme, ...values: number[]): string => {
 };
 
 /**
- * Helper function to create consistent margin strings
- * @param theme - MUI theme
- * @param values - Spacing values (top, right, bottom, left) or single value
- * @returns CSS margin string
- */
-export const createMargin = (theme: Theme, ...values: number[]): string => {
-  return values.map((v) => theme.spacing(v)).join(" ");
-};
-
-/**
  * Type-safe spacing value type
  */
 export type SpacingValue = number | keyof typeof SPACING;

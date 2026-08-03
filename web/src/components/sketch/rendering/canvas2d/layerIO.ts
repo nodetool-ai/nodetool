@@ -179,10 +179,6 @@ export function getCanvasSerializedData(
   return (canvas as CanvasWithSerializedTag)[CANVAS_SERIALIZED_DATA_KEY];
 }
 
-export function clearCanvasSerializedData(canvas: HTMLCanvasElement): void {
-  delete (canvas as CanvasWithSerializedTag)[CANVAS_SERIALIZED_DATA_KEY];
-}
-
 export function getLayerDataFromCanvas(
   canvas: HTMLCanvasElement
 ): string | null {

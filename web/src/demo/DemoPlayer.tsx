@@ -13,7 +13,7 @@
  * provider stack the editor uses, and reuses the production BaseNode / Preview /
  * Output components so the graph looks exactly like the product.
  */
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -259,21 +259,3 @@ export function DemoPlayer({
 }
 
 export default DemoPlayer;
-
-/** Convenience: a player that owns its own clock, for non-Remotion previews. */
-export function useDemoClock(durationMs: number, playing: boolean): number {
-  const [timeMs, setTimeMs] = useState(0);
-  useEffect(() => {
-    if (!playing) return;
-    let raf = 0;
-    const start = performance.now() - timeMs;
-    const tick = (now: number) => {
-      const t = now - start;
-      setTimeMs(t >= durationMs ? durationMs : t);
-      if (t < durationMs) raf = requestAnimationFrame(tick);
-    };
-    raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
-  }, [playing, durationMs]);
-  return timeMs;
-}

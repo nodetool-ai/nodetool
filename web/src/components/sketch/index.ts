@@ -154,7 +154,7 @@ export type {
   SketchPasteDrawParams
 } from "./sketchClipboard";
 
-export { getSamService, setSamService, SamServiceStub } from "./sam";
+export { getSamService, SamServiceStub } from "./sam";
 export { DEFAULT_SAM_MODEL_ID, DEFAULT_SAM_MODEL_NAME } from "./sam";
 export type {
   SamService,

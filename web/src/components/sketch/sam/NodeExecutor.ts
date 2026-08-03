@@ -81,12 +81,3 @@ export function getNodeExecutor(): NodeExecutor {
   }
   return executorInstance;
 }
-
-/**
- * Override the NodeExecutor instance.
- * Use this to swap in an API-based executor for standalone mode,
- * or a mock for testing.
- */
-export function setNodeExecutor(executor: NodeExecutor): void {
-  executorInstance = executor;
-}

@@ -29,7 +29,6 @@ export type { CoordinateMapperConfig } from "./CoordinateMapper";
 // ── Document sampling / hit-testing ────────────────────────────────────────
 export {
   sampleCompositeColor,
-  sampleCompositeRGBA,
   hitTestLayerAtDocPoint
 } from "./sampleDocument";
 
