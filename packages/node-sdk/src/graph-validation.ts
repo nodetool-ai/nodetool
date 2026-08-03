@@ -424,46 +424,71 @@ function streamingOutputHandles(
   registry: GraphValidationRegistry
 ): Set<string> {
   const streaming = new Set<string>();
-  const typeOf = new Map<string, string>();
-  for (const node of nodes) {
-    typeOf.set(String(node.id ?? ""), String(node.type ?? ""));
+
+  // Index the consumers of each source handle once. Asking `edges.some(...)`
+  // per node instead is O(nodes x edges), which on a 20k-node chain is half a
+  // billion comparisons before a single value has streamed anywhere.
+  const consumers = new Map<string, string[]>();
+  for (const e of edges) {
+    if (e.isControl || !e.source || !e.sourceHandle) continue;
+    const key = `${e.source}|${e.sourceHandle}`;
+    const list = consumers.get(key);
+    if (list) list.push(e.target);
+    else consumers.set(key, [e.target]);
   }
 
-  // Iterate to a fixed point; each pass can only add, and a chain is at most
-  // as long as the node count.
-  for (let pass = 0; pass <= nodes.length; pass++) {
-    let changed = false;
-    for (const node of nodes) {
-      const id = String(node.id ?? "");
-      const type = typeOf.get(id) ?? "";
-      const meta = registry.getMetadata(type);
-      if (!meta) continue;
-      const declared = meta.output_correlation ?? {};
-      const inheritsStream = edges.some(
-        (e) => e.target === id && streaming.has(`${e.source}|${e.sourceHandle}`)
-      );
-      // Dynamic outputs count too: a node that declares none statically
-      // (StructuredOutputGenerator) would otherwise be invisible here, and a
-      // stream passing through it would go unreported.
-      const handles = [
-        ...(meta.outputs ?? []).map((slot) => slot.name),
-        ...Object.keys(readDynamicOutputs(node))
-      ];
-      for (const handle of handles) {
-        const key = `${id}|${handle}`;
-        if (streaming.has(key)) continue;
-        const kind = declared[handle]?.kind;
+  const metaById = new Map<string, NodeMetadata | undefined>();
+  const handlesById = new Map<string, string[]>();
+  for (const node of nodes) {
+    const id = String(node.id ?? "");
+    const meta = registry.getMetadata(String(node.type ?? ""));
+    metaById.set(id, meta);
+    // Dynamic outputs count too: a node that declares none statically
+    // (StructuredOutputGenerator) would otherwise be invisible here, and a
+    // stream passing through it would go unreported.
+    handlesById.set(
+      id,
+      meta
+        ? [
+            ...(meta.outputs ?? []).map((slot) => slot.name),
+            ...Object.keys(readDynamicOutputs(node))
+          ]
+        : []
+    );
+  }
+
+  const queue: string[] = [];
+  const markStreaming = (key: string): void => {
+    if (streaming.has(key)) return;
+    streaming.add(key);
+    queue.push(key);
+  };
+
+  for (const node of nodes) {
+    const id = String(node.id ?? "");
+    const declared = metaById.get(id)?.output_correlation ?? {};
+    for (const handle of handlesById.get(id) ?? []) {
+      if (declared[handle]?.kind === "iteration") markStreaming(`${id}|${handle}`);
+    }
+  }
+
+  // A node reached by a stream re-emits one from every handle that does not
+  // aggregate, so each node only has to be expanded once. Index instead of
+  // shift(): shift() on a large array is O(n) per call.
+  const expanded = new Set<string>();
+  for (let head = 0; head < queue.length; head++) {
+    for (const target of consumers.get(queue[head]) ?? []) {
+      if (expanded.has(target)) continue;
+      expanded.add(target);
+      const declared = metaById.get(target)?.output_correlation ?? {};
+      for (const handle of handlesById.get(target) ?? []) {
         // `aggregate` is the one kind that ends a stream.
-        const emits =
-          kind === "iteration" || (kind !== "aggregate" && inheritsStream);
-        if (emits) {
-          streaming.add(key);
-          changed = true;
-        }
+        if (declared[handle]?.kind === "aggregate") continue;
+        markStreaming(`${target}|${handle}`);
       }
     }
-    if (!changed) break;
   }
+
   return streaming;
 }
 

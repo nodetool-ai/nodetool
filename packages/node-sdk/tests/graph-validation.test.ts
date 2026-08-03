@@ -809,6 +809,38 @@ describe("stream_into_list_input", () => {
     expect(has(report)).toBe(false);
   });
 
+  // The streaming walk indexes its edges once. Asking `edges.some(...)` per
+  // node instead is O(nodes x edges) — half a billion comparisons on this
+  // graph, and 40s of a CI job, before a single value has streamed anywhere.
+  it("scales to a long chain", () => {
+    const nodes = [
+      { id: "it", type: "a.Iter" },
+      ...Array.from({ length: 20000 }, (_, i) => ({
+        id: `m${i}`,
+        type: "a.Map"
+      }))
+    ];
+    const edges = [
+      {
+        id: "e-seed",
+        source: "it",
+        sourceHandle: "item",
+        target: "m0",
+        targetHandle: "input"
+      },
+      ...Array.from({ length: 19999 }, (_, i) => ({
+        id: `e${i}`,
+        source: `m${i}`,
+        sourceHandle: "output",
+        target: `m${i + 1}`,
+        targetHandle: "input"
+      }))
+    ];
+    const report = validateGraph({ nodes, edges }, registry);
+    // Every hop inherits the stream, and none of them is a list handle.
+    expect(has(report)).toBe(false);
+  });
+
   // Several edges into a list handle is the aggregating shape the kernel
   // already supports; fan_in owns that case and this check must stay out of it.
   it("ignores a list handle fed by several edges", () => {
