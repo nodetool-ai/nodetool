@@ -44,6 +44,311 @@
       ],
       "type": "object"
     },
+    "ModelCatalog": {
+      "additionalProperties": true,
+      "properties": {
+        "catalog_revision": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "entries": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "availability": {
+                "enum": [
+                  "ready_local",
+                  "ready_remote",
+                  "downloadable",
+                  "downloading",
+                  "unavailable"
+                ],
+                "type": "string"
+              },
+              "compatibility": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "display_name": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "key": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "path": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "provider": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "recommended": {
+                "type": "boolean"
+              },
+              "repo_id": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "scope": {
+                "enum": [
+                  "local",
+                  "worker"
+                ],
+                "type": "string"
+              },
+              "size_on_disk": {
+                "anyOf": [
+                  {
+                    "minimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "supported_tasks": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "wire_value": {
+                "additionalProperties": {},
+                "propertyNames": {
+                  "type": "string"
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "key",
+              "display_name",
+              "compatibility",
+              "availability",
+              "recommended",
+              "scope",
+              "provider",
+              "id",
+              "repo_id",
+              "path",
+              "supported_tasks",
+              "size_on_disk",
+              "wire_value"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "next_cursor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        },
+        "version": {
+          "const": "1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "catalog_revision",
+        "scope",
+        "entries",
+        "next_cursor"
+      ],
+      "type": "object"
+    },
+    "ModelCatalogEntry": {
+      "additionalProperties": true,
+      "properties": {
+        "availability": {
+          "enum": [
+            "ready_local",
+            "ready_remote",
+            "downloadable",
+            "downloading",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "compatibility": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "display_name": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "provider": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "recommended": {
+          "type": "boolean"
+        },
+        "repo_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        },
+        "size_on_disk": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "supported_tasks": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "wire_value": {
+          "additionalProperties": {},
+          "propertyNames": {
+            "type": "string"
+          },
+          "type": "object"
+        }
+      },
+      "required": [
+        "key",
+        "display_name",
+        "compatibility",
+        "availability",
+        "recommended",
+        "scope",
+        "provider",
+        "id",
+        "repo_id",
+        "path",
+        "supported_tasks",
+        "size_on_disk",
+        "wire_value"
+      ],
+      "type": "object"
+    },
+    "ModelCatalogQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "availability": {
+          "enum": [
+            "ready_local",
+            "ready_remote",
+            "downloadable",
+            "downloading",
+            "unavailable"
+          ],
+          "type": "string"
+        },
+        "compatibility": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "cursor": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "limit": {
+          "default": 200,
+          "maximum": 500,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "provider": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "default": "local",
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "NodeTypeInventoryInput": {
       "additionalProperties": false,
       "properties": {

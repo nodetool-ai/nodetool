@@ -14702,6 +14702,352 @@
         }
       ]
     },
+    "ModelDownloadCancelRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "operation_id"
+      ],
+      "type": "object"
+    },
+    "ModelDownloadQuery": {
+      "additionalProperties": false,
+      "properties": {
+        "operation_id": {
+          "maxLength": 1024,
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "default": "local",
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "ModelDownloadSnapshot": {
+      "additionalProperties": true,
+      "properties": {
+        "downloads": {
+          "items": {
+            "additionalProperties": true,
+            "properties": {
+              "current_files": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "downloaded_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "downloaded_files": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "error": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "model_type": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "operation_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "path": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "repo_id": {
+                "minLength": 1,
+                "type": "string"
+              },
+              "scope": {
+                "enum": [
+                  "local",
+                  "worker"
+                ],
+                "type": "string"
+              },
+              "started_at": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "type": "string"
+              },
+              "status": {
+                "enum": [
+                  "start",
+                  "progress",
+                  "completed",
+                  "error",
+                  "cancelled"
+                ],
+                "type": "string"
+              },
+              "total_bytes": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "total_files": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer"
+              },
+              "updated_at": {
+                "format": "date-time",
+                "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+                "type": "string"
+              },
+              "version": {
+                "const": "1",
+                "type": "string"
+              }
+            },
+            "required": [
+              "version",
+              "operation_id",
+              "scope",
+              "repo_id",
+              "path",
+              "model_type",
+              "status",
+              "downloaded_bytes",
+              "total_bytes",
+              "downloaded_files",
+              "current_files",
+              "total_files",
+              "error",
+              "started_at",
+              "updated_at"
+            ],
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "version": {
+          "const": "1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "downloads"
+      ],
+      "type": "object"
+    },
+    "ModelDownloadStartRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "allow_patterns": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "ignore_patterns": {
+          "anyOf": [
+            {
+              "items": {
+                "maxLength": 512,
+                "minLength": 1,
+                "type": "string"
+              },
+              "maxItems": 100,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_type": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "maxLength": 2048,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repo_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "default": "local",
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "repo_id",
+        "model_type"
+      ],
+      "type": "object"
+    },
+    "ModelDownloadState": {
+      "additionalProperties": true,
+      "properties": {
+        "current_files": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "downloaded_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "downloaded_files": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "error": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "model_type": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "operation_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "repo_id": {
+          "minLength": 1,
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "local",
+            "worker"
+          ],
+          "type": "string"
+        },
+        "started_at": {
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "start",
+            "progress",
+            "completed",
+            "error",
+            "cancelled"
+          ],
+          "type": "string"
+        },
+        "total_bytes": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "total_files": {
+          "maximum": 9007199254740991,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d(?::[0-5]\\d(?:\\.\\d+)?)?(?:Z))$",
+          "type": "string"
+        },
+        "version": {
+          "const": "1",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "operation_id",
+        "scope",
+        "repo_id",
+        "path",
+        "model_type",
+        "status",
+        "downloaded_bytes",
+        "total_bytes",
+        "downloaded_files",
+        "current_files",
+        "total_files",
+        "error",
+        "started_at",
+        "updated_at"
+      ],
+      "type": "object"
+    },
     "PreflightRequest": {
       "$defs": {
         "__schema0": {

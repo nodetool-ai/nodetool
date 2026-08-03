@@ -63,7 +63,7 @@ interface DownloadState {
   totalFiles: number;
   errorMessage: string | null;
   abortController: AbortController;
-  onProgress: ProgressCallback | undefined;
+  listeners: Set<ProgressCallback>;
 }
 
 export interface DownloadStateSnapshot {
@@ -257,6 +257,14 @@ export class DownloadManager {
       existing.status !== "error" &&
       existing.status !== "cancelled"
     ) {
+      if (onProgress) {
+        existing.listeners.add(onProgress);
+        try {
+          onProgress(this.toUpdate(existing));
+        } catch {
+          // Progress consumers must not interrupt the shared download.
+        }
+      }
       return;
     }
 
@@ -274,23 +282,12 @@ export class DownloadManager {
       totalFiles: 0,
       errorMessage: null,
       abortController,
-      onProgress
+      listeners: new Set(onProgress ? [onProgress] : [])
     };
     this.downloads.set(id, state);
 
     const emitProgress = () => {
-      onProgress?.({
-        status: state.status,
-        repo_id: state.repoId,
-        path: state.path,
-        model_type: state.modelType,
-        downloaded_bytes: state.downloadedBytes,
-        total_bytes: state.totalBytes,
-        downloaded_files: state.downloadedFiles.length,
-        current_files: [...state.currentFiles],
-        total_files: state.totalFiles,
-        ...(state.errorMessage ? { error: state.errorMessage } : {})
-      });
+      this.emitUpdate(state);
     };
 
     try {
@@ -415,17 +412,7 @@ export class DownloadManager {
     if (!state) return;
     state.abortController.abort();
     state.status = "cancelled";
-    state.onProgress?.({
-      status: "cancelled",
-      repo_id: state.repoId,
-      path: state.path,
-      model_type: state.modelType,
-      downloaded_bytes: state.downloadedBytes,
-      total_bytes: state.totalBytes,
-      downloaded_files: state.downloadedFiles.length,
-      current_files: [...state.currentFiles],
-      total_files: state.totalFiles
-    });
+    this.emitUpdate(state);
   }
 
   /**
@@ -457,6 +444,16 @@ export class DownloadManager {
     return fallback ? this.snapshot(fallback) : null;
   }
 
+  /** Return bounded immutable snapshots for transport and UI adapters. */
+  listDownloadStates(limit = 200): DownloadStateSnapshot[] {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 500) {
+      throw new RangeError("Download state limit must be between 1 and 500.");
+    }
+    return [...this.downloads.values()]
+      .slice(-limit)
+      .map((state) => this.snapshot(state));
+  }
+
   private snapshot(state: DownloadState): DownloadStateSnapshot {
     return {
       repoId: state.repoId,
@@ -470,6 +467,39 @@ export class DownloadManager {
       totalFiles: state.totalFiles,
       errorMessage: state.errorMessage
     };
+  }
+
+  private toUpdate(state: DownloadState): DownloadUpdate {
+    return {
+      status: state.status,
+      repo_id: state.repoId,
+      path: state.path,
+      model_type: state.modelType,
+      downloaded_bytes: state.downloadedBytes,
+      total_bytes: state.totalBytes,
+      downloaded_files: state.downloadedFiles.length,
+      current_files: [...state.currentFiles],
+      total_files: state.totalFiles,
+      ...(state.errorMessage ? { error: state.errorMessage } : {})
+    };
+  }
+
+  private emitUpdate(state: DownloadState): void {
+    const update = this.toUpdate(state);
+    for (const listener of state.listeners) {
+      try {
+        listener(update);
+      } catch {
+        // Progress consumers must not interrupt or fail the shared download.
+      }
+    }
+    if (
+      state.status === "completed" ||
+      state.status === "error" ||
+      state.status === "cancelled"
+    ) {
+      state.listeners.clear();
+    }
   }
 }
 

@@ -43,6 +43,7 @@ import {
   WebsocketPythonBridge,
   SwappableBridge,
   logPythonWorkerStderr,
+  type ModelDownloadUpdate,
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
@@ -59,7 +60,10 @@ import {
   runSeeds,
   touchWorkerInstance
 } from "@nodetool-ai/models";
-import { registerPythonProviders } from "./models-api.js";
+import {
+  registerPythonProviders,
+  relayWorkerDownload
+} from "./models-api.js";
 import type { HttpApiOptions } from "./http-api.js";
 import { handleMcpHttpRequest } from "./mcp-server.js";
 
@@ -103,6 +107,13 @@ import {
   isSdkV1DiscoveryRequest
 } from "./sdk/sdk-route-policy.js";
 import { createNodeToolSdkV1CapabilitiesProvider } from "./sdk/sdk-runtime-capabilities-service.js";
+import { createSdkV1ModelDownloadService } from "./sdk/sdk-model-download-service.js";
+import {
+  getSdkV1ModelCatalog,
+  SdkModelCatalogServiceError
+} from "./sdk/sdk-model-catalog-service.js";
+import type { UnifiedModel } from "@nodetool-ai/protocol";
+import { unifiedModel } from "@nodetool-ai/protocol/api-schemas/models.js";
 import { createNodeToolSdkV1PreflightService } from "./sdk/sdk-preflight-service.js";
 import { createSdkV1ExecutionTargetReadiness } from "./sdk/sdk-execution-target-readiness.js";
 import { SdkLiveRunnerRegistry } from "./sdk/sdk-live-runner-registry.js";
@@ -927,6 +938,49 @@ const resolveExecutionTarget = createSdkV1ExecutionTargetReadiness({
   getActiveWorker: () => workerManager.getActiveWorker()
 });
 
+function listRegistryRecommendedModels(): UnifiedModel[] {
+  const models: UnifiedModel[] = [];
+  for (const metadata of registry.listMetadata()) {
+    for (const candidate of metadata.recommended_models ?? []) {
+      const parsed = unifiedModel.safeParse(candidate);
+      if (parsed.success) {
+        models.push({
+          ...parsed.data,
+          provider:
+            parsed.data.provider == null
+              ? undefined
+              : (parsed.data.provider as UnifiedModel["provider"])
+        });
+      }
+    }
+  }
+  return models;
+}
+
+const sdkModelDownloadService = createSdkV1ModelDownloadService({
+  startWorkerDownload: (request, operationId, onProgress) =>
+    relayWorkerDownload(
+      {
+        send: (data) =>
+          onProgress(JSON.parse(data) as ModelDownloadUpdate)
+      },
+      pythonBridge,
+      workerManager,
+      {
+        command: "start_download",
+        repo_id: request.repo_id,
+        path: request.path ?? null,
+        allow_patterns: request.allow_patterns ?? null,
+        ignore_patterns: request.ignore_patterns ?? null,
+        model_type: request.model_type,
+        scope: "worker"
+      },
+      operationId
+    ),
+  cancelWorkerDownload: (operationId) =>
+    pythonBridge.cancelModelDownload(operationId)
+});
+
 const apiOptions: HttpApiOptions = {
   metadataRoots,
   registry,
@@ -939,6 +993,8 @@ const apiOptions: HttpApiOptions = {
       discovery: "available",
       execution: "available",
       preflight: "available",
+      model_catalog: "available",
+      model_download: "available",
       temporary_asset_upload: "available"
     },
     authModes: enforceAuth ? ["bearer"] : ["trusted_local"],
@@ -984,7 +1040,34 @@ const apiOptions: HttpApiOptions = {
         concurrent: target.concurrent
       });
     }
-  })
+  }),
+  sdkModelCatalogService: {
+    list: (args) =>
+      getSdkV1ModelCatalog({
+        ...args,
+        recommendedModels: listRegistryRecommendedModels(),
+        getWorkerModels: async () => {
+          const activeWorker = await workerManager?.getActiveWorker();
+          if (!activeWorker) {
+            throw new SdkModelCatalogServiceError(
+              "No worker is attached to this server."
+            );
+          }
+          if (!pythonBridge.supportsModelManagement()) {
+            throw new SdkModelCatalogServiceError(
+              "The attached worker does not support model management."
+            );
+          }
+          const models: UnifiedModel[] = [];
+          for (const candidate of await pythonBridge.listCachedModels()) {
+            const parsed = unifiedModel.safeParse(candidate);
+            if (parsed.success) models.push(parsed.data as UnifiedModel);
+          }
+          return models;
+        }
+      })
+  },
+  sdkModelDownloadService
 };
 if (_resolvedExamplesDir) {
   apiOptions.examplesDir = _resolvedExamplesDir;

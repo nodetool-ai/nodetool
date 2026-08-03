@@ -10,19 +10,19 @@
       "media_type": "application/vnd.oai.openapi+json;version=3.1",
       "path": "sdk-v1.openapi.json",
       "profile": "discovery",
-      "sha256": "e236c382bcb190969362032d45711c69a7fdde97d5fa1cd7a8fb2a15dcd8f85d"
+      "sha256": "b126b0bc030397ab12c49784563480c235a23e9a8ca93f9b8dc6ee2be132f0f2"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.lifecycle.schema.json",
       "profile": "lifecycle-draft",
-      "sha256": "4198b554ab11cdb1d8fad71aadf8b7b5cddbd5fb9b49f5fe4d95ddf915658101"
+      "sha256": "f1ed6231d998d85662fb9ecc7c978500428a24d2ac51b1ae1ce6eb9c37b08d0f"
     },
     {
       "media_type": "application/schema+json",
       "path": "sdk-v1.discovery.schema.json",
       "profile": "discovery",
-      "sha256": "c012ff82562e22911cc757a51861a77357c9e9768b38dd9ef4bd089496586daa"
+      "sha256": "a386e224e19b23a55cbb760c5877f9a5e64ba67438d525fe8d7fe58ee5ede982"
     }
   ],
   "default_websocket_encoding": "messagepack",
@@ -36,7 +36,9 @@
   ],
   "protocol_version": "1",
   "public_profiles": [
-    "discovery"
+    "discovery",
+    "model_catalog",
+    "model_download"
   ],
   "status": "draft"
 }

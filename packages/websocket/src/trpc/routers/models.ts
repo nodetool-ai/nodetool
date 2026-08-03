@@ -411,7 +411,9 @@ async function isLlamaCppModelCached(
 
 type ProviderInstance = Awaited<ReturnType<typeof getProvider>>;
 
-async function getAvailableProviderIds(userId: string): Promise<ProviderId[]> {
+export async function getAvailableProviderIds(
+  userId: string
+): Promise<ProviderId[]> {
   const ids = listRegisteredProviderIds();
   const getSecret = secretResolverFor(userId);
   const checks = await Promise.all(
@@ -774,7 +776,7 @@ function toOllamaModel(model: { id: string; name: string }) {
   };
 }
 
-async function getAllModels(userId: string): Promise<UnifiedModel[]> {
+export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
   all.push(...RECOMMENDED_MODELS);
