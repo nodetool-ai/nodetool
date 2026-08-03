@@ -1,0 +1,183 @@
+name: Documentation Correctness
+
+# Docs drift silently: a flag gets renamed, a script disappears, a package moves,
+# and the page describing it keeps saying the old thing. Nothing in CI catches
+# that — `docs-ci.yml` proves the site builds and its links resolve, not that its
+# sentences are true.
+#
+# This job collects ground truth from the repo itself (CLI help, npm scripts,
+# workspace list, the week's code changes), hands it to Claude, and asks it to
+# check the docs that describe those surfaces against what the code actually
+# does. Markdown only — it never edits code to make a doc true. Opens a PR,
+# never auto-merges.
+
+on:
+  schedule:
+    - cron: "10 5 * * *" # Daily at 05:10 UTC
+  workflow_dispatch:
+
+jobs:
+  docs-correctness:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: write
+      pull-requests: write
+      issues: write
+      actions: read
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+          cache: "npm"
+
+      - name: Install all workspace dependencies
+        run: npm ci
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+
+      # The CLI loads the node registry from dist/ (decorator packages), so its
+      # help output is only complete after a build.
+      - name: Build packages
+        run: npm run build:packages
+
+      - name: Collect ground truth
+        id: facts
+        continue-on-error: true
+        run: |
+          set -uo pipefail
+          mkdir -p docs-facts
+
+          # Every CLI command's help text — the reference the CLI docs and
+          # CLAUDE.md command blocks are supposed to match.
+          {
+            npm run --silent dev:nodetool -- --help
+            npm run --silent dev:nodetool -- --help 2>/dev/null \
+              | awk '/^Commands:/{f=1;next} f && /^  [a-z]/{print $1}' \
+              | sort -u \
+              | while read -r cmd; do
+                  echo ""
+                  echo "===== nodetool $cmd --help ====="
+                  npm run --silent dev:nodetool -- "$cmd" --help 2>&1 || true
+                done
+          } > docs-facts/cli-help.txt 2>&1 || true
+
+          node -e 'const s=require("./package.json").scripts||{};for(const k of Object.keys(s).sort())console.log(k+" = "+s[k])' \
+            > docs-facts/npm-scripts.txt 2>/dev/null || true
+
+          node -e 'const {workspaces=[]}=require("./package.json");console.log(workspaces.join("\n"))' \
+            > docs-facts/workspaces.txt 2>/dev/null || true
+          ls -1 packages >> docs-facts/workspaces.txt 2>/dev/null || true
+
+          # Docs describing code that moved this week are the likeliest to be stale.
+          git log --since="7 days ago" --name-only --pretty=format:"--- %h %s" \
+            > docs-facts/recent-changes.txt 2>/dev/null || true
+
+          {
+            echo "## Documentation Correctness — ground truth"
+            echo ""
+            echo "- CLI help: $(wc -l < docs-facts/cli-help.txt 2>/dev/null || echo 0) lines"
+            echo "- npm scripts: $(wc -l < docs-facts/npm-scripts.txt 2>/dev/null || echo 0)"
+            echo "- Commits in the last 7 days: $(git log --since='7 days ago' --oneline | wc -l)"
+          } >> $GITHUB_STEP_SUMMARY
+
+      - name: Record base commit
+        run: echo "BASE_SHA=$(git rev-parse HEAD)" >> $GITHUB_ENV
+
+      - name: Run Claude Code
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          additional_permissions: |
+            actions: read
+          claude_args: |
+            --model claude-opus-5
+            --allowedTools "Bash,Edit,Read,Replace,CreatePullRequest"
+            --append-system-prompt "All prose you write follows docs/WRITING_STYLE.md: concise, concrete, no AI slop (leverage, seamless, robust, comprehensive, it's worth noting, rule-of-three padding). Fix slop you pass in paragraphs you are already editing."
+          prompt: |
+            # Documentation Correctness
+
+            Check NodeTool's documentation against what the code actually does, and
+            fix the statements that are wrong.
+
+            ## Ground truth collected for you
+            - `docs-facts/cli-help.txt` — every CLI command's real help output
+            - `docs-facts/npm-scripts.txt` — the npm scripts that actually exist
+            - `docs-facts/workspaces.txt` — the real workspace/package list
+            - `docs-facts/recent-changes.txt` — files changed in the last 7 days
+
+            Docs describing code that changed this week are the likeliest to be
+            stale. Start there, then widen.
+
+            ## Scope
+            - `docs/**/*.md`
+            - `README.md`, `AGENTS.md`, `CLAUDE.md`, and per-package `CLAUDE.md` / `AGENTS.md` / `README.md`
+
+            ## What counts as an error
+
+            **Commands that do not exist or take different flags.** Every `npm run …`
+            and `nodetool …` invocation in a doc must exist with the flags shown.
+            Check against `docs-facts/npm-scripts.txt` and `docs-facts/cli-help.txt`,
+            not memory.
+
+            **Paths and file names that no longer resolve.** Every path a doc names
+            (`packages/foo/src/bar.ts`, `web/src/components/…`, script names, config
+            files) must exist. Verify each with `ls`/`test -e`.
+
+            **Symbols that were renamed or removed.** Class, function, hook, store,
+            node type, and env var names quoted in prose must appear in the code.
+            Grep for each before trusting it.
+
+            **Descriptions contradicted by the code.** Defaults, ports, ordering,
+            required versions, return shapes, message formats. Read the code path
+            before rewriting the sentence.
+
+            **Internal links that point nowhere.** Relative Markdown links to files
+            or headings that no longer exist.
+
+            ## Rules
+            - **Markdown only.** Never edit code to make a doc true — if a doc
+              describes better behavior than the code has, leave the code alone and
+              note it in the PR body instead of rewriting the doc into fiction.
+            - Verify every claim you change. If you cannot confirm what the correct
+              statement is, delete the wrong sentence rather than guessing a new one.
+            - Do not restructure, reword, or "improve" prose that is already correct.
+              This PR is a correction pass, not an editing pass.
+            - Do not touch CI workflow files.
+            - Do not add new documentation pages — `docs-completeness.yaml` covers gaps.
+            - Keep changes focused — maximum 15 files per PR.
+            - Do not commit the `docs-facts/` directory.
+
+            ## Before starting
+            - Run `gh pr list --state open --limit 20` — skip if a documentation
+              correctness PR is already open.
+
+            ## Submit
+            If you found nothing wrong, say so and open no PR.
+
+            Otherwise create a PR titled "docs: fix stale documentation" whose body
+            lists each correction as: the file, what the doc claimed, what the code
+            actually does, and how you verified it. Add a separate "Code that
+            contradicts its own docs" section for anything you chose not to fix.
+
+      # A docs job that edits code has done something it was told not to. Catch it
+      # here rather than in review — the PR is already open by this point, so this
+      # step failing is the signal to close it.
+      - name: Guard — Markdown-only changes
+        if: always()
+        run: |
+          set -uo pipefail
+          rm -rf docs-facts
+          CHANGED=$( { git diff --name-only "${BASE_SHA:-HEAD}" HEAD; git status --porcelain | awk '{print $NF}'; } | sort -u )
+          CODE_CHANGES=$(echo "$CHANGED" | grep -v -E '\.(md|markdown)$' | grep -v '^$' || true)
+          if [ -n "$CODE_CHANGES" ]; then
+            echo "::error::Non-Markdown files were modified by a docs-only job:"
+            echo "$CODE_CHANGES"
+            exit 1
+          fi
