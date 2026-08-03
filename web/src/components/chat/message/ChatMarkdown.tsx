@@ -65,6 +65,16 @@ const urlTransform: NonNullable<Options["urlTransform"]> = (url) =>
     ? url
     : defaultUrlTransform(url);
 
+/** Link text as a plain string — `[**Bold**](…)` hands the `a` override nodes. */
+const linkText = (node: React.ReactNode): string => {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(linkText).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return linkText(node.props.children);
+  }
+  return "";
+};
+
 const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: getSpacingPx(SPACING.md), verticalAlign: "middle" });
 const audioCss = css({ height: "32px" });
 const imageCss = css({ maxWidth: "100%", height: "auto", borderRadius: BORDER_RADIUS.md });
@@ -89,7 +99,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
         if (href && isResourceUri(href)) {
-          return <ResourceChip uri={href} label={String(children ?? href)} />;
+          return <ResourceChip uri={href} label={linkText(children) || href} />;
         }
         if (href && isImageHref(href)) {
           return (

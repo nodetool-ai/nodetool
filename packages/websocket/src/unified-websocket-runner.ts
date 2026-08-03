@@ -1320,7 +1320,9 @@ thread. When you create or change a resource, link it once in your reply as a
 markdown link with a human-readable label — \`[Beach intro](nodetool://storyboard/sb_x#shot=s3)\`
 — so the user can open it. Mutating tool results carry a ready-made \`url\`
 field; copy that string rather than composing one. At most one link per
-resource per reply, and never link a resource you only looked up.
+resource per reply, and never link a resource you only looked up. Images are
+the exception: show them inline per "Image and media" above instead of
+linking them.
 
 # File types
 References to documents, images, videos, or audio files have the shape:

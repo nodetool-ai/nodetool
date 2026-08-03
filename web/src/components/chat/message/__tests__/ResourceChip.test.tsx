@@ -10,7 +10,8 @@ const openResource = jest.fn();
 
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
-  openResource: (ref: unknown) => openResource(ref)
+  openResource: (ref: unknown) => openResource(ref),
+  canOpenResource: (kind: string) => kind !== "asset" && kind !== "collection" && kind !== "thread"
 }));
 
 const renderChip = (uri: string, label: string) =>

@@ -2,8 +2,8 @@
  * ResourceChip — inline chip for a `nodetool://` resource URI in chat prose.
  *
  * Renders a kind icon (a thumbnail for image assets) plus the link's own text,
- * and opens the resource on click. A URI that does not parse degrades to the
- * plain label, never a broken chip.
+ * and opens the resource on click when its kind has a surface to open. A URI
+ * that does not parse degrades to the plain label, never a broken chip.
  */
 
 import React, { useMemo } from "react";
@@ -22,7 +22,7 @@ import { parseResourceUri, type ResourceKind, type ResourceUri } from "@nodetool
 
 import { BORDER_RADIUS, Chip, SPACING, TYPOGRAPHY, getSpacingPx } from "../../ui_primitives";
 import { resolveUri } from "../../../utils/imageUtils";
-import { openResource } from "../../../lib/chat/openResource";
+import { canOpenResource, openResource } from "../../../lib/chat/openResource";
 import type { ToolAccent } from "./toolCallIcon";
 
 interface ResourceChipProps {
@@ -61,11 +61,13 @@ const looksLikeImage = (value: string): boolean => {
   return IMAGE_EXTENSIONS.some((ext) => lower.endsWith(ext));
 };
 
-const thumbnailFor = (ref: ResourceUri, label: string): string | null => {
-  if (ref.kind !== "asset") {
-    return null;
-  }
-  if (!looksLikeImage(label) && !looksLikeImage(ref.id)) {
+/**
+ * Only the id decides: `/api/storage/<key>` serves the file name, so an id
+ * without an extension has nothing to fetch — an image-looking *label* over an
+ * extensionless id would render a broken thumbnail.
+ */
+const thumbnailFor = (ref: ResourceUri): string | null => {
+  if (ref.kind !== "asset" || !looksLikeImage(ref.id)) {
     return null;
   }
   return resolveUri(`asset://${ref.id}`);
@@ -81,12 +83,13 @@ const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
   }
 
   const { Icon, accent } = KIND_VISUALS[ref.kind];
-  const thumbnail = thumbnailFor(ref, label);
+  const thumbnail = thumbnailFor(ref);
+  const navigable = canOpenResource(ref.kind);
 
   return (
     <Chip
       compact
-      clickable
+      clickable={navigable}
       color={chipColor(accent)}
       title={uri}
       label={label}
@@ -107,7 +110,7 @@ const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
           <Icon fontSize="inherit" />
         )
       }
-      onClick={() => openResource(ref)}
+      onClick={navigable ? () => openResource(ref) : undefined}
       sx={{
         verticalAlign: "middle",
         maxWidth: "100%",
@@ -115,7 +118,7 @@ const ResourceChip: React.FC<ResourceChipProps> = ({ uri, label }) => {
         borderRadius: BORDER_RADIUS.pill,
         fontSize: TYPOGRAPHY.sans.label.fontSize,
         fontWeight: TYPOGRAPHY.sans.label.fontWeight,
-        cursor: "pointer",
+        cursor: navigable ? "pointer" : "default",
         "& .MuiChip-icon": {
           marginLeft: getSpacingPx(SPACING.sm),
           marginRight: `-${getSpacingPx(SPACING.micro)}`,

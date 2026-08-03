@@ -64,7 +64,8 @@ jest.mock("react-markdown", () => {
 
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
-  openResource: jest.fn()
+  openResource: jest.fn(),
+  canOpenResource: (kind: string) => kind !== "asset" && kind !== "collection" && kind !== "thread"
 }));
 
 const renderMarkdown = (content: string) =>
@@ -83,10 +84,12 @@ describe("ChatMarkdown resource links", () => {
     expect(chip.closest("a")).toBeNull();
   });
 
-  it("renders an asset:// link as a resource chip", () => {
+  it("renders an asset:// link as a non-navigable resource chip", () => {
     renderMarkdown("Rendered [the frame](asset://as_1).");
 
-    expect(screen.getByRole("button", { name: /the frame/ })).toBeInTheDocument();
+    expect(screen.getByText("the frame")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /the frame/ })).toBeNull();
+    expect(screen.getByText("the frame").closest("a")).toBeNull();
   });
 
   it("leaves an https link as an anchor", () => {

@@ -22,6 +22,9 @@ const TAB_TYPE_BY_KIND: Partial<Record<ResourceKind, WorkspaceTabType>> = {
   model3d: "model3d"
 };
 
+export const canOpenResource = (kind: ResourceKind): boolean =>
+  TAB_TYPE_BY_KIND[kind] !== undefined;
+
 export const openResource = (ref: ResourceUri): boolean => {
   const type = TAB_TYPE_BY_KIND[ref.kind];
   if (!type) {
