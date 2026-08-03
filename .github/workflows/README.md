@@ -34,7 +34,7 @@ see below.
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, typecheck/parity/package+app/reliability test legs | 0 | Required (infra called by `test.yml`) |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, typecheck/parity/package+app/reliability test legs, and a `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `chromatic.yml` | Storybook visual regression via Chromatic (TurboSnap) | 0 | Advisory (`exitZeroOnChanges`) |
 | `visual-regression.yml` | Playwright screenshot diffs for the web UI | 0 | Advisory (`continue-on-error`, baselines still maturing) |
