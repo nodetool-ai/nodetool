@@ -65,9 +65,14 @@ export const InputMappingSelector: React.FC<InputMappingSelectorProps> = ({
 
   const mappedCount = Object.keys(inputMappings).length;
 
-  // Combine static properties + dynamic properties into a unified list
-  const dynamicInputNames = Object.keys(dynamicProperties).filter(
-    (name) => !properties.some((p) => p.name === name)
+  // Combine static properties + dynamic properties into a unified list.
+  // Memoized because `sourceOptions` below depends on it.
+  const dynamicInputNames = useMemo(
+    () =>
+      Object.keys(dynamicProperties).filter(
+        (name) => !properties.some((p) => p.name === name)
+      ),
+    [dynamicProperties, properties]
   );
 
   const handleOpenPicker = useCallback((inputName: string) => {

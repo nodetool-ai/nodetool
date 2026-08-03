@@ -5,7 +5,7 @@
  * ChainNodeProperties which delegates to getComponentForProperty.
  */
 
-import React, { useCallback } from "react";
+import React, { useCallback, useRef } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../../hooks/useTheme";
 import type { Property } from "../../types/ApiTypes";
@@ -20,6 +20,36 @@ interface ChainNodePropertiesProps {
   onUpdate: (name: string, value: unknown) => void;
 }
 
+/** Binds one property's name into `onChange` so editing a sibling property —
+ * which replaces the whole `values` object — doesn't re-render this widget. */
+const PropertyRow = React.memo(function PropertyRow({
+  property,
+  value,
+  nodeType,
+  isConnected,
+  onUpdate,
+}: {
+  property: Property;
+  value: unknown;
+  nodeType: string;
+  isConnected: boolean;
+  onUpdate: (name: string, value: unknown) => void;
+}) {
+  const handleChange = useCallback(
+    (v: unknown) => onUpdate(property.name, v),
+    [onUpdate, property.name]
+  );
+  return (
+    <PropertyField
+      property={property}
+      value={value}
+      nodeType={nodeType}
+      isConnected={isConnected}
+      onChange={handleChange}
+    />
+  );
+});
+
 export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   nodeType,
   properties,
@@ -29,12 +59,13 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  const handleChange = useCallback(
-    (name: string, value: unknown) => {
-      onUpdate(name, value);
-    },
-    [onUpdate]
-  );
+  // ChainEditor builds `onUpdate` inline per node, so it changes every render;
+  // going through a ref keeps each row's callback stable.
+  const onUpdateRef = useRef(onUpdate);
+  onUpdateRef.current = onUpdate;
+  const handleChange = useCallback((name: string, value: unknown) => {
+    onUpdateRef.current(name, value);
+  }, []);
 
   if (properties.length === 0) {
     return (
@@ -49,13 +80,13 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
   return (
     <View style={styles.container}>
       {properties.map((prop) => (
-        <PropertyField
+        <PropertyRow
           key={prop.name}
           property={prop}
           value={values[prop.name] ?? prop.default}
           nodeType={nodeType}
           isConnected={connectedInputs.includes(prop.name)}
-          onChange={(v) => handleChange(prop.name, v)}
+          onUpdate={handleChange}
         />
       ))}
     </View>
