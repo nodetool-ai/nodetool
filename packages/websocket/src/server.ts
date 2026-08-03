@@ -30,6 +30,7 @@ import { zipExtensionDist } from "./lib/extension-dist.js";
 import {
   isPublicAuthExemptRoute
 } from "./lib/public-routes.js";
+import { isWebSocketUpgrade, denyUnauthorized } from "./lib/ws-upgrade.js";
 import {
   resolveTrustLocalhost,
   isLoopbackAddress,
@@ -850,7 +851,7 @@ app.addHook("onRequest", async (req, reply) => {
   }
 
   // Extract token from the appropriate source
-  const isWs = req.headers["upgrade"]?.toLowerCase() === "websocket";
+  const isWs = isWebSocketUpgrade(req);
   const searchParams = new URLSearchParams(req.url.split("?")[1] ?? "");
   const provider = supabaseProvider ?? localProvider!;
   const token = isWs
@@ -862,12 +863,12 @@ app.addHook("onRequest", async (req, reply) => {
 
   if (supabaseMode) {
     if (!token) {
-      reply.status(401).send({ error: "Unauthorized" });
+      denyUnauthorized(req, reply, { error: "Unauthorized" });
       return;
     }
     const result = await supabaseProvider!.verifyToken(token);
     if (!result.ok) {
-      reply.status(401).send({ error: result.error ?? "Unauthorized" });
+      denyUnauthorized(req, reply, { error: result.error ?? "Unauthorized" });
       return;
     }
     req.userId = result.userId ?? null;
@@ -875,7 +876,9 @@ app.addHook("onRequest", async (req, reply) => {
     return;
   }
 
-  reply.status(401).send({ error: "Remote access requires authentication" });
+  denyUnauthorized(req, reply, {
+    error: "Remote access requires authentication"
+  });
 });
 
 // WebSocket support
