@@ -768,6 +768,23 @@ npm run dev:nodetool -- affected packages/cli/src/x.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
 
+### nodetool harness (Harness Registry & Coverage Audit)
+
+The machine-readable inventory behind harness-first engineering
+([docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md)): every headless harness in
+the repo, every product surface, and which harnesses cover which surface. An
+uncovered surface must carry a written gap note; one without it fails `audit`
+and the registry test. Shipping a new surface means adding it to
+`packages/cli/src/harness/registry.ts` — with its harness or its debt written
+down.
+
+```bash
+npm run dev:nodetool -- harness list             # every harness + capabilities
+npm run dev:nodetool -- harness audit            # surface coverage + documented gaps
+npm run dev:nodetool -- harness audit --json     # machine-readable, for agents
+npm run dev:nodetool -- harness audit --strict   # exit 1 while any gap remains
+```
+
 ### nodetool workflows
 
 Reads and writes the local database directly — no running server needed. Pass
@@ -998,6 +1015,7 @@ See [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md) for agent architectur
 **Canonical standards**: [docs/DEVELOPMENT_STANDARDS.md](docs/DEVELOPMENT_STANDARDS.md) — TypeScript, React, Zustand, MUI/primitives, TanStack Query, ReactFlow, Vitest/Jest/Playwright, Fastify, Drizzle, Zod, Electron security, WebSocket protocol, accessibility (WCAG 2.2 AA), performance budgets, security (OWASP), observability (OpenTelemetry), error handling, git/PRs, dependencies. Read this first.
 
 Area-specific overlays:
+- [Harness-First Engineering](docs/HARNESS_FIRST.md) — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
 - [Root rules](AGENTS.md) — Quick commands and base reminders
 - [Backend packages](packages/AGENTS.md) — Package architecture, dependency order
 - [Web UI](web/src/AGENTS.md) — Components, stores, hooks, contexts, server state
