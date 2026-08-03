@@ -43,6 +43,7 @@
 - [FAQ hub](https://nodetool.ai/faq): all questions, grouped by category.
 - [What is NodeTool?](https://nodetool.ai/faq/what-is-nodetool)
 - [Is NodeTool open source?](https://nodetool.ai/faq/is-nodetool-open-source)
+- [What does it mean that NodeTool is agent-first?](https://nodetool.ai/faq/what-does-agent-first-mean)
 - [What does "bring your own keys" mean for me?](https://nodetool.ai/faq/what-is-byok)
 - [Does NodeTool mark up model pricing?](https://nodetool.ai/faq/does-nodetool-mark-up-model-pricing)
 - [Studio or Cloud — which should I use?](https://nodetool.ai/faq/studio-or-cloud)

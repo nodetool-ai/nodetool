@@ -1316,6 +1316,22 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "check-a-url-and-an-ip",
+        "name": "Check a URL and an IP",
+        "description": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "chunk-a-transcript-for-indexing",
+        "name": "Chunk a Transcript for Indexing",
+        "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "conditional-logic-engine",
         "name": "Conditional Logic Engine",
         "description": "Teaching example for control flow: one number drives two independent decision structures built entirely from If nodes — there is no dedicated numeric-compare or boolean-logic node in NodeTool, so this shows the actual pattern: PadText + Compare + Equals turn the number into a boolean, then pairs of If nodes sharing one condition (each holding its own value, taking the opposite branch) act as the ternary select and OR you'd otherwise reach for. No LLM calls.",
@@ -1426,6 +1442,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "map-a-readmes-structure",
+        "name": "Map a README's Structure",
+        "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "one-tagline-six-markets",
         "name": "One Tagline, Six Markets",
         "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
@@ -1462,9 +1486,25 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "read-the-links-out-of-a-page",
+        "name": "Read the Links Out of a Page",
+        "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "redact-email-addresses",
         "name": "Redact Email Addresses",
         "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "redact-and-tidy-a-log-line",
+        "name": "Redact and Tidy a Log Line",
+        "description": "Two regex passes and a whitespace collapse, in the order that matters: redact before you normalise, or the pattern you are matching may already have been reshaped.",
         "tags": [
           "text"
         ]
@@ -1600,6 +1640,14 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "validate-a-postcode-shape",
         "name": "Validate a Postcode Shape",
         "description": "RegexValidate answers whether text matches a pattern — a guard to run before you trust user input or model output as structured data.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "validate-a-signup-payload",
+        "name": "Validate a Signup Payload",
+        "description": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
         "tags": [
           "text"
         ]
@@ -1788,6 +1836,14 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "join-two-tables-on-a-key",
         "name": "Join Two Tables on a Key",
         "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
+        "tags": [
+          "data"
+        ]
+      },
+      {
+        "slug": "keep-only-the-long-lines",
+        "name": "Keep Only the Long Lines",
+        "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
         "tags": [
           "data"
         ]
