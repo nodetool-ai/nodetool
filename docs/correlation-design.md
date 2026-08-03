@@ -742,3 +742,20 @@ moment the gap is closed. Each skipped test references the gap id below.
   `list[...]` handle are not yet aggregated at runtime; `_runCorrelatedImpl`
   delivers only the last value. (Multi-edge into a non-list handle is rejected
   by analysis — see §4.) Skipped test: `e2e/actor-modes.test.ts` (ACTOR-005).
+
+- **GAP-CORR-3 — a stream on a single-edge list handle.** One edge delivering
+  many values to a `list[...]` handle is not aggregated either. The values
+  arrive at empty scope, overwrite each other, and the node runs once on the
+  last — a `log.warn`, no error. Six shipped examples generate N images and
+  animate one; `Directed Film to Timeline` at `shot_count: 5` pays for five
+  stills and returns a single clip.
+
+  Aggregating unconditionally is not the fix. `ForEach.input_list` wants the
+  whole stream as one list, while `ImageToVideo.image` wants one invocation per
+  item — its own description says "the first image is the primary frame;
+  additional images are used as references". Both are `list[...]`, and element
+  type cannot separate them, so the handle has to declare which it means.
+  Proposal: [stream-into-list-input-design.md](stream-into-list-input-design.md).
+
+  Reported statically by `validateGraph` as `stream_into_list_input` (error),
+  so such a graph cannot ship unnoticed. Runtime behavior is unchanged.

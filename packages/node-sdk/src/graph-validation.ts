@@ -125,6 +125,18 @@ export interface GraphValidationRegistry {
    * provider check is skipped rather than guessing.
    */
   listProviderIds?(): readonly string[];
+  /**
+   * Model ids `provider` is known to offer, or undefined when they cannot be
+   * enumerated without a network call. Undefined means "cannot tell", never
+   * "no such model" — a provider whose catalog is only reachable online must
+   * not have its models reported as absent. Optional for the same reason
+   * {@link listProviderIds} is: a caller that cannot reach the provider
+   * registry omits it and the check is skipped rather than guessed at.
+   */
+  listModelIds?(
+    provider: string,
+    modelType: string
+  ): readonly string[] | undefined;
 }
 
 /**
@@ -337,6 +349,124 @@ function detectCycles(
   return issues;
 }
 
+/**
+ * Model id of a model-reference property value. A blank id is an unselected
+ * model, which the registry's own property check already reports.
+ */
+function modelIdOf(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const rec = value as Record<string, unknown>;
+  const kind = rec.type;
+  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
+  const id = rec.id;
+  if (typeof id !== "string" || id === "") return undefined;
+  return id;
+}
+
+/**
+ * The `_model` type tag of a model reference. Which catalog an id has to appear
+ * in depends on it: a provider's ASR ids and its image ids are separate lists,
+ * and only some are knowable offline.
+ */
+function modelKindOf(value: unknown): string | undefined {
+  if (typeof value !== "object" || value === null) return undefined;
+  const kind = (value as Record<string, unknown>).type;
+  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
+  return kind;
+}
+
+/**
+ * The few known ids closest to `id`, to turn "not a model" into a fix. Manifest
+ * ids are long and slash-separated (`fal-ai/ltx-2/image-to-video/fast`), so a
+ * shared prefix locates a near-miss far better than edit distance over the
+ * whole string; ties break toward the closest length.
+ */
+function nearestModelIds(
+  id: string,
+  known: readonly string[],
+  limit = 3
+): string[] {
+  const needle = id.toLowerCase();
+  const prefixLen = (candidate: string): number => {
+    const other = candidate.toLowerCase();
+    let i = 0;
+    while (i < needle.length && i < other.length && needle[i] === other[i]) i++;
+    return i;
+  };
+  return [...known]
+    .map((candidate) => ({ candidate, score: prefixLen(candidate) }))
+    // A single shared character is noise, not a suggestion.
+    .filter((entry) => entry.score >= 3)
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        Math.abs(a.candidate.length - id.length) -
+          Math.abs(b.candidate.length - id.length) ||
+        a.candidate.localeCompare(b.candidate)
+    )
+    .slice(0, limit)
+    .map((entry) => entry.candidate);
+}
+
+/**
+ * Every `nodeId|handle` output that carries more than one value per run.
+ *
+ * Read from the same `output_correlation` the kernel reads, so the two cannot
+ * disagree: `iteration` mints a value per item, `aggregate` collapses a stream
+ * back to one (that is `Collect`), and anything else inherits its invocation —
+ * it streams exactly when something upstream does. The last case is why this
+ * is a fixed point rather than a lookup: `TextToImage` declares nothing, and
+ * streams only because the node feeding it does.
+ */
+function streamingOutputHandles(
+  nodes: ReadonlyArray<GraphValidationNode>,
+  edges: ReadonlyArray<NormEdge>,
+  registry: GraphValidationRegistry
+): Set<string> {
+  const streaming = new Set<string>();
+  const typeOf = new Map<string, string>();
+  for (const node of nodes) {
+    typeOf.set(String(node.id ?? ""), String(node.type ?? ""));
+  }
+
+  // Iterate to a fixed point; each pass can only add, and a chain is at most
+  // as long as the node count.
+  for (let pass = 0; pass <= nodes.length; pass++) {
+    let changed = false;
+    for (const node of nodes) {
+      const id = String(node.id ?? "");
+      const type = typeOf.get(id) ?? "";
+      const meta = registry.getMetadata(type);
+      if (!meta) continue;
+      const declared = meta.output_correlation ?? {};
+      const inheritsStream = edges.some(
+        (e) => e.target === id && streaming.has(`${e.source}|${e.sourceHandle}`)
+      );
+      // Dynamic outputs count too: a node that declares none statically
+      // (StructuredOutputGenerator) would otherwise be invisible here, and a
+      // stream passing through it would go unreported.
+      const handles = [
+        ...(meta.outputs ?? []).map((slot) => slot.name),
+        ...Object.keys(readDynamicOutputs(node))
+      ];
+      for (const handle of handles) {
+        const key = `${id}|${handle}`;
+        if (streaming.has(key)) continue;
+        const kind = declared[handle]?.kind;
+        // `aggregate` is the one kind that ends a stream.
+        const emits =
+          kind === "iteration" || (kind !== "aggregate" && inheritsStream);
+        if (emits) {
+          streaming.add(key);
+          changed = true;
+        }
+      }
+    }
+    if (!changed) break;
+  }
+  return streaming;
+}
+
 export function validateGraph(
   graph: GraphValidationInput,
   registry: GraphValidationRegistry
@@ -516,17 +646,43 @@ export function validateGraph(
       const props = readProperties(node);
       for (const [propName, value] of Object.entries(props)) {
         const provider = modelProviderOf(value);
-        if (provider === undefined || knownProviders.has(provider)) continue;
+        if (provider === undefined) continue;
+        if (!knownProviders.has(provider)) {
+          issues.push({
+            severity: "error",
+            code: "unknown_provider",
+            nodeId: id,
+            nodeType: type,
+            message:
+              `Property "${propName}" selects provider "${provider}", which is ` +
+              `not registered. Known providers: ${[...knownProviders]
+                .sort()
+                .join(", ")}`
+          });
+          continue;
+        }
+
+        // The provider is real; the id it names may still not be. A model id
+        // is only checkable where the catalog is known offline — undefined
+        // from the registry means unknown, so nothing is reported.
+        const modelId = modelIdOf(value);
+        const modelKind = modelKindOf(value);
+        if (modelId === undefined || modelKind === undefined) continue;
+        const knownModels = registry.listModelIds?.(provider, modelKind);
+        if (!knownModels || knownModels.length === 0) continue;
+        if (knownModels.includes(modelId)) continue;
+        const suggestions = nearestModelIds(modelId, knownModels);
         issues.push({
           severity: "error",
-          code: "unknown_provider",
+          code: "unknown_model",
           nodeId: id,
           nodeType: type,
           message:
-            `Property "${propName}" selects provider "${provider}", which is ` +
-            `not registered. Known providers: ${[...knownProviders]
-              .sort()
-              .join(", ")}`
+            `Property "${propName}" selects model "${modelId}", which provider ` +
+            `"${provider}" does not offer.` +
+            (suggestions.length > 0
+              ? ` Did you mean: ${suggestions.join(", ")}?`
+              : "")
         });
       }
     }
@@ -575,6 +731,56 @@ export function validateGraph(
 
   // ── Cycles: the kernel requires a DAG ────────────────────────────────────
   issues.push(...detectCycles(byId, normEdges));
+
+  // ── The mirror of fan_in: one edge, but carrying a stream, into a list
+  // handle. Analysis only registers a list handle as aggregating when several
+  // edges feed it, so a single edge delivering many values collapses to empty
+  // scope and keeps the last — a warning in the log and silent data loss in
+  // the result. Six shipped examples generate N stills and animate one.
+  // Reported here because paying for N and shipping 1 is what a pre-flight
+  // check is for. GAP-CORR-3 in docs/correlation-design.md.
+  const singleEdgeByHandle = new Map<string, NormEdge>();
+  for (const e of normEdges) {
+    if (e.isControl || !e.target || !e.targetHandle) continue;
+    singleEdgeByHandle.set(`${e.target}\u0000${e.targetHandle}`, e);
+  }
+  const streamingHandles = streamingOutputHandles(nodes, normEdges, registry);
+  for (const [key, count] of fanIn) {
+    if (count !== 1) continue;
+    const edge = singleEdgeByHandle.get(key);
+    if (!edge) continue;
+    const [targetId, handle] = key.split("\u0000");
+    const node = byId.get(targetId);
+    const type = String(node?.type ?? "");
+    if (!type || !registry.has(type)) continue;
+    const targetMeta = registry.getMetadata(type);
+    // A node that consumes a stream by design (Collect) is the fix, not the bug.
+    if (targetMeta?.is_streaming_input) continue;
+    const propType = targetMeta?.properties?.find(
+      (prop) => prop.name === handle
+    )?.type;
+    const typeStr =
+      typeMetaToString(propType) ||
+      slotTypeToString(node ? readDynamicInputs(node)[handle] : undefined);
+    if (!(typeStr === "list" || typeStr.startsWith("list["))) continue;
+    if (!streamingHandles.has(`${edge.source}|${edge.sourceHandle}`)) continue;
+    const sourceType = String(byId.get(edge.source)?.type ?? "unknown");
+    issues.push({
+      severity: "error",
+      code: "stream_into_list_input",
+      nodeId: targetId,
+      nodeType: type,
+      edgeId: edge.id,
+      message:
+        `Handle "${handle}" on node "${targetId}" is typed "${typeStr}" and is fed ` +
+        `by one edge from "${sourceType}.${edge.sourceHandle}", which emits a value ` +
+        `per item. A single edge carrying a stream is not aggregated: the values ` +
+        `arrive at empty scope and every one but the last is dropped. Insert ` +
+        `"nodetool.control.Collect" to turn the stream into one list, or rewire so ` +
+        `the handle receives a single value per invocation. See GAP-CORR-3 in ` +
+        `docs/correlation-design.md.`
+    });
+  }
 
   // ── Edges: endpoints, handles, type compatibility ────────────────────────
   for (const e of normEdges) {
