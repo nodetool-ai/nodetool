@@ -18,7 +18,15 @@
 // drift before it merges at all.
 
 import { execFileSync } from "node:child_process";
-import { readdirSync, statSync } from "node:fs";
+import {
+  mkdtempSync,
+  readFileSync,
+  readdirSync,
+  rmSync,
+  statSync,
+  writeFileSync
+} from "node:fs";
+import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -36,59 +44,142 @@ function findExamples(dir) {
     const stat = statSync(full);
     if (stat.isDirectory()) {
       results.push(...findExamples(full));
-    } else if (
-      entry.endsWith(".json") &&
-      // `*.app.json` files are ApplicationBundles, not workflow graphs. They
-      // are validated by scripts/build-example-apps.mjs, which runs
-      // `nodetool app debug --no-run` over each one.
-      !entry.endsWith(".app.json") &&
-      full.includes("/examples/")
-    ) {
+    } else if (entry.endsWith(".json") && full.includes("/examples/")) {
       results.push(full);
     }
   }
   return results;
 }
 
-const examples = findExamples(join(repoRoot, "packages")).sort();
+// `*.app.json` files are ApplicationBundles: an app document plus the full
+// graphs of the workflows it binds. They used to be skipped here, on the
+// grounds that `scripts/build-example-apps.mjs` validated them by running
+// `nodetool app debug --no-run`. It does not: `app debug` checks widget
+// bindings and never consults the node registry, and no CI workflow runs
+// build-example-apps at all. The result was that the bundles users actually
+// install had no gate on node types, properties, edges, or providers — and
+// five of them shipped `provider: "huggingface_fal_ai"`, which the runtime
+// cannot construct. Validate each embedded graph with the same validator the
+// plain examples get.
+function expandBundle(file) {
+  let bundle;
+  try {
+    bundle = JSON.parse(readFileSync(file, "utf8"));
+  } catch (err) {
+    return { parseError: err.message, workflows: [] };
+  }
+  const workflows = Array.isArray(bundle?.workflows) ? bundle.workflows : [];
+  return {
+    parseError: workflows.length === 0 ? "bundle declares no workflows" : null,
+    workflows: workflows.map((wf, i) => ({
+      label: wf?.name || wf?.key || `workflow[${i}]`,
+      graph: wf?.graph
+    }))
+  };
+}
 
-if (examples.length === 0) {
+const examples = findExamples(join(repoRoot, "packages")).sort();
+const bundles = examples.filter((f) => f.endsWith(".app.json"));
+const workflowExamples = examples.filter((f) => !f.endsWith(".app.json"));
+
+if (workflowExamples.length === 0) {
   console.error("No example JSON files found under packages/**/examples/ — check the search path.");
   process.exit(1);
 }
 
-console.log(`Validating ${examples.length} example workflow(s)...\n`);
+if (bundles.length === 0) {
+  console.error("No *.app.json bundles found under packages/**/examples/ — check the search path.");
+  process.exit(1);
+}
 
-let failures = 0;
-for (const file of examples) {
-  const rel = file.slice(repoRoot.length + 1);
+function indent(text) {
+  return text
+    .split("\n")
+    .map((line) => `        ${line}`)
+    .join("\n");
+}
+
+// Validate one graph file with the built CLI. Returns null on success, or the
+// validator's output on failure.
+function validateFile(path) {
   try {
-    execFileSync(
-      "node",
-      [cliEntry, "validate", file, "--warnings-as-errors"],
-      { stdio: "pipe", encoding: "utf8" }
-    );
-    console.log(`  ok    ${rel}`);
+    execFileSync("node", [cliEntry, "validate", path, "--warnings-as-errors"], {
+      stdio: "pipe",
+      encoding: "utf8"
+    });
+    return null;
   } catch (err) {
-    failures += 1;
-    console.log(`  FAIL  ${rel}`);
-    const output = [err.stdout, err.stderr].filter(Boolean).join("\n");
-    console.log(
-      output
-        .split("\n")
-        .map((line) => `        ${line}`)
-        .join("\n")
-    );
+    return [err.stdout, err.stderr].filter(Boolean).join("\n");
   }
 }
 
-console.log(`\n${examples.length - failures}/${examples.length} examples validate cleanly.`);
+console.log(
+  `Validating ${workflowExamples.length} example workflow(s) and ` +
+    `${bundles.length} app bundle(s)...\n`
+);
+
+let failures = 0;
+let checked = 0;
+
+for (const file of workflowExamples) {
+  const rel = file.slice(repoRoot.length + 1);
+  checked += 1;
+  const output = validateFile(file);
+  if (output === null) {
+    console.log(`  ok    ${rel}`);
+  } else {
+    failures += 1;
+    console.log(`  FAIL  ${rel}`);
+    console.log(indent(output));
+  }
+}
+
+// Each bundle's embedded workflows are written to a scratch file and run
+// through the same validator, so a bundle graph is held to exactly the standard
+// a standalone example graph is.
+const scratch = mkdtempSync(join(tmpdir(), "validate-app-bundles-"));
+for (const file of bundles) {
+  const rel = file.slice(repoRoot.length + 1);
+  const { parseError, workflows } = expandBundle(file);
+  if (parseError) {
+    checked += 1;
+    failures += 1;
+    console.log(`  FAIL  ${rel}`);
+    console.log(indent(parseError));
+    continue;
+  }
+  for (const [i, wf] of workflows.entries()) {
+    checked += 1;
+    const label = `${rel} › ${wf.label}`;
+    if (!wf.graph) {
+      failures += 1;
+      console.log(`  FAIL  ${label}`);
+      console.log(indent("bundled workflow has no graph"));
+      continue;
+    }
+    const scratchFile = join(scratch, `${i}.json`);
+    writeFileSync(scratchFile, JSON.stringify({ name: wf.label, graph: wf.graph }));
+    const output = validateFile(scratchFile);
+    if (output === null) {
+      console.log(`  ok    ${label}`);
+    } else {
+      failures += 1;
+      console.log(`  FAIL  ${label}`);
+      console.log(indent(output.replaceAll(scratchFile, label)));
+    }
+  }
+}
+rmSync(scratch, { recursive: true, force: true });
+
+console.log(`\n${checked - failures}/${checked} graphs validate cleanly.`);
 
 if (failures > 0) {
   console.error(
-    `\n${failures} example(s) failed validation. Fix the graph to match the current node registry, or run:\n` +
+    `\n${failures} graph(s) failed validation. Fix the graph to match the current node registry, or run:\n` +
       `  npm run dev:nodetool -- validate "<path>" --json\n` +
-      `to see the full report for a single file.`
+      `to see the full report for a single file.\n` +
+      `For a bundled app graph, the path is the *.app.json file; the failing\n` +
+      `workflow is named after the › in the line above.`
   );
   process.exit(1);
 }

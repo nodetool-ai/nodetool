@@ -83,7 +83,7 @@
     "build:web": "turbo run build --filter=web",
     "build:mcpb": "node scripts/build-mcpb.mjs --smoke",
     "build": "turbo run build",
-    "test:packages": "turbo run test --filter=\"./packages/*\"",
+    "test:packages": "turbo run test --filter=\"./packages/*\" --filter=\"./reliability/*\"",
     "turbo": "turbo",
     "turbo:build": "turbo run build",
     "turbo:build:packages": "turbo run build --filter=\"./packages/*\"",

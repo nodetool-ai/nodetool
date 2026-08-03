@@ -12,7 +12,20 @@
     ".nvmrc",
     "package-lock.json",
     "scripts/build-typescript-workspace.mjs",
-    "scripts/copy-manifests.mjs"
+    "scripts/copy-manifests.mjs",
+    // Files that package tests read from outside any package. These must live
+    // here, not in a task's `inputs`: the PR gate runs `turbo run test
+    // --filter="./packages/*" --affected`, and `--affected` scopes the graph by
+    // package ownership *before* input hashes are consulted. Turbo attributes a
+    // root-level file to the root workspace, which no package depends on, so a
+    // PR touching only these paths pruned the graph to zero test tasks and the
+    // leg reported green. Only `globalDependencies` short-circuits that.
+    "Dockerfile",
+    "scripts/genspend/**",
+    "scripts/sync-genspend-pricing.mjs",
+    "scripts/example-apps/**",
+    "web/src/hooks/editor/useChatIntegration.ts",
+    "web/src/utils/codeOutputInference.ts"
   ],
   "globalEnv": ["NODE_ENV", "CI"],
   "tasks": {

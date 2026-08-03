@@ -51,7 +51,12 @@ export default defineConfig({
   },
   test: {
     include: ["tests/**/*.test.ts"],
-    exclude: ["tests/e2e/**/*.test.ts"],
-    passWithNoTests: true
+    exclude: ["tests/e2e/**/*.test.ts"]
+    // No `passWithNoTests`: this package has 31 suites, and two blocking CI
+    // commands select from them by filename substring — the `parity` leg
+    // (`npm test -w @nodetool-ai/base-nodes -- parity example-workflows`) and
+    // `test:integration` (`-- example-workflows-execute`). With
+    // passWithNoTests, renaming a targeted file made those filters match
+    // nothing and exit 0, so the gate reported green while running no tests.
   }
 });
