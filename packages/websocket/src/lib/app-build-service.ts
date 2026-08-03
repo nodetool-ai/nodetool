@@ -24,6 +24,7 @@ import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
   buildApp,
   parseBuildSpec,
+  resolveJudgeModelSpec,
   DEFAULT_BUILD_COST_CAP_USD,
   type BuildReport,
   type BuildSpec
@@ -58,6 +59,12 @@ export interface AppBuildRequest {
   spec?: unknown;
   provider?: string;
   model?: string;
+  /**
+   * `provider/model` (or a bare model id on the builder's provider) for the
+   * Judge stage. Omitted ⇒ an independent default from the configured
+   * providers, so a build is not graded by the model that authored it.
+   */
+  judge_model?: string;
   /** Workflow ids to pin, in operation declaration order. */
   workflow_ids?: string[];
   max_repairs?: number;
@@ -115,18 +122,32 @@ async function loadConfiguredProviders(
   return providers;
 }
 
-/** A body number that is a finite positive value, or undefined. */
-function positive(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : undefined;
+/**
+ * A body number that is a finite positive value. Absent stays absent — a
+ * present-but-invalid one is rejected rather than replaced by a default, since
+ * `cost_cap_usd: 0` silently becoming $2 spends money the caller said not to.
+ */
+function positive(field: string, value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      `${field} must be a positive number.`
+    );
+  }
+  return value;
 }
 
-/** A body number that is a non-negative integer, or undefined. */
-function count(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isInteger(value) && value >= 0
-    ? value
-    : undefined;
+/** A body number that is a non-negative integer. Present-but-invalid is an error. */
+function count(field: string, value: unknown): number | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    throwApiError(
+      ApiErrorCode.INVALID_INPUT,
+      `${field} must be a non-negative integer.`
+    );
+  }
+  return value;
 }
 
 function resolveModel(body: AppBuildRequest): {
@@ -143,6 +164,42 @@ function resolveModel(body: AppBuildRequest): {
     );
   }
   return { provider, model };
+}
+
+/**
+ * Which model judges the build. The same resolution the CLI runs: an explicit
+ * `judge_model` wins, then `NODETOOL_APP_JUDGE_MODEL`, then the best candidate
+ * among the configured providers that is not what the builder used. A model
+ * grading its own work is the weakest reviewer available, so the server does
+ * not default to it either.
+ */
+function resolveJudge(init: {
+  builder: BaseProvider;
+  builderModel: string;
+  explicit?: string;
+  providers: Record<string, BaseProvider>;
+}): { provider: BaseProvider; model: string } {
+  const resolution = resolveJudgeModelSpec({
+    ...(init.explicit !== undefined ? { explicit: init.explicit } : {}),
+    builderProviderId: init.builder.provider,
+    builderModel: init.builderModel,
+    isAvailable: (id: string) =>
+      id === init.builder.provider || id in init.providers
+  });
+  const provider =
+    resolution.providerId === init.builder.provider
+      ? init.builder
+      : init.providers[resolution.providerId];
+  if (!provider) {
+    if (init.explicit) {
+      throwApiError(
+        ApiErrorCode.INVALID_INPUT,
+        `judge_model names provider "${resolution.providerId}", which is not configured.`
+      );
+    }
+    return { provider: init.builder, model: init.builderModel };
+  }
+  return { provider, model: resolution.model };
 }
 
 function resolveSpec(body: AppBuildRequest): BuildSpec | null {
@@ -214,8 +271,15 @@ export async function runApplicationBuild(
 
   const controller = new AbortController();
   const logLines: string[] = [];
-  const maxRepairs = count(body.max_repairs);
-  const timeoutMs = positive(body.timeout_ms);
+  const maxRepairs = count("max_repairs", body.max_repairs);
+  const timeoutMs = positive("timeout_ms", body.timeout_ms);
+  const costCapUsd = positive("cost_cap_usd", body.cost_cap_usd);
+  const judge = resolveJudge({
+    builder: provider,
+    builderModel: selection.model,
+    providers,
+    ...(body.judge_model ? { explicit: body.judge_model } : {})
+  });
 
   // The promise a session fronts must never reject: a rejected build would
   // leave the session parked forever with no report to hand back.
@@ -247,7 +311,8 @@ export async function runApplicationBuild(
           ? { pinnedWorkflowIds: body.workflow_ids }
           : {}),
         ...(maxRepairs !== undefined ? { maxRepairs } : {}),
-        costCapUsd: positive(body.cost_cap_usd) ?? DEFAULT_BUILD_COST_CAP_USD,
+        judge: { provider: judge.provider, model: judge.model },
+        costCapUsd: costCapUsd ?? DEFAULT_BUILD_COST_CAP_USD,
         ...(timeoutMs !== undefined ? { timeoutMs } : {}),
         signal: controller.signal,
         buildId,

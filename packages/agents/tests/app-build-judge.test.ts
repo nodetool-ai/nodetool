@@ -22,6 +22,7 @@ import type {
 import { collectExecutionSummary } from "@nodetool-ai/execution/debug";
 import { buildApp, type BuildAppOptions } from "../src/app-build/build.js";
 import {
+  judgeInteraction,
   parseJudgeAnswer,
   renderJudgePrompt,
   resolveJudgeModelSpec,
@@ -420,6 +421,38 @@ describe("parseJudgeAnswer", () => {
       confidence: 0,
       reasons: ["(no reason given)"]
     });
+  });
+});
+
+describe("judgeInteraction", () => {
+  it("times out on a provider that ignores the abort signal", async () => {
+    const deaf = {
+      provider: "deaf",
+      getTotalCost: () => 0,
+      // No abort listener: without a race the await would never resolve and the
+      // fail-closed verdict would never be produced.
+      generateMessageTraced: () => new Promise(() => {})
+    } as unknown as BaseProvider;
+
+    const verdict = await judgeInteraction({
+      spec: spec(),
+      provider: deaf,
+      model: "m",
+      timeoutMs: 20,
+      input: {
+        interaction: {
+          name: "draft-once",
+          steps: [{ click: "run-button" }],
+          expect: [],
+          derived: false,
+          addedSteps: []
+        },
+        widgets: []
+      }
+    });
+
+    expect(verdict.achieved).toBe(false);
+    expect(verdict.reasons.join(" ")).toMatch(/did not answer within 20ms/);
   });
 });
 

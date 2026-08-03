@@ -284,26 +284,46 @@ export async function judgeInteraction(
   const abort = () => controller.abort();
   opts.signal?.addEventListener("abort", abort);
   let timedOut = false;
+  /**
+   * The deadline is a race, not just an abort: a provider that ignores the
+   * signal would otherwise never resolve, and the fail-closed verdict this
+   * function promises would never be produced.
+   */
+  const expired: unique symbol = Symbol("judge-timeout");
+  let expire: (value: typeof expired) => void = () => {};
+  const deadline = new Promise<typeof expired>((resolve) => {
+    expire = resolve;
+  });
   const timer = setTimeout(() => {
     timedOut = true;
     controller.abort();
+    expire(expired);
   }, timeoutMs);
 
   try {
-    const reply = await opts.provider.generateMessageTraced({
-      messages: [
-        { role: "system", content: SYSTEM_PROMPT },
-        {
-          role: "user",
-          content: renderJudgePrompt(opts.spec, opts.input, opts.prompt)
-        }
-      ] as Message[],
-      model: opts.model,
-      tools: [],
-      maxTokens: JUDGE_MAX_TOKENS,
-      temperature: 0,
-      signal: controller.signal
-    });
+    const reply = await Promise.race([
+      opts.provider.generateMessageTraced({
+        messages: [
+          { role: "system", content: SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: renderJudgePrompt(opts.spec, opts.input, opts.prompt)
+          }
+        ] as Message[],
+        model: opts.model,
+        tools: [],
+        maxTokens: JUDGE_MAX_TOKENS,
+        temperature: 0,
+        signal: controller.signal
+      }),
+      deadline
+    ]);
+    if (reply === expired) {
+      return notAchieved(
+        name,
+        `the judge did not answer within ${timeoutMs}ms, so the interaction counts as not achieved`
+      );
+    }
     const answer = parseJudgeAnswer(extractText(reply.content));
     if (!answer) {
       return notAchieved(
@@ -382,6 +402,10 @@ export async function runJudgeStage(
     record: {
       stage: "judge",
       round: opts.round,
+      // The judge defaults away from the builder, so its spend bills to the
+      // model that actually ran.
+      provider: opts.provider.provider,
+      model: opts.model,
       startedAt: new Date(startedAt).toISOString(),
       durationMs: Date.now() - startedAt,
       issues,
