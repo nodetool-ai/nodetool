@@ -27,6 +27,16 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Chat      | `/v1/chat/completions`            | `POST`            | Bearer when `AUTH_PROVIDER` enforces           | SSE when `"stream": true`   | OpenAI-compatible chat; SSE or single JSON |
 | Workflows | `/api/workflows`                  | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | List workflows |
 | Workflows | `/api/workflows/{id}/run`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Run a workflow once, return final outputs as one JSON response |
+| Workflows | `/api/workflows/names`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | `{id: name}` for the caller's workflows (up to 1000) |
+| Workflows | `/api/workflows/tools`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Workflows saved with `run_mode: "tool"`, as `{name, tool_name, description}` |
+| Workflows | `/api/workflows/{id}/dsl-export`  | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Graph as TypeScript DSL source (`text/plain`) |
+| Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
+| Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
+| Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
+| Examples  | `/api/workflows/examples/search`  | `GET`             | none                                           | no                          | Same list filtered by `?query=` over name, description, tags |
+| Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
+| Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
+| Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Workflow WS | `/ws`                           | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Workflow execution, chat, job control, live updates (MessagePack or JSON) |
 | Agent WS  | `/ws/agent`                       | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Agent runtime |
 | Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
@@ -225,6 +235,54 @@ client to the bucket — the API only mints a target and confirms the result.
 `upload` comes back `null` on the local file backend, which has no
 direct-upload concept; fall back to the multipart `POST /api/assets`. The web
 client does this automatically.
+
+### Extracting a Video's Audio Track
+
+`POST /api/assets/{id}/extract-audio` copies a video asset's audio into a new
+WAV asset parented to the video. The timeline calls it when a video is imported
+so the audio becomes an independently editable clip; call it directly when you
+want the same thing outside the editor.
+
+```bash
+curl -X POST "http://localhost:7777/api/assets/<video_asset_id>/extract-audio" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "has_audio": true,
+  "asset": {
+    "id": "b41f…",
+    "name": "clip.mp4 (audio)",
+    "content_type": "audio/wav",
+    "parent_id": "<video_asset_id>",
+    "duration": 12.5,
+    "get_url": "/api/storage/1/b41f….wav"
+  }
+}
+```
+
+A video with no audio track returns `{"has_audio": false}` and creates nothing.
+Posting a non-video asset is a `400` (`{"detail": "Asset is not a video"}`), an
+asset you do not own is a `404`, and a server with no ffmpeg runtime available
+answers `503`.
+
+### Package Assets
+
+Shipped node packs carry media alongside their code — the images and audio that
+example workflows reference as `package://<package>/<file>`. Those refs resolve
+over `GET /api/assets/packages/{package}/{file}`, which needs no token because
+the bytes ship with the install.
+
+```bash
+curl "http://localhost:7777/api/assets/packages/nodetool-base/A%20Boolean%20Constant.jpg" \
+  -o thumb.jpg
+```
+
+The file path may be nested (`audio/loop.mp3`); `..` segments and backslashes
+are rejected. Responses carry
+`cache-control: public, max-age=31536000, immutable` and an ETag, since a
+package's assets change only when the package version does.
 
 ### Health Check
 
