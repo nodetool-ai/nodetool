@@ -112,6 +112,19 @@ export interface ToolCallMessage {
   thread_id: string;
 }
 
+/**
+ * Reply to a `resume_chat` command, sent before any replayed frames. See
+ * `chatResumedMessageOutSchema` in @nodetool-ai/protocol for the contract.
+ */
+export interface ChatResumedUpdate {
+  type: "chat_resumed";
+  thread_id: string;
+  status: "running" | "finished" | "unknown";
+  last_seq: number;
+  replay_count: number;
+  replay_incomplete: boolean;
+}
+
 export type MsgpackData =
   | JobUpdate
   | Chunk
@@ -134,6 +147,7 @@ export type MsgpackData =
   | ToolResultMessage
   | ToolApprovalRequestMessage
   | PlanApprovalRequestMessage
+  | ChatResumedUpdate
   | ErrorMessage;
 
 export interface ToolResultMessage {
@@ -1262,6 +1276,16 @@ export async function handleChatWebSocketMessage(
     currentState.currentThreadId ??
     null;
 
+  // Frames from a resilient chat turn are stamped with a monotonically
+  // increasing `chat_seq`. Track the high-water mark per thread so a
+  // reconnect can ask the server to replay only what was missed.
+  const chatSeq = (msg as Record<string, unknown>).chat_seq;
+  if (tid && typeof chatSeq === "number") {
+    set((state) => ({
+      chatReplayCursors: { ...state.chatReplayCursors, [tid]: chatSeq }
+    }));
+  }
+
   // Swallow stragglers for a thread the user is stopping. The top-level
   // status check covers the pi transport, which drives the mirror directly.
   const isStopping =
@@ -1415,6 +1439,28 @@ export async function handleChatWebSocketMessage(
       }));
     }
     console.debug(`${data.type}:`, data.workflow_id);
+  } else if (data.type === "chat_resumed") {
+    // Reply to our resume_chat after a reconnect. "running"/"finished" are
+    // followed by the replayed frames, which drive the runtime as usual. If
+    // the server has nothing to replay ("unknown": no turn survived, or the
+    // retention window elapsed) or the bounded buffer lost our tail
+    // (replay_incomplete), reconcile from persisted history instead: reset
+    // the runtime and reload the thread's messages over REST.
+    if (tid && (data.status === "unknown" || data.replay_incomplete)) {
+      clearSendTimeout();
+      set((state) =>
+        threadRuntimeUpdate(state, tid, {
+          status: "idle",
+          statusMessage: null,
+          progress: { current: 0, total: 0 }
+        })
+      );
+      void get()
+        .loadMessages(tid)
+        .catch((err) =>
+          console.error("Failed to reload messages after chat resume:", err)
+        );
+    }
   } else if (data.type === "error") {
     // Clear the safety timeout on error
     clearSendTimeout();
