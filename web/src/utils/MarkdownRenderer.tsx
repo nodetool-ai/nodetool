@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useRef, useState, useCallback, useMemo } from "react";
+import React, { memo, useRef, useState, useCallback, useMemo } from "react";
 import ReactMarkdown, { type Options } from "react-markdown";
 import { createPortal } from "react-dom";
 import DraggableNodeDocumentation from "../components/content/Help/DraggableNodeDocumentation";
@@ -23,6 +23,27 @@ interface MarkdownRendererProps {
   isReadme?: boolean;
   fillContainer?: boolean;
 }
+
+// Split out so hover/focus/fullscreen state doesn't re-run remark/rehype.
+const MarkdownBody = memo(function MarkdownBody({
+  content,
+  rehypePlugins,
+  components
+}: {
+  content: string;
+  rehypePlugins: Options["rehypePlugins"];
+  components: Options["components"];
+}) {
+  return (
+    <ReactMarkdown
+      remarkPlugins={REMARK_PLUGINS}
+      rehypePlugins={rehypePlugins}
+      components={components}
+    >
+      {content || ""}
+    </ReactMarkdown>
+  );
+});
 
 const styles = (
   theme: Theme,
@@ -222,13 +243,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           </div>
         )}
         <Box sx={fillContainer ? { height: "100%" } : undefined}>
-          <ReactMarkdown
-            remarkPlugins={REMARK_PLUGINS}
+          <MarkdownBody
+            content={content}
             rehypePlugins={rehypePlugins}
             components={markdownComponents}
-          >
-            {content || ""}
-          </ReactMarkdown>
+          />
         </Box>
       </div>
 
@@ -278,13 +297,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
               nodrag={false}
             />
           </div>
-          <ReactMarkdown
-            remarkPlugins={REMARK_PLUGINS}
+          <MarkdownBody
+            content={content}
             rehypePlugins={rehypePlugins}
             components={markdownComponents}
-          >
-            {content || ""}
-          </ReactMarkdown>
+          />
         </Box>
       </Dialog>
       {memoizedDocumentation}
@@ -292,4 +309,4 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   );
 };
 
-export default MarkdownRenderer;
+export default memo(MarkdownRenderer);
