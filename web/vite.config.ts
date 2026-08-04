@@ -428,9 +428,6 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-query";
-                  // Panel layout
-                  if (/[\\/]node_modules[\\/]dockview[\\/]/.test(id))
-                    return "vendor-dockview";
                   // Supabase client
                   if (/[\\/]node_modules[\\/]@supabase[\\/]/.test(id))
                     return "vendor-supabase";
