@@ -266,7 +266,9 @@ function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
  * to carry a `provider` field.
  */
 function isModelRef(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+  // Null first, matching `asRecord` above: `typeof null === "object"`, so the
+  // check is load-bearing — without it `value.type` below throws on null.
+  if (value === null || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
   const kind = (value as Record<string, unknown>).type;
@@ -308,7 +310,7 @@ function collectModelRefs(
     );
     return;
   }
-  if (typeof value !== "object" || value === null) return;
+  if (value === null || typeof value !== "object") return;
   if (isModelRef(value)) {
     out.push({ path, ref: value as Record<string, unknown> });
     return;
