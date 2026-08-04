@@ -346,11 +346,9 @@ cd web && npm test && npm run lint
 
 # Web E2E (needs backend on port 7777)
 cd web && npx playwright install chromium && npm run test:e2e
-
-# Electron E2E (requires xvfb on Linux headless)
-cd electron && npm run vite:build && npx tsc
-cd electron && npx playwright install chromium && npm run test:e2e
 ```
+
+Electron has no Playwright suite; `cd electron && npm test` runs its Jest tests.
 
 For detailed testing documentation, see [web/TESTING.md](web/TESTING.md).
 For visual regression testing and baseline management, see [VISUAL_TESTING.md](VISUAL_TESTING.md).

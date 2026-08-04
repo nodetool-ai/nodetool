@@ -24,8 +24,7 @@ npm run typecheck        # TypeScript check
 npm run lint             # ESLint
 npm run lint:fix         # Auto-fix lint issues
 npm test                 # Run unit tests
-npm run test:e2e         # E2E tests (requires built app + Playwright)
-npm run test:e2e:headed  # E2E with visible window
+npm run test:coverage    # Unit tests with coverage
 ```
 
 ### Packaged file layout
@@ -42,24 +41,20 @@ npm run electron            # Build web + Electron, then start
 npm run electron:dev        # Start against web Vite server (requires active conda env)
 ```
 
-### E2E Test Setup
+### Tests
 
-```bash
-cd electron
-npx playwright install chromium
-npm run vite:build && npx tsc   # Build first
-npm run test:e2e                # Run tests
-```
+This workspace has no Playwright suite — main-process behavior is covered by
+the Jest tests in `src/__tests__/`. Browser-level E2E lives in `web/`.
 
 ## Key Technologies
 
 | Library | Version | Purpose |
 |---------|---------|---------|
-| Electron | 39.8.8 | Desktop shell |
-| React | 19.1 | UI framework |
-| TypeScript | 5.3 | Type safety |
-| Zustand | 5.0.3 | State management |
-| Vite | 6.4 | Build tool (main + preload processes) |
+| Electron | 39.8.10 | Desktop shell |
+| React | 19.2 | UI framework |
+| TypeScript | 5.9 | Type safety |
+| Zustand | 5.0 | State management |
+| Vite | 8.0 | Build tool (main + preload processes) |
 | better-sqlite3 | — | Local SQLite database |
 | sharp | — | Image processing |
 | sqlite-vec | — | Vector embeddings |

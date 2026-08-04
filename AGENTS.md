@@ -389,14 +389,14 @@ npm run test:e2e-runner          # headless: boots backend + Vite, runs the suit
 npm run test:e2e-runner:headed   # watch it run in a browser
 ```
 
-### Electron E2E Tests
+### Electron Tests
+
+The Electron workspace has no Playwright suite — the main process is covered by
+Jest tests in `electron/src/__tests__/`.
 
 ```bash
 cd electron
-npm install
-npx playwright install chromium
-npm run vite:build && npx tsc  # Build first
-npm run test:e2e               # Run E2E tests
+npm test
 ```
 
 See **[electron/src/AGENTS.md](electron/src/AGENTS.md)** for Electron-specific testing.

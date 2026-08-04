@@ -89,7 +89,7 @@ max_steps: 10
 | `list_directory` | List workspace contents |
 | `glob` | Match files by glob pattern |
 | `grep` | Search within files |
-| `google_search` | Search the web |
+| `web_search` | Search the web |
 | `browser` | Browse and extract web content |
 | `run_code` | Run code in a sandbox |
 | `generate_image` | Generate an image |

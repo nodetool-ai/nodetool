@@ -102,7 +102,7 @@ system_prompt: |
   
   Workflow:
   1. Break down research objective into specific queries
-  2. Use google_search to find relevant sources
+  2. Use web_search to find relevant sources
   3. Use browser to extract detailed content
   4. Save findings using write_file
   5. Synthesize results into report
@@ -220,7 +220,7 @@ planning_agent:
 - `grep` — Search for patterns within files
 
 **Web Research:**
-- `google_search` — Search the web (also `google_news`, `google_images`)
+- `web_search` — Search the web (also `google_news`, `google_images`)
 - `browser` — Browse URLs and extract web content
 - `download_file`, `http_request`
 
@@ -249,7 +249,7 @@ tools:
 
 # Research agent tools
 tools:
-  - google_search
+  - web_search
   - browser
   - write_file
   - read_file
@@ -368,14 +368,14 @@ system_prompt: |
   Workflow:
   1. Analyze the research objective
   2. Break down into specific research queries
-  3. Use google_search to find relevant sources
+  3. Use web_search to find relevant sources
   4. Use browser to extract detailed content from promising URLs
   5. Save important findings using write_file
   6. Synthesize all information into report
   7. Review and verify accuracy
   
   Tools Available:
-  - google_search: Find web resources
+  - web_search: Find web resources
   - browser: Extract content from URLs
   - write_file: Save findings and reports
   - read_file: Review previous findings
@@ -402,7 +402,7 @@ planning_agent:
     name: GPT-5 Mini
 
 tools:
-  - google_search
+  - web_search
   - browser
   - write_file
   - read_file
@@ -459,7 +459,7 @@ planning_agent:
     provider: openai
     id: gpt-5-mini
 tools:
-  - google_search
+  - web_search
   - browser
 ```
 

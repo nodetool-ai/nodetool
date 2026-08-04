@@ -18,7 +18,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/models` | Data models via Drizzle ORM — SQLite (local/Electron) and PostgreSQL/Supabase (cloud) |
 | `@nodetool-ai/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
 | `@nodetool-ai/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
-| `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, ActorRuntime, WorkflowRunner |
+| `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, NodeActor, WorkflowRunner |
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, StepExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
 | `@nodetool-ai/base-nodes` | Core workflow nodes (text, image, LLM, agents, math, etc.) |
@@ -115,7 +115,7 @@ PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 
 Implements the workflow execution engine:
 - `WorkflowRunner` — executes workflow graphs
-- `NodeInbox` / `ActorRuntime` — actor-model message passing
+- `NodeInbox` / `NodeActor` — actor-model message passing
 - Graph traversal and topological ordering
 
 ### `@nodetool-ai/runtime` — LLM Providers

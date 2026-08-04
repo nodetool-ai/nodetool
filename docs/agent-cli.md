@@ -107,7 +107,7 @@ planning_agent:
 
 # Available tools
 tools:
-  - google_search
+  - web_search
   - browser
   - write_file
   - read_file
@@ -173,7 +173,7 @@ Tool names in the `tools:` list must match the agent's tool registry. Common too
 - `grep` — Search within files
 
 **Web Research:**
-- `google_search` — Search the web (also `google_news`, `google_images`)
+- `web_search` — Search the web (also `google_news`, `google_images`)
 - `browser` — Browse and extract web content
 - `download_file`, `http_request`
 
@@ -194,7 +194,7 @@ Example tool configuration:
 
 ```yaml
 tools:
-  - google_search
+  - web_search
   - browser
   - write_file
   - read_file
@@ -339,7 +339,7 @@ Start minimal and add tools as needed:
 tools:
   - read_file
   - write_file
-  - google_search   # add when research is needed
+  - web_search      # add when research is needed
   - browser         # add when detailed web content is needed
 ```
 
