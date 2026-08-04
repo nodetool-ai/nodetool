@@ -43,6 +43,11 @@ import {
   type ChatTurnSession
 } from "./chat-turn-registry.js";
 import {
+  jobRunRegistry,
+  type JobRunExecutionHooks,
+  type JobRunSession
+} from "./job-run-registry.js";
+import {
   Application,
   Asset,
   ImageDocument,
@@ -1687,10 +1692,22 @@ interface ActiveJob {
     metadata: Record<string, unknown>;
   };
   streamTask?: Promise<void>;
+  /**
+   * The detachable session this run's frames are stamped and buffered into,
+   * so a client that drops mid-run can replay what it missed. Absent for runs
+   * this connection never registered (a chat-triggered workflow run).
+   */
+  runSession?: JobRunSession;
   /** Running sum of node-level provider charges (e.g. kie credits) for this run. */
   providerCostTotal?: number;
   /** Mini app this run belongs to, when one started it. Drives budget settlement. */
   applicationId?: string | null;
+}
+
+/** Highest `job_seq` a resubscribing client claims to already hold. */
+function resumeLastSeq(data: Record<string, unknown>): number {
+  const raw = data["last_seq"];
+  return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : 0;
 }
 
 function createRelayActivityWaiter(
@@ -1933,7 +1950,10 @@ export class UnifiedWebSocketRunner {
    * whose `cleanup-leaks` invariant can only assert what it can measure.
    */
   get slotCounters(): { activeJobs: number; startingJobs: number } {
-    return { activeJobs: this.activeJobs.size, startingJobs: this.startingJobs };
+    return {
+      activeJobs: this.activeJobs.size,
+      startingJobs: this.startingJobs
+    };
   }
   private currentTask: Promise<void> | null = null;
   private heartbeatTimer: NodeJS.Timeout | null = null;
@@ -1978,6 +1998,28 @@ export class UnifiedWebSocketRunner {
    * still points at THIS connection — never a newer one that reattached.
    */
   private readonly chatDeliveryTarget = {
+    deliver: (message: Record<string, unknown>): Promise<void> =>
+      this.sendToSocket(message)
+  };
+  /**
+   * Job ids of runs still executing on a previous connection's runner that
+   * THIS connection reattached to via `reconnect_job`. Client commands for
+   * them (`cancel_job`, `stop`, `stream_input`, `end_input_stream`,
+   * `update_node_properties`) are forwarded to the executing runner through
+   * the session's hooks.
+   *
+   * Ids, not session objects: holding the session would pin its frame buffer
+   * for this connection's whole life, defeating the registry's retention
+   * drop. Resolved through the registry at every use, so a dropped session
+   * simply resolves to null and its memory goes with it.
+   */
+  private adoptedJobIds = new Set<string>();
+  /**
+   * This connection's identity as a job-run delivery target. Separate object
+   * from {@link chatDeliveryTarget} so a job session's `detach(target)` can
+   * never be confused with a chat session's — both guard on identity.
+   */
+  private readonly jobDeliveryTarget = {
     deliver: (message: Record<string, unknown>): Promise<void> =>
       this.sendToSocket(message)
   };
@@ -2203,12 +2245,26 @@ export class UnifiedWebSocketRunner {
     }
     this.adoptedSessions.clear();
     this.currentTask = null;
+    // A run with a resilient session survives the socket: detach it (frames
+    // keep buffering for replay, and `streamJobMessages` keeps draining on
+    // this now-socketless runner) instead of cancelling. The session's
+    // detach-grace timer bounds how long it may run unattended. A run without
+    // one — a chat-triggered workflow, whose owning turn is cancelled anyway
+    // — is cancelled as before: nobody is left to receive its output.
     for (const [jobId, job] of this.activeJobs) {
-      if (job.session) {
-        job.session.cancel();
+      if (job.runSession) {
+        job.runSession.detach(this.jobDeliveryTarget);
+        continue;
       }
+      job.session?.cancel();
       this.activeJobs.delete(jobId);
     }
+    for (const adoptedId of this.adoptedJobIds) {
+      jobRunRegistry
+        .get(this.userId ?? "1", adoptedId)
+        ?.detach(this.jobDeliveryTarget);
+    }
+    this.adoptedJobIds.clear();
 
     // Drain runs that were still queued (never started): the client is gone,
     // so they will never run. Mark their persisted rows cancelled instead of
@@ -2281,7 +2337,60 @@ export class UnifiedWebSocketRunner {
       session.emit(message);
       return;
     }
+    // Same for a resilient run's frames — including its terminal job_update,
+    // which is the one frame a reconnecting client most needs replayed.
+    // Adopted sessions are checked too so a `cancel_job` this connection
+    // issued against a run owned by another connection still buffers its
+    // acknowledgement into that run's session rather than only this socket.
+    const jobSession = this.resolveJobSession(message.job_id);
+    if (jobSession && jobSession.status === "running") {
+      jobSession.emit(message);
+      return;
+    }
     await this.sendToSocket(message);
+  }
+
+  /**
+   * The resilient session a frame's `job_id` belongs to: one this connection
+   * started, or one it adopted via `reconnect_job`.
+   */
+  private resolveJobSession(jobId: unknown): JobRunSession | null {
+    if (typeof jobId !== "string" || jobId.length === 0) return null;
+    const active = this.activeJobs.get(jobId);
+    if (active?.runSession) return active.runSession;
+    if (!this.adoptedJobIds.has(jobId)) return null;
+    return jobRunRegistry.get(this.userId ?? "1", jobId);
+  }
+
+  /**
+   * Where a client command for `jobId` should act: this connection's own
+   * ExecutionSession, or — for a run this client reconnected to — the hooks
+   * of the session whose runner still owns it. Null when nothing is running.
+   */
+  private resolveJobControl(
+    jobId: string
+  ): { hooks: JobRunExecutionHooks; workflowId: string | null } | null {
+    const active = this.activeJobs.get(jobId);
+    if (active) {
+      const session = active.session;
+      return {
+        workflowId: active.workflowId,
+        hooks: {
+          cancel: () => session.cancel(),
+          pushInput: (input, value, handle) =>
+            session.pushInput(input, value, handle),
+          finishInputStream: (input, handle) =>
+            session.finishInputStream(input, handle),
+          updateNodeProperties: (nodeId, properties) =>
+            session.updateNodeProperties(nodeId, properties)
+        }
+      };
+    }
+    const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
+    if (registered && registered.status === "running") {
+      return { hooks: registered.hooks, workflowId: registered.workflowId };
+    }
+    return null;
   }
 
   /** Raw socket delivery — no chat-turn interception. */
@@ -2607,17 +2716,35 @@ export class UnifiedWebSocketRunner {
     return { value, at: now };
   }
 
-  /** Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered. */
+  /**
+   * Jobs occupying a concurrency slot: live + reserved-but-not-yet-registered.
+   *
+   * The cap counts a *user's* runs, not a socket's. A run detached from a
+   * dropped connection keeps executing, so counting only `activeJobs` would
+   * let a client reconnect its way past the cap — four abandoned sockets and
+   * a fresh one is eight concurrent runs. The registry is the cross-
+   * connection count; `activeJobs` contributes only the entries it does not
+   * already cover (a chat-triggered workflow run, which registers no
+   * session), or the same run would be counted twice.
+   */
   private get inFlightJobCount(): number {
-    return this.activeJobs.size + this.startingJobs;
+    let sessionless = 0;
+    for (const job of this.activeJobs.values()) {
+      if (!job.runSession) sessionless += 1;
+    }
+    return (
+      this.startingJobs +
+      jobRunRegistry.countRunning(this.userId ?? "1") +
+      sessionless
+    );
   }
 
   /**
    * Number of live (unfinished) runs currently executing for a workflow. Used
    * to enforce the per-workflow concurrency limit so non-concurrent runs stay
    * sequential and their live node updates don't clobber each other in the
-   * editor. Safe to check against `activeJobs` alone: commands are processed
-   * one-at-a-time and `startJobInner` registers the job before returning.
+   * editor. Counted the same way as {@link inFlightJobCount}: the registry
+   * across connections, plus this connection's sessionless entries.
    */
   private countActiveJobsForWorkflow(
     workflowId: string | null | undefined
@@ -2625,9 +2752,12 @@ export class UnifiedWebSocketRunner {
     if (!workflowId) {
       return 0;
     }
-    let count = 0;
+    let count = jobRunRegistry.countRunningForWorkflow(
+      this.userId ?? "1",
+      workflowId
+    );
     for (const job of this.activeJobs.values()) {
-      if (job.workflowId === workflowId && !job.finished) {
+      if (!job.runSession && job.workflowId === workflowId && !job.finished) {
         count++;
       }
     }
@@ -3253,11 +3383,43 @@ export class UnifiedWebSocketRunner {
       },
       applicationId: req.application_id ?? null
     };
+    // Decouple the run from this socket: from here on every frame carrying
+    // this job_id is stamped with `job_seq` and buffered, so a client that
+    // drops mid-run can `reconnect_job` from a fresh connection and replay
+    // the tail — including the terminal job_update.
+    //
+    // Keyed on the connection's identity, not `userId`: every lookup
+    // (`reconnect_job`, `cancel_job`, the slot counts) reads
+    // `this.userId ?? "1"`, and a run opened under an explicit differing
+    // `req.user_id` would be unreachable — no replay, and a cancel that
+    // reports the job as not found.
+    const runSession = jobRunRegistry.open(
+      this.userId ?? "1",
+      jobId,
+      workflowId,
+      {
+        cancel: () => session.cancel(),
+        pushInput: (input, value, handle) =>
+          session.pushInput(input, value, handle),
+        finishInputStream: (input, handle) =>
+          session.finishInputStream(input, handle),
+        updateNodeProperties: (nodeId, properties) =>
+          session.updateNodeProperties(nodeId, properties)
+      }
+    );
+    runSession.attach(this.jobDeliveryTarget, runSession.lastSeq);
+    active.runSession = runSession;
     this.activeJobs.set(jobId, active);
-    // Slot ownership transfers from startingJobs to activeJobs now that the
-    // job is registered and counted by activeJobs.size.
+    // Slot ownership transfers from startingJobs to the registry's running
+    // count now that the job is registered. Released before the DB check
+    // below so the reservation and the registry entry never both count.
     releaseSlot();
     log.info("Job started", { jobId, workflowId });
+    await this.settleRunAgainstLostConnection(
+      runSession,
+      jobId,
+      executionOptions
+    );
 
     // The run itself already started inside `ExecutionSession.create()`
     // above — `session.result` is the same never-rejecting terminal-result
@@ -3272,6 +3434,43 @@ export class UnifiedWebSocketRunner {
         this.logError("job stream task failed", error);
       }
     );
+  }
+
+  /**
+   * A run whose start was mid-flight when `disconnect()` fired registers
+   * AFTER that walk of `activeJobs`, so nothing detached it and nothing
+   * armed its grace timer — it would execute unattended forever, delivering
+   * into a dead target. Two fixes, both after registration:
+   *   - no live socket: detach, which starts the detach-grace countdown;
+   *   - the row already reads cancelled: `disconnect()`'s queue drain (or a
+   *     DB-only cancel) settled it while this run was starting, so cancel
+   *     the run rather than let it execute to completion under a row that
+   *     says it never did.
+   */
+  private async settleRunAgainstLostConnection(
+    runSession: JobRunSession,
+    jobId: string,
+    executionOptions: RunJobExecutionOptions
+  ): Promise<void> {
+    const socketGone =
+      !this.websocket ||
+      this.websocket.clientState === "disconnected" ||
+      this.websocket.applicationState === "disconnected";
+    if (socketGone) {
+      runSession.detach(this.jobDeliveryTarget);
+    }
+    if (executionOptions.persistence !== "job") return;
+    try {
+      const job = await Job.get(jobId);
+      if (job?.status === "cancelled") {
+        log.info("Job was cancelled while starting, cancelling the run", {
+          jobId
+        });
+        runSession.cancel();
+      }
+    } catch (error) {
+      this.logError("post-start cancellation check failed", error);
+    }
   }
 
   private async streamJobMessages(
@@ -3319,6 +3518,10 @@ export class UnifiedWebSocketRunner {
       await this.persistTerminalJobStatus(active);
       await this.settleApplicationInvocation(active);
     } finally {
+      // Terminal: the session stops buffering and starts its retention
+      // window, so a client reconnecting shortly after still gets the tail
+      // (and the outcome) before the persisted row becomes the only source.
+      active.runSession?.finish(active.status);
       this.activeJobs.delete(active.jobId);
       this.drainQueue();
     }
@@ -3784,20 +3987,67 @@ export class UnifiedWebSocketRunner {
     // finally, so they run even if the drain loop above throws.
   }
 
-  async reconnectJob(jobId: string, workflowId?: string): Promise<void> {
+  async reconnectJob(
+    jobId: string,
+    workflowId?: string,
+    lastSeq = 0
+  ): Promise<void> {
+    // A resilient session is the authoritative answer: the run may be
+    // executing on another connection's runner right now, or have finished
+    // while this client was away — either way the seq-stamped buffer holds
+    // exactly what was missed. Adopt it so this connection's `cancel_job` /
+    // `stream_input` / `stop` reach the runner that owns the ExecutionSession.
+    const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
+    if (registered) {
+      const { replay, incomplete } = registered.attach(
+        this.jobDeliveryTarget,
+        lastSeq
+      );
+      if (registered.status === "running") {
+        this.adoptedJobIds.add(jobId);
+      }
+      // Header first, then the missed tail; live frames queue behind them on
+      // the session's ordered delivery chain.
+      await registered.deliverReplay(this.jobDeliveryTarget, [
+        {
+          type: "job_resumed",
+          job_id: jobId,
+          workflow_id: workflowId ?? registered.workflowId ?? null,
+          status: registered.status,
+          last_seq: registered.lastSeq,
+          replay_count: replay.length,
+          replay_incomplete: incomplete
+        },
+        ...replay
+      ]);
+      return;
+    }
+
     const active = this.activeJobs.get(jobId);
     if (!active) {
-      // Reconnecting to a job that already finished (or one this server never
-      // had) is a normal client flow after a socket blip. Reply with the job's
-      // terminal state from the persisted row instead of throwing — a throw
-      // here became an unhandled promise rejection (the caller only `void`s
-      // this) and left the client waiting for state that never arrived.
+      // No session and no in-memory job: the run ended long enough ago that
+      // retention elapsed, or this process never had it. A row that already
+      // reached a settled outcome is echoed verbatim — a completed run stays
+      // completed, and the replay-unavailable note rides alongside as an
+      // `error` string explaining only the missing events.
+      //
+      // Every other row status (queued, scheduled, running, recovering,
+      // suspended, paused) is reported as failed: nothing is left that could
+      // ever send this client another frame, and reporting the row as-is
+      // parks the UI in a state that never settles — a `queued` row from a
+      // dead connection's drained queue reads as "running" with a live Stop
+      // button forever.
       const job = (await Job.get(jobId)) as Job | null;
+      const settled =
+        job != null &&
+        (job.status === "completed" ||
+          job.status === "failed" ||
+          job.status === "cancelled");
       const replayUnavailable =
         job != null && job.status !== "failed" && job.status !== "cancelled";
       await this.sendMessage({
         type: "job_update",
-        status: replayUnavailable ? "failed" : (job?.status ?? "failed"),
+        status: settled ? job.status : "failed",
         job_id: jobId,
         workflow_id: workflowId ?? job?.workflow_id ?? null,
         ...(job
@@ -3837,8 +4087,12 @@ export class UnifiedWebSocketRunner {
     }
   }
 
-  async resumeJob(jobId: string, workflowId?: string): Promise<void> {
-    await this.reconnectJob(jobId, workflowId);
+  async resumeJob(
+    jobId: string,
+    workflowId?: string,
+    lastSeq = 0
+  ): Promise<void> {
+    await this.reconnectJob(jobId, workflowId, lastSeq);
   }
 
   async cancelJob(
@@ -3888,6 +4142,29 @@ export class UnifiedWebSocketRunner {
 
     const active = this.activeJobs.get(jobId);
     if (!active) {
+      // Not ours, but possibly still running on the connection that started
+      // it (this client reconnected after a drop). Cancel through the
+      // session's hooks and persist the row here — the owning runner's own
+      // terminal bookkeeping still runs, and its `job_update` reaches this
+      // client over the session it just adopted.
+      const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
+      if (registered && registered.status === "running") {
+        registered.cancel();
+        try {
+          const job = await Job.get(jobId);
+          if (job && job.status !== "cancelled") {
+            job.markCancelled();
+            await job.save();
+          }
+        } catch (err) {
+          this.logError("cancel persistence failed", err);
+        }
+        return {
+          message: "Job cancellation requested",
+          job_id: jobId,
+          workflow_id: workflowId ?? registered.workflowId ?? ""
+        };
+      }
       return {
         error: "Job not found or already completed",
         job_id: jobId,
@@ -7604,9 +7881,11 @@ export class UnifiedWebSocketRunner {
         if (!jobId) return { error: "job_id is required" };
         // Await so an error can't escape as an unhandled rejection; reconnectJob
         // only replays state (it does not run the job), so this stays quick.
-        await this.reconnectJob(jobId, workflowId).catch((err) => {
-          log.warn("reconnect_job failed", { jobId, error: String(err) });
-        });
+        await this.reconnectJob(jobId, workflowId, resumeLastSeq(data)).catch(
+          (err) => {
+            log.warn("reconnect_job failed", { jobId, error: String(err) });
+          }
+        );
         return {
           message: `Reconnecting to job ${jobId}`,
           job_id: jobId,
@@ -7614,9 +7893,11 @@ export class UnifiedWebSocketRunner {
         };
       case "resume_job":
         if (!jobId) return { error: "job_id is required" };
-        await this.resumeJob(jobId, workflowId).catch((err) => {
-          log.warn("resume_job failed", { jobId, error: String(err) });
-        });
+        await this.resumeJob(jobId, workflowId, resumeLastSeq(data)).catch(
+          (err) => {
+            log.warn("resume_job failed", { jobId, error: String(err) });
+          }
+        );
         return {
           message: `Resumption initiated for job ${jobId}`,
           job_id: jobId,
@@ -7625,27 +7906,27 @@ export class UnifiedWebSocketRunner {
       case "stream_input":
         if (!jobId) return { error: "job_id is required" };
         {
-          const active = this.activeJobs.get(jobId);
+          const target = this.resolveJobControl(jobId);
           log.info("stream_input command", {
             jobId,
-            hasActive: !!active,
+            hasActive: !!target,
             inputName: data.input,
             handle: data.handle,
             hasValue: data.value !== undefined,
             activeJobIds: [...this.activeJobs.keys()]
           });
-          if (!active) return { error: "No active job/context" };
+          if (!target) return { error: "No active job/context" };
           const inputName = typeof data.input === "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
           const value = data.value;
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            await active.session.pushInput(inputName, value, handle);
+            await target.hooks.pushInput(inputName, value, handle);
             return {
               message: "Input item streamed",
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId
+              workflow_id: workflowId ?? target.workflowId
             };
           } catch (err) {
             log.error("stream_input failed", {
@@ -7654,31 +7935,31 @@ export class UnifiedWebSocketRunner {
             return {
               error: err instanceof Error ? err.message : String(err),
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId
+              workflow_id: workflowId ?? target.workflowId
             };
           }
         }
       case "end_input_stream":
         if (!jobId) return { error: "job_id is required" };
         {
-          const active = this.activeJobs.get(jobId);
-          if (!active) return { error: "No active job/context" };
+          const target = this.resolveJobControl(jobId);
+          if (!target) return { error: "No active job/context" };
           const inputName = typeof data.input === "string" ? data.input : "";
           if (!inputName.trim()) return { error: "Invalid input name" };
           const handle =
             typeof data.handle === "string" ? data.handle : undefined;
           try {
-            active.session.finishInputStream(inputName, handle);
+            target.hooks.finishInputStream(inputName, handle);
             return {
               message: "Input stream ended",
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId
+              workflow_id: workflowId ?? target.workflowId
             };
           } catch (err) {
             return {
               error: err instanceof Error ? err.message : String(err),
               job_id: jobId,
-              workflow_id: workflowId ?? active.workflowId
+              workflow_id: workflowId ?? target.workflowId
             };
           }
         }
@@ -7698,9 +7979,9 @@ export class UnifiedWebSocketRunner {
         if (properties === null || typeof properties !== "object") {
           return { error: "properties must be an object" };
         }
-        const active = this.activeJobs.get(jobId);
+        const target = this.resolveJobControl(jobId);
         const applied =
-          active?.session.updateNodeProperties(
+          target?.hooks.updateNodeProperties(
             nodeId,
             properties as Record<string, unknown>
           ) ?? false;
@@ -7836,6 +8117,13 @@ export class UnifiedWebSocketRunner {
           if (active) {
             active.session.cancel();
             active.status = "cancelled";
+          } else {
+            // The run may be executing on the connection that started it —
+            // this client reconnected to it. Cancel through its hooks.
+            const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
+            if (registered && registered.status === "running") {
+              registered.cancel();
+            }
           }
         }
         const stopScope = threadId ?? jobId;

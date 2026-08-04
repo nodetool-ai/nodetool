@@ -156,6 +156,12 @@ export type WorkflowRunner = {
   edges: Edge[];
   job_id: string | null;
   /**
+   * Highest `job_seq` seen for `job_id`. Frames of a resilient run are
+   * seq-stamped, so a reconnect asks the server to replay only what the
+   * socket missed. Reset whenever the tracked job changes.
+   */
+  jobReplayCursor: number;
+  /**
    * True while the active run executes in-browser (kernel runner) rather than
    * on the server. Browser runs don't hold a WebSocket connection, so the
    * stuck-state recovery heuristic must not treat a closed socket as a sign
@@ -241,6 +247,7 @@ export const createWorkflowRunnerStore = (
     nodes: [],
     edges: [],
     job_id: null,
+    jobReplayCursor: 0,
     isBrowserRun: false,
     queuePosition: null,
     unsubscribe: null,
@@ -281,6 +288,7 @@ export const createWorkflowRunnerStore = (
         unsubscribe: null,
         state: "idle",
         job_id: null,
+        jobReplayCursor: 0,
         isBrowserRun: false,
         queuePosition: null,
         statusMessage: null,
@@ -301,14 +309,26 @@ export const createWorkflowRunnerStore = (
 
       await get().ensureConnection();
 
-      set({ job_id: jobId, state: "running" });
+      // A different job means the cursor from the previous one must not be
+      // used as a replay floor — it would skip the new job's early frames.
+      const lastSeq = get().job_id === jobId ? get().jobReplayCursor : 0;
+      // Every reconnect targets a server job. A leftover `isBrowserRun` from a
+      // previous in-browser run would make the socket-open auto-resume skip
+      // this store forever.
+      set({
+        job_id: jobId,
+        jobReplayCursor: lastSeq,
+        isBrowserRun: false,
+        state: "running"
+      });
 
       await globalWebSocketManager.send({
         type: "reconnect_job",
         command: "reconnect_job",
         data: {
           job_id: jobId,
-          workflow_id: workflowId
+          workflow_id: workflowId,
+          last_seq: lastSeq
         }
       });
     },
@@ -327,9 +347,13 @@ export const createWorkflowRunnerStore = (
 
       await get().ensureConnection();
 
+      const lastSeq = get().job_id === jobId ? get().jobReplayCursor : 0;
       set({
         workflow,
         job_id: jobId,
+        jobReplayCursor: lastSeq,
+        // See reconnect(): a reconnect always attaches to a server job.
+        isBrowserRun: false,
         state: "connecting",
         statusMessage: "Reconnecting to running job..."
       });
@@ -339,7 +363,8 @@ export const createWorkflowRunnerStore = (
         command: "reconnect_job",
         data: {
           job_id: jobId,
-          workflow_id: workflow.id
+          workflow_id: workflow.id,
+          last_seq: lastSeq
         }
       });
     },
@@ -485,6 +510,7 @@ export const createWorkflowRunnerStore = (
           nodes,
           edges,
           job_id: jobId,
+          jobReplayCursor: 0,
           isBrowserRun: false,
           queuePosition: null,
           statusMessage: "Workflow starting...",
@@ -858,6 +884,7 @@ const defaultWorkflowRunner: WorkflowRunner = {
   nodes: [],
   edges: [],
   job_id: null,
+  jobReplayCursor: 0,
   isBrowserRun: false,
   queuePosition: null,
   unsubscribe: null,

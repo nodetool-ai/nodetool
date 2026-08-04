@@ -211,6 +211,83 @@ describe("WorkflowRunner", () => {
     });
   });
 
+  describe("resume cursor", () => {
+    it("reconnects from the cursor of the job it is already tracking", async () => {
+      store.setState({ job_id: "job-123", jobReplayCursor: 12 });
+
+      await store.getState().reconnect("job-123");
+
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "reconnect_job",
+          data: expect.objectContaining({
+            job_id: "job-123",
+            last_seq: 12,
+          }),
+        })
+      );
+    });
+
+    it("reconnects from zero for a job it was not tracking", async () => {
+      store.setState({ job_id: "job-other", jobReplayCursor: 12 });
+
+      await store.getState().reconnect("job-123");
+
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "reconnect_job",
+          data: expect.objectContaining({ job_id: "job-123", last_seq: 0 }),
+        })
+      );
+      expect(store.getState().jobReplayCursor).toBe(0);
+    });
+
+    it("reconnectWithWorkflow carries the cursor too", async () => {
+      store.setState({ job_id: "job-123", jobReplayCursor: 4 });
+
+      await store.getState().reconnectWithWorkflow("job-123", testWorkflow);
+
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: "reconnect_job",
+          data: expect.objectContaining({
+            job_id: "job-123",
+            workflow_id: "test-workflow-id",
+            last_seq: 4,
+          }),
+        })
+      );
+    });
+
+    it.each([
+      ["reconnect", (jobId: string) => store.getState().reconnect(jobId)],
+      [
+        "reconnectWithWorkflow",
+        (jobId: string) =>
+          store.getState().reconnectWithWorkflow(jobId, testWorkflow),
+      ],
+    ] as const)(
+      "%s clears isBrowserRun so the job stays eligible for auto-resume",
+      async (_name, doReconnect) => {
+        // A previous in-browser run left the flag set; the job being attached
+        // to is a server job, and the open-event resume skips browser runs.
+        store.setState({ isBrowserRun: true, job_id: "job-browser" });
+
+        await doReconnect("job-server");
+
+        expect(store.getState().isBrowserRun).toBe(false);
+      }
+    );
+
+    it("starts a fresh run at cursor zero", async () => {
+      store.setState({ jobReplayCursor: 9 });
+
+      await store.getState().run({}, testWorkflow, [], []);
+
+      expect(store.getState().jobReplayCursor).toBe(0);
+    });
+  });
+
   describe("streaming methods", () => {
     beforeEach(async () => {
       await store.getState().ensureConnection();

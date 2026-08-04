@@ -541,7 +541,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
 
-  it("reconnectJob fails honestly when completed outputs cannot be replayed", async () => {
+  it("reconnectJob reports a completed job's real status when its events cannot be replayed", async () => {
     await Job.create({
       id: "completed-job",
       workflow_id: "wf",
@@ -551,11 +551,58 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
 
     await runner.reconnectJob("completed-job");
 
+    // The missing events are an `error` note, not a verdict: flipping the
+    // status to "failed" here told clients a successful run had crashed.
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        status: "completed",
+        job_id: "completed-job",
+        error:
+          "Job event replay is unavailable after the execution connection was lost."
+      })
+    );
+  });
+
+  it("reconnectJob fails a queued row rather than echoing a status nothing can settle", async () => {
+    await Job.create({
+      id: "queued-job",
+      workflow_id: "wf",
+      user_id: "1",
+      status: "queued"
+    });
+
+    await runner.reconnectJob("queued-job");
+
+    // The queue this row sat in died with its connection. Reporting "queued"
+    // (which the editor renders as running, Stop button and all) leaves the
+    // client waiting on a run that will never start or settle.
     expect(decodeAll(ws)).toContainEqual(
       expect.objectContaining({
         type: "job_update",
         status: "failed",
-        job_id: "completed-job",
+        job_id: "queued-job",
+        error:
+          "Job event replay is unavailable after the execution connection was lost."
+      })
+    );
+  });
+
+  it("reconnectJob still fails a row stuck at running with nothing executing", async () => {
+    await Job.create({
+      id: "orphaned-job",
+      workflow_id: "wf",
+      user_id: "1",
+      status: "running"
+    });
+
+    await runner.reconnectJob("orphaned-job");
+
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        status: "failed",
+        job_id: "orphaned-job",
         error:
           "Job event replay is unavailable after the execution connection was lost."
       })
