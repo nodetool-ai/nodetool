@@ -567,11 +567,24 @@ code: `packages/websocket/src/lib/app-build-service.ts`.
 ### nodetool validate (Static Workflow Check)
 
 Checks a workflow against the node registry **without running it** — unknown
-node types, missing required properties, unselected models, dangling and
-mis-typed edges, dynamic slots typed with a JSON-Schema/TypeScript name instead
-of NodeTool's (`integer` → `int`), and Code node bodies. Returns in well under a
-second, so it's the cheap pre-flight before an expensive `debug` run. Accepts a
-workflow id, JSON file, or DSL `.ts` file. File/DSL targets need no database.
+node types, missing required properties, unselected models, model properties
+naming an unregistered provider or a model id that provider does not offer,
+dangling and mis-typed edges, dynamic slots typed with a
+JSON-Schema/TypeScript name instead of NodeTool's (`integer` → `int`), and Code
+node bodies. Returns in well under a second, so it's the cheap pre-flight
+before an expensive `debug` run. Accepts a workflow id, JSON file, or DSL `.ts`
+file. File/DSL targets need no database.
+
+Model references are found wherever they sit — a top-level property, an entry
+in a `list[…_model]`, one nested in a settings object, or a dynamic slot value.
+Both catalogs fail toward silence: an empty provider list means the registry
+could not be reached, and a catalog only enumerable over the network (Anthropic,
+Ollama, ASR ids anywhere) reports nothing rather than calling a real id a typo.
+The check runs at graph *creation* time too — `submit_graph`/`finish_graph`
+reject a provider or model the planner hallucinated, `create_workflow` refuses
+to save one — and `POST /api/workflows/:id/run|debug` refuses the run with a
+400 before the job row exists, instead of failing on the model node after the
+upstream half of the graph has been paid for.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
 not valid JavaScript, uses `import`/`export` (the sandbox has no module loader),
