@@ -10,7 +10,6 @@ import {
   Radio as MuiRadio,
   RadioProps as MuiRadioProps,
   RadioGroup as MuiRadioGroup,
-  RadioGroupProps as MuiRadioGroupProps,
   FormControlLabel,
   FormControlLabelProps
 } from "@mui/material";
@@ -79,8 +78,6 @@ const RadioInternal = forwardRef<HTMLButtonElement, RadioProps>(
 
 export const Radio = memo(RadioInternal);
 Radio.displayName = "Radio";
-
-export type RadioSetProps = MuiRadioGroupProps;
 
 /** The group wrapper that gives a set of `Radio`s one name and one value. */
 export const RadioSet = memo(MuiRadioGroup);

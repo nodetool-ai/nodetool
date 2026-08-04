@@ -68,10 +68,7 @@ export const createSketchStore = (): SketchStoreApi =>
 
 // The reactive `useSketchStore` hook (context-bound) is re-exported from the
 // instance module below so call sites keep importing it from "../state".
-export {
-  useSketchStore,
-  useSketchStoreApi
-} from "../../../stores/sketch/SketchInstance";
+export { useSketchStore } from "../../../stores/sketch/SketchInstance";
 
 export interface PersistedSketchStoreState {
   document: SketchDocument;

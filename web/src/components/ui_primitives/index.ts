@@ -337,7 +337,7 @@ export type { MobileBottomSheetProps } from "./MobileBottomSheet";
 export { Checkbox } from "./Checkbox";
 export type { CheckboxProps } from "./Checkbox";
 export { Radio, RadioSet } from "./Radio";
-export type { RadioProps, RadioSetProps } from "./Radio";
+export type { RadioProps } from "./Radio";
 
 export { ContextMenu } from "./ContextMenu";
 export type { ContextMenuProps } from "./ContextMenu";
@@ -378,10 +378,7 @@ export { HoverActionGroup } from "./HoverActionGroup";
 export type { HoverActionGroupProps } from "./HoverActionGroup";
 
 export { SelectableListItem } from "./SelectableListItem";
-export type {
-  SelectableListItemProps,
-  SelectableListItemState
-} from "./SelectableListItem";
+export type { SelectableListItemProps } from "./SelectableListItem";
 
 export { DropZoneOverlay } from "./DropZoneOverlay";
 export type { DropZoneOverlayProps } from "./DropZoneOverlay";

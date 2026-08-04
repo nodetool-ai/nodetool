@@ -11,8 +11,6 @@ import React, { memo, forwardRef, useCallback } from "react";
 import { Box, BoxProps } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 
-export type SelectableListItemState = "default" | "selected" | "secondary";
-
 export interface SelectableListItemProps extends Omit<BoxProps, "onClick"> {
   /** Whether the row is currently selected (solid primary border + tint). */
   selected?: boolean;

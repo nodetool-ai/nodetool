@@ -64,9 +64,6 @@ export type WorkerHealth = RouterOutputs["worker"]["health"];
 
 export type ReconcileSummary = RouterOutputs["worker"]["reconcile"];
 
-/** A provider-live worker the registry doesn't track — billing out-of-band. */
-export type WorkerOrphan = ReconcileSummary["orphans"][number];
-
 /** Hierarchical query keys so a single action can target the right cache. */
 const workerQueryKeys = {
   all: ["workers"] as const,
