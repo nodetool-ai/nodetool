@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { RESOURCE_KINDS } from "@nodetool-ai/protocol";
 import {
   RESIDENT_TOOL_NAMES,
   CHAT_AGENT_SYSTEM_PROMPT
@@ -21,5 +22,13 @@ describe("resident toolbelt", () => {
     expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("debug_app");
     // The draft, not the saved row, is what the App Builder must grade.
     expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("document");
+  });
+
+  it("describes every resource kind, not just workflows", () => {
+    const section = CHAT_AGENT_SYSTEM_PROMPT.split("# NodeTool resources")[1];
+    expect(section).toBeDefined();
+    for (const kind of RESOURCE_KINDS) {
+      expect(section).toContain(`**${kind}**`);
+    }
   });
 });
