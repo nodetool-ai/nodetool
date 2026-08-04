@@ -157,10 +157,6 @@ export const useSketchStore = createInstanceHook<SketchStore>(
   () => currentInstance().editor
 );
 
-/** Raw editor store for the surrounding instance (imperative `.getState()`). */
-export const useSketchStoreApi = (): SketchStoreApi =>
-  useSketchInstance().editor;
-
 // Session ---------------------------------------------------------------------
 
 export const useSketchSessionStore = createInstanceHook<SketchSessionState>(

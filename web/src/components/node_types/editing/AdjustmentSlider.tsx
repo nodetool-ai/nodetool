@@ -14,7 +14,7 @@
  * block alongside the body's own styles: `css={[bodyStyles, sliderStyles]}`.
  */
 
-import React, { useCallback } from "react";
+import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 
@@ -145,7 +145,9 @@ interface AdjustmentSliderProps {
   labelClassName?: string;
 }
 
-export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = ({
+// Memoized: a scrub re-renders the body ~60x/s, and only the dragged row's
+// `value` changes — the other rows' props are all stable.
+export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = memo(({
   spec,
   value,
   onChange,
@@ -200,4 +202,5 @@ export const AdjustmentSlider: React.FC<AdjustmentSliderProps> = ({
       <span className="ctrl-value">{formatSliderValue(spec, value)}</span>
     </>
   );
-};
+});
+AdjustmentSlider.displayName = "AdjustmentSlider";

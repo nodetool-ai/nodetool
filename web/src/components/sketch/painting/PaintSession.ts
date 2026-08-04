@@ -44,13 +44,6 @@ import {
 import { restoreAlphaFromSnapshot } from "./alphaLock";
 import { clearLazyLeash, setLazyLeash } from "./lazyLeashState";
 
-// ─── Session state ──────────────────────────────────────────────────────────
-
-export interface PaintSessionSnapshot {
-  /** Alpha channel snapshot for alpha-lock restore. */
-  alphaSnapshot: ImageData | null;
-}
-
 // ─── Stroke buffer pool ─────────────────────────────────────────────────────
 // Reuse off-screen canvases between strokes to avoid the cost of
 // `document.createElement("canvas")` + GPU-backed surface allocation on every

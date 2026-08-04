@@ -4,7 +4,6 @@
 
 // ── Core session ────────────────────────────────────────────────────────────
 export { PaintSession } from "./PaintSession";
-export type { PaintSessionSnapshot } from "./PaintSession";
 
 // ── Engine interface & types ────────────────────────────────────────────────
 export type {

@@ -11,6 +11,7 @@ import { z } from "zod";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
+import { detectRuntimes, KNOWN_RUNTIMES } from "../../lib/runtime-detection.js";
 import {
   readBuiltinPackOverrides,
   readPackTrustFromFile,
@@ -104,6 +105,25 @@ export const packsRouter = router({
   list: protectedProcedure.output(packsListOutput).query(() => ({
     packs: getPackSnapshot().map(toDto)
   })),
+
+  /**
+   * Which external runtimes (ffmpeg, pandoc, yt-dlp, …) are on the *server's*
+   * PATH. The desktop app answers this over Electron IPC; browser clients —
+   * including every Docker deployment — have no IPC and ask the server that
+   * would actually spawn the binary.
+   */
+  runtimeStatuses: protectedProcedure
+    .input(
+      z.object({ ids: z.array(z.string()).max(64).optional() }).optional()
+    )
+    .output(
+      z.object({
+        statuses: z.array(z.object({ id: z.string(), installed: z.boolean() }))
+      })
+    )
+    .query(async ({ input }) => ({
+      statuses: await detectRuntimes(input?.ids ?? KNOWN_RUNTIMES)
+    })),
 
   /** Effective trust config (env + config file + defaults merged). */
   getTrust: protectedProcedure.output(trustSchema).query(() =>

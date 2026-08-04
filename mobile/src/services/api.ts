@@ -92,13 +92,6 @@ export interface CollectionResponse {
   workflow_name?: string | null;
 }
 
-export interface CollectionCreate {
-  name: string;
-  embedding_model?: string;
-  embedding_provider?: string;
-}
-
-
 export interface Thread {
   id: string;
   user_id: string;
@@ -106,11 +99,6 @@ export interface Thread {
   created_at: string | null;
   updated_at: string | null;
   etag?: string | null;
-}
-
-export interface ThreadList {
-  threads: Thread[];
-  next: string | null;
 }
 
 export interface WorkflowGraphInput {

@@ -1312,6 +1312,18 @@ markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
 to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
 URL or wrap it in a code block.
 
+# Linking resources
+Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
+fragment (\`timeline://tl_7#clip=cl_2\`). Kinds: asset, workflow, timeline,
+storyboard, sketch, script, app, model3d, collection, thread. When you create
+or change a resource, link it once in your reply as a markdown link with a
+human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
+user can open it. Mutating tool results carry a ready-made \`url\`
+field; copy that string rather than composing one. At most one link per
+resource per reply, and never link a resource you only looked up. Images are
+the exception: show them inline per "Image and media" above instead of
+linking them.
+
 # File types
 References to documents, images, videos, or audio files have the shape:
 - \`type\`: document | image | video | audio
@@ -1476,8 +1488,17 @@ function formatUiContext(uiContext?: UiContext | null): string {
     );
   }
 
+  const hasScript =
+    focused?.type === "script" || open.some((ref) => ref.type === "script");
+  if (hasScript) {
+    lines.push(
+      "To voice a script, do not author a workflow: `voice_script_lines` synthesizes each line with its cast voice and saves the takes onto the script, and `assemble_script_timeline` lays the voiced takes into a timeline sequence. Both default to the whole script, so one call covers it."
+    );
+  }
+
   const hasStoryboard =
-    focused?.type === "storyboard" || open.some((ref) => ref.type === "storyboard");
+    focused?.type === "storyboard" ||
+    open.some((ref) => ref.type === "storyboard");
   if (hasStoryboard) {
     lines.push(
       "To render a storyboard, do not author a workflow: `render_storyboard_stills` then `render_storyboard_clips` call the image/video model per shot and save the results onto the board, and `assemble_storyboard_timeline` lays the rendered clips into a timeline sequence. Stills are cheap and clips are not — render the stills, look at them, then spend."

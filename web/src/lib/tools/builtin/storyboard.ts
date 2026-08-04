@@ -2,6 +2,7 @@ import { z } from "zod";
 import { isScreenplay, type ShotStatus } from "@nodetool-ai/protocol";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
+import { docUrl } from "./resourceLinks";
 
 /**
  * Frontend tools that let the agent direct the live Storyboard surface — load a
@@ -73,7 +74,7 @@ FrontendToolRegistry.register({
     }
     const snapshot =
       getStoryboardAgentHandler(storyboard_id).setScreenplay(screenplay);
-    return { ok: true, ...snapshot };
+    return { ok: true, ...snapshot, url: docUrl("storyboard", storyboard_id) };
   }
 });
 
@@ -104,7 +105,11 @@ FrontendToolRegistry.register({
       durationSeconds,
       index
     });
-    return { ok: true, shot };
+    return {
+      ok: true,
+      shot,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });
 
@@ -127,7 +132,11 @@ FrontendToolRegistry.register({
       motion,
       status
     });
-    return { ok: true, shot };
+    return {
+      ok: true,
+      shot,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });
 
@@ -142,7 +151,11 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id, target }) {
     const shot =
       await getStoryboardAgentHandler(storyboard_id).generateKeyframe(target);
-    return { ok: true, shot };
+    return {
+      ok: true,
+      shot,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });
 
@@ -157,7 +170,11 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id, target }) {
     const shot =
       await getStoryboardAgentHandler(storyboard_id).generateClip(target);
-    return { ok: true, shot };
+    return {
+      ok: true,
+      shot,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });
 
@@ -179,7 +196,11 @@ FrontendToolRegistry.register({
       target,
       instruction
     );
-    return { ok: true, shot };
+    return {
+      ok: true,
+      shot,
+      url: docUrl("storyboard", storyboard_id, { key: "shot", value: shot.id })
+    };
   }
 });
 
@@ -191,7 +212,7 @@ FrontendToolRegistry.register({
   async execute({ storyboard_id }) {
     const result =
       await getStoryboardAgentHandler(storyboard_id).assembleTimeline();
-    return { ok: true, ...result };
+    return { ok: true, ...result, url: docUrl("timeline", result.sequenceId) };
   }
 });
 

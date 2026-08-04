@@ -400,6 +400,13 @@ export {
   ASSET_LIBRARY_TOOL_NAMES
 } from "./tools/asset-library-tools.js";
 export {
+  ListScriptsTool,
+  GetScriptTool,
+  VoiceScriptLinesTool,
+  AssembleScriptTimelineTool,
+  SCRIPT_VOICE_TOOL_NAMES
+} from "./tools/script-voice-tools.js";
+export {
   ListStoryboardsTool,
   GetStoryboardTool,
   RenderStoryboardStillsTool,

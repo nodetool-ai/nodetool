@@ -16,6 +16,7 @@ import { z } from "zod";
 
 import { FrontendToolRegistry } from "../frontendTools";
 import { getPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
+import { docUrl } from "./resourceLinks";
 import { restFetch } from "../../rest-fetch";
 
 const applicationIdParam = z
@@ -102,7 +103,7 @@ FrontendToolRegistry.register({
       slot: slot ?? null,
       index
     });
-    return { ok: true, component };
+    return { ok: true, component, url: docUrl("app", application_id) };
   }
 });
 
@@ -128,7 +129,7 @@ FrontendToolRegistry.register({
     if (!component) {
       return { ok: false, error: `No widget with id ${id}` };
     }
-    return { ok: true, component };
+    return { ok: true, component, url: docUrl("app", application_id) };
   }
 });
 
@@ -143,7 +144,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ application_id, id }) {
     const removed = getPuckAgentHandler(application_id).removeComponent(id);
-    return { ok: removed, removed_id: removed ? id : null };
+    return {
+      ok: removed,
+      removed_id: removed ? id : null,
+      url: docUrl("app", application_id)
+    };
   }
 });
 
@@ -264,7 +269,7 @@ FrontendToolRegistry.register({
       outputs,
       timeoutMs: timeout_ms
     });
-    return { ok: true, operation };
+    return { ok: true, operation, url: docUrl("app", application_id) };
   }
 });
 
@@ -320,7 +325,7 @@ FrontendToolRegistry.register({
     if (!operation) {
       return { ok: false, error: `No operation with id ${id}` };
     }
-    return { ok: true, operation };
+    return { ok: true, operation, url: docUrl("app", application_id) };
   }
 });
 
@@ -335,7 +340,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ application_id, id }) {
     const removed = getPuckAgentHandler(application_id).removeOperation(id);
-    return { ok: removed, removed_id: removed ? id : null };
+    return {
+      ok: removed,
+      removed_id: removed ? id : null,
+      url: docUrl("app", application_id)
+    };
   }
 });
 
@@ -393,7 +402,7 @@ FrontendToolRegistry.register({
       scope,
       persist
     });
-    return { ok: true, variable };
+    return { ok: true, variable, url: docUrl("app", application_id) };
   }
 });
 
@@ -425,7 +434,7 @@ FrontendToolRegistry.register({
     if (!variable) {
       return { ok: false, error: `No variable with id ${id}` };
     }
-    return { ok: true, variable };
+    return { ok: true, variable, url: docUrl("app", application_id) };
   }
 });
 
@@ -439,7 +448,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ application_id, id }) {
     const removed = getPuckAgentHandler(application_id).removeVariable(id);
-    return { ok: removed, removed_id: removed ? id : null };
+    return {
+      ok: removed,
+      removed_id: removed ? id : null,
+      url: docUrl("app", application_id)
+    };
   }
 });
 
@@ -504,7 +517,7 @@ FrontendToolRegistry.register({
       scope: { projectId: project_id, fixedId: fixed_id },
       operations
     });
-    return { ok: true, resource };
+    return { ok: true, resource, url: docUrl("app", application_id) };
   }
 });
 
@@ -519,7 +532,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ application_id, id }) {
     const removed = getPuckAgentHandler(application_id).removeResource(id);
-    return { ok: removed, removed_id: removed ? id : null };
+    return {
+      ok: removed,
+      removed_id: removed ? id : null,
+      url: docUrl("app", application_id)
+    };
   }
 });
 
@@ -621,6 +638,6 @@ FrontendToolRegistry.register({
   }),
   async execute({ application_id, title }) {
     getPuckAgentHandler(application_id).setRootProps({ title });
-    return { ok: true, title };
+    return { ok: true, title, url: docUrl("app", application_id) };
   }
 });

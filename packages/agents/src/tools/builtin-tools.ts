@@ -92,6 +92,12 @@ import {
 } from "./thread-memory-tools.js";
 import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
 import {
+  ListScriptsTool,
+  GetScriptTool,
+  VoiceScriptLinesTool,
+  AssembleScriptTimelineTool
+} from "./script-voice-tools.js";
+import {
   ListStoryboardsTool,
   GetStoryboardTool,
   RenderStoryboardStillsTool,
@@ -121,6 +127,12 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Asset library (discover + reuse generated/uploaded media)
   AssetSearchTool,
   AssetListTool,
+
+  // Script → voiced takes → timeline, without authoring a workflow
+  ListScriptsTool,
+  GetScriptTool,
+  VoiceScriptLinesTool,
+  AssembleScriptTimelineTool,
 
   // Storyboard → rendered media → timeline, without authoring a workflow
   ListStoryboardsTool,

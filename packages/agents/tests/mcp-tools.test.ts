@@ -108,6 +108,60 @@ describe("GetWorkflowTool", () => {
 describe("CreateWorkflowTool", () => {
   const tool = new CreateWorkflowTool();
 
+  // A workflow saved with a provider nothing can construct is a run that
+  // fails after the upstream nodes have already executed. The ids are in the
+  // graph the agent just wrote, so the mistake is cheap to catch here.
+  describe("model selection preflight", () => {
+    const catalogs = {
+      listProviderIds: () => ["kie"],
+      listModelIds: (provider: string, modelType: string) =>
+        provider === "kie" && modelType === "video_model"
+          ? ["wan/2-7-image-to-video"]
+          : undefined
+    };
+    const checked = new CreateWorkflowTool(catalogs);
+    const graphWith = (model: Record<string, unknown>) => ({
+      nodes: [
+        { id: "n1", type: "nodetool.video.ImageToVideo", properties: { model } }
+      ],
+      edges: []
+    });
+
+    it("refuses to create a workflow naming an unregistered provider", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWith({ type: "video_model", provider: "nope", id: "x" })
+      })) as { error: string; issues: Array<{ code: string }> };
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(result.error).toContain("providers or models");
+      expect(result.issues[0]?.code).toBe("unknown_provider");
+    });
+
+    it("refuses a model id the provider does not offer", async () => {
+      const result = (await checked.process(ctx, {
+        name: "WF",
+        graph: graphWith({ type: "video_model", provider: "kie", id: "wan/2" })
+      })) as { issues: Array<{ code: string; node_id: string }> };
+
+      expect(fetchSpy).not.toHaveBeenCalled();
+      expect(result.issues[0]?.code).toBe("unknown_model");
+      expect(result.issues[0]?.node_id).toBe("n1");
+    });
+
+    it("creates the workflow when every selection resolves", async () => {
+      await checked.process(ctx, {
+        name: "WF",
+        graph: graphWith({
+          type: "video_model",
+          provider: "kie",
+          id: "wan/2-7-image-to-video"
+        })
+      });
+      expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
+    });
+  });
+
   it("calls POST /api/workflows with body", async () => {
     await tool.process(ctx, {
       name: "Test WF",
@@ -565,6 +619,44 @@ describe("ValidateWorkflowTool", () => {
     expect(result.error).toContain("no node registry");
     expect(result.validated).toBe(false);
     expect(result.graph).toBeUndefined();
+  });
+
+  // The model catalog is the half that was never wired: a graph naming a real
+  // provider and a model id it does not offer validated clean on this surface,
+  // which is exactly where hallucinated ids come from.
+  it("flags a model id the provider does not offer", async () => {
+    const registry = {
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    };
+    const withCatalogs = new ValidateWorkflowTool(
+      registry as never,
+      () => ["kie"],
+      (provider, modelType) =>
+        provider === "kie" && modelType === "video_model"
+          ? ["wan/2-7-image-to-video"]
+          : undefined
+    );
+
+    const result = (await withCatalogs.process(ctx, {
+      graph: {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.video.ImageToVideo",
+            properties: {
+              model: { type: "video_model", provider: "kie", id: "wan/2-7" }
+            }
+          }
+        ],
+        edges: []
+      }
+    })) as { ok: boolean; issues: Array<{ code: string; message: string }> };
+
+    expect(result.ok).toBe(false);
+    const issue = result.issues.find((i) => i.code === "unknown_model");
+    expect(issue?.message).toContain("wan/2-7-image-to-video");
   });
 });
 

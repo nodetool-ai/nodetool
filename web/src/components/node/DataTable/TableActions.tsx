@@ -18,9 +18,6 @@ import type {
   DataframeCellValue
 } from "./DataTable";
 
-export type ListCellValue = CellValue;
-export type DictCellValue = CellValue;
-
 /**
  * Union type for all possible table data formats
  */

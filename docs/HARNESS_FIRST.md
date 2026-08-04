@@ -67,6 +67,36 @@ that keeps it true: a registry, an audit, and a gate.
    diff, so edit→verify is a running process, not a fresh full report each
    save.
 
+10. **A harness runs what the runner runs.** Rule 4 keeps the *logic* shared;
+    it does not stop a harness from *constructing* the run differently. That
+    is a distinct failure, and a nastier one: the harness and the product call
+    the same core, so nothing looks reimplemented, and the report is confidently
+    wrong. `nodetool debug` handed `ExecutionSession` a registry but no
+    `resolveNodeType`, which hydrates node flags and leaves `propertyTypes`
+    empty. Correlation analysis reads list-ness only from that map, so every
+    `list[...]` handle read as non-list and a stream arriving on one collapsed
+    to the last value. Same graph, two answers:
+
+    ```
+    workflows run   keyframe=2  animate=2
+    debug           keyframe=2  animate=1
+    ```
+
+    `Directed Film to Timeline` looked like it generated N keyframes and
+    animated one. It does that under `debug` and not under the runner — a
+    debugging session went looking for a kernel bug that did not exist, and a
+    validator rule was written for it before anyone reproduced the claim
+    through the real runner.
+
+    So: when a harness reports a defect, confirm it through the canonical
+    runner before diagnosing; if they disagree, the harness is the first
+    suspect, and the thing to diff is how each *builds* the run, not what the
+    graph contains. Construction differences are auditable —
+    `packages/execution/tests/execution-session-hydration-audit.test.ts` walks
+    every `ExecutionSession.create` and fails on any that passes a registry
+    without a resolver, with a `KNOWN_UNHYDRATED` map for the surfaces that
+    deliberately differ and why.
+
 ## The registry
 
 `packages/cli/src/harness/registry.ts` is the machine-readable inventory:

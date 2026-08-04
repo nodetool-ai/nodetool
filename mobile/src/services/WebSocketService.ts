@@ -183,7 +183,7 @@ class WebSocketService {
           type: 'reconnect_job',
           command: 'reconnect_job',
           data: { job_id: jobId, workflow_id: workflowId },
-        } as unknown as { type: string });
+        });
       } catch (error) {
         console.error('WebSocketService: Failed to re-attach job', jobId, error);
       }

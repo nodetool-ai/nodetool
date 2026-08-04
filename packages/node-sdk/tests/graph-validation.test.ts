@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
+  collectModelSelectionIssues,
   validateGraph,
   validationHeadline,
   type GraphValidationRegistry
@@ -687,6 +688,158 @@ describe("unknown_model", () => {
       registry
     );
     expect(report.issues.some((i) => i.code === "unknown_model")).toBe(true);
+  });
+});
+
+describe("model selections in nested properties", () => {
+  const registry = {
+    has: () => true,
+    getMetadata: () => ({ properties: [], outputs: [] }) as never,
+    validateNode: () => [],
+    listProviderIds: () => ["kie", "openai"],
+    listModelIds: (provider: string, modelType: string) =>
+      provider === "kie" && modelType === "video_model"
+        ? ["wan/2-7-image-to-video"]
+        : undefined
+  };
+  const nodeWith = (properties: Record<string, unknown>) => ({
+    nodes: [{ id: "n", type: "nodetool.video.ImageToVideo", properties }],
+    edges: []
+  });
+
+  it("flags a model inside a list property", () => {
+    const report = validateGraph(
+      nodeWith({
+        models: [
+          { type: "video_model", provider: "kie", id: "wan/2-7-image-to-video" },
+          { type: "video_model", provider: "nonesuch", id: "x" }
+        ]
+      }),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "unknown_provider");
+    expect(issue?.message).toContain("models[1]");
+  });
+
+  it("flags a model nested in a settings object", () => {
+    const report = validateGraph(
+      nodeWith({
+        config: {
+          model: { type: "video_model", provider: "kie", id: "not-a-model" }
+        }
+      }),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "unknown_model");
+    expect(issue?.message).toContain("config.model");
+  });
+
+  it("checks dynamic property values too", () => {
+    const report = validateGraph(
+      {
+        nodes: [
+          {
+            id: "n",
+            type: "nodetool.video.ImageToVideo",
+            dynamic_properties: {
+              model: { type: "video_model", provider: "nonesuch", id: "x" }
+            }
+          }
+        ],
+        edges: []
+      },
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "unknown_provider")).toBe(true);
+  });
+});
+
+describe("missing_provider", () => {
+  const registry = {
+    has: () => true,
+    getMetadata: () => ({ properties: [], outputs: [] }) as never,
+    validateNode: () => [],
+    listProviderIds: () => ["kie", "openai"]
+  };
+  const graphWith = (model: Record<string, unknown>) => ({
+    nodes: [{ id: "n", type: "nodetool.video.ImageToVideo", data: { model } }],
+    edges: []
+  });
+
+  it("flags a model id that names no provider", () => {
+    const report = validateGraph(
+      graphWith({ type: "video_model", id: "wan/2-7-image-to-video" }),
+      registry
+    );
+    const issue = report.issues.find((i) => i.code === "missing_provider");
+    expect(issue?.message).toContain("wan/2-7-image-to-video");
+    expect(report.ok).toBe(false);
+  });
+
+  // An entirely empty ref is an unselected model — the registry's own
+  // required-property check owns that complaint.
+  it("ignores a model reference with neither id nor provider", () => {
+    const report = validateGraph(graphWith({ type: "video_model" }), registry);
+    expect(report.issues.some((i) => i.code === "missing_provider")).toBe(false);
+  });
+
+  it("ignores a blank provider on an unselected model", () => {
+    const report = validateGraph(
+      graphWith({ type: "video_model", provider: "", id: "" }),
+      registry
+    );
+    expect(report.issues.some((i) => i.code === "missing_provider")).toBe(false);
+  });
+});
+
+describe("collectModelSelectionIssues", () => {
+  const registry = {
+    listProviderIds: () => ["kie"],
+    listModelIds: (provider: string, modelType: string) =>
+      provider === "kie" && modelType === "video_model"
+        ? ["wan/2-7-image-to-video"]
+        : undefined
+  };
+
+  it("reports the same issues without needing node metadata", () => {
+    const issues = collectModelSelectionIssues(
+      {
+        nodes: [
+          {
+            id: "n",
+            type: "nodetool.video.ImageToVideo",
+            properties: {
+              model: { type: "video_model", provider: "kie", id: "nope" }
+            }
+          }
+        ]
+      },
+      registry
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0]?.code).toBe("unknown_model");
+    expect(issues[0]?.nodeId).toBe("n");
+  });
+
+  // Failing toward silence is the whole contract: an unreachable registry
+  // must not turn every model in the graph into an error.
+  it("reports nothing when no provider list is available", () => {
+    expect(
+      collectModelSelectionIssues(
+        {
+          nodes: [
+            {
+              id: "n",
+              type: "t",
+              properties: {
+                model: { type: "video_model", provider: "nonesuch", id: "x" }
+              }
+            }
+          ]
+        },
+        { listProviderIds: () => [] }
+      )
+    ).toEqual([]);
   });
 });
 

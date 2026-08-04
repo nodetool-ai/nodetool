@@ -9,6 +9,13 @@
 
 const hasOwn = Object.prototype.hasOwnProperty;
 
+// DataView is an ArrayBufferView too, but carries neither `length` nor numeric
+// indices, so it can't be compared element-wise.
+const isTypedArray = (
+  value: unknown
+): value is ArrayBufferView & ArrayLike<number> =>
+  ArrayBuffer.isView(value) && !(value instanceof DataView);
+
 function isEqual(a: unknown, b: unknown): boolean {
   if (a === b) {
     return true;
@@ -67,14 +74,12 @@ function isEqual(a: unknown, b: unknown): boolean {
     return true;
   }
 
-  if (ArrayBuffer.isView(a) && ArrayBuffer.isView(b)) {
-    const viewA = a as unknown as ArrayLike<number>;
-    const viewB = b as unknown as ArrayLike<number>;
-    if (viewA.length !== viewB.length) {
+  if (isTypedArray(a) && isTypedArray(b)) {
+    if (a.length !== b.length) {
       return false;
     }
-    for (let i = 0; i < viewA.length; i++) {
-      if (viewA[i] !== viewB[i]) {
+    for (let i = 0; i < a.length; i++) {
+      if (a[i] !== b[i]) {
         return false;
       }
     }
