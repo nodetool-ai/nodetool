@@ -106,10 +106,14 @@ const decodeBase64 = (value: string): Uint8Array => {
     from(data: string, encoding: string): Uint8Array;
   }
 
+  const isBase64Decoder = (value: unknown): value is Base64Decoder =>
+    typeof value === "function" &&
+    typeof (value as Partial<Base64Decoder>).from === "function";
+
   try {
     const BufferCtor = (globalThis as Record<string, unknown>).Buffer;
-    if (BufferCtor && typeof BufferCtor === "function") {
-      const buffer = (BufferCtor as unknown as Base64Decoder).from(cleaned, "base64");
+    if (isBase64Decoder(BufferCtor)) {
+      const buffer = BufferCtor.from(cleaned, "base64");
       return new Uint8Array(
         buffer.buffer,
         buffer.byteOffset,
