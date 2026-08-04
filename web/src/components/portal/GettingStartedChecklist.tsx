@@ -10,11 +10,13 @@ import useOnboardingStore, {
 import { wrapStyles } from "./dashboardChrome";
 import { BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, inline: boolean) =>
   css({
-    borderBottom: `1px solid ${theme.vars.palette.divider}`,
+    borderBottom: inline ? "none" : `1px solid ${theme.vars.palette.divider}`,
+    width: "100%",
 
     ".checklist-inner": {
+      justifyContent: inline ? "center" : "flex-start",
       display: "flex",
       alignItems: "center",
       gap: 10,
@@ -69,7 +71,7 @@ const styles = (theme: Theme) =>
       }
     },
     ".checklist-dismiss": {
-      marginLeft: "auto",
+      marginLeft: inline ? 0 : "auto",
       background: "none",
       border: "none",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
@@ -96,19 +98,26 @@ interface GettingStartedChecklistProps {
   onConnectProvider: () => void;
   onOpenTemplates: () => void;
   onCreateWorkflow: () => void;
+  /**
+   * "dashboard" keeps the section chrome (centered wrap, bottom rule);
+   * "inline" drops it for hosts that place the checklist themselves, such as
+   * the empty workspace.
+   */
+  variant?: "dashboard" | "inline";
 }
 
 /**
- * Slim first-run checklist under the dashboard hero: connect a provider,
- * open a template, run it, build your own. Steps complete via
- * OnboardingStore markers (provider state is derived live from secrets).
- * Hidden once every step is done or the user dismisses it.
+ * Slim first-run checklist: connect a provider, open a template, run it, build
+ * your own. Steps complete via OnboardingStore markers (provider state is
+ * derived live from secrets). Hidden once every step is done or the user
+ * dismisses it — so a host can mount it unconditionally.
  */
 const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
   hasConfiguredProvider,
   onConnectProvider,
   onOpenTemplates,
-  onCreateWorkflow
+  onCreateWorkflow,
+  variant = "dashboard"
 }) => {
   const theme = useTheme();
   const { completedSteps, dismissed, dismiss } = useOnboardingStore(
@@ -152,9 +161,14 @@ const GettingStartedChecklist: React.FC<GettingStartedChecklistProps> = ({
     return null;
   }
 
+  const inline = variant === "inline";
+
   return (
-    <section css={styles(theme)} aria-label="Getting started checklist">
-      <div css={wrapStyles(theme)}>
+    <section
+      css={styles(theme, inline)}
+      aria-label="Getting started checklist"
+    >
+      <div css={inline ? undefined : wrapStyles(theme)}>
         <div className="checklist-inner">
           <span className="checklist-label">
             Getting started · {doneCount}/{steps.length}

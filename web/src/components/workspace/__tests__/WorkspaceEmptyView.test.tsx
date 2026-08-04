@@ -4,6 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 
 import WorkspaceEmptyView from "../WorkspaceEmptyView";
 import mockTheme from "../../../__mocks__/themeMock";
+import useOnboardingStore from "../../../stores/OnboardingStore";
 import type { MessageContent } from "../../../stores/ApiTypes";
 
 const openTab = jest.fn();
@@ -36,6 +37,34 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
     selector({ openTab })
 }));
 
+const createNew = jest
+  .fn()
+  .mockResolvedValue({ id: "wf-1", name: "Untitled workflow" });
+
+jest.mock("../../../contexts/WorkflowManagerContext", () => ({
+  __esModule: true,
+  useWorkflowManager: (selector: (state: unknown) => unknown) =>
+    selector({ createNew })
+}));
+
+const fetchSecrets = jest.fn().mockResolvedValue([]);
+const secretsState = { fetchSecrets, secrets: [] as unknown[] };
+
+jest.mock("../../../stores/SecretsStore", () => {
+  const useStore = (selector: (state: unknown) => unknown) =>
+    selector(secretsState);
+  useStore.getState = () => secretsState;
+  return { __esModule: true, default: useStore };
+});
+
+const showProviderOnboarding = jest.fn();
+
+jest.mock("../../../stores/ProviderOnboardingStore", () => ({
+  __esModule: true,
+  openProviderOnboarding: (options?: unknown) =>
+    showProviderOnboarding(options)
+}));
+
 jest.mock("../../chat/containers/ChatInputSection", () => ({
   __esModule: true,
   default: ({
@@ -62,6 +91,7 @@ const renderEmptyView = () =>
 describe("WorkspaceEmptyView", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useOnboardingStore.setState({ completedSteps: [], dismissed: false });
   });
 
   it("renders the composer with the empty-workspace hint", () => {
@@ -92,6 +122,60 @@ describe("WorkspaceEmptyView", () => {
         }),
         "thread-1"
       )
+    );
+  });
+
+  it("shows the getting started checklist while steps are open", () => {
+    renderEmptyView();
+    expect(screen.getByText(/getting started · 0\/4/i)).toBeInTheDocument();
+  });
+
+  it("hides the checklist once onboarding is dismissed", () => {
+    useOnboardingStore.setState({ dismissed: true });
+    renderEmptyView();
+    expect(screen.queryByText(/getting started/i)).not.toBeInTheDocument();
+  });
+
+  it("opens the provider dialog from the connect step", async () => {
+    const user = userEvent.setup();
+    renderEmptyView();
+
+    await user.click(screen.getByText("Connect an AI provider"));
+
+    expect(showProviderOnboarding).toHaveBeenCalledWith(
+      expect.objectContaining({ capability: "generate_message" })
+    );
+  });
+
+  it("opens the examples page as a tab from the template step", async () => {
+    const user = userEvent.setup();
+    renderEmptyView();
+
+    await user.click(screen.getByText("Open a starter or template"));
+
+    expect(openTab).toHaveBeenCalledWith({
+      type: "page",
+      ref: "examples",
+      mode: "view",
+      title: "Examples"
+    });
+  });
+
+  it("creates a workflow tab from the build-your-own step", async () => {
+    const user = userEvent.setup();
+    renderEmptyView();
+
+    await user.click(screen.getByText("Build your own"));
+
+    await waitFor(() => expect(createNew).toHaveBeenCalled());
+    expect(openTab).toHaveBeenCalledWith({
+      type: "workflow",
+      ref: "wf-1",
+      mode: "edit",
+      title: "Untitled workflow"
+    });
+    expect(useOnboardingStore.getState().completedSteps).toContain(
+      "create-workflow"
     );
   });
 });

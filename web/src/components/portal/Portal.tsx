@@ -3,12 +3,12 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { usePortalChat } from "./usePortalChat";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
-import useSecretsStore from "../../stores/SecretsStore";
+import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
 import { usePanelStore } from "../../stores/PanelStore";
 import { LanguageModel } from "../../stores/ApiTypes";
 import PortalSetupFlow from "./PortalSetupFlow";
@@ -22,17 +22,6 @@ import DashboardFooter from "./DashboardFooter";
 import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box, SPACING, getSpacingPx } from "../ui_primitives";
-
-// Secret keys the runtime providers actually read (see
-// packages/runtime/src/providers — e.g. GeminiProvider requires
-// GEMINI_API_KEY, HuggingFaceProvider requires HF_TOKEN).
-const KNOWN_PROVIDER_KEYS = [
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "GEMINI_API_KEY",
-  "OPENROUTER_API_KEY",
-  "HF_TOKEN"
-];
 
 type PortalState = "idle" | "setup";
 
@@ -86,21 +75,8 @@ const Portal: React.FC = () => {
   const { sortedWorkflows, isLoadingWorkflows } = useDashboardData();
   const { handleCreateNewWorkflow } = useWorkflowActions();
 
-  const fetchSecrets = useSecretsStore((s) => s.fetchSecrets);
-  const secrets = useSecretsStore((s) => s.secrets);
   const createStarterWorkflow = useCreateStarterWorkflow();
-
-  useEffect(() => {
-    fetchSecrets();
-  }, [fetchSecrets]);
-
-  const hasConfiguredProvider = useMemo(
-    () =>
-      secrets.some(
-        (s) => KNOWN_PROVIDER_KEYS.includes(s.key) && s.is_configured
-      ),
-    [secrets]
-  );
+  const hasConfiguredProvider = useHasConfiguredProvider();
 
   const handlePickTrack = useCallback(
     (trackId: WelcomeTrackId) => {
