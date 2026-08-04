@@ -85,6 +85,16 @@ describe("harness gate", () => {
     ]);
   });
 
+  it("maps a timeline version-history change onto the timeline surface", () => {
+    const plan = planGate([
+      "packages/models/src/timeline-sequence-version.ts",
+      "packages/cli/src/commands/timeline-versions.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("timeline");
+    expect(plan.manual.map((m) => m.harnessId)).toContain("timeline-versions");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("reports files no surface claims", () => {
     const plan = planGate(["README.md"]);
     expect(plan.unmappedFiles).toEqual(["README.md"]);

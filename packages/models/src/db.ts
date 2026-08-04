@@ -492,6 +492,20 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     created_at: "text",
     updated_at: "text"
   },
+  timeline_sequence_versions: {
+    id: "text",
+    timeline_id: "text",
+    user_id: "text",
+    name: "text",
+    version: "integer NOT NULL DEFAULT 1",
+    save_type: "text NOT NULL DEFAULT 'manual'",
+    fps: "integer NOT NULL DEFAULT 30",
+    width: "integer NOT NULL DEFAULT 1920",
+    height: "integer NOT NULL DEFAULT 1080",
+    duration_ms: "integer NOT NULL DEFAULT 0",
+    document: "text",
+    created_at: "text"
+  },
   storyboards: {
     id: "text",
     user_id: "text",
@@ -894,6 +908,26 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_user" ON "timeline_sequences" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_project" ON "timeline_sequences" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_timeline_sequence_updated" ON "timeline_sequences" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "timeline_sequence_versions" (
+      "id" text PRIMARY KEY NOT NULL,
+      "timeline_id" text NOT NULL REFERENCES "timeline_sequences" ("id") ON DELETE CASCADE,
+      "user_id" text NOT NULL,
+      "name" text,
+      "version" integer NOT NULL DEFAULT 1,
+      "save_type" text NOT NULL DEFAULT 'manual',
+      "fps" integer NOT NULL DEFAULT 30,
+      "width" integer NOT NULL DEFAULT 1920,
+      "height" integer NOT NULL DEFAULT 1080,
+      "duration_ms" integer NOT NULL DEFAULT 0,
+      "document" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_tsv_timeline" ON "timeline_sequence_versions" ("timeline_id");
+    CREATE INDEX IF NOT EXISTS "idx_tsv_user" ON "timeline_sequence_versions" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_tsv_timeline_save_type_created" ON "timeline_sequence_versions" ("timeline_id", "save_type", "created_at");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_tsv_timeline_version" ON "timeline_sequence_versions" ("timeline_id", "version");
+
     CREATE TABLE IF NOT EXISTS "image_documents" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,

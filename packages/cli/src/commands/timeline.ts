@@ -1,25 +1,26 @@
 /**
- * `nodetool timeline validate` and `nodetool timeline debug` — the timeline
- * harness commands.
+ * `nodetool timeline validate`, `debug` and `versions` — the timeline harness
+ * commands.
  *
  * `validate` checks a timeline document statically: tracks a clip points at,
  * fields a round trip through the schema would strip, timings that cannot
  * render. `debug` additionally replays a scripted `--interact` edit session
  * against the headless `ui_timeline_*` bridge and writes a bundle. Both take a
- * timeline JSON file or a `timeline_sequences` row id.
+ * timeline JSON file or a `timeline_sequences` row id. `versions`
+ * (timeline-versions.ts) reads and restores a sequence's snapshot history.
  *
  * Heavy dependencies (the database, the validator core, the bridge) are
  * imported lazily inside each action, so command registration stays light and
  * unit-testable.
  */
 import type { Command } from "commander";
-import type {
-  TimelineDebugIssue,
-  TimelineDebugReport,
-  TimelineValidation
-} from "@nodetool-ai/execution/timeline-debug";
+import type { TimelineDebugReport } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
 import { printCommandError } from "../command-errors.js";
+import { renderTimelineValidation } from "./timeline-validation-output.js";
+import { registerTimelineVersionsCommands } from "./timeline-versions.js";
+
+export { renderTimelineValidation };
 
 interface TimelineValidateCliOptions {
   json?: boolean;
@@ -142,39 +143,8 @@ export function registerTimelineCommands(program: Command): void {
         process.exit(1);
       }
     });
-}
 
-/** Human-readable validation output: headline, then one line per issue. */
-export function renderTimelineValidation(
-  validation: TimelineValidation
-): string[] {
-  const errors = validation.errors.length;
-  const warnings = validation.warnings.length;
-  const mark = validation.ok ? (warnings ? "⚠️" : "✅") : "❌";
-  const lines = [
-    "",
-    `${mark} ${errors} error(s), ${warnings} warning(s)`
-  ];
-  if (errors + warnings === 0) return lines;
-
-  lines.push("");
-  for (const issue of [...validation.errors, ...validation.warnings]) {
-    lines.push(`  ${formatTimelineIssue(issue)}`);
-  }
-  return lines;
-}
-
-function formatTimelineIssue(issue: TimelineDebugIssue): string {
-  const tag = issue.severity === "error" ? "error" : "warn ";
-  const where =
-    issue.clipId != null
-      ? ` [clip ${issue.clipId}]`
-      : issue.trackId != null
-        ? ` [track ${issue.trackId}]`
-        : issue.path != null
-          ? ` [${issue.path}]`
-          : "";
-  return `${tag} ${issue.message}${where} (${issue.code})`;
+  registerTimelineVersionsCommands(timeline);
 }
 
 function printTimelineSummary(

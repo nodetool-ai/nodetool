@@ -22,7 +22,30 @@ import type { RouterOutputs } from "../../trpc/client";
  * `easing` to `EasingId`. The compiler tolerates unknown ids at sample time, so
  * the wire→store cast on load is safe.
  */
-type WireSequence = RouterOutputs["timeline"]["get"];
+export type WireSequence = RouterOutputs["timeline"]["get"];
+
+type TimelineStoreApi = ReturnType<typeof useTimelineStoreApi>;
+
+/**
+ * Replace the store's contents with `sequence` and clear undo history.
+ *
+ * Used on first load and after a version restore. Clearing temporal history is
+ * not cosmetic: the load is a tracked `set`, so without it Ctrl+Z would undo
+ * "past" the loaded sequence. `loadSequence` also rolls `baseUpdatedAt` to the
+ * sequence's own token, which re-baselines the autosave subscriber — a restore
+ * that skipped this would be overwritten by the next debounced PATCH of the
+ * stale in-memory document.
+ */
+export function applyTimelineSequenceToStore(
+  store: TimelineStoreApi,
+  sequence: WireSequence
+): void {
+  if ((sequence.transcript?.length ?? 0) > 0) {
+    markTimelineLoadMigrated(sequence.id);
+  }
+  store.getState().loadSequence(sequence as TimelineSequence);
+  timelineTemporalOf(store).clear();
+}
 
 export function useLoadTimelineIntoStore(
   sequence: WireSequence | undefined | null
@@ -39,15 +62,7 @@ export function useLoadTimelineIntoStore(
     if (store.getState().sequenceId === sequence.id) {
       return;
     }
-    if ((sequence.transcript?.length ?? 0) > 0) {
-      // loadSequence folds a legacy transcript onto clips; tell autosave to
-      // persist that migrated document once.
-      markTimelineLoadMigrated(sequence.id);
-    }
-    store.getState().loadSequence(sequence as TimelineSequence);
-    // The load is a tracked `set`; clear history so the first Ctrl+Z can't
-    // undo "past" the loaded sequence into the empty default state.
-    timelineTemporalOf(store).clear();
+    applyTimelineSequenceToStore(store, sequence);
   }, [sequence, store]);
 
   useEffect(() => {

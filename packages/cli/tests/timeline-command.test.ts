@@ -39,6 +39,21 @@ describe("registerTimelineCommands", () => {
     );
   });
 
+  it("registers the versions group with its five subcommands", () => {
+    const versions = timelineSubcommand("versions");
+    expect(versions.commands.map((c) => c.name()).sort()).toEqual([
+      "create",
+      "delete",
+      "list",
+      "restore",
+      "show"
+    ]);
+    const list = versions.commands.find((c) => c.name() === "list")!;
+    expect(list.options.map((o) => o.long)).toEqual(
+      expect.arrayContaining(["--save-type", "--limit", "--json"])
+    );
+  });
+
   it("documents both target kinds on validate", () => {
     const description = timelineSubcommand("validate").description();
     expect(description).toMatch(/JSON file/i);

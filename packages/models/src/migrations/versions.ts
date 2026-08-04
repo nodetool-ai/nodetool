@@ -2445,6 +2445,58 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: SQLite cannot drop columns portably, and leaving it is inert.
     }
+  },
+
+  // ── Timeline version history ───────────────────────────────────────
+  // Snapshots of a timeline sequence: the document plus the render settings it
+  // was written against, so restoring one restores what the editor showed.
+  // `save_type` separates manual saves from autosaves and the snapshot taken
+  // before a restore — only autosaves are pruned. The unique index on
+  // (timeline_id, version) is what keeps two concurrent writers from minting
+  // the same version number; the foreign key keeps a deleted sequence's
+  // history from outliving it.
+  {
+    version: "20260804_000000",
+    name: "create_timeline_sequence_versions",
+    createsTables: ["timeline_sequence_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS timeline_sequence_versions (
+          id TEXT PRIMARY KEY NOT NULL,
+          timeline_id TEXT NOT NULL REFERENCES timeline_sequences (id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL,
+          name TEXT,
+          version INTEGER NOT NULL DEFAULT 1,
+          save_type TEXT NOT NULL DEFAULT 'manual',
+          fps INTEGER NOT NULL DEFAULT 30,
+          width INTEGER NOT NULL DEFAULT 1920,
+          height INTEGER NOT NULL DEFAULT 1080,
+          duration_ms INTEGER NOT NULL DEFAULT 0,
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tsv_timeline ON timeline_sequence_versions (timeline_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tsv_user ON timeline_sequence_versions (user_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_tsv_timeline_save_type_created ON timeline_sequence_versions (timeline_id, save_type, created_at)"
+      );
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_tsv_timeline_version ON timeline_sequence_versions (timeline_id, version)"
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline_version");
+      await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline_save_type_created");
+      await db.execute("DROP INDEX IF EXISTS idx_tsv_user");
+      await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline");
+      await db.execute("DROP TABLE IF EXISTS timeline_sequence_versions");
+    }
   }
 ];
 
