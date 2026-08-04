@@ -58,8 +58,9 @@ async function openComposerChip(
 
 test.describe("Chat Interface", () => {
   test("empty conversation @responsive @smoke", async ({ page }) => {
-    // /chat with no thread id → fresh, empty conversation. The composer is the
-    // primary surface; the message area is the empty-state.
+    // /chat with no thread id redirects into the workspace with the Chats
+    // panel revealed. The composer is the primary surface; the message area is
+    // the empty-state.
     await gotoPage(page, "/chat");
     await waitForComposer(page);
     await waitForAnimation(page, 600);

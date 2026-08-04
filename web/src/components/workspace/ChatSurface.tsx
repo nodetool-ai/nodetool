@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn, Text } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
+import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadRuntime
 } from "../../stores/GlobalChatStore";
@@ -154,6 +155,30 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     [setSelectedModel]
   );
 
+  const handleSuggestionClick = useCallback(
+    (suggestion: string) => {
+      sendMessage(
+        {
+          type: "message",
+          name: "",
+          role: "user",
+          provider: selectedModel?.provider,
+          model: selectedModel?.id,
+          content: [{ type: "text", text: suggestion }]
+        },
+        refId
+      ).catch((error) => {
+        console.error("Failed to send suggestion:", error);
+      });
+    },
+    [sendMessage, selectedModel, refId]
+  );
+
+  const welcomePlaceholder = useMemo(
+    () => <WelcomePlaceholder onSuggestionClick={handleSuggestionClick} />,
+    [handleSuggestionClick]
+  );
+
   const handleNewChat = useCallback(async () => {
     try {
       const threadId = await createNewThread();
@@ -198,6 +223,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentTaskUpdate={runtime.taskUpdate}
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
+        noMessagesPlaceholder={welcomePlaceholder}
         showConversationHeader={currentThreadId === refId}
       />
     </FlexColumn>

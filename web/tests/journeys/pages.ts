@@ -89,7 +89,7 @@ export class EditorPage {
   }
 }
 
-/** A full-page chat thread. */
+/** A chat thread open as a workspace tab. */
 export class ChatPage {
   constructor(private readonly page: Page) {}
 

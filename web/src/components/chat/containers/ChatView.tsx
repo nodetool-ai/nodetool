@@ -19,7 +19,6 @@ import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
 import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
-import ComposerSlot from "../composer/ComposerSlot";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -157,18 +156,11 @@ type ChatViewProps = {
   /** Pure chat panel: hide the media mode picker and force chat mode. */
   hideModePicker?: boolean;
   /**
-   * When true, ChatView does not render its own composer. Instead it renders a
-   * bottom ComposerSlot wired to its send handler, and the shared
-   * PersistentComposer (from ChatComposerLayout) is positioned over it. Used by
-   * GlobalChat so the composer persists across /dashboard → /chat.
-   */
-  useExternalComposer?: boolean;
-  /**
    * Show the per-conversation header strip (title + model/provider/runtime/
    * last-run) above the thread. Only meaningful where `GlobalChatStore`'s
-   * `currentThreadId` is the authoritative open thread (i.e. GlobalChat) —
-   * other surfaces (agent panel, editor modal) drive their own thread state,
-   * so the title would not match. Defaults to off.
+   * `currentThreadId` is the authoritative open thread (i.e. the focused chat
+   * tab) — other surfaces (agent panel, editor modal) drive their own thread
+   * state, so the title would not match. Defaults to off.
    */
   showConversationHeader?: boolean;
   /**
@@ -215,7 +207,6 @@ const ChatView = ({
   composerToolbar,
   composerPlaceholder,
   hideModePicker,
-  useExternalComposer = false,
   showConversationHeader = false,
   threadId
 }: ChatViewProps) => {
@@ -299,30 +290,23 @@ const ChatView = ({
           )}
         </div>
 
-        {useExternalComposer ? (
-          <ComposerSlot
-            className="chat-input-section"
-            onSend={handleSendMessage}
-          />
-        ) : (
-          <ChatInputSection
-            status={status}
-            showToolbar={showToolbar}
-            onSendMessage={handleSendMessage}
-            onStop={onStop}
-            onNewChat={onNewChat}
-            selectedModel={model}
-            onModelChange={onModelChange}
-            memoryEnabled={memoryEnabled}
-            onMemoryToggle={onMemoryToggle}
-            allowedProviders={allowedProviders}
-            requireToolSupport={requireToolSupport}
-            variant={composerVariant}
-            composerToolbar={composerToolbar}
-            placeholder={composerPlaceholder}
-            hideModePicker={hideModePicker}
-          />
-        )}
+        <ChatInputSection
+          status={status}
+          showToolbar={showToolbar}
+          onSendMessage={handleSendMessage}
+          onStop={onStop}
+          onNewChat={onNewChat}
+          selectedModel={model}
+          onModelChange={onModelChange}
+          memoryEnabled={memoryEnabled}
+          onMemoryToggle={onMemoryToggle}
+          allowedProviders={allowedProviders}
+          requireToolSupport={requireToolSupport}
+          variant={composerVariant}
+          composerToolbar={composerToolbar}
+          placeholder={composerPlaceholder}
+          hideModePicker={hideModePicker}
+        />
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}
       {railsFit && effectiveThreadId && (

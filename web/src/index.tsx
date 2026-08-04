@@ -79,12 +79,7 @@ import MobileClassProvider from "./components/MobileClassProvider";
 import { registerAppRouter } from "./lib/appNavigation";
 import { SkipLinks } from "./components/ui_primitives";
 
-import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
-
 // Lazy-loaded route components for code splitting
-const GlobalChat = React.lazy(
-  () => import("./components/chat/containers/GlobalChat")
-);
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
 );
@@ -141,7 +136,10 @@ const SketchEditorPage = React.lazy(
 const WorkspaceShell = React.lazy(
   () => import("./components/workspace/WorkspaceShell")
 );
-import { WorkflowEditorRedirect } from "./components/workspace/RouteRedirects";
+import {
+  ChatThreadRedirect,
+  WorkflowEditorRedirect
+} from "./components/workspace/RouteRedirects";
 const LegacyAppRedirect = React.lazy(
   () => import("./components/applications/LegacyAppRedirect")
 );
@@ -201,47 +199,17 @@ function getRoutes() {
       )
     },
     {
-      element: <ChatComposerLayout />,
-      children: [
-        {
-          path: "/chat/:thread_id?",
-          element: (
-            <ProtectedRoute>
-              <div
-                className="page-enter"
-                style={{
-                  display: "flex",
-                  flexDirection: "column",
-                  width: "100%",
-                  height: "100%"
-                }}
-              >
-                <SkipLinks />
-                {/* No header on chat — GlobalChat has its own
-                    "Back to editor" control. */}
-                <div
-                  id="main-content"
-                  style={{
-                    display: "flex",
-                    width: "100%",
-                    height: "100%"
-                  }}
-                >
-                  <PanelLeft />
-                  <GlobalChat />
-                  <PanelBottom />
-                </div>
-              </div>
-            </ProtectedRoute>
-          )
-        }
-      ]
+      // Legacy route — chat threads are workspace tabs now.
+      path: "/chat/:thread_id?",
+      element: (
+        <ProtectedRoute>
+          <ChatThreadRedirect />
+        </ProtectedRoute>
+      )
     },
     {
-      // Legacy route — the getting-started checklist now lives in the
-      // chat homepage's empty state. Redirect old links there.
       path: "/welcome",
-      element: <Navigate to="/chat" replace />
+      element: <Navigate to="/workspace" replace />
     },
     {
       path: "/settings",

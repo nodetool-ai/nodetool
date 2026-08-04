@@ -1,4 +1,33 @@
+import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
 import { ThreadInfo } from "../types/thread.types";
+
+/** Server-assigned title, else the opening user message, else a placeholder. */
+export const threadPreview = (
+  title: string | null | undefined,
+  messages: Message[] | undefined
+): string => {
+  if (title) {
+    return title;
+  }
+  const firstUserMessage = messages?.find((msg) => msg.role === "user");
+  if (!firstUserMessage) {
+    return "New conversation";
+  }
+  const { content } = firstUserMessage;
+  let text: string;
+  if (typeof content === "string") {
+    text = content;
+  } else if (Array.isArray(content) && content[0]?.type === "text") {
+    // `text` can be null even on a text block — never stringify "undefined".
+    text = (content[0] as MessageTextContent).text ?? "";
+  } else {
+    text = "[Media message]";
+  }
+  if (!text) {
+    return "New conversation";
+  }
+  return text.length > 50 ? `${text.substring(0, 50)}...` : text;
+};
 
 export const sortThreadsByDate = (
   threads: Record<string, ThreadInfo>

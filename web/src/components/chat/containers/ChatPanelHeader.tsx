@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import AddIcon from "@mui/icons-material/Add";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
   FlexRow,
@@ -19,7 +18,8 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import ThreadList from "../thread/ThreadList";
 import type { ThreadInfo } from "../types/thread.types";
-import type { Message, MessageTextContent } from "../../../stores/ApiTypes";
+import { threadPreview } from "../utils/threadUtils";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 
 interface ChatPanelHeaderProps {
   /** Start a fresh chat. Panel-specific (the app builder re-binds its workflow). */
@@ -32,8 +32,8 @@ interface ChatPanelHeaderProps {
 
 /**
  * Canonical action strip for the embedded chat panels (timeline editor, app
- * builder, …): new chat, thread list, and a jump to the fullscreen chat. All
- * three operate on the shared GlobalChatStore.
+ * builder, …): new chat, thread list, and a hand-off of the open thread to a
+ * workspace chat tab. All three operate on the shared GlobalChatStore.
  */
 const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   onNewChat,
@@ -41,6 +41,7 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   title
 }) => {
   const navigate = useNavigate();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const threadsAnchorRef = useRef<HTMLButtonElement>(null);
   const [threadsOpen, setThreadsOpen] = useState(false);
   const addNotification = useNotificationStore(
@@ -59,26 +60,10 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     );
 
   const getThreadPreview = useCallback(
-    (threadId: string) => {
-      const thread = threads?.[threadId];
-      if (!thread) return "Empty conversation";
-      if (thread.title) return thread.title;
-      const threadMessages = messageCache[threadId];
-      const firstUserMessage = threadMessages?.find(
-        (msg: Message) => msg.role === "user"
-      );
-      if (!firstUserMessage) return "New conversation";
-      const content =
-        typeof firstUserMessage.content === "string"
-          ? firstUserMessage.content
-          : Array.isArray(firstUserMessage.content) &&
-              firstUserMessage.content[0]?.type === "text"
-            ? (firstUserMessage.content[0] as MessageTextContent).text
-            : "[Media message]";
-      return content
-        ? content.substring(0, 50) + (content.length > 50 ? "..." : "")
-        : "New conversation";
-    },
+    (threadId: string) =>
+      threads?.[threadId]
+        ? threadPreview(threads[threadId].title, messageCache[threadId])
+        : "Empty conversation",
     [threads, messageCache]
   );
 
@@ -118,14 +103,12 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
     [deleteThread, addNotification]
   );
 
-  const handleOpenFullscreen = useCallback(() => {
-    navigate(currentThreadId ? `/chat/${currentThreadId}` : "/chat");
-  }, [navigate, currentThreadId]);
-
-  const handleOpenInNewTab = useCallback(() => {
-    const path = currentThreadId ? `/chat/${currentThreadId}` : "/chat";
-    window.open(path, "_blank", "noopener,noreferrer");
-  }, [currentThreadId]);
+  const handleOpenAsTab = useCallback(() => {
+    if (currentThreadId) {
+      openTab({ type: "chat", ref: currentThreadId, mode: "view" });
+    }
+    navigate("/workspace");
+  }, [openTab, navigate, currentThreadId]);
 
   return (
     <FlexRow
@@ -159,13 +142,8 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
           icon={<ForumOutlinedIcon fontSize="small" />}
         />
         <ToolbarIconButton
-          onClick={handleOpenFullscreen}
-          tooltip="Open fullscreen chat"
-          icon={<OpenInFullIcon fontSize="small" />}
-        />
-        <ToolbarIconButton
-          onClick={handleOpenInNewTab}
-          tooltip="Open in new tab"
+          onClick={handleOpenAsTab}
+          tooltip="Open in a workspace tab"
           icon={<OpenInNewIcon fontSize="small" />}
         />
       </FlexRow>
