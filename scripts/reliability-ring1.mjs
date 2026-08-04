@@ -53,10 +53,25 @@ const PACKAGED_JOURNEY = "linear-text-pipeline";
 // covered by the harness's own `python-node-workflow.test.ts` /
 // `host-disk-full-write.test.ts` (part of `npm run test`), which call the
 // drivers directly and so don't hit this CLI limitation.
+// `ws-transport-faults` joins them for the same two reasons: its ws-* faults
+// all wrap the one fault proxy, so a bare invocation applies all five at once
+// and the black-hole faults starve the run; and it declares
+// `"surfaces": ["ws-server"]` only (the kernel surface has no WS transport to
+// fault). Its ring block below runs the two recoverable faults per-fault on
+// the declared surface; the three black-hole faults legitimately end
+// client-side as "timeout" (see the journey's doc) — a verdict the CLI can't
+// express as success — and stay covered by the harness's own
+// `ws-transport-faults.test.ts`, which asserts both that symptom and that the
+// server survives it.
 const JOURNEYS_WITH_OWN_RING_HANDLING = new Set([
   "python-node-workflow",
-  "host-disk-full-write"
+  "host-disk-full-write",
+  "ws-transport-faults"
 ]);
+
+// The ws-transport-faults faults that complete with a real terminal frame and
+// so can be asserted through `reliability run`'s pass/fail exit code.
+const WS_TRANSPORT_RECOVERABLE_FAULTS = new Set(["ws-delay", "ws-fragment"]);
 
 function runNodetool(args) {
   return spawnSync("npm", ["run", "nodetool", "--", ...args], {
@@ -124,6 +139,31 @@ for (const faultName of readJourneyFaults("python-node-workflow")) {
     console.error(`FAIL: python-node-workflow --faults ${faultName} (exit ${result.status})`);
   } else {
     console.log(`ok: python-node-workflow --faults ${faultName}`);
+  }
+}
+
+// ws-transport-faults: per-fault (the ws faults stack on one proxy), on its
+// declared ws-server surface only, recoverable faults only (see the doc
+// comment above JOURNEYS_WITH_OWN_RING_HANDLING).
+for (const faultName of readJourneyFaults("ws-transport-faults")) {
+  if (!WS_TRANSPORT_RECOVERABLE_FAULTS.has(faultName)) continue;
+  ringRuns += 1;
+  console.log(`\n=== reliability run ws-transport-faults --faults ${faultName} (ws-server) ===`);
+  const result = runNodetool([
+    "reliability",
+    "run",
+    "ws-transport-faults",
+    "--faults",
+    faultName,
+    "--surface",
+    "ws-server",
+    "--diff"
+  ]);
+  if (result.status !== 0) {
+    failures += 1;
+    console.error(`FAIL: ws-transport-faults --faults ${faultName} (exit ${result.status})`);
+  } else {
+    console.log(`ok: ws-transport-faults --faults ${faultName}`);
   }
 }
 

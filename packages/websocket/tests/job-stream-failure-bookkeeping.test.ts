@@ -120,11 +120,22 @@ afterEach(() => {
 
 describe("drain-loop failure bookkeeping", () => {
   it("marks the job failed, emits a terminal job_update, and never orphans the rejection", async () => {
-    vi.spyOn(Asset, "paginate").mockRejectedValue(
-      new Error("storage backend unavailable")
-    );
-
+    // Fault injection: fail the relay of node-level frames. `Asset.paginate`
+    // is no longer a valid injection point — the autosave dedupe read is
+    // best-effort now (see the sibling test below) — but a send failure on
+    // the drain loop's own relay is still fatal by design.
     const runner = makeRunner();
+    const realSend = runner.sendMessage.bind(runner);
+    vi.spyOn(runner, "sendMessage").mockImplementation(async (message) => {
+      if (
+        message.type === "generation_complete" ||
+        message.type === "output_update"
+      ) {
+        throw new Error("relay transport unavailable");
+      }
+      return realSend(message);
+    });
+
     await runner.connect(ws);
     await runner.runJob({
       job_id: "JOBFAIL",
@@ -139,7 +150,7 @@ describe("drain-loop failure bookkeeping", () => {
     );
     expect(terminal).toBeDefined();
     expect(terminal?.job_id).toBe("JOBFAIL");
-    expect(String(terminal?.error)).toContain("storage backend unavailable");
+    expect(String(terminal?.error)).toContain("relay transport unavailable");
 
     // The persisted row must not be stranded at "running".
     let status: string | undefined;
@@ -151,6 +162,39 @@ describe("drain-loop failure bookkeeping", () => {
     expect(status).toBe("failed");
 
     // Let any escaped rejection surface before asserting.
+    await new Promise((r) => setTimeout(r, 50));
+    expect(unhandled).toEqual([]);
+
+    await runner.disconnect();
+  });
+
+  it("completes the run when the autosave dedupe read fails (best-effort, DB-free runs)", async () => {
+    // The reliability harness runs ws-server jobs with no DB at all; an
+    // unavailable Asset store must degrade to skipping replay dedupe, not
+    // fail the job (regression: provider-failure-mid-stream journey died
+    // with "Database not initialized" mid-drain).
+    vi.spyOn(Asset, "paginate").mockRejectedValue(
+      new Error("storage backend unavailable")
+    );
+
+    const runner = makeRunner();
+    await runner.connect(ws);
+    await runner.runJob({
+      job_id: "JOBOK",
+      workflow_id: "WFOK",
+      graph
+    });
+
+    const terminal = await waitFor(() =>
+      sentMsgs(ws).find(
+        (m) =>
+          m.type === "job_update" &&
+          (m.status === "completed" || m.status === "failed")
+      )
+    );
+    expect(terminal).toBeDefined();
+    expect(terminal?.status).toBe("completed");
+
     await new Promise((r) => setTimeout(r, 50));
     expect(unhandled).toEqual([]);
 

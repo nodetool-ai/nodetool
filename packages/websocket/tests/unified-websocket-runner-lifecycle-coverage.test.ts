@@ -473,7 +473,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(res.workflow_id).toBe("wf");
   });
 
-  it("cancelJob on an active job cancels the runner and announces it", async () => {
+  it("cancelJob on an active job cancels the runner without an eager terminal frame", async () => {
     const cancel = vi.fn();
     asAny(runner).activeJobs.set("J", {
       jobId: "J",
@@ -487,10 +487,14 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(cancel).toHaveBeenCalledOnce();
     // finished is intentionally NOT flipped so the runner drains its messages.
     expect(asAny(runner).activeJobs.get("J").finished).toBe(false);
+    // No out-of-band terminal frame: the kernel's own cancelled job_update
+    // relays through the drain loop after the node-level terminal updates
+    // (lifecycle.running-after-job-terminal). The RPC response above is the
+    // immediate acknowledgement.
     const cancelled = decodeAll(ws).filter(
       (m) => m.type === "job_update" && m.status === "cancelled" && m.job_id === "J"
     );
-    expect(cancelled.length).toBeGreaterThan(0);
+    expect(cancelled.length).toBe(0);
   });
 
   it("reconnectJob reports an unknown job and replays active statuses", async () => {

@@ -3796,17 +3796,28 @@ export class UnifiedWebSocketRunner {
               // against the in-memory set — one DB read per node, not per slot.
               let persistedIndices = persistedIndexByNode.get(nodeId);
               if (persistedIndices === undefined) {
-                const [persisted] = await Asset.paginate(userId, {
-                  jobId: active.jobId,
-                  nodeId,
-                  limit: 1000
-                });
                 persistedIndices = new Set<number>();
-                for (const a of persisted) {
-                  const gi = (
-                    a.metadata as { generation_index?: unknown } | null
-                  )?.generation_index;
-                  if (typeof gi === "number") persistedIndices.add(gi);
+                // Best-effort like every other persistence on this path: a
+                // DB-free run (session persistence in the reliability harness,
+                // a misconfigured deployment) must degrade to skipping the
+                // replay dedupe, not kill the drain loop and fail the job.
+                try {
+                  const [persisted] = await Asset.paginate(userId, {
+                    jobId: active.jobId,
+                    nodeId,
+                    limit: 1000
+                  });
+                  for (const a of persisted) {
+                    const gi = (
+                      a.metadata as { generation_index?: unknown } | null
+                    )?.generation_index;
+                    if (typeof gi === "number") persistedIndices.add(gi);
+                  }
+                } catch (err) {
+                  log.warn("generation replay-dedupe read failed", {
+                    nodeId,
+                    error: err instanceof Error ? err.message : String(err)
+                  });
                 }
                 persistedIndexByNode.set(nodeId, persistedIndices);
               }
@@ -4177,14 +4188,21 @@ export class UnifiedWebSocketRunner {
     }
     active.status = "cancelled";
 
-    // Persist the cancellation to the DB and announce it right away, mirroring
-    // the queued branch and the tRPC jobs.cancel path. The runner's own cleanup
-    // can lag (it drains in-flight messages before its .finally() persists), so
+    // Persist the cancellation to the DB right away, mirroring the queued
+    // branch and the tRPC jobs.cancel path. The runner's own cleanup can lag
+    // (it drains in-flight messages before its .finally() persists), so
     // without this the persisted row stays "running" and jobs.list — which the
     // Queue panel reads from — keeps reporting the job as running even though
-    // the toolbar Stop already fired. Marking it cancelled here, plus the
-    // job_update below, lets clients refetch and reflect the stop immediately.
-    const cancelledWorkflowId = workflowId ?? active.workflowId ?? null;
+    // the toolbar Stop already fired.
+    //
+    // Deliberately NO eager `job_update cancelled` frame here: the kernel's
+    // own terminal frame relays through the drain loop AFTER the node-level
+    // terminal updates, and an out-of-band frame ahead of them tells the
+    // client the job is over while nodes still read "running" — the exact
+    // lifecycle violation the reliability harness's mid-run-cancel journeys
+    // pin (`lifecycle.running-after-job-terminal`), and what left canvas
+    // nodes stuck spinning after a Stop. The `cancel_job` RPC response is the
+    // immediate acknowledgement; the ordered terminal arrives a beat later.
     if (
       (active.executionOptions?.persistence ??
         DEFAULT_RUN_JOB_EXECUTION_OPTIONS.persistence) === "job"
@@ -4199,12 +4217,7 @@ export class UnifiedWebSocketRunner {
         this.logError("cancel persistence failed", err);
       }
     }
-    await this.sendMessage({
-      type: "job_update",
-      status: "cancelled",
-      job_id: jobId,
-      workflow_id: cancelledWorkflowId
-    });
+    const cancelledWorkflowId = workflowId ?? active.workflowId ?? null;
 
     // Do NOT set active.finished = true here. Let the runner's cancellation
     // propagate through executePromise's .finally() callback so that

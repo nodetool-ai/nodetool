@@ -843,13 +843,15 @@ describe("UnifiedWebSocketRunner", () => {
     }
   });
 
-  it("persists cancellation and emits job_update when cancelling an active job", async () => {
+  it("persists cancellation and delivers an ordered terminal job_update when cancelling an active job", async () => {
     // The toolbar Stop button sends a `cancel_job` command over the websocket.
-    // For an active (running) job this must mark the persisted row cancelled and
-    // emit a cancelled job_update right away — the runner's own cleanup can lag,
-    // so without this jobs.list (the Queue panel's source) keeps reporting the
-    // job as running until that slow cleanup lands. Regression for "toolbar Stop
-    // leaves the running-jobs panel showing the job as running".
+    // For an active (running) job this must mark the persisted row cancelled
+    // right away — the runner's own cleanup can lag, so without this jobs.list
+    // (the Queue panel's source) keeps reporting the job as running until that
+    // slow cleanup lands. The terminal job_update itself is NOT sent eagerly:
+    // it relays from the kernel through the drain loop, after the node-level
+    // terminal updates (lifecycle.running-after-job-terminal — the reliability
+    // harness's mid-run-cancel journeys pin the ordering).
     await initTestDb();
     let release!: () => void;
     const gate = new Promise<void>((r2) => {
@@ -896,15 +898,26 @@ describe("UnifiedWebSocketRunner", () => {
       const job = await Job.get<Job>("RUN_ACTIVE");
       expect(job?.status).toBe("cancelled");
 
-      // A cancelled job_update was announced so clients refetch the job list.
-      const updates = ws.sentBytes
-        .map((b) => unpack(b) as Record<string, unknown>)
-        .filter(
-          (m) => m.type === "job_update" && m.job_id === "RUN_ACTIVE"
-        );
-      expect(
-        updates.some((m) => m.status === "cancelled")
-      ).toBe(true);
+      // The kernel's terminal cancelled job_update arrives through the drain
+      // loop once cancellation propagates — ordered after node terminals, so
+      // it is awaited rather than asserted synchronously. The gated node
+      // ignores the abort signal, so open the gate to let the actor settle;
+      // the run's status stays cancelled regardless.
+      release();
+      const sawCancelled = async (): Promise<boolean> =>
+        ws.sentBytes
+          .map((b) => unpack(b) as Record<string, unknown>)
+          .some(
+            (m) =>
+              m.type === "job_update" &&
+              m.job_id === "RUN_ACTIVE" &&
+              m.status === "cancelled"
+          );
+      const deadline = Date.now() + 5000;
+      while (!(await sawCancelled()) && Date.now() < deadline) {
+        await new Promise((res) => setTimeout(res, 20));
+      }
+      expect(await sawCancelled()).toBe(true);
     } finally {
       release();
       await r.disconnect();
