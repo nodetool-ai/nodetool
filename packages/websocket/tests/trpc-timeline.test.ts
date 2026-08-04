@@ -95,6 +95,17 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       return { sequence: seq, result };
     }
   }
+  // Version history is exercised in trpc-timeline-versions.test.ts; here it
+  // only needs to stay off the database. Plain statics so `vi.resetAllMocks()`
+  // doesn't strip their bodies.
+  class StubTimelineSequenceVersion {
+    static async snapshot() {
+      return null;
+    }
+    static async pruneAutosaves() {}
+    static async deleteForTimeline() {}
+  }
+
   return {
     ...actual,
     Workflow: {
@@ -102,6 +113,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: vi.fn()
     },
     TimelineSequence: StubTimelineSequence,
+    TimelineSequenceVersion: StubTimelineSequenceVersion,
     createTimeOrderedUuid: () => "version-id"
   };
 });

@@ -7,6 +7,13 @@
  *   create      (mutation) — TimelineSequenceResponse
  *   update      (mutation) — TimelineSequenceResponse (optional baseUpdatedAt for optimistic concurrency)
  *   delete      (mutation) — { ok: true }
+ *   clips.create        (mutation) — TimelineClipResponse
+ *   versions.list       (query)    — TimelineVersionListItem[]
+ *   versions.get        (query)    — TimelineVersionResponse
+ *   versions.create     (mutation) — TimelineVersionListItem (manual snapshot)
+ *   versions.restore    (mutation) — TimelineSequenceResponse (snapshots the
+ *                                    pre-restore state first, so it is undoable)
+ *   versions.delete     (mutation) — { ok: true }
  *
  * Auth: every procedure uses `protectedProcedure`. Ownership is enforced by
  * comparing `seq.user_id` against `ctx.userId`.
@@ -16,6 +23,7 @@ import { z } from "zod";
 import {
   TimelineSequence,
   TimelineSequenceConflictError,
+  TimelineSequenceVersion,
   Workflow,
   createTimeOrderedUuid
 } from "@nodetool-ai/models";
@@ -25,10 +33,17 @@ import { computeDependencyHash } from "@nodetool-ai/timeline/dependencyHash.js";
 import {
   createClipInput,
   createTimelineInput,
+  createTimelineVersionInput,
+  deleteTimelineVersionInput,
+  getTimelineVersionInput,
+  listTimelineVersionsInput,
   patchTimelineInput,
+  restoreTimelineVersionInput,
   timelineClipResponse,
   timelineSequenceListItem,
-  timelineSequenceResponse
+  timelineSequenceResponse,
+  timelineVersionListItem,
+  timelineVersionResponse
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -61,6 +76,58 @@ function toListItem(seq: TimelineSequence) {
     name: seq.name,
     updatedAt: seq.updated_at
   };
+}
+
+/**
+ * A version row carries its document as JSON text on SQLite and as an object on
+ * Postgres, so parse only when it is a string.
+ */
+function parseVersionDocument(raw: unknown): TimelineDocument {
+  const value = typeof raw === "string" ? JSON.parse(raw) : raw;
+  return (value ?? { tracks: [], clips: [], markers: [] }) as TimelineDocument;
+}
+
+function toVersionListItem(
+  version: InstanceType<typeof TimelineSequenceVersion>
+) {
+  return {
+    id: version.id,
+    timelineId: version.timeline_id,
+    version: version.version,
+    name: version.name ?? null,
+    saveType: version.save_type as "manual" | "autosave" | "restore",
+    fps: version.fps,
+    width: version.width,
+    height: version.height,
+    durationMs: version.duration_ms,
+    createdAt: version.created_at
+  };
+}
+
+// ── autosave snapshot cadence ───────────────────────────────────────────────
+
+/** A document write only snapshots when the last autosave is this old. */
+const AUTOSAVE_VERSION_INTERVAL_MS = 5 * 60 * 1000;
+/** Autosave snapshots kept per timeline; older ones are pruned. */
+const MAX_AUTOSAVE_VERSIONS = 20;
+
+const lastAutosaveVersionTime = new Map<string, number>();
+
+// Entries older than the interval can never suppress a snapshot again, so drop
+// them. Without this the map grows one permanent entry per timeline ever saved
+// (including deleted ones) for the lifetime of the process.
+function recordAutosaveVersion(id: string, now: number): void {
+  for (const [key, ts] of lastAutosaveVersionTime) {
+    if (now - ts >= AUTOSAVE_VERSION_INTERVAL_MS) {
+      lastAutosaveVersionTime.delete(key);
+    }
+  }
+  lastAutosaveVersionTime.set(id, now);
+}
+
+/** Test hook: forget the autosave cadence so a suite can drive it from zero. */
+export function __resetTimelineAutosaveVersionState(): void {
+  lastAutosaveVersionTime.clear();
 }
 
 async function loadOwned(
@@ -266,6 +333,29 @@ export const timelineRouter = router({
           "Timeline has been modified since last load"
         );
       }
+
+      if (input.document !== undefined) {
+        // Best-effort history: a snapshot that fails must never fail the save
+        // the user actually asked for (and the versions table may not exist on
+        // an older database).
+        try {
+          const now = Date.now();
+          const last = lastAutosaveVersionTime.get(input.id);
+          if (last === undefined || now - last >= AUTOSAVE_VERSION_INTERVAL_MS) {
+            recordAutosaveVersion(input.id, now);
+            await TimelineSequenceVersion.snapshot(updated, {
+              saveType: "autosave"
+            });
+            await TimelineSequenceVersion.pruneAutosaves(
+              input.id,
+              MAX_AUTOSAVE_VERSIONS
+            );
+          }
+        } catch {
+          // non-fatal — the document write already succeeded
+        }
+      }
+
       return updated.toTimelineSequence();
     }),
 
@@ -275,8 +365,113 @@ export const timelineRouter = router({
     .mutation(async ({ ctx, input }) => {
       const seq = await loadOwned(ctx.userId, input.id);
       await seq.delete();
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // timeline would be unreachable garbage.
+      await TimelineSequenceVersion.deleteForTimeline(input.id);
+      lastAutosaveVersionTime.delete(input.id);
       return { ok: true as const };
     }),
+
+  versions: router({
+    list: protectedProcedure
+      .input(listTimelineVersionsInput)
+      .output(z.array(timelineVersionListItem))
+      .query(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const versions = await TimelineSequenceVersion.listForTimeline(
+          input.id,
+          { limit: input.limit, saveType: input.saveType }
+        );
+        return versions.map(toVersionListItem);
+      }),
+
+    get: protectedProcedure
+      .input(getTimelineVersionInput)
+      .output(timelineVersionResponse)
+      .query(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const version = await TimelineSequenceVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Timeline version not found");
+        }
+        return {
+          ...toVersionListItem(version),
+          document: parseVersionDocument(version.document)
+        };
+      }),
+
+    create: protectedProcedure
+      .input(createTimelineVersionInput)
+      .output(timelineVersionListItem)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const version = await TimelineSequenceVersion.snapshot(seq, {
+          saveType: "manual",
+          name: input.name ?? null
+        });
+        return toVersionListItem(version);
+      }),
+
+    restore: protectedProcedure
+      .input(restoreTimelineVersionInput)
+      .output(timelineSequenceResponse)
+      .mutation(async ({ ctx, input }) => {
+        const seq = await loadOwned(ctx.userId, input.id);
+        const version = await TimelineSequenceVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Timeline version not found");
+        }
+
+        // Snapshot what is about to be overwritten first, so a restore is
+        // itself undoable.
+        await TimelineSequenceVersion.snapshot(seq, {
+          saveType: "restore",
+          name: `Before restore to v${input.version}`
+        });
+
+        const document = parseVersionDocument(version.document);
+        const updated = await TimelineSequence.updateFieldsIfUnchanged(
+          input.id,
+          seq.updated_at,
+          {
+            document: JSON.stringify(document),
+            fps: version.fps,
+            width: version.width,
+            height: version.height,
+            duration_ms: version.duration_ms
+          }
+        );
+        if (!updated) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "Timeline has been modified since last load"
+          );
+        }
+        return updated.toTimelineSequence();
+      }),
+
+    delete: protectedProcedure
+      .input(deleteTimelineVersionInput)
+      .output(okOutput)
+      .mutation(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const version = await TimelineSequenceVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Timeline version not found");
+        }
+        await version.delete();
+        return { ok: true as const };
+      })
+  }),
 
   clips: router({
     create: protectedProcedure

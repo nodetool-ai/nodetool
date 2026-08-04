@@ -9,7 +9,13 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { timelineClip } from "../src/api-schemas/timeline.js";
+import {
+  createTimelineVersionInput,
+  listTimelineVersionsInput,
+  timelineClip,
+  timelineVersionListItem,
+  timelineVersionResponse
+} from "../src/api-schemas/timeline.js";
 
 const baseClip = {
   id: "c1",
@@ -203,5 +209,61 @@ describe("timelineClip schema", () => {
     };
     const parsed = timelineClip.parse(clip);
     expect(parsed.shapeStyle).toEqual(clip.shapeStyle);
+  });
+});
+
+describe("timeline version schemas", () => {
+  const baseVersion = {
+    id: "v1",
+    timelineId: "seq-1",
+    version: 3,
+    name: null,
+    saveType: "manual" as const,
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    durationMs: 4200,
+    createdAt: "2026-01-01T00:00:00Z"
+  };
+
+  it("keeps the list item free of the document", () => {
+    const parsed = timelineVersionListItem.parse({
+      ...baseVersion,
+      document: { tracks: [], clips: [], markers: [] }
+    });
+    expect(parsed).not.toHaveProperty("document");
+  });
+
+  it("parses a list item with the name omitted entirely", () => {
+    const withoutName: Record<string, unknown> = { ...baseVersion };
+    delete withoutName.name;
+    expect(timelineVersionListItem.safeParse(withoutName).success).toBe(true);
+  });
+
+  it("rejects an unknown saveType", () => {
+    expect(
+      timelineVersionListItem.safeParse({ ...baseVersion, saveType: "bogus" })
+        .success
+    ).toBe(false);
+  });
+
+  it("carries the document on the single-version response", () => {
+    const document = { tracks: [], clips: [], markers: [] };
+    const parsed = timelineVersionResponse.parse({ ...baseVersion, document });
+    expect(parsed.document).toEqual(document);
+  });
+
+  it("bounds the list limit and the manual snapshot name", () => {
+    expect(
+      listTimelineVersionsInput.safeParse({ id: "s", limit: 501 }).success
+    ).toBe(false);
+    expect(
+      listTimelineVersionsInput.safeParse({ id: "s", limit: 0 }).success
+    ).toBe(false);
+    expect(listTimelineVersionsInput.safeParse({ id: "s" }).success).toBe(true);
+    expect(
+      createTimelineVersionInput.safeParse({ id: "s", name: "x".repeat(201) })
+        .success
+    ).toBe(false);
   });
 });

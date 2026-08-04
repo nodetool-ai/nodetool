@@ -497,3 +497,80 @@ export type CreateClipInput = z.infer<typeof createClipInput>;
 /** Response shape returned by `timeline.clips.create`. */
 export const timelineClipResponse = timelineClip;
 export type TimelineClipResponse = z.infer<typeof timelineClipResponse>;
+
+// ── sequence version history (/api/timeline/:id/versions) ────────────────────
+
+/**
+ * How a snapshot came to exist. `restore` marks the snapshot taken of the
+ * *pre-restore* state, so restoring is itself undoable.
+ */
+export const timelineVersionSaveType = z.enum([
+  "manual",
+  "autosave",
+  "restore"
+]);
+export type TimelineVersionSaveType = z.infer<typeof timelineVersionSaveType>;
+
+/**
+ * Metadata for one snapshot. Deliberately carries no `document`: a timeline
+ * document is large, and the history list renders from metadata alone.
+ */
+export const timelineVersionListItem = z.object({
+  id: z.string(),
+  timelineId: z.string(),
+  version: z.number().int(),
+  name: z.string().nullable().optional(),
+  saveType: timelineVersionSaveType,
+  fps: z.number(),
+  width: z.number(),
+  height: z.number(),
+  durationMs: z.number(),
+  createdAt: z.string()
+});
+export type TimelineVersionListItem = z.infer<typeof timelineVersionListItem>;
+
+/** One snapshot including the document it captured. */
+export const timelineVersionResponse = timelineVersionListItem.extend({
+  document: timelineDocument
+});
+export type TimelineVersionResponse = z.infer<typeof timelineVersionResponse>;
+
+export const listTimelineVersionsInput = z.object({
+  /** Timeline sequence whose history is read. */
+  id: z.string(),
+  limit: z.number().int().positive().max(500).optional(),
+  saveType: timelineVersionSaveType.optional()
+});
+export type ListTimelineVersionsInput = z.infer<
+  typeof listTimelineVersionsInput
+>;
+
+export const getTimelineVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type GetTimelineVersionInput = z.infer<typeof getTimelineVersionInput>;
+
+export const createTimelineVersionInput = z.object({
+  id: z.string(),
+  name: z.string().max(200).optional()
+});
+export type CreateTimelineVersionInput = z.infer<
+  typeof createTimelineVersionInput
+>;
+
+export const restoreTimelineVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type RestoreTimelineVersionInput = z.infer<
+  typeof restoreTimelineVersionInput
+>;
+
+export const deleteTimelineVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type DeleteTimelineVersionInput = z.infer<
+  typeof deleteTimelineVersionInput
+>;
