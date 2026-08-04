@@ -12,10 +12,10 @@ import { describe, it, expect, vi } from "vitest";
 import {
   BaseNode,
   NodeRegistry,
-  hydrateGraphNodeFlags,
+  createGraphNodeTypeResolver,
   prop
 } from "@nodetool-ai/node-sdk";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
+import { Graph, WorkflowRunner } from "@nodetool-ai/kernel";
 import { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 import { Agent } from "../src/agent.js";
@@ -191,7 +191,17 @@ describe("Agent({ graph }) — clean run", () => {
     });
     const baseline = await runner.run(
       { job_id: "baseline" },
-      hydrateGraphNodeFlags(cleanGraph(), registry)
+      // Hydrated the way every runner hydrates: `hydrateGraphNodeFlags`
+      // resolves flags but not `propertyTypes`/`outputs`, so a baseline built
+      // that way keys its outputs differently from what `workflows run`
+      // actually produces. The point of this test is parity with a real run,
+      // which means the baseline has to be a real one.
+      await (async () => {
+        const loaded = await Graph.loadFromDict(cleanGraph(), {
+          resolver: createGraphNodeTypeResolver(registry).resolveNodeType
+        });
+        return { nodes: [...loaded.nodes], edges: [...loaded.edges] };
+      })()
     );
 
     const agent = new Agent({
@@ -206,7 +216,7 @@ describe("Agent({ graph }) — clean run", () => {
 
     expect(baseline.status).toBe("completed");
     expect(agent.getResults()).toEqual(baseline.outputs);
-    expect(agent.getResults()).toEqual({ d: [42] });
+    expect(agent.getResults()).toEqual({ Double: [42] });
   });
 
   it("forwards the run's messages to the caller's context", async () => {
@@ -286,7 +296,7 @@ describe("Agent({ graph, supervise: true })", () => {
     // The verdict reached the run: the invocation was retired without emitting
     // (an empty output list for the node), and the run completed instead of
     // failing on "node exploded".
-    expect(agent.getResults()).toEqual({ b: [] });
+    expect(agent.getResults()).toEqual({ Boom: [] });
   });
 
   it("fails the run when the supervisor answers with fail", async () => {
@@ -328,7 +338,7 @@ describe("Agent({ graph, supervise: true })", () => {
 
     const messages = await collect(agent, makeContext());
     expect(messages.some((m) => m.type.startsWith("supervisor_"))).toBe(false);
-    expect(agent.getResults()).toEqual({ d: [42] });
+    expect(agent.getResults()).toEqual({ Double: [42] });
   });
 });
 
@@ -348,6 +358,6 @@ describe("Agent({ graph }) — cancellation", () => {
     });
 
     await collect(agent, makeContext(), controller.signal);
-    expect(agent.getResults()).not.toEqual({ d: [42] });
+    expect(agent.getResults()).not.toEqual({ Double: [42] });
   });
 });

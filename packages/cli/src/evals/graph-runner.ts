@@ -16,6 +16,7 @@ import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
 import type { GraphRunner, GraphRunOutput } from "@nodetool-ai/agents";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { ProcessingContext, FileStorageAdapter } from "@nodetool-ai/runtime";
+import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "../node-registry.js";
 
 /**
@@ -46,6 +47,13 @@ export function createEvalGraphRunner(): GraphRunner {
       // because `RawGraphInput` is typed as loose saved-graph JSON.
       graph: graph as unknown as RawGraphInput,
       registry,
+      // Registry alone hydrates node flags but not `propertyTypes`, and
+      // correlation analysis reads list-ness only from that map — without it
+      // every `list[...]` handle reads as non-list, so a stream arriving on
+      // one collapses to empty scope and the node runs once on the last
+      // value. A planner-built graph never carries the map, so an eval would
+      // score a graph the real runner executes differently.
+      resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
       jobId,
       params,
       context,

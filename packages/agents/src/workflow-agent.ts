@@ -14,7 +14,7 @@ import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
 import type { RunResult, SupervisorHandle } from "@nodetool-ai/kernel";
-import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { GraphData, ProcessingMessage } from "@nodetool-ai/protocol";
 
@@ -88,6 +88,13 @@ export async function* runWorkflowAsAgent(
   const session = await ExecutionSession.create({
     graph: graph as unknown as RawGraphInput,
     registry,
+    // Registry alone hydrates node flags but not `propertyTypes`, and
+    // correlation analysis reads list-ness only from that map — without it
+    // every `list[...]` handle reads as non-list, so a stream arriving on one
+    // collapses to empty scope and the node runs once on the last value. The
+    // agent would then report a result the same graph does not produce under
+    // `workflows run`.
+    resolveNodeType: createGraphNodeTypeResolver(registry).resolveNodeType,
     jobId,
     context: runContext,
     params: options.params ?? {},
