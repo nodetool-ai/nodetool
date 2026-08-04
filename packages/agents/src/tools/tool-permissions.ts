@@ -73,6 +73,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_workflows: "read",
   get_workflow: "read",
   validate_workflow: "read",
+  list_scripts: "read",
+  get_script: "read",
   validate_timeline: "read",
   get_example_workflow: "read",
   export_workflow_digraph: "read",
@@ -159,6 +161,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   generate_video: "write",
   animate_image: "write",
   generate_speech: "write",
+  // Voicing calls a TTS model per line and writes takes onto a local script;
+  // assembly writes a timeline row.
+  voice_script_lines: "write",
+  assemble_script_timeline: "write",
   transcribe_audio: "write",
   embed_text: "write",
   openai_image_generation: "write",

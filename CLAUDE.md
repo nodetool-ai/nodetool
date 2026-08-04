@@ -634,6 +634,25 @@ the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+### Script voicing tools (no workflow, no browser)
+
+An agent voices a script and cuts it without authoring a workflow:
+**`voice_script_lines`** synthesizes each line with its cast voice and saves the
+take onto the line, and **`assemble_script_timeline`** lays the voiced takes end
+to end into a saved timeline sequence — which `validate_timeline` then checks.
+**`list_scripts`** and **`get_script`** find the script and report each line's
+status (`draft`, `stale`, `voiced`, `no_voice`).
+
+Voicing defaults to every line that is draft or stale, so one call covers a
+script; a line uses its own voice unless the call overrides provider+model+voice
+for all of them. Word timings come from a best-effort transcription pass and
+ride into the assembled clips as captions. The voice, staleness, and script →
+timeline rules live in `@nodetool-ai/timeline`
+(`effectiveVoice`/`needsVoicing`/`buildScriptTimeline`), shared with the editor
+and the `nodetool.script.*` nodes. Code:
+`packages/agents/src/tools/script-voice-tools.ts`. The `ui_script_*` tools
+remain the path when the script is open in a browser.
+
 ### nodetool node run (Single-Node Harness)
 
 Runs one node in isolation — instantiate it, feed it a property bag, print what

@@ -91,6 +91,12 @@ import {
   ThreadMemoryDeleteTool
 } from "./thread-memory-tools.js";
 import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
+import {
+  ListScriptsTool,
+  GetScriptTool,
+  VoiceScriptLinesTool,
+  AssembleScriptTimelineTool
+} from "./script-voice-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -113,6 +119,12 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Asset library (discover + reuse generated/uploaded media)
   AssetSearchTool,
   AssetListTool,
+
+  // Script → voiced takes → timeline, without authoring a workflow
+  ListScriptsTool,
+  GetScriptTool,
+  VoiceScriptLinesTool,
+  AssembleScriptTimelineTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

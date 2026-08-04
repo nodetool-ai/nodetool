@@ -227,6 +227,48 @@ for await (const msg of agent.execute(ctx)) {
 const result = agent.getResults();
 ```
 
+## Script Voicing Tools (`src/tools/script-voice-tools.ts`)
+
+The headless path from a written script to voiced takes and an assembled
+voiceover sequence. The editor voices a line over the chat WebSocket's
+`generate_media` / `transcribe_audio` RPCs, and the `nodetool.script.*` nodes do
+it inside a workflow; an agent outside the browser had neither. These call the
+provider directly, save each take as an asset, and write it back onto the
+persisted script.
+
+| Tool | Does |
+|---|---|
+| `list_scripts` | Scripts newest first, with line and voiced counts |
+| `get_script` | Cast, lines, and each line's voicing status |
+| `voice_script_lines` | TTS per line → a take, current on its line |
+| `assemble_script_timeline` | Voiced takes → a saved `timeline_sequences` row |
+
+`get_script` reports the status the editor's gutter shows — `draft` (never
+voiced), `stale` (text or voice changed since the take), `voiced`, `no_voice` —
+and `voice_script_lines` defaults to every line that is draft or stale, so a
+whole script is one call. Each line uses its own voice (its override, else its
+speaker's) unless the call passes provider+model+voice to override them all; a
+half-specified override is an error, not a guess. Lines are voiced concurrently
+(default 3, max 8, 60 per call) and each take lands through a CAS on the row's
+`updated_at`.
+
+Synthesis delegates to `GenerateSpeechTool`, so the encoded/streaming-PCM
+provider split is handled in one place. Word timings come from a best-effort ASR
+pass (`whisper-1` by default, `transcribe: false` to skip it) and ride into the
+assembled clips as captions. Take duration is ffprobe's answer, falling back to
+the last word timing and then to the 3s placeholder — a take stays assemblable
+without an exact length.
+
+The voice rule (`effectiveVoice`), the staleness rule (`needsVoicing`) and the
+script → timeline mapping (`buildScriptTimeline`) live in
+`@nodetool-ai/timeline`; the editor's "Send to timeline" and
+`nodetool.script.ScriptToTimeline` call the same functions, so the three
+surfaces cannot drift. Re-assembly rewrites this script's voiceover track in
+place and keeps clips other surfaces added.
+
+Tests: `tests/script-voice-tools.test.ts` (in-memory DB, fake provider — no
+network).
+
 ## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
 
 Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access

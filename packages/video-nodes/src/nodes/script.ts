@@ -15,18 +15,26 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { concatBytes, encodePcm16Wav } from "@nodetool-ai/audio-nodes";
 import {
   assembleSubtitleCues,
+  buildScriptTimeline,
+  currentTake,
+  effectiveVoice,
   formatSubtitles,
-  makeClip,
   makeSequence,
-  makeTrack,
-  type CaptionWord,
+  needsVoicing,
+  scriptLines,
+  PLACEHOLDER_LINE_MS,
   type SubtitleEntry,
   type SubtitleFormat,
   type SubtitleGranularity,
-  type TimelineClip,
-  type TimelineSequence,
-  type TimelineTrack
+  type TimelineSequence
 } from "@nodetool-ai/timeline";
+import type {
+  ScriptLine,
+  ScriptSection,
+  Speaker,
+  Take,
+  VoiceBinding
+} from "@nodetool-ai/protocol/api-schemas/scripts.js";
 import { tagAsNode } from "@nodetool-ai/nodes-utils";
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -36,52 +44,13 @@ import { ffprobeDuration } from "./ffmpeg-helpers.js";
 
 const scriptRefDefault = { type: "script", id: null, data: null } as const;
 
-/** Fallback clip length for a take whose duration could not be determined. */
-const PLACEHOLDER_LINE_MS = 3000;
-
 // ── Script document shapes (structurally match @nodetool-ai/models Script) ──
 
-interface VoiceBindingLike {
-  provider: string;
-  model: string;
-  voice: string;
-  settings?: Record<string, unknown>;
-}
-
-interface ScriptTakeLike {
-  id: string;
-  assetId: string;
-  durationMs: number;
-  words: CaptionWord[];
-  textSnapshot: string;
-  voiceSnapshot: VoiceBindingLike | null;
-  createdAt: string;
-  favorite?: boolean;
-  costCredits?: number;
-}
-
-interface ScriptLineLike {
-  id: string;
-  speakerId?: string | null;
-  text: string;
-  direction?: string;
-  pauseAfterMs?: number;
-  voiceOverride?: VoiceBindingLike | null;
-  takes: ScriptTakeLike[];
-  currentTakeId?: string | null;
-}
-
-interface ScriptSpeakerLike {
-  id: string;
-  name: string;
-  color?: string;
-  voice?: VoiceBindingLike | null;
-}
-
-interface ScriptDocumentLike {
-  cast: ScriptSpeakerLike[];
-  sections: { id: string; title?: string; lines: ScriptLineLike[] }[];
-}
+type VoiceBindingLike = VoiceBinding;
+type ScriptTakeLike = Take;
+type ScriptLineLike = ScriptLine;
+type ScriptSpeakerLike = Speaker;
+type ScriptDocumentLike = { cast: Speaker[]; sections: ScriptSection[] };
 
 interface ScriptResponseLike {
   id: string;
@@ -121,33 +90,7 @@ async function loadScript(
 }
 
 const allLines = (doc: ScriptDocumentLike): ScriptLineLike[] =>
-  doc.sections.flatMap((s) => s.lines);
-
-const currentTake = (line: ScriptLineLike): ScriptTakeLike | undefined =>
-  line.takes.find((t) => t.id === line.currentTakeId);
-
-/** The voice a line will be voiced with: its override, else its speaker's. */
-const effectiveVoice = (
-  line: ScriptLineLike,
-  cast: ScriptSpeakerLike[]
-): VoiceBindingLike | null => {
-  if (line.voiceOverride) return line.voiceOverride;
-  const speaker = cast.find((s) => s.id === line.speakerId);
-  return speaker?.voice ?? null;
-};
-
-/** Whether a line needs (re-)voicing: no current take, or text/voice drifted. */
-const needsVoicing = (
-  line: ScriptLineLike,
-  voice: VoiceBindingLike | null
-): boolean => {
-  const take = currentTake(line);
-  if (!take) return true;
-  return (
-    take.textSnapshot !== line.text ||
-    JSON.stringify(take.voiceSnapshot) !== JSON.stringify(voice)
-  );
-};
+  scriptLines(doc.sections);
 
 // ── Nodes ────────────────────────────────────────────────────────────────────
 
@@ -317,44 +260,15 @@ export class ScriptToTimelineNode extends BaseNode {
     }
     const script = await loadScript(this.script, context);
     const doc = script.document;
-    const cast = doc.cast ?? [];
     const name = script.name?.trim() || "Script voiceover";
 
-    const track = makeTrack({ type: "audio", name: "Voiceover", index: 0 });
-    const tracks: TimelineTrack[] = [track];
-    const clips: TimelineClip[] = [];
-
-    const speakerName = (speakerId?: string | null): string | undefined =>
-      speakerId ? cast.find((s) => s.id === speakerId)?.name : undefined;
-
-    let cursorMs = 0;
-    for (const line of allLines(doc)) {
-      const take = currentTake(line);
-      if (!take || !take.assetId) continue;
-      const durationMs =
-        take.durationMs > 0 ? take.durationMs : PLACEHOLDER_LINE_MS;
-      clips.push(
-        makeClip({
-          trackId: track.id,
-          name: line.text.slice(0, 40) || "Line",
-          startMs: cursorMs,
-          durationMs,
-          mediaType: "audio",
-          sourceType: "imported",
-          bindingKind: "text-to-audio",
-          status: "generated",
-          currentAssetId: take.assetId,
-          prompt: line.text,
-          voice: effectiveVoice(line, cast)?.voice,
-          speaker: speakerName(line.speakerId),
-          caption: take.words.length ? { words: take.words } : undefined,
-          scriptId: script.id,
-          scriptLineId: line.id,
-          versions: []
-        })
-      );
-      cursorMs += durationMs + Math.max(0, line.pauseAfterMs ?? 0);
-    }
+    // Same mapping the editor's "Send to timeline" and the headless
+    // assemble_script_timeline tool use.
+    const { tracks, clips, durationMs: cursorMs } = buildScriptTimeline({
+      scriptId: script.id,
+      cast: doc.cast ?? [],
+      sections: doc.sections
+    });
 
     if (clips.length === 0) {
       throw new Error(

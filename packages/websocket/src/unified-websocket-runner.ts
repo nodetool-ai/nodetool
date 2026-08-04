@@ -1475,6 +1475,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
       "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
     );
   }
+
+  const hasScript =
+    focused?.type === "script" || open.some((ref) => ref.type === "script");
+  if (hasScript) {
+    lines.push(
+      "To voice a script, do not author a workflow: `voice_script_lines` synthesizes each line with its cast voice and saves the takes onto the script, and `assemble_script_timeline` lays the voiced takes into a timeline sequence. Both default to the whole script, so one call covers it."
+    );
+  }
   return lines.join("\n");
 }
 
