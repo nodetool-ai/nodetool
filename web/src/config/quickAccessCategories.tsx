@@ -32,6 +32,7 @@ import CallSplitIcon from "@mui/icons-material/CallSplit";
 import HubIcon from "@mui/icons-material/Hub";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
+import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 
 import type { NodeMetadata } from "../stores/ApiTypes";
 import {
@@ -85,6 +86,7 @@ const isAiNode = (m: NodeMetadata): boolean =>
 export const LEFT_PANEL_TOP_LEVEL: readonly LeftPanelTopLevelCategory[] = [
   { id: "nodes", label: "Nodes", icon: <HubIcon /> },
   { id: "workflows", label: "Workflows", icon: <GridViewIcon /> },
+  { id: "chats", label: "Chats", icon: <ForumOutlinedIcon /> },
   { id: "sketches", label: "Sketches", icon: <BrushOutlinedIcon /> },
   { id: "timelines", label: "Timelines", icon: <MovieIcon /> },
   { id: "storyboards", label: "Storyboards", icon: <DashboardOutlinedIcon /> },

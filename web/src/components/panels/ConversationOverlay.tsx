@@ -8,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import AddCommentOutlinedIcon from "@mui/icons-material/AddCommentOutlined";
 import FormatListBulletedIcon from "@mui/icons-material/FormatListBulleted";
-import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import CloseIcon from "@mui/icons-material/Close";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
@@ -32,7 +32,9 @@ import { useCanvasDockResize } from "../../hooks/handlers/useCanvasDockResize";
 import ChatThreadView from "../chat/thread/ChatThreadView";
 import ThreadList from "../chat/thread/ThreadList";
 import type { ThreadInfo } from "../chat/types/thread.types";
-import type { Message, MessageTextContent } from "../../stores/ApiTypes";
+import { threadPreview } from "../chat/utils/threadUtils";
+import type { Message } from "../../stores/ApiTypes";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 
 type ThreadStatus = React.ComponentProps<typeof ChatThreadView>["status"];
@@ -212,11 +214,11 @@ interface ConversationOverlayProps {
 /**
  * Floating, auto-updating view of the active chat thread, shown above the
  * canvas composer. Reuses {@link ChatThreadView} so messages, media output and
- * streaming indicators render exactly as in the global chat.
+ * streaming indicators render exactly as in a chat tab.
  *
  * The overlay header doubles as the dock's drag handle; the surrounding edges
  * resize it. A threads button reveals the conversation list inline, and an
- * expand button hands off to the full-screen `/chat` view.
+ * expand button hands the thread off to a workspace chat tab.
  */
 const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   onCollapse
@@ -235,6 +237,7 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   );
 
   const navigate = useNavigate();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const [searchQuery, setSearchQuery] = useState("");
 
   // Keep the thread list populated for the inline threads panel.
@@ -334,37 +337,17 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
   );
 
   const handleExpand = useCallback(() => {
-    navigate(currentThreadId ? `/chat/${currentThreadId}` : "/chat");
-  }, [navigate, currentThreadId]);
+    if (currentThreadId) {
+      openTab({ type: "chat", ref: currentThreadId, mode: "view" });
+    }
+    navigate("/workspace");
+  }, [openTab, navigate, currentThreadId]);
 
   const getThreadPreview = useCallback(
-    (threadId: string) => {
-      const thread = threads[threadId];
-      if (!thread) {
-        return "Empty conversation";
-      }
-      if (thread.title) {
-        return thread.title;
-      }
-      const threadMessages = messageCache[threadId];
-      if (!threadMessages || threadMessages.length === 0) {
-        return "New conversation";
-      }
-      const firstUserMessage = threadMessages.find(
-        (msg: Message) => msg.role === "user"
-      );
-      if (firstUserMessage) {
-        const content =
-          typeof firstUserMessage.content === "string"
-            ? firstUserMessage.content
-            : Array.isArray(firstUserMessage.content) &&
-                firstUserMessage.content[0]?.type === "text"
-              ? (firstUserMessage.content[0] as MessageTextContent).text
-              : "[Media message]";
-        return content?.substring(0, 50) + (content?.length > 50 ? "..." : "");
-      }
-      return "New conversation";
-    },
+    (threadId: string) =>
+      threads[threadId]
+        ? threadPreview(threads[threadId].title, messageCache[threadId])
+        : "Empty conversation",
     [threads, messageCache]
   );
 
@@ -467,14 +450,14 @@ const ConversationOverlay: React.FC<ConversationOverlayProps> = ({
               <FormatListBulletedIcon />
             </button>
           </Tooltip>
-          <Tooltip title="Open in full chat" delay={TOOLTIP_ENTER_DELAY}>
+          <Tooltip title="Open in a workspace tab" delay={TOOLTIP_ENTER_DELAY}>
             <button
               type="button"
               className="convo-icon-btn"
               onClick={handleExpand}
-              aria-label="Open in full chat"
+              aria-label="Open in a workspace tab"
             >
-              <OpenInFullIcon />
+              <OpenInNewIcon />
             </button>
           </Tooltip>
           <Tooltip title="New conversation" delay={TOOLTIP_ENTER_DELAY}>

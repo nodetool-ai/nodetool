@@ -25,6 +25,7 @@ import StoryboardListPanel, {
   CreateStoryboardButton
 } from "../storyboard/StoryboardListPanel";
 import ScriptListPanel, { CreateScriptButton } from "../script/ScriptListPanel";
+import ChatListPanel, { CreateChatButton } from "../chat/ChatListPanel";
 import ApplicationListPanel, {
   CreateApplicationButton,
   CreateApplicationFromWorkflowButton
@@ -69,12 +70,6 @@ import Fullscreen from "@mui/icons-material/Fullscreen";
 
 const HEADER_HEIGHT = 77;
 const HEADER_HEIGHT_MOBILE = 40;
-
-// On the global chat route the rail only offers Assets — everything else is
-// hidden (stable reference for memo).
-const CHAT_ROUTE_HIDDEN_VIEWS: readonly LeftPanelView[] = LEFT_PANEL_TOP_LEVEL.filter(
-  (cat) => cat.id !== "assets"
-).map((cat) => cat.id);
 
 const WORKFLOW_EDIT_ONLY_VIEWS: readonly LeftPanelView[] = [
   "nodes",
@@ -438,6 +433,21 @@ const PanelContent = memo(function PanelContent({
           </ScrollArea>
         </FlexColumn>
       )}
+      {activeView === "chats" && (
+        <FlexColumn
+          className="chat-list-container"
+          fullWidth
+          fullHeight
+          sx={{
+            overflow: "hidden"
+          }}
+        >
+          {!isMobile && (
+            <PanelHeadline title="Chats" actions={<CreateChatButton />} />
+          )}
+          <ChatListPanel />
+        </FlexColumn>
+      )}
       {activeView === "sketches" && (
         <FlexColumn
           className="sketch-list-container"
@@ -780,16 +790,12 @@ const PanelLeft: React.FC = () => {
   // The rail owns the app menu (logo) only in the unified workspace shell;
   // legacy routes still carry it in their own header.
   const isWorkspace = location.pathname.startsWith("/workspace");
-  // On the global chat route the chat owns the screen and renders its own
-  // conversation sidebar, so the rail's "Agent" entry is redundant. The chat
-  // route also drops the header, so the rail runs full-height there.
-  const isChatRoute = location.pathname.startsWith("/chat");
   const isWorkflowEditActive =
     location.pathname.startsWith("/editor/") ||
     (location.pathname.startsWith("/workspace") &&
       activeTabType === "workflow" &&
       activeTabMode === "edit");
-  const hasHeader = !isStandaloneMode && !isChatRoute;
+  const hasHeader = !isStandaloneMode;
   const panelLeftStyles = useMemo(() => styles(theme, hasHeader, false), [theme, hasHeader]);
 
   const {
@@ -823,12 +829,10 @@ const PanelLeft: React.FC = () => {
       ? "workflows"
       : (activeView as LeftPanelView);
 
-  const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(() => {
-    if (isChatRoute) {
-      return CHAT_ROUTE_HIDDEN_VIEWS;
-    }
-    return isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS;
-  }, [isChatRoute, isWorkflowEditActive]);
+  const hiddenViews = useMemo<readonly LeftPanelView[] | undefined>(
+    () => (isWorkflowEditActive ? undefined : WORKFLOW_EDIT_ONLY_VIEWS),
+    [isWorkflowEditActive]
+  );
 
   const onViewChange = useCallback(
     (view: LeftPanelView) => {
@@ -852,24 +856,11 @@ const PanelLeft: React.FC = () => {
     setVisibility(false);
   }, [setVisibility]);
 
-  // Entering the chat route collapses the rail — the chat takes the full
-  // screen there and provides its own conversation sidebar. Runs once per
-  // route entry, so manually re-opening the panel afterwards is respected.
-  useEffect(() => {
-    if (isChatRoute) {
-      setVisibility(false);
-    }
-  }, [isChatRoute, setVisibility]);
-
   useEffect(() => {
     if (!isWorkflowEditActive && isWorkflowEditOnlyView(activeView)) {
       setActiveView("workflows");
     }
   }, [activeView, isWorkflowEditActive, setActiveView]);
-
-  if (isMobile && isChatRoute) {
-    return null;
-  }
 
   if (isMobile) {
     return (
@@ -901,7 +892,7 @@ const PanelLeft: React.FC = () => {
           activeView={displayActiveView}
           onViewChange={onViewChange}
           handlePanelToggle={handlePanelToggleClick}
-          showAppMenu={isWorkspace || isChatRoute}
+          showAppMenu={isWorkspace}
           hiddenViews={hiddenViews}
         />
 
@@ -923,6 +914,7 @@ const PanelLeft: React.FC = () => {
                 e.key === "Escape" &&
                 (displayActiveView === "nodes" ||
                   displayActiveView === "workflows" ||
+                  displayActiveView === "chats" ||
                   displayActiveView === "sketches" ||
                   displayActiveView === "timelines" ||
                   displayActiveView === "storyboards" ||
