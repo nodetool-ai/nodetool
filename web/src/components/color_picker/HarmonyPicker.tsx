@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import React, { useMemo, useCallback, memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { Text, Tooltip, Box, MOTION, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx } from "../ui_primitives";
 import { CopyButton } from "../ui_primitives";
 import {
   HarmonyType,
@@ -56,7 +56,7 @@ const styles = (theme: Theme) =>
       "&:hover": {
         transform: "scale(1.05)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.3)",
-        zIndex: 1
+        zIndex: Z_INDEX.raised
       }
     },
     ".color-hex": {

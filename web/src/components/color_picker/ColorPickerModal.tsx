@@ -5,7 +5,7 @@ import { useShallow } from "zustand/react/shallow";
 import ReactDOM from "react-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, getSpacingPx, activateOnKey } from "../ui_primitives";
+import { Text, Caption, Tooltip, FlexRow, FlexColumn, EditorButton, TabGroup, BORDER_RADIUS, SPACING, Z_INDEX, getSpacingPx, activateOnKey } from "../ui_primitives";
 import type { TabItem } from "../ui_primitives";
 import { CloseButton } from "../ui_primitives";
 import CheckIcon from "@mui/icons-material/Check";
@@ -31,6 +31,10 @@ import SwatchPanel from "./SwatchPanel";
 import ContrastChecker from "./ContrastChecker";
 import EyedropperButton from "./EyedropperButton";
 
+// Falls between theme.zIndex.commandMenu (9999) and theme.zIndex.popover
+// (10001), so no tier matches and it keeps its own value.
+const COLOR_PICKER_OVERLAY_Z_INDEX = 10000;
+
 const styles = (theme: Theme) =>
   css({
     ".modal-overlay": {
@@ -41,7 +45,7 @@ const styles = (theme: Theme) =>
       bottom: 0,
       backgroundColor: "rgba(0, 0, 0, 0.5)",
       backdropFilter: "blur(4px)",
-      zIndex: 10000
+      zIndex: COLOR_PICKER_OVERLAY_Z_INDEX
     },
     ".modal-content": {
       backgroundColor: theme.vars.palette.background.paper,
@@ -127,7 +131,7 @@ const styles = (theme: Theme) =>
       fontSize: "var(--fontSizeSmaller)",
       fontWeight: 600,
       position: "relative",
-      zIndex: 1
+      zIndex: Z_INDEX.raised
     },
     ".copy-feedback": {
       position: "absolute",
