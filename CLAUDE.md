@@ -647,6 +647,26 @@ the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+`timeline versions` reads and writes a sequence's snapshot history against the
+local database — manual saves, the autosaves `timeline.update` writes at most
+every five minutes, and the pre-restore snapshot that makes a restore undoable.
+All five subcommands take `--json`.
+
+```bash
+npm run dev:nodetool -- timeline versions list <timeline_id> --save-type manual --limit 10
+npm run dev:nodetool -- timeline versions show <timeline_id> 3 --json
+npm run dev:nodetool -- timeline versions create <timeline_id> --name "before the recut"
+npm run dev:nodetool -- timeline versions restore <timeline_id> 3
+npm run dev:nodetool -- timeline versions delete <timeline_id> 3 --yes
+```
+
+`restore` mirrors the tRPC router: it snapshots the current state as a
+`restore` version, CAS-writes the old document and its render settings back
+onto the sequence, then runs the same static check `timeline validate` runs. An
+old document is restored against today's schema, so what it used to pass is not
+what it passes now — a restore whose document no longer validates exits
+non-zero and prints the issues.
+
 ### Script voicing tools (no workflow, no browser)
 
 An agent voices a script and cuts it without authoring a workflow:

@@ -175,6 +175,15 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "CLAUDE.md § nodetool timeline validate / debug"
   },
   {
+    id: "timeline-versions",
+    title: "Timeline version history (snapshot, restore, validate the restore)",
+    command:
+      "nodetool timeline versions list|show|create|restore|delete <id> [<version>]",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "CLAUDE.md § nodetool timeline validate / debug"
+  },
+  {
     id: "eval",
     title:
       "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, script-planner, tool-loop×8, app-build)",
@@ -264,9 +273,19 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "timeline",
-    title: "Timeline sequences (ui_timeline_* tools)",
-    harnesses: ["timeline-validate", "timeline-debug", "eval"],
-    paths: ["packages/execution/src/timeline-debug/"]
+    title: "Timeline sequences (ui_timeline_* tools, version history)",
+    harnesses: [
+      "timeline-validate",
+      "timeline-debug",
+      "timeline-versions",
+      "eval"
+    ],
+    paths: [
+      "packages/execution/src/timeline-debug/",
+      "packages/cli/src/commands/timeline-versions.ts",
+      "packages/models/src/timeline-sequence-version.ts",
+      "packages/websocket/src/trpc/routers/timeline.ts"
+    ]
   },
   {
     id: "chat-agent",
