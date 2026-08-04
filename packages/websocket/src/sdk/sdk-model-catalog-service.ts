@@ -172,15 +172,26 @@ const providerCatalogCache = new Map<
   { at: number; models: readonly UnifiedModel[] }
 >();
 
+function pruneProviderCatalogCache(now: number): void {
+  for (const [key, value] of providerCatalogCache) {
+    if (now - value.at >= PROVIDER_CATALOG_TTL_MS) {
+      providerCatalogCache.delete(key);
+    }
+  }
+}
+
 async function getCachedProviderCatalogModels(
   userId: string
 ): Promise<readonly UnifiedModel[]> {
+  const now = Date.now();
+  pruneProviderCatalogCache(now);
+
   const cached = providerCatalogCache.get(userId);
-  if (cached && Date.now() - cached.at < PROVIDER_CATALOG_TTL_MS) {
+  if (cached && now - cached.at < PROVIDER_CATALOG_TTL_MS) {
     return cached.models;
   }
   const models = await collectProviderCatalogModels(userId);
-  providerCatalogCache.set(userId, { at: Date.now(), models });
+  providerCatalogCache.set(userId, { at: now, models });
   return models;
 }
 
