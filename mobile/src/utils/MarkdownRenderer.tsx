@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useMemo } from 'react';
 import { StyleSheet, View, ScrollView, Platform, ViewStyle } from 'react-native';
 import Markdown, { ASTNode, RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
@@ -9,12 +9,12 @@ interface MarkdownRendererProps {
   content: string;
 }
 
-const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
+const MarkdownRenderer: React.FC<MarkdownRendererProps> = React.memo(({ content }) => {
   const { colors, mode } = useTheme();
 
   const codeTheme = mode === 'dark' ? atomDark : tomorrow;
 
-  const rules: RenderRules = {
+  const rules: RenderRules = useMemo(() => ({
     fence: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: Record<string, ViewStyle>) => {
       const language = (node as ASTNode & { sourceInfo?: string }).sourceInfo || node.attributes['lang'] as string | undefined || 'text';
 
@@ -65,9 +65,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
         </View>
       );
     },
-  };
+  }), [codeTheme]);
 
-  const markdownStyles = StyleSheet.create({
+  const markdownStyles = useMemo(() => StyleSheet.create({
     body: {
       color: colors.text,
       fontSize: 16,
@@ -117,7 +117,7 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       borderWidth: 1,
       borderColor: colors.border,
     },
-  });
+  }), [colors, mode]);
 
   return (
     <View style={styles.container}>
@@ -126,7 +126,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content }) => {
       </Markdown>
     </View>
   );
-};
+});
+
+MarkdownRenderer.displayName = 'MarkdownRenderer';
 
 const styles = StyleSheet.create({
   container: {
