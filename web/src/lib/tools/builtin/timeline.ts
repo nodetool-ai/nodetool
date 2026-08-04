@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ANIMATION_PRESETS } from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
+import { docUrl } from "./resourceLinks";
 
 const animationRole = z.enum(["in", "out", "emphasis", "loop"]);
 
@@ -58,7 +59,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ timeline_id, type, name }) {
     const track = getTimelineAgentHandler(timeline_id).addTrack(type, name);
-    return { ok: true, track };
+    return { ok: true, track, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -85,7 +86,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ timeline_id, ...args }) {
     const clip = getTimelineAgentHandler(timeline_id).addTextClip(args);
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -113,7 +118,11 @@ FrontendToolRegistry.register({
   }),
   async execute({ timeline_id, ...args }) {
     const clip = getTimelineAgentHandler(timeline_id).addShapeClip(args);
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -140,7 +149,14 @@ FrontendToolRegistry.register({
   async execute({ timeline_id, ...args }) {
     const result =
       await getTimelineAgentHandler(timeline_id).generateClip(args);
-    return { ok: true, ...result };
+    return {
+      ok: true,
+      ...result,
+      url: docUrl("timeline", timeline_id, {
+        key: "clip",
+        value: result.clip.id
+      })
+    };
   }
 });
 
@@ -155,7 +171,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ timeline_id, target, atMs }) {
     const clips = getTimelineAgentHandler(timeline_id).splitClip(target, atMs);
-    return { ok: true, clips };
+    return { ok: true, clips, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -176,7 +192,11 @@ FrontendToolRegistry.register({
       inPointMs,
       outPointMs
     });
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -195,7 +215,11 @@ FrontendToolRegistry.register({
       startMs,
       trackId
     });
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -208,7 +232,7 @@ FrontendToolRegistry.register({
   }),
   async execute({ timeline_id, target }) {
     const clip = getTimelineAgentHandler(timeline_id).deleteClip(target);
-    return { ok: true, deleted: clip };
+    return { ok: true, deleted: clip, url: docUrl("timeline", timeline_id) };
   }
 });
 
@@ -226,7 +250,11 @@ FrontendToolRegistry.register({
       target,
       gapMs
     );
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -279,7 +307,11 @@ FrontendToolRegistry.register({
       target,
       patch
     );
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -308,7 +340,11 @@ FrontendToolRegistry.register({
       target,
       patch
     );
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -358,7 +394,11 @@ FrontendToolRegistry.register({
       animations,
       mode ?? "replace"
     );
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 
@@ -376,7 +416,11 @@ FrontendToolRegistry.register({
       target,
       role
     );
-    return { ok: true, clip };
+    return {
+      ok: true,
+      clip,
+      url: docUrl("timeline", timeline_id, { key: "clip", value: clip.id })
+    };
   }
 });
 

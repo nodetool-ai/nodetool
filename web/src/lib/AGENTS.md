@@ -12,6 +12,10 @@ This directory contains integrations with external libraries (WebSocket, Supabas
 - Define JSON Schema for all tool parameters with descriptions.
 - Mark required vs optional parameters.
 - Always return `{ success: true }` or `{ success: false, error: message }`.
+- A tool that mutates a document also returns `url` — the `<kind>://<id>`
+  resource link (e.g. `timeline://tl_7#clip=cl_2`) built with `docUrl`
+  (`builtin/resourceLinks.ts`), so the agent can link what it changed.
+  Read-only and selection tools return no `url`.
 - Handle errors inside `execute` — don't let exceptions propagate.
 
 ### WebSocket

@@ -1312,6 +1312,18 @@ markdown images: \`![](asset://<id>.<ext>)\`. The chat UI resolves \`asset://\`
 to a fetchable URL and renders the image inline; do not rewrite it to an HTTP
 URL or wrap it in a code block.
 
+# Linking resources
+Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
+fragment (\`timeline://tl_7#clip=cl_2\`). Kinds: asset, workflow, timeline,
+storyboard, sketch, script, app, model3d, collection, thread. When you create
+or change a resource, link it once in your reply as a markdown link with a
+human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
+user can open it. Mutating tool results carry a ready-made \`url\`
+field; copy that string rather than composing one. At most one link per
+resource per reply, and never link a resource you only looked up. Images are
+the exception: show them inline per "Image and media" above instead of
+linking them.
+
 # File types
 References to documents, images, videos, or audio files have the shape:
 - \`type\`: document | image | video | audio

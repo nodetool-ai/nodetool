@@ -1,15 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useMemo } from "react";
-import ReactMarkdown, { type Options } from "react-markdown";
+import ReactMarkdown, { defaultUrlTransform, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
+import { isResourceUri } from "@nodetool-ai/protocol";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { SPACING, getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
 import { resolveUri } from "../../../utils/imageUtils";
+import ResourceChip from "./ResourceChip";
 import "../../../styles/markdown/github-markdown.css";
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
@@ -57,6 +59,20 @@ const markdownStyles = css({
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
 
+/** react-markdown drops unknown schemes; resource URIs (asset://, timeline://, …) are ours. */
+const urlTransform: NonNullable<Options["urlTransform"]> = (url) =>
+  isResourceUri(url) ? url : defaultUrlTransform(url);
+
+/** Link text as a plain string — `[**Bold**](…)` hands the `a` override nodes. */
+const linkText = (node: React.ReactNode): string => {
+  if (typeof node === "string" || typeof node === "number") return String(node);
+  if (Array.isArray(node)) return node.map(linkText).join("");
+  if (React.isValidElement<{ children?: React.ReactNode }>(node)) {
+    return linkText(node.props.children);
+  }
+  return "";
+};
+
 const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: getSpacingPx(SPACING.md), verticalAlign: "middle" });
 const audioCss = css({ height: "32px" });
 const imageCss = css({ maxWidth: "100%", height: "auto", borderRadius: BORDER_RADIUS.md });
@@ -80,6 +96,9 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
       ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
+        if (href && isResourceUri(href)) {
+          return <ResourceChip uri={href} label={linkText(children) || href} />;
+        }
         if (href && isImageHref(href)) {
           return (
             <a href={resolveUri(href)} target="_blank" rel="noopener noreferrer">
@@ -116,6 +135,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
       <ReactMarkdown
         remarkPlugins={REMARK_PLUGINS}
         rehypePlugins={REHYPE_PLUGINS}
+        urlTransform={urlTransform}
         components={components}
       >
         {content || ""}
