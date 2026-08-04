@@ -32,7 +32,7 @@ import { TOOLTIP_ENTER_DELAY } from "../config/constants";
 import FalPricingFooter from "./node/FalPricingFooter";
 import KieCreditsFooter from "./node/KieCreditsFooter";
 import { isKieNodeMetadata } from "../utils/isKieNode";
-import { DYNAMIC_KIE_NODE_TYPE } from "./node/DynamicKieSchemaNode";
+import { DYNAMIC_KIE_NODE_TYPE } from "../constants/nodeTypes";
 import PropertyVisibilityToggle from "./properties/PropertyVisibilityToggle";
 import { InspectorHeaderActionsProvider } from "../contexts/InspectorPropertyHeaderContext";
 import { canConfigureExposedPlacement } from "../utils/exposedInputs";

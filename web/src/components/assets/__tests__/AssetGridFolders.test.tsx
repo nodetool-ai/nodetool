@@ -6,30 +6,15 @@
  */
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-
-const addPanel = jest.fn();
-const removePanel = jest.fn();
-const getPanel = jest.fn((id: string) =>
-  id === "asset-files" ? { id } : undefined
-);
 
 let matchesNarrow = false;
 
 jest.mock("@mui/material/useMediaQuery", () => ({
   __esModule: true,
   default: () => matchesNarrow
-}));
-
-jest.mock("dockview", () => ({
-  __esModule: true,
-  DockviewReact: ({ onReady }: { onReady: (e: unknown) => void }) => {
-    React.useEffect(() => {
-      onReady({ api: { addPanel, removePanel, getPanel } });
-    }, [onReady]);
-    return <div data-testid="dockview" />;
-  }
 }));
 
 jest.mock("../AssetActionsMenu", () => ({
@@ -46,8 +31,14 @@ jest.mock("../AssetMoveToFolderConfirmation", () => ({ __esModule: true, default
 jest.mock("../AssetRenameConfirmation", () => ({ __esModule: true, default: () => null }));
 jest.mock("../AssetUploadOverlay", () => ({ __esModule: true, default: () => null }));
 jest.mock("../ImageCompareDialog", () => ({ __esModule: true, default: () => null }));
-jest.mock("../panels/AssetFoldersPanel", () => ({ __esModule: true, default: () => null }));
-jest.mock("../panels/AssetFilesPanel", () => ({ __esModule: true, default: () => null }));
+jest.mock("../panels/AssetFoldersPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="folders-panel" />
+}));
+jest.mock("../panels/AssetFilesPanel", () => ({
+  __esModule: true,
+  default: () => <div data-testid="files-panel" />
+}));
 jest.mock("../../context_menus/AssetItemContextMenu", () => ({ __esModule: true, default: () => null }));
 jest.mock("../../context_menus/AssetGridContextMenu", () => ({ __esModule: true, default: () => null }));
 jest.mock("../../audio/AudioPlayer", () => ({ __esModule: true, default: () => null }));
@@ -122,23 +113,20 @@ const renderGrid = () =>
     </ThemeProvider>
   );
 
-describe("AssetGrid folder pane", () => {
-  beforeEach(() => {
-    addPanel.mockClear();
-    removePanel.mockClear();
-    getPanel.mockClear();
-  });
+// The grid also renders a MUI <Divider>, which carries the same implicit role.
+const SPLITTER = "Resize the folder pane";
 
+describe("AssetGrid folder pane", () => {
   it("docks the folder tree beside the grid on a wide viewport", async () => {
     matchesNarrow = false;
     renderGrid();
 
-    await screen.findByTestId("dockview");
-    const folderPanel = addPanel.mock.calls
-      .map(([args]) => args)
-      .find((args) => args.id === "asset-folders");
-    expect(folderPanel).toBeDefined();
-    expect(folderPanel.position.direction).toBe("left");
+    expect(await screen.findByTestId("folders-panel")).toBeInTheDocument();
+    // Beside the grid, so the separator between the two runs vertically.
+    expect(screen.getByRole("separator", { name: SPLITTER })).toHaveAttribute(
+      "aria-orientation",
+      "vertical"
+    );
     expect(screen.getByTestId("actions-menu")).toHaveAttribute(
       "data-fullscreen",
       "true"
@@ -149,16 +137,33 @@ describe("AssetGrid folder pane", () => {
     matchesNarrow = true;
     renderGrid();
 
-    await screen.findByTestId("dockview");
-    const folderPanel = addPanel.mock.calls
-      .map(([args]) => args)
-      .find((args) => args.id === "asset-folders");
-    expect(folderPanel).toBeUndefined();
+    expect(await screen.findByTestId("files-panel")).toBeInTheDocument();
+    expect(screen.queryByTestId("folders-panel")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("separator", { name: SPLITTER })
+    ).not.toBeInTheDocument();
     // The toolbar drops its fullscreen layout, which is what shows the
     // "Show folders" toggle.
     expect(screen.getByTestId("actions-menu")).toHaveAttribute(
       "data-fullscreen",
       "false"
+    );
+  });
+
+  it("resizes the folder pane from the keyboard", async () => {
+    matchesNarrow = false;
+    renderGrid();
+
+    const separator = await screen.findByRole("separator", { name: SPLITTER });
+    expect(separator).toHaveAttribute("aria-valuenow", "300");
+
+    separator.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(separator).toHaveAttribute("aria-valuenow", "316");
+
+    await userEvent.keyboard("{Home}");
+    expect(Number(separator.getAttribute("aria-valuenow"))).toBe(
+      Number(separator.getAttribute("aria-valuemin"))
     );
   });
 });

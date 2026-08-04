@@ -1,6 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { useCallback, useRef, memo } from "react";
-import { IDockviewPanelProps } from "dockview";
 import SearchErrorBoundary from "../../SearchErrorBoundary";
 import GlobalSearchResults from "../GlobalSearchResults";
 import AssetGridContent from "../AssetGridContent";
@@ -9,13 +8,14 @@ import { useAssetGridStore } from "../../../stores/AssetGridStore";
 import { Asset, AssetWithPath } from "../../../stores/ApiTypes";
 import { useTheme } from "@mui/material/styles";
 
-export interface AssetFilesPanelParams {
+export interface AssetFilesPanelProps {
   isHorizontal?: boolean;
   itemSpacing?: number;
 }
-const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
-  props
-) => {
+const AssetFilesPanel: React.FC<AssetFilesPanelProps> = ({
+  isHorizontal,
+  itemSpacing
+}) => {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const setOpenAssetLocal = useAssetGridStore((state) => state.setOpenAsset);
@@ -64,9 +64,6 @@ const AssetFilesPanel: React.FC<IDockviewPanelProps<AssetFilesPanelParams>> = (
       setIsGlobalSearchModeLocal
     ]
   );
-
-  const isHorizontal = props.params?.isHorizontal;
-  const itemSpacing = props.params?.itemSpacing;
 
   const theme = useTheme();
 

@@ -54,7 +54,7 @@ import { useBespokePropertyWriter } from "../../../hooks/nodes/useBespokePropert
 import { useUpstreamValue } from "../../../hooks/nodes/useNodeIO";
 import { useMediaSrc } from "../../../hooks/nodes/useMediaSrc";
 
-export const EXTRACT_VIDEO_FRAME_NODE_TYPE = "nodetool.video.ExtractFrame";
+export { EXTRACT_VIDEO_FRAME_NODE_TYPE } from "./bespokeNodeTypes";
 
 const DEFAULT_FPS = 30;
 

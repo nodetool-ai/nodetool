@@ -5,7 +5,7 @@ import { useNodes } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import { reactFlowNodeToGraphNode } from "../../stores/reactFlowNodeToGraphNode";
 import { reactFlowEdgeToGraphEdge } from "../../stores/reactFlowEdgeToGraphEdge";
-import { SUBGRAPH_NODE_TYPE } from "../../components/node/SubgraphNode";
+import { SUBGRAPH_NODE_TYPE } from "../../constants/nodeTypes";
 import type { NodeData } from "../../stores/NodeData";
 import type {
   Node as ApiNode,

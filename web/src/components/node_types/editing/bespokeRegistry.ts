@@ -139,64 +139,12 @@ export const BESPOKE_BODY_REGISTRY: Readonly<
   [AUDIO_OUT_NODE_TYPE]: AudioOutBody
 };
 
-/**
- * Default widths for bespoke bodies that are wider than the generic node.
- * Consumed by `graphNodeToReactFlowNode` — only applied when the node has no
- * saved width yet, so user resizes are preserved.
- */
-export const BESPOKE_DEFAULT_WIDTHS: Readonly<Record<string, number>> = {
-  // Extract Video Frame: the transport row (time readout + step/play/mute +
-  // download) needs more than the 200px generic default to fit on one line.
-  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: 320
-};
-
-/**
- * Default heights for bespoke bodies that are taller than the generic node.
- * Consumed by `graphNodeToReactFlowNode` — only applied when the node has no
- * saved height yet, so user resizes are preserved.
- */
-export const BESPOKE_DEFAULT_HEIGHTS: Readonly<Record<string, number>> = {
-  // Collection: a curation grid needs room to show several thumbnails at once.
-  [COLLECTION_NODE_TYPE]: 320,
-  [CONSTANT_SKETCH_NODE_TYPE]: 300,
-  [CONSTANT_TIMELINE_NODE_TYPE]: 300,
-  [CURVES_NODE_TYPE]: 520,
-  // Extract Video Frame: video preview + scrubber + transport row + Frame /
-  // Timecode footer + the extracted image output.
-  [EXTRACT_VIDEO_FRAME_NODE_TYPE]: 380,
-  // List Generator: numbered, scrollable item list needs room to show several
-  // items as they stream in.
-  [LIST_GENERATOR_NODE_TYPE]: 340,
-  // Generators: preview + color rows + up to 4 sliders need more than the
-  // generic default to show all controls without resizing.
-  ...Object.fromEntries(GENERATOR_NODE_TYPES.map((t) => [t, 460] as const)),
-  // Adjustment nodes with many sliders that overflow the generic height.
-  "lib.image.color_grading.LiftGammaGain": 580,
-  "lib.image.color_grading.SplitToning": 380,
-  // Synth modules: label strip + extras + knob rows (≈80px per wrapped row
-  // of knobs at the default node width) + output jacks.
-  ...Object.fromEntries(
-    SYNTH_NODE_TYPES.map((t) => {
-      const c = SYNTH_MODULE_CONFIGS[t];
-      const knobRows = Math.ceil(c.knobs.length / 3);
-      const extras =
-        (c.waveform ? 26 : 0) + (c.modeToggle ? 28 : 0) + (c.adsrPreview ? 42 : 0);
-      return [t, 96 + extras + knobRows * 84] as const;
-    })
-  ),
-  // Audio effects: same knob faceplate as synth modules (single audio jack),
-  // plus a row per boolean toggle (e.g. compressor/limiter auto gain).
-  ...Object.fromEntries(
-    AUDIO_EFFECT_NODE_TYPES.map((t) => {
-      const c = AUDIO_EFFECT_CONFIGS[t];
-      const knobRows = Math.ceil(c.knobs.length / 3);
-      const toggleRows = c.toggles?.length ?? 0;
-      return [t, 96 + toggleRows * 28 + knobRows * 84] as const;
-    })
-  ),
-  // Audio Out: label strip + transport buttons + visualizer.
-  [AUDIO_OUT_NODE_TYPE]: 220
-};
+// Default node sizes live in a data-only module so the graph-loading path can
+// read them without importing every body component above.
+export {
+  BESPOKE_DEFAULT_WIDTHS,
+  BESPOKE_DEFAULT_HEIGHTS
+} from "./bespokeNodeSizes";
 
 export const getBespokeBody = (
   metadata: NodeMetadata | undefined

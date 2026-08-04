@@ -41,7 +41,9 @@ import useExecutionTimeStore from "./ExecutionTimeStore";
 import { isSilentJob } from "./previewJobs";
 import { useWorkflowAssetStore } from "./WorkflowAssetStore";
 import { NodeStore } from "./NodeStore";
-import { DYNAMIC_KIE_NODE_TYPE } from "../components/node/DynamicKieSchemaNode";
+// From the constants module, not the node barrel: that barrel re-exports the
+// node components, and this store is loaded at app boot.
+import { DYNAMIC_KIE_NODE_TYPE } from "../constants/nodeTypes";
 import { normalizeOutputUpdateValue } from "./outputUpdateValue";
 import { publishRealtimeAudioChunk } from "../lib/audio/realtimeAudioChunkBus";
 import { getRunSignature, clearRunSignatures } from "./runSignatures";

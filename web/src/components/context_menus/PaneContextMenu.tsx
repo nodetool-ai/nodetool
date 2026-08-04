@@ -27,8 +27,12 @@ import {
   COMMENT_NODE_METADATA
 } from "../../utils/nodeUtils";
 import { getShortcutTooltip } from "../../config/shortcuts";
-import { WORKFLOW_NODE_TYPE } from "../node/WorkflowNode";
-import { SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+// From the constants module, not the node barrels: those re-export the node
+// components, and this menu is reachable from the app shell.
+import {
+  WORKFLOW_NODE_TYPE,
+  SUBGRAPH_NODE_TYPE
+} from "../../constants/nodeTypes";
 import { shallow } from "zustand/shallow";
 
 const PaneContextMenu: React.FC = () => {

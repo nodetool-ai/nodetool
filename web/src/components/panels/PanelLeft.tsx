@@ -44,6 +44,7 @@ import {
 } from "../../stores/PanelStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
+import { PAGE_TAB_TITLES } from "../workspace/pageTabs";
 import {
   LEFT_PANEL_TOP_LEVEL,
   getTopLevelCategory
@@ -295,10 +296,19 @@ const PanelContent = memo(function PanelContent({
   const setVisibility = usePanelStore((state) => state.setVisibility);
   const closePanel = useCallback(() => setVisibility(false), [setVisibility]);
 
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  // The asset library is a workspace tab like the other manager pages, not a
+  // route of its own.
   const handleFullscreenClick = useCallback(() => {
-    navigate("/assets");
+    openTab({
+      type: "page",
+      ref: "assets",
+      mode: "view",
+      title: PAGE_TAB_TITLES.assets
+    });
+    navigate("/workspace");
     handlePanelToggle("assets");
-  }, [navigate, handlePanelToggle]);
+  }, [openTab, navigate, handlePanelToggle]);
 
   if (activeView === "nodes") {
     return (

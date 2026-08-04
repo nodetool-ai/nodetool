@@ -9,7 +9,7 @@ import { NodeOutputs } from "../../node/NodeOutputs";
 import OutputRenderer from "../../node/OutputRenderer";
 import NodeProgress from "../../node/NodeProgress";
 
-export const CONSTANT_TIMELINE_NODE_TYPE = "nodetool.constant.Timeline";
+export { CONSTANT_TIMELINE_NODE_TYPE } from "./bespokeNodeTypes";
 
 const bodyStyles = css({
   "&.constant-timeline-body": {
