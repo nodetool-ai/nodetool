@@ -125,14 +125,14 @@ function assertNotTranscribed(
 }
 
 /** Drop keys whose value is undefined, so a PATCH cannot carry empty slots. */
-function pruned(clip: TimelineClip): TimelineClip {
-  const out = { ...clip } as Record<string, unknown>;
+function pruned<T extends object>(value: T): T {
+  const out = { ...value } as Record<string, unknown>;
   for (const key of Object.keys(out)) {
     if (out[key] === undefined) {
       delete out[key];
     }
   }
-  return out as unknown as TimelineClip;
+  return out as T;
 }
 
 /** End of the last clip on a track, or 0 when it is empty. */
@@ -651,16 +651,10 @@ export function addMarker(
     color: input.color,
     note: input.note,
   });
-  const stored = { ...marker } as Record<string, unknown>;
-  for (const key of Object.keys(stored)) {
-    if (stored[key] === undefined) {
-      delete stored[key];
-    }
-  }
   return {
     doc: {
       ...doc,
-      markers: [...doc.markers, stored as unknown as TimelineMarker],
+      markers: [...doc.markers, pruned(marker)],
     },
     marker,
   };
