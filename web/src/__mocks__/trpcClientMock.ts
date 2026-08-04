@@ -138,6 +138,12 @@ export const trpcClient = {
   skills: {
     list: { query: emptyQuery() }
   },
+  packs: {
+    list: { query: emptyQuery() },
+    listBuiltins: { query: emptyQuery() },
+    getTrust: { query: emptyQuery() },
+    runtimeStatuses: { query: jest.fn(async () => ({ statuses: [] })) }
+  },
   users: {
     list: { query: emptyQuery() },
     get: { query: emptyQuery() },

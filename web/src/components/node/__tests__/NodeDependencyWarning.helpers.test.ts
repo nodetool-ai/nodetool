@@ -5,6 +5,10 @@ import {
   refreshRuntimeStatuses,
   ensureRuntimeStatuses
 } from "../NodeDependencyWarning.helpers";
+import { trpcClient } from "../../../trpc/client";
+
+const runtimeStatusesQuery = trpcClient.packs.runtimeStatuses
+  .query as unknown as jest.Mock;
 
 describe("RUNTIME_LABELS", () => {
   it("maps every runtime to a human-readable label", () => {
@@ -30,19 +34,48 @@ describe("getCachedRuntimeStatuses", () => {
 });
 
 describe("refreshRuntimeStatuses", () => {
-  it("returns early when window.api is unavailable", async () => {
+  afterEach(() => {
+    runtimeStatusesQuery.mockReset();
+    runtimeStatusesQuery.mockResolvedValue({ statuses: [] });
+  });
+
+  it("asks the server when window.api is unavailable", async () => {
     const w = window as unknown as Record<string, unknown>;
     const origApi = w.api;
     w.api = undefined;
-    await expect(refreshRuntimeStatuses()).resolves.toBeUndefined();
+    runtimeStatusesQuery.mockResolvedValue({
+      statuses: [{ id: "ffmpeg", installed: true }]
+    });
+    await refreshRuntimeStatuses();
+    expect(runtimeStatusesQuery).toHaveBeenCalled();
+    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
     w.api = origApi;
   });
 
-  it("returns early when packages.getRuntimeStatuses is missing", async () => {
+  it("asks the server when packages.getRuntimeStatuses is missing", async () => {
     const w = window as unknown as Record<string, unknown>;
     const origApi = w.api;
     w.api = { packages: {} };
-    await expect(refreshRuntimeStatuses()).resolves.toBeUndefined();
+    runtimeStatusesQuery.mockResolvedValue({
+      statuses: [{ id: "ffmpeg", installed: false }]
+    });
+    await refreshRuntimeStatuses();
+    expect(runtimeStatusesQuery).toHaveBeenCalled();
+    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(false);
+    w.api = origApi;
+  });
+
+  it("prefers the desktop IPC when it is there", async () => {
+    const w = window as unknown as Record<string, unknown>;
+    const origApi = w.api;
+    const getRuntimeStatuses = jest
+      .fn()
+      .mockResolvedValue([{ id: "ffmpeg", installed: true }]);
+    w.api = { packages: { getRuntimeStatuses } };
+    await refreshRuntimeStatuses();
+    expect(getRuntimeStatuses).toHaveBeenCalled();
+    expect(runtimeStatusesQuery).not.toHaveBeenCalled();
+    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
     w.api = origApi;
   });
 });
