@@ -26,6 +26,25 @@ afterEach(async () => {
   delete process.env[LOCAL_FILE_ROOTS_ENV];
 });
 
+/**
+ * Creating symlinks on Windows needs Developer Mode or elevation; when the
+ * environment can't, the caller skips the test instead of failing on EPERM.
+ */
+async function trySymlink(target: string, link: string): Promise<boolean> {
+  try {
+    await fs.symlink(target, link);
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      (error as NodeJS.ErrnoException).code === "EPERM"
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 describe("getLocalFileRoots", () => {
   it("defaults to the home directory", () => {
     expect(getLocalFileRoots()).toEqual([path.resolve(os.homedir())]);
@@ -96,15 +115,17 @@ describe("resolveLocalPath", () => {
     expect(result).toEqual({ ok: false, reason: "invalid" });
   });
 
-  it("rejects a symlink pointing outside the roots", async () => {
+  it("rejects a symlink pointing outside the roots", async (ctx) => {
     const link = path.join(tmpDir, "escape");
-    await fs.symlink("/etc/passwd", link);
+    if (!(await trySymlink("/etc/passwd", link))) return ctx.skip();
     const result = await resolveLocalPath(link, [tmpDir]);
     expect(result).toEqual({ ok: false, reason: "outside_roots" });
   });
 
-  it("rejects a leaf reached through a symlinked parent", async () => {
-    await fs.symlink("/etc", path.join(tmpDir, "outside"));
+  it("rejects a leaf reached through a symlinked parent", async (ctx) => {
+    if (!(await trySymlink("/etc", path.join(tmpDir, "outside")))) {
+      return ctx.skip();
+    }
     const result = await resolveLocalPath(
       path.join(tmpDir, "outside", "passwd"),
       [tmpDir]
@@ -112,11 +133,11 @@ describe("resolveLocalPath", () => {
     expect(result).toEqual({ ok: false, reason: "outside_roots" });
   });
 
-  it("allows a symlink that stays inside the roots", async () => {
+  it("allows a symlink that stays inside the roots", async (ctx) => {
     const target = path.join(tmpDir, "real.txt");
     await fs.writeFile(target, "x");
     const link = path.join(tmpDir, "alias.txt");
-    await fs.symlink(target, link);
+    if (!(await trySymlink(target, link))) return ctx.skip();
     const result = await resolveLocalPath(link, [tmpDir]);
     expect(result).toEqual({ ok: true, path: link });
   });

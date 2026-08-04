@@ -1,4 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { pathToFileURL } from "node:url";
+
+// The source resolves paths through pathToFileURL, which on Windows prefixes
+// the current drive (file:///C:/var/...). Build expectations the same way.
+const fileUri = (name: string) => pathToFileURL(`/var/assets/${name}`).href;
 
 vi.mock("@nodetool-ai/config", () => ({
   buildAssetUrl: (name: string) => `https://assets.test/${name}`,
@@ -120,7 +125,7 @@ describe("resolveContentForProvider", () => {
   it("resolves image asset_id to a file:// URI", () => {
     const content = [{ type: "image", image: { asset_id: "abc", mimeType: "image/png" } }];
     const out = resolveContentForProvider(content) as any[];
-    expect(out[0].image.uri).toBe("file:///var/assets/abc.png");
+    expect(out[0].image.uri).toBe(fileUri("abc.png"));
   });
 
   it("does not overwrite an existing uri", () => {
@@ -134,13 +139,13 @@ describe("resolveContentForProvider", () => {
   it("resolves video to file:// URI with mp4 fallback", () => {
     const content = [{ type: "video", video: { asset_id: "v" } }];
     const out = resolveContentForProvider(content) as any[];
-    expect(out[0].video.uri).toBe("file:///var/assets/v.mp4");
+    expect(out[0].video.uri).toBe(fileUri("v.mp4"));
   });
 
   it("resolves audio to file:// URI with wav fallback", () => {
     const content = [{ type: "audio", audio: { asset_id: "a" } }];
     const out = resolveContentForProvider(content) as any[];
-    expect(out[0].audio.uri).toBe("file:///var/assets/a.wav");
+    expect(out[0].audio.uri).toBe(fileUri("a.wav"));
   });
 
   it("passes through primitives and unknown blocks", () => {
@@ -154,6 +159,6 @@ describe("resolveContentForProvider", () => {
       { type: "audio", audio: { asset_id: "a", mimeType: "audio/mpeg" } }
     ];
     const out = resolveContentForProvider(content) as any[];
-    expect(out[0].audio.uri).toBe("file:///var/assets/a.mp3");
+    expect(out[0].audio.uri).toBe(fileUri("a.mp3"));
   });
 });

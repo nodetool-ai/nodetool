@@ -59,7 +59,9 @@ async function waitForMessages(
   ws: MockWS,
   predicate: (m: Record<string, unknown>) => boolean,
   count: number,
-  timeoutMs = 5000
+  // Generous ceiling — the loop returns the moment `count` is reached, so
+  // this only costs time when events are genuinely late (slow dev machines).
+  timeoutMs = 30_000
 ): Promise<Record<string, unknown>[]> {
   const start = Date.now();
   for (;;) {

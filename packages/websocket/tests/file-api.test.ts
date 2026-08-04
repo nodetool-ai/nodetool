@@ -32,6 +32,25 @@ function makeRequest(urlPath: string, method = "GET"): Request {
   return new Request(`http://localhost${urlPath}`, { method });
 }
 
+/**
+ * Creating symlinks on Windows needs Developer Mode or elevation; when the
+ * environment can't, the caller skips the test instead of failing on EPERM.
+ */
+async function trySymlink(target: string, link: string): Promise<boolean> {
+  try {
+    await fs.symlink(target, link);
+    return true;
+  } catch (error) {
+    if (
+      process.platform === "win32" &&
+      (error as NodeJS.ErrnoException).code === "EPERM"
+    ) {
+      return false;
+    }
+    throw error;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // /api/files/local (streaming by absolute path)
 // ---------------------------------------------------------------------------
@@ -127,23 +146,28 @@ describe("/api/files/local", () => {
 
   it("defaults the root to the home directory", async () => {
     delete process.env["NODETOOL_LOCAL_FILE_ROOTS"];
-    const file = path.join(tmpDir, "clip.mp4");
-    await fs.writeFile(file, "video-bytes");
-    // tmpDir is outside home, so the default policy refuses it.
-    const res = await handleFileRequest(localRequest(file));
+    // A path guaranteed to be outside home on every platform (the Windows
+    // tmpdir lives *inside* home, so tmpDir won't do). The policy check runs
+    // before the existence check, so the file doesn't have to exist.
+    const outside = path.join(
+      path.parse(os.homedir()).root,
+      "nodetool-file-api-outside",
+      "clip.mp4"
+    );
+    const res = await handleFileRequest(localRequest(outside));
     expect(res.status).toBe(403);
   });
 
-  it("denies a symlink that escapes the roots", async () => {
+  it("denies a symlink that escapes the roots", async (ctx) => {
     const link = path.join(tmpDir, "escape.txt");
-    await fs.symlink("/etc/passwd", link);
+    if (!(await trySymlink("/etc/passwd", link))) return ctx.skip();
     const res = await handleFileRequest(localRequest(link));
     expect(res.status).toBe(403);
   });
 
-  it("denies a path that escapes through a symlinked parent", async () => {
+  it("denies a path that escapes through a symlinked parent", async (ctx) => {
     const linkDir = path.join(tmpDir, "outside");
-    await fs.symlink("/etc", linkDir);
+    if (!(await trySymlink("/etc", linkDir))) return ctx.skip();
     const res = await handleFileRequest(
       localRequest(path.join(linkDir, "passwd"))
     );

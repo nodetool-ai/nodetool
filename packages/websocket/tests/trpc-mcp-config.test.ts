@@ -29,6 +29,17 @@ import {
   mkdirSync
 } from "node:fs";
 import { homedir } from "node:os";
+import { join } from "node:path";
+
+// The router builds config paths with path.join, which uses backslashes on
+// Windows. Build the expected paths the same way (content keys inside the
+// JSON fixtures stay POSIX — they come from the mocked homedir()).
+const HOME = "/home/user";
+const CLAUDE_JSON = join(HOME, ".claude.json");
+const CODEX_DIR = join(HOME, ".codex");
+const CODEX_TOML = join(CODEX_DIR, "config.toml");
+const OPENCODE_DIR = join(HOME, ".config", "opencode");
+const OPENCODE_JSON = join(OPENCODE_DIR, "opencode.json");
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -119,7 +130,7 @@ describe("mcpConfig router", () => {
 
     it("reads claude installation when .claude.json has nodetool MCP server", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) => p === "/home/user/.claude.json"
+        (p: string) => p === CLAUDE_JSON
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         JSON.stringify({
@@ -138,12 +149,12 @@ describe("mcpConfig router", () => {
       const claude = result.targets.find((t) => t.target === "claude");
       expect(claude?.installed).toBe(true);
       expect(claude?.url).toBe("http://127.0.0.1:7777/mcp");
-      expect(claude?.configPath).toBe("/home/user/.claude.json");
+      expect(claude?.configPath).toBe(CLAUDE_JSON);
     });
 
     it("reads codex installation by regex from config.toml", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) => p === "/home/user/.codex/config.toml"
+        (p: string) => p === CODEX_TOML
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         `# BEGIN NODETOOL MCP
@@ -162,7 +173,7 @@ url = "http://127.0.0.1:7777/mcp"
 
     it("reads opencode installation from opencode.json", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) => p === "/home/user/.config/opencode/opencode.json"
+        (p: string) => p === OPENCODE_JSON
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         JSON.stringify({
@@ -216,7 +227,7 @@ url = "http://127.0.0.1:7777/mcp"
       expect(result.results).toHaveLength(1);
       expect(result.results[0]?.target).toBe("claude");
       expect(result.results[0]?.success).toBe(true);
-      expect(result.results[0]?.configPath).toBe("/home/user/.claude.json");
+      expect(result.results[0]?.configPath).toBe(CLAUDE_JSON);
     });
 
     it("uses provided url when specified", async () => {
@@ -233,11 +244,11 @@ url = "http://127.0.0.1:7777/mcp"
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
       const caller = createCaller(makeCtx());
       await caller.mcpConfig.install({ targets: ["codex", "opencode"] });
-      expect(mkdirSync).toHaveBeenCalledWith("/home/user/.codex", {
+      expect(mkdirSync).toHaveBeenCalledWith(CODEX_DIR, {
         recursive: true
       });
       expect(mkdirSync).toHaveBeenCalledWith(
-        "/home/user/.config/opencode",
+        OPENCODE_DIR,
         { recursive: true }
       );
     });
@@ -246,7 +257,7 @@ url = "http://127.0.0.1:7777/mcp"
       (existsSync as ReturnType<typeof vi.fn>).mockReturnValue(false);
       (writeFileSync as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) => {
-          if (p === "/home/user/.claude.json") throw new Error("disk full");
+          if (p === CLAUDE_JSON) throw new Error("disk full");
         }
       );
 
@@ -281,7 +292,7 @@ url = "http://127.0.0.1:7777/mcp"
 
     it("removes nodetool entry from .claude.json when present", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) => p === "/home/user/.claude.json"
+        (p: string) => p === CLAUDE_JSON
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         JSON.stringify({
@@ -310,7 +321,7 @@ url = "http://127.0.0.1:7777/mcp"
 
     it("removes block from codex config.toml", async () => {
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
-        (p: string) => p === "/home/user/.codex/config.toml"
+        (p: string) => p === CODEX_TOML
       );
       (readFileSync as ReturnType<typeof vi.fn>).mockReturnValue(
         `[something_else]

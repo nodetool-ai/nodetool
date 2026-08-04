@@ -6,6 +6,18 @@
  * existing local-FS behavior. No worker attached / old image → CONFLICT.
  */
 import { describe, it, expect, vi } from "vitest";
+
+// Keep local-scope routes hermetic: the real readCachedHfModels scans a
+// (potentially huge) developer HF cache and blows the test timeout.
+vi.mock("@nodetool-ai/huggingface", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/huggingface")>();
+  return {
+    ...actual,
+    readCachedHfModels: vi.fn().mockResolvedValue([]),
+    deleteCachedHfModel: vi.fn().mockResolvedValue(true)
+  };
+});
+
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
 import type { Context } from "../src/trpc/context.js";

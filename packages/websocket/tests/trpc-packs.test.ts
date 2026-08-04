@@ -154,7 +154,9 @@ describe("packs router", () => {
     expect(byId.get("minimax")?.enabled).toBe(false);
   });
 
-  it("setBuiltinEnabled persists overrides and applies them to the live registry", async () => {
+  // Live-loads the real minimax pack into the registry; the cold module
+  // import is slow under vitest's transform on Windows dev machines.
+  it("setBuiltinEnabled persists overrides and applies them to the live registry", { timeout: 120_000 }, async () => {
     const ctx = makeCtx();
     const caller = createCaller(ctx);
 
@@ -192,7 +194,8 @@ describe("packs router", () => {
     ).rejects.toThrow(/cannot be disabled/);
   });
 
-  it("reload re-runs the loader against the registry and refreshes the snapshot", async () => {
+  // Same cold-import cost as setBuiltinEnabled above.
+  it("reload re-runs the loader against the registry and refreshes the snapshot", { timeout: 120_000 }, async () => {
     // Empty searchPaths → loader finds nothing, snapshot becomes [].
     setPackSnapshot([fakePack("@acme/cool")]);
     const caller = createCaller(makeCtx());
