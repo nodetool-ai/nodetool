@@ -1,5 +1,4 @@
 import { NodeTypes } from "@xyflow/react";
-import BaseNode from "../components/node/BaseNode";
 import { restFetch } from "../lib/rest-fetch";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
 import useMetadataStore from "../stores/MetadataStore";
@@ -77,7 +76,22 @@ const METADATA_ENDPOINT = "/api/nodes/metadata?fields=full&limit=10000";
 // a token. Cached, and consumed at most once — safe to call repeatedly.
 let prefetchedResponse: Promise<Response | null> | null = null;
 
+/**
+ * `BaseNode` renders every server-provided node type, and this module maps each
+ * one to it. Imported statically it put the whole node-editor tree — 2.5 MB of
+ * chunk, plus everything it reaches — in the entry's static graph, so the
+ * browser parsed all of it before the app shell could paint. Loaded on demand
+ * instead, and started alongside the metadata request below so the two overlap.
+ */
+let baseNodePromise: Promise<typeof import("../components/node/BaseNode")> | null =
+  null;
+const loadBaseNode = () => {
+  baseNodePromise ??= import("../components/node/BaseNode");
+  return baseNodePromise;
+};
+
 export const prefetchMetadata = (): void => {
+  void loadBaseNode();
   if (prefetchedResponse) return;
   prefetchedResponse = restFetch(METADATA_ENDPOINT).then(
     (res) => (res.ok ? res : null),
@@ -90,6 +104,7 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
   // fetch fresh so a consumed response body is never read twice.
   const pending = prefetchedResponse;
   prefetchedResponse = null;
+  const baseNodeReady = loadBaseNode();
   const response =
     (pending ? await pending : null) ?? (await restFetch(METADATA_ENDPOINT));
   if (!response.ok) {
@@ -97,7 +112,10 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
     return "error";
   }
 
-  const data = (await response.json()) as NodeMetadata[];
+  const [data, { default: BaseNode }] = await Promise.all([
+    response.json() as Promise<NodeMetadata[]>,
+    baseNodeReady
+  ]);
 
   const nodeTypes: NodeTypes = {};
   const metadataByType: Record<string, NodeMetadata> = { ...defaultMetadata };

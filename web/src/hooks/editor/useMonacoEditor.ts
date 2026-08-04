@@ -1,5 +1,9 @@
 import React, { useCallback, useRef, useState } from "react";
-import * as monaco from "monaco-editor";
+// Type-only: the value import happens in `configureMonacoLoader` below. A
+// static `import * as monaco` pulled all 3.6 MB of Monaco into whatever chunk
+// reached this hook — including the inspector, which mounts with the workspace
+// — so the app downloaded the code editor on every boot.
+import type * as monaco from "monaco-editor";
 
 // Configure Monaco loader to use local files instead of CDN
 // This must be done before importing @monaco-editor/react
@@ -8,7 +12,10 @@ async function configureMonacoLoader() {
   if (loaderConfigured) {
     return;
   }
-  const loader = await import("@monaco-editor/loader");
+  const [loader, monaco] = await Promise.all([
+    import("@monaco-editor/loader"),
+    import("monaco-editor")
+  ]);
   loader.default.config({ monaco });
   loaderConfigured = true;
 }

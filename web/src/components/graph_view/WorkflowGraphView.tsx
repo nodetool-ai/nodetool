@@ -46,6 +46,7 @@ import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../../constants/nodeTypes";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import type { Workflow } from "../../stores/ApiTypes";
+import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 
 const edgeTypes = { default: CustomEdge, control: ControlEdge };
 
@@ -109,15 +110,17 @@ function GraphInner() {
   const nodesInitialized = useNodesInitialized();
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
+  const placeholderNodeTypes = usePlaceholderNodeTypes();
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
+      ...placeholderNodeTypes,
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
-    [baseNodeTypes]
+    [baseNodeTypes, placeholderNodeTypes]
   );
 
   useEffect(() => {

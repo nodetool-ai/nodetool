@@ -135,6 +135,7 @@ import MiniMapNavigator from "./MiniMapNavigator";
 import ViewportStatusIndicator from "../node_editor/ViewportStatusIndicator";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
+import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 
 /** React Flow edge paths use both endpoints — refresh neighbors when one node’s DOM height changes. */
 function withEdgeNeighborNodeIds(
@@ -454,9 +455,11 @@ const ReactFlowWrapper = ({
   const getMetadata = useMetadataStore((state) => state.getMetadata);
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
+  const placeholderNodeTypes = usePlaceholderNodeTypes();
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
+      ...placeholderNodeTypes,
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       [PREVIEW_NODE_TYPE]: PreviewNode,
@@ -475,7 +478,7 @@ const ReactFlowWrapper = ({
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
-    [baseNodeTypes]
+    [baseNodeTypes, placeholderNodeTypes]
   );
 
   const edgeTypes = EDGE_TYPES;

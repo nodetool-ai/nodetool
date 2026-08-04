@@ -10,7 +10,7 @@ import { NodeOutputs } from "../../node/NodeOutputs";
 import OutputRenderer from "../../node/OutputRenderer";
 import NodeProgress from "../../node/NodeProgress";
 
-export const CONSTANT_SKETCH_NODE_TYPE = "nodetool.constant.Sketch";
+export { CONSTANT_SKETCH_NODE_TYPE } from "./bespokeNodeTypes";
 
 const bodyStyles = () =>
   css({

@@ -379,7 +379,33 @@ export default defineConfig(async ({ mode }) => {
               external: ["web-worker"],
               output: {
                 manualChunks(id) {
+                  // Chunk only what the boot path itself needs.
+                  //
+                  // A manual chunk is a fixed bucket, and rolldown hosts shared
+                  // runtime modules (its dynamic-import preload helper, CommonJS
+                  // interop shims) inside one of them. When that bucket was a
+                  // feature-only library, the entry chunk ended up statically
+                  // importing megabytes of Monaco / plotly / three just to reach
+                  // a helper function — and every one of those bytes was
+                  // downloaded and parsed before the app could paint.
+                  //
+                  // So: name a chunk for a dependency the first screen actually
+                  // uses, and leave feature-only libraries unnamed. Rolldown
+                  // then places them alongside the dynamic entry that imports
+                  // them, which is where they belong. `node scripts/chunk-graph.mjs`
+                  // reports what the boot path pulls in and which edge put it
+                  // there — check it after touching this function.
                   if (!id.includes("node_modules")) return;
+                  // Reached from the boot path (msgpack, the browser runner) and
+                  // from plotly's dependency graph. Unnamed it landed inside the
+                  // plotly chunk, so booting downloaded 4.8 MB of charting
+                  // library to get `Buffer`.
+                  if (
+                    /[\\/]node_modules[\\/](buffer|base64-js|ieee754)[\\/]/.test(
+                      id
+                    )
+                  )
+                    return "vendor-buffer";
                   if (
                     /[\\/]node_modules[\\/](react|react-dom|react-router-dom|react-router|scheduler)[\\/]/.test(
                       id
@@ -392,32 +418,8 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-mui";
-                  if (/[\\/]node_modules[\\/]@mui[\\/]x-/.test(id))
-                    return "vendor-mui-x";
-                  if (/[\\/]node_modules[\\/]plotly\.js[\\/]/.test(id))
-                    return "vendor-plotly";
-                  if (
-                    /[\\/]node_modules[\\/](three|@react-three[\\/]fiber|@react-three[\\/]drei)[\\/]/.test(
-                      id
-                    )
-                  )
-                    return "vendor-three";
-                  if (
-                    /[\\/]node_modules[\\/](@monaco-editor[\\/]react|monaco-editor|lexical|@lexical)[\\/]/.test(
-                      id
-                    )
-                  )
-                    return "vendor-editor";
-                  if (
-                    /[\\/]node_modules[\\/](react-pdf|pdfjs-dist)[\\/]/.test(id)
-                  )
-                    return "vendor-pdf";
-                  if (/[\\/]node_modules[\\/]wavesurfer\.js[\\/]/.test(id))
-                    return "vendor-waveform";
                   // Workflow graph engine + layout
-                  if (
-                    /[\\/]node_modules[\\/](@xyflow|elkjs)[\\/]/.test(id)
-                  )
+                  if (/[\\/]node_modules[\\/](@xyflow|elkjs)[\\/]/.test(id))
                     return "vendor-flow";
                   // Server state + RPC stack (must stay together — shared runtime)
                   if (
@@ -426,22 +428,6 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-query";
-                  // Markdown / unified ecosystem (all must live together — shared
-                  // unified processor state, hast/mdast types, and micromark
-                  // extension registry).
-                  if (
-                    /[\\/]node_modules[\\/](react-markdown|remark-[^\\/]+|rehype-[^\\/]+|micromark[^\\/]*|mdast-util-[^\\/]+|hast-util-[^\\/]+|unified|unist-util-[^\\/]+|vfile[^\\/]*|bail|trough|is-plain-obj|decode-named-character-reference|character-entities[^\\/]*|html-void-elements|property-information|space-separated-tokens|comma-separated-tokens|web-namespaces|zwitch|longest-streak|parse-entities|ccount|escape-string-regexp|markdown-table|github-slugger|stringify-entities|html-url-attributes|dompurify|prismjs)[\\/]/.test(
-                      id
-                    )
-                  )
-                    return "vendor-markdown";
-                  // Data table + spreadsheet/zip libs
-                  if (
-                    /[\\/]node_modules[\\/](tabulator-tables|jszip|papaparse|read-excel-file|xlsx)[\\/]/.test(
-                      id
-                    )
-                  )
-                    return "vendor-data";
                   // Panel layout
                   if (/[\\/]node_modules[\\/]dockview[\\/]/.test(id))
                     return "vendor-dockview";
@@ -455,12 +441,10 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-utils";
-                  // Static icon set (large SVG payload)
-                  if (/[\\/]node_modules[\\/]@lobehub[\\/]/.test(id))
-                    return "vendor-icons";
-                  // Leave other dependencies unmatched so Rollup can apply
-                  // its default chunking strategy instead of forcing a single
-                  // shared misc vendor chunk.
+                  // Everything else — Monaco, Lexical, plotly, three.js,
+                  // pdf.js, wavesurfer, the markdown stack, the data-table
+                  // stack — is feature-only and stays unnamed on purpose. See
+                  // the note at the top of this function.
                   return;
                 }
               }

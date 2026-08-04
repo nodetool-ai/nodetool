@@ -39,6 +39,7 @@ import ControlEdge from "../components/node_editor/ControlEdge";
 import { Harness, type HarnessState } from "./harness";
 import { buildRenderGraph, type RenderGraph } from "./graphRender";
 import type { RunRecord, RunStatus } from "./types";
+import { usePlaceholderNodeTypes } from "../components/node_types/usePlaceholderNodeTypes";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, enabled: false } }
@@ -178,14 +179,16 @@ function CanvasInner({
 }) {
   const { fitView } = useReactFlow();
   const baseNodeTypes = useMetadataStore((s) => s.nodeTypes);
+  const placeholderNodeTypes = usePlaceholderNodeTypes();
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
+      ...placeholderNodeTypes,
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       default: PlaceholderNode
     }),
-    [baseNodeTypes]
+    [baseNodeTypes, placeholderNodeTypes]
   );
 
   const nodes = useMemo<Node<NodeData>[]>(

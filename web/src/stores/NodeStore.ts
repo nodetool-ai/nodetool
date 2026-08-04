@@ -39,7 +39,6 @@ import { wouldCreateCycle } from "../utils/graphCycle";
 import useMetadataStore from "./MetadataStore";
 import useErrorStore from "./ErrorStore";
 import useResultsStore from "./ResultsStore";
-import PlaceholderNode from "../components/node_types/PlaceholderNode";
 import {
   getContentCardDefaultSize,
   isContentCardNode
@@ -55,7 +54,7 @@ import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
 import { isValidEdge, sanitizeGraph } from "../core/workflow/graphMapping";
 import { GROUP_NODE_TYPE } from "../utils/nodeUtils";
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
-import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeRegistry";
+import { BESPOKE_DEFAULT_HEIGHTS } from "../components/node_types/editing/bespokeNodeSizes";
 import { DEFAULT_NODE_WIDTH } from "./nodeUiDefaults";
 import { applyDefaultModels } from "../utils/applyDefaultModels";
 import { reactFlowNodeChromeClassName } from "../utils/reactFlowNodeChromeClassName";
@@ -257,7 +256,8 @@ export const createNodeStore = (
       (set, get) => {
         const metadata = useMetadataStore.getState().metadata;
         const nodeTypes = useMetadataStore.getState().nodeTypes;
-        const addNodeTypes = useMetadataStore.getState().addNodeTypes;
+        const addUnknownNodeTypes =
+          useMetadataStore.getState().addUnknownNodeTypes;
 
         // Rewrite removed node types (e.g. FormatText -> Prompt) so legacy
         // workflows load into the editor as their replacements.
@@ -283,19 +283,17 @@ export const createNodeStore = (
           metadata
         );
 
-        // Collect missing node types into a single record so we only touch
-        // MetadataStore's `nodeTypes` once — each `addNodeType` call replaces
-        // the map identity, and `ReactFlowWrapper` memoizes the ReactFlow
-        // `nodeTypes` prop on that identity, so k separate calls would
-        // remount the whole canvas k times.
-        const missingNodeTypes: NodeTypes = {};
-        for (const node of sanitizedNodes) {
-          if (node.type && !nodeTypes[node.type]) {
-            missingNodeTypes[node.type] = PlaceholderNode;
-          }
-        }
-        if (Object.keys(missingNodeTypes).length > 0) {
-          addNodeTypes(missingNodeTypes);
+        // Record missing node types by name in one call. The surfaces that
+        // build ReactFlow's `nodeTypes` prop map them to `PlaceholderNode`;
+        // registering the component from here would pull the whole node-body
+        // tree into every bundle that touches this store. `addUnknownNodeTypes`
+        // keeps the array identity when nothing is new, since those surfaces
+        // memoize the prop on it and a fresh identity remounts the canvas.
+        const missingNodeTypes = sanitizedNodes
+          .map((node) => node.type)
+          .filter((type): type is string => !!type && !nodeTypes[type]);
+        if (missingNodeTypes.length > 0) {
+          addUnknownNodeTypes(missingNodeTypes);
         }
 
         // Store the unsubscribe function for cleanup

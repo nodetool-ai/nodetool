@@ -50,6 +50,7 @@ import { ContextMenuProvider } from "./providers/ContextMenuProvider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
 import { MenuProvider } from "./providers/MenuProvider";
+import { usePlaceholderNodeTypes } from "./components/node_types/usePlaceholderNodeTypes";
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, enabled: false } }
@@ -246,15 +247,17 @@ function GraphInner({
   const [ready, setReady] = useState(false);
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
+  const placeholderNodeTypes = usePlaceholderNodeTypes();
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
+      ...placeholderNodeTypes,
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),
-    [baseNodeTypes]
+    [baseNodeTypes, placeholderNodeTypes]
   );
 
   useEffect(() => {

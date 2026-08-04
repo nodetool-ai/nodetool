@@ -18,7 +18,17 @@ type MetadataStore = {
   nodeTypes: NodeTypes;
   setNodeTypes: (nodeTypes: NodeTypes) => void;
   addNodeType: (nodeType: string, nodeTypeComponent: NodeTypes[string]) => void;
-  addNodeTypes: (entries: NodeTypes) => void;
+  /**
+   * Node types a loaded graph referenced that the registry does not know —
+   * rendered with `PlaceholderNode`. Held as names rather than components so
+   * the stores that discover them stay free of React imports: `PlaceholderNode`
+   * renders a full node body, and importing it from `NodeStore` put the whole
+   * property-editor tree (Monaco, Lexical, three.js) on the app's boot path.
+   * The surfaces that build ReactFlow's `nodeTypes` prop map these to the
+   * component via `usePlaceholderNodeTypes`.
+   */
+  unknownNodeTypes: string[];
+  addUnknownNodeTypes: (nodeTypes: string[]) => void;
 };
 const useMetadataStore = create<MetadataStore>((set, get) => ({
   metadata: {},
@@ -30,19 +40,16 @@ const useMetadataStore = create<MetadataStore>((set, get) => ({
     set((state) => ({
       nodeTypes: { ...state.nodeTypes, [nodeType]: nodeTypeComponent }
     })),
-  addNodeTypes: (entries) => {
-    const current = get().nodeTypes;
-    let hasNew = false;
-    for (const key in entries) {
-      if (current[key] !== entries[key]) {
-        hasNew = true;
-        break;
-      }
-    }
-    if (!hasNew) {
+  unknownNodeTypes: [],
+  addUnknownNodeTypes: (nodeTypes) => {
+    const current = get().unknownNodeTypes;
+    const added = nodeTypes.filter((t) => !current.includes(t));
+    // Keep the array identity when nothing is new: consumers memoize the
+    // ReactFlow `nodeTypes` prop on it, and a fresh identity remounts the canvas.
+    if (added.length === 0) {
       return;
     }
-    set({ nodeTypes: { ...current, ...entries } });
+    set({ unknownNodeTypes: [...current, ...added] });
   },
   setMetadata: (metadata) => set({ metadata }),
   getMetadata: (nodeType) => {
