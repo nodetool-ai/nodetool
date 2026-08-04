@@ -222,6 +222,51 @@ npm run test       # Run all tests
 
 All three must pass before the task is complete.
 
+Running suites per package instead is fine when the full run is too slow — but
+run every package `nodetool affected` names, not the ones you remember touching.
+`lint` passing is not `test` passing: a change to `packages/websocket` that was
+linted and never tested broke two route suites, and CI found it rather than the
+author.
+
+### Claims, Checks, and Measurements
+
+Verification failures in this repo are rarely "forgot to run the tests". They
+are green signals that were never earned. Four rules, each paid for:
+
+**Prove a new check can fail.** Invert the condition once and watch it go red,
+then restore. `nodetool validate` returned ✅ on a workflow whose model id was
+`totally-not-a-real-model-xyz` — it had never checked ids at all, and only a
+deliberately-bogus input revealed it. A check that has only ever been green is
+indistinguishable from one that examines nothing. For an audit that scans
+files, also assert it *found* something, so it cannot pass by matching nothing.
+This is rule 7's sibling in [docs/HARNESS_FIRST.md](docs/HARNESS_FIRST.md).
+
+**Reproduce before you enforce.** Rule 5 requires a bug *fix* to ship a
+reproduction; the same applies to a new *rule*. A validator check was written
+from a log warning plus code reading, shipped as an error, and would have failed
+the examples gate on six shipped workflows — until three reproductions of its
+own criterion passed cleanly and the feature was reverted. Until you have
+watched the failure, report it; do not enforce it.
+
+**"I checked" means you enumerated.** Not one plausible file, and never a
+comment — a comment is a hypothesis about code, not the code. Claims that
+`validateGraph` was ungated in CI, and that six call sites were safe, were both
+made from a sample and both wrong in method. To assert "all X do Y", produce the
+list; if that is too expensive, scope the claim to what you actually read.
+
+**Distrust the measurement before the conclusion.** `pgrep -f` matches the
+shell command that contains the pattern, so a probe can report a dead process as
+running. `cmd | head && echo ok` prints `ok` on failure, because `head` exits 0 —
+capture the exit code of the command you care about. When a result is surprising,
+re-measure with a different tool before believing it.
+
+Two mechanical traps worth naming: after a programmatic edit, byte-count the
+file for stray control characters (a `\u0000` written as the byte it denotes
+got a `.ts` file staged as **binary**), and if the code walks a graph or list,
+run it once on a large input — an `edges.some()` inside a node loop is O(n·m)
+and passed every hand-written fixture before timing out on the 20 000-node
+chain in CI.
+
 ### Code Review for Regressions
 
 Before submitting a PR, review for:
