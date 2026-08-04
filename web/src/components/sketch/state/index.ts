@@ -1,6 +1,5 @@
 export {
   useSketchStore,
-  useSketchStoreApi,
   createSketchStore,
   hydrateSketchStore,
   SKETCH_ZOOM_MIN,

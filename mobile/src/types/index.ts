@@ -11,10 +11,7 @@ export type {
   Node,
   Edge,
 } from "./workflow";
-export type {
-  MiniAppInputKind,
-  MiniAppResult,
-} from "./miniapp";
+export type { MiniAppInputKind } from "./miniapp";
 // Export chat types selectively to avoid conflicts with ApiTypes
 export type {
   ConnectionState,

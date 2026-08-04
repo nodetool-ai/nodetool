@@ -22,7 +22,7 @@ import {
 
 import { documentBackend, type DocumentSummary } from './backends';
 import { disposeDocumentStore } from './documentStore';
-import { DOCUMENT_KINDS, type DocumentKind } from './kinds';
+import { type DocumentKind } from './kinds';
 
 export interface DocumentListEntry {
   kind: DocumentKind;
@@ -178,6 +178,3 @@ export function useDeleteDocument(): UseMutationResult<
     },
   });
 }
-
-/** The kinds the browser offers a "new document" action for. */
-export const CREATABLE_KINDS = DOCUMENT_KINDS.filter((entry) => entry.creatable);
