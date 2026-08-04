@@ -1475,6 +1475,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
       "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
     );
   }
+
+  const hasStoryboard =
+    focused?.type === "storyboard" || open.some((ref) => ref.type === "storyboard");
+  if (hasStoryboard) {
+    lines.push(
+      "To render a storyboard, do not author a workflow: `render_storyboard_stills` then `render_storyboard_clips` call the image/video model per shot and save the results onto the board, and `assemble_storyboard_timeline` lays the rendered clips into a timeline sequence. Stills are cheap and clips are not — render the stills, look at them, then spend."
+    );
+  }
   return lines.join("\n");
 }
 

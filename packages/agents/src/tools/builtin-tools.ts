@@ -91,6 +91,14 @@ import {
   ThreadMemoryDeleteTool
 } from "./thread-memory-tools.js";
 import { AssetSearchTool, AssetListTool } from "./asset-library-tools.js";
+import {
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool
+} from "./storyboard-render-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -113,6 +121,14 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Asset library (discover + reuse generated/uploaded media)
   AssetSearchTool,
   AssetListTool,
+
+  // Storyboard → rendered media → timeline, without authoring a workflow
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

@@ -74,6 +74,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   get_workflow: "read",
   validate_workflow: "read",
   validate_timeline: "read",
+  list_storyboards: "read",
+  get_storyboard: "read",
   get_example_workflow: "read",
   export_workflow_digraph: "read",
   list_jobs: "read",
@@ -156,6 +158,12 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   ui_set_node_title: "write",
   generate_image: "write",
   edit_image: "write",
+  // Storyboard renders call an image/video model per shot and write the
+  // results back onto a local board — costly media, local state.
+  render_storyboard_stills: "write",
+  render_storyboard_clips: "write",
+  revise_storyboard_clip: "write",
+  assemble_storyboard_timeline: "write",
   generate_video: "write",
   animate_image: "write",
   generate_speech: "write",

@@ -399,6 +399,15 @@ export {
   getAssetLibraryTools,
   ASSET_LIBRARY_TOOL_NAMES
 } from "./tools/asset-library-tools.js";
+export {
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool,
+  STORYBOARD_RENDER_TOOL_NAMES
+} from "./tools/storyboard-render-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
