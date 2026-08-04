@@ -930,11 +930,11 @@ async function collectProviderModelsForKind(
 
 /**
  * Every remote model the user's configured providers can enumerate, across all
- * non-language modalities, for the SDK model catalog. Unlike
- * `collectProviderModelsForKind` this makes one pass per provider (each
- * `getAvailable*Models` called once, no task filtering) so text_to_image and
- * image_to_image capable models are both included. Language models are not
- * collected here — `getAllModels` already enumerates them.
+ * non-language-model types (embeddings, images, TTS, music, ASR, video), for the
+ * SDK model catalog. Unlike `collectProviderModelsForKind` this makes one pass
+ * per provider (each `getAvailable*Models` called once, no task filtering) so
+ * text_to_image and image_to_image capable models are both included. Language
+ * models are not collected here — `getAllModels` already enumerates them.
  */
 export async function collectProviderCatalogModels(
   userId: string
