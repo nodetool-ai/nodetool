@@ -36,6 +36,7 @@ import {
   MOTION
 } from "../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
@@ -54,6 +55,7 @@ import { TimelineProvider } from "../../stores/timeline/TimelineInstance";
 import { PreviewArea } from "./preview/PreviewArea";
 import { TimelineInspector } from "./Inspector/TimelineInspector";
 import TimelineAgentPanel from "./TimelineAgentPanel";
+import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { TranscriptPanel } from "./TranscriptPanel";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
@@ -231,16 +233,18 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "agent";
+type InspectorTab = "inspector" | "agent" | "history";
 
-const InspectorRegion: React.FC = memo(() => {
+const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
+  ({ sequenceId }) => {
   const theme = useTheme();
   const [tab, setTab] = useState<InspectorTab>("inspector");
 
   const tabs = useMemo(
     () => [
       { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
-      { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> }
+      { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
+      { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
     ],
     []
   );
@@ -263,11 +267,18 @@ const InspectorRegion: React.FC = memo(() => {
         }}
       />
       <FlexColumn fullWidth sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}>
-        {tab === "inspector" ? <TimelineInspector /> : <TimelineAgentPanel />}
+        {tab === "inspector" ? (
+          <TimelineInspector />
+        ) : tab === "agent" ? (
+          <TimelineAgentPanel />
+        ) : (
+          <TimelineVersionHistoryPanel sequenceId={sequenceId} />
+        )}
       </FlexColumn>
     </FlexColumn>
   );
-});
+  }
+);
 InspectorRegion.displayName = "InspectorRegion";
 
 const TranscriptRegion: React.FC = memo(() => {
@@ -610,7 +621,7 @@ const TimelineEditorBody: React.FC<
           createSequencePending={createTimeline.isPending}
           createSequenceErrorMessage={createErrorMessage}
         />
-        <InspectorRegion />
+        <InspectorRegion sequenceId={sequenceId} />
       </FlexRow>
 
       {/* ── Horizontal drag handle (mouse + keyboard resizable) ───── */}
