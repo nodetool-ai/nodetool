@@ -161,14 +161,16 @@ Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug c
 
 ### CLI/Server Logs
 
-When running NodeTool from command line:
+When running NodeTool from the command line, `serve` accepts only `--host` and
+`--port`. The log level comes from the environment (`NODETOOL_LOG_LEVEL`,
+falling back to `LOG_LEVEL`, default `info`):
 
 ```bash
-# Verbose logging
-nodetool serve --verbose
+# Debug logging
+NODETOOL_LOG_LEVEL=debug nodetool serve
 
-# Or set log level
-nodetool serve --log-level debug
+# Write the log to a file instead of stderr
+NODETOOL_LOG_FILE=/tmp/nodetool.log nodetool serve
 ```
 
 ### Understanding Error Messages
@@ -330,7 +332,7 @@ diff working_workflow.json broken_workflow.json
 | **Node click** | See error messages | Click red (failed) nodes |
 | **Console/DevTools** | View detailed logs | View → Developer Tools |
 | **JSON export** | Inspect workflow structure | ⋮ menu → Download JSON |
-| **--verbose flag** | CLI debugging | `nodetool serve --verbose` |
+| **Debug logging** | CLI debugging | `NODETOOL_LOG_LEVEL=debug nodetool serve` |
 | **Log files** | Historical debugging | `~/.nodetool/logs/` |
 
 ---

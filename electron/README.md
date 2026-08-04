@@ -7,7 +7,7 @@ Electron wrapper that packages NodeTool as a desktop application. Bundles the we
 - `src/` - Main process and preload scripts
 - `assets/` - Icons and static resources
 - `resources/` - Templates bundled in app
-- `tests/e2e/` - End-to-end Playwright tests
+- `src/__tests__/` - Jest tests for the main process
 
 ## Native Features
 
@@ -25,36 +25,20 @@ Output in `dist-electron/` for distribution.
 
 ## Testing
 
-End-to-end tests verify desktop integration, IPC handlers, and server management using Playwright with Electron.
-
-**Prerequisites:**
-```bash
-# Install Playwright browsers (one time)
-npx playwright install chromium
-```
-
-**Run tests:**
+Jest tests in `src/__tests__/` cover the main process: IPC handlers, server
+spawning and watchdog, settings, the packaged-bundle verifier, window security,
+and the updater.
 
 ```bash
-# Build first
-npm run vite:build
-npx tsc
-
-# Run tests
-npm run test:e2e          # All tests
-npm run test:e2e:ui       # Interactive mode
-npm run test:e2e:headed   # See window
+npm test              # Run the suite
+npm run test:watch    # Watch mode
+npm run test:coverage # With coverage
+npm run check         # tsc + eslint + jest
 ```
 
-**Test structure** (`tests/e2e/`):
-
-- **app-loads.spec.ts** - Basic launch without server (`NODE_ENV=test`)
-  - Window creation, IPC communication
-  - Quick, no Python backend needed
-
-- **python-server.spec.ts** - Server initialization (`NODE_ENV=development`)
-  - Python backend startup, health checks
-  - Needs Python environment with nodetool installed
+There is no Playwright suite in this workspace — the Electron E2E tests were
+replaced with these Jest integration tests. Browser-level E2E lives in `web/`
+(`npm run test:e2e`, `npm run test:e2e-runner`).
 
 ### Server Management
 
@@ -65,21 +49,10 @@ Electron **manages its own server**. On launch (dev/production):
 3. Starts server via Watchdog process manager
 4. Monitors health, handles restarts
 
-Tests handle this by:
-- Cleaning up existing processes before/after
-- Using proper PID paths (`/tmp/nodetool-electron/server.pid`)
-- Setting appropriate environment variables
-- Waiting for server init when needed
-
 ### CI/CD
 
-GitHub Actions (`.github/workflows/e2e.yml`):
-1. Sets up conda with Python 3.11
-2. Installs nodetool packages
-3. Builds Electron app
-4. Runs tests using conda environment
-
-Tests inherit `CONDA_PREFIX` from activated environment.
+The Quality Gate's `test-app` leg runs the root `npm run test`, which includes
+this workspace's Jest suite (`.github/workflows/quality-checks.yml`).
 
 ## GPU Detection
 

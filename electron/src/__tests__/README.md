@@ -1,6 +1,6 @@
 # Testing Electron Code
 
-This directory contains unit tests for the NodeTool Electron application. For end-to-end tests, see `tests/e2e/` in the electron root directory.
+This directory contains the Jest tests for the NodeTool Electron application. There is no Playwright suite in this workspace; browser-level end-to-end tests live in `web/`.
 
 ## Testing Structure
 
@@ -21,22 +21,6 @@ npm run test:watch
 # Generate test coverage report
 npm run test:coverage
 ```
-
-## Running E2E Tests
-
-End-to-end tests are located in `tests/e2e/` and use Playwright:
-
-```bash
-# Build the app first
-npm run vite:build && npx tsc
-
-# Run e2e tests
-npm run test:e2e          # Run all e2e tests
-npm run test:e2e:ui       # Run with Playwright UI (interactive)
-npm run test:e2e:headed   # Run in headed mode (see the window)
-```
-
-See the main [README.md](../../README.md) for more details on e2e testing.
 
 ## Mocking Strategy
 

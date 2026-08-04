@@ -765,13 +765,13 @@ npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
 ```
 
-Alongside `graph-planner` (one-shot DSL) there are eight **tool-loop** suites
+Alongside `graph-planner` (one-shot DSL) there are ten **tool-loop** suites
 that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
 structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `sketch-tools`, `timeline-tools`, `storyboard-tools`, `model3d-tools`,
-`app-tools`. Same flags, metrics, and `--min-success` CI gate as
-`graph-planner`. Details:
+`app-tools`, `thread-memory-tools`, and `creative-pipeline`. Same flags,
+metrics, and `--min-success` CI gate as `graph-planner`. Details:
 [packages/agents/CLAUDE.md](packages/agents/CLAUDE.md).
 
 `workflow-escalation` runs the graph tools over objectives that are missing

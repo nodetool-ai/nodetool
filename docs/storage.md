@@ -98,7 +98,7 @@ Workflows interact with storage through `ProcessingContext` (`@nodetool-ai/runti
 ## Troubleshooting
 
 - **Missing asset URLs** – confirm `ASSET_DOMAIN` or `NODETOOL_API_URL` is set; the API uses these to build absolute URLs.
-- **S3 authentication errors** – verify credentials and endpoint configuration in settings/secrets; run `nodetool settings show --secrets`.
+- **S3 authentication errors** – verify credentials and endpoint configuration; run `nodetool settings show` for the resolved environment and `nodetool secrets list` for the stored keys.
 - **Local file permissions** – ensure the configured asset folder is writable by the user running the service (especially in Docker).
 - **Docker jobs cannot access assets** – mount the asset directory into the server container and ensure the assets path (`getDefaultAssetsPath()`, overridable via `ASSET_FOLDER`/`STORAGE_PATH`) points to the mounted path.
 

@@ -142,7 +142,7 @@ max_steps: 10
 
 **Tool Configuration:**
 - Start minimal (read_file, write_file)
-- Add tools progressively based on needs (e.g. `run_code`, `grep`, `google_search`, `browser`)
+- Add tools progressively based on needs (e.g. `run_code`, `grep`, `web_search`, `browser`)
 - Document tool usage in the system_prompt
 
 **Parameters:**

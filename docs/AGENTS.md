@@ -141,8 +141,6 @@ context.memory.getValue(memoryKeys.task("research"));
 
 The default execution system prompt explains these tools; the user message names only the **specific** upstream keys the planner declared as required for the step. Values are pulled on demand.
 
-**Multi-agent teams** mirror `TaskBoard` `task_completed` events into `context.memory`, so sub-agents see each other's work through `memory_list`.
-
 For the full API, tool schemas, propagation flow, examples, and troubleshooting, see [Agent Memory System](agent-memory.md).
 
 ---
@@ -255,8 +253,10 @@ There is a **separate** registry for tools that workflow tool-agent nodes
 expose via `runAgentLoop` (in `@nodetool-ai/llm-nodes`) — distinct from the
 `@nodetool-ai/agents` `registerTool`/`resolveTool` registry above. Builtin
 node tools (e.g. the `browser_*` CDP tools) are registered into it at module
-load via `registerBuiltinAgentToolClasses` (e.g. `code-nodes/sandbox.ts`) and
-resolved with `resolveBuiltinAgentTool(name)`.
+load via `registerBuiltinAgentToolClasses` or, for lazily-built sets,
+`registerBuiltinAgentToolFactory` (which is what
+`code-nodes/src/nodes/sandbox.ts` uses), and resolved with
+`resolveBuiltinAgentTool(name)`.
 
 **Hydration contract:** a tool may be passed as a fully-formed `ToolLike` (has
 `process` + `inputSchema`) or a bare name-stub (`{ name }`). `runAgentLoop`
