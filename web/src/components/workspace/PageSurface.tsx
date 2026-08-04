@@ -3,6 +3,7 @@ import React, { Suspense } from "react";
 import { LoadingSpinner } from "../ui_primitives";
 import { PAGE_TAB_TITLES, type PageTabKey } from "./pageTabs";
 
+const AssetExplorer = React.lazy(() => import("../assets/AssetExplorer"));
 const TutorialsPage = React.lazy(() => import("../tutorials/TutorialsPage"));
 const ExamplesPage = React.lazy(() => import("../portal/ExamplesPage"));
 const CostsDashboard = React.lazy(() => import("../costs/CostsDashboard"));
@@ -20,6 +21,7 @@ const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
 const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
 
 const PAGE_COMPONENTS: Record<PageTabKey, React.ComponentType> = {
+  assets: AssetExplorer,
   tutorials: TutorialsPage,
   examples: ExamplesPage,
   costs: CostsDashboard,

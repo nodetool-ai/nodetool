@@ -55,7 +55,7 @@ import { outputOf } from "../../../utils/nodeGenerations";
 import { resolveExposedInputNames } from "../../../utils/exposedInputs";
 import type { BespokeBodyProps } from "./bespokeRegistry";
 
-export const LIST_GENERATOR_NODE_TYPE = "nodetool.generators.ListGenerator";
+export { LIST_GENERATOR_NODE_TYPE } from "./bespokeNodeTypes";
 
 /** Pull a display string out of one streamed/settled value, or undefined. */
 const pullString = (x: unknown): string | undefined => {

@@ -41,6 +41,7 @@ import PlaceholderNode from "../node_types/PlaceholderNode";
 import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../../constants/nodeTypes";
+import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 
 interface WorkflowGraphPreviewProps {
   graph: Graph | null | undefined;
@@ -108,14 +109,16 @@ const GraphPreviewInner: React.FC<{
   const theme = useTheme();
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
+  const placeholderNodeTypes = usePlaceholderNodeTypes();
   const nodeTypes = useMemo(
     () => ({
       ...baseNodeTypes,
+      ...placeholderNodeTypes,
       [GROUP_NODE_TYPE]: GroupNode,
       [COMMENT_NODE_TYPE]: CommentNode,
       default: PlaceholderNode
     }),
-    [baseNodeTypes]
+    [baseNodeTypes, placeholderNodeTypes]
   );
 
   // Refit whenever a different version's nodes are shown

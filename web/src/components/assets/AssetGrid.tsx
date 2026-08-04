@@ -43,33 +43,9 @@ import { useShallow } from "zustand/react/shallow";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import useAuth from "../../stores/useAuth";
 import useContextMenuStore from "../../stores/ContextMenuStore";
-import {
-  DockviewApi,
-  DockviewReact,
-  DockviewReadyEvent,
-  IDockviewPanelProps,
-  IDockviewPanel
-} from "dockview";
-
-/** IDockviewPanel exposes an internal `group` property not present in its public type */
-type IDockviewPanelWithGroup = IDockviewPanel & {
-  group?: { api?: { setSize: (size: { width?: number; height?: number }) => void } } & { setSize?: (size: { width?: number; height?: number }) => void };
-};
+import AssetGridSplit from "./AssetGridSplit";
 import PanelErrorBoundary from "../common/PanelErrorBoundary";
 import { formatFileSize } from "../../utils/formatUtils";
-
-const panelComponents = {
-  "asset-folders": (props: IDockviewPanelProps) => (
-    <PanelErrorBoundary>
-      <AssetFoldersPanel {...props} />
-    </PanelErrorBoundary>
-  ),
-  "asset-files": (props: IDockviewPanelProps) => (
-    <PanelErrorBoundary>
-      <AssetFilesPanel {...props} />
-    </PanelErrorBoundary>
-  )
-};
 
 const styles = assetGridStyles;
 const FOLDERS_PANEL_HEIGHT = 200;
@@ -291,68 +267,14 @@ const AssetGrid: React.FC<AssetGridProps> = ({
     }
   }
 
-  const dockviewApiRef = useRef<DockviewApi | null>(null);
+  // Folders never appear on a phone: the pane leaves no room for the grid and
+  // there is no control to dismiss it.
+  const showFolders = !isMobile && effectiveFoldersVisible;
 
-  const addFoldersPanel = useCallback(
-    (api: DockviewApi) => {
-      const foldersPanel: IDockviewPanelWithGroup = api.addPanel({
-        id: "asset-folders",
-        component: "asset-folders",
-        title: "Folders",
-        params: { isFullscreenAssets: Boolean(isFullscreenAssets) },
-        position: api.getPanel("asset-files")
-          ? {
-              referencePanel: "asset-files",
-              direction: foldersDocked ? "left" : "above"
-            }
-          : undefined,
-        ...(foldersDocked
-          ? { initialWidth: initialFoldersPanelWidth }
-          : { initialHeight: FOLDERS_PANEL_HEIGHT })
-      });
-
-      const groupApi = foldersPanel?.group?.api ?? foldersPanel?.group;
-      if (groupApi && typeof groupApi.setSize === "function") {
-        if (foldersDocked) {
-          groupApi.setSize({ width: initialFoldersPanelWidth });
-        } else {
-          groupApi.setSize({ height: FOLDERS_PANEL_HEIGHT });
-        }
-      }
-    },
-    [isFullscreenAssets, foldersDocked, initialFoldersPanelWidth]
-  );
-
-  useEffect(() => {
-    const api = dockviewApiRef.current;
-    if (!api || isMobile) return;
-    const existing = api.getPanel("asset-folders");
-    if (effectiveFoldersVisible && !existing) {
-      addFoldersPanel(api);
-    } else if (!effectiveFoldersVisible && existing) {
-      api.removePanel(existing);
-    }
-  }, [effectiveFoldersVisible, isMobile, addFoldersPanel]);
-
-  const onReady = useCallback(
-    (event: DockviewReadyEvent) => {
-      const { api } = event;
-      dockviewApiRef.current = api;
-
-      // The files panel is always present; the folders panel is added next to
-      // it (and kept in sync) by addFoldersPanel / the effect above.
-      api.addPanel({
-        id: "asset-files",
-        component: "asset-files",
-        title: "Files",
-        params: { isHorizontal, itemSpacing }
-      });
-
-      if (!isMobile && effectiveFoldersVisible) {
-        addFoldersPanel(api);
-      }
-    },
-    [isHorizontal, itemSpacing, isMobile, effectiveFoldersVisible, addFoldersPanel]
+  const filesPanel = (
+    <PanelErrorBoundary>
+      <AssetFilesPanel isHorizontal={isHorizontal} itemSpacing={itemSpacing} />
+    </PanelErrorBoundary>
   );
 
   // Stale/cached assets may still render while a refresh fails. Empty-folder
@@ -411,19 +333,26 @@ const AssetGrid: React.FC<AssetGridProps> = ({
       )}
       {/* Drag-and-drop enabled region; upload button now in toolbar */}
       <Dropzone onDrop={uploadFiles}>
-        <div
-          className="dropzone"
-          style={{ height: "100%" }}
-          onDragOver={(e) => {
-            // Ensure dropping over Dockview children is allowed
-            e.preventDefault();
-          }}
-        >
-          <DockviewReact
-            components={panelComponents}
-            onReady={onReady}
-            className="dockview-container"
-          />
+        <div className="dropzone" style={{ height: "100%" }}>
+          {showFolders ? (
+            <AssetGridSplit
+              orientation={foldersDocked ? "horizontal" : "vertical"}
+              initialSize={
+                foldersDocked ? initialFoldersPanelWidth : FOLDERS_PANEL_HEIGHT
+              }
+              separatorLabel="Resize the folder pane"
+              first={
+                <PanelErrorBoundary>
+                  <AssetFoldersPanel
+                    isFullscreenAssets={Boolean(isFullscreenAssets)}
+                  />
+                </PanelErrorBoundary>
+              }
+              second={filesPanel}
+            />
+          ) : (
+            filesPanel
+          )}
         </div>
       </Dropzone>
       <Divider />

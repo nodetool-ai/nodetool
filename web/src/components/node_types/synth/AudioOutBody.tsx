@@ -180,7 +180,7 @@ const AudioOutBodyInner: React.FC<AudioOutBodyProps> = ({
   );
 };
 
-export const AUDIO_OUT_NODE_TYPE = "nodetool.audio.realtime.AudioOutput";
+export { AUDIO_OUT_NODE_TYPE } from "../editing/bespokeNodeTypes";
 export const AudioOutBody = memo(AudioOutBodyInner);
 AudioOutBody.displayName = "AudioOutBody";
 export default AudioOutBody;

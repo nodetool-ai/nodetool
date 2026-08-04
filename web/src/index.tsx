@@ -7,7 +7,10 @@ import type {} from "./window";
 
 // Early polyfills / globals must come before other imports.
 import "./cryptoUUIDPolyfill";
-import "./prismGlobal";
+// `prismGlobal` (Prism core + 13 grammars) is NOT imported here: nothing on the
+// boot path highlights code. Every consumer — CodeBlock, CodeHighlightPlugin,
+// JSONRenderer, ToolCallRenderer — imports Prism and the grammars it needs
+// itself, and all of them are behind a lazy chunk.
 // Auto-reload when a lazy chunk 404s after a deploy (stale-asset recovery).
 import "./lib/preloadErrorReload";
 
@@ -42,8 +45,6 @@ import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
 import "./styles/mobile.css";
-import "dockview/dist/styles/dockview.css";
-import "./styles/dockview.css";
 import "./lib/dragdrop/dragdrop.css";
 import { queryClient } from "./queryClient";
 import { TRPCProvider } from "./trpc/Provider";
@@ -79,7 +80,12 @@ import MobileClassProvider from "./components/MobileClassProvider";
 import { registerAppRouter } from "./lib/appNavigation";
 import { SkipLinks } from "./components/ui_primitives";
 
-import ChatComposerLayout from "./components/chat/containers/ChatComposerLayout";
+// Layout route for /chat. Lazy like every other route element — imported
+// eagerly it pulled the persistent composer (and the chat input tree behind it)
+// into the entry chunk for users who never open chat.
+const ChatComposerLayout = React.lazy(
+  () => import("./components/chat/containers/ChatComposerLayout")
+);
 
 // Lazy-loaded route components for code splitting
 const GlobalChat = React.lazy(

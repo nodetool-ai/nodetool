@@ -5,16 +5,22 @@ import { paletteLight } from "./paletteLight";
 import { editorControlsComponents } from "./components/editorControls";
 import { CONTROL } from "../ui_primitives";
 
-import "@fontsource/inter";
-import "@fontsource/inter/200.css";
-import "@fontsource/inter/300.css";
-import "@fontsource/inter/400.css";
-import "@fontsource/inter/600.css";
+// Latin subsets only. The unsuffixed `@fontsource/<font>/<weight>.css` files
+// declare every subset the family ships (cyrillic, cyrillic-ext, greek,
+// greek-ext, vietnamese, latin, latin-ext) — 7 @font-face rules per weight,
+// 56 across the two families, in the render-blocking entry stylesheet. The UI
+// is latin, so the other subsets only ever cost parse time.
+// (`@fontsource/inter` with no path is an alias for its 400 weight; importing
+// both duplicated every rule.)
+import "@fontsource/inter/latin-200.css";
+import "@fontsource/inter/latin-300.css";
+import "@fontsource/inter/latin-400.css";
+import "@fontsource/inter/latin-600.css";
 
-import "@fontsource/jetbrains-mono/200.css";
-import "@fontsource/jetbrains-mono/300.css";
-import "@fontsource/jetbrains-mono/400.css";
-import "@fontsource/jetbrains-mono/600.css";
+import "@fontsource/jetbrains-mono/latin-200.css";
+import "@fontsource/jetbrains-mono/latin-300.css";
+import "@fontsource/jetbrains-mono/latin-400.css";
+import "@fontsource/jetbrains-mono/latin-600.css";
 
 // Theme augmentation moved to a single global file `theme.d.ts` to avoid duplication
 

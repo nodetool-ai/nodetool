@@ -116,14 +116,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-export const GENERATOR_NODE_TYPES = [
-  "lib.image.draw.LinearGradient",
-  "lib.image.draw.RadialGradient",
-  "lib.image.draw.AngularGradient",
-  "lib.image.draw.DiamondGradient",
-  "lib.image.draw.Checkerboard",
-  "lib.image.draw.GaussianNoise"
-] as const;
+export { GENERATOR_NODE_TYPES } from "./bespokeNodeTypes";
 
 export interface GeneratorBodyProps {
   id: string;

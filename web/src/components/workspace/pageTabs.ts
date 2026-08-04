@@ -2,6 +2,7 @@
 // route. The title is looked up here so the tab bar and the logo menu stay in
 // sync.
 export type PageTabKey =
+  | "assets"
   | "tutorials"
   | "examples"
   | "costs"
@@ -13,6 +14,7 @@ export type PageTabKey =
   | "settings";
 
 export const PAGE_TAB_TITLES: Record<PageTabKey, string> = {
+  assets: "Assets",
   tutorials: "Tutorials",
   examples: "Examples",
   costs: "Costs",

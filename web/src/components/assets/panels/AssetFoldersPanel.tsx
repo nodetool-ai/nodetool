@@ -1,18 +1,16 @@
 import React from "react";
-import { IDockviewPanelProps } from "dockview";
 import { useTheme } from "@mui/material/styles";
 import FolderList from "../FolderList";
 import WorkflowTree from "../WorkflowTree";
 
-export interface AssetFoldersPanelParams {
+export interface AssetFoldersPanelProps {
   isFullscreenAssets?: boolean;
 }
 
-const AssetFoldersPanel: React.FC<
-  Partial<IDockviewPanelProps<AssetFoldersPanelParams>>
-> = (props) => {
+const AssetFoldersPanel: React.FC<AssetFoldersPanelProps> = ({
+  isFullscreenAssets = false
+}) => {
   const theme = useTheme();
-  const isFullscreenAssets = props.params?.isFullscreenAssets ?? false;
   return (
     <div
       style={{
