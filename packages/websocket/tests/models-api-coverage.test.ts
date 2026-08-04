@@ -9,7 +9,30 @@
  * outbound fetch (check_servers is left off), and production paths that would
  * import HF helpers return early with []/false.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+// Keep the local-scope routes hermetic: on a developer machine the real
+// readCachedHfModels scans a (potentially huge) HF cache and blows the test
+// timeout; deleteCachedHfModel would touch the real cache.
+vi.mock("@nodetool-ai/huggingface", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/huggingface")>();
+  return {
+    ...actual,
+    readCachedHfModels: vi.fn().mockResolvedValue([]),
+    deleteCachedHfModel: vi.fn().mockResolvedValue(true)
+  };
+});
+
+// No provider is "configured" in tests: the real secret store on a developer
+// machine holds API keys, which turns GET /all into live provider calls.
+vi.mock("@nodetool-ai/models", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/models")>();
+  return {
+    ...actual,
+    getSecret: vi.fn().mockResolvedValue(null)
+  };
+});
+
 import {
   handleModelsApiRequest,
   toUnifiedModelsFromLanguage,

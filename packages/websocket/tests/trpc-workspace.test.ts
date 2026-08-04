@@ -41,6 +41,7 @@ vi.mock("node:fs", async (orig) => {
 import { Workspace } from "@nodetool-ai/models";
 import { stat, readdir, access } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -331,11 +332,13 @@ describe("workspace router", () => {
         "sub"
       ]);
       const mtime = new Date("2026-04-01T12:00:00Z");
+      // basename() instead of endsWith("/...") — the router joins paths with
+      // the platform separator, which is a backslash on Windows.
       (stat as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) =>
           Promise.resolve({
-            isDirectory: () => p.endsWith("/sub"),
-            size: p.endsWith("/file.txt") ? 123 : 0,
+            isDirectory: () => basename(p) === "sub",
+            size: basename(p) === "file.txt" ? 123 : 0,
             mtime
           })
       );

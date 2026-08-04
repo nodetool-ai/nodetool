@@ -25,6 +25,11 @@ vi.mock("node:os", async (orig) => {
 
 import { existsSync, readdirSync } from "node:fs";
 import { platform } from "node:os";
+import { join } from "node:path";
+
+// The router builds the user font dir with path.join (backslashes on
+// Windows); mock and match it the same way.
+const USER_FONTS = join("/home/user", "Library", "Fonts");
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -62,14 +67,14 @@ describe("fonts router", () => {
       (platform as ReturnType<typeof vi.fn>).mockReturnValue("darwin");
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) =>
-          p === "/Library/Fonts" || p === "/home/user/Library/Fonts"
+          p === "/Library/Fonts" || p === USER_FONTS
       );
       (readdirSync as ReturnType<typeof vi.fn>).mockImplementation(
         (dir: string) => {
           if (dir === "/Library/Fonts") {
             return ["Arial.ttf", "Helvetica.otf", "Readme.txt"];
           }
-          if (dir === "/home/user/Library/Fonts") {
+          if (dir === USER_FONTS) {
             return ["CustomFont.ttf"];
           }
           return [];

@@ -7,6 +7,19 @@
  * /ws/download socket sink.
  */
 import { describe, it, expect, vi } from "vitest";
+
+// Keep the local-scope routes hermetic: on a developer machine the real
+// readCachedHfModels scans a (potentially huge) HF cache and blows the test
+// timeout; deleteCachedHfModel would touch the real cache.
+vi.mock("@nodetool-ai/huggingface", async (orig) => {
+  const actual = await orig<typeof import("@nodetool-ai/huggingface")>();
+  return {
+    ...actual,
+    readCachedHfModels: vi.fn().mockResolvedValue([]),
+    deleteCachedHfModel: vi.fn().mockResolvedValue(true)
+  };
+});
+
 import {
   handleModelsApiRequest,
   relayWorkerDownload,

@@ -5,6 +5,11 @@
  * so every assistant-generated image 404'd on re-serve.
  */
 import { describe, it, expect, vi } from "vitest";
+import { pathToFileURL } from "node:url";
+
+// pathToFileURL prefixes the current drive on Windows; build expectations
+// the same way the source does.
+const fileUri = (key: string) => pathToFileURL(`/var/assets/${key}`).href;
 
 const fsMocks = vi.hoisted(() => ({ existing: new Set<string>() }));
 
@@ -66,7 +71,7 @@ describe("resolveContentForProvider with a known owner", () => {
       [{ type: "image", image: { asset_id: "abc", mimeType: "image/png" } }],
       "user-1"
     ) as Block[];
-    expect(out[0].image.uri).toBe("file:///var/assets/user-1/abc.png");
+    expect(out[0].image.uri).toBe(fileUri("user-1/abc.png"));
   });
 
   it("falls back to the flat legacy path for pre-migration objects", () => {
@@ -76,6 +81,6 @@ describe("resolveContentForProvider with a known owner", () => {
       [{ type: "image", image: { asset_id: "abc", mimeType: "image/png" } }],
       "user-1"
     ) as Block[];
-    expect(out[0].image.uri).toBe("file:///var/assets/abc.png");
+    expect(out[0].image.uri).toBe(fileUri("abc.png"));
   });
 });
