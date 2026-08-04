@@ -35,6 +35,7 @@ import {
 import { AnchorWaiter } from "./anchors.js";
 import { registerFixtureNodes } from "./fixture-nodes.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
+import { stripRelayOnlyFields } from "./relay-fields.js";
 import type { RunDriver } from "./types.js";
 import { maybeFrontWithProxy, type WsProxyFrontEnd } from "../faults/ws-proxy.js";
 
@@ -44,53 +45,6 @@ const TERMINAL_JOB_STATUSES = new Set([
   "cancelled",
   "suspended"
 ]);
-
-/**
- * Message `type`s the ws-server relay backfills `job_id`/`workflow_id` onto
- * uniformly (its "outbound spread") that the kernel's own emissions for
- * these types (`runner.ts`/`actor.ts`) never carry at all. Scoped per-type
- * (not a blanket drop) because `job_update` DOES set both, and `edge_update`
- * DOES set `job_id`, on the raw kernel stream too — dropping either there
- * would hide a real regression instead of a harmless relay addition. Kept as
- * a driver-local rule (not a `normalize.ts` field list) because
- * `normalize.ts`'s generic per-key visitor has other callers — including its
- * own unit tests — that legitimately expect `job_id`/`workflow_id`
- * preserved on a `node_update`. This driver is the one place that actually
- * knows which of these are relay-only enrichment on ITS wire protocol.
- */
-const RELAY_ONLY_JOB_ID_TYPES = new Set([
-  "node_update",
-  "generation_complete",
-  "output_update",
-  // `llm_call` (task D1, journey 8 — the first journey to run a real LLM
-  // node): the relay backfills `job_id`/`workflow_id` here the same way it
-  // does for `node_update`; the kernel's own `llm_call` emission
-  // (`BaseProvider`'s tracing helper) never carries either.
-  "llm_call"
-]);
-const RELAY_ONLY_WORKFLOW_ID_TYPES = new Set([
-  "node_update",
-  "generation_complete",
-  "output_update",
-  "edge_update",
-  "llm_call"
-]);
-
-/** Strips fields this driver's relay adds that the kernel driver's raw
- * stream never has, so the two are comparable frame-for-frame (see
- * {@link RELAY_ONLY_JOB_ID_TYPES}/{@link RELAY_ONLY_WORKFLOW_ID_TYPES}).
- * `generation_complete.index` is the same kind of addition — an
- * arrival-order stamp (`unified-websocket-runner.ts`'s
- * `generationIndexByNode`) the kernel's own `generation_complete` emission
- * never sets. */
-function stripRelayOnlyFields(message: Record<string, unknown>): Record<string, unknown> {
-  const type = String(message["type"]);
-  const rest = { ...message };
-  if (RELAY_ONLY_JOB_ID_TYPES.has(type)) delete rest["job_id"];
-  if (RELAY_ONLY_WORKFLOW_ID_TYPES.has(type)) delete rest["workflow_id"];
-  if (type === "generation_complete") delete rest["index"];
-  return rest;
-}
 
 /** How long to let the server's post-disconnect cleanup settle before
  * recording the slot counters as final. Cleanup is asynchronous (the runner
