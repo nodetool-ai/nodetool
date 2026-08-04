@@ -210,6 +210,14 @@ export interface GlobalChatState extends ChatPiSlice {
   messageCursors: Record<string, string | null>; // threadId -> next cursor
   isLoadingMessages: boolean;
 
+  /**
+   * Per-thread `chat_seq` high-water marks from resilient chat turns. On
+   * reconnect, threads with a generation in flight send `resume_chat` with
+   * this cursor and the server replays only what was missed. In-memory only:
+   * after a full page reload the cache is rebuilt from REST history instead.
+   */
+  chatReplayCursors: Record<string, number>;
+
   // Long-term memory opt-in
   /**
    * When true, the server resolves a per-user, per-thread `LongTermMemory`
@@ -492,6 +500,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
       messageCache: {},
       messageCursors: {},
       isLoadingMessages: false,
+      chatReplayCursors: {},
 
       memoryEnabled: false,
       setMemoryEnabled: (enabled: boolean) => set({ memoryEnabled: enabled }),
@@ -704,6 +713,39 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         eventUnsubscribes.push(
           globalWebSocketManager.subscribeEvent("open", sendManifest)
+        );
+
+        // After a reconnect, ask the server to replay what each in-flight
+        // generation emitted while the socket was down. The server keeps the
+        // agent turn running across the disconnect and buffers its frames;
+        // `resume_chat` reattaches this connection and replays from the
+        // thread's last seen `chat_seq`. Registered after sendManifest so the
+        // tools manifest lands before any replayed `tool_call` frames.
+        const resumeInFlightThreads = () => {
+          const s = get();
+          for (const [threadId, runtime] of Object.entries(s.threadRuntime)) {
+            if (
+              runtime.status !== "loading" &&
+              runtime.status !== "streaming" &&
+              runtime.status !== "stopping"
+            ) {
+              continue;
+            }
+            void globalWebSocketManager
+              .send({
+                command: "resume_chat",
+                data: {
+                  thread_id: threadId,
+                  last_seq: s.chatReplayCursors[threadId] ?? 0
+                }
+              })
+              .catch((e) =>
+                console.error("Failed to send resume_chat:", threadId, e)
+              );
+          }
+        };
+        eventUnsubscribes.push(
+          globalWebSocketManager.subscribeEvent("open", resumeInFlightThreads)
         );
 
         if (globalWebSocketManager.isConnectionOpen()) {
@@ -1194,6 +1236,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
             threadUnsubscribe?.();
             const { [threadId]: _deletedTodos, ...remainingTodos } =
               state.todosByThread;
+            const { [threadId]: _deletedReplayCursor, ...remainingReplayCursors } =
+              state.chatReplayCursors;
             const { [threadId]: deletedRuntime, ...remainingRuntime } =
               state.threadRuntime;
             if (deletedRuntime?.sendMessageTimeoutId != null) {
@@ -1206,7 +1250,8 @@ const useGlobalChatStore = create<GlobalChatState>()(
               messageCursors: remainingCursors,
               wsThreadSubscriptions: remainingSubscriptions,
               todosByThread: remainingTodos,
-              threadRuntime: remainingRuntime
+              threadRuntime: remainingRuntime,
+              chatReplayCursors: remainingReplayCursors
             };
 
             // If deleting current thread, switch to another or create new

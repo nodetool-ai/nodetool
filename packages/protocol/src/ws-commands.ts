@@ -46,6 +46,7 @@ export const UNIFIED_COMMAND_TYPES = [
   "stream_input",
   "end_input_stream",
   "chat_message",
+  "resume_chat",
   "inference",
   "stop",
   "list_workflows",
@@ -170,6 +171,14 @@ export const chatMessageDataSchema = z
   })
   .passthrough();
 
+export const resumeChatDataSchema = z
+  .object({
+    thread_id: z.string().optional(),
+    /** Highest `chat_seq` the client has already received for this thread. */
+    last_seq: z.number().optional()
+  })
+  .passthrough();
+
 export const stopDataSchema = z
   .object({
     job_id: z.string().optional(),
@@ -236,6 +245,7 @@ export const commandDataSchemas: Record<UnifiedCommandType, z.ZodTypeAny> = {
   stream_input: looseDataSchema,
   end_input_stream: looseDataSchema,
   chat_message: looseDataSchema,
+  resume_chat: resumeChatDataSchema,
   inference: looseDataSchema,
   stop: looseDataSchema,
   list_workflows: looseDataSchema,
@@ -395,10 +405,33 @@ export const resourceChangeMessageOutSchema = z
   })
   .passthrough();
 
+/**
+ * Reply to a `resume_chat` command. Sent before any replayed frames.
+ *
+ * `status` reports what the server holds for the thread's latest turn:
+ * `"running"` (turn still executing; replay is followed by live frames),
+ * `"finished"` (turn completed while the client was away; replay is the
+ * whole tail), or `"unknown"` (nothing to replay — either no turn ran, or
+ * the retention window elapsed; the client should refetch thread history).
+ * `replay_incomplete` is true when the requested `last_seq` predates what
+ * the bounded buffer still holds.
+ */
+export const chatResumedMessageOutSchema = z
+  .object({
+    type: z.literal("chat_resumed"),
+    thread_id: z.string(),
+    status: z.enum(["running", "finished", "unknown"]),
+    last_seq: z.number(),
+    replay_count: z.number(),
+    replay_incomplete: z.boolean()
+  })
+  .passthrough();
+
 /** Non-`ProcessingMessage` outbound frame schemas, keyed by `type`. */
 export const outboundControlMessageSchemas = {
   pong: pongMessageOutSchema,
   rpc_response: rpcResponseMessageOutSchema,
   system_stats: systemStatsMessageOutSchema,
-  resource_change: resourceChangeMessageOutSchema
+  resource_change: resourceChangeMessageOutSchema,
+  chat_resumed: chatResumedMessageOutSchema
 } as const;

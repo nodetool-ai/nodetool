@@ -657,6 +657,7 @@ export type UnifiedCommandType =
   | "stream_input"
   | "end_input_stream"
   | "chat_message"
+  | "resume_chat"
   | "inference"
   | "stop"
   | "list_workflows"

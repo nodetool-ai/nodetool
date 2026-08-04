@@ -38,6 +38,11 @@ import {
 } from "@nodetool-ai/execution";
 import { createRunSupervisor } from "./run-supervisor.js";
 import {
+  chatTurnRegistry,
+  type ChatTurnExecutionHooks,
+  type ChatTurnSession
+} from "./chat-turn-registry.js";
+import {
   Application,
   Asset,
   ImageDocument,
@@ -1806,6 +1811,21 @@ class ToolBridge {
       }
     }
   }
+
+  /**
+   * Cancel every pending call except those scoped to `scope`. Used on
+   * disconnect when a detached chat turn stays alive: its client tool calls
+   * survive (the replay re-delivers the `tool_call` frames, so a reconnecting
+   * client can still answer them) while everything else is rejected.
+   */
+  cancelAllExcept(scope: string): void {
+    const error = new Error("All pending tool calls cancelled");
+    for (const [id, waiter] of this.waiters) {
+      if (waiter.scope === scope) continue;
+      waiter.reject(error);
+      this.waiters.delete(id);
+    }
+  }
 }
 
 export interface UnifiedWebSocketRunnerOptions {
@@ -1937,6 +1957,30 @@ export class UnifiedWebSocketRunner {
    */
   private chatSessionAllow = new Map<string, Set<string>>();
   private observerRegistered = false;
+  /**
+   * The detachable session for the chat turn THIS connection is executing.
+   * While set (and running), every outbound frame carrying its thread_id is
+   * routed through the session: stamped with `chat_seq`, buffered for replay,
+   * and delivered to whichever connection is currently attached — which stops
+   * being this one if the socket drops mid-turn.
+   */
+  private chatTurnSession: ChatTurnSession | null = null;
+  /**
+   * Turns still executing on a previous connection's runner that THIS
+   * connection reattached to via `resume_chat`, keyed by thread id. Client
+   * frames for them (`tool_result`, approvals, `stop`) are forwarded to the
+   * executing runner through the session's hooks.
+   */
+  private adoptedSessions = new Map<string, ChatTurnSession>();
+  /**
+   * This connection's identity as a chat-turn delivery target. A stable
+   * object so `detach(target)` only clears the session's attachment when it
+   * still points at THIS connection — never a newer one that reattached.
+   */
+  private readonly chatDeliveryTarget = {
+    deliver: (message: Record<string, unknown>): Promise<void> =>
+      this.sendToSocket(message)
+  };
 
   private logError(context: string, error: unknown): void {
     log.error(context, formatSanitizedError(error));
@@ -1959,6 +2003,24 @@ export class UnifiedWebSocketRunner {
       seq: this.chatRequestSeq,
       signal: this.chatAbort.signal,
       controller: this.chatAbort
+    };
+  }
+
+  /**
+   * Hooks a resilient chat-turn session carries so a LATER connection that
+   * reattaches can route the client's `tool_result` / approvals / `stop`
+   * back to this runner — the one whose bridges own the pending waiters.
+   */
+  private buildChatTurnHooks(): ChatTurnExecutionHooks {
+    return {
+      resolveToolResult: (toolCallId, payload) =>
+        this.toolBridge.resolveResult(toolCallId, payload),
+      resolveApproval: (approvalId, payload) =>
+        this.approvalBridge.resolveResult(approvalId, payload),
+      cancelPendingCalls: (threadId) => {
+        this.toolBridge.cancelScope(threadId);
+        this.approvalBridge.cancelScope(threadId);
+      }
     };
   }
 
@@ -2115,13 +2177,31 @@ export class UnifiedWebSocketRunner {
     this.stopHeartbeat();
     this.stopStatsBroadcast();
     this.unregisterObserver();
-    this.toolBridge.cancelAll();
-    this.approvalBridge.cancelAll();
 
-    // Dropping the reference does not stop the work — abort the turn or a
-    // dropped socket leaves an inference request (or a Claude SDK subprocess)
-    // running with nobody left to receive its output.
-    this.cancelChatTurn();
+    // A resilient chat turn survives the socket: detach it (frames keep
+    // buffering in the session for replay) instead of aborting. The session's
+    // detach-grace timer bounds how long it may run unattended. Its pending
+    // client tool calls stay alive too — replay re-delivers the `tool_call`
+    // frames, so a reconnecting client can still answer them. Everything
+    // else (a sessionless `inference` turn, other pending calls) is cancelled
+    // as before: nobody is left to receive its output.
+    const detachedThreadId =
+      this.chatTurnSession?.status === "running"
+        ? this.chatTurnSession.threadId
+        : null;
+    if (detachedThreadId) {
+      this.chatTurnSession?.detach(this.chatDeliveryTarget);
+      this.toolBridge.cancelAllExcept(detachedThreadId);
+      this.approvalBridge.cancelAllExcept(detachedThreadId);
+    } else {
+      this.toolBridge.cancelAll();
+      this.approvalBridge.cancelAll();
+      this.cancelChatTurn();
+    }
+    for (const session of this.adoptedSessions.values()) {
+      session.detach(this.chatDeliveryTarget);
+    }
+    this.adoptedSessions.clear();
     this.currentTask = null;
     for (const [jobId, job] of this.activeJobs) {
       if (job.session) {
@@ -2188,6 +2268,24 @@ export class UnifiedWebSocketRunner {
   }
 
   async sendMessage(message: Record<string, unknown>): Promise<void> {
+    // Frames belonging to this connection's resilient chat turn go through the
+    // session: seq-stamped, buffered for replay, delivered to the attached
+    // connection (possibly a later one than this).
+    const session = this.chatTurnSession;
+    if (
+      session &&
+      session.status === "running" &&
+      typeof message.thread_id === "string" &&
+      message.thread_id === session.threadId
+    ) {
+      session.emit(message);
+      return;
+    }
+    await this.sendToSocket(message);
+  }
+
+  /** Raw socket delivery — no chat-turn interception. */
+  async sendToSocket(message: Record<string, unknown>): Promise<void> {
     if (!this.websocket) return;
     if (
       this.websocket.clientState === "disconnected" ||
@@ -7624,19 +7722,89 @@ export class UnifiedWebSocketRunner {
           return { error: "thread_id is required for chat_message command" };
         }
         const { seq, signal, controller } = this.beginChatTurn();
-        this.currentTask = this.handleChatMessage(data, seq, signal).finally(
-          () => this.endChatTurn(controller)
+        // A resilient session decouples the turn from this socket: frames are
+        // seq-stamped and buffered so a client that disconnects mid-turn can
+        // replay what it missed. Opening supersedes (aborts) any prior turn
+        // still running for this thread — including one detached from a dead
+        // connection.
+        const session = chatTurnRegistry.open(
+          this.userId ?? "1",
+          threadId,
+          controller,
+          this.buildChatTurnHooks()
         );
-        void this.currentTask.catch(async (err) => {
-          this.logError("chat_message processing failed", err);
-          await this.sendMessage({
-            type: "error",
-            message: err instanceof Error ? err.message : String(err)
+        session.attach(this.chatDeliveryTarget, session.lastSeq);
+        this.adoptedSessions.delete(threadId);
+        this.chatTurnSession = session;
+        // Error frames must be sent (and buffered) before the session
+        // finishes, so the catch runs inside the chain the finally closes.
+        this.currentTask = this.handleChatMessage(data, seq, signal)
+          .catch(async (err) => {
+            this.logError("chat_message processing failed", err);
+            await this.sendMessage({
+              type: "error",
+              message: err instanceof Error ? err.message : String(err),
+              thread_id: threadId
+            });
+          })
+          .finally(() => {
+            this.endChatTurn(controller);
+            session.finish();
+            if (this.chatTurnSession === session) this.chatTurnSession = null;
           });
-        });
         return {
           message: "Chat message processing started",
           thread_id: threadId
+        };
+      }
+      case "resume_chat": {
+        const threadId =
+          typeof data.thread_id === "string" ? data.thread_id : "";
+        if (!threadId) {
+          return { error: "thread_id is required for resume_chat command" };
+        }
+        const lastSeq =
+          typeof data.last_seq === "number" && Number.isFinite(data.last_seq)
+            ? data.last_seq
+            : 0;
+        const session = chatTurnRegistry.get(this.userId ?? "1", threadId);
+        if (!session) {
+          // Nothing to replay: no turn ran here, or retention elapsed. The
+          // persisted thread history over REST is the client's fallback.
+          await this.sendToSocket({
+            type: "chat_resumed",
+            thread_id: threadId,
+            status: "unknown",
+            last_seq: 0,
+            replay_count: 0,
+            replay_incomplete: false
+          });
+          return { message: "No chat turn to resume", thread_id: threadId };
+        }
+        const { replay, incomplete } = session.attach(
+          this.chatDeliveryTarget,
+          lastSeq
+        );
+        if (session.status === "running" && this.chatTurnSession !== session) {
+          this.adoptedSessions.set(threadId, session);
+        }
+        // Header first, then the missed tail; live frames queue behind them
+        // on the session's ordered delivery chain.
+        await session.deliverReplay(this.chatDeliveryTarget, [
+          {
+            type: "chat_resumed",
+            thread_id: threadId,
+            status: session.status,
+            last_seq: session.lastSeq,
+            replay_count: replay.length,
+            replay_incomplete: incomplete
+          },
+          ...replay
+        ]);
+        return {
+          message: "Chat resumed",
+          thread_id: threadId,
+          replay_count: replay.length
         };
       }
       case "inference": {
@@ -7674,6 +7842,14 @@ export class UnifiedWebSocketRunner {
         if (stopScope) {
           this.toolBridge.cancelScope(stopScope);
           this.approvalBridge.cancelScope(stopScope);
+        }
+        // The thread's turn may be executing on a previous connection's
+        // runner (detached or adopted after a reconnect) — abort it there.
+        if (threadId) {
+          const registered = chatTurnRegistry.get(this.userId ?? "1", threadId);
+          if (registered && registered.status === "running") {
+            registered.abort();
+          }
         }
         await this.sendMessage({
           type: "generation_stopped",
@@ -8033,6 +8209,11 @@ export class UnifiedWebSocketRunner {
           typeof data.tool_call_id === "string" ? data.tool_call_id : null;
         if (toolCallId) {
           this.toolBridge.resolveResult(toolCallId, data);
+          // The waiter may live on the runner executing an adopted turn.
+          // resolveResult no-ops on unknown ids, so forwarding is safe.
+          for (const session of this.adoptedSessions.values()) {
+            session.hooks.resolveToolResult(toolCallId, data);
+          }
         }
         continue;
       }
@@ -8042,6 +8223,9 @@ export class UnifiedWebSocketRunner {
           typeof data.approval_id === "string" ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);
+          for (const session of this.adoptedSessions.values()) {
+            session.hooks.resolveApproval(approvalId, data);
+          }
         }
         continue;
       }
@@ -8051,6 +8235,9 @@ export class UnifiedWebSocketRunner {
           typeof data.approval_id === "string" ? data.approval_id : null;
         if (approvalId) {
           this.approvalBridge.resolveResult(approvalId, data);
+          for (const session of this.adoptedSessions.values()) {
+            session.hooks.resolveApproval(approvalId, data);
+          }
         }
         continue;
       }
