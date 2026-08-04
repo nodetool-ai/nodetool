@@ -38,6 +38,7 @@ export {
   teamTasks,
   appSettings,
   timelineSequences,
+  timelineSequenceVersions,
   imageDocuments,
   workerProfiles,
   workerInstances,
@@ -142,6 +143,9 @@ export type {
   TimelineDocument,
   TimelineSequenceMutationResult
 } from "./timeline-sequence.js";
+
+export { TimelineSequenceVersion } from "./timeline-sequence-version.js";
+export type { TimelineSequenceSaveType } from "./timeline-sequence-version.js";
 
 export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
 export {
