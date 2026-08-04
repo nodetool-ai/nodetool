@@ -38,6 +38,7 @@ import {
   Asset
 } from "@nodetool-ai/models";
 import {
+  collectModelSelectionIssues,
   hydrateGraphNodeFlags,
   loadPythonPackageMetadata,
   type NodeMetadata,
@@ -56,6 +57,8 @@ import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   createPythonBridge,
+  listOfflineModelIds,
+  listRegisteredProviderIds,
   logPythonWorkerStderr,
   safeFetch,
   type NodeExecutor,
@@ -859,6 +862,29 @@ async function updateWorkflow(
   })) as Workflow;
 }
 
+/**
+ * Provider and model ids a run cannot honour, checked before the job exists.
+ *
+ * A model property naming an unregistered provider — or an id that provider
+ * does not offer — fails only when its node runs, by which time the upstream
+ * half of the graph has already executed and been paid for. The ids are in the
+ * saved properties, so the run can be refused in microseconds instead. Both
+ * checks fail toward silence: a catalog that cannot be enumerated offline
+ * reports nothing rather than guessing an id is wrong.
+ */
+function modelSelectionErrors(graph: { nodes?: unknown[] }): string[] {
+  return collectModelSelectionIssues(
+    { nodes: (graph.nodes ?? []) as never[] },
+    {
+      listProviderIds: () => listRegisteredProviderIds(),
+      listModelIds: (provider, modelType) =>
+        listOfflineModelIds(provider, modelType)
+    }
+  )
+    .filter((issue) => issue.severity === "error")
+    .map((issue) => `Node "${issue.nodeId}" (${issue.nodeType}): ${issue.message}`);
+}
+
 export async function handleWorkflowRun(
   request: Request,
   workflowId: string,
@@ -906,6 +932,14 @@ export async function handleWorkflowRun(
   // the legacy `type`. Hand-rolling it here drifted from the CLI — a graph
   // with a Comment node ran there and failed here with "Unknown node type".
   const runnableGraph = normalizeGraph(workflow.getGraph());
+
+  const badModels = modelSelectionErrors(runnableGraph);
+  if (badModels.length > 0) {
+    return errorResponse(
+      400,
+      `Workflow selects providers or models this runtime cannot honour:\n${badModels.join("\n")}`
+    );
+  }
 
   const runtime = await getWorkflowRuntimeEnvironment(options);
   const hasPythonNode = runnableGraph.nodes.some((node) => {

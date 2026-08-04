@@ -71,9 +71,9 @@ export interface GraphValidationIssue {
    * Stable category: "unknown_node" | "missing_id" | "duplicate_id" |
    * "property" | "dangling_edge" | "unknown_handle" | "missing_handle" |
    * "cycle" | "type_mismatch" | "fan_in" | "untyped_dynamic_slot" |
-   * "dynamic_type_mismatch" | "unknown_provider" | "slot_type_alias", plus the
-   * `code_*` categories a Code node body produces (see
-   * {@link validateCodeNodeBody}).
+   * "dynamic_type_mismatch" | "unknown_provider" | "missing_provider" |
+   * "unknown_model" | "slot_type_alias", plus the `code_*` categories a Code
+   * node body produces (see {@link validateCodeNodeBody}).
    *
    * - "missing_id" (error): a node with no id — unaddressable by any edge.
    * - "missing_handle" (error): an edge whose endpoints both exist but which
@@ -86,6 +86,9 @@ export interface GraphValidationIssue {
    *   the warnings-as-errors ratchet.
    * - "dynamic_type_mismatch" (warning): an inline `dynamic_properties` value
    *   does not match its slot's declared type.
+   * - "missing_provider" (error): a model reference carries an id but no
+   *   provider, so nothing can route it. See
+   *   {@link collectModelSelectionIssues} for this and its two siblings.
    * - "type_mismatch": a warning for declared properties (best-effort), an
    *   error when the target is a *declared* dynamic slot whose type the source
    *   output cannot satisfy.
@@ -257,19 +260,72 @@ function normalizeEdge(raw: GraphValidationEdge, index: number): NormEdge {
 }
 
 /**
- * Provider id of a model-reference property value, or undefined when the value
- * is not one. Model refs are tagged objects whose `type` ends in `_model`
- * (`image_model`, `asr_model`, `tts_model`, `language_model`, …), so keying on
- * that suffix avoids reacting to any unrelated object that happens to carry a
- * `provider` field. A blank provider is left to the existing unselected-model
- * check rather than reported as unknown.
+ * True for a model-reference value: a tagged object whose `type` ends in
+ * `_model` (`image_model`, `asr_model`, `tts_model`, `language_model`, …).
+ * Keying on that suffix avoids reacting to any unrelated object that happens
+ * to carry a `provider` field.
  */
-function modelProviderOf(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-  const rec = value as Record<string, unknown>;
-  const kind = rec.type;
-  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
-  const provider = rec.provider;
+function isModelRef(value: unknown): value is Record<string, unknown> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const kind = (value as Record<string, unknown>).type;
+  return typeof kind === "string" && kind.endsWith("_model");
+}
+
+/** A model reference found in a node's property bag, with where it was found. */
+interface ModelRefSite {
+  /** Property path, e.g. `model`, `models[0]`, `config.model`. */
+  path: string;
+  ref: Record<string, unknown>;
+}
+
+/**
+ * How deep the property walk goes looking for model refs. A node's props are a
+ * shallow bag by convention; the depth exists for the shapes that nest one —
+ * a list of models, or a model inside a settings object — not to crawl payloads.
+ */
+const MODEL_REF_MAX_DEPTH = 4;
+
+/**
+ * Every model reference reachable from `value`.
+ *
+ * Checking only top-level property values missed the ones the type system
+ * allows anywhere: a `list[image_model]` property, or a model nested in a
+ * config object. Those fail exactly like a top-level one does — once the node
+ * runs — so they are worth the same check.
+ */
+function collectModelRefs(
+  value: unknown,
+  path: string,
+  out: ModelRefSite[],
+  depth = 0
+): void {
+  if (depth > MODEL_REF_MAX_DEPTH) return;
+  if (Array.isArray(value)) {
+    value.forEach((item, index) =>
+      collectModelRefs(item, `${path}[${index}]`, out, depth + 1)
+    );
+    return;
+  }
+  if (typeof value !== "object" || value === null) return;
+  if (isModelRef(value)) {
+    out.push({ path, ref: value as Record<string, unknown> });
+    return;
+  }
+  for (const [key, child] of Object.entries(value as Record<string, unknown>)) {
+    collectModelRefs(child, path ? `${path}.${key}` : key, out, depth + 1);
+  }
+}
+
+/**
+ * Provider id of a model reference, or undefined when it names none. A blank
+ * provider is left to {@link collectModelSelectionIssues}, which reports it
+ * only when an id is present — an entirely empty ref is an unselected model,
+ * which the registry's own property check already covers.
+ */
+function modelProviderOf(ref: Record<string, unknown>): string | undefined {
+  const provider = ref.provider;
   if (typeof provider !== "string" || provider === "") return undefined;
   return provider;
 }
@@ -350,15 +406,11 @@ function detectCycles(
 }
 
 /**
- * Model id of a model-reference property value. A blank id is an unselected
- * model, which the registry's own property check already reports.
+ * Model id of a model reference. A blank id is an unselected model, which the
+ * registry's own property check already reports.
  */
-function modelIdOf(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-  const rec = value as Record<string, unknown>;
-  const kind = rec.type;
-  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
-  const id = rec.id;
+function modelIdOf(ref: Record<string, unknown>): string | undefined {
+  const id = ref.id;
   if (typeof id !== "string" || id === "") return undefined;
   return id;
 }
@@ -368,11 +420,8 @@ function modelIdOf(value: unknown): string | undefined {
  * in depends on it: a provider's ASR ids and its image ids are separate lists,
  * and only some are knowable offline.
  */
-function modelKindOf(value: unknown): string | undefined {
-  if (typeof value !== "object" || value === null) return undefined;
-  const kind = (value as Record<string, unknown>).type;
-  if (typeof kind !== "string" || !kind.endsWith("_model")) return undefined;
-  return kind;
+function modelKindOf(ref: Record<string, unknown>): string {
+  return String(ref.type);
 }
 
 /**
@@ -408,6 +457,110 @@ function nearestModelIds(
     .map((entry) => entry.candidate);
 }
 
+
+/** The slice of the registry {@link collectModelSelectionIssues} needs. */
+export type ModelSelectionRegistry = Pick<
+  GraphValidationRegistry,
+  "listProviderIds" | "listModelIds"
+>;
+
+/**
+ * Every provider/model id in `graph` that the runtime cannot honour.
+ *
+ * Split out of {@link validateGraph} so a caller that wants only this — a run
+ * preflight, an agent about to save a graph — pays for a property walk instead
+ * of a full graph validation, and so all of them report the same thing. The
+ * checks stay in `validateGraph` too; this is the same code, not a second
+ * opinion.
+ *
+ * Both checks fail toward silence. An empty provider list means the registry
+ * could not be reached, not that zero providers exist; an undefined model list
+ * means the catalog is only knowable online. Neither is evidence of a bad id.
+ */
+export function collectModelSelectionIssues(
+  graph: GraphValidationInput,
+  registry: ModelSelectionRegistry
+): GraphValidationIssue[] {
+  const providerIds = registry.listProviderIds?.();
+  const knownProviders =
+    providerIds && providerIds.length > 0 ? new Set(providerIds) : null;
+  if (!knownProviders) return [];
+
+  const issues: GraphValidationIssue[] = [];
+  for (const node of graph.nodes ?? []) {
+    const nodeId = String(node.id ?? "");
+    const nodeType = String(node.type ?? "");
+    const sites: ModelRefSite[] = [];
+    for (const [propName, value] of Object.entries(readProperties(node))) {
+      collectModelRefs(value, propName, sites);
+    }
+    for (const [propName, value] of Object.entries(
+      readDynamicProperties(node)
+    )) {
+      collectModelRefs(value, propName, sites);
+    }
+
+    for (const { path, ref } of sites) {
+      const modelId = modelIdOf(ref);
+      const provider = modelProviderOf(ref);
+
+      if (provider === undefined) {
+        // No provider and no id is an unselected model — the registry's own
+        // property check reports that one. An id without a provider is
+        // different: it names a model nothing can route to.
+        if (modelId !== undefined) {
+          issues.push({
+            severity: "error",
+            code: "missing_provider",
+            nodeId,
+            nodeType,
+            message:
+              `Property "${path}" selects model "${modelId}" but names no ` +
+              "provider; the runtime cannot resolve a model id on its own"
+          });
+        }
+        continue;
+      }
+
+      if (!knownProviders.has(provider)) {
+        issues.push({
+          severity: "error",
+          code: "unknown_provider",
+          nodeId,
+          nodeType,
+          message:
+            `Property "${path}" selects provider "${provider}", which is ` +
+            `not registered. Known providers: ${[...knownProviders]
+              .sort()
+              .join(", ")}`
+        });
+        continue;
+      }
+
+      // The provider is real; the id it names may still not be. A model id is
+      // only checkable where the catalog is known offline — undefined from the
+      // registry means unknown, so nothing is reported.
+      if (modelId === undefined) continue;
+      const knownModels = registry.listModelIds?.(provider, modelKindOf(ref));
+      if (!knownModels || knownModels.length === 0) continue;
+      if (knownModels.includes(modelId)) continue;
+      const suggestions = nearestModelIds(modelId, knownModels);
+      issues.push({
+        severity: "error",
+        code: "unknown_model",
+        nodeId,
+        nodeType,
+        message:
+          `Property "${path}" selects model "${modelId}", which provider ` +
+          `"${provider}" does not offer.` +
+          (suggestions.length > 0
+            ? ` Did you mean: ${suggestions.join(", ")}?`
+            : "")
+      });
+    }
+  }
+  return issues;
+}
 
 export function validateGraph(
   graph: GraphValidationInput,
@@ -487,12 +640,6 @@ export function validateGraph(
       set.add(e.sourceHandle);
     }
   }
-
-  const providerIds = registry.listProviderIds?.();
-  // An empty list means the registry could not be reached, not that zero
-  // providers exist — checking against it would flag every model in the graph.
-  const knownProviders =
-    providerIds && providerIds.length > 0 ? new Set(providerIds) : null;
 
   // `byId` holds one node per id — a duplicate id is already an error, and
   // validating the shadowed copy's properties would report everything twice.
@@ -581,54 +728,13 @@ export function validateGraph(
       }
     }
 
-    // A model property naming a provider the runtime cannot construct fails
-    // only once the node runs — after the rest of the graph has already been
-    // paid for. The id is right there in the saved property, so check it here.
-    if (knownProviders) {
-      const props = readProperties(node);
-      for (const [propName, value] of Object.entries(props)) {
-        const provider = modelProviderOf(value);
-        if (provider === undefined) continue;
-        if (!knownProviders.has(provider)) {
-          issues.push({
-            severity: "error",
-            code: "unknown_provider",
-            nodeId: id,
-            nodeType: type,
-            message:
-              `Property "${propName}" selects provider "${provider}", which is ` +
-              `not registered. Known providers: ${[...knownProviders]
-                .sort()
-                .join(", ")}`
-          });
-          continue;
-        }
-
-        // The provider is real; the id it names may still not be. A model id
-        // is only checkable where the catalog is known offline — undefined
-        // from the registry means unknown, so nothing is reported.
-        const modelId = modelIdOf(value);
-        const modelKind = modelKindOf(value);
-        if (modelId === undefined || modelKind === undefined) continue;
-        const knownModels = registry.listModelIds?.(provider, modelKind);
-        if (!knownModels || knownModels.length === 0) continue;
-        if (knownModels.includes(modelId)) continue;
-        const suggestions = nearestModelIds(modelId, knownModels);
-        issues.push({
-          severity: "error",
-          code: "unknown_model",
-          nodeId: id,
-          nodeType: type,
-          message:
-            `Property "${propName}" selects model "${modelId}", which provider ` +
-            `"${provider}" does not offer.` +
-            (suggestions.length > 0
-              ? ` Did you mean: ${suggestions.join(", ")}?`
-              : "")
-        });
-      }
-    }
   }
+
+  // A model property naming a provider the runtime cannot construct, or an id
+  // that provider does not offer, fails only once the node runs — after the
+  // rest of the graph has already been paid for. Both are right there in the
+  // saved properties.
+  issues.push(...collectModelSelectionIssues({ nodes: [...byId.values()] }, registry));
 
   // ── Fan-in: >1 edge into a handle is only legal when the handle's declared
   // type is a list. Mirrors the kernel's correlation-analysis rule so an

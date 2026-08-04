@@ -71,4 +71,40 @@ return graph();`
     expect(result.status).toBe("graph_accepted");
     expect(tool.graph!.nodes[0].properties).not.toHaveProperty("model");
   });
+
+  // Omitting a model is the planner's intended output; pinning a wrong one is
+  // not. `NodeRegistry` carries no provider catalog, so before these two hooks
+  // were forwarded a hallucinated provider/model reached the finished graph.
+  describe("a model the planner does pin", () => {
+    const catalogRegistry = {
+      ...realRegistry,
+      listProviderIds: () => ["kie"],
+      listModelIds: (provider: string, modelType: string) =>
+        provider === "kie" && modelType === "language_model"
+          ? ["kimi/k2"]
+          : undefined
+    } as any;
+
+    const submit = (model: string, provider = "kie") =>
+      new SubmitGraphTool(catalogRegistry).process({} as any, {
+        code: `node("nodetool.agents.Agent", { prompt: "hi", model: { type: "language_model", provider: ${JSON.stringify(provider)}, id: ${JSON.stringify(model)} } }, "agent");
+return graph();`
+      }) as Promise<Record<string, unknown>>;
+
+    it("rejects a provider the runtime cannot construct", async () => {
+      const result = await submit("kimi/k2", "nonesuch");
+      expect(result.status).toBe("validation_failed");
+      expect((result.errors as string[]).join("\n")).toContain("nonesuch");
+    });
+
+    it("rejects a model id the provider does not offer", async () => {
+      const result = await submit("kimi/k3");
+      expect(result.status).toBe("validation_failed");
+      expect((result.errors as string[]).join("\n")).toContain("kimi/k2");
+    });
+
+    it("accepts a pair the catalogs know", async () => {
+      expect((await submit("kimi/k2")).status).toBe("graph_accepted");
+    });
+  });
 });

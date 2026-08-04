@@ -8,7 +8,11 @@
  * surfaces while the model can still fix it instead of at runtime.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  listOfflineModelIds,
+  listRegisteredProviderIds,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import type { GraphData } from "@nodetool-ai/protocol";
 import {
   validateGraph,
@@ -37,6 +41,13 @@ const FINISH_GRAPH_INPUT_SCHEMA = {
  *   empty model is the intended output, not a defect. Left in, this check
  *   would reject the shape the planner is asked to produce and push it into
  *   pinning a model it has no basis to choose.
+ *
+ * A model the planner *does* pin is checked, though: `NodeRegistry` carries no
+ * provider catalog (it also runs in the browser), so without the two hooks
+ * below `validateGraph` skipped provider and model ids entirely and a
+ * hallucinated `fal-ai/flux/schnel` reached the graph the planner handed back.
+ * The planner runs server-side, so the runtime's own registry is the default;
+ * a caller with its own catalog overrides it.
  */
 export function metadataAwareRegistry(
   registry: GraphValidationRegistry
@@ -49,7 +60,13 @@ export function metadataAwareRegistry(
     validateNode: (descriptor, connectedHandles) =>
       registry
         .validateNode(descriptor, connectedHandles)
-        .filter((issue) => issue.code !== "unset_model")
+        .filter((issue) => issue.code !== "unset_model"),
+    listProviderIds: () =>
+      registry.listProviderIds?.() ?? listRegisteredProviderIds(),
+    listModelIds: (provider, modelType) =>
+      registry.listModelIds
+        ? registry.listModelIds(provider, modelType)
+        : listOfflineModelIds(provider, modelType)
   };
 }
 

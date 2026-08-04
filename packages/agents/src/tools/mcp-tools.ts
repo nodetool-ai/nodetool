@@ -8,9 +8,19 @@
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
-import { listRegisteredProviderIds } from "@nodetool-ai/runtime";
-import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { validateGraph } from "@nodetool-ai/node-sdk";
+import {
+  listOfflineModelIds,
+  listRegisteredProviderIds
+} from "@nodetool-ai/runtime";
+import type {
+  GraphValidationIssue,
+  NodeMetadata,
+  NodeRegistry
+} from "@nodetool-ai/node-sdk";
+import {
+  collectModelSelectionIssues,
+  validateGraph
+} from "@nodetool-ai/node-sdk";
 import {
   validateTimelineSequence,
   type TimelineValidation
@@ -548,10 +558,68 @@ export function createWorkflowDocumentTools(
   );
 }
 
+/**
+ * The provider and model catalogs to check a graph's selections against.
+ * Defaults to the runtime's own — these tools run server-side — and is
+ * injectable so a caller with a different catalog, or a test, can supply one.
+ */
+export interface ModelCatalogs {
+  listProviderIds: () => readonly string[];
+  listModelIds: (
+    provider: string,
+    modelType: string
+  ) => readonly string[] | undefined;
+}
+
+const RUNTIME_MODEL_CATALOGS: ModelCatalogs = {
+  listProviderIds: () => listRegisteredProviderIds(),
+  listModelIds: (provider, modelType) =>
+    listOfflineModelIds(provider, modelType)
+};
+
+/**
+ * The provider/model half of graph validation, as tool-result data.
+ *
+ * Every model id in a graph an agent authored is a guess until something
+ * checks it, and the failure is expensive and late: the run starts, the
+ * upstream nodes execute, and the model node dies on a provider that was never
+ * registered. This is the cheap half of `validateGraph` — a property walk, no
+ * registry metadata — so a creation tool can afford it on every call.
+ *
+ * Returns null when every selection resolves.
+ */
+function modelSelectionError(
+  graph: unknown,
+  catalogs: ModelCatalogs
+): Record<string, unknown> | null {
+  if (!graph || typeof graph !== "object") return null;
+  const nodes = (graph as { nodes?: unknown }).nodes;
+  if (!Array.isArray(nodes)) return null;
+  const issues: GraphValidationIssue[] = collectModelSelectionIssues(
+    { nodes: nodes as never[] },
+    catalogs
+  );
+  if (issues.length === 0) return null;
+  return {
+    error:
+      "The graph selects providers or models the runtime cannot honour. Fix " +
+      "them (find_model returns a valid {provider, model_id} pair) and retry.",
+    issues: issues.map((issue) => ({
+      code: issue.code,
+      node_id: issue.nodeId,
+      node_type: issue.nodeType,
+      message: issue.message
+    }))
+  };
+}
+
 export class CreateWorkflowTool extends Tool {
   readonly name = "create_workflow";
   readonly description =
-    "Create a new workflow with a name, graph structure, and optional metadata.";
+    "Create a new workflow with a name, graph structure, and optional " +
+    "metadata. Model properties are checked before the workflow is created: " +
+    "an unregistered provider or a model id the provider does not offer is " +
+    "returned as an error instead of being saved.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -579,13 +647,21 @@ export class CreateWorkflowTool extends Tool {
     required: ["name", "graph"]
   };
 
+  constructor(private readonly catalogs: ModelCatalogs = RUNTIME_MODEL_CATALOGS) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
+    const graph = normalizeWorkflowGraph(params["graph"]);
+    const badModels = modelSelectionError(graph, this.catalogs);
+    if (badModels) return badModels;
+
     return apiPost(context, "/api/workflows", {
       name: params["name"],
-      graph: normalizeWorkflowGraph(params["graph"]),
+      graph,
       description: params["description"],
       tags: params["tags"],
       access: params["access"] ?? "private"
@@ -1035,9 +1111,11 @@ export class ValidateWorkflowTool extends Tool {
   readonly description =
     "Statically validate a workflow against the node registry WITHOUT running " +
     "it: unknown node types, missing required properties, unselected models, " +
-    "and dangling or mis-typed edges. Pass an inline `graph` to check a graph " +
-    "you are building, or `workflow_id` to validate a saved one. Run this " +
-    "before saving or running to catch breakage in milliseconds.";
+    "model properties naming an unregistered provider or a model id that " +
+    "provider does not offer, and dangling or mis-typed edges. Pass an inline " +
+    "`graph` to check a graph you are building, or `workflow_id` to validate " +
+    "a saved one. Run this before saving or running to catch breakage in " +
+    "milliseconds.";
   readonly jsonSchema = {
     type: "object" as const,
     properties: {
@@ -1058,17 +1136,23 @@ export class ValidateWorkflowTool extends Tool {
   // falls back to fetching the workflow so the tool still returns something
   // useful in registry-free contexts (e.g. the multi-task planner).
   /**
-   * `listProviderIds` is supplied here rather than living on NodeRegistry: the
-   * registry also runs in the browser, which has no provider registry to reach.
-   * Without it `validateGraph` skips the `unknown_provider` check entirely, so
-   * a model naming a provider the runtime cannot construct passed silently on
-   * the agent surface. This tool always runs server-side, so the runtime's
-   * registry is the right default.
+   * The provider and model catalogs are supplied here rather than living on
+   * NodeRegistry: the registry also runs in the browser, which has neither to
+   * reach. Without them `validateGraph` skips the `unknown_provider` and
+   * `unknown_model` checks entirely, so a model naming a provider the runtime
+   * cannot construct — or an id that provider does not offer — passed silently
+   * on the agent surface, which is exactly where hallucinated ids come from.
+   * This tool always runs server-side, so the runtime's own catalogs are the
+   * right default.
    */
   constructor(
     private readonly registry?: NodeRegistry,
     private readonly listProviderIds: () => readonly string[] = () =>
-      listRegisteredProviderIds()
+      listRegisteredProviderIds(),
+    private readonly listModelIds: (
+      provider: string,
+      modelType: string
+    ) => readonly string[] | undefined = listOfflineModelIds
   ) {
     super();
   }
@@ -1125,7 +1209,9 @@ export class ValidateWorkflowTool extends Tool {
         getMetadata: (type) => registry.getMetadata(type),
         validateNode: (descriptor, connectedHandles) =>
           registry.validateNode(descriptor, connectedHandles),
-        listProviderIds: () => this.listProviderIds()
+        listProviderIds: () => this.listProviderIds(),
+        listModelIds: (provider, modelType) =>
+          this.listModelIds(provider, modelType)
       }
     );
   }
