@@ -1,6 +1,6 @@
 # NodeTool
 
-**The open creative AI workspace.**
+**The open-source, agent-first creative AI workspace.**
 
 *Every model. Your keys. Your canvas.*
 
@@ -17,6 +17,9 @@
 
 NodeTool is an open-source creative AI suite that runs on your machine. A node-based canvas, a multi-track video timeline, and a layered sketch editor share one workspace, and every major AI model, cloud or local, wires into all three.
 
+It is agent-first: every editor is exposed to agents as tools — around 120 of them — so an agent can build the workflow, run it, and repair what fails on the same surfaces you use.
+
+* **The Whole App Is the Toolbelt:** Agents drive the canvas, sketch pad, storyboard, timeline, script editor, 3D scene, and app builder.
 * **Pay Provider Prices:** Bring your own API keys and pay providers at cost. No markup.
 * **Zero Lock-In:** Swap any model — cloud or local — without touching the rest of the workflow.
 * **Three Ways to Work:** Node graphs, a video timeline, and layered painting, all on one canvas.
@@ -27,6 +30,8 @@ NodeTool is an open-source creative AI suite that runs on your machine. A node-b
 
 - [Why NodeTool](#why-nodetool)
 - [What's in the box](#whats-in-the-box)
+- [Agents](#agents)
+- [Mini apps](#mini-apps)
 - [Node editor](#node-editor)
 - [Video editor](#video-editor)
 - [Sketch editor](#sketch-editor)
@@ -56,6 +61,11 @@ Closed platforms lock you in. NodeTool is built for independence.
 
 | | |
 | :--- | :--- |
+| **Agents in every editor** | ~120 tools covering canvas, sketch, storyboard, timeline, script, 3D, and apps |
+| **Agents that build** | Describe a pipeline; the agent authors the graph, picks models, and validates before it runs |
+| **Mini apps** | Turn a workflow into a focused interface — built and tested by an agent, or by hand |
+| **Supervised runs** | An agent on the failure path: retry, repair, skip, or stop, on a budget you set |
+| **MCP server** | Point Claude Desktop, Claude Code, Codex, or any MCP agent at the same toolbelt |
 | **Node-based canvas** | Drag-and-drop nodes with type-safe connections |
 | **Image, video, audio, text** | Unified workflows across every modality |
 | **Editing tools as nodes** | Mask, inpaint, outpaint, relight, upscale, layers, compositing |
@@ -68,6 +78,37 @@ Closed platforms lock you in. NodeTool is built for independence.
 | **Custom nodes** | Extend in TypeScript or Python |
 | **Deploy & scale** | Self-host with Docker; rent GPU workers (RunPod, Vast) |
 | **Cross-platform** | macOS, Windows, and Linux |
+
+## Agents
+
+Most tools bolt a chat panel onto an editor. NodeTool went the other way: the app itself is built as tools an agent can operate, so agents do the work on the same surfaces you use.
+
+*   **The whole app is the toolbelt.** Around 120 tools cover the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder. If you can click it, an agent can drive it.
+*   **Agents build workflows.** Describe the pipeline and the agent authors the graph — picks the nodes, wires the edges, selects the models — and validates it before anything runs. What it leaves behind is a workflow you can inspect, edit, and rerun.
+*   **Agents build apps, and test them.** Ask for a mini app and the agent plans the workflows, places the widgets, wires them together, then replays every interaction and has a second model judge whether the result does what you asked. No passing verdict, no app.
+*   **An agent on the failure path.** Supervised runs (`--supervise`) put an agent on call: when a step fails mid-run it decides — retry, repair the output, skip the item, or stop — inside a decision and cost budget you set, with every intervention logged.
+*   **It asks instead of guessing.** When a job is missing something only you can decide — a name, a look, permission to delete — the agent stops and asks. Every plan, tool call, prompt, and dollar of model spend is on the record.
+*   **Bring your own agent.** The toolbelt is exposed over MCP. Point Claude Desktop, Claude Code, Codex, or any MCP-aware agent at NodeTool and it gets the same tools the built-in chat uses.
+
+```bash
+nodetool mcp install                  # wire NodeTool into Claude Code / Codex / OpenCode
+npm run build:mcpb                    # → dist/nodetool.mcpb for Claude Desktop
+```
+
+Under the hood: a planner turns an objective into a DAG of steps, executors walk it in parallel, and every LLM call emits an OpenTelemetry span with tokens and cost. See the [agent guide](https://docs.nodetool.ai/agents/) and [docs/AGENTS.md](docs/AGENTS.md).
+
+## Mini apps
+
+A workflow is a graph; a mini app is the interface you put in front of it. Bind widgets to inputs and outputs, declare the operations a click can run, and hand someone a focused tool instead of a canvas — the graph stays underneath, editable.
+
+Agents build them end to end. `nodetool app build` runs six stages — spec, plan, author, check, run, judge — and only hands back a bundle when the app's interactions actually do what the prompt asked:
+
+```bash
+nodetool app build "an app that drafts a note from a prompt" -p anthropic -m claude-sonnet-5
+nodetool app debug <application_id>    # headless: validate bindings, replay interactions
+```
+
+See the [mini apps guide](https://docs.nodetool.ai/mini-apps) for widgets, operations, and variables.
 
 ## Node editor
 
@@ -99,6 +140,7 @@ See the [Sketch Editor guide](https://docs.nodetool.ai/sketch-editor) for tools,
 | :--- | :--- | :--- | :--- | :--- |
 | **Built for** | Creatives working with AI | Stable Diffusion power users | Creative teams (now part of Figma) | Business workflows |
 | **Modalities** | Image, video, audio, text | Image, video | Image, video | Text |
+| **Agents** | Every editor is a toolbelt; agents build, run, and repair | Community extensions | Assistant features | AI nodes in a workflow |
 | **Models** | Every major provider, BYOK | Stable Diffusion | Curated marketplace | API integrations |
 | **Source & pricing** | AGPL-3.0, provider prices | Open source, free | Closed, credits | Fair-code, subscription |
 
@@ -125,6 +167,8 @@ ______________________________________________________________________
 ## Documentation
 
 - **[Getting Started](https://docs.nodetool.ai/getting-started)** — Build your first workflow
+- **[Agents](https://docs.nodetool.ai/agents/)** — Let an agent build, run, and repair your workflows
+- **[Mini Apps](https://docs.nodetool.ai/mini-apps)** — Wrap a workflow in an interface
 - **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and AI-generate clips on a timeline
 - **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and AI-generate on a layered canvas
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
@@ -137,7 +181,7 @@ ______________________________________________________________________
 
 ## CLI & Server (npm)
 
-Run the server, execute workflows, or chat from the terminal:
+Run the server, execute workflows, drive agents, or chat from the terminal:
 
 ```bash
 # Install globally (Node.js 22.x required)
@@ -146,16 +190,31 @@ npm install -g @nodetool-ai/cli
 # Start the API server (port 7777)
 nodetool serve
 
-# Interactive chat with agent mode
-nodetool-chat --agent --provider anthropic --model claude-sonnet-5
+# Interactive chat — every session runs the agent loop
+nodetool-chat --provider anthropic --model claude-sonnet-5
 
 # Run a TypeScript DSL workflow
 nodetool workflows run my-workflow.ts
 
+# Put an agent on the failure path
+nodetool workflows run <id> --supervise --supervisor-cost-cap 0.25
+
+# Have an agent build and verify a mini app
+nodetool app build "summarize a PDF into bullet points" -p anthropic -m claude-sonnet-5
+
+# Expose the toolbelt to Claude Code, Codex, or OpenCode over MCP
+nodetool mcp install
+
 # One-off without global install
 npx --package=@nodetool-ai/cli nodetool serve
-npx --package=@nodetool-ai/cli nodetool-chat --agent
+npx --package=@nodetool-ai/cli nodetool-chat
 ```
+
+Every surface is drivable headlessly, so an agent can check its own work:
+`nodetool validate` (static graph check), `nodetool debug` (run a workflow and
+read a verdict), `nodetool app debug` (replay an app's interactions),
+`nodetool node run` (one node in isolation), and `nodetool eval` (score the
+planning and tool-calling loops against any provider).
 
 See the [CLI Reference](https://docs.nodetool.ai/cli) for all commands.
 
@@ -167,11 +226,11 @@ NodeTool is a monorepo with a TypeScript backend, React frontend, Electron deskt
 
 ```
 nodetool/
-├── packages/          # Backend monorepo (55 packages)
+├── packages/          # Backend monorepo (60 packages)
 │   ├── kernel/        #   Workflow graph & runner
 │   ├── node-sdk/      #   BaseNode class & node registry
 │   ├── base-nodes/    #   100+ built-in node types
-│   ├── agents/        #   Agent system with task planning & tools
+│   ├── agents/        #   Planning agents, the ~120-tool belt, app build harness
 │   ├── runtime/       #   Processing context & model providers
 │   ├── websocket/     #   HTTP + WebSocket server (entry point)
 │   ├── vectorstore/   #   SQLite-vec vector database
