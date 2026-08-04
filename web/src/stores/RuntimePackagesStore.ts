@@ -14,6 +14,24 @@ import { create } from "zustand";
 import type { StoreApi } from "zustand";
 
 import { createErrorMessage } from "../utils/errorHandling";
+import { trpcClient } from "../trpc/client";
+
+/** Display names for the runtimes the server reports (it sends bare ids). */
+const SERVER_RUNTIME_LABELS: Record<string, string> = {
+  python: "Python",
+  nodejs: "Node.js",
+  bash: "Bash",
+  ruby: "Ruby",
+  lua: "Lua",
+  ffmpeg: "FFmpeg",
+  ffprobe: "ffprobe",
+  pandoc: "Pandoc",
+  pdftotext: "PDF Tools (pdftotext)",
+  pdftoppm: "PDF Tools (pdftoppm)",
+  "yt-dlp": "yt-dlp",
+  tmux: "tmux",
+  claude: "Claude Code CLI"
+};
 
 interface RuntimePackageStatus {
   id: string;
@@ -98,7 +116,31 @@ const useRuntimePackagesStore = create<RuntimePackagesStore>((set, get) => ({
   refresh: async () => {
     const api = runtimeApi();
     if (!api) {
-      set({ available: false });
+      // No desktop IPC (browser / Docker deployment): the server can still say
+      // what is on its PATH, so the list reports real status even though
+      // installing from here isn't possible.
+      set({ available: false, isLoading: true, error: null });
+      try {
+        const res = await trpcClient.packs.runtimeStatuses.query();
+        set({
+          statuses: res.statuses.map(({ id, installed }) => ({
+            id,
+            name: SERVER_RUNTIME_LABELS[id] ?? id,
+            description: installed
+              ? "Installed on the server."
+              : "Not installed on the server.",
+            installed,
+            installing: false
+          })),
+          isLoading: false
+        });
+      } catch (err: unknown) {
+        set({
+          isLoading: false,
+          error: createErrorMessage(err, "Failed to load runtime packages")
+            .message
+        });
+      }
       return;
     }
     set({ isLoading: true, error: null });

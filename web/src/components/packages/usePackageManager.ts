@@ -250,8 +250,10 @@ export function usePackageManager(params: {
     void fetchThirdParty();
   }, [fetchThirdParty]);
   useEffect(() => {
-    if (!rtAvailable) return;
+    // Refresh in the browser too: the server reports what is on its PATH, so
+    // the list shows real status even where installing needs the desktop app.
     void rtRefresh();
+    if (!rtAvailable) return;
     rtSubscribe();
     return () => rtUnsubscribe();
   }, [rtAvailable, rtRefresh, rtSubscribe, rtUnsubscribe]);
@@ -408,15 +410,21 @@ export function usePackageManager(params: {
           name: rt.name,
           desc: rt.description,
           badge: rt.installed ? "installed" : "notInstalled",
-          buttons: {
-            install: !rt.installed,
-            update: false,
-            uninstall: rt.installed,
-            busy,
-            onInstall: () => void rtInstall(rt.id),
-            onUpdate: () => {},
-            onUninstall: () => void rtUninstall(rt.id)
-          }
+          // Installing runs through the desktop app; in the browser the row is
+          // status-only.
+          ...(rtAvailable
+            ? {
+                buttons: {
+                  install: !rt.installed,
+                  update: false,
+                  uninstall: rt.installed,
+                  busy,
+                  onInstall: () => void rtInstall(rt.id),
+                  onUpdate: () => {},
+                  onUninstall: () => void rtUninstall(rt.id)
+                }
+              }
+            : {})
         };
       });
     } else if (cat === "included") {

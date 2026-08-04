@@ -93,12 +93,6 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
   const openPackageManager = useOpenPackageManager();
 
   const checkRuntimes = useCallback(async (forceRefresh = false) => {
-    if (!isElectron) {
-      setMissingRuntimes(requiredRuntimes);
-      setLoading(false);
-      return;
-    }
-
     // Only refresh statuses when cache is empty or explicitly forced.
     await ensureRuntimeStatuses(forceRefresh);
 
@@ -109,7 +103,7 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
     });
     setMissingRuntimes(missing);
     setLoading(false);
-  }, [requiredRuntimes, isElectron]);
+  }, [requiredRuntimes]);
 
   useEffect(() => {
     let cancelled = false;
@@ -177,7 +171,8 @@ const NodeDependencyWarning: FC<NodeDependencyWarningProps> = ({
         </button>
       ) : (
         <div className="warning-text">
-          This runtime must be installed on your system to use this node.
+          Install it on the machine running the NodeTool server to use this
+          node.
         </div>
       )}
     </div>
