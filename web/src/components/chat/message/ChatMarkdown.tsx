@@ -59,11 +59,9 @@ const markdownStyles = css({
 const REMARK_PLUGINS: Options["remarkPlugins"] = [remarkGfm];
 const REHYPE_PLUGINS: Options["rehypePlugins"] = [rehypeRaw];
 
-/** react-markdown drops unknown schemes; `nodetool:` and `asset:` are ours. */
+/** react-markdown drops unknown schemes; resource URIs (asset://, timeline://, …) are ours. */
 const urlTransform: NonNullable<Options["urlTransform"]> = (url) =>
-  url.startsWith("nodetool://") || url.startsWith("asset://")
-    ? url
-    : defaultUrlTransform(url);
+  isResourceUri(url) ? url : defaultUrlTransform(url);
 
 /** Link text as a plain string — `[**Bold**](…)` hands the `a` override nodes. */
 const linkText = (node: React.ReactNode): string => {

@@ -75,7 +75,7 @@ export function inferImageMime(bytes: Uint8Array): string {
 export interface SavedOutput {
   asset_id?: string;
   asset_uri?: string;
-  /** `nodetool://asset/<id>` — ready-made link for the agent's prose. */
+  /** `asset://<id>` — ready-made link for the agent's prose. */
   url?: string;
   path?: string;
   bytes: number;

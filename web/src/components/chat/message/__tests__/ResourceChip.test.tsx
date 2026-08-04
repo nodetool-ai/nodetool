@@ -28,7 +28,7 @@ describe("ResourceChip", () => {
 
   it("renders the label and opens the resource on click", async () => {
     const user = userEvent.setup();
-    renderChip("nodetool://storyboard/sb_1", "Beach intro");
+    renderChip("storyboard://sb_1", "Beach intro");
 
     const chip = screen.getByRole("button", { name: /Beach intro/ });
     await user.click(chip);
@@ -41,7 +41,7 @@ describe("ResourceChip", () => {
 
   it("keeps the sub-target on the parsed ref", async () => {
     const user = userEvent.setup();
-    renderChip("nodetool://timeline/tl_1#clip=cl_9", "Cut 9");
+    renderChip("timeline://tl_1#clip=cl_9", "Cut 9");
 
     await user.click(screen.getByRole("button", { name: /Cut 9/ }));
 
@@ -53,7 +53,7 @@ describe("ResourceChip", () => {
   });
 
   it("renders a thumbnail for image assets", () => {
-    const { container } = renderChip("nodetool://asset/as_1.png", "render.png");
+    const { container } = renderChip("asset://as_1.png", "render.png");
 
     expect(container.querySelector("img")).toHaveAttribute(
       "src",
@@ -68,7 +68,7 @@ describe("ResourceChip", () => {
   });
 
   it("falls back to plain text for a malformed URI", () => {
-    renderChip("nodetool://unknown-kind/x", "Mystery");
+    renderChip("unknown-kind://x", "Mystery");
 
     expect(screen.getByText("Mystery")).toBeInTheDocument();
     expect(screen.queryByRole("button")).not.toBeInTheDocument();

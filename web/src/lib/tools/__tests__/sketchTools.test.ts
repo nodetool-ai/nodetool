@@ -359,7 +359,7 @@ describe("ui_sketch_* tools", () => {
 
     expect(handler.renderLayerToAsset).toHaveBeenCalledWith(null, undefined);
     expect(result.assets[0].assetId).toBe("asset-9");
-    expect(result.assets[0].url).toBe("nodetool://asset/asset-9");
+    expect(result.assets[0].url).toBe("asset://asset-9");
   });
 
   it("renders multiple layers, each to its own asset", async () => {

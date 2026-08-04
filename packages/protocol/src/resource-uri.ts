@@ -1,12 +1,14 @@
 /**
- * The `nodetool://` resource URI scheme.
+ * Resource URI scheme: the kind is the scheme.
  *
  * ```
- * nodetool://<kind>/<id>[#<key>=<value>]
+ * <kind>://<id>[#<key>=<value>]        e.g. asset://as_1, timeline://tl_7#clip=cl_2
  * ```
  *
- * `asset://<id>` is accepted as shorthand for `nodetool://asset/<id>` so that
- * existing tool results keep working.
+ * The legacy long form `nodetool://<kind>/<id>[#…]` is accepted on parse so
+ * links persisted in older threads keep resolving; `formatResourceUri` always
+ * emits the short form. The `nodetool://` scheme is otherwise avoided — the
+ * mobile app claims it for OS deep links.
  *
  * `ResourceKind` is the `UiSurfaceType` union minus `chat` (a chat surface is
  * addressed as `thread`) plus `asset`, `collection`, `model3d`, and `thread`.
@@ -44,8 +46,7 @@ export interface ResourceUri {
   subTarget?: { key: string; value: string };
 }
 
-const NODETOOL_SCHEME = "nodetool://";
-const ASSET_SCHEME = "asset://";
+const LEGACY_SCHEME = "nodetool://";
 
 const isResourceKind = (value: string): value is ResourceKind =>
   (RESOURCE_KINDS as readonly string[]).includes(value);
@@ -82,24 +83,25 @@ export function parseResourceUri(uri: string): ResourceUri | null {
   const body = hashIndex === -1 ? trimmed : trimmed.slice(0, hashIndex);
   const fragment = hashIndex === -1 ? undefined : trimmed.slice(hashIndex + 1);
 
-  if (body.startsWith(ASSET_SCHEME)) {
-    return buildRef("asset", body.slice(ASSET_SCHEME.length), fragment);
+  if (body.startsWith(LEGACY_SCHEME)) {
+    const path = body.slice(LEGACY_SCHEME.length);
+    const slashIndex = path.indexOf("/");
+    if (slashIndex <= 0) return null;
+    const kind = path.slice(0, slashIndex);
+    if (!isResourceKind(kind)) return null;
+    return buildRef(kind, path.slice(slashIndex + 1), fragment);
   }
 
-  if (!body.startsWith(NODETOOL_SCHEME)) return null;
-
-  const path = body.slice(NODETOOL_SCHEME.length);
-  const slashIndex = path.indexOf("/");
-  if (slashIndex <= 0) return null;
-
-  const kind = path.slice(0, slashIndex);
+  const schemeIndex = body.indexOf("://");
+  if (schemeIndex <= 0) return null;
+  const kind = body.slice(0, schemeIndex);
   if (!isResourceKind(kind)) return null;
 
-  return buildRef(kind, path.slice(slashIndex + 1), fragment);
+  return buildRef(kind, body.slice(schemeIndex + 3), fragment);
 }
 
 export function formatResourceUri(ref: ResourceUri): string {
-  const base = `${NODETOOL_SCHEME}${ref.kind}/${ref.id}`;
+  const base = `${ref.kind}://${ref.id}`;
   return ref.subTarget
     ? `${base}#${ref.subTarget.key}=${ref.subTarget.value}`
     : base;

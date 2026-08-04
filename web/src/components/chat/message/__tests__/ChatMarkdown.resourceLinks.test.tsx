@@ -76,8 +76,8 @@ const renderMarkdown = (content: string) =>
   );
 
 describe("ChatMarkdown resource links", () => {
-  it("renders a nodetool:// link as a resource chip", () => {
-    renderMarkdown("Added [Beach intro](nodetool://storyboard/sb_1) to the board.");
+  it("renders a resource link as a chip", () => {
+    renderMarkdown("Added [Beach intro](storyboard://sb_1) to the board.");
 
     const chip = screen.getByRole("button", { name: /Beach intro/ });
     expect(chip).toBeInTheDocument();

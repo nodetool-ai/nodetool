@@ -15,12 +15,14 @@ can only describe the thing: "I've added three shots to the storyboard" with
 nothing to click. Following progress means expanding tool cards and reading
 JSON; giving feedback means describing the target in words.
 
-The fix is a **resource URI** the agent can drop into ordinary markdown:
+The fix is a **resource URI** the agent can drop into ordinary markdown,
+generalizing the `asset://` scheme the codebase already uses — the kind is
+the scheme:
 
 ```
-nodetool://storyboard/sb_01hxyz
-nodetool://asset/as_01hab2
-nodetool://timeline/tl_01hqrs#clip=cl_9
+storyboard://sb_01hxyz
+asset://as_01hab2
+timeline://tl_01hqrs#clip=cl_9
 ```
 
 The chat renders any such link as a compact inline **resource chip** — kind
@@ -50,7 +52,7 @@ a line in the system prompt.
    naming scheme.
 5. **Degrades to text.** In any renderer that doesn't know the scheme (logs,
    CLI, eval transcripts, old clients), the link is still a legible
-   `[label](nodetool://…)` markdown link.
+   `[label](timeline://…)` markdown link.
 
 ## 3. Current state (what the concept builds on)
 
@@ -71,13 +73,13 @@ a line in the system prompt.
   `ui_sketch_select_layer`, …), so a link fragment can both *name* and
   *select* a sub-target on open.
 - **Caveat:** react-markdown's default `urlTransform` strips unknown URL
-  schemes for safety — `nodetool://` links vanish unless the scheme is
+  schemes for safety — resource links vanish unless their schemes are
   explicitly allowlisted in the `ReactMarkdown` props.
 
 ## 4. The URI scheme
 
 ```
-nodetool://<kind>/<id>[#<param>=<value>]
+<kind>://<id>[#<param>=<value>]
 
 kind  := asset | workflow | timeline | storyboard | sketch | script
          | app | model3d | collection | thread
@@ -95,15 +97,17 @@ Rules:
 - Parsing and formatting live in one module in protocol
   (`parseResourceUri` / `formatResourceUri`), shared by web, the eval
   bridges, and the CLI — no per-surface regex.
-- `asset://<id>` remains valid and is treated as shorthand for
-  `nodetool://asset/<id>` (existing tool results keep working).
+- `asset://` is simply the asset kind's scheme — existing tool results keep
+  working unchanged. The legacy long form `nodetool://<kind>/<id>` still
+  parses (links persisted by earlier builds), but nothing emits it; the
+  `nodetool://` scheme is otherwise reserved by the mobile app's deep links.
 - Unknown kind or malformed URI → rendered as plain text, never a broken
   chip.
 
 ## 5. Architecture
 
 ```
-Agent emits markdown: "Added the opening shots — [Beach intro](nodetool://storyboard/sb_x#shot=s3)"
+Agent emits markdown: "Added the opening shots — [Beach intro](storyboard://sb_x#shot=s3)"
        │
        ▼
 ChatMarkdown `a` override
@@ -128,7 +132,7 @@ client mirrors it into ui_context.referenced for the system prompt.
 Two sources, both cheap:
 
 1. **Tool results.** Every mutating tool's result gains one field:
-   `url: "nodetool://<kind>/<id>"` (sub-target variants where natural, e.g.
+   `url: "<kind>://<id>"` (sub-target variants where natural, e.g.
    `ui_storyboard_add_shot` → `…#shot=<newId>`). Backend media tools emit it
    from `persistOutput` next to the existing `asset_uri`. The JSON stays
    JSON — the model copies the string into its prose when it wants to link.
@@ -157,8 +161,7 @@ New component in `web/src/components/chat/message/`, built from
 - Same treatment everywhere markdown renders: chat thread, thread memory
   sidebar, agent-panel chats — they all go through `ChatMarkdown`.
 
-`urlTransform` is extended to pass `nodetool:` and `asset:` schemes through
-untouched; everything else keeps react-markdown's default sanitization.
+`urlTransform` is extended to pass resource-URI schemes through untouched; everything else keeps react-markdown's default sanitization.
 
 ### 5.3 Navigation: `openResource`
 
@@ -184,7 +187,7 @@ One helper (`web/src/lib/chat/openResource.ts`):
   `ui_context` (extend `UiContext` with `referenced?: UiDocumentRef[]`), so
   the server's `formatUiContext` can state it plainly in the system prompt.
 - This makes "make **this** darker" precise: the message carries
-  `nodetool://storyboard/sb_x#shot=s3`, and the agent's first tool call can
+  `storyboard://sb_x#shot=s3`, and the agent's first tool call can
   be `ui_storyboard_select_shot` on exactly that shot.
 
 ### 5.5 What this is not

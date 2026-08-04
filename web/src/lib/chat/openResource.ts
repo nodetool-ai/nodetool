@@ -1,5 +1,5 @@
 /**
- * openResource — navigate to the target of a `nodetool://` resource URI.
+ * openResource — navigate to the target of a resource URI (`timeline://…`).
  *
  * Document kinds open a workspace tab; kinds without a surface (asset,
  * collection, thread) are not navigable yet and report `false` so the caller

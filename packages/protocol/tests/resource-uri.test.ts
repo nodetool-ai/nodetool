@@ -8,11 +8,11 @@ import {
 import type { ResourceUri } from "../src/resource-uri.js";
 
 describe("parseResourceUri / formatResourceUri", () => {
-  it("round-trips every kind", () => {
+  it("round-trips every kind in the short form", () => {
     for (const kind of RESOURCE_KINDS) {
       const ref: ResourceUri = { kind, id: `id_${kind}` };
       const uri = formatResourceUri(ref);
-      expect(uri).toBe(`nodetool://${kind}/id_${kind}`);
+      expect(uri).toBe(`${kind}://id_${kind}`);
       expect(parseResourceUri(uri)).toEqual(ref);
     }
   });
@@ -41,14 +41,14 @@ describe("parseResourceUri / formatResourceUri", () => {
   });
 
   it("parses a fragment written by hand", () => {
-    expect(parseResourceUri("nodetool://timeline/tl_01hqrs#clip=cl_9")).toEqual({
+    expect(parseResourceUri("timeline://tl_01hqrs#clip=cl_9")).toEqual({
       kind: "timeline",
       id: "tl_01hqrs",
       subTarget: { key: "clip", value: "cl_9" }
     });
   });
 
-  it("treats asset:// as shorthand for nodetool://asset/", () => {
+  it("parses asset:// like every other kind scheme", () => {
     expect(parseResourceUri("asset://as_01hab2")).toEqual({
       kind: "asset",
       id: "as_01hab2"
@@ -60,14 +60,33 @@ describe("parseResourceUri / formatResourceUri", () => {
     });
   });
 
-  it("formats asset refs in canonical form", () => {
+  it("accepts the legacy nodetool:// long form on parse", () => {
+    expect(parseResourceUri("nodetool://storyboard/sb_1#shot=s3")).toEqual({
+      kind: "storyboard",
+      id: "sb_1",
+      subTarget: { key: "shot", value: "s3" }
+    });
+    expect(parseResourceUri("nodetool://asset/as_1")).toEqual({
+      kind: "asset",
+      id: "as_1"
+    });
+  });
+
+  it("formats in the short form", () => {
     expect(formatResourceUri({ kind: "asset", id: "as_1" })).toBe(
-      "nodetool://asset/as_1"
+      "asset://as_1"
     );
+    expect(
+      formatResourceUri({
+        kind: "timeline",
+        id: "tl_7",
+        subTarget: { key: "clip", value: "cl_2" }
+      })
+    ).toBe("timeline://tl_7#clip=cl_2");
   });
 
   it("ignores surrounding whitespace", () => {
-    expect(parseResourceUri("  nodetool://app/ap_1  ")).toEqual({
+    expect(parseResourceUri("  app://ap_1  ")).toEqual({
       kind: "app",
       id: "ap_1"
     });
@@ -86,12 +105,17 @@ describe("parseResourceUri / formatResourceUri", () => {
       "nodetool:///as_1",
       "nodetool://asset",
       "nodetool://asset/a/b",
+      "unknown://x_1",
+      "chat://th_1",
+      "asset:/as_1",
       "asset://",
+      "asset://as_1/extra",
       "asset://as_1#",
       "asset://as_1#shot",
-      "nodetool://storyboard/sb_1#=s3",
-      "nodetool://storyboard/sb_1#shot=",
-      "nodetool://storyboard/sb_1#shot=a=b"
+      "://as_1",
+      "storyboard://sb_1#=s3",
+      "storyboard://sb_1#shot=",
+      "storyboard://sb_1#shot=a=b"
     ];
     for (const uri of malformed) {
       expect(parseResourceUri(uri), uri).toBeNull();
@@ -101,9 +125,10 @@ describe("parseResourceUri / formatResourceUri", () => {
 
 describe("isResourceUri", () => {
   it("accepts valid uris and rejects everything else", () => {
-    expect(isResourceUri("nodetool://sketch/sk_1")).toBe(true);
+    expect(isResourceUri("sketch://sk_1")).toBe(true);
     expect(isResourceUri("asset://as_1")).toBe(true);
-    expect(isResourceUri("nodetool://chat/th_1")).toBe(false);
+    expect(isResourceUri("nodetool://sketch/sk_1")).toBe(true);
+    expect(isResourceUri("chat://th_1")).toBe(false);
     expect(isResourceUri("")).toBe(false);
   });
 });

@@ -1,5 +1,6 @@
 /**
- * ResourceChip — inline chip for a `nodetool://` resource URI in chat prose.
+ * ResourceChip — inline chip for a resource URI (`asset://…`, `timeline://…`)
+ * in chat prose.
  *
  * Renders a kind icon (a thumbnail for image assets) plus the link's own text,
  * and opens the resource on click when its kind has a surface to open. A URI
