@@ -269,6 +269,47 @@ place and keeps clips other surfaces added.
 Tests: `tests/script-voice-tools.test.ts` (in-memory DB, fake provider — no
 network).
 
+## Storyboard Render Tools (`src/tools/storyboard-render-tools.ts`)
+
+The headless path from a directed storyboard to rendered media and an assembled
+cut. The editor has always had this path — the Storyboard surface builds a
+throwaway `TextToImage → Output` / `ImageToVideo → Output` graph per shot and
+runs it in the browser — but an agent outside the browser had to author, save,
+and run a workflow per shot, or drive the `ui_storyboard_*` tools, which only
+work while that board is open. These call the provider directly, save each
+result as an asset, and write it back onto the persisted board.
+
+| Tool | Does |
+|---|---|
+| `list_storyboards` | Boards newest first, with per-board still/clip counts |
+| `get_storyboard` | Shots with ids, status, and whether each has a still/clip |
+| `render_storyboard_stills` | `text_to_image` per shot → the shot's keyframe |
+| `render_storyboard_clips` | `image_to_video` seeded by the keyframe → the shot's clip |
+| `revise_storyboard_clip` | `video_to_video` revision of one shot's clip |
+| `assemble_storyboard_timeline` | Rendered clips → a saved `timeline_sequences` row |
+
+Both render tools take `targets` (shot ids, indexes, or slugs) and default to
+"whatever still needs this step", so a whole board is one call. Shots render
+concurrently (default 3, max 8, 24 shots per call). Every write is a CAS on the
+row's `updated_at` with a bounded retry, because concurrent renders all land on
+the same board document; a conflicting write re-reads and re-applies rather than
+clobbering.
+
+The provider and model come from the call, else from the board's own
+`imageModel` / `videoModel`. There is no fallback default — an unset model is an
+error naming `find_model`, not silent spend on a model nobody chose.
+
+Prompt composition, entity seasoning (`entitiesForShot`, `@nodetool-ai/protocol`)
+and the shot → timeline mapping (`buildStoryboardTimeline`,
+`@nodetool-ai/timeline`) are the editor's, so a board rendered headlessly matches
+one rendered in the UI. Board entities are library assets carrying a
+`metadata.nodetool_entity` marker; their descriptors and first reference image
+ride along as the `entities` param, which the runtime expands at the provider
+layer.
+
+Tests: `tests/storyboard-render-tools.test.ts` (in-memory DB, stubbed
+predictions — no provider calls).
+
 ## Google Workspace Tools (`src/tools/google-workspace-tools.ts`)
 
 Drive, Gmail, Docs, Sheets and Calendar tools that authenticate with the access

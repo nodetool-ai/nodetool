@@ -406,6 +406,15 @@ export {
   AssembleScriptTimelineTool,
   SCRIPT_VOICE_TOOL_NAMES
 } from "./tools/script-voice-tools.js";
+export {
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool,
+  STORYBOARD_RENDER_TOOL_NAMES
+} from "./tools/storyboard-render-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {

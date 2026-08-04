@@ -1537,6 +1537,15 @@ function formatUiContext(uiContext?: UiContext | null): string {
       "To voice a script, do not author a workflow: `voice_script_lines` synthesizes each line with its cast voice and saves the takes onto the script, and `assemble_script_timeline` lays the voiced takes into a timeline sequence. Both default to the whole script, so one call covers it."
     );
   }
+
+  const hasStoryboard =
+    focused?.type === "storyboard" ||
+    open.some((ref) => ref.type === "storyboard");
+  if (hasStoryboard) {
+    lines.push(
+      "To render a storyboard, do not author a workflow: `render_storyboard_stills` then `render_storyboard_clips` call the image/video model per shot and save the results onto the board, and `assemble_storyboard_timeline` lays the rendered clips into a timeline sequence. Stills are cheap and clips are not — render the stills, look at them, then spend."
+    );
+  }
   return lines.join("\n");
 }
 

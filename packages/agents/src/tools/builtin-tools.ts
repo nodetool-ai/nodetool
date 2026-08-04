@@ -97,6 +97,14 @@ import {
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool
 } from "./script-voice-tools.js";
+import {
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool
+} from "./storyboard-render-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -125,6 +133,14 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetScriptTool,
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool,
+
+  // Storyboard → rendered media → timeline, without authoring a workflow
+  ListStoryboardsTool,
+  GetStoryboardTool,
+  RenderStoryboardStillsTool,
+  RenderStoryboardClipsTool,
+  ReviseStoryboardClipTool,
+  AssembleStoryboardTimelineTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

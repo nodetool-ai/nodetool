@@ -666,6 +666,27 @@ and the `nodetool.script.*` nodes. Code:
 `packages/agents/src/tools/script-voice-tools.ts`. The `ui_script_*` tools
 remain the path when the script is open in a browser.
 
+### Storyboard render tools (no workflow, no browser)
+
+An agent takes a storyboard from directed to delivered without authoring a
+workflow: **`render_storyboard_stills`** calls the image model per shot and
+saves each still as the shot's keyframe, **`render_storyboard_clips`** animates
+those keyframes into clips, **`revise_storyboard_clip`** revises one take, and
+**`assemble_storyboard_timeline`** lays the rendered clips into a saved timeline
+sequence — which `validate_timeline` then checks. **`list_storyboards`** and
+**`get_storyboard`** find the board and its shot ids.
+
+Both render tools default to "every shot that still needs this step", so a whole
+board is one call; provider and model come from the call or the board's own
+selection, and an unset model is an error naming `find_model` rather than spend
+on a model nobody chose. The prompts, entity seasoning, and shot → timeline
+mapping are the editor's own (`entitiesForShot` in `@nodetool-ai/protocol`,
+`buildStoryboardTimeline` in `@nodetool-ai/timeline`), so a headless render
+matches one done in the UI. Code:
+`packages/agents/src/tools/storyboard-render-tools.ts`. The `ui_storyboard_*`
+tools remain the path when the board is open in a browser and the user should
+watch it fill in.
+
 ### nodetool node run (Single-Node Harness)
 
 Runs one node in isolation — instantiate it, feed it a property bag, print what
