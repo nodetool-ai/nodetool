@@ -26,6 +26,7 @@ import { packWebSocketMessage, unpackWebSocketMessage } from "@nodetool-ai/webso
 import type { Journey, JourneyInteraction } from "../core/journey.js";
 import { makeFrame, type RunFrame, type RunRecord } from "../core/record.js";
 import { AnchorWaiter } from "./anchors.js";
+import { isConnectionControlMessage, stripRelayOnlyFields } from "./relay-fields.js";
 import { findRepoRoot } from "./repo-root.js";
 import type { RunDriver } from "./types.js";
 
@@ -235,9 +236,16 @@ export class PackagedDriver implements RunDriver {
     const ws = new WebSocket(`ws://127.0.0.1:${server.port}/ws`);
 
     ws.on("message", (data: Buffer, isBinary: boolean) => {
-      const message = (
+      const raw = (
         isBinary ? unpackWebSocketMessage(data) : JSON.parse(data.toString("utf8"))
       ) as Record<string, unknown>;
+      // The packaged server is a relay, exactly like `ws-server.ts`'s surface:
+      // it boots the real `server.mjs`, whose Fastify plugin announces the
+      // connection and whose `UnifiedWebSocketRunner` backfills run identity
+      // onto frames the kernel oracle emits bare. Both are cancelled here so
+      // the packaged stream is comparable to the oracle frame-for-frame.
+      if (isConnectionControlMessage(raw)) return;
+      const message = stripRelayOnlyFields(raw);
       waiter.notify(message);
       if (typeof message["job_id"] === "string") {
         jobId = message["job_id"] as string;
