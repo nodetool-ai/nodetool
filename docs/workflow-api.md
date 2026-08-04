@@ -69,6 +69,142 @@ single JSON response — it does not stream. For real-time progress (job and nod
 updates, incremental output), run the workflow over the WebSocket endpoint
 instead.
 
+## Listing Names and Tools
+
+Two lightweight `GET` routes answer "what workflows exist?" without paying for
+full graphs. Both read the caller's own library, so both stay behind auth.
+
+`GET /api/workflows/names` returns an id → name object for up to 1000 of the
+caller's workflows. Use it to label a workflow id you already hold — a job
+record, a saved reference — without fetching the workflow.
+
+```bash
+curl "http://localhost:7777/api/workflows/names" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{ "21fddc0c2c46458493287b151b790cc4": "Greeting" }
+```
+
+`GET /api/workflows/tools` returns only the workflows saved with
+`run_mode: "tool"` — the ones an agent may call as a tool — reduced to what a
+tool picker needs. `limit` defaults to 100 and is capped at 500.
+
+```bash
+curl "http://localhost:7777/api/workflows/tools?limit=50" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "workflows": [
+    {
+      "name": "Summarize",
+      "tool_name": "summarize",
+      "description": "Summarize a block of text"
+    }
+  ],
+  "next": null
+}
+```
+
+A workflow with a `tool_name` but no `run_mode: "tool"` does not appear here.
+
+## Exporting a Workflow as DSL
+
+`GET /api/workflows/{id}/dsl-export` returns the workflow's graph as TypeScript
+DSL source with `content-type: text/plain; charset=utf-8` — the same source
+`nodetool workflows export-dsl` writes. Use it to put a workflow under version
+control, or to hand an agent an editable form of the graph.
+
+```bash
+curl "http://localhost:7777/api/workflows/<workflow_id>/dsl-export" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o workflow.ts
+```
+
+```typescript
+import { constant, workflow } from "@nodetool-ai/dsl";
+
+// 1 — nodetool.constant.String
+const string = constant.string({
+  value: "hi"
+});
+
+export const greetingWorkflow = workflow(string);
+```
+
+The route answers `404` unless the workflow is yours or marked
+`access: "public"`, and `400` when the workflow has no graph or the graph
+cannot be expressed as DSL.
+
+## Public Workflows
+
+A workflow saved with `access: "public"` is readable without a token. These two
+routes and the example routes below are the only `/api/workflows` paths exempt
+from auth — every other one serves the caller's private library, graph
+included, so it stays behind a token.
+
+```bash
+# Every public workflow (limit defaults to 100, caps at 500)
+curl "http://localhost:7777/api/workflows/public"
+
+# One public workflow, full graph included
+curl "http://localhost:7777/api/workflows/public/<workflow_id>"
+```
+
+Both return the normal workflow shape (`id`, `name`, `description`, `graph`,
+`access`, …). Asking for a workflow that exists but is not public gets the same
+`404` as one that does not exist:
+
+```json
+{ "detail": "Workflow not found" }
+```
+
+## Example Templates
+
+The example workflows NodeTool ships are served from disk rather than the
+database, so they need no token and exist on a fresh install.
+
+```bash
+curl "http://localhost:7777/api/workflows/examples"
+curl "http://localhost:7777/api/workflows/examples/search?query=chat"
+```
+
+`search` filters the same list on `query` against each example's name,
+description, and tags, case-insensitively; omitting `query` returns everything.
+Both responses carry metadata only — `graph` comes back empty:
+
+```json
+{
+  "workflows": [
+    {
+      "id": "A Boolean Constant.json",
+      "name": "A Boolean Constant",
+      "description": "The smallest possible graph, and a real one: …",
+      "tags": ["example"],
+      "package_name": "nodetool-base",
+      "thumbnail": "A Boolean Constant.jpg",
+      "thumbnail_url": "/api/workflows/examples/thumbnails/A%20Boolean%20Constant.jpg?v=a6dce6b4",
+      "graph": { "nodes": [], "edges": [] }
+    }
+  ],
+  "next": null
+}
+```
+
+Fetch the image at the `thumbnail_url` the list hands back:
+
+```bash
+curl "http://localhost:7777/api/workflows/examples/thumbnails/A%20Boolean%20Constant.jpg" \
+  -o thumb.jpg
+```
+
+Only `.jpg` and `.png` are served — any other extension is a `400` — and the
+filename is reduced to its basename, so it cannot escape the examples assets
+directory.
+
 ## WebSocket API
 
 For real-time streaming and job control over WebSocket, see the dedicated
