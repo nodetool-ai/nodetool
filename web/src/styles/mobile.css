@@ -532,10 +532,6 @@
     padding-left: 0px !important;
   }
 
-  .mobile .dashboard .dockview-container {
-    padding-top: 0.5rem !important;
-  }
-
   /* Chat Composer Mobile Styles
      Allow vertical room for the embedded model + agent toolbar in the footer. */
   .mobile .chat-composer .compose-message {

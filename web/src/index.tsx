@@ -45,8 +45,6 @@ import "./styles/index.css";
 import "./styles/microtip.css";
 import "./styles/command_menu.css";
 import "./styles/mobile.css";
-import "dockview/dist/styles/dockview.css";
-import "./styles/dockview.css";
 import "./lib/dragdrop/dragdrop.css";
 import { queryClient } from "./queryClient";
 import { TRPCProvider } from "./trpc/Provider";

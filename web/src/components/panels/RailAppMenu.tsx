@@ -27,6 +27,7 @@ import {
   PAGE_TAB_TITLES,
   type PageTabKey
 } from "../workspace/pageTabs";
+import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
 import { Popover, MenuItemPrimitive, Tooltip, MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -138,6 +139,7 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   const goModels = useCallback(() => openPage("models"), [openPage]);
   const goPackages = useCallback(() => openPage("packages"), [openPage]);
   const goCollections = useCallback(() => openPage("collections"), [openPage]);
+  const goAssets = useCallback(() => openPage("assets"), [openPage]);
   const goEntities = useCallback(() => openPage("entities"), [openPage]);
   const goWorkspaces = useCallback(() => openPage("workspaces"), [openPage]);
   const goSettings = useCallback(() => openPage("settings"), [openPage]);
@@ -233,6 +235,11 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
               onClick={goPackages}
             />
           )}
+          <MenuItemPrimitive
+            label="Assets"
+            icon={<PermMediaOutlinedIcon />}
+            onClick={goAssets}
+          />
           <MenuItemPrimitive
             label="Collections"
             icon={<LibraryBooksOutlinedIcon />}
