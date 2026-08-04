@@ -59,6 +59,8 @@ import {
   Text,
   Surface,
   Chip,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
   MOTION,
   SPACING,
   getSpacingPx,
@@ -103,13 +105,13 @@ const styles = (theme: Theme) => css`
   .logo-accent {
     width: 48px;
     height: 48px;
-    border-radius: 12px;
+    border-radius: ${BORDER_RADIUS.xl};
     background: linear-gradient(135deg, ${theme.vars.palette.primary.main} 0%, ${theme.vars.palette.secondary.main} 100%);
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: var(--fontSizeBig);
-    font-weight: 700;
+    font-weight: ${FONT_WEIGHT.semibold};
     color: white;
   }
   
@@ -121,7 +123,7 @@ const styles = (theme: Theme) => css`
 
   .tabs-container {
     background: ${theme.vars.palette.background.paper};
-    border-radius: 12px;
+    border-radius: ${BORDER_RADIUS.xl};
     margin-bottom: ${getSpacingPx(SPACING.xxl)};
     overflow: hidden;
     border: 1px solid ${theme.vars.palette.divider};
@@ -134,7 +136,7 @@ const styles = (theme: Theme) => css`
   }
   
   .component-card {
-    border-radius: 12px;
+    border-radius: ${BORDER_RADIUS.xl};
     overflow: hidden;
     transition: ${MOTION.transform}, ${MOTION.shadow};
     border: 1px solid ${theme.vars.palette.divider};
@@ -188,7 +190,7 @@ const styles = (theme: Theme) => css`
     font-family: monospace;
     background: ${theme.vars.palette.grey[800]};
     padding: ${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)};
-    border-radius: 4px;
+    border-radius: ${BORDER_RADIUS.sm};
   }
 `;
 

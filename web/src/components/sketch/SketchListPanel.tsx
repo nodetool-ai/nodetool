@@ -39,11 +39,16 @@ import {
   ToolbarIconButton,
   TruncatedText,
   Tooltip,
+  BORDER_RADIUS,
+  FONT_WEIGHT,
   MOTION,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
 import { newDocumentId } from "../../lib/newDocumentId";
+
+// Above every tier on the shared Z_INDEX scale, so it keeps its own value.
+const DRAG_IMAGE_Z_INDEX = 9999;
 
 const styles = (theme: Theme) =>
   css({
@@ -124,7 +129,7 @@ function createSketchDragImage(name: string): HTMLElement {
     height: 64px;
     background: var(--palette-background-paper);
     border: 1px solid var(--palette-divider);
-    border-radius: 8px;
+    border-radius: ${BORDER_RADIUS.lg};
     display: flex;
     align-items: center;
     gap: ${getSpacingPx(SPACING.lg)};
@@ -134,7 +139,7 @@ function createSketchDragImage(name: string): HTMLElement {
     color: var(--palette-text-primary);
     font-family: Inter, sans-serif;
     pointer-events: none;
-    z-index: 9999;
+    z-index: ${DRAG_IMAGE_Z_INDEX};
   `;
 
   const icon = document.createElement("div");
@@ -142,7 +147,7 @@ function createSketchDragImage(name: string): HTMLElement {
   icon.style.cssText = `
     width: 48px;
     height: 48px;
-    border-radius: 4px;
+    border-radius: ${BORDER_RADIUS.sm};
     flex-shrink: 0;
     background-color: var(--palette-grey-800);
     color: var(--palette-text-secondary);
@@ -150,7 +155,7 @@ function createSketchDragImage(name: string): HTMLElement {
     align-items: center;
     justify-content: center;
     font-size: var(--fontSizeBig);
-    font-weight: 600;
+    font-weight: ${FONT_WEIGHT.semibold};
   `;
   container.appendChild(icon);
 
@@ -162,7 +167,7 @@ function createSketchDragImage(name: string): HTMLElement {
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: var(--fontSizeSmall);
-    font-weight: 500;
+    font-weight: ${FONT_WEIGHT.medium};
   `;
   container.appendChild(label);
 
