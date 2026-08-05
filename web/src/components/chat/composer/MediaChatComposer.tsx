@@ -44,6 +44,8 @@ import type {
 } from "../../../stores/MediaGenerationStore";
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
+import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
+import { useModeProviderSetup } from "./useModeProviderSetup";
 import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import MediaOptionMenu, { MediaOption } from "./MediaOptionMenu";
@@ -203,6 +205,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const isPi = hideModePicker ? false : globalMode === "pi";
 
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
+
+  // When the selected mode's capability has no configured provider, surface a
+  // setup banner and route the send into the provider-onboarding dialog
+  // instead of letting the request fail server-side. Pi routes through its own
+  // agent socket, so it is exempt.
+  const providerSetup = useModeProviderSetup(isPi ? null : mode);
 
   const [modeAnchor, setModeAnchor] = useState<HTMLButtonElement | null>(null);
   const [durationAnchor, setDurationAnchor] = useState<HTMLButtonElement | null>(null);
@@ -501,6 +509,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (!canGenerate) {
       return;
     }
+    // No configured provider can serve this mode — sending would only fail on
+    // the server. Keep the prompt and guide the user through provider setup.
+    if (providerSetup.needsSetup) {
+      providerSetup.openSetup();
+      return;
+    }
     const content: MessageContent[] = [];
     if (prompt.trim().length > 0) {
       content.push({ type: "text", text: prompt });
@@ -520,7 +534,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     getFileContents,
     sendMessage,
     clearFiles,
-    recordHistory
+    recordHistory,
+    providerSetup
   ]);
 
   const handlePaste = useCallback(
@@ -889,6 +904,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           autoComplete="off"
         />
         {mentionMenu}
+
+        {providerSetup.needsSetup && providerSetup.reason && (
+          <ModeProviderSetupBanner
+            reason={providerSetup.reason}
+            onConnect={providerSetup.openSetup}
+          />
+        )}
 
         {queuedMessage && (
           <FlexRow
