@@ -32,10 +32,7 @@ import {
 } from "./lib/public-routes.js";
 import { isWebSocketUpgrade, denyUnauthorized } from "./lib/ws-upgrade.js";
 import { replayUpgradeToOwner } from "./lib/fly-replay.js";
-import {
-  startJobCancelPoller,
-  startJobControlSubscription
-} from "./job-control.js";
+import { startJobCancelPoller } from "./job-control.js";
 import {
   resolveTrustLocalhost,
   isLoopbackAddress,
@@ -1244,11 +1241,9 @@ await app.register(websocketPlugin, {
   }
 });
 
-// One subscription for the whole process, not one per connection: a bus
-// message names a job, and the registry holding it is process-wide. The poller
-// beside it re-reads this instance's own runs, so a cancel still lands when the
-// bus does not deliver.
-const stopJobControl = await startJobControlSubscription();
+// One poller for the whole process, not one per connection: it re-reads this
+// instance's own running runs so a cancel written on another instance lands
+// here. The registry it consults is process-wide.
 const stopJobCancelPoller = startJobCancelPoller();
 
 await app.register(healthRoute);
@@ -1502,7 +1497,6 @@ async function shutdown(signal: string): Promise<void> {
     // best-effort cleanup
   }
   stopReaper();
-  stopJobControl();
   stopJobCancelPoller();
   try {
     await triggerServices.stop();

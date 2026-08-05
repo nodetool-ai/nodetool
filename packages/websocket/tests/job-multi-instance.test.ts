@@ -4,7 +4,8 @@
  * A run's {@link JobRunSession} lives in the process executing it, so the two
  * things a client does after a drop — resume the stream, stop the run — have
  * to be routed to that process. The job row records which instance owns the
- * run, and cancel travels over the job control bus so the owner hears it.
+ * run: a resume is replayed there, and a cancel is written to the row, which
+ * the owner's poller picks up.
  *
  * `NODETOOL_INSTANCE_ID` stands in for `FLY_MACHINE_ID` here; with neither set
  * every path below is inert and the single-process behavior is unchanged,
@@ -22,18 +23,8 @@ import {
   jobRunRegistry,
   type JobRunExecutionHooks
 } from "../src/job-run-registry.js";
-import {
-  pollCancelledJobsOnce,
-  startJobControlSubscription
-} from "../src/job-control.js";
-import {
-  initTestDb,
-  Job,
-  publishJobControl,
-  resetJobControlBusForTests,
-  subscribeJobControl,
-  type JobControlMessage
-} from "@nodetool-ai/models";
+import { pollCancelledJobsOnce } from "../src/job-control.js";
+import { initTestDb, Job } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -131,7 +122,6 @@ describe("multi-instance job routing", () => {
 
   beforeEach(async () => {
     await initTestDb();
-    resetJobControlBusForTests();
     vi.clearAllMocks();
     ws = new MockWebSocket();
     runner = new UnifiedWebSocketRunner({ resolveExecutor });
@@ -200,7 +190,7 @@ describe("multi-instance job routing", () => {
     expect((await Job.get(jobId))?.runner_instance).toBeNull();
   });
 
-  it("cancels a run owned elsewhere: marks the row and publishes on the bus", async () => {
+  it("cancels a run owned elsewhere by writing its row", async () => {
     process.env["NODETOOL_INSTANCE_ID"] = "machine-b";
     const jobId = "foreign-job";
     await Job.create({
@@ -215,39 +205,14 @@ describe("multi-instance job routing", () => {
 
     // No local session: this instance is not the one executing the run, which
     // is what makes `cancelJob` fall past its local-registry branch.
-    const published: JobControlMessage[] = [];
-    const unsubscribe = await subscribeJobControl((m) => published.push(m));
-
     const result = await runner.handleCommand({
       command: "cancel_job",
       data: { job_id: jobId }
     });
-    unsubscribe();
 
     expect(result?.message).toBe("Job cancellation requested");
     expect(result?.workflow_id).toBe("wf");
     expect((await Job.get(jobId))?.status).toBe("cancelled");
-    expect(published).toEqual([
-      { job_id: jobId, user_id: "1", action: "cancel", origin: "machine-b" }
-    ]);
-  });
-
-  it("cancels the local session when the verb arrives over the bus", async () => {
-    const jobId = "owned-here";
-    const hooks = makeHooks();
-    openSession(jobId, hooks);
-    const stop = await startJobControlSubscription();
-
-    // What the *other* instance's `requestRemoteJobCancel` puts on the bus.
-    await publishJobControl({
-      job_id: jobId,
-      user_id: "1",
-      action: "cancel",
-      origin: "machine-a"
-    });
-    stop();
-
-    expect(hooks.cancel).toHaveBeenCalledTimes(1);
   });
 
   it("leaves a completed row alone when a cancel races the owner's terminal write", async () => {
@@ -311,7 +276,7 @@ describe("multi-instance job routing", () => {
     expect((await Job.get(jobId))?.status).toBe("running");
   });
 
-  it("cancels a local run whose row was cancelled elsewhere, with no bus delivery at all", async () => {
+  it("cancels a local run whose row was cancelled on another instance", async () => {
     const jobId = "cancelled-by-row";
     await Job.create({
       id: jobId,
@@ -325,7 +290,7 @@ describe("multi-instance job routing", () => {
     const hooks = makeHooks();
     openSession(jobId, hooks);
 
-    // Whatever cancelled it never reached us — only the row moved.
+    // The other instance wrote the row; nothing else reached us.
     expect(await Job.markCancelledIfActive(jobId, "1")).toBe(true);
     await pollCancelledJobsOnce();
 
@@ -379,26 +344,21 @@ describe("multi-instance job routing", () => {
     expect((await Job.get(jobId))?.status).toBe("completed");
   });
 
-  it("ignores a bus cancel for a job this process does not hold", async () => {
+  it("leaves a session for a different run alone when the poller runs", async () => {
     const jobId = "elsewhere-job";
     await Job.create({
       id: jobId,
       workflow_id: "wf",
       user_id: "1",
-      status: "running",
+      status: "cancelled",
       params: {},
       graph: trivialGraph
     });
     const hooks = makeHooks();
-    // A session for a *different* run: the subscriber must not touch it.
+    // A session for a *different* run than the cancelled row.
     openSession("unrelated-job", hooks);
-    const stop = await startJobControlSubscription();
 
-    await runner.handleCommand({
-      command: "cancel_job",
-      data: { job_id: jobId }
-    });
-    stop();
+    await pollCancelledJobsOnce();
 
     expect(hooks.cancel).not.toHaveBeenCalled();
   });

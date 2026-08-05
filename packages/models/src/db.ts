@@ -141,16 +141,6 @@ export function getDbType(): DbDialect {
 }
 
 /**
- * The postgres.js client, for the few features Drizzle does not cover —
- * currently only LISTEN/NOTIFY in `job-control-bus.ts`. Internal: not exported
- * from the package index, so no consumer can start issuing raw SQL through it.
- * Null unless a PostgreSQL connection is active.
- */
-export function getPgClient(): Sql | null {
-  return _dbType === "postgres" ? _pgClient : null;
-}
-
-/**
  * Get the underlying better-sqlite3 Database instance for raw queries.
  * Only available when using SQLite.
  */

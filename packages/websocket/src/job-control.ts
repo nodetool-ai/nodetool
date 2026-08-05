@@ -2,30 +2,26 @@
  * Cancelling a run that is executing on another instance.
  *
  * {@link jobRunRegistry} is process-wide, so a `cancel_job` that lands on a
- * machine which does not hold the run has nothing local to stop. The cancel is
- * written to the job row — the durable signal — and the verb also goes onto the
- * job control bus, which every instance listens on: the one holding the session
- * recognises the job and cancels it through the session's hooks, exactly as a
- * local `cancel_job` would.
+ * machine which does not hold the run has nothing local to stop. The job row is
+ * what crosses the gap: the cancel is written there, and every instance
+ * re-reads its *own* running runs on a slow timer
+ * ({@link startJobCancelPoller}), cancelling any whose row now reads
+ * `cancelled`. One indexed query per tick, bounded by that instance's
+ * concurrency.
  *
- * The bus is fast but not guaranteed. Behind a transaction pooler `LISTEN` may
- * never deliver at all, and a subscription re-establishing after a network blip
- * drops whatever was published meanwhile. {@link startJobCancelPoller} closes
- * that hole from the other end: each instance re-reads its *own* running runs'
- * rows on a slow timer and cancels any that now read `cancelled`. One indexed
- * query per tick, bounded by that instance's concurrency — and it makes the row
- * the cancel signal of record rather than a hopeful second copy.
+ * So a cross-instance cancel is not instant — worst case it takes a poll
+ * interval to land. That is the deliberate trade for having exactly one
+ * transport: the durable one. A `NOTIFY` bus would shave those seconds off but
+ * would need a direct (non-transaction-pooled) connection to be anything but a
+ * silent no-op, and it could never be the signal of record anyway — the row
+ * already is.
  *
- * Under SQLite the bus is in-process and this whole path collapses to what the
- * local registry lookup already did, one redundant hop later.
+ * A cancel on the machine that *does* hold the run never comes through here:
+ * `cancelJob` reaches the session's hooks directly and is immediate.
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import {
-  Job,
-  publishJobControl,
-  subscribeJobControl
-} from "@nodetool-ai/models";
+import { Job } from "@nodetool-ai/models";
 
 import { jobRunRegistry } from "./job-run-registry.js";
 import { getInstanceId } from "./lib/instance-id.js";
@@ -57,8 +53,8 @@ export interface RemoteCancelResult {
  * this process; anything else keeps the caller's "not found" answer.
  *
  * The write is conditional on the row still being active, so losing the race
- * against the owner's terminal write leaves the owner's outcome standing.
- * Publishing never throws: a lost message leaves the run to the owner's poller.
+ * against the owner's terminal write leaves the owner's outcome standing — and
+ * its result is the verdict returned here. The owner's poller does the rest.
  */
 export async function requestRemoteJobCancel(
   userId: string,
@@ -68,52 +64,28 @@ export async function requestRemoteJobCancel(
   const instanceId = getInstanceId();
   if (!instanceId) return miss;
 
-  let workflowId: string | null = null;
   try {
     const job = await Job.find(userId, jobId);
     if (!job || job.isComplete()) return miss;
     if (!job.runner_instance || job.runner_instance === instanceId) return miss;
-    workflowId = job.workflow_id || null;
     if (!(await Job.markCancelledIfActive(jobId, userId))) return miss;
+    log.info("Cancelled a run owned by another instance", {
+      jobId,
+      owner: job.runner_instance
+    });
+    return { cancelled: true, workflowId: job.workflow_id || null };
   } catch (err) {
-    log.warn("Remote cancel could not read the job row", {
+    log.warn("Remote cancel could not reach the job row", {
       jobId,
       error: err instanceof Error ? err.message : String(err)
     });
     return miss;
   }
-
-  await publishJobControl({
-    job_id: jobId,
-    user_id: userId,
-    action: "cancel",
-    origin: instanceId
-  });
-  return { cancelled: true, workflowId };
-}
-
-/**
- * Listen for control verbs addressed at runs this process holds. One
- * subscription per process — every instance receives every message, and the
- * ones that do not hold the job ignore it. Cancel is idempotent, so a repeat
- * (a re-established subscription overlapping the old one) is harmless.
- */
-export async function startJobControlSubscription(): Promise<() => void> {
-  return subscribeJobControl((message) => {
-    if (message.action !== "cancel") return;
-    const session = jobRunRegistry.get(message.user_id, message.job_id);
-    if (!session || session.status !== "running") return;
-    log.info("Cancelling a local run on a bus request", {
-      jobId: message.job_id,
-      origin: message.origin
-    });
-    session.cancel();
-  });
 }
 
 /**
  * Re-read this instance's own running runs and cancel the ones whose row says
- * they were cancelled elsewhere. The backstop for a bus that did not deliver.
+ * they were cancelled elsewhere.
  *
  * Nothing running locally means no query at all, so an idle instance costs one
  * timer wakeup. Errors are logged and the tick is skipped: a database blip must

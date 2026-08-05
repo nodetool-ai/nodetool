@@ -4188,8 +4188,8 @@ export class UnifiedWebSocketRunner {
         };
       }
       // Nothing local holds it. With more than one instance the run may be
-      // executing on another machine: persist the cancellation and put the
-      // verb on the control bus for whichever instance owns the session.
+      // executing on another machine: write the cancellation to its row, which
+      // the owning instance's poller picks up.
       const remote = await requestRemoteJobCancel(this.userId ?? "1", jobId);
       if (remote.cancelled) {
         return {
@@ -8155,7 +8155,7 @@ export class UnifiedWebSocketRunner {
           } else {
             // The run may be executing on the connection that started it —
             // this client reconnected to it. Cancel through its hooks, or,
-            // when nothing local holds it, across the control bus.
+            // when nothing local holds it, through its row.
             const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
             if (registered && registered.status === "running") {
               registered.cancel();

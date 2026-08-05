@@ -69,28 +69,22 @@ machine that no longer exists — and since the browser shares one socket across
 chat and every other consumer, all of them would stay dark. A successful
 connect resets the count.
 
-**Cancel travels between instances.** `cancel_job` for a run this process does
+**Cancel travels through the row.** `cancel_job` for a run this process does
 not hold, whose row names a *different* instance, marks the row cancelled with
 a conditional update — only while it is still non-terminal, so it cannot
-overwrite the owner's own outcome — and publishes the verb on a control bus:
-PostgreSQL `LISTEN`/`NOTIFY` on channel `nodetool_job_control`, an in-process
-emitter under SQLite. Every instance subscribes once and cancels the run if it
-holds the session. A row with no `runner_instance` (an HTTP, trigger, or MCP
-run — nothing holds a session for those anywhere) is left alone and still
-answers "Job not found or already completed".
+overwrite the owner's own outcome. Every instance re-reads its own running
+runs on a timer (`NODETOOL_JOB_CANCEL_POLL_MS`, default 15000, `0` disables)
+and cancels any whose row now reads `cancelled`: one indexed query per tick,
+bounded by that instance's concurrency.
 
-`LISTEN` needs a session-pooled or direct connection. Behind a transaction
-pooler — Supabase's port 6543, which the app itself uses — it never delivers.
-Point `NODETOOL_JOB_CONTROL_DATABASE_URL` (or `DIRECT_URL` /
-`DATABASE_DIRECT_URL`) at a direct URL and the listener opens its own
-single connection there; without one it warns and falls back to the pooled
-client.
+The row is the only transport, so a cross-instance cancel takes up to a poll
+interval to land — the trade for having exactly one signal, the durable one. A
+cancel on the machine that *does* hold the run does not go through any of this;
+it reaches the session's hooks directly and is immediate.
 
-Which is survivable, because the row is the signal of record: every instance
-re-reads its own running runs on a timer (`NODETOOL_JOB_CANCEL_POLL_MS`,
-default 15000, `0` disables) and cancels any whose row now reads `cancelled`.
-One indexed query per tick, bounded by that instance's concurrency. The bus
-makes a cancel immediate; the poll makes it certain.
+A row with no `runner_instance` (an HTTP, trigger, or MCP run — nothing holds a
+session for those anywhere) is left alone and still answers "Job not found or
+already completed".
 
 ## Client → Server Commands
 
