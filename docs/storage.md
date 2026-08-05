@@ -93,7 +93,7 @@ Workflows interact with storage through `ProcessingContext` (`@nodetool-ai/runti
 
 - For self-hosted deployments, mount persistent volumes for `/workspace` (workspace files) and the asset storage directory.  
 - In Docker-based execution (`@nodetool-ai/deploy` / `src/docker-run.ts`), the workspace path is mounted into containers, so ensure the host directory exists and has the correct permissions.  
-- When using S3, grant read/write access to the specified bucket and set `NODETOOL_STORAGE_PUBLIC_URL` (if exposing through a CDN).
+- When using S3, grant read/write access to the specified bucket and set `ASSET_DOMAIN` (if exposing through a CDN).
 
 ## Troubleshooting
 

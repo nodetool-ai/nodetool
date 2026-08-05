@@ -29,7 +29,7 @@ Persistent WebSocket connection — reconnects after reloads.
 
 ### Opening Chat
 
-- **From the App**: Click **Chat** in the navigation menu
+- **From the App**: Click the **Chats** icon in the left rail, then pick a thread or start a new one
 - **Standalone Window**: Click the NodeTool system tray icon and select **Chat** for a dedicated, focused window
 
 ### Choosing a Model
@@ -90,7 +90,7 @@ generation time.
 Chat organizes conversations into threads:
 
 - **Create threads** -- Click the **New Chat** button to start a fresh conversation
-- **Switch threads** -- Use the sidebar to navigate between conversations
+- **Switch threads** -- Pick a thread from the **Chats** panel in the left rail; it opens as a workspace tab
 - **Delete threads** -- Remove conversations you no longer need
 - **Message history** -- Scroll through past messages with cursor-based pagination
 - **Message caching** -- Recent messages are cached locally for fast loading

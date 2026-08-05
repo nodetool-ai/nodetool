@@ -49,18 +49,18 @@ A ready-to-render "How to use NodeTool" walkthrough ships alongside the sample:
 
 ```bash
 cd demo
-npm run studio                 # open Studio, pick the "Tutorial" composition
-npm run render:tutorial        # → demo/out/nodetool-tutorial.mp4
+npm run studio                 # open Studio, pick "Tutorial-first-workflow"
+npm run render:tutorial:first  # → web/public/tutorials/first-workflow.mp4
+npm run render:tutorials       # all seven tutorial compositions
 ```
 
 It replays a synthetic four-node pipeline — **Text Input → Enhance Prompt (LLM,
 streaming) → Generate Image → Preview** (`web/src/demo/tutorialCast.ts`, inline
 assets, no backend) — under a title card, a step indicator that tracks the active
 node, lower-third captions, and a closing call-to-action (`demo/src/Tutorial.tsx`).
-Edit the `DEFAULT_TUTORIAL_STEPS` / `DEFAULT_TUTORIAL_CAPTIONS` in `Tutorial.tsx`
-to retime or reword the narration; the timeline itself lives in `tutorialCast.ts`.
-To narrate a real recorded run instead, point the `Tutorial` composition at your
-own cast id in `demo/src/Root.tsx`.
+Edit the entry's `steps` / `captions` in `demo/src/tutorials.ts` to retime or
+reword the narration; the timeline itself lives in `tutorialCast.ts`. To narrate
+a real recorded run instead, point the entry's `castId` at your own cast.
 
 ## Cookbook recipe videos (no backend)
 
