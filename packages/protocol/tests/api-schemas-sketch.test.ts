@@ -9,8 +9,24 @@ import {
   createImageDocumentInput,
   patchImageDocumentInput,
   createLayerInput,
-  appendLayerVersionInput
+  appendLayerVersionInput,
+  sketchVersionListItem,
+  sketchVersionResponse,
+  listSketchVersionsInput,
+  createSketchVersionInput,
+  restoreSketchVersionInput
 } from "../src/api-schemas/sketch.js";
+
+const validVersionListItem = {
+  id: "v1",
+  version: 2,
+  name: null,
+  saveType: "manual",
+  width: 1024,
+  height: 768,
+  backgroundColor: "#ffffff",
+  createdAt: "2026-08-05T00:00:00.000Z"
+};
 
 const validBinding = {
   layerId: "l1",
@@ -242,5 +258,63 @@ describe("sketch.appendLayerVersionInput", () => {
       status: "bogus"
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("sketch document version schemas", () => {
+  it("accepts a list item with a null name", () => {
+    expect(sketchVersionListItem.safeParse(validVersionListItem).success).toBe(
+      true
+    );
+  });
+
+  it("rejects a saveType outside the enum", () => {
+    const result = sketchVersionListItem.safeParse({
+      ...validVersionListItem,
+      saveType: "bogus"
+    });
+    expect(result.success).toBe(false);
+  });
+
+  it("response carries the captured document", () => {
+    const parsed = sketchVersionResponse.parse({
+      ...validVersionListItem,
+      document: { sketch: { version: 3, layers: [] }, layerBindings: [] }
+    });
+    expect(parsed.version).toBe(2);
+    expect(parsed.document).toBeDefined();
+  });
+
+  it("listSketchVersionsInput bounds the limit and enum-checks saveType", () => {
+    expect(
+      listSketchVersionsInput.safeParse({ id: "d1", limit: 10 }).success
+    ).toBe(true);
+    expect(
+      listSketchVersionsInput.safeParse({ id: "d1", limit: 501 }).success
+    ).toBe(false);
+    expect(
+      listSketchVersionsInput.safeParse({ id: "d1", saveType: "autosave" })
+        .success
+    ).toBe(true);
+    expect(
+      listSketchVersionsInput.safeParse({ id: "d1", saveType: "nope" }).success
+    ).toBe(false);
+  });
+
+  it("createSketchVersionInput takes an optional name", () => {
+    expect(createSketchVersionInput.safeParse({ id: "d1" }).success).toBe(true);
+    expect(
+      createSketchVersionInput.safeParse({ id: "d1", name: "x".repeat(201) })
+        .success
+    ).toBe(false);
+  });
+
+  it("restoreSketchVersionInput requires an integer version", () => {
+    expect(
+      restoreSketchVersionInput.safeParse({ id: "d1", version: 3 }).success
+    ).toBe(true);
+    expect(
+      restoreSketchVersionInput.safeParse({ id: "d1", version: 1.5 }).success
+    ).toBe(false);
   });
 });

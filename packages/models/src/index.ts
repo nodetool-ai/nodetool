@@ -40,6 +40,7 @@ export {
   timelineSequences,
   timelineSequenceVersions,
   imageDocuments,
+  imageDocumentVersions,
   workerProfiles,
   workerInstances,
   triggerInputs,
@@ -148,6 +149,8 @@ export { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 export type { TimelineSequenceSaveType } from "./timeline-sequence-version.js";
 
 export { ImageDocument, ImageDocumentConflictError } from "./image-document.js";
+export { ImageDocumentVersion } from "./image-document-version.js";
+export type { ImageDocumentSaveType } from "./image-document-version.js";
 export {
   Storyboard,
   StoryboardConflictError,

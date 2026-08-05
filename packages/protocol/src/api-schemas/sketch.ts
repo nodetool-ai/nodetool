@@ -232,3 +232,71 @@ export const appendLayerVersionInput = z.object({
     .default("success")
 });
 export type AppendLayerVersionInput = z.infer<typeof appendLayerVersionInput>;
+
+// ── document version history (/api/sketch/:id/versions) ────────────────────
+// Distinct from `layerVersion` above: that records one generation take on a
+// single layer, this snapshots the whole sketch document.
+
+/**
+ * How a snapshot came to exist. `restore` marks the snapshot taken of the
+ * *pre-restore* state, so restoring is itself undoable.
+ */
+export const sketchVersionSaveType = z.enum(["manual", "autosave", "restore"]);
+export type SketchVersionSaveType = z.infer<typeof sketchVersionSaveType>;
+
+/**
+ * Metadata for one snapshot. Deliberately carries no `document`: a sketch
+ * document holds layer bitmaps, and the history list renders from metadata
+ * alone.
+ */
+export const sketchVersionListItem = z.object({
+  id: z.string(),
+  version: z.number().int(),
+  name: z.string().nullable().optional(),
+  saveType: sketchVersionSaveType,
+  width: z.number(),
+  height: z.number(),
+  backgroundColor: z.string(),
+  createdAt: z.string()
+});
+export type SketchVersionListItem = z.infer<typeof sketchVersionListItem>;
+
+/** One snapshot including the document it captured. */
+export const sketchVersionResponse = sketchVersionListItem.extend({
+  document: z.unknown()
+});
+export type SketchVersionResponse = z.infer<typeof sketchVersionResponse>;
+
+export const listSketchVersionsInput = z.object({
+  /** Image document whose history is read. */
+  id: z.string(),
+  limit: z.number().int().positive().max(500).optional(),
+  saveType: sketchVersionSaveType.optional()
+});
+export type ListSketchVersionsInput = z.infer<typeof listSketchVersionsInput>;
+
+export const getSketchVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type GetSketchVersionInput = z.infer<typeof getSketchVersionInput>;
+
+export const createSketchVersionInput = z.object({
+  id: z.string(),
+  name: z.string().max(200).optional()
+});
+export type CreateSketchVersionInput = z.infer<typeof createSketchVersionInput>;
+
+export const restoreSketchVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type RestoreSketchVersionInput = z.infer<
+  typeof restoreSketchVersionInput
+>;
+
+export const deleteSketchVersionInput = z.object({
+  id: z.string(),
+  version: z.number().int()
+});
+export type DeleteSketchVersionInput = z.infer<typeof deleteSketchVersionInput>;
