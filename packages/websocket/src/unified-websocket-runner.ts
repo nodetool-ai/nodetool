@@ -96,7 +96,12 @@ import {
   isProviderSessionUpdate,
   isProviderMessageEvent
 } from "@nodetool-ai/runtime";
-import { isRawRgbaImage } from "@nodetool-ai/protocol";
+import {
+  isRawRgbaImage,
+  isModelSelection,
+  NO_MODEL_SELECTED_MESSAGE,
+  noMediaModelSelectedMessage
+} from "@nodetool-ai/protocol";
 import type {
   Chunk,
   GraphData,
@@ -4963,6 +4968,32 @@ export class UnifiedWebSocketRunner {
     );
     data.thread_id = threadId;
 
+    // Route this turn takes: a workflow chatbot and a media generation carry
+    // their own model selection (checked in their handlers), a plain chat turn
+    // is served by the language model the composer picked.
+    const workflowTargetHint =
+      typeof data.workflow_target === "string" ? data.workflow_target : null;
+    const mediaModeHint =
+      data.media_generation && typeof data.media_generation === "object"
+        ? (data.media_generation as Record<string, unknown>).mode
+        : null;
+    const isPlainChatTurn =
+      workflowTargetHint !== "workflow" &&
+      (typeof mediaModeHint !== "string" || mediaModeHint === "chat");
+
+    // A plain chat turn without a chosen model used to fall through to the
+    // built-in default and die deep in provider resolution ("No provider
+    // registered for \"empty\"") — after the user's message had been
+    // persisted. Reject it up front and say what to do instead.
+    if (isPlainChatTurn && !isModelSelection(data.provider, data.model)) {
+      await this.sendMessage({
+        type: "error",
+        message: NO_MODEL_SELECTED_MESSAGE,
+        thread_id: threadId
+      });
+      return;
+    }
+
     // Apply defaults — matches Python's handle_chat_message
     if (!data.model) data.model = this.defaultModel;
     if (!data.provider) data.provider = this.defaultProvider;
@@ -6165,12 +6196,12 @@ export class UnifiedWebSocketRunner {
       typeof data.workflow_id === "string" ? data.workflow_id : null;
     const userId = this.userId ?? "1";
     const mode = String(mediaGeneration.mode ?? "");
-    const providerId = String(
-      mediaGeneration.provider ?? data.provider ?? this.defaultProvider
-    );
-    const modelId = String(
-      mediaGeneration.model ?? data.model ?? this.defaultModel
-    );
+    // The media composer's own selection first; a client without a separate
+    // media picker (mobile) sends only the message-level one. The built-in
+    // chat default is not in the chain — a text model can never serve a
+    // generation, so falling back to it only buys an obscure provider error.
+    const providerId = String(mediaGeneration.provider ?? data.provider ?? "");
+    const modelId = String(mediaGeneration.model ?? data.model ?? "");
     const prompt = this.extractTextContent(data.content);
 
     /**
@@ -6200,10 +6231,10 @@ export class UnifiedWebSocketRunner {
       return;
     }
 
-    if (!modelId || modelId === "undefined") {
+    if (!isModelSelection(providerId, modelId)) {
       await this.sendMessage({
         type: "error",
-        message: `Please select a ${mode} model before generating`,
+        message: noMediaModelSelectedMessage(mode),
         thread_id: threadId
       });
       return;
