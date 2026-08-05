@@ -12,6 +12,7 @@ import {
   DebugAppTool,
   ValidateWorkflowTool,
   ValidateTimelineTool,
+  ValidateSketchTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListNodesTool,
@@ -744,6 +745,119 @@ describe("ValidateTimelineTool", () => {
 
     expect(result.error).toContain("no timeline loader");
     expect(result.validated).toBe(false);
+  });
+});
+
+describe("ValidateSketchTool", () => {
+  const layer = (overrides: Record<string, unknown> = {}) => ({
+    id: "layer-1",
+    name: "Background",
+    type: "raster",
+    visible: true,
+    locked: false,
+    opacity: 1,
+    blendMode: "normal",
+    data: null,
+    ...overrides
+  });
+  const doc = (activeLayerId = "layer-1") => ({
+    sketch: {
+      version: 3,
+      canvas: { width: 1024, height: 768, backgroundColor: "#ffffff" },
+      layers: [layer()],
+      activeLayerId,
+      maskLayerId: null
+    },
+    layerBindings: []
+  });
+
+  it("validates an inline document and summarizes a clean result", async () => {
+    const tool = new ValidateSketchTool();
+    const result = (await tool.process(ctx, { document: doc() })) as {
+      ok: boolean;
+      errors: unknown[];
+      summary: string;
+    };
+
+    expect(result.ok).toBe(true);
+    expect(result.errors).toHaveLength(0);
+    expect(result.summary).toBe("No issues found.");
+  });
+
+  it("reports an active layer the stack lacks", async () => {
+    const tool = new ValidateSketchTool();
+    const result = (await tool.process(ctx, { document: doc("gone") })) as {
+      ok: boolean;
+      errors: Array<{ code: string }>;
+      summary: string;
+    };
+
+    expect(result.ok).toBe(false);
+    expect(result.errors.map((e) => e.code)).toContain("active_layer_missing");
+    expect(result.summary).toContain("1 error");
+  });
+
+  it("checks the inline document against the canvas meta it is given", async () => {
+    const tool = new ValidateSketchTool();
+    const result = (await tool.process(ctx, {
+      document: doc(),
+      width: 512,
+      height: 768,
+      background_color: "#ffffff"
+    })) as { ok: boolean; warnings: Array<{ code: string }> };
+
+    expect(result.ok).toBe(true);
+    expect(result.warnings.map((w) => w.code)).toContain("canvas_size_mismatch");
+  });
+
+  it("loads a saved sketch through the injected loader", async () => {
+    const loader = vi.fn().mockResolvedValue({
+      // Stored documents are JSON text; the tool parses them.
+      document: JSON.stringify(doc("gone")),
+      width: 1024,
+      height: 768,
+      backgroundColor: "#ffffff",
+      name: "My sketch"
+    });
+    const tool = new ValidateSketchTool(loader);
+    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+      ok: boolean;
+      image_document_id: string;
+      name: string;
+    };
+
+    expect(loader).toHaveBeenCalledWith(ctx, "img-1");
+    expect(result.ok).toBe(false);
+    expect(result.image_document_id).toBe("img-1");
+    expect(result.name).toBe("My sketch");
+  });
+
+  it("reports a sketch the loader cannot find", async () => {
+    const tool = new ValidateSketchTool(vi.fn().mockResolvedValue(null));
+    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+      error: string;
+      validated: boolean;
+    };
+
+    expect(result.error).toContain("was not found");
+    expect(result.validated).toBe(false);
+  });
+
+  it("reports an error when given an id but wired with no loader", async () => {
+    const tool = new ValidateSketchTool();
+    const result = (await tool.process(ctx, { image_document_id: "img-1" })) as {
+      error: string;
+      validated: boolean;
+    };
+
+    expect(result.error).toContain("no sketch loader");
+    expect(result.validated).toBe(false);
+  });
+
+  it("reports having nothing to validate", async () => {
+    const tool = new ValidateSketchTool();
+    const result = (await tool.process(ctx, {})) as { error: string };
+    expect(result.error).toContain("No sketch to validate");
   });
 });
 

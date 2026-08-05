@@ -113,6 +113,7 @@ export {
   DebugAppTool,
   ValidateWorkflowTool,
   ValidateTimelineTool,
+  ValidateSketchTool,
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
@@ -132,7 +133,9 @@ export {
 export type {
   PlanWorkflowGraphToolOptions,
   TimelineLoader,
-  TimelineToolRecord
+  TimelineToolRecord,
+  SketchLoader,
+  SketchToolRecord
 } from "./tools/mcp-tools.js";
 export {
   ExtractPDFTextTool,
@@ -415,6 +418,13 @@ export {
   AssembleStoryboardTimelineTool,
   STORYBOARD_RENDER_TOOL_NAMES
 } from "./tools/storyboard-render-tools.js";
+export {
+  ListSketchesTool,
+  ListSketchVersionsTool,
+  CreateSketchVersionTool,
+  RestoreSketchVersionTool,
+  SKETCH_VERSION_TOOL_NAMES
+} from "./tools/sketch-version-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {

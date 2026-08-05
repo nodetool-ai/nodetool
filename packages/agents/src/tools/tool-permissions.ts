@@ -76,6 +76,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_scripts: "read",
   get_script: "read",
   validate_timeline: "read",
+  validate_sketch: "read",
+  list_sketches: "read",
+  list_sketch_versions: "read",
   list_storyboards: "read",
   get_storyboard: "read",
   get_example_workflow: "read",
@@ -173,6 +176,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // assembly writes a timeline row.
   voice_script_lines: "write",
   assemble_script_timeline: "write",
+  // Both write the sketch's snapshot history; a restore also rewrites the
+  // document itself (undoably — it snapshots first).
+  create_sketch_version: "write",
+  restore_sketch_version: "write",
   transcribe_audio: "write",
   embed_text: "write",
   openai_image_generation: "write",

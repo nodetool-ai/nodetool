@@ -25,6 +25,7 @@ import { ProcessingContext as ProcessingContextImpl } from "@nodetool-ai/runtime
 import {
   Tool,
   ValidateTimelineTool,
+  ValidateSketchTool,
   FindModelTool,
   GenerateImageTool,
   EditImageTool,
@@ -39,8 +40,13 @@ import {
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { TimelineLoader } from "@nodetool-ai/agents";
-import { getSecret, Asset, TimelineSequence } from "@nodetool-ai/models";
+import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
+import {
+  getSecret,
+  Asset,
+  ImageDocument,
+  TimelineSequence
+} from "@nodetool-ai/models";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import {
   createLogger,
@@ -168,6 +174,24 @@ const loadTimelineForUser: TimelineLoader = async (context, id) => {
     fps: row.fps,
     width: row.width,
     height: row.height,
+    name: row.name
+  };
+};
+
+/**
+ * Read an `image_documents` row for `validate_sketch`. There is no REST route
+ * for sketches (the API is tRPC-only), so the tool takes this loader instead of
+ * fetching. Ownership is checked the same way the tRPC router's `loadOwned`
+ * does — a row belonging to another user reads as not found.
+ */
+const loadSketchForUser: SketchLoader = async (context, id) => {
+  const row = await ImageDocument.findById(id);
+  if (!row || row.user_id !== context.userId) return null;
+  return {
+    document: row.document,
+    width: row.width,
+    height: row.height,
+    backgroundColor: row.background_color,
     name: row.name
   };
 };
@@ -326,6 +350,9 @@ function collectBridgedTools(
     // Timelines have no REST route (the API is tRPC-only), so this tool takes a
     // loader instead of fetching, and `getAllMcpTools` cannot construct it.
     new ValidateTimelineTool(loadTimelineForUser),
+    // Sketches are tRPC-only too, so this one takes a loader for the same
+    // reason and `getAllMcpTools` cannot construct it either.
+    new ValidateSketchTool(loadSketchForUser),
     // `getAllMcpTools` only offers the media tools when handed a populated
     // provider map. Here they resolve providers from the scoped user's secrets
     // at call time, so offer them unconditionally rather than probing every

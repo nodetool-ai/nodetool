@@ -105,6 +105,12 @@ import {
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool
 } from "./storyboard-render-tools.js";
+import {
+  ListSketchesTool,
+  ListSketchVersionsTool,
+  CreateSketchVersionTool,
+  RestoreSketchVersionTool
+} from "./sketch-version-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -141,6 +147,12 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool,
+
+  // Sketch snapshot history (find a sketch, pin a state, roll one back)
+  ListSketchesTool,
+  ListSketchVersionsTool,
+  CreateSketchVersionTool,
+  RestoreSketchVersionTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,
