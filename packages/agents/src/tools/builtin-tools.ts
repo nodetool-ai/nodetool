@@ -111,6 +111,12 @@ import {
   CreateSketchVersionTool,
   RestoreSketchVersionTool
 } from "./sketch-version-tools.js";
+import {
+  ListTimelinesTool,
+  ListTimelineVersionsTool,
+  CreateTimelineVersionTool,
+  RestoreTimelineVersionTool
+} from "./timeline-version-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -153,6 +159,12 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   ListSketchVersionsTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool,
+
+  // Timeline snapshot history (find a cut, pin a state, roll one back)
+  ListTimelinesTool,
+  ListTimelineVersionsTool,
+  CreateTimelineVersionTool,
+  RestoreTimelineVersionTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

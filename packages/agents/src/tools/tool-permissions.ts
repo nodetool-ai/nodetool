@@ -79,6 +79,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   validate_sketch: "read",
   list_sketches: "read",
   list_sketch_versions: "read",
+  list_timelines: "read",
+  list_timeline_versions: "read",
   list_storyboards: "read",
   get_storyboard: "read",
   get_example_workflow: "read",
@@ -180,6 +182,10 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // document itself (undoably — it snapshots first).
   create_sketch_version: "write",
   restore_sketch_version: "write",
+  // Same for a timeline sequence's history: a restore rewrites the cut, after
+  // snapshotting the state it replaces.
+  create_timeline_version: "write",
+  restore_timeline_version: "write",
   transcribe_audio: "write",
   embed_text: "write",
   openai_image_generation: "write",

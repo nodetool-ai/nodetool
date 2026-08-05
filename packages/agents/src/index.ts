@@ -425,6 +425,13 @@ export {
   RestoreSketchVersionTool,
   SKETCH_VERSION_TOOL_NAMES
 } from "./tools/sketch-version-tools.js";
+export {
+  ListTimelinesTool,
+  ListTimelineVersionsTool,
+  CreateTimelineVersionTool,
+  RestoreTimelineVersionTool,
+  TIMELINE_VERSION_TOOL_NAMES
+} from "./tools/timeline-version-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {

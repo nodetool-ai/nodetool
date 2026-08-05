@@ -181,7 +181,8 @@ export const HARNESSES: HarnessEntry[] = [
       "nodetool timeline versions list|show|create|restore|delete <id> [<version>]",
     kind: "execution",
     capabilities: ["json"],
-    docs: "CLAUDE.md § nodetool timeline validate / debug"
+    agentTool: "restore_timeline_version",
+    docs: "CLAUDE.md § nodetool timeline versions"
   },
   {
     id: "sketch-validate",
@@ -207,6 +208,7 @@ export const HARNESSES: HarnessEntry[] = [
       "nodetool sketch versions list|show|create|restore|delete <id> [<version>]",
     kind: "execution",
     capabilities: ["json"],
+    agentTool: "restore_sketch_version",
     docs: "CLAUDE.md § nodetool sketch versions"
   },
   {
@@ -308,7 +310,9 @@ export const SURFACES: SurfaceEntry[] = [
     ],
     paths: [
       "packages/execution/src/timeline-debug/",
+      "packages/cli/src/timeline-debug/",
       "packages/cli/src/commands/timeline-versions.ts",
+      "packages/agents/src/tools/timeline-version-tools.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts"
     ]

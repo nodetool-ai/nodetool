@@ -647,6 +647,8 @@ the verdict is ok. Validation and report rules live in
 `@nodetool-ai/execution/timeline-debug`; the CLI keeps target resolution, the
 interaction script, and the bundle.
 
+### nodetool timeline versions (Timeline Version History)
+
 `timeline versions` reads and writes a sequence's snapshot history against the
 local database — manual saves, the autosaves `timeline.update` writes at most
 every five minutes, and the pre-restore snapshot that makes a restore undoable.
@@ -666,6 +668,12 @@ onto the sequence, then runs the same static check `timeline validate` runs. An
 old document is restored against today's schema, so what it used to pass is not
 what it passes now — a restore whose document no longer validates exits
 non-zero and prints the issues.
+
+Agents get the same history headlessly: **`list_timelines`**,
+**`list_timeline_versions`**, **`create_timeline_version`** (manual snapshot),
+and **`restore_timeline_version`**, which snapshots the pre-restore state first
+and returns the post-restore validation. None of them needs an open editor or a
+running server.
 
 ### nodetool sketch validate / debug (Sketch Harness)
 
