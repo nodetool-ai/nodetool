@@ -37,7 +37,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
 
   return (
     <FlexColumn align="center" sx={{ py: 0.5 }}>
-      <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
+      <Box sx={{ width: 2, height: 14, backgroundColor: theme.vars.palette.divider }} />
       <ToolbarIconButton
         size="small"
         ariaLabel="Add node"
@@ -56,7 +56,7 @@ export const AddNodeButton: React.FC<AddNodeButtonProps> = ({ onClick, isHero = 
           transition: MOTION.all,
         }}
       />
-      <Box sx={{ width: 2, height: 8, backgroundColor: theme.vars.palette.divider }} />
+      <Box sx={{ width: 2, height: 14, backgroundColor: theme.vars.palette.divider }} />
     </FlexColumn>
   );
 };

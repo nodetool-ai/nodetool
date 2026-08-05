@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
   },
   lineSegment: {
     width: 2,
-    height: 8,
+    height: 14,
   },
   button: {
     width: 32,
