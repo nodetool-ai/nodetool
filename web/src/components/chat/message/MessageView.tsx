@@ -28,7 +28,7 @@ import {
   Text,
   FlexRow,
   FlexColumn,
-  LoadingSpinner,
+  ShimmerText,
   Collapse
 } from "../../ui_primitives";
 import ErrorIcon from "@mui/icons-material/Error";
@@ -206,7 +206,7 @@ const ToolCallCard: React.FC<{
             className="tool-call-name"
             truncate
           >
-            {headline}
+            {isRunning ? <ShimmerText>{headline}</ShimmerText> : headline}
           </Text>
           {showSeparateMessage && (
             <Text
@@ -229,7 +229,6 @@ const ToolCallCard: React.FC<{
           {durationLabel && (
             <span className="tool-call-duration">{durationLabel}</span>
           )}
-          {isRunning && <LoadingSpinner size="small" />}
           {hasDetails && (
             <ExpandMoreIcon
               className={`expand-icon${open ? " expanded" : ""}`}
@@ -373,10 +372,13 @@ const ToolCallGroup: React.FC<{
           weight={500}
           className="tool-call-group-label"
         >
-          Tool execution chain
+          {isRunning ? (
+            <ShimmerText>Tool execution chain</ShimmerText>
+          ) : (
+            "Tool execution chain"
+          )}
         </Text>
         <span className="tool-call-group-rule" aria-hidden />
-        {isRunning && <LoadingSpinner size="small" />}
         <ExpandMoreIcon
           className={`expand-icon${open ? " expanded" : ""}`}
           aria-hidden

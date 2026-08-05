@@ -299,27 +299,6 @@ export const createStyles = (theme: Theme) => ({
       textDecoration: "none"
     },
 
-    ".loading-container": {
-      display: "flex",
-      justifyContent: "center",
-      alignItems: "center",
-      padding: theme.spacing(6, 0)
-    },
-
-    ".loading-dots": {
-      display: "flex",
-      justifyContent: "flex-start",
-      alignItems: "center"
-    },
-
-    ".dot": {
-      width: "10px",
-      height: "10px",
-      borderRadius: BORDER_RADIUS.circle,
-      backgroundColor: theme.vars.palette.text.secondary,
-      margin: theme.spacing(0, 1.5)
-    },
-
     ".node-status": {
       textAlign: "center",
       color: theme.vars.palette.text.secondary,

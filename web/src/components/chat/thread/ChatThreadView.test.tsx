@@ -54,10 +54,6 @@ jest.mock("../../node/TaskUpdateDisplay", () => ({
   default: () => <div data-testid="task-update" />
 }));
 
-jest.mock("../feedback/LoadingIndicator", () => ({
-  LoadingIndicator: () => <div data-testid="loading-indicator" />
-}));
-
 jest.mock("../feedback/Progress", () => ({
   Progress: ({ progress }: { progress: number }) => (
     <div data-testid="progress">{progress}%</div>
@@ -356,7 +352,7 @@ describe("ChatThreadView", () => {
     rafSpy.mockRestore();
   });
 
-  it("renders loading indicator when status is loading", () => {
+  it("renders animated status text when status is loading", () => {
     renderWithTheme(
       <ChatThreadView
         {...defaultProps}
@@ -364,7 +360,7 @@ describe("ChatThreadView", () => {
         messages={mockMessages}
       />
     );
-    expect(screen.getByTestId("loading-indicator")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Thinking…");
   });
 
   it("renders progress bar when progress > 0", () => {
@@ -374,7 +370,7 @@ describe("ChatThreadView", () => {
     expect(screen.getByTestId("progress")).toHaveTextContent("50%");
   });
 
-  it("does not render loading indicator when agent execution messages exist", () => {
+  it("does not render status text when agent execution messages exist", () => {
     const agentMessages: Message[] = [
       ...mockMessages,
       {
@@ -393,7 +389,7 @@ describe("ChatThreadView", () => {
         status="loading"
       />
     );
-    expect(screen.queryByTestId("loading-indicator")).not.toBeInTheDocument();
+    expect(screen.queryByText("Thinking…")).not.toBeInTheDocument();
   });
 
   it("renders planning update", () => {

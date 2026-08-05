@@ -18,8 +18,9 @@ import { threadPreview } from "./utils/threadUtils";
 import {
   EmptyState,
   FlexColumn,
-  LoadingSpinner,
   ScrollArea,
+  ShimmerText,
+  Text,
   Tooltip,
   ToolbarIconButton
 } from "../ui_primitives";
@@ -184,7 +185,14 @@ const ChatListPanel = () => {
 
       {isLoading ? (
         <FlexColumn gap={2} justify="center" align="center" sx={{ flex: 1 }}>
-          <LoadingSpinner size="large" text="Loading conversations" />
+          <Text
+            size="small"
+            color="secondary"
+            role="status"
+            aria-live="polite"
+          >
+            <ShimmerText>Loading conversations…</ShimmerText>
+          </Text>
         </FlexColumn>
       ) : threadsError ? (
         <FlexColumn

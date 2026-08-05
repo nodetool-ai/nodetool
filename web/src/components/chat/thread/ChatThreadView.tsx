@@ -16,6 +16,7 @@ import {
   FONT_SIZE_SANS,
   SPACING,
   SPACING_PX,
+  ShimmerText,
   getSpacingPx,
   Z_INDEX
 } from "../../ui_primitives";
@@ -25,7 +26,6 @@ import {
   TaskUpdate,
   LogUpdate
 } from "../../../stores/ApiTypes";
-import { LoadingIndicator } from "../feedback/LoadingIndicator";
 import { Progress } from "../feedback/Progress";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
@@ -224,20 +224,21 @@ const StatusFooter = memo<StatusFooterProps>(
         {isBusy && !hasAgentExecutionMessages && !pendingMediaMessage && (
           <div className="chat-message-list-item">
             <div style={STATUS_ROW_STYLE}>
-              {status === "loading" && progress === 0 ? (
-                <LoadingIndicator />
-              ) : null}
               <span
+                role="status"
+                aria-live="polite"
                 style={{
                   ...STATUS_TEXT_STYLE,
                   color: theme.vars.palette.text.secondary
                 }}
               >
-                {progressMessage && !runningToolCallId
-                  ? progressMessage
-                  : status === "streaming"
-                    ? "Responding…"
-                    : "Thinking…"}
+                <ShimmerText>
+                  {progressMessage && !runningToolCallId
+                    ? progressMessage
+                    : status === "streaming"
+                      ? "Responding…"
+                      : "Thinking…"}
+                </ShimmerText>
               </span>
               <span
                 style={{

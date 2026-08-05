@@ -470,10 +470,6 @@
     font-size: 0.875em !important;
   }
 
-  .mobile .chat-messages-list .loading-container {
-    padding: var(--spacing-xl) 0 !important;
-  }
-
   .mobile .chat-messages-list .node-status {
     font-size: var(--fontSizeSmall) !important;
   }
