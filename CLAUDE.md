@@ -667,6 +667,49 @@ old document is restored against today's schema, so what it used to pass is not
 what it passes now — a restore whose document no longer validates exits
 non-zero and prints the issues.
 
+### nodetool sketch validate / debug (Sketch Harness)
+
+Checks a sketch (image document) without opening an editor, and replays a
+scripted edit session against it. The target is an image document JSON file — a
+bare `{sketch, layerBindings}` object or anything carrying one, so a
+`sketch.get` response or an `image_documents` row works as-is — or an
+`image_documents` row id. A path that exists on disk wins over an id.
+
+```bash
+npm run dev:nodetool -- sketch validate <image_document_id>
+npm run dev:nodetool -- sketch validate sketch.json --json
+npm run dev:nodetool -- sketch validate <id> --warnings-as-errors
+
+npm run dev:nodetool -- sketch debug sketch.json \
+  --interact '[{"tool":"add_layer","input":{"name":"Shadow"}},
+               {"tool":"set_layer_props","input":{"target":"Shadow","opacity":0.4,"blendMode":"multiply"}}]'
+npm run dev:nodetool -- sketch debug <id> --out ./mydebug --json
+```
+
+`validate` reads what a headless check can decide: a duplicate layer id, an
+`activeLayerId` or binding pointing at a layer the document lacks, opacity or a
+blend mode no compositor ships, a binding with no workflow or prompt behind it,
+and fields a schema round trip would strip. `debug` runs the same check, then
+executes each `--interact` step against the headless `ui_sketch_*` bridge — the
+one the `sketch-tools` eval drives — and validates the document the session
+left behind. A failing step is recorded and the script continues. Pixels,
+painting, rendering, generation, and asset I/O are not simulated; the report
+lists that under `notSimulated`. Layer bitmaps stay opaque throughout.
+
+The same static check is exposed to agents through the **`validate_sketch`**
+tool: pass an inline `document` to check a sketch being built, or an
+`image_document_id` to validate a saved one (scoped to the requesting user).
+Agents also get the version history headlessly: **`list_sketches`**,
+**`list_sketch_versions`**, **`create_sketch_version`** (manual snapshot), and
+**`restore_sketch_version`**, which snapshots the pre-restore state first and
+returns the post-restore validation.
+
+The bundle (`nodetool-debug/sketch-<id>-<ts>/`) holds `report.json`,
+`report.md`, and `sketch.json` (the input document). Exit code 0 only when the
+verdict is ok. Validation and report rules live in
+`@nodetool-ai/execution/sketch-debug`; the CLI keeps target resolution, the
+interaction script, and the bundle.
+
 ### nodetool sketch versions (Sketch Version History)
 
 `sketch versions` reads and writes an image document's snapshot history against
@@ -685,11 +728,12 @@ npm run dev:nodetool -- sketch versions delete <image_document_id> 3 --yes
 ```
 
 `restore` mirrors the tRPC router (`sketch.documentVersions.restore`): it
-snapshots the current state as a `restore` version, then CAS-writes the old
-document and its canvas settings back onto the image document. A sketch has no
-validator harness, so the check afterwards is the one a headless run can make —
-the restored document must still parse as a JSON object; one that no longer
-does exits non-zero. Layer bitmaps stay opaque to that check.
+snapshots the current state as a `restore` version, CAS-writes the old document
+and its canvas settings back onto the image document, then runs the same static
+check `sketch validate` runs. An old document is restored against today's
+schema, so what it used to pass is not what it passes now — a restore whose
+document no longer validates exits non-zero and prints the issues. Layer
+bitmaps stay opaque to that check.
 
 ### Script voicing tools (no workflow, no browser)
 

@@ -551,6 +551,7 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
       "debug_app",
       "validate_workflow",
       "validate_timeline",
+      "validate_sketch",
       "list_models",
       "get_example_workflow",
       "export_workflow_digraph",
@@ -692,6 +693,53 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
     };
     expect(body.ok).toBe(true);
     expect(body.summary).toBe("No issues found.");
+  });
+
+  it("validate_sketch validates an inline document", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const res = await callTool(server, "validate_sketch", {
+      document: {
+        sketch: {
+          version: 3,
+          canvas: { width: 1024, height: 768, backgroundColor: "#ffffff" },
+          layers: [
+            {
+              id: "layer-1",
+              name: "Background",
+              type: "raster",
+              visible: true,
+              locked: false,
+              opacity: 1,
+              blendMode: "normal",
+              data: null
+            }
+          ],
+          activeLayerId: "layer-1",
+          maskLayerId: null
+        },
+        layerBindings: []
+      }
+    });
+    const body = JSON.parse(res.content[0].text!) as {
+      ok: boolean;
+      summary: string;
+    };
+    expect(body.ok).toBe(true);
+    expect(body.summary).toBe("No issues found.");
+  });
+
+  it("validate_sketch reads a saved sketch through the bridged loader", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const res = await callTool(server, "validate_sketch", {
+      image_document_id: "no-such-sketch"
+    });
+    const body = JSON.parse(res.content[0].text!) as {
+      error: string;
+      validated: boolean;
+    };
+    // The loader is wired (no "no sketch loader" error) and reports the miss.
+    expect(body.error).toContain("was not found");
+    expect(body.validated).toBe(false);
   });
 
   it("save_asset reports an actionable error when nothing to save", async () => {

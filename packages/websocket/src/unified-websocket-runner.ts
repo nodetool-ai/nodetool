@@ -1313,6 +1313,11 @@ forward is a workflow.
   checks a sequence before the user renders it.
 - **sketch** — a layered image document. Family \`+sketch\`: layers, drawing
   tools, generating into a layer, rendering the result to an asset.
+  \`validate_sketch\` statically checks a document — the open one or any saved
+  one by id. \`list_sketches\` finds one; every sketch also keeps a snapshot
+  history, read with \`list_sketch_versions\`, pinned with
+  \`create_sketch_version\` and rolled back with \`restore_sketch_version\` —
+  none of which needs an open editor.
 - **model3d** — a 3D scene. Family \`+ui_3d\`: add and transform objects, set
   materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`list_collections\`,
@@ -1539,6 +1544,14 @@ function formatUiContext(uiContext?: UiContext | null): string {
   if (hasTimeline) {
     lines.push(
       "After editing a timeline sequence, call `validate_timeline` with its id. It statically catches clips on missing tracks, overlaps, fades longer than their clip, and timings that cannot render — before the user renders."
+    );
+  }
+
+  const hasSketch =
+    focused?.type === "sketch" || open.some((ref) => ref.type === "sketch");
+  if (hasSketch) {
+    lines.push(
+      "After editing a sketch, call `validate_sketch` with its id. It statically catches duplicate layer ids, an active or mask layer the stack lacks, unknown blend modes, bindings pointing at missing layers, and fields a save would strip — before you hand the document back."
     );
   }
 

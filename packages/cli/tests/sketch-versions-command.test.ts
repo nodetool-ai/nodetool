@@ -14,7 +14,6 @@ import {
   parseVersionNumber,
   versionTableRows,
   documentCounts,
-  checkRestoredDocument,
   type ImageDocumentRow,
   type SketchVersionRow,
   type SketchVersionStore
@@ -63,6 +62,7 @@ const snapshot = vi.fn();
 const restore = vi.fn();
 const deleteVersion = vi.fn();
 const confirmDelete = vi.fn();
+const validate = vi.fn();
 
 const store: SketchVersionStore = {
   loadDocument,
@@ -110,6 +110,7 @@ function buildProgram(): Command {
   const sketch = program.command("sketch");
   registerSketchVersionsCommands(sketch, {
     store: async () => store,
+    validate,
     confirmDelete
   });
   return program;
@@ -139,6 +140,7 @@ beforeEach(() => {
   });
   deleteVersion.mockReset().mockResolvedValue(undefined);
   confirmDelete.mockReset().mockResolvedValue(true);
+  validate.mockReset().mockResolvedValue({ ok: true, errors: [], warnings: [] });
 });
 
 describe("sketch versions list", () => {
@@ -283,10 +285,15 @@ describe("sketch versions restore", () => {
     );
     expect(stdout).toContain("Restored v2 onto doc-1");
     expect(stdout).toContain("pre-restore state saved as v3");
-    expect(stdout).toContain("document parses cleanly");
+    expect(stdout).toContain("0 error(s), 0 warning(s)");
+    expect(validate).toHaveBeenCalledWith(expect.objectContaining({}), {
+      width: 1280,
+      height: 720,
+      backgroundColor: "#101010"
+    });
   });
 
-  it("reports the restore, the snapshot and the check under --json", async () => {
+  it("reports the restore, the snapshot and the validation under --json", async () => {
     const { stdout, exitCode } = await run("restore", "doc-1", "2", "--json");
     expect(exitCode).toBe(0);
     const parsed = JSON.parse(stdout.trim()) as {
@@ -294,7 +301,7 @@ describe("sketch versions restore", () => {
       restored: { version: number };
       snapshot: Record<string, unknown>;
       document: Record<string, unknown>;
-      check: { ok: boolean };
+      validation: { ok: boolean };
     };
     expect(parsed.imageDocumentId).toBe("doc-1");
     expect(parsed.restored.version).toBe(2);
@@ -304,14 +311,28 @@ describe("sketch versions restore", () => {
       height: 720,
       backgroundColor: "#101010"
     });
-    expect(parsed.check).toEqual({ ok: true });
+    expect(parsed.validation).toEqual({ ok: true, errors: [], warnings: [] });
   });
 
-  it("exits non-zero when the restored document is no longer readable JSON", async () => {
+  it("exits non-zero when the restored document no longer validates", async () => {
+    validate.mockResolvedValueOnce({
+      ok: false,
+      errors: [
+        {
+          severity: "error",
+          code: "document_invalid",
+          message: "Document is a string — expected an object."
+        }
+      ],
+      warnings: []
+    });
     findVersion.mockResolvedValueOnce(versionRow({ document: "{not json" }));
     const { exitCode, stdout } = await run("restore", "doc-1", "2");
     expect(exitCode).toBe(1);
-    expect(stdout).toContain("restored document is not valid JSON");
+    expect(stdout).toContain("1 error(s), 0 warning(s)");
+    // parseVersionDocument hands the unparseable text through as-is, so the
+    // validator sees the raw string rather than a silent undefined.
+    expect(validate).toHaveBeenCalledWith("{not json", expect.anything());
   });
 
   it("fails when the document changed since it was loaded", async () => {
@@ -400,13 +421,6 @@ describe("sketch versions helpers", () => {
 
   it("counts layers and bindings of an unreadable document as zero", () => {
     expect(documentCounts("not json")).toEqual({ layers: 0, bindings: 0 });
-  });
-
-  it("accepts an object document and rejects anything else", () => {
-    expect(checkRestoredDocument({ sketch: {} })).toEqual({ ok: true });
-    expect(checkRestoredDocument("{not json").ok).toBe(false);
-    expect(checkRestoredDocument(null).ok).toBe(false);
-    expect(checkRestoredDocument([]).error).toContain("array");
   });
 
   it("rejects non-positive and non-integer versions", () => {

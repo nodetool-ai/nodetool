@@ -10,17 +10,21 @@
  *
  * `restore` mirrors the tRPC router (`sketch.documentVersions.restore`):
  * snapshot what is about to be overwritten, then CAS-write the version's
- * document and canvas settings back onto the image document. A sketch has no
- * validator harness, so the check afterwards is the one a headless run can
- * make — the restored document must still parse as a JSON object.
+ * document and canvas settings back onto the image document, then run the same
+ * static check `sketch validate` runs. An old document is restored against
+ * today's schema, so what it used to pass is not what it passes now — a
+ * restore whose document no longer validates exits non-zero and prints the
+ * issues.
  *
- * The database is injected with a lazy default, so registration stays light and
- * the actions are unit-testable.
+ * The database and the validator core are injected with lazy defaults, so
+ * registration stays light and the actions are unit-testable.
  */
 import type { Command } from "commander";
+import type { SketchValidation } from "@nodetool-ai/execution/sketch-debug";
 import { printCommandError } from "../command-errors.js";
 import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
+import { renderSketchValidation } from "./sketch-validation-output.js";
 
 /** An `image_documents` row as these commands need it. */
 export interface ImageDocumentRow {
@@ -77,6 +81,11 @@ export interface SketchVersionStore {
 export interface SketchVersionsDeps {
   /** Defaults to the local database through `@nodetool-ai/models`. */
   store?: () => Promise<SketchVersionStore>;
+  /** Defaults to `validateSketchDocument` from the sketch-debug core. */
+  validate?: (
+    document: unknown,
+    meta: { width?: number; height?: number; backgroundColor?: string }
+  ) => Promise<SketchValidation> | SketchValidation;
   /** Defaults to the interactive prompt in `output.ts`. */
   confirmDelete?: (message: string, force?: boolean) => Promise<boolean>;
 }
@@ -147,25 +156,14 @@ export function documentCounts(document: unknown): {
   };
 }
 
-/**
- * What a headless check can decide about a restored sketch: it has to still be
- * a JSON object. Layer bitmaps are opaque here — nothing offline can say
- * whether they still decode.
- */
-export function checkRestoredDocument(document: unknown): {
-  ok: boolean;
-  error?: string;
-} {
-  if (typeof document !== "object" || document === null) {
-    return {
-      ok: false,
-      error: "restored document is not valid JSON (expected an object)"
-    };
-  }
-  if (Array.isArray(document)) {
-    return { ok: false, error: "restored document is an array, not an object" };
-  }
-  return { ok: true };
+async function defaultValidate(
+  document: unknown,
+  meta: { width?: number; height?: number; backgroundColor?: string }
+): Promise<SketchValidation> {
+  const { validateSketchDocument } = await import(
+    "@nodetool-ai/execution/sketch-debug"
+  );
+  return validateSketchDocument(document, meta);
 }
 
 async function defaultStore(): Promise<SketchVersionStore> {
@@ -247,6 +245,7 @@ export function registerSketchVersionsCommands(
   deps: SketchVersionsDeps = {}
 ): void {
   const openStore = deps.store ?? defaultStore;
+  const validate = deps.validate ?? defaultValidate;
   const confirmDelete =
     deps.confirmDelete ??
     ((message: string, force?: boolean) => confirm(message, { force }));
@@ -358,7 +357,7 @@ export function registerSketchVersionsCommands(
   versions
     .command("restore <image_document_id> <version>")
     .description(
-      "Restore a version onto the sketch. The pre-restore state is snapshotted first, and the restored document must still parse as a JSON object — a restore that no longer does exits non-zero"
+      "Restore a version onto the sketch. The pre-restore state is snapshotted first, and the restored document is validated against the current schema — a restore whose document no longer validates exits non-zero"
     )
     .option("--json", "Print the restore result as JSON")
     .action(async (documentId: string, version: string, opts: JsonOption) => {
@@ -385,7 +384,11 @@ export function registerSketchVersionsCommands(
         }
 
         const document = parseVersionDocument(target.document);
-        const check = checkRestoredDocument(document);
+        const validation = await validate(document, {
+          width: target.width,
+          height: target.height,
+          backgroundColor: target.background_color
+        });
 
         if (opts.json) {
           asJson({
@@ -398,7 +401,7 @@ export function registerSketchVersionsCommands(
               height: updated.height,
               backgroundColor: updated.background_color
             },
-            check
+            validation
           });
         } else {
           const counts = documentCounts(document);
@@ -408,13 +411,9 @@ export function registerSketchVersionsCommands(
           console.log(
             `  pre-restore state saved as v${backup.version} (${backup.save_type})`
           );
-          if (check.ok) {
-            console.log("  document parses cleanly");
-          } else {
-            console.log(`❌ ${check.error}`);
-          }
+          console.log(renderSketchValidation(validation).join("\n"));
         }
-        restoredOk = check.ok;
+        restoredOk = validation.ok;
       } catch (e) {
         printCommandError(e, opts.json);
         process.exit(1);

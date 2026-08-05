@@ -15,6 +15,9 @@
       "path": "../config"
     },
     {
+      "path": "../gpu"
+    },
+    {
       "path": "../protocol"
     },
     {

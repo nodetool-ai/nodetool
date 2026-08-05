@@ -21,10 +21,8 @@ import {
   collectModelSelectionIssues,
   validateGraph
 } from "@nodetool-ai/node-sdk";
-import {
-  validateTimelineSequence,
-  type TimelineValidation
-} from "@nodetool-ai/execution/timeline-debug";
+import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
+import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
@@ -1247,7 +1245,7 @@ function numberParam(value: unknown): number | undefined {
 }
 
 /** Unwrap a stored document that may still be JSON text. */
-function parseTimelineDocument(document: unknown): unknown {
+function parseStoredDocument(document: unknown): unknown {
   if (typeof document !== "string") return document;
   try {
     return JSON.parse(document);
@@ -1256,7 +1254,11 @@ function parseTimelineDocument(document: unknown): unknown {
   }
 }
 
-function timelineSummary(validation: TimelineValidation): string {
+/** One-line count of what a static validation found. */
+function issueSummary(validation: {
+  errors: unknown[];
+  warnings: unknown[];
+}): string {
   const errors = validation.errors.length;
   const warnings = validation.warnings.length;
   if (errors === 0 && warnings === 0) return "No issues found.";
@@ -1347,7 +1349,7 @@ export class ValidateTimelineTool extends Tool {
           validated: false
         };
       }
-      document = parseTimelineDocument(record.document);
+      document = parseStoredDocument(record.document);
       meta = { fps: record.fps, width: record.width, height: record.height };
       name = record.name;
     }
@@ -1364,7 +1366,7 @@ export class ValidateTimelineTool extends Tool {
       ...validation,
       ...(timelineId ? { timeline_id: timelineId } : {}),
       ...(name ? { name } : {}),
-      summary: timelineSummary(validation)
+      summary: issueSummary(validation)
     };
   }
 
@@ -1372,6 +1374,144 @@ export class ValidateTimelineTool extends Tool {
     return params["timeline_id"]
       ? `Validating timeline ${params["timeline_id"]}`
       : "Validating timeline document";
+  }
+}
+
+export interface SketchToolRecord {
+  /** The stored document — a JSON string or an already-parsed object. */
+  document: unknown;
+  width?: number;
+  height?: number;
+  backgroundColor?: string;
+  name?: string;
+}
+
+/** Reads an `image_documents` row for the caller. */
+export type SketchLoader = (
+  context: ProcessingContext,
+  id: string
+) => Promise<SketchToolRecord | null>;
+
+export class ValidateSketchTool extends Tool {
+  readonly name = "validate_sketch";
+  readonly description =
+    "Statically validate a sketch (image document) WITHOUT rendering it: " +
+    "duplicate layer ids, an active or mask layer the stack lacks, unknown " +
+    "blend modes, opacities and transforms that cannot render, generation " +
+    "bindings pointing at missing layers, unknown binding kinds and statuses, " +
+    "canvas settings that disagree with the stored ones, and fields a schema " +
+    "round trip would strip. Pass an inline `document` to check one you are " +
+    "building, or `image_document_id` to validate a saved sketch. Run it after " +
+    "sketch edits and before handing the document back.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      image_document_id: {
+        type: "string" as const,
+        description: "The ID of a saved sketch (image document) to validate"
+      },
+      document: {
+        type: "object" as const,
+        description:
+          "Inline ImageDocumentData to validate ({ sketch, layerBindings }). " +
+          "Takes precedence over image_document_id."
+      },
+      width: {
+        type: "number" as const,
+        description:
+          "Canvas width the inline document is stored against. The canvas " +
+          "size lives on the row, not in the document, so without it a " +
+          "mismatch between the two cannot be reported. Ignored for " +
+          "image_document_id."
+      },
+      height: {
+        type: "number" as const,
+        description:
+          "Canvas height the inline document is stored against. Ignored for image_document_id."
+      },
+      background_color: {
+        type: "string" as const,
+        description:
+          "Canvas background color the inline document is stored against. Ignored for image_document_id."
+      }
+    }
+  };
+
+  // The sketch API is tRPC-only, so there is no REST route to fall back on:
+  // a host that wants the `image_document_id` path injects a loader. Without
+  // one the tool still validates inline documents.
+  constructor(private readonly loadSketch?: SketchLoader) {
+    super();
+  }
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const inline = params["document"];
+    const sketchId = params["image_document_id"] as string | undefined;
+
+    let document = inline;
+    // An inline document carries no stored canvas settings, so the caller
+    // supplies them; the image_document_id path overwrites these from the row.
+    let meta: {
+      width?: number;
+      height?: number;
+      backgroundColor?: string;
+    } = {
+      width: numberParam(params["width"]),
+      height: numberParam(params["height"]),
+      backgroundColor:
+        typeof params["background_color"] === "string"
+          ? (params["background_color"] as string)
+          : undefined
+    };
+    let name: string | undefined;
+
+    if (document === undefined && sketchId) {
+      if (!this.loadSketch) {
+        return {
+          error:
+            "Cannot load a saved sketch in this process: no sketch loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
+          validated: false
+        };
+      }
+      const record = await this.loadSketch(context, sketchId);
+      if (!record) {
+        return {
+          error: `Sketch ${sketchId} was not found.`,
+          validated: false
+        };
+      }
+      document = parseStoredDocument(record.document);
+      meta = {
+        width: record.width,
+        height: record.height,
+        backgroundColor: record.backgroundColor
+      };
+      name = record.name;
+    }
+
+    if (document === undefined || document === null) {
+      return {
+        error:
+          "No sketch to validate — pass an inline `document` ({sketch, layerBindings}) or a valid `image_document_id`."
+      };
+    }
+
+    const validation = validateSketchDocument(document, meta);
+    return {
+      ...validation,
+      ...(sketchId ? { image_document_id: sketchId } : {}),
+      ...(name ? { name } : {}),
+      summary: issueSummary(validation)
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return params["image_document_id"]
+      ? `Validating sketch ${params["image_document_id"]}`
+      : "Validating sketch document";
   }
 }
 
