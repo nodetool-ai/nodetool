@@ -43,6 +43,21 @@ import { importNodeBuiltin } from "@nodetool-ai/config";
  */
 const MIN_MASKABLE_SECRET_LENGTH = 8;
 
+/**
+ * ProcessingContext variable key carrying the provider/model the currently
+ * running agent loop is itself talking to. Every loop that executes tools
+ * (chat turns, `StepExecutor` sub-agents) stamps it, so a tool that launches
+ * another harness — `build_app` and friends — inherits the caller's model by
+ * default instead of demanding one or falling back to a server env default.
+ */
+export const ACTIVE_MODEL_CONTEXT_KEY = "active_agent_model";
+
+/** The value stored under {@link ACTIVE_MODEL_CONTEXT_KEY}. */
+export interface ActiveModelSelection {
+  provider: string;
+  model: string;
+}
+
 const nodeCrypto =
   await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
 const nodeFsP =

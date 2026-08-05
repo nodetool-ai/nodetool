@@ -12,8 +12,10 @@ import type {
   ProviderSession
 } from "@nodetool-ai/runtime";
 import {
+  ACTIVE_MODEL_CONTEXT_KEY,
   isProviderSessionUpdate,
-  isProviderMessageEvent
+  isProviderMessageEvent,
+  type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
@@ -151,6 +153,13 @@ export async function processChat(opts: {
     maxIterations = 25,
     longTermMemory
   } = opts;
+
+  // Stamp the turn's own selection so harness-launching tools (build_app)
+  // inherit this chat's provider/model when the call doesn't name one.
+  context.set(ACTIVE_MODEL_CONTEXT_KEY, {
+    provider: provider.provider,
+    model
+  } satisfies ActiveModelSelection);
 
   // Recall memory before pushing the user message — keep the recall fresh
   // (relevant to the new query) and avoid leaking the system block into the

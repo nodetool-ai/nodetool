@@ -99,7 +99,13 @@ function createMockProvider(sequences: ProviderStreamItem[][]) {
 }
 
 function createMockContext(): ProcessingContext {
-  return {} as any;
+  const variables: Record<string, unknown> = {};
+  return {
+    get: (key: string) => variables[key],
+    set: (key: string, value: unknown) => {
+      variables[key] = value;
+    }
+  } as any;
 }
 
 function chunk(content: string): Chunk {

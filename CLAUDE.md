@@ -551,8 +551,12 @@ The same `buildApp` runs on the server:
 `POST /api/applications/build {prompt | spec, provider, model, workflow_ids,
 max_repairs, cost_cap_usd, timeout_ms}` returns the `BuildReport`, and an agent
 reaches it through the **`build_app`** tool. Provider and model come from the
-body, or from `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`; the
-cost cap defaults to the harness's own $2.
+body; a `build_app` call that omits them inherits the calling agent's own
+provider/model (stamped on the ProcessingContext under
+`ACTIVE_MODEL_CONTEXT_KEY` by every tool-calling loop — chat turns and
+`StepExecutor` sub-agents alike), and the server falls back to
+`NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`. The cost cap
+defaults to the harness's own $2.
 
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
