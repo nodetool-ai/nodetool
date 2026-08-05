@@ -83,6 +83,14 @@ export default {
     "^\\.\\./env$": "<rootDir>/src/__mocks__/envMock.ts",
     "^.*lib/env$": "<rootDir>/src/__mocks__/envMock.ts",
     "^.*lib/supabaseClient$": "<rootDir>/src/__mocks__/supabaseClientMock.ts",
+    // Reads `import.meta.env`, which the CommonJS transform cannot load.
+    // Mapping it lets `supabaseClient.ts` itself be imported and tested.
+    "^\\./supabaseBuildTimeEnv$":
+      "<rootDir>/src/__mocks__/supabaseBuildTimeEnv.ts",
+    "^\\.\\./supabaseBuildTimeEnv$":
+      "<rootDir>/src/__mocks__/supabaseBuildTimeEnv.ts",
+    "^.*lib/supabaseBuildTimeEnv$":
+      "<rootDir>/src/__mocks__/supabaseBuildTimeEnv.ts",
     "^@google/model-viewer$": "<rootDir>/src/__mocks__/modelViewerMock.ts",
     "^react-markdown$": "<rootDir>/src/__mocks__/reactMarkdownMock.tsx",
     "^remark-gfm$": "<rootDir>/src/__mocks__/emptyModule.ts",

@@ -3,7 +3,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
-import configRoute from "../src/routes/config.js";
+import configRoute, { describeMissingAnonKey } from "../src/routes/config.js";
 
 const ENV_KEYS = [
   "SUPABASE_URL",
@@ -98,5 +98,54 @@ describe("/api/config endpoint", () => {
     const res = await app.inject({ method: "GET", url: "/api/config" });
     const body = JSON.parse(res.body);
     expect(body.authMode).toBe("local");
+  });
+
+  it("serves supabase mode with a null anon key when the key is missing", async () => {
+    process.env.SUPABASE_URL = "https://x.supabase.co";
+    process.env.SUPABASE_KEY = "service-role-key";
+
+    const body = JSON.parse(
+      (await app.inject({ method: "GET", url: "/api/config" })).body
+    );
+    // The shape that took prod down: auth enforced, nothing for the browser to
+    // authenticate with, and a 200 either way. The service-role key stays out.
+    expect(body.authMode).toBe("supabase");
+    expect(body.supabaseAnonKey).toBeNull();
+    expect(JSON.stringify(body)).not.toContain("service-role-key");
+  });
+});
+
+describe("describeMissingAnonKey", () => {
+  it("flags auth enforced with no anon key", () => {
+    expect(
+      describeMissingAnonKey({
+        SUPABASE_URL: "https://x.supabase.co",
+        SUPABASE_KEY: "service"
+      })
+    ).toContain("SUPABASE_ANON_KEY");
+  });
+
+  it("treats a blank anon key as missing", () => {
+    expect(
+      describeMissingAnonKey({
+        SUPABASE_URL: "https://x.supabase.co",
+        SUPABASE_KEY: "service",
+        SUPABASE_ANON_KEY: "   "
+      })
+    ).toContain("SUPABASE_ANON_KEY");
+  });
+
+  it("is silent once the anon key is set", () => {
+    expect(
+      describeMissingAnonKey({
+        SUPABASE_URL: "https://x.supabase.co",
+        SUPABASE_KEY: "service",
+        SUPABASE_ANON_KEY: "anon"
+      })
+    ).toBeNull();
+  });
+
+  it("is silent in local mode, where Supabase is never called", () => {
+    expect(describeMissingAnonKey({})).toBeNull();
   });
 });
