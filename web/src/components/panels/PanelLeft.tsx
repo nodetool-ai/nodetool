@@ -36,7 +36,6 @@ import QuickAccessSidebar from "../node_menu/QuickAccessSidebar";
 import NodeLibrary from "../node_menu/NodeLibrary";
 import RailAppMenu from "./RailAppMenu";
 
-import { IconForType } from "../../config/IconForType";
 import {
   LeftPanelView,
   NodeCategoryId,
@@ -49,6 +48,7 @@ import {
   LEFT_PANEL_TOP_LEVEL,
   getTopLevelCategory
 } from "../../config/quickAccessCategories";
+import type { LeftPanelTopLevelCategory } from "../../config/quickAccessCategories";
 import { ContextMenuProvider } from "../../providers/ContextMenuProvider";
 import ContextMenus from "../context_menus/ContextMenus";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -63,8 +63,6 @@ import PanelHeadline from "../ui/PanelHeadline";
 import { ScrollArea, Tooltip, MobileBottomSheet, MOTION } from "../ui_primitives";
 import MenuIcon from "@mui/icons-material/Menu";
 import CodeIcon from "@mui/icons-material/Code";
-import GridViewIcon from "@mui/icons-material/GridView";
-import CollectionsOutlinedIcon from "@mui/icons-material/CollectionsOutlined";
 
 import Fullscreen from "@mui/icons-material/Fullscreen";
 
@@ -612,12 +610,15 @@ const mobileLauncherStyles = (theme: Theme) =>
 const mobileHeaderExtrasStyles = (theme: Theme) =>
   css({
     display: "flex",
-    flexWrap: "wrap",
+    // Every top-level view gets a tab, so the row scrolls sideways rather than
+    // wrapping into several rows of icons above the sheet content.
+    flexWrap: "nowrap",
     gap: getSpacingPx(SPACING.xs),
     padding: `${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.lg)}`,
     overflowX: "auto",
     WebkitOverflowScrolling: "touch",
     "& .tab-button": {
+      flexShrink: 0,
       padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`, // was 6px 10px
       borderRadius: BORDER_RADIUS.lg,
       color: theme.vars.palette.text.secondary,
@@ -633,6 +634,18 @@ const mobileHeaderExtrasStyles = (theme: Theme) =>
     }
   });
 
+// The create action each list view offers, mirroring the desktop panel
+// headlines (which mobile hides in favour of the sheet header).
+const MOBILE_CREATE_ACTIONS: Partial<Record<LeftPanelView, React.FC>> = {
+  workflows: CreateWorkflowButton,
+  chats: CreateChatButton,
+  sketches: CreateSketchButton,
+  timelines: CreateTimelineButton,
+  storyboards: CreateStoryboardButton,
+  scripts: CreateScriptButton,
+  apps: CreateApplicationButton
+};
+
 const MobilePanelLeft: React.FC<{
   activeView: LeftPanelView;
   activeNodeCategory: NodeCategoryId;
@@ -643,6 +656,8 @@ const MobilePanelLeft: React.FC<{
   onClose: () => void;
   onViewChange: (view: LeftPanelView) => void;
   handlePanelToggle: (view: LeftPanelView) => void;
+  /** Top-level views to omit, same as the desktop rail. */
+  hiddenViews?: readonly LeftPanelView[];
   /**
    * In the workspace shell the top row carries the launcher buttons
    * (MobileRailLauncher), so this variant renders only the sheet.
@@ -658,6 +673,7 @@ const MobilePanelLeft: React.FC<{
   onClose,
   onViewChange,
   handlePanelToggle,
+  hiddenViews,
   hideLauncher = false
 }) => {
   const theme = useTheme();
@@ -668,6 +684,13 @@ const MobilePanelLeft: React.FC<{
     },
     [onViewChange]
   );
+
+  const categories = useMemo<readonly LeftPanelTopLevelCategory[]>(
+    () => LEFT_PANEL_TOP_LEVEL.filter((cat) => !hiddenViews?.includes(cat.id)),
+    [hiddenViews]
+  );
+
+  const CreateAction = MOBILE_CREATE_ACTIONS[activeView];
 
   const launcherTitle =
     getTopLevelCategory(activeView)?.label ?? "Workflows";
@@ -695,56 +718,25 @@ const MobilePanelLeft: React.FC<{
         ariaLabel="Workflows, sketches, timelines, and assets panel"
         headerExtras={
           <div css={mobileHeaderExtrasStyles(theme)}>
-            <Tooltip title="Workflows" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                className={`tab-button ${activeView === "workflows" ? "active" : ""}`}
-                onClick={() => handleSheetViewChange("workflows")}
-                ariaLabel="Show workflows"
-                tabIndex={-1}
-                icon={<GridViewIcon />}
-              />
-            </Tooltip>
-            <Tooltip title="Sketches" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                className={`tab-button ${activeView === "sketches" ? "active" : ""}`}
-                onClick={() => handleSheetViewChange("sketches")}
-                ariaLabel="Show sketches"
-                tabIndex={-1}
-                icon={<IconForType iconName="image" showTooltip={false} iconSize="small" />}
-              />
-            </Tooltip>
-            <Tooltip title="Timelines" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                className={`tab-button ${activeView === "timelines" ? "active" : ""}`}
-                onClick={() => handleSheetViewChange("timelines")}
-                ariaLabel="Show timelines"
-                tabIndex={-1}
-                icon={<IconForType iconName="video" showTooltip={false} iconSize="small" />}
-              />
-            </Tooltip>
-            <Tooltip title="Assets" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                className={`tab-button ${activeView === "assets" ? "active" : ""}`}
-                onClick={() => handleSheetViewChange("assets")}
-                ariaLabel="Show assets"
-                tabIndex={-1}
-                icon={<IconForType iconName="asset" showTooltip={false} iconSize="small" />}
-              />
-            </Tooltip>
-            <Tooltip title="Library" placement="bottom" delay={TOOLTIP_ENTER_DELAY}>
-              <ToolbarIconButton
-                className={`tab-button ${activeView === "library" ? "active" : ""}`}
-                onClick={() => handleSheetViewChange("library")}
-                ariaLabel="Show library"
-                tabIndex={-1}
-                icon={<CollectionsOutlinedIcon fontSize="small" />}
-              />
-            </Tooltip>
+            {categories.map((cat) => (
+              <Tooltip
+                key={cat.id}
+                title={cat.label}
+                placement="bottom"
+                delay={TOOLTIP_ENTER_DELAY}
+              >
+                <ToolbarIconButton
+                  className={`tab-button ${activeView === cat.id ? "active" : ""}`}
+                  onClick={() => handleSheetViewChange(cat.id)}
+                  ariaLabel={cat.label}
+                  tabIndex={-1}
+                  icon={cat.icon}
+                />
+              </Tooltip>
+            ))}
 
             <Box sx={{ flex: 1 }} />
-            {activeView === "workflows" && <CreateWorkflowButton />}
-            {activeView === "sketches" && <CreateSketchButton />}
-            {activeView === "timelines" && <CreateTimelineButton />}
+            {CreateAction && <CreateAction />}
           </div>
         }
       >
@@ -874,6 +866,7 @@ const PanelLeft: React.FC = () => {
         onClose={handleMobileClose}
         onViewChange={onViewChange}
         handlePanelToggle={handlePanelToggle}
+        hiddenViews={hiddenViews}
         hideLauncher={isWorkspace}
       />
     );
