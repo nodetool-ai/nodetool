@@ -166,6 +166,130 @@ describe("chat turn resilience across disconnect", () => {
     await runnerB.disconnect();
   });
 
+  it("lets a fresh client (page reload) discover and reattach a running turn", async () => {
+    // Reproduces the reported bug: the agent keeps running server-side, but a
+    // reloaded page has no threadRuntime/cursor state, so before
+    // `list_chat_turns` existed it never learned a turn was in flight and
+    // never reattached — the turn streamed to nobody until the detach grace
+    // aborted it.
+    const threadId = `t-reload-${Date.now()}-${Math.random()}`;
+    const { provider, release } = gatedProvider();
+
+    const runnerA = new UnifiedWebSocketRunner({
+      resolveExecutor: noopExecutor,
+      resolveProvider: provider
+    });
+    const wsA = new MockWS();
+    await runnerA.connect(wsA);
+    await runnerA.handleCommand({
+      command: "chat_message",
+      data: { thread_id: threadId, content: "hi", provider: "mock", model: "m" }
+    });
+    await vi.waitFor(() => {
+      expect(
+        sentMsgs(wsA).some((m) => m.type === "chunk" && m.content === "hello ")
+      ).toBe(true);
+    });
+
+    // The page reloads: old socket gone, new connection with zero state.
+    await runnerA.disconnect();
+    const runnerB = new UnifiedWebSocketRunner({
+      resolveExecutor: noopExecutor,
+      resolveProvider: provider
+    });
+    const wsB = new MockWS();
+    await runnerB.connect(wsB);
+
+    // Discovery: the fresh client learns which threads still have a turn.
+    await runnerB.handleCommand({ command: "list_chat_turns", data: {} });
+    const active = sentMsgs(wsB).find((m) => m.type === "chat_turn_active");
+    expect(active).toBeDefined();
+    expect(active!.thread_id).toBe(threadId);
+    expect(active!.status).toBe("running");
+
+    // Reattach with no cursor: replay starts after the last persisted
+    // message frame (none yet mid-turn, so the streamed chunk is replayed
+    // and the client can rebuild the in-progress reply), and the header
+    // tells the client to reconcile persisted history over REST.
+    await runnerB.handleCommand({
+      command: "resume_chat",
+      data: { thread_id: threadId, last_seq: 0 }
+    });
+    const header = sentMsgs(wsB).find((m) => m.type === "chat_resumed");
+    expect(header).toBeDefined();
+    expect(header!.status).toBe("running");
+    expect(header!.replay_incomplete).toBe(true);
+    expect(
+      sentMsgs(wsB).some((m) => m.type === "chunk" && m.content === "hello ")
+    ).toBe(true);
+
+    // The turn finishes against the reattached connection.
+    release();
+    await vi.waitFor(() => {
+      expect(
+        sentMsgs(wsB).some(
+          (m) => m.type === "message" && m.role === "assistant"
+        )
+      ).toBe(true);
+    });
+    expect(
+      sentMsgs(wsB).some((m) => m.type === "chunk" && m.content === "world")
+    ).toBe(true);
+    await runnerB.disconnect();
+  });
+
+  it("fresh reattach after the reply finalized replays no stale chunks", async () => {
+    const threadId = `t-reload-late-${Date.now()}-${Math.random()}`;
+    const { provider, release } = gatedProvider();
+
+    const runnerA = new UnifiedWebSocketRunner({
+      resolveExecutor: noopExecutor,
+      resolveProvider: provider
+    });
+    const wsA = new MockWS();
+    await runnerA.connect(wsA);
+    await runnerA.handleCommand({
+      command: "chat_message",
+      data: { thread_id: threadId, content: "hi", provider: "mock", model: "m" }
+    });
+    await vi.waitFor(() => {
+      expect(sentMsgs(wsA).some((m) => m.type === "chunk")).toBe(true);
+    });
+    await runnerA.disconnect();
+    release();
+    await vi.waitFor(() => {
+      expect(chatTurnRegistry.get("1", threadId)!.status).toBe("finished");
+    });
+
+    // Reload after the turn finished (within retention). The assistant
+    // message is persisted, so a fresh attach must not replay the chunks
+    // that built it — REST history already carries the final text and a
+    // chunk replay would render it twice.
+    const runnerB = new UnifiedWebSocketRunner({
+      resolveExecutor: noopExecutor,
+      resolveProvider: provider
+    });
+    const wsB = new MockWS();
+    await runnerB.connect(wsB);
+    await runnerB.handleCommand({
+      command: "resume_chat",
+      data: { thread_id: threadId, last_seq: 0 }
+    });
+    const header = sentMsgs(wsB).find((m) => m.type === "chat_resumed");
+    expect(header).toBeDefined();
+    expect(header!.status).toBe("finished");
+    expect(header!.replay_incomplete).toBe(true);
+    // Only the terminal done-chunk may follow the persisted message; the
+    // text chunks that built the reply must not be replayed.
+    expect(
+      sentMsgs(wsB).some((m) => m.type === "chunk" && m.content !== "")
+    ).toBe(false);
+    expect(
+      sentMsgs(wsB).some((m) => m.type === "message" && m.role === "assistant")
+    ).toBe(false);
+    await runnerB.disconnect();
+  });
+
   it("answers resume_chat for an unknown thread with status unknown", async () => {
     const runner = new UnifiedWebSocketRunner({
       resolveExecutor: noopExecutor

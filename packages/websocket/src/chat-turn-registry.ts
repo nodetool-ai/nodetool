@@ -111,6 +111,25 @@ export class ChatTurnSession {
   }
 
   /**
+   * Where a client with no frame state (a freshly reloaded page) should
+   * start its replay: after the turn's last `message` frame. Everything up
+   * to and including that frame is persisted to the DB and reachable over
+   * REST; what follows — stream chunks of the in-progress reply, status
+   * updates, pending tool/approval requests — exists only in this buffer.
+   * With no `message` frame buffered yet, replay starts at the oldest
+   * frame still held.
+   */
+  freshAttachSeq(): number {
+    for (let i = this.buffer.length - 1; i >= 0; i--) {
+      const entry = this.buffer[i];
+      if ((entry.message as { type?: unknown }).type === "message") {
+        return entry.seq;
+      }
+    }
+    return this.evictedThroughSeq;
+  }
+
+  /**
    * Stamp, buffer, and (when a connection is attached) deliver one frame.
    * Returns the stamped copy.
    */
@@ -265,6 +284,13 @@ export class ChatTurnRegistry {
 
   get(userId: string, threadId: string): ChatTurnSession | null {
     return this.sessions.get(this.key(userId, threadId)) ?? null;
+  }
+
+  /** Sessions still running for a user — what a fresh client can reattach to. */
+  listRunningForUser(userId: string): ChatTurnSession[] {
+    return [...this.sessions.values()].filter(
+      (s) => s.userId === userId && s.status === "running"
+    );
   }
 
   drop(session: ChatTurnSession): void {

@@ -125,6 +125,18 @@ export interface ChatResumedUpdate {
   replay_incomplete: boolean;
 }
 
+/**
+ * Reply to a `list_chat_turns` command: this thread's agent turn is still
+ * running on the server. Sent once per running turn so a client that starts
+ * with no local state (a page reload) can reattach with `resume_chat`.
+ */
+export interface ChatTurnActiveUpdate {
+  type: "chat_turn_active";
+  thread_id: string;
+  status: "running";
+  last_seq: number;
+}
+
 export type MsgpackData =
   | JobUpdate
   | Chunk
@@ -148,6 +160,7 @@ export type MsgpackData =
   | ToolApprovalRequestMessage
   | PlanApprovalRequestMessage
   | ChatResumedUpdate
+  | ChatTurnActiveUpdate
   | ErrorMessage;
 
 export interface ToolResultMessage {
@@ -1439,18 +1452,49 @@ export async function handleChatWebSocketMessage(
       }));
     }
     console.debug(`${data.type}:`, data.workflow_id);
+  } else if (data.type === "chat_turn_active") {
+    // Reply to our list_chat_turns: this thread's turn is still running on
+    // the server. If the runtime already tracks it (same-page reconnect,
+    // resume already sent with a real cursor) there is nothing to do; a
+    // fresh page has no runtime state, so mark the thread busy and reattach
+    // from scratch — the chat_resumed reply then reconciles history.
+    if (tid) {
+      const runtimeStatus = getThreadRuntime(get(), tid).status;
+      if (
+        runtimeStatus !== "loading" &&
+        runtimeStatus !== "streaming" &&
+        runtimeStatus !== "stopping"
+      ) {
+        set((state) => threadRuntimeUpdate(state, tid, { status: "loading" }));
+        void globalWebSocketManager
+          .send({
+            command: "resume_chat",
+            data: {
+              thread_id: tid,
+              last_seq: get().chatReplayCursors[tid] ?? 0
+            }
+          })
+          .catch((err) =>
+            console.error("Failed to send resume_chat:", tid, err)
+          );
+      }
+    }
   } else if (data.type === "chat_resumed") {
     // Reply to our resume_chat after a reconnect. "running"/"finished" are
     // followed by the replayed frames, which drive the runtime as usual. If
     // the server has nothing to replay ("unknown": no turn survived, or the
-    // retention window elapsed) or the bounded buffer lost our tail
-    // (replay_incomplete), reconcile from persisted history instead: reset
-    // the runtime and reload the thread's messages over REST.
+    // retention window elapsed) or the replay doesn't reach back to what we
+    // last saw (replay_incomplete — the buffer lost our tail, or we are a
+    // fresh page with no frame state at all), reconcile from persisted
+    // history: reload the thread's messages over REST. The runtime stays
+    // busy while the turn is still running so the UI keeps showing the
+    // agent at work; otherwise it resets to idle.
     if (tid && (data.status === "unknown" || data.replay_incomplete)) {
       clearSendTimeout();
+      const stillRunning = data.status === "running";
       set((state) =>
         threadRuntimeUpdate(state, tid, {
-          status: "idle",
+          status: stillRunning ? "loading" : "idle",
           statusMessage: null,
           progress: { current: 0, total: 0 }
         })

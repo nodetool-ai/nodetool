@@ -47,6 +47,7 @@ export const UNIFIED_COMMAND_TYPES = [
   "end_input_stream",
   "chat_message",
   "resume_chat",
+  "list_chat_turns",
   "inference",
   "stop",
   "list_workflows",
@@ -174,7 +175,13 @@ export const chatMessageDataSchema = z
 export const resumeChatDataSchema = z
   .object({
     thread_id: z.string().optional(),
-    /** Highest `chat_seq` the client has already received for this thread. */
+    /**
+     * Highest `chat_seq` the client has already received for this thread.
+     * `0` (or omitted) declares a fresh client with no frame state — a page
+     * that just reloaded. The server then replays only what persisted
+     * history cannot provide (frames after the turn's last `message` frame)
+     * and flags `replay_incomplete` so the client reconciles over REST.
+     */
     last_seq: z.number().optional()
   })
   .passthrough();
@@ -255,6 +262,7 @@ export const commandDataSchemas: Record<UnifiedCommandType, z.ZodTypeAny> = {
   end_input_stream: looseDataSchema,
   chat_message: looseDataSchema,
   resume_chat: resumeChatDataSchema,
+  list_chat_turns: looseDataSchema,
   inference: looseDataSchema,
   stop: looseDataSchema,
   list_workflows: looseDataSchema,
@@ -437,6 +445,22 @@ export const chatResumedMessageOutSchema = z
   .passthrough();
 
 /**
+ * Reply to a `list_chat_turns` command, one frame per chat turn still
+ * running for the requesting user. A client that starts with no local state
+ * (a fresh page after a reload) sends `list_chat_turns` to discover threads
+ * whose agent turn survived on the server, then reattaches each with
+ * `resume_chat`. Routed by `thread_id` like every other chat frame.
+ */
+export const chatTurnActiveMessageOutSchema = z
+  .object({
+    type: z.literal("chat_turn_active"),
+    thread_id: z.string(),
+    status: z.literal("running"),
+    last_seq: z.number()
+  })
+  .passthrough();
+
+/**
  * Reply to a `reconnect_job` / `resume_job` command. Sent before any
  * replayed frames.
  *
@@ -470,5 +494,6 @@ export const outboundControlMessageSchemas = {
   system_stats: systemStatsMessageOutSchema,
   resource_change: resourceChangeMessageOutSchema,
   chat_resumed: chatResumedMessageOutSchema,
+  chat_turn_active: chatTurnActiveMessageOutSchema,
   job_resumed: jobResumedMessageOutSchema
 } as const;

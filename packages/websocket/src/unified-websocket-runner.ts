@@ -8090,6 +8090,23 @@ export class UnifiedWebSocketRunner {
           thread_id: threadId
         };
       }
+      case "list_chat_turns": {
+        // Discovery for a client that starts with no local state (a page
+        // reload): report every turn of this user still running so the
+        // client can reattach each thread with `resume_chat`.
+        const sessions = chatTurnRegistry.listRunningForUser(
+          this.userId ?? "1"
+        );
+        for (const s of sessions) {
+          await this.sendToSocket({
+            type: "chat_turn_active",
+            thread_id: s.threadId,
+            status: "running",
+            last_seq: s.lastSeq
+          });
+        }
+        return { message: "Chat turns listed", count: sessions.length };
+      }
       case "resume_chat": {
         const threadId =
           typeof data.thread_id === "string" ? data.thread_id : "";
@@ -8114,9 +8131,15 @@ export class UnifiedWebSocketRunner {
           });
           return { message: "No chat turn to resume", thread_id: threadId };
         }
+        // last_seq <= 0 is a fresh client (page reload): it has no frame
+        // state, but the persisted head of the turn is reachable over REST.
+        // Replay only what REST cannot provide — frames after the turn's
+        // last `message` frame — and flag the replay incomplete so the
+        // client reconciles history from REST.
+        const fresh = lastSeq <= 0;
         const { replay, incomplete } = session.attach(
           this.chatDeliveryTarget,
-          lastSeq
+          fresh ? session.freshAttachSeq() : lastSeq
         );
         if (session.status === "running" && this.chatTurnSession !== session) {
           this.adoptedSessions.set(threadId, session);
@@ -8130,7 +8153,7 @@ export class UnifiedWebSocketRunner {
             status: session.status,
             last_seq: session.lastSeq,
             replay_count: replay.length,
-            replay_incomplete: incomplete
+            replay_incomplete: fresh || incomplete
           },
           ...replay
         ]);
