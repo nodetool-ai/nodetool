@@ -9,6 +9,7 @@
  *
  *   list_timelines          — find a sequence to work on
  *   list_timeline_versions  — its snapshots, newest first
+ *   get_timeline_version    — read one snapshot's document without restoring
  *   create_timeline_version — pin the current state as a manual snapshot
  *   restore_timeline_version — roll the sequence back to one
  *
@@ -229,6 +230,59 @@ export class ListTimelineVersionsTool extends Tool {
   }
 }
 
+export class GetTimelineVersionTool extends Tool {
+  readonly name = "get_timeline_version";
+  readonly description =
+    "Read one snapshot of a timeline sequence without restoring it: the " +
+    "version's metadata plus the full document it stored. Use this to inspect " +
+    "or compare versions before deciding which one to restore.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      timeline_id: {
+        type: "string" as const,
+        description: "Timeline sequence id."
+      },
+      version: {
+        type: "number" as const,
+        description: "Version number to read, from list_timeline_versions."
+      }
+    },
+    required: ["timeline_id", "version"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const seq = await loadTimeline(context, params["timeline_id"]);
+    if (isError(seq)) return seq;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const version = await TimelineSequenceVersion.findByVersion(seq.id, number);
+    if (!version) {
+      return {
+        error: `Timeline ${seq.id} has no version ${number}. Call list_timeline_versions to see the available ones.`
+      };
+    }
+
+    const document = parseVersionDocument(version.document);
+    if (isError(document)) return document;
+
+    return {
+      timeline_id: seq.id,
+      ...toVersionListItem(version),
+      document
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return `Reading v${String(params["version"])} of timeline ${String(params["timeline_id"])}`;
+  }
+}
+
 export class CreateTimelineVersionTool extends Tool {
   readonly name = "create_timeline_version";
   readonly description =
@@ -389,6 +443,7 @@ export class RestoreTimelineVersionTool extends Tool {
 export const TIMELINE_VERSION_TOOL_NAMES = [
   "list_timelines",
   "list_timeline_versions",
+  "get_timeline_version",
   "create_timeline_version",
   "restore_timeline_version"
 ] as const;

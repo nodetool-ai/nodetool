@@ -670,7 +670,8 @@ what it passes now — a restore whose document no longer validates exits
 non-zero and prints the issues.
 
 Agents get the same history headlessly: **`list_timelines`**,
-**`list_timeline_versions`**, **`create_timeline_version`** (manual snapshot),
+**`list_timeline_versions`**, **`get_timeline_version`** (read one snapshot's
+document without restoring), **`create_timeline_version`** (manual snapshot),
 and **`restore_timeline_version`**, which snapshots the pre-restore state first
 and returns the post-restore validation. None of them needs an open editor or a
 running server.
@@ -708,7 +709,8 @@ The same static check is exposed to agents through the **`validate_sketch`**
 tool: pass an inline `document` to check a sketch being built, or an
 `image_document_id` to validate a saved one (scoped to the requesting user).
 Agents also get the version history headlessly: **`list_sketches`**,
-**`list_sketch_versions`**, **`create_sketch_version`** (manual snapshot), and
+**`list_sketch_versions`**, **`get_sketch_version`** (read one snapshot's
+document without restoring), **`create_sketch_version`** (manual snapshot), and
 **`restore_sketch_version`**, which snapshots the pre-restore state first and
 returns the post-restore validation.
 
