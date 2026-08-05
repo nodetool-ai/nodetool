@@ -29,7 +29,7 @@ const ThreadList: React.FC<ThreadListProps> = ({
   isFiltered = false
 }) => {
   const theme = useTheme<Theme>();
-  const componentStyles = createStyles(theme);
+  const componentStyles = useMemo(() => createStyles(theme), [theme]);
 
   const listElements = useMemo(() => {
     const elements: React.ReactNode[] = [];
