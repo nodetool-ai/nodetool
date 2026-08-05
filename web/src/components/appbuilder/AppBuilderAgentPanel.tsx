@@ -178,7 +178,11 @@ const AppBuilderAgentPanel: React.FC<AppBuilderAgentPanelProps> = ({
           Build the app layout and bind widgets to workflow inputs and outputs.
         </Caption>
       </Box>
-      <ChatPanelHeader onNewChat={handleNewChat} />
+      <ChatPanelHeader
+        onNewChat={handleNewChat}
+        docsTopic="appBuilder"
+        docsLabel="App builder"
+      />
       <Box sx={{ flex: 1, minHeight: 0 }}>
         <ChatView
           status={viewStatus}

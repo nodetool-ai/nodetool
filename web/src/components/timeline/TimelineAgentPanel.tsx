@@ -144,7 +144,11 @@ const TimelineAgentPanel = () => {
 
   return (
     <div css={cssStyles}>
-      <ChatPanelHeader onNewChat={handleNewChat} />
+      <ChatPanelHeader
+        onNewChat={handleNewChat}
+        docsTopic="timelines"
+        docsLabel="Video editor"
+      />
       <div style={{ flex: 1, minHeight: 0 }}>
         <ChatView
           status={chatStatus}

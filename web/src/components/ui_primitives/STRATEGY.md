@@ -68,7 +68,7 @@ These primitives exist but are barely adopted:
 `EditorButton` | `ToolbarIconButton` | `StateIconButton` | `CircularActionButton` | `NavButton` | `CreateFab` | `PlaybackButton` | `RunWorkflowButton` | `ExpandCollapseButton` | `RefreshButton` | `ViewModeToggle` | `LabeledToggle` | `ConfirmButton`
 
 ### Semantic Action Buttons (replace custom icon+tooltip combos)
-`CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `UndoRedoButtons`
+`CopyButton` | `CloseButton` | `DeleteButton` | `DownloadButton` | `UploadButton` | `EditButton` | `SettingsButton` | `FavoriteButton` | `HelpButton` | `DocsHelpLink` | `UndoRedoButtons`
 
 ### Feedback & Status (replace raw CircularProgress/Alert)
 `LoadingSpinner` | `ProgressBar` | `Skeleton` | `StatusIndicator` | `EmptyState` | `AlertBanner` | `WarningBanner` | `Toast` | `NotificationBadge`

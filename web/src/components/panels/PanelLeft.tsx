@@ -331,7 +331,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="History" />}
+          {!isMobile && <PanelHeadline title="History" docsTopic="nodes" />}
           <HistoryTilesPanel />
         </FlexColumn>
       )}
@@ -344,7 +344,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Favorites" />}
+          {!isMobile && <PanelHeadline title="Favorites" docsTopic="nodes" />}
           <ScrollArea fullHeight>
             <FavoritesTiles showEmpty hideHeader />
           </ScrollArea>
@@ -362,6 +362,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title={currentWorkflow ? "Workflow Output" : "Assets"}
+              docsTopic="assets"
               actions={
                 <Tooltip
                   title="Open the global asset library"
@@ -395,6 +396,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Library"
+              docsTopic="assets"
               actions={
                 <Tooltip title="Open in full page" placement="right-start">
                   <ToolbarIconButton
@@ -425,6 +427,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Workflows"
+              docsTopic="workflows"
               actions={<CreateWorkflowButton />}
             />
           )}
@@ -443,7 +446,11 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline title="Chats" actions={<CreateChatButton />} />
+            <PanelHeadline
+              title="Chats"
+              docsTopic="chat"
+              actions={<CreateChatButton />}
+            />
           )}
           <ChatListPanel />
         </FlexColumn>
@@ -460,6 +467,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Sketches"
+              docsTopic="sketches"
               actions={<CreateSketchButton />}
             />
           )}
@@ -478,6 +486,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Timelines"
+              docsTopic="timelines"
               actions={<CreateTimelineButton />}
             />
           )}
@@ -496,6 +505,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Storyboards"
+              docsTopic="storyboards"
               actions={<CreateStoryboardButton />}
             />
           )}
@@ -512,7 +522,11 @@ const PanelContent = memo(function PanelContent({
           }}
         >
           {!isMobile && (
-            <PanelHeadline title="Scripts" actions={<CreateScriptButton />} />
+            <PanelHeadline
+              title="Scripts"
+              docsTopic="scripts"
+              actions={<CreateScriptButton />}
+            />
           )}
           <ScriptListPanel />
         </FlexColumn>
@@ -529,6 +543,7 @@ const PanelContent = memo(function PanelContent({
           {!isMobile && (
             <PanelHeadline
               title="Apps"
+              docsTopic="apps"
               actions={
                 <>
                   <CreateApplicationFromWorkflowButton />
@@ -549,7 +564,7 @@ const PanelContent = memo(function PanelContent({
             overflow: "hidden"
           }}
         >
-          {!isMobile && <PanelHeadline title="Settings" />}
+          {!isMobile && <PanelHeadline title="Settings" docsTopic="workflows" />}
           <ScrollArea fullHeight>
             <WorkflowForm workflow={currentWorkflow} onClose={closePanel} />
           </ScrollArea>

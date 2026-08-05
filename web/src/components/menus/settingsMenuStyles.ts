@@ -270,6 +270,12 @@ export const settingsStyles = (theme: Theme): CSSObject => ({
       gap: theme.spacing(0.5),
       minWidth: 0
     },
+    "& .settings-page-header__heading": {
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing(0.5)
+    },
     "& .settings-page-header__title": {
       margin: 0,
       color: theme.vars.palette.text.primary,

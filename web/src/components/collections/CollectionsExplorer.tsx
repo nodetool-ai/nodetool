@@ -12,7 +12,7 @@ const CollectionsExplorer: React.FC = () => (
     icon={<LibraryBooksOutlinedIcon sx={{ fontSize: 22 }} />}
     title="Collections"
     subtitle="Searchable document collections for RAG workflows — drop in PDFs, Markdown, HTML, or transcripts."
-    docsUrl="https://docs.nodetool.ai/collections.html"
+    docsTopic="collections"
   >
     <CollectionList />
   </ManagerPageLayout>

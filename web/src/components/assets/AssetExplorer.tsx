@@ -50,6 +50,7 @@ const AssetExplorer: React.FC = memo(() => {
       icon={<PermMediaOutlinedIcon sx={{ fontSize: 22 }} />}
       title="Assets"
       subtitle="Browse, organize, and preview your images, audio, video, and other files."
+      docsTopic="assets"
       padded={false}
       actions={<StorageAnalytics assets={folderFiles} />}
     >

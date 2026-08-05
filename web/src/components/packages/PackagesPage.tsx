@@ -12,6 +12,7 @@ const PackagesPage: React.FC = () => (
     icon={<Inventory2OutlinedIcon sx={{ fontSize: 22 }} />}
     title="Package Manager"
     subtitle="Install runtimes and node packs in one place."
+    docsTopic="nodePacks"
     padded={false}
   >
     <PackageManager />

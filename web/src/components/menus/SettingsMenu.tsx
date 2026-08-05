@@ -21,8 +21,10 @@ import {
   Box,
   Tabs,
   Tab,
-  SPACING
+  SPACING,
+  DocsHelpLink
 } from "../ui_primitives";
+import type { DocsTopic } from "../../config/docsLinks";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { isLocalhost, isElectron } from "../../lib/env";
 import RemoteSettingsMenuComponent from "./RemoteSettingsMenu";
@@ -55,6 +57,12 @@ const TAB_GENERAL = 0;
 const TAB_API_KEYS = 1;
 const TAB_INTEGRATIONS = 2;
 const aboutTabIndex = 3;
+
+const settingsDocsTopic = (tab: number): DocsTopic =>
+  tab === TAB_API_KEYS ? "providers" : "configuration";
+
+const settingsDocsLabel = (tab: number): string =>
+  tab === TAB_API_KEYS ? "Models & providers" : "Configuration";
 
 const UPDATE_CHANNEL_OPTIONS = [
   { value: "latest", label: "Stable" },
@@ -543,7 +551,13 @@ function SettingsPage() {
       <Box css={settingsStyles(theme)} sx={{ flex: 1, minHeight: 0 }}>
         <header className="settings-page-header">
           <div className="settings-page-header__titles">
-            <h1 className="settings-page-header__title">Settings</h1>
+            <div className="settings-page-header__heading">
+              <h1 className="settings-page-header__title">Settings</h1>
+              <DocsHelpLink
+                topic={settingsDocsTopic(settingsTab)}
+                label={settingsDocsLabel(settingsTab)}
+              />
+            </div>
             <p className="settings-page-header__subtitle">
               {settingsTab === aboutTabIndex
                 ? "About this application."

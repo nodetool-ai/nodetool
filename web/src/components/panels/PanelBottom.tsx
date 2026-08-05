@@ -459,7 +459,7 @@ const PanelBodyContent = memo(function PanelBodyContent({
             padding: "0 1em"
           }}
         >
-          <PanelHeadline title="Queue" />
+          <PanelHeadline title="Queue" docsTopic="debugging" />
           <QueuePanel />
         </FlexColumn>
       );
