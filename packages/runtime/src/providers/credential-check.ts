@@ -85,6 +85,12 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://api.x.ai/v1/models",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  DASHSCOPE_API_KEY: {
+    label: "Alibaba Cloud",
+    url: () =>
+      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   CEREBRAS_API_KEY: {
     label: "Cerebras",
     url: () => "https://api.cerebras.ai/v1/models",

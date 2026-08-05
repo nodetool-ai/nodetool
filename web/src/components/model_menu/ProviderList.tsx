@@ -74,6 +74,7 @@ import fireworksColorIcon from "../../icons/providers/fireworks-color.svg";
 import stabilityColorIcon from "../../icons/providers/stability-color.svg";
 import cerebrasColorIcon from "../../icons/providers/cerebras-color.svg";
 import moonshotIcon from "../../icons/providers/moonshot.svg";
+import alibabacloudColorIcon from "../../icons/providers/alibabacloud-color.svg";
 import novitaColorIcon from "../../icons/providers/novita-color.svg";
 import sambanovaColorIcon from "../../icons/providers/sambanova-color.svg";
 import siliconcloudColorIcon from "../../icons/providers/siliconcloud-color.svg";
@@ -216,6 +217,7 @@ const providerIconMap: Record<string, string> = {
   cerebras: cerebrasColorIcon,
   gmi: gmiIcon,
   moonshot: moonshotIcon,
+  alibaba: alibabacloudColorIcon,
   novita: novitaColorIcon,
   sambanova: sambanovaColorIcon,
   siliconcloud: siliconcloudColorIcon,
@@ -467,6 +469,7 @@ const getProviderIconUrl = (provider: string): string | null => {
     fireworks: fireworksColorIcon,
     cloudflare: cloudflareColorIcon,
     moonshot: moonshotIcon,
+    alibaba: alibabacloudColorIcon,
     perplexity: perplexityColorIcon,
     ai21: ai21Icon,
     meta: metaColorIcon,

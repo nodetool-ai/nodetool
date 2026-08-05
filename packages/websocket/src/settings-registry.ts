@@ -246,6 +246,11 @@ sec(
   "Anthropic API key for accessing Claude models and other Anthropic services. Get yours at https://console.anthropic.com/settings/keys"
 );
 sec(
+  "DASHSCOPE_API_KEY",
+  "Alibaba Cloud",
+  "Alibaba Cloud Model Studio (DashScope) API key for accessing Qwen models through the OpenAI-compatible endpoint. Get yours at https://modelstudio.console.alibabacloud.com/"
+);
+sec(
   "CEREBRAS_API_KEY",
   "Cerebras",
   "Cerebras API key for accessing fast LLM inference on Cerebras hardware. Get yours at https://cloud.cerebras.ai/"

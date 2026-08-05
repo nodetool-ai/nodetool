@@ -28,6 +28,7 @@ import topazlabsIcon from "../../icons/providers/topazlabs.svg";
 import atlascloudIcon from "../../icons/providers/atlascloud.svg";
 import zhipuColorIcon from "../../icons/providers/zhipu-color.svg";
 import minimaxColorIcon from "../../icons/providers/minimax-color.svg";
+import alibabacloudColorIcon from "../../icons/providers/alibabacloud-color.svg";
 import meshyColorIcon from "../../icons/providers/meshy-color.svg";
 import githubIcon from "../../icons/providers/github.svg";
 import googleColorIcon from "../../icons/providers/google-color.svg";
@@ -196,6 +197,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "language",
     docsUrl: "https://platform.minimax.chat/",
     icon: minimaxColorIcon
+  },
+  {
+    key: "DASHSCOPE_API_KEY",
+    name: "Alibaba Cloud",
+    description: "Qwen models via Alibaba Cloud Model Studio.",
+    section: "language",
+    docsUrl: "https://www.alibabacloud.com/help/en/model-studio/",
+    icon: alibabacloudColorIcon
   },
   {
     key: "HF_TOKEN",

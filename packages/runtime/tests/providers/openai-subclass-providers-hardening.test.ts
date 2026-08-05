@@ -8,6 +8,7 @@
  * MUTATION_TESTING.md.
  */
 import { describe, it, expect, vi } from "vitest";
+import { AlibabaProvider } from "../../src/providers/alibaba-provider.js";
 import { CerebrasProvider } from "../../src/providers/cerebras-provider.js";
 import { GMIProvider } from "../../src/providers/gmi-provider.js";
 import { GroqProvider } from "../../src/providers/groq-provider.js";
@@ -23,6 +24,13 @@ const fetchReturning = (body: unknown) =>
   vi.fn().mockResolvedValue({ ok: true, json: async () => body });
 
 const cases = [
+  {
+    name: "alibaba",
+    baseURL: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+    id: "alibaba",
+    make: (opts?: object) =>
+      new AlibabaProvider({ DASHSCOPE_API_KEY: "k" }, opts as never)
+  },
   {
     name: "cerebras",
     baseURL: "https://api.cerebras.ai/v1",
