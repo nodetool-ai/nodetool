@@ -306,6 +306,7 @@ const ChatView = ({
           composerToolbar={composerToolbar}
           placeholder={composerPlaceholder}
           hideModePicker={hideModePicker}
+          threadId={effectiveThreadId}
         />
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}

@@ -19,7 +19,7 @@ import DashboardTemplates, {
 import DashboardTutorials from "./DashboardTutorials";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
-import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
+import { useStartTrackChat } from "../../hooks/useStartTrackChat";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box, SPACING, getSpacingPx } from "../ui_primitives";
 
@@ -56,13 +56,13 @@ const Portal: React.FC = () => {
   const { sortedWorkflows, isLoadingWorkflows } = useDashboardData();
   const { handleCreateNewWorkflow } = useWorkflowActions();
 
-  const createStarterWorkflow = useCreateStarterWorkflow();
+  const startTrackChat = useStartTrackChat();
   const hasConfiguredProvider = useHasConfiguredProvider();
 
   const handlePickTrack = useCallback(
     (trackId: WelcomeTrackId) => {
-      // A starter workflow needs a model to run; route key-less users through
-      // the shared provider onboarding first so their first Run doesn't fail.
+      // The first send needs a model; route key-less users through the shared
+      // provider onboarding first so that send doesn't fail.
       if (!hasConfiguredProvider) {
         setPendingTrack(trackId);
         const track = WELCOME_TRACKS.find((t) => t.id === trackId);
@@ -76,23 +76,23 @@ const Portal: React.FC = () => {
         });
         return;
       }
-      createStarterWorkflow(trackId);
+      void startTrackChat(trackId);
     },
-    [hasConfiguredProvider, createStarterWorkflow]
+    [hasConfiguredProvider, startTrackChat]
   );
 
   // Picking a track without a provider parks it here; once one is connected the
-  // starter opens on its own, so the user finishes the thing they asked for
+  // chat opens on its own, so the user finishes the thing they asked for
   // rather than landing back on the dashboard.
-  const createStarter = useRef(createStarterWorkflow);
-  createStarter.current = createStarterWorkflow;
+  const startChat = useRef(startTrackChat);
+  startChat.current = startTrackChat;
   useEffect(() => {
     if (!pendingTrack || !hasConfiguredProvider) {
       return;
     }
     const trackId = pendingTrack;
     setPendingTrack(null);
-    createStarter.current(trackId);
+    void startChat.current(trackId);
   }, [pendingTrack, hasConfiguredProvider]);
 
   const handleOpenWorkflow = useCallback(

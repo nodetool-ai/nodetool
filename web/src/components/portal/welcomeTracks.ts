@@ -1,15 +1,11 @@
 /**
  * Starter tracks for the dashboard welcome flow. Each track maps a creative
- * modality to a real three-node starter graph (String -> model node ->
- * Preview) that is dropped onto the canvas when the user picks it.
- *
- * Node type strings, input handles, and output handles are the canonical
- * `nodetool.*` node identifiers (see packages/dsl/src/generated). The model
- * field on each model node is filled with the user's default model at
- * creation time via applyDefaultModels — these tracks intentionally do not
- * hardcode a provider.
+ * modality to a chat tab: picking one opens a new conversation in that
+ * modality's composer mode with the example prompt already typed, so the
+ * user's first action is pressing send.
  */
 import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
+import type { MediaMode } from "../../stores/MediaGenerationStore";
 
 export type WelcomeTrackId = "image" | "video" | "audio" | "agent";
 
@@ -19,88 +15,71 @@ export interface WelcomeTrack {
   label: string;
   /** One-line description under the title. */
   blurb: string;
-  /** Short node-type label shown as a mono chip on the card. */
-  nodeLabel: string;
+  /** Short mode label shown as a mono chip on the card. */
+  modeLabel: string;
   /** Modality accent color used for the card icon tint. */
   accent: string;
-  /** Name given to the created workflow. */
-  workflowName: string;
-  /** Example prompt pre-filled into the String node. */
+  /** Title given to the chat tab this track opens. */
+  threadTitle: string;
+  /** Example prompt pre-filled into the composer. */
   samplePrompt: string;
-  /** Node type of the model node wired after the String. */
-  modelType: string;
-  /** Input handle on the model node that receives the prompt String. */
-  promptInput: string;
-  /** Output handle on the model node that feeds the Preview. */
-  outputHandle: string;
+  /** Composer mode the chat opens in. */
+  chatMode: MediaMode;
   /**
-   * What a provider must be able to do for this track's model node to run.
+   * What a provider must be able to do for this track's first send to work.
    * Narrows provider onboarding to the ones that unblock the track the user
    * just picked.
    */
   capability: OnboardingCapability;
 }
 
-export {
-  STRING_NODE_TYPE,
-  PREVIEW_NODE_TYPE
-} from "../../constants/nodeTypes";
-
 export const WELCOME_TRACKS: WelcomeTrack[] = [
   {
     id: "image",
     label: "Image",
     blurb: "A still frame from a prompt.",
-    nodeLabel: "TextToImage",
+    modeLabel: "image",
     accent: "#9F7AEA",
-    workflowName: "Image starter",
+    threadTitle: "Image",
     samplePrompt:
       "a brutalist concrete pavilion at dusk, fog rolling in low, single warm light from inside, photograph, medium format",
-    modelType: "nodetool.image.TextToImage",
-    promptInput: "prompt",
-    outputHandle: "output",
+    chatMode: "image",
     capability: "text_to_image"
   },
   {
     id: "video",
     label: "Video",
     blurb: "A short clip from a prompt.",
-    nodeLabel: "TextToVideo",
+    modeLabel: "video",
     accent: "#F472B6",
-    workflowName: "Video starter",
+    threadTitle: "Video",
     samplePrompt:
       "slow dolly through an empty library at golden hour, dust in the air, 24fps, cinematic",
-    modelType: "nodetool.video.TextToVideo",
-    capability: "text_to_video",
-    promptInput: "prompt",
-    outputHandle: "output"
+    chatMode: "video",
+    capability: "text_to_video"
   },
   {
     id: "audio",
     label: "Audio",
     blurb: "A spoken line or sound texture.",
-    nodeLabel: "TextToSpeech",
+    modeLabel: "audio",
     accent: "#FBBF24",
-    workflowName: "Audio starter",
+    threadTitle: "Audio",
     samplePrompt:
       "a calm narrator: you are listening to nodetool. every model, your keys, your canvas.",
-    modelType: "nodetool.audio.TextToSpeech",
-    capability: "text_to_speech",
-    promptInput: "text",
-    outputHandle: "audio"
+    chatMode: "audio",
+    capability: "text_to_speech"
   },
   {
     id: "agent",
     label: "Text · Agent",
     blurb: "A reasoning step or written output.",
-    nodeLabel: "Agent",
+    modeLabel: "chat",
     accent: "#60A5FA",
-    workflowName: "Agent starter",
+    threadTitle: "Chat",
     samplePrompt:
       "draft a 4-line tagline for a creative tool that runs every AI model locally or in the cloud, no hype words",
-    modelType: "nodetool.agents.Agent",
-    capability: "generate_message",
-    promptInput: "prompt",
-    outputHandle: "text"
+    chatMode: "chat",
+    capability: "generate_message"
   }
 ];
