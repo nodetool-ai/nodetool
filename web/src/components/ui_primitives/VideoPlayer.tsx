@@ -71,7 +71,13 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
     ".play-button": {
       width: 28,
       height: 28,
+      flexShrink: 0,
       padding: 0,
+      "@media (pointer: coarse)": {
+        width: 40,
+        height: 40,
+        "& svg": { fontSize: 24 }
+      },
       color: theme.vars.palette.common.white,
       "& svg": { fontSize: 20 },
       "&:hover": {
@@ -81,11 +87,17 @@ const styles = (theme: Theme, controlsVisible: boolean) =>
     },
     ".seek": {
       flex: 1,
+      minWidth: 0,
       height: 4,
       appearance: "none",
       background: "rgba(255, 255, 255, 0.25)",
       borderRadius: 2,
       cursor: "pointer",
+      "@media (pointer: coarse)": {
+        height: 6,
+        "&::-webkit-slider-thumb": { width: 16, height: 16 },
+        "&::-moz-range-thumb": { width: 16, height: 16 }
+      },
       "&::-webkit-slider-thumb": {
         appearance: "none",
         width: 10,
@@ -235,6 +247,9 @@ const VideoPlayerInner: React.FC<VideoPlayerProps> = ({
       onMouseMove={showControls}
       onMouseEnter={showControls}
       onMouseLeave={() => setControlsVisible(false)}
+      // Touch has no hover, so without this the controls never come back once
+      // they auto-hide.
+      onTouchStart={showControls}
     >
       <video
         ref={videoRef}
