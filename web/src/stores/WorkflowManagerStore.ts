@@ -30,6 +30,10 @@ import {
   getWorkflowRunnerStore
 } from "./WorkflowRunner";
 import {
+  startRunReconciliation,
+  stopRunReconciliation
+} from "./runReconciliation";
+import {
   disposeAppRuntimeStore,
   workflowInstanceId
 } from "../components/appbuilder/runtime/appRuntimeStore";
@@ -702,6 +706,12 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
           get().getNodeStore
         );
 
+        // A server run survives a page reload (the run detaches from its
+        // socket and keeps executing), but the reloaded client no longer
+        // remembers it. Reattach any in-flight run and replay its frames so
+        // the canvas reconciles from the server instead of coming back blank.
+        startRunReconciliation(workflow.id, workflow, runnerStore);
+
         // Refresh live FAL pricing for the FAL nodes in this workflow.
         // Subscribes to MetadataStore so we still fire once metadata loads
         // (workflows restored from localStorage open before metadata fetch).
@@ -812,6 +822,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * @param {string} workflowId The ID of the workflow to remove
        */
       removeWorkflow: (workflowId: string) => {
+        stopRunReconciliation(workflowId);
         unsubscribeFromWorkflowUpdates(workflowId);
         releasePricingUnsubs(workflowId);
 

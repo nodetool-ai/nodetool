@@ -53,6 +53,7 @@ import { getRunSignature, clearRunSignatures } from "./runSignatures";
 import { computeStampSignature } from "../utils/computeRunSignatures";
 import { getNodeGenerations } from "./nodeGenerationAccessor";
 import useMetadataStore from "./MetadataStore";
+import { getPendingResumeJobId } from "./resumeJobHint";
 
 /**
  * Pending audio-chunk store appends, coalesced per node and flushed on a
@@ -207,6 +208,10 @@ const resumableJobId = (runnerStore: WorkflowRunnerStore): string | null => {
  * status, no replayed frames.
  */
 globalWebSocketManager.setResumeJobIdProvider(() => {
+  // Reload-time reconciliation parks the id it is about to reattach here
+  // before any runner store knows about it (see runReconciliation.ts).
+  const pending = getPendingResumeJobId();
+  if (pending) return pending;
   for (const { runnerStore } of workflowSubscriptions.values()) {
     const jobId = resumableJobId(runnerStore);
     if (jobId) return jobId;

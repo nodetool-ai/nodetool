@@ -4076,7 +4076,11 @@ export class UnifiedWebSocketRunner {
       // parks the UI in a state that never settles — a `queued` row from a
       // dead connection's drained queue reads as "running" with a live Stop
       // button forever.
-      const job = (await Job.get(jobId)) as Job | null;
+      // Ownership rule as in the jobs router: another user's row is
+      // indistinguishable from a missing one — it must be neither reported
+      // nor settled below.
+      const row = (await Job.get(jobId)) as Job | null;
+      const job = row && row.user_id === (this.userId ?? "1") ? row : null;
       const settled =
         job != null &&
         (job.status === "completed" ||
@@ -4084,6 +4088,31 @@ export class UnifiedWebSocketRunner {
           job.status === "cancelled");
       const replayUnavailable =
         job != null && job.status !== "failed" && job.status !== "cancelled";
+      // A non-settled row with no session and no in-memory job is a zombie:
+      // nothing is left that could ever finish it. Persist the failure when
+      // this instance owns the row (or nothing claims it), so the row stops
+      // advertising an in-flight run — otherwise every reload rediscovers it,
+      // reattaches, and re-reports the same loss forever. A row claimed by
+      // another instance is left alone: on a multi-instance deployment this
+      // connection may simply have been balanced away from a run that is
+      // still executing. Suspended rows are durable by design — never touched.
+      if (job && !settled && job.status !== "suspended") {
+        const instanceId = getInstanceId();
+        const ownedHere =
+          !job.runner_instance ||
+          !instanceId ||
+          job.runner_instance === instanceId;
+        if (ownedHere) {
+          try {
+            job.markFailed(
+              "Run was lost after the execution connection went away."
+            );
+            await job.save();
+          } catch (error) {
+            this.logError("stale job row cleanup failed", error);
+          }
+        }
+      }
       await this.sendMessage({
         type: "job_update",
         status: settled ? job.status : "failed",
