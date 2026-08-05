@@ -393,11 +393,42 @@ export const subscribeToWorkflowUpdates = (
     }
   });
 
+  // After a reconnect, ask the server to replay what the run emitted while the
+  // socket was down. The job keeps running server-side across the drop and its
+  // frames are buffered; `reconnect_job` reattaches this connection and replays
+  // from the job's last seen `job_seq`. In-browser runs hold no socket, so they
+  // have nothing to resume.
+  const resumeInFlightJob = () => {
+    const { job_id, state, isBrowserRun, jobReplayCursor } =
+      runnerStore.getState();
+    if (!job_id || state !== "running" || isBrowserRun) {
+      return;
+    }
+    void globalWebSocketManager
+      .send({
+        type: "reconnect_job",
+        command: "reconnect_job",
+        data: {
+          job_id,
+          workflow_id: workflowId,
+          last_seq: jobReplayCursor
+        }
+      })
+      .catch((e) =>
+        console.error("Failed to send reconnect_job:", job_id, e)
+      );
+  };
+  const unsubscribeOpen = globalWebSocketManager.subscribeEvent(
+    "open",
+    resumeInFlightJob
+  );
+
   workflowSubscriptions.set(workflowId, {
     workflowId,
     unsubscribe: () => {
       unsubscribeWorkflow();
       unsubscribeRunnerStore();
+      unsubscribeOpen();
       if (unsubscribeJob) {
         unsubscribeJob();
         unsubscribeJob = null;
@@ -428,8 +459,25 @@ export const unsubscribeFromWorkflowUpdates = (workflowId: string): void => {
  * runner store so the protocol logic stays decoupled from Zustand wiring.
  */
 
+/**
+ * Reply to a `reconnect_job` command, sent before any replayed frames.
+ * Declared here rather than in ApiTypes (a generated re-export shim) so the
+ * consumer owns the shape; see `jobResumedMessageOutSchema` in
+ * @nodetool-ai/protocol for the contract.
+ */
+export interface JobResumedUpdate {
+  type: "job_resumed";
+  job_id: string;
+  workflow_id: string | null;
+  status: "running" | "finished" | "unknown";
+  last_seq: number;
+  replay_count: number;
+  replay_incomplete: boolean;
+}
+
 export type MsgpackData =
   | JobUpdate
+  | JobResumedUpdate
   | Chunk
   | Prediction
   | NodeProgress
@@ -467,6 +515,94 @@ function isAudioChunkValue(value: unknown): value is Chunk {
     value.content_type === "audio"
   );
 }
+
+/**
+ * Runner states a `job_resumed` reply may still have to settle: the run was
+ * in flight (or mid-handshake) when the socket dropped. A terminal state
+ * (idle/error/cancelled) was already settled by something else and must not be
+ * reopened.
+ */
+const UNSETTLED_RUNNER_STATES: ReadonlySet<string> = new Set([
+  "connecting",
+  "connected",
+  "running",
+  "paused",
+  "suspended"
+]);
+
+/**
+ * Reply to the `reconnect_job` we send after a socket drop.
+ *
+ * "running"/"finished" are followed by the replayed frames, which drive the
+ * runner as usual — a "finished" run's terminal `job_update` is normally among
+ * them. When the server replays nothing ("unknown": retention elapsed or the
+ * server restarted; "finished" with `replay_count: 0`: our `last_seq` already
+ * covered the terminal frame, e.g. a duplicated reconnect) no frame is left to
+ * end the run, so it must be settled here or the store sits in "running"
+ * forever.
+ */
+const handleJobResumed = (
+  data: JobResumedUpdate,
+  runnerStore: WorkflowRunnerStore
+): void => {
+  const runner = runnerStore.getState();
+  if (data.job_id !== runner.job_id) {
+    return;
+  }
+
+  if (data.replay_incomplete) {
+    runner.addNotification({
+      type: "warning",
+      alert: true,
+      content:
+        "Some updates were lost while reconnecting; this run's node results may be incomplete."
+    });
+  }
+
+  if (data.status === "running") {
+    // The run outlived the disconnect. Restore "running" unless the user
+    // cancelled during the gap, and drop the reconnect status text.
+    if (runner.state !== "cancelled") {
+      runnerStore.setState({ state: "running", statusMessage: null });
+    }
+    return;
+  }
+
+  // "finished" with frames to replay: the terminal `job_update` is among them
+  // and drives the store as usual.
+  if (data.status === "finished" && data.replay_count > 0) {
+    return;
+  }
+
+  if (!UNSETTLED_RUNNER_STATES.has(runner.state)) {
+    return;
+  }
+
+  // The persisted job row holds the real outcome in both cases; refresh the
+  // queue view so the run shows its actual terminal status.
+  runnerStore.setState({
+    state: "idle",
+    queuePosition: null,
+    statusMessage: null
+  });
+  queryClient.invalidateQueries({ queryKey: ["jobs"] });
+
+  if (data.status === "unknown") {
+    runner.addNotification({
+      type: "warning",
+      alert: true,
+      content: "Lost track of this run after reconnecting. Check the job queue for its result.",
+      timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+    });
+  } else if (data.replay_count === 0) {
+    // Finished with nothing to replay: the run ended while we were away and we
+    // already had its last frame. Nothing was lost — no toast.
+    console.info(
+      "WorkflowRunner: job finished during the disconnect",
+      data.job_id
+    );
+  }
+};
 
 export const handleUpdate = (
   workflow: WorkflowAttributes,
@@ -518,6 +654,25 @@ export const handleUpdate = (
   // job_id on every data message; if it's absent, skip the per-job write rather
   // than writing a malformed key.
   const messageJobId = extractJobId(data);
+
+  // Frames of a resilient run carry a monotonically increasing `job_seq`.
+  // Track the high-water mark for the runner's OWN job so a reconnect asks
+  // the server to replay only what the dropped socket missed; a concurrent
+  // inline job's frames must not move this store's cursor.
+  const jobSeq = (data as { job_seq?: unknown }).job_seq;
+  if (
+    typeof jobSeq === "number" &&
+    messageJobId &&
+    messageJobId === runnerStore.getState().job_id &&
+    jobSeq > runnerStore.getState().jobReplayCursor
+  ) {
+    runnerStore.setState({ jobReplayCursor: jobSeq });
+  }
+
+  if (data.type === "job_resumed") {
+    handleJobResumed(data, runnerStore);
+    return;
+  }
 
   if (data.type === "edge_update") {
     const currentState = runnerStore.getState().state;

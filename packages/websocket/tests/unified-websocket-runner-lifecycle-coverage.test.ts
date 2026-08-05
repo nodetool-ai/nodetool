@@ -473,7 +473,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(res.workflow_id).toBe("wf");
   });
 
-  it("cancelJob on an active job cancels the runner and announces it", async () => {
+  it("cancelJob on an active job cancels the runner without an eager terminal frame", async () => {
     const cancel = vi.fn();
     asAny(runner).activeJobs.set("J", {
       jobId: "J",
@@ -487,10 +487,14 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     expect(cancel).toHaveBeenCalledOnce();
     // finished is intentionally NOT flipped so the runner drains its messages.
     expect(asAny(runner).activeJobs.get("J").finished).toBe(false);
+    // No out-of-band terminal frame: the kernel's own cancelled job_update
+    // relays through the drain loop after the node-level terminal updates
+    // (lifecycle.running-after-job-terminal). The RPC response above is the
+    // immediate acknowledgement.
     const cancelled = decodeAll(ws).filter(
       (m) => m.type === "job_update" && m.status === "cancelled" && m.job_id === "J"
     );
-    expect(cancelled.length).toBeGreaterThan(0);
+    expect(cancelled.length).toBe(0);
   });
 
   it("reconnectJob reports an unknown job and replays active statuses", async () => {
@@ -541,7 +545,7 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
     await expect(runner.resumeJob("missing")).resolves.toBeUndefined();
   });
 
-  it("reconnectJob fails honestly when completed outputs cannot be replayed", async () => {
+  it("reconnectJob reports a completed job's real status when its events cannot be replayed", async () => {
     await Job.create({
       id: "completed-job",
       workflow_id: "wf",
@@ -551,11 +555,58 @@ describe("UnifiedWebSocketRunner lifecycle — job status/cancel/reconnect", () 
 
     await runner.reconnectJob("completed-job");
 
+    // The missing events are an `error` note, not a verdict: flipping the
+    // status to "failed" here told clients a successful run had crashed.
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        status: "completed",
+        job_id: "completed-job",
+        error:
+          "Job event replay is unavailable after the execution connection was lost."
+      })
+    );
+  });
+
+  it("reconnectJob fails a queued row rather than echoing a status nothing can settle", async () => {
+    await Job.create({
+      id: "queued-job",
+      workflow_id: "wf",
+      user_id: "1",
+      status: "queued"
+    });
+
+    await runner.reconnectJob("queued-job");
+
+    // The queue this row sat in died with its connection. Reporting "queued"
+    // (which the editor renders as running, Stop button and all) leaves the
+    // client waiting on a run that will never start or settle.
     expect(decodeAll(ws)).toContainEqual(
       expect.objectContaining({
         type: "job_update",
         status: "failed",
-        job_id: "completed-job",
+        job_id: "queued-job",
+        error:
+          "Job event replay is unavailable after the execution connection was lost."
+      })
+    );
+  });
+
+  it("reconnectJob still fails a row stuck at running with nothing executing", async () => {
+    await Job.create({
+      id: "orphaned-job",
+      workflow_id: "wf",
+      user_id: "1",
+      status: "running"
+    });
+
+    await runner.reconnectJob("orphaned-job");
+
+    expect(decodeAll(ws)).toContainEqual(
+      expect.objectContaining({
+        type: "job_update",
+        status: "failed",
+        job_id: "orphaned-job",
         error:
           "Job event replay is unavailable after the execution connection was lost."
       })

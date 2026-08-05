@@ -179,6 +179,15 @@ export const resumeChatDataSchema = z
   })
   .passthrough();
 
+export const reconnectJobDataSchema = z
+  .object({
+    job_id: z.string().optional(),
+    workflow_id: z.string().optional(),
+    /** Highest `job_seq` the client has already received for this job. */
+    last_seq: z.number().optional()
+  })
+  .passthrough();
+
 export const stopDataSchema = z
   .object({
     job_id: z.string().optional(),
@@ -235,8 +244,8 @@ export const transcribeAudioDataSchema = z
  */
 export const commandDataSchemas: Record<UnifiedCommandType, z.ZodTypeAny> = {
   run_job: runJobDataSchema,
-  reconnect_job: looseDataSchema,
-  resume_job: looseDataSchema,
+  reconnect_job: reconnectJobDataSchema,
+  resume_job: reconnectJobDataSchema,
   cancel_job: looseDataSchema,
   update_node_properties: looseDataSchema,
   get_status: looseDataSchema,
@@ -427,11 +436,39 @@ export const chatResumedMessageOutSchema = z
   })
   .passthrough();
 
+/**
+ * Reply to a `reconnect_job` / `resume_job` command. Sent before any
+ * replayed frames.
+ *
+ * `status` reports what the server holds for the job: `"running"` (the run
+ * is still executing on some connection's runner; replay is followed by live
+ * frames) or `"finished"` (the run ended while the client was away; replay
+ * is the whole tail). `"unknown"` is declared for parity with
+ * `chat_resumed` but is never sent today: with no replayable session the
+ * server answers `reconnect_job` with a plain `job_update` carrying the
+ * persisted row's outcome instead of this header.
+ *
+ * `replay_incomplete` is true when the requested `last_seq` predates what the
+ * bounded buffer still holds.
+ */
+export const jobResumedMessageOutSchema = z
+  .object({
+    type: z.literal("job_resumed"),
+    job_id: z.string(),
+    workflow_id: z.string().nullable().optional(),
+    status: z.enum(["running", "finished", "unknown"]),
+    last_seq: z.number(),
+    replay_count: z.number(),
+    replay_incomplete: z.boolean()
+  })
+  .passthrough();
+
 /** Non-`ProcessingMessage` outbound frame schemas, keyed by `type`. */
 export const outboundControlMessageSchemas = {
   pong: pongMessageOutSchema,
   rpc_response: rpcResponseMessageOutSchema,
   system_stats: systemStatsMessageOutSchema,
   resource_change: resourceChangeMessageOutSchema,
-  chat_resumed: chatResumedMessageOutSchema
+  chat_resumed: chatResumedMessageOutSchema,
+  job_resumed: jobResumedMessageOutSchema
 } as const;

@@ -47,6 +47,18 @@ export const DURATION_FIELDS: readonly string[] = [
 export const NULLABLE_OBJECT_FIELDS: readonly string[] = ["properties"];
 
 /**
+ * Top-level fields the WebSocket transport stamps on a frame so a dropped
+ * client can replay what it missed (`job-run-registry.ts`,
+ * `chat-turn-registry.ts`). They describe the delivery, not the run, and the
+ * raw kernel stream has no counterpart — dropped from the comparison view so
+ * a resumable surface still diffs clean against a non-resumable one.
+ */
+export const TRANSPORT_ONLY_FIELDS: readonly string[] = [
+  "job_seq",
+  "chat_seq"
+];
+
+/**
  * Node type prefixes whose `node_update`/`generation_complete` frames are
  * dropped from comparison (added by C2). This mirrors a real, documented,
  * intentional ws-server behavior (`unified-websocket-runner.ts`: "Skip
@@ -156,10 +168,9 @@ export function normalizeMessage(
   message: Record<string, unknown>,
   mapper: IdMapper
 ): Record<string, unknown> {
-  return normalizeValue(stripJobUpdateResult(message), null, mapper) as Record<
-    string,
-    unknown
-  >;
+  const payload = { ...stripJobUpdateResult(message) };
+  for (const field of TRANSPORT_ONLY_FIELDS) delete payload[field];
+  return normalizeValue(payload, null, mapper) as Record<string, unknown>;
 }
 
 export interface NormalizedRunFrame {

@@ -29,23 +29,28 @@
  * `unified-websocket-runner.ts` gives each WS connection its own
  * `UnifiedWebSocketRunner` instance (`test-ui-server.ts`, and production's
  * `plugins/websocket.ts` — same shape), so `reconnect_job` on a genuinely
- * new connection can never hit its in-memory `activeJobs` fast path; it
- * falls through to the persisted `Job` row, which only exists at all when
- * `execution_options.persistence` is `"job"` (every other journey in this
- * suite deliberately uses `"session"` to stay DB-free — this is the one
- * exception, and needs its own `initTestDb()`/`initMasterKey()`).
+ * new connection can never hit that runner's in-memory `activeJobs` map.
+ * What it hits instead is the process-wide `jobRunRegistry`
+ * (`job-run-registry.ts`): a run registers a detachable `JobRunSession` at
+ * start, every frame it emits is stamped with `job_seq` and buffered, and a
+ * dropped socket only *detaches* the session — the run keeps executing and
+ * keeps buffering. Client 2's `reconnect_job` attaches to that session and
+ * gets a `job_resumed` header plus the whole missed tail, terminal
+ * `job_update` included. The run really did complete, and that is what
+ * client 2 is told.
  *
- * That fallback path (`reconnectJob`'s `job != null && job.status !==
- * "failed" && job.status !== "cancelled"` branch) reports a normally-
- * *completed* job as `job_update failed` with `"Job event replay is
- * unavailable after the execution connection was lost."` — a real,
- * currently-shipped gap this journey surfaces rather than papers over:
- * client 2 does observe a terminal state (the run never hangs, satisfying
- * this journey's literal ask), but that terminal state actively
- * misrepresents a successful run as failed. This test pins today's actual
- * behavior and asserts the job's *real* persisted status separately (via
- * `Job.get`) to make the discrepancy explicit rather than asserting the
- * wrong thing as if it were correct.
+ * The persisted `Job` row is now only the fallback for a run whose session
+ * is gone (retention elapsed, or the server restarted); it exists at all
+ * only when `execution_options.persistence` is `"job"` (every other journey
+ * in this suite deliberately uses `"session"` to stay DB-free — this is the
+ * one exception, and needs its own `initTestDb()`/`initMasterKey()`).
+ *
+ * Note the harness kills client 1 with a half-open proxy fault, so the
+ * *server* never observes the disconnect: the session stays attached to a
+ * socket nobody is reading. Client 2's `attach` steals the target from that
+ * dead connection, and any delivery that failed against it was swallowed by
+ * the session's delivery chain rather than stalling it — both are load-
+ * bearing for this test and would regress silently without it.
  */
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { WebSocket } from "ws";
@@ -216,28 +221,50 @@ describe("journey 9: client reconnect mid-run (task D2)", () => {
       const client2 = await connect(proxyPort);
       record("connected", "reconnecting", "connected");
 
+      // last_seq 0: client 2 has seen nothing of this job, so it asks for
+      // the whole buffered stream.
       client2.ws.send(
         packWebSocketMessage({
           command: "reconnect_job",
-          data: { job_id: jobId, workflow_id: WORKFLOW.id }
+          data: { job_id: jobId, workflow_id: WORKFLOW.id, last_seq: 0 }
         })
       );
+
+      const header = await waitFor(
+        client2,
+        (m) => m["type"] === "job_resumed" && m["job_id"] === jobId
+      );
+      expect(header["status"]).toBe("finished");
+      expect(header["replay_incomplete"]).toBe(false);
+      expect(header["replay_count"]).toBeGreaterThan(0);
+
       const resubscribed = await waitFor(
         client2,
-        (m) => m["type"] === "job_update" && m["job_id"] === jobId
+        (m) =>
+          m["type"] === "job_update" &&
+          m["job_id"] === jobId &&
+          ["completed", "failed", "cancelled"].includes(String(m["status"]))
       );
 
-      // The literal ask: the run's terminal state is *observable* after
-      // reconnect — client 2 gets told the job is over, it never hangs.
-      expect(["completed", "failed", "cancelled"]).toContain(resubscribed["status"]);
-      // Today's actual (gap) behavior: a new connection's `reconnect_job`
-      // has no in-memory record of this job (a fresh `UnifiedWebSocketRunner`
-      // per connection) and reports a normally-completed job as "failed"
-      // with a replay-unavailable error, even though `realStatus` above
-      // proves the run genuinely succeeded. Pinned here, not asserted as
-      // correct — see the file-level doc comment.
-      expect(resubscribed["status"]).toBe("failed");
-      expect(resubscribed["error"]).toMatch(/replay is unavailable/i);
+      // The literal ask: the run's terminal state is observable after
+      // reconnect — and it is the run's REAL state, not a replay-unavailable
+      // stand-in. `realStatus` above proves the run succeeded; client 2 is
+      // told exactly that.
+      expect(resubscribed["status"]).toBe("completed");
+      expect(resubscribed["error"]).toBeFalsy();
+
+      // The replay is the run's own event stream, in seq order — client 2
+      // can rebuild the canvas from it, not just learn the outcome.
+      const replayed = client2.messages.filter((m) => m["job_id"] === jobId);
+      const seqs = replayed
+        .map((m) => m["job_seq"])
+        .filter((s): s is number => typeof s === "number");
+      expect(seqs).toEqual([...seqs].sort((a, b) => a - b));
+      expect(
+        replayed.some(
+          (m) => m["type"] === "node_update" && m["node_id"] === "n4"
+        )
+      ).toBe(true);
 
       client2.ws.close();
 
