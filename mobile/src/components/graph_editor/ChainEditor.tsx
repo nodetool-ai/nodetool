@@ -2,8 +2,8 @@
  * Main chain-based graph editor.
  *
  * Renders a vertical scrollable list of chain node cards
- * connected by visual connectors, with add-node buttons
- * between each pair and at the end.
+ * threaded together, with add-node buttons between each
+ * pair and at the end.
  */
 
 import React, { useCallback, useEffect, useRef } from "react";
@@ -23,7 +23,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../hooks/useTheme";
 import { useGraphEditorStore } from "../../stores/GraphEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
-import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerModal } from "./NodePickerModal";
 import type { NodeMetadata } from "../../types/ApiTypes";
@@ -177,29 +176,8 @@ export const ChainEditor: React.FC = () => {
             <>
               {chain.map((node, index) => (
                 <View key={node.id}>
-                  {/* Add button before first node */}
-                  {index === 0 && (
-                    <AddNodeButton
-                      onPress={() => showNodePicker(0)}
-                    />
-                  )}
-
-                  {/* Connector from previous node */}
-                  {index > 0 && (
-                    <>
-                      <AddNodeButton
-                        onPress={() => showNodePicker(index)}
-                      />
-                      <ChainConnector
-                        sourceOutput={chain[index - 1].selectedOutput}
-                        targetInput={
-                          Object.keys(node.inputMappings).length > 0
-                            ? Object.keys(node.inputMappings).join(", ")
-                            : null
-                        }
-                      />
-                    </>
-                  )}
+                  {/* Insert point above this node */}
+                  <AddNodeButton onPress={() => showNodePicker(index)} />
 
                   {/* The node card */}
                   <ChainNodeCard

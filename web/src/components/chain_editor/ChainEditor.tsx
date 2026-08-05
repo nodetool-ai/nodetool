@@ -2,7 +2,7 @@
 /**
  * Main chain-based graph editor for web.
  * Renders a vertical scrollable list of chain node cards
- * with connectors and add-node buttons.
+ * with add-node buttons between them.
  */
 
 import React, { useCallback, useMemo, useState } from "react";
@@ -19,7 +19,6 @@ import {
 } from "../ui_primitives";
 import { useChainEditorStore } from "./useChainEditorStore";
 import { ChainNodeCard } from "./ChainNodeCard";
-import { ChainConnector } from "./ChainConnector";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerDialog } from "./NodePickerDialog";
 import { trpcClient } from "../../trpc/client";
@@ -150,18 +149,7 @@ export const ChainEditor: React.FC<ChainEditorProps> = ({ onSave }) => {
           <FlexColumn align="stretch">
             {chain.map((node, index) => (
               <React.Fragment key={node.id}>
-                {index === 0 && (
-                  <AddNodeButton onClick={() => showNodePicker(0)} />
-                )}
-                {index > 0 && (
-                  <>
-                    <AddNodeButton onClick={() => showNodePicker(index)} />
-                    <ChainConnector
-                      sourceOutput={chain[index - 1].selectedOutput}
-                      targetInput={Object.keys(node.inputMappings)[0] ?? null}
-                    />
-                  </>
-                )}
+                <AddNodeButton onClick={() => showNodePicker(index)} />
                 <ChainNodeCard
                   node={node}
                   index={index}
