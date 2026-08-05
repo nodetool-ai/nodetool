@@ -89,6 +89,9 @@ export type { LoadingSpinnerProps, LoadingVariant } from "./LoadingSpinner";
 
 export { default as MagicGenerationFill } from "./MagicGenerationFill";
 
+export { ShimmerText } from "./ShimmerText";
+export type { ShimmerTextProps } from "./ShimmerText";
+
 export { ProgressBar } from "./ProgressBar";
 export type { ProgressBarProps } from "./ProgressBar";
 
