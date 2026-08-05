@@ -36,7 +36,7 @@ Pick the best provider per node:
 
 ## Cloud models
 
-NodeTool reaches thousands of cloud models across 30+ providers, all through the same generic nodes. The catalog below is grouped by what you're generating — text, images, video, speech and music, 3D, embeddings. Every model runs on your own API key (BYOK): you're billed by the provider at the provider's price, with no NodeTool markup. Add a key in **Settings → Providers** and the models show up in the node's model dropdown.
+NodeTool reaches thousands of cloud models across 30+ providers, all through the same generic nodes. The catalog below is grouped by what you're generating — text, images, video, speech and music, 3D, embeddings. Every model runs on your own API key (BYOK): you're billed by the provider at the provider's price, with no NodeTool markup. Add a key in **Settings → Models & Providers** and the models show up in the node's model dropdown.
 
 Chat models are fetched live from each provider's API, so a provider's list always reflects its newest releases; the families below are the ones you'll find there. Image, video, audio, and 3D models are drawn from the manifests each provider node package ships (`packages/*-nodes/`), so they track what NodeTool actually exposes.
 

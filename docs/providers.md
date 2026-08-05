@@ -6,7 +6,7 @@ description: "Bring your own keys: connect OpenAI, Anthropic, Gemini, Ollama, an
 
 A provider is the adapter between a NodeTool node and an AI service — OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the 30+ others below. Every node that calls an LLM or a media model exposes a `model` property backed by a provider id. Pick a different provider from that same dropdown and the rest of the graph — edges, other nodes — doesn't change.
 
-This is bring-your-own-key (BYOK): NodeTool never marks up a provider's price, and cloud usage is billed directly by the provider. Add a key in **Settings → Providers**, or skip keys entirely and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
+This is bring-your-own-key (BYOK): NodeTool never marks up a provider's price, and cloud usage is billed directly by the provider. Add a key in **Settings → Models & Providers**, or skip keys entirely and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
 
 New to models and providers generally? Start with [Models & Providers](models-and-providers.md) for the local-vs-cloud overview, or [Supported Models](models.md) for the full model catalog. This page is the provider reference: what each one does, which key it needs, and where to read more.
 
@@ -217,7 +217,15 @@ Reach for a provider-specific node only when you need something the generic inte
 
 ## Getting keys in
 
-The in-app Settings dialog is the easiest way to add a key: open **Settings → Providers** and paste it in. NodeTool stores it encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file — see [Configuration](configuration.md#secret-storage-and-master-key) for how the encryption key itself is managed.
+Wherever a missing provider blocks you — a model dropdown, a node warning, the getting-started checklist — NodeTool opens the connect dialog in place. It leads with the providers you can sign into without a key (Claude subscription, OpenAI, Hugging Face), takes a pasted key for the rest, and points at Ollama for running locally at no cost.
+
+![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
+
+**Settings → Models & Providers** is the full list. A key is validated when you save it, and each connected provider carries a **Test** button that calls the provider to confirm the key still works.
+
+![Models & Providers settings](assets/screenshots/settings-providers-test.png)
+
+NodeTool stores every key encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file — see [Configuration](configuration.md#secret-storage-and-master-key) for how the encryption key itself is managed.
 
 From the CLI:
 
@@ -229,7 +237,7 @@ nodetool secrets get OPENAI_API_KEY     # print a stored value
 
 Or set the variable directly in `.env.development.local` (or your shell environment) — environment variables always take precedence over stored secrets. See [Configuration](configuration.md) for the full load order.
 
-Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key — point NodeTool at the server's URL instead, either in Settings → Providers or via the matching `*_URL` environment variable.
+Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key — point NodeTool at the server's URL instead, either in Settings → Models & Providers or via the matching `*_URL` environment variable.
 
 ## Tracking spend
 
