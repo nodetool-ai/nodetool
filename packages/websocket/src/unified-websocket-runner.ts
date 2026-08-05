@@ -91,10 +91,12 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   ProcessingContext as RuntimeProcessingContext,
+  ACTIVE_MODEL_CONTEXT_KEY,
   encodeRawRgbaToPng,
   getCostReconciler,
   isProviderSessionUpdate,
-  isProviderMessageEvent
+  isProviderMessageEvent,
+  type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import { isRawRgbaImage } from "@nodetool-ai/protocol";
 import type {
@@ -5412,6 +5414,12 @@ export class UnifiedWebSocketRunner {
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
     this.attachPlanApproval(ctx, threadId || null);
+    // Stamp the turn's own selection so harness-launching tools (build_app)
+    // inherit this chat's provider/model when the call doesn't name one.
+    ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
+      provider: providerId,
+      model
+    } satisfies ActiveModelSelection);
 
     // Prepend system prompt if first message isn't system role — matches Python
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {

@@ -4,6 +4,8 @@
 
 export {
   ProcessingContext,
+  ACTIVE_MODEL_CONTEXT_KEY,
+  type ActiveModelSelection,
   MemoryCache,
   InMemoryStorageAdapter,
   FileStorageAdapter,

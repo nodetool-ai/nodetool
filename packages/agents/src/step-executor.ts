@@ -20,7 +20,12 @@ import type {
   ProviderStreamItem
 } from "@nodetool-ai/runtime";
 import type { TurnBudget } from "@nodetool-ai/runtime";
-import { memoryKeys, withAgentSpanGen } from "@nodetool-ai/runtime";
+import {
+  ACTIVE_MODEL_CONTEXT_KEY,
+  memoryKeys,
+  withAgentSpanGen,
+  type ActiveModelSelection
+} from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
 import { createLogger } from "@nodetool-ai/config";
 import {
@@ -886,6 +891,13 @@ export class StepExecutor {
       stepId: this.step.id,
       instructions: this.step.instructions.slice(0, 60)
     });
+
+    // Stamp the loop's own selection so harness-launching tools (build_app)
+    // inherit this agent's provider/model when the call doesn't name one.
+    this.context.set(ACTIVE_MODEL_CONTEXT_KEY, {
+      provider: this.provider.provider,
+      model: this.model
+    } satisfies ActiveModelSelection);
 
     this.history.push({ role: "system" as const, content: this.systemPrompt });
 

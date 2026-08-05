@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import {
   PlanWorkflowGraphTool,
@@ -9,6 +10,7 @@ import {
   RunWorkflowTool,
   DebugWorkflowTool,
   ResolveWorkflowEscalationTool,
+  BuildAppTool,
   DebugAppTool,
   ValidateWorkflowTool,
   ValidateTimelineTool,
@@ -31,10 +33,15 @@ import {
 const API_URL = "http://test-api:7777";
 
 function makeMockContext(): ProcessingContext {
+  const variables: Record<string, unknown> = {};
   return {
     userId: "user-1",
     authToken: "access-token",
-    environment: { NODETOOL_API_URL: API_URL }
+    environment: { NODETOOL_API_URL: API_URL },
+    get: (key: string) => variables[key],
+    set: (key: string, value: unknown) => {
+      variables[key] = value;
+    }
   } as unknown as ProcessingContext;
 }
 
@@ -565,6 +572,51 @@ describe("ResolveWorkflowEscalationTool", () => {
       action: "skip"
     })) as Record<string, unknown>;
     expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+  });
+});
+
+describe("BuildAppTool", () => {
+  const tool = new BuildAppTool();
+
+  it("inherits the calling agent's provider/model when the call omits them", async () => {
+    ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
+      provider: "anthropic",
+      model: "claude-sonnet-5"
+    });
+    await tool.process(ctx, { prompt: "a note-drafting app" });
+    expect(lastFetchUrl()).toContain("/api/applications/build");
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.provider).toBe("anthropic");
+    expect(body.model).toBe("claude-sonnet-5");
+  });
+
+  it("keeps an explicit provider/model over the inherited one", async () => {
+    ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
+      provider: "anthropic",
+      model: "claude-sonnet-5"
+    });
+    await tool.process(ctx, {
+      prompt: "a note-drafting app",
+      provider: "openai",
+      model: "gpt-5.4-mini"
+    });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.provider).toBe("openai");
+    expect(body.model).toBe("gpt-5.4-mini");
+  });
+
+  it("passes the params through unchanged when nothing is stamped", async () => {
+    await tool.process(ctx, { prompt: "a note-drafting app" });
+    const body = JSON.parse(lastFetchOpts().body as string);
+    expect(body.provider).toBeUndefined();
+    expect(body.model).toBeUndefined();
+  });
+
+  it("documents the inheritance in the tool and parameter descriptions", () => {
+    expect(tool.description).toContain("default to the provider and model");
+    const props = tool.jsonSchema.properties;
+    expect(props.provider.description).toContain("agent making this call");
+    expect(props.model.description).toContain("agent making this call");
   });
 });
 

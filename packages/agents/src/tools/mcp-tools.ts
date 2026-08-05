@@ -9,8 +9,10 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  ACTIVE_MODEL_CONTEXT_KEY,
   listOfflineModelIds,
-  listRegisteredProviderIds
+  listRegisteredProviderIds,
+  type ActiveModelSelection
 } from "@nodetool-ai/runtime";
 import type {
   GraphValidationIssue,
@@ -954,7 +956,10 @@ export class BuildAppTool extends Tool {
     "fixed, the simulated run of every interaction, a pass/fail verdict, and " +
     "— only behind a passing verdict — the ApplicationBundle. The bundle is " +
     "offered, not installed: show the user the verdict and install it with " +
-    "POST /api/applications/import-bundle once they agree. A build takes " +
+    "POST /api/applications/import-bundle once they agree. The build's own " +
+    "model calls default to the provider and model YOU are running on — omit " +
+    "provider/model to inherit them; pass both only to build with a " +
+    "different model. A build takes " +
     "minutes; pass poll=true to get a session id back immediately, then read " +
     "GET /api/debug/sessions/<id> until it settles or cancel it with POST " +
     "/api/debug/sessions/<id>/cancel.";
@@ -972,11 +977,15 @@ export class BuildAppTool extends Tool {
       },
       provider: {
         type: "string" as const,
-        description: "Provider id for the build's own model calls"
+        description:
+          "Provider id for the build's own model calls. Defaults to the " +
+          "provider of the agent making this call."
       },
       model: {
         type: "string" as const,
-        description: "Model id the build authors with"
+        description:
+          "Model id the build authors with. Defaults to the model of the " +
+          "agent making this call."
       },
       workflow_ids: {
         type: "array" as const,
@@ -1011,7 +1020,15 @@ export class BuildAppTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, "/api/applications/build", params);
+    const inherited = context.get<ActiveModelSelection | undefined>(
+      ACTIVE_MODEL_CONTEXT_KEY
+    );
+    const body = { ...params };
+    if (inherited) {
+      body["provider"] ??= inherited.provider;
+      body["model"] ??= inherited.model;
+    }
+    return apiPost(context, "/api/applications/build", body);
   }
 
   userMessage(params: Record<string, unknown>): string {
