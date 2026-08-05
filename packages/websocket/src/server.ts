@@ -98,7 +98,7 @@ import {
 
 import websocketPlugin from "./plugins/websocket.js";
 import healthRoute, { getVersion } from "./routes/health.js";
-import configRoute from "./routes/config.js";
+import configRoute, { describeMissingAnonKey } from "./routes/config.js";
 import assetsRoutes from "./routes/assets.js";
 import workflowsRoutes from "./routes/workflows.js";
 import nodesRoutes from "./routes/nodes.js";
@@ -756,6 +756,14 @@ const supabaseProvider = supabaseMode
     })
   : null;
 const localProvider = supabaseProvider ? null : new LocalAuthProvider();
+
+// A server that enforces auth but never got an anon key serves a healthy
+// /health and a well-formed /api/config while no user can log in. Say so at
+// boot, where an operator reading the deploy log will see it.
+const missingAnonKey = describeMissingAnonKey();
+if (missingAnonKey) {
+  log.error(missingAnonKey);
+}
 
 // Auth is enforced whenever a remote identity provider is configured.
 const enforceAuth = supabaseMode;
