@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
-import React, { useCallback, memo, useMemo } from "react";
+import React, { useCallback, memo } from "react";
 import { FavoriteButton, MOTION } from "../ui_primitives";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 
@@ -13,17 +11,16 @@ export interface FavoriteStarProps {
   stopPropagation?: boolean;
 }
 
-const wrapperStyles = (_theme: Theme) =>
-  css({
-    display: "inline-flex",
-    alignItems: "center",
-    transition: MOTION.all,
-    opacity: 0,
-    "&:hover": {
-      scale: 1.5,
-      transform: "rotate(42deg)"
-    }
-  });
+const wrapperStyles = css({
+  display: "inline-flex",
+  alignItems: "center",
+  transition: MOTION.all,
+  opacity: 0,
+  "&:hover": {
+    scale: 1.5,
+    transform: "rotate(42deg)"
+  }
+});
 
 const FavoriteStar: React.FC<FavoriteStarProps> = memo(function FavoriteStar({
   provider = "",
@@ -31,13 +28,12 @@ const FavoriteStar: React.FC<FavoriteStarProps> = memo(function FavoriteStar({
   size = "small",
   stopPropagation = true
 }) {
-  const favorites = useModelPreferencesStore((s) => s.favorites);
+  // Select the flag, not the Set: `favorites` is replaced on every toggle,
+  // which would re-render every star in the model list.
+  const isFavorite = useModelPreferencesStore((s) =>
+    s.favorites.has(`${provider}:${id}`)
+  );
   const toggleFavorite = useModelPreferencesStore((s) => s.toggleFavorite);
-  const theme = useTheme();
-
-  const isFavorite = useMemo(() => {
-    return favorites.has(`${provider}:${id}`);
-  }, [favorites, provider, id]);
 
   const handleToggle = useCallback(() => {
     toggleFavorite(provider, id);
@@ -46,7 +42,7 @@ const FavoriteStar: React.FC<FavoriteStarProps> = memo(function FavoriteStar({
   return (
     <span
       className="favorite-star"
-      css={wrapperStyles(theme as Theme)}
+      css={wrapperStyles}
       style={{
         opacity: isFavorite ? 1 : undefined
       }}

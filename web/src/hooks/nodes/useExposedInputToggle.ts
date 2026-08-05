@@ -1,5 +1,5 @@
 import { useCallback } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import useMetadataStore from "../../stores/MetadataStore";
 import {
   applyExposedPlacementTarget,
@@ -22,7 +22,9 @@ interface UseExposedInputToggleResult {
 
 export function useExposedInputToggle(): UseExposedInputToggleResult {
   const findNode = useNodes((state) => state.findNode);
-  const edges = useNodes((state) => state.edges);
+  // Edges are read only when the user toggles a placement. Subscribing would
+  // re-render every consumer on each edge add/remove/drag.
+  const nodeStore = useNodeStoreRef();
   const deleteEdges = useNodes((state) => state.deleteEdges);
   const updateNodeData = useNodes((state) => state.updateNodeData);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
@@ -99,6 +101,7 @@ export function useExposedInputToggle(): UseExposedInputToggleResult {
 
   const confirmDisconnectIfNeeded = useCallback(
     (nodeIds: readonly string[], propertyName: string): boolean => {
+      const edges = nodeStore.getState().edges;
       const hasConnectedEdge = nodeIds.some((nodeId) =>
         edges.some(
           (edge) =>
@@ -127,7 +130,7 @@ export function useExposedInputToggle(): UseExposedInputToggleResult {
       }
       return true;
     },
-    [deleteEdges, edges]
+    [deleteEdges, nodeStore]
   );
 
   /** Cycle placement: off → top handle → bottom labeled → off (inspector arrow). */

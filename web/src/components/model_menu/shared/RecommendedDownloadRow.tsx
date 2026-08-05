@@ -39,7 +39,6 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
   style
 }) => {
   const theme = useTheme();
-  const downloads = useModelDownloadStore((s) => s.downloads);
 
   const downloadId = useMemo(() => {
     const baseId = model.repo_id || model.id;
@@ -55,6 +54,12 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
     };
   }, [model.id, model.repo_id]);
 
+  // Select the flag, not the `downloads` map: the map is replaced on every
+  // progress message, which would re-render every row in the list.
+  const isDownloading = useModelDownloadStore((s) =>
+    Boolean(s.downloads[downloadId])
+  );
+
   const handleDownloadClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -62,8 +67,6 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
     },
     [onDownload]
   );
-
-  const isDownloading = !!downloads[downloadId];
 
   if (isDownloading) {
     return (
