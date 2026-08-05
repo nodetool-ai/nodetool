@@ -404,7 +404,7 @@ const WorkspaceTree: React.FC = () => {
   if (!workflowId) {
     return (
       <Box css={workspaceTreeStyles(theme)}>
-        <PanelHeadline title="Workspace Explorer" />
+        <PanelHeadline title="Workspace Explorer" docsTopic="workspaces" />
         <div className="empty-workspace">
           <FolderOpenIcon
             sx={{ fontSize: 40, opacity: 0.3, color: "text.secondary" }}
@@ -424,6 +424,7 @@ const WorkspaceTree: React.FC = () => {
     <Box css={workspaceTreeStyles(theme)}>
       <PanelHeadline
         title="Workspace Explorer"
+        docsTopic="workspaces"
         actions={
           <RefreshButton
             onClick={handleRefresh}

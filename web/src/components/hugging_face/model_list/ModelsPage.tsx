@@ -12,7 +12,7 @@ const ModelsPage: React.FC = () => (
     icon={<ViewInArOutlinedIcon sx={{ fontSize: 22 }} />}
     title="Model Manager"
     subtitle="Browse, download, and manage local AI models."
-    docsUrl="https://docs.nodetool.ai/models.html"
+    docsTopic="modelsManager"
     padded={false}
   >
     <ModelListIndex />

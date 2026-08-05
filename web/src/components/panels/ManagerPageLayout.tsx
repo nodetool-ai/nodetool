@@ -5,13 +5,16 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useMemo } from "react";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import { Box, EditorButton, FlexColumn, FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { docsLink, type DocsTopic } from "../../config/docsLinks";
 
 interface ManagerPageLayoutProps {
   /** Icon shown in the tinted chip beside the title. */
   icon?: React.ReactNode;
   title: string;
   subtitle?: string;
-  /** Optional docs link rendered as a button in the hero's action row. */
+  /** Documentation page for this manager, rendered as a button in the hero. */
+  docsTopic?: DocsTopic;
+  /** Escape hatch for a docs link outside the registry. */
   docsUrl?: string;
   docsLabel?: string;
   /** Extra controls rendered on the right of the hero header. */
@@ -101,6 +104,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
   icon,
   title,
   subtitle,
+  docsTopic,
   docsUrl,
   docsLabel = "Documentation",
   actions,
@@ -109,6 +113,7 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const resolvedDocsUrl = docsTopic ? docsLink(docsTopic) : docsUrl;
 
   return (
     <Box css={cssStyles} className="manager-page">
@@ -118,16 +123,20 @@ const ManagerPageLayout: React.FC<ManagerPageLayoutProps> = ({
           <h1 className="manager-page-title">{title}</h1>
           {subtitle && <p className="manager-page-subtitle">{subtitle}</p>}
         </FlexColumn>
-        {(docsUrl || actions) && (
+        {(resolvedDocsUrl || actions) && (
           <FlexRow className="manager-page-actions">
             {actions}
-            {docsUrl && (
+            {resolvedDocsUrl && (
               <EditorButton
                 variant="outlined"
                 density="normal"
                 endIcon={<OpenInNewIcon sx={{ fontSize: 14 }} />}
                 onClick={() =>
-                  window.open(docsUrl, "_blank", "noopener,noreferrer")
+                  window.open(
+                    resolvedDocsUrl,
+                    "_blank",
+                    "noopener,noreferrer"
+                  )
                 }
               >
                 {docsLabel}

@@ -12,7 +12,7 @@ const WorkspacesPage: React.FC = () => (
     icon={<FolderSpecialOutlinedIcon sx={{ fontSize: 22 }} />}
     title="Workspaces"
     subtitle="Sandboxed folders that agents and workflows can read, write, and organize files in."
-    docsUrl="https://docs.nodetool.ai/workspaces.html"
+    docsTopic="workspaces"
   >
     <WorkspacesManager />
   </ManagerPageLayout>

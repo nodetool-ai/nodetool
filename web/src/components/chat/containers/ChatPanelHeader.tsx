@@ -6,6 +6,7 @@ import AddIcon from "@mui/icons-material/Add";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
 import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 import {
+  DocsHelpLink,
   FlexRow,
   Text,
   ToolbarIconButton,
@@ -14,6 +15,7 @@ import {
   SPACING,
   getSpacingPx
 } from "../../ui_primitives";
+import type { DocsTopic } from "../../../config/docsLinks";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import ThreadList from "../thread/ThreadList";
@@ -28,6 +30,10 @@ interface ChatPanelHeaderProps {
   onSelectThread?: (id: string) => void;
   /** Optional label shown on the left of the header. */
   title?: React.ReactNode;
+  /** Docs page the help icon points at. Defaults to the agents guide. */
+  docsTopic?: DocsTopic;
+  /** Name the help icon's tooltip uses. */
+  docsLabel?: string;
 }
 
 /**
@@ -38,7 +44,9 @@ interface ChatPanelHeaderProps {
 const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
   onNewChat,
   onSelectThread,
-  title
+  title,
+  docsTopic = "agents",
+  docsLabel = "Chat & agents"
 }) => {
   const navigate = useNavigate();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
@@ -146,6 +154,7 @@ const ChatPanelHeader: React.FC<ChatPanelHeaderProps> = ({
           tooltip="Open in a workspace tab"
           icon={<OpenInNewIcon fontSize="small" />}
         />
+        <DocsHelpLink topic={docsTopic} label={docsLabel} />
       </FlexRow>
 
       <Popover

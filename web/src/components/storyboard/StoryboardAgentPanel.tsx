@@ -151,7 +151,11 @@ const StoryboardAgentPanel = ({ boardId }: StoryboardAgentPanelProps) => {
 
   return (
     <div css={cssStyles}>
-      <ChatPanelHeader onNewChat={handleNewChat} />
+      <ChatPanelHeader
+        onNewChat={handleNewChat}
+        docsTopic="storyboards"
+        docsLabel="Storyboards"
+      />
       <div style={{ flex: 1, minHeight: 0 }}>
         <ChatView
           status={chatStatus}

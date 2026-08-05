@@ -62,6 +62,7 @@ import cohereColorIcon from "../../icons/providers/cohere-color.svg";
 import falColorIcon from "../../icons/providers/fal-color.svg";
 import replicateIcon from "../../icons/providers/replicate.svg";
 import elevenlabsIcon from "../../icons/providers/elevenlabs.svg";
+import { docsLink, docsUrl } from "../../config/docsLinks";
 
 // For multi-field credentials, find the parent provider (the one with fields array)
 const getParentProviderMeta = (key: string): ProviderMeta | undefined => {
@@ -1171,19 +1172,19 @@ export const APIKeysRightSidebar = memo(function APIKeysRightSidebar() {
       icon: <ModelTrainingIcon sx={{ fontSize: 18 }} />,
       title: "Supported Models",
       subtitle: "See models by provider",
-      href: "https://docs.nodetool.ai/models-and-providers"
+      href: docsLink("providers")
     },
     {
       icon: <MenuBookIcon sx={{ fontSize: 18 }} />,
       title: "API Documentation",
       subtitle: "Provider guides & links",
-      href: "https://docs.nodetool.ai/providers"
+      href: docsUrl("providers")
     },
     {
       icon: <HelpOutlineIcon sx={{ fontSize: 18 }} />,
       title: "Troubleshooting",
       subtitle: "Common issues & fixes",
-      href: "https://docs.nodetool.ai/troubleshooting.html"
+      href: docsLink("troubleshooting")
     }
   ];
 

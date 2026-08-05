@@ -14,7 +14,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import SearchIcon from "@mui/icons-material/Search";
 import ClearIcon from "@mui/icons-material/Clear";
 
-import { Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import { DocsHelpLink, Text, thinScrollbarStyles, MOTION, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
 import NodeLibraryRow from "./NodeLibraryRow";
 import NodeInfo from "./NodeInfo";
 import useMetadataStore from "../../stores/MetadataStore";
@@ -59,6 +59,10 @@ const styles = (theme: Theme, isMobile: boolean) =>
       fontWeight: FONT_WEIGHT.semibold,
       letterSpacing: "-0.01em",
       color: theme.vars.palette.text.primary
+    },
+    ".nl-header .docs-help-link": {
+      marginLeft: "auto",
+      padding: 2
     },
     ".nl-count": {
       display: "inline-flex",
@@ -420,6 +424,7 @@ const NodeLibrary = memo<NodeLibraryProps>(
             Node library
           </Text>
           <span className="nl-count">{nodes.length}</span>
+          <DocsHelpLink topic="nodes" label="Node reference" />
         </div>
 
         <div className="nl-search">

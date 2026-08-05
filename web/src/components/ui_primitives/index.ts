@@ -140,6 +140,9 @@ export type { MenuItemPrimitiveProps } from "./MenuItemPrimitive";
 export { HelpButton } from "./HelpButton";
 export type { HelpButtonProps, HelpIconVariant } from "./HelpButton";
 
+export { DocsHelpLink } from "./DocsHelpLink";
+export type { DocsHelpLinkProps } from "./DocsHelpLink";
+
 // New composite/state buttons
 export { StateIconButton } from "./StateIconButton";
 export type { StateIconButtonProps } from "./StateIconButton";

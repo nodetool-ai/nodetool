@@ -13,6 +13,7 @@ const ExamplesPage: React.FC = () => (
     icon={<AutoAwesomeOutlinedIcon sx={{ fontSize: 22 }} />}
     title="Examples"
     subtitle="Browse example workflows and start from one."
+    docsTopic="examples"
     padded={false}
   >
     <DashboardTemplates fullPage />

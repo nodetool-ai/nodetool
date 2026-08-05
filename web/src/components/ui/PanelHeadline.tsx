@@ -1,14 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { FlexRow } from "../ui_primitives";
+import { DocsHelpLink, FlexRow } from "../ui_primitives";
 import { Text } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
+import type { DocsTopic } from "../../config/docsLinks";
 
 interface PanelHeadlineProps {
   title: string;
   actions?: React.ReactNode;
+  /** Renders a help icon beside the title, linking to this docs page. */
+  docsTopic?: DocsTopic;
 }
 
 const styles = (theme: Theme) =>
@@ -21,6 +24,10 @@ const styles = (theme: Theme) =>
       padding: 2,
       "& svg": { fontSize: "var(--fontSizeNormal)" }
     },
+    ".headline-titles .docs-help-link": {
+      padding: 2,
+      "& svg": { fontSize: "var(--fontSizeSmall)" }
+    },
     ".headline-title": {
       letterSpacing: "0.01em",
       lineHeight: "1.4em",
@@ -29,7 +36,11 @@ const styles = (theme: Theme) =>
     }
   });
 
-const PanelHeadline: React.FC<PanelHeadlineProps> = ({ title, actions }) => {
+const PanelHeadline: React.FC<PanelHeadlineProps> = ({
+  title,
+  actions,
+  docsTopic
+}) => {
   const theme = useTheme();
 
   return (
@@ -40,14 +51,17 @@ const PanelHeadline: React.FC<PanelHeadlineProps> = ({ title, actions }) => {
       align="center"
       fullWidth
     >
-      <Text
-        size="normal"
-        weight={600}
-        component="span"
-        className="headline-title"
-      >
-        {title}
-      </Text>
+      <FlexRow className="headline-titles" align="center" gap={0}>
+        <Text
+          size="normal"
+          weight={600}
+          component="span"
+          className="headline-title"
+        >
+          {title}
+        </Text>
+        {docsTopic && <DocsHelpLink topic={docsTopic} label={title} />}
+      </FlexRow>
       {actions && (
         <FlexRow className="headline-actions" align="center" gap={0.5}>
           {actions}
