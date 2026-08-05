@@ -53,9 +53,25 @@ const PACKAGED_JOURNEY = "linear-text-pipeline";
 // covered by the harness's own `python-node-workflow.test.ts` /
 // `host-disk-full-write.test.ts` (part of `npm run test`), which call the
 // drivers directly and so don't hit this CLI limitation.
+// `ws-transport-faults` is excluded for the same stacking reason, with a
+// twist: its five ws faults share ONE process-wide proxy slot
+// (`faults/ws-proxy.ts`), so a bare invocation doesn't merely apply them
+// together, it applies only the last — `ws-abrupt-close`, which destroys the
+// socket on the first client->server frame. The client then never sees a
+// terminal and the driver's 4000ms wait expires. That timeout is the
+// journey's DESIGNED outcome under a black-hole fault, not a slow path (an
+// unfaulted run finishes in ~8ms), so the bare run reported a failure for
+// behaving correctly. It also declares `"surfaces": ["ws-server"]` only, and
+// unlike the two above it can't be rescued by a per-fault block here: `cli.ts`
+// always injects the kernel oracle, and a kernel that completes necessarily
+// diverges from a black-holed client. Its per-fault coverage — including
+// post-fault server health — is
+// `reliability/harness/tests/journeys/ws-transport-faults.test.ts`, which runs
+// in the Quality Gate's `test-packages` leg.
 const JOURNEYS_WITH_OWN_RING_HANDLING = new Set([
   "python-node-workflow",
-  "host-disk-full-write"
+  "host-disk-full-write",
+  "ws-transport-faults"
 ]);
 
 function runNodetool(args) {

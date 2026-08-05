@@ -6,12 +6,20 @@
  *   that invocation — a node can run more than once in a record (loops,
  *   re-entrant control events), so pairing is tracked as a per-node stack,
  *   not a single flag.
- * - No node is left `running` after the `job_update` terminal.
+ * - No node is left `running` after the FINAL `job_update` terminal. A surface
+ *   may answer a cancel with an eager terminal ack and keep draining — the
+ *   ws-server relay does exactly that (`unified-websocket-runner.ts`'s
+ *   `cancelJob` announces the stop immediately and deliberately leaves
+ *   `active.finished` unset so the node terminals still arrive) — so the
+ *   authoritative terminal is the last one, not the first. Anchoring on the
+ *   first would call a run dirty for converging after an ack the protocol
+ *   sends before convergence.
  *
  * `terminal-uniqueness.ts` covers the job-level "exactly one terminal
  * `job_update`" and precedence rules — kept separate so each §6 bullet has
  * its own attributable module, per the task's "may fold into lifecycle if
- * cleaner, but keep the checks individually attributable" note.
+ * cleaner, but keep the checks individually attributable" note. Duplicate
+ * terminals stay its business: this module only asks where the run ended.
  */
 import type { RunRecord } from "../record.js";
 import type { Violation } from "./types.js";
@@ -29,11 +37,10 @@ export function checkLifecycle(record: RunRecord): Violation[] {
 
     if (type === "job_update") {
       const status = asString(message, "status");
-      if (
-        jobTerminalIndex === undefined &&
-        status !== undefined &&
-        JOB_TERMINAL_STATUSES.has(status)
-      ) {
+      // Last terminal wins (see the header note). Redundant-tagged frames
+      // count: the ws driver tags the SECOND cancelled frame, so skipping
+      // tagged ones would re-select the eager ack.
+      if (status !== undefined && JOB_TERMINAL_STATUSES.has(status)) {
         jobTerminalIndex = index;
       }
       return;
@@ -104,7 +111,7 @@ export function checkLifecycle(record: RunRecord): Violation[] {
       if (openCount <= 0) continue;
       violations.push({
         invariant: "lifecycle.running-after-job-terminal",
-        message: `node "${nodeId}" is still "running" at the job_update terminal (frame ${jobTerminalIndex})`,
+        message: `node "${nodeId}" is still "running" at the final job_update terminal (frame ${jobTerminalIndex})`,
         nodeId,
         frameIndex: jobTerminalIndex,
         details: { openCount }
