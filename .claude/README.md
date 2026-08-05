@@ -12,7 +12,54 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | 18 NodeTool skills (workflow building, custom nodes, API reference, deployment, troubleshooting, code review). Claude loads these on its own when a task matches. |
+| `skills/` | 19 NodeTool skills (workflow building, custom nodes, API reference, deployment, troubleshooting, code review) plus 18 general engineering skills — see below. Claude loads these on its own when a task matches. |
+
+## Engineering skills
+
+`skills/` also carries the engineering skills from
+[mattpocock/skills](https://github.com/mattpocock/skills) (MIT), vendored at
+commit `8b36d4f` (license kept at `skills/LICENSE-mattpocock-skills`). They are
+language- and repo-agnostic, so they sit alongside the NodeTool-specific ones
+rather than replacing them.
+
+Type these to invoke them (`disable-model-invocation: true` — Claude never
+reaches for them on its own):
+
+| Skill | What it does |
+| :--- | :--- |
+| `/ask-matt` | Router over the other user-invoked skills — asks which one fits. |
+| `/setup-matt-pocock-skills` | One-time per-repo setup: issue tracker, triage labels, domain doc layout. |
+| `/grill-with-docs` | Interview that sharpens a plan and writes `CONTEXT.md` and ADRs as it goes. |
+| `/improve-codebase-architecture` | Scan for deepening opportunities, report them as HTML, grill through one. |
+| `/triage` | Move issues through a state machine of triage roles. |
+| `/to-spec` | Turn the conversation into a spec on the issue tracker. |
+| `/to-tickets` | Break a plan into tracer-bullet tickets with blocking edges. |
+| `/implement` | Build from a spec or tickets, driving `/tdd` and closing with `/code-review`. |
+| `/wayfinder` | Map work too big for one session as decision tickets, resolved one at a time. |
+
+The rest are model-invoked — Claude reaches for them when a task matches, and
+you can also type them:
+
+| Skill | What it does |
+| :--- | :--- |
+| `/tdd` | Red-green-refactor loop, one vertical slice at a time. |
+| `/diagnosing-bugs` | Diagnosis loop for hard bugs and performance regressions. |
+| `/code-review` | Two-axis review of a diff: standards and spec, as parallel sub-agents. |
+| `/codebase-design` | Vocabulary for deep modules — small interfaces, clean seams. |
+| `/domain-modeling` | Sharpen domain terms, update `CONTEXT.md` and ADRs. |
+| `/prototype` | Throwaway prototype to answer a design question. |
+| `/research` | Investigate against primary sources, capture cited findings in the repo. |
+| `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
+| `/wizard` | Generate a bash wizard for steps only a human can perform. |
+
+Two names overlap with what NodeTool already ships: `/code-review` here is the
+generic two-axis review, while `nodetool-code-review` knows this repo's
+landmines (cross-package imports, MsgPack framing, `ui_primitives`, packaged
+Electron paths). Reach for the NodeTool one on NodeTool code.
+
+The upstream skills also ship a Codex `agents/` directory per skill; those were
+dropped on the way in, since this repo drives them through Claude Code. To
+refresh them, re-copy from `skills/engineering/` upstream.
 
 ## Running things
 
