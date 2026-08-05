@@ -156,9 +156,13 @@ Download the desktop app, install, and start building — runs fully on your mac
 
 | Platform | Get It | Requirements |
 | :--- | :--- | :--- |
-| **Windows** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local models), 20GB space |
-| **macOS** | [Download](https://nodetool.ai/studio) | M1+ Apple Silicon, 16GB+ RAM (local models) |
-| **Linux** | [Download](https://nodetool.ai/studio) | NVIDIA GPU recommended, 4GB+ VRAM (local models) |
+| **Windows** | [Download](https://nodetool.ai/studio) | Windows 10+, 8GB+ RAM, 20GB space |
+| **macOS** | [Download](https://nodetool.ai/studio) | macOS 13+, Apple Silicon or Intel, 8GB+ RAM |
+| **Linux** | [Download](https://nodetool.ai/studio) | Ubuntu 22+, 8GB+ RAM |
+
+Connect a provider with your own API key and the models run on their servers —
+no GPU involved. A GPU only matters if you later want models to run on your own
+machine.
 
 [Flatpak CI Builds](https://github.com/nodetool-ai/nodetool/actions/workflows/flatpak-ci.yml) are available for Linux.
 
