@@ -1,12 +1,14 @@
 ---
 layout: page
 title: "Install NodeTool on Windows, macOS, or Linux"
-description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage. No setup wizard: the extra pieces download only when a workflow needs them."
+description: "Download NodeTool for Windows, macOS, or Linux — dmg, exe, or AppImage — then connect an AI provider so agents and media generation can run."
 ---
 
-Download, install, open. There is no setup wizard and nothing to configure
-first. The larger pieces some workflows need, such as AI models, download later
-and only when you actually use them.
+Download, install, open, connect a provider. There is no setup wizard, but
+NodeTool can't run an agent or generate an image until it has a model to call,
+so connecting a provider is part of installing. The larger pieces some workflows
+need, such as local AI models, download later and only when you actually use
+them.
 
 ---
 
@@ -15,17 +17,11 @@ and only when you actually use them.
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai)
 2. Run the installer
 3. Open NodeTool
+4. Connect an AI provider — [see below](#connect-an-ai-provider)
 
 The file you get is a `.dmg` on macOS, an `.exe` on Windows, and an AppImage on
 Linux. Exact steps for each are below: [macOS](#macos), [Windows](#windows),
 [Linux](#linux).
-
-You don't need a fast computer. If you'd rather have an online AI service do the
-heavy work, skip every download on this page: open **Settings → Providers**
-and paste an API key from [OpenAI](https://platform.openai.com),
-[Anthropic](https://www.anthropic.com), or [Google](https://ai.google.dev). An
-**API key** is a password-like string from that company's website that lets
-NodeTool use your account there. See [Providers](providers.md).
 
 ---
 
@@ -79,6 +75,59 @@ They are not on Flathub yet.
 
 ---
 
+## Connect an AI provider
+
+A fresh install has no model behind it. Agents, chat, image and video
+generation, speech — every one of them calls a model, and until NodeTool has
+somewhere to call, those nodes fail with a missing-provider error. Do this
+before your first workflow.
+
+Two ways to get one, and you can mix them:
+
+**A cloud provider (fastest).** Open **Settings → Models & Providers** and
+connect one. Some providers sign you in without a key — a Claude subscription,
+an OpenAI account, Hugging Face. For the rest, paste an **API key**: a
+password-like string you create on that company's website, which lets NodeTool
+use your account there.
+
+- [OpenAI](https://platform.openai.com) — chat, images, video, speech,
+  transcription, embeddings. The broadest single key.
+- [Anthropic](https://www.anthropic.com) — Claude chat models, the usual choice
+  for agents. Text only.
+- [Google Gemini](https://ai.google.dev) — chat, Imagen images, Veo video,
+  transcription.
+- [FAL](https://fal.ai) or [Replicate](https://replicate.com) — image, video,
+  and audio generation across many models.
+
+NodeTool is bring-your-own-key: it never marks up a provider's price, and the
+provider bills you directly. Keys are stored encrypted (AES-256-GCM) in a local
+database, not in a plaintext config file.
+
+**Local models (no key, no bill).** Install [Ollama](https://ollama.com), pull a
+model with `ollama pull <model>`, and it shows up in NodeTool automatically.
+This covers chat and embeddings, so agents work. Image and video generation
+mostly need either a cloud provider or a graphics card and the local model
+downloads described below.
+
+Wherever a missing provider blocks you — a model dropdown, a node warning, the
+getting-started checklist — NodeTool opens the connect dialog in place, so you
+don't have to hunt through settings.
+
+![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
+
+Each connected provider carries a **Test** button that calls the provider to
+confirm the key still works. From the terminal:
+
+```bash
+nodetool secrets store OPENAI_API_KEY   # prompts for the value, stores it encrypted
+nodetool secrets list                   # list stored keys (values are never shown)
+```
+
+The full list of 30+ providers, what each one can generate, and which key it
+needs is in [Providers](providers.md).
+
+---
+
 ## What downloads later
 
 The app itself is small. These pieces arrive the first time a workflow needs
@@ -93,9 +142,10 @@ them:
   one, from the **Models** panel.
 - **The models themselves** — usually 4-20 GB each, depending on the model.
 
-No graphics card, or no room for the downloads? Use an online AI service with
-your own API key instead (**Settings → Providers**). See
-[Providers](providers.md) and [Models & Providers](models-and-providers.md).
+No graphics card, or no room for the downloads? Use a cloud provider with your
+own API key instead — see [Connect an AI provider](#connect-an-ai-provider)
+above, [Providers](providers.md), and
+[Models & Providers](models-and-providers.md).
 
 ### What different tasks need
 
@@ -161,8 +211,14 @@ conda. Full setup in the
 
 ## If installing goes wrong
 
-Most install problems are one of these four. For problems that show up once
-NodeTool is running, see [Troubleshooting](troubleshooting.md).
+Most install problems are one of these. For problems that show up once NodeTool
+is running, see [Troubleshooting](troubleshooting.md).
+
+**A node says no provider is configured** — nothing is connected yet, or the key
+you pasted is for a provider that can't do what the node asks (Anthropic makes
+no images, FAL runs no chat). Connect one in **Settings → Models & Providers**
+and press **Test**; the [capability matrix](providers.md#capability-matrix)
+shows which provider covers which modality.
 
 **The Python download fails** — it needs an internet connection and about 5 GB
 of free disk space. Restart NodeTool; a partial download picks up where it left
