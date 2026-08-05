@@ -6,7 +6,7 @@ description: "The problems NodeTool solves for creative teams, plus head-to-head
 
 > NodeTool is the open creative AI workspace — every major model, your keys, one canvas.
 
-NodeTool replaces the chatbox with a node canvas where image, video, audio, and LLM models run side by side. Bring your keys, or run everything locally. Open source, AGPL-3.0.
+Ask its agent for what you want and it builds the workflow on a node canvas where image, video, audio, and LLM models run side by side. Then you open that canvas and change it. Bring your keys, or run everything locally. Open source, AGPL-3.0.
 
 ## Head-to-head comparisons
 
@@ -32,7 +32,11 @@ Creative AI is a tab graveyard:
 
 ## How NodeTool solves this
 
-One canvas, every model, your keys:
+Ask for it, then own it:
+
+**An agent that builds the pipeline.** Describe the result and it plans the graph, wires it, picks models, and runs it. Chat tools that write prose hand you instructions; this one hands you a running workflow.
+
+**Nothing generated behind glass.** What the agent builds is the same graph you would have drawn. Open it, rewire it, swap a model, re-run. It edits sketches, timelines, storyboards, and mini apps the same way.
 
 **One canvas for every modality.** Wire Flux to GPT-5.6 to ElevenLabs to Wan in a single graph. Outputs flow as typed edges — image, audio, text, embeddings — not pasted strings.
 
@@ -42,7 +46,7 @@ One canvas, every model, your keys:
 
 **Workflows as files.** Save, share, version. Ship a workflow as a Mini-App with a one-click hide-the-graph mode.
 
-**Agents that drive pipelines.** Built-in planning, tool calling, streaming. Drop an agent node into any graph.
+**Agents inside the pipeline too.** Planning, tool calling, streaming. Drop an Agent node into any graph as one step of it.
 
 **Open source, no markup.** AGPL-3.0. Cloud edition hosts the same code in this repo. Self-host the Docker images any time.
 
