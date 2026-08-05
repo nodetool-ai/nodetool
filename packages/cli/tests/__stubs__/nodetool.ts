@@ -190,6 +190,7 @@ const STUB_PROVIDER_SECRET_KEYS: Record<string, string | null> = {
   moonshot: "KIMI_API_KEY",
   minimax: "MINIMAX_API_KEY",
   cerebras: "CEREBRAS_API_KEY",
+  alibaba: "DASHSCOPE_API_KEY",
   together: "TOGETHER_API_KEY",
   openrouter: "OPENROUTER_API_KEY",
   huggingface: "HF_TOKEN",

@@ -82,6 +82,7 @@ export const requiredSecretForProvider = (
   if (p.includes("aime")) {return "AIME_API_KEY";}
   if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {return "KIMI_API_KEY";}
   if (p.includes(PROVIDER_IDS.MINIMAX)) {return "MINIMAX_API_KEY";}
+  if (p.includes(PROVIDER_IDS.ALIBABA)) {return "DASHSCOPE_API_KEY";}
   if (p.includes(PROVIDER_IDS.TOGETHER)) {return "TOGETHER_API_KEY";}
   if (p === PROVIDER_IDS.COHERE) {return "COHERE_API_KEY";}
   if (p === PROVIDER_IDS.VOYAGE || p === "voyage-ai" || p === "voyageai") {return "VOYAGE_API_KEY";}

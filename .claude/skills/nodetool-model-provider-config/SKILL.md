@@ -22,7 +22,8 @@ You help users configure AI model providers and select the right models for thei
 | **MLX** | Local | — | Apple Silicon optimized |
 
 Other registered chat providers (any of these is valid for `-p/--provider`):
-`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `together`,
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`
+(`DASHSCOPE_API_KEY`, Qwen via Alibaba Cloud Model Studio), `together`,
 `openrouter`, `codex`, `claude_agent_sdk`, `lmstudio`. Run `nodetool models
 providers` to see configured providers and `nodetool models recommended` for the
 curated model list.

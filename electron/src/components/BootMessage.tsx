@@ -77,6 +77,12 @@ const PROVIDERS: Provider[] = [
     capabilities: ["Fast Inference", "Chat", "Text Generation"],
   },
   {
+    name: "Alibaba Cloud",
+    description: "Qwen models via Alibaba Cloud Model Studio's OpenAI-compatible API.",
+    signupUrl: "https://modelstudio.console.alibabacloud.com/",
+    capabilities: ["Chat", "Text Generation", "Reasoning"],
+  },
+  {
     name: "GMI Cloud",
     description: "OpenAI-compatible inference for open-weight LLMs like Llama, DeepSeek, and Qwen.",
     signupUrl: "https://console.gmicloud.ai/",

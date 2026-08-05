@@ -467,6 +467,7 @@ const getProviderIconUrl = (provider: string): string | null => {
     fireworks: fireworksColorIcon,
     cloudflare: cloudflareColorIcon,
     moonshot: moonshotIcon,
+    alibaba: alibabacloudColorIcon,
     perplexity: perplexityColorIcon,
     ai21: ai21Icon,
     meta: metaColorIcon,

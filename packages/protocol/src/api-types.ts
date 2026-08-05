@@ -1038,6 +1038,7 @@ export const PROVIDER_IDS = {
   COHERE: "cohere",
   OPENROUTER: "openrouter",
   TOGETHER: "together",
+  ALIBABA: "alibaba",
   CEREBRAS: "cerebras",
   EVOLINK: "evolink",
   GMI: "gmi",

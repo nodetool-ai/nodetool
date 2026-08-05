@@ -158,6 +158,17 @@ export class OpenAICompatProvider extends OpenAIProvider {
       }
     }
 
+    return this.transformChatRequest(request);
+  }
+
+  /**
+   * Last edit of the assembled request before dispatch. Subclasses override
+   * this when their endpoint deviates from OpenAI's dialect — e.g. a provider
+   * that only accepts `max_tokens` instead of `max_completion_tokens`.
+   */
+  protected transformChatRequest(
+    request: ChatCompletionsRequest
+  ): ChatCompletionsRequest {
     return request;
   }
 

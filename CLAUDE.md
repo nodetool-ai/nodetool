@@ -198,7 +198,7 @@ npm run dev:chat -- --url ws://localhost:7777/ws
 Chat flags:
 ```
 -p, --provider <name>    anthropic, openai, gemini, xai, groq, mistral, deepseek,
-                         moonshot, minimax, cerebras, together, openrouter,
+                         moonshot, minimax, cerebras, alibaba, together, openrouter,
                          huggingface, replicate, kie, aki, ollama, lmstudio,
                          claude_agent_sdk, codex, gmi, mlx, node_llama_cpp
                          (any registry provider id also works, e.g. vllm, llama_cpp)

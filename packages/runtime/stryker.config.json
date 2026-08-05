@@ -21,6 +21,7 @@
     "src/trace-exporters.ts",
     "src/python-worker-stderr.ts",
     "src/python-bridge-factory.ts",
+    "src/providers/alibaba-provider.ts",
     "src/providers/cerebras-provider.ts",
     "src/providers/gmi-provider.ts",
     "src/providers/groq-provider.ts",

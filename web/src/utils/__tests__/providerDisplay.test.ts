@@ -159,6 +159,8 @@ describe("providerDisplay", () => {
     it("should handle other provider aliases", () => {
       expect(formatGenericProviderName("minimax")).toBe("MiniMax");
       expect(formatGenericProviderName("gmi")).toBe("GMI Cloud");
+      expect(formatGenericProviderName("alibaba")).toBe("Alibaba Cloud");
+      expect(formatGenericProviderName("Alibaba")).toBe("Alibaba Cloud");
       expect(formatGenericProviderName("cohere")).toBe("Cohere");
       expect(formatGenericProviderName("voyage")).toBe("Voyage AI");
       expect(formatGenericProviderName("voyage-ai")).toBe("Voyage AI");
@@ -236,6 +238,9 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("llama-cpp")).toBe("https://github.com/ggerganov/llama.cpp");
       expect(getProviderUrl("minimax")).toBe("https://platform.minimax.io");
       expect(getProviderUrl("gmi")).toBe("https://www.gmicloud.ai");
+      expect(getProviderUrl("alibaba")).toBe(
+        "https://modelstudio.console.alibabacloud.com/"
+      );
       expect(getProviderUrl("cohere")).toBe("https://cohere.com");
       expect(getProviderUrl("voyage")).toBe("https://www.voyageai.com");
       expect(getProviderUrl("voyage-ai")).toBe("https://www.voyageai.com");

@@ -187,6 +187,7 @@ NodeTool supports 20+ AI model providers through a unified provider interface:
 | **Mistral** | Text generation |
 | **Together** | Text, embeddings |
 | **Cerebras** | Fast text inference |
+| **Alibaba Cloud** | Text (Qwen models) |
 | **GMI Cloud** | Open-weight text inference |
 | **OpenRouter** | Multi-provider routing |
 | **vLLM** | Self-hosted inference |
