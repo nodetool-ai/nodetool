@@ -737,6 +737,42 @@ const llmProviders: ProviderEntry[] = [
     ],
   }),
   direct("llm", {
+    slug: "alibaba",
+    providerId: "alibaba",
+    name: "Alibaba Cloud",
+    url: "https://www.alibabacloud.com/en/product/modelstudio",
+    byokEnv: "DASHSCOPE_API_KEY",
+    accent: "amber",
+    tagline:
+      "Run Alibaba's Qwen models in NodeTool through Model Studio, called with your own DashScope key.",
+    blurb: [
+      "Alibaba Cloud Model Studio serves the Qwen family — Qwen3-Max at the top, Qwen-Plus and Qwen-Flash for everyday work, and the Qwen3-VL vision models. In NodeTool they drive chat, agent, and text blocks with tool calling and streaming.",
+      "The DashScope API is OpenAI-compatible and NodeTool talks to the Singapore-region international endpoint, so the same nodes work without a China-mainland account. New Model Studio accounts come with a free token quota per model.",
+      "Alibaba Cloud is bring-your-own-key: set `DASHSCOPE_API_KEY` and NodeTool calls Model Studio directly at list price.",
+    ],
+    strengths: ["Qwen models", "Vision", "Long context"],
+    capabilities: ["Chat", "Tool use", "Streaming"],
+    highlights: [
+      { name: "Qwen3-Max", desc: "Alibaba's flagship chat model for hard reasoning and agent steps.", kind: "Chat" },
+      { name: "Qwen-Plus / Qwen-Flash", desc: "Balanced and fast tiers for everyday chat and high-volume steps.", kind: "Chat" },
+      { name: "Qwen3-VL-Plus", desc: "Vision model that reads images alongside the prompt.", kind: "Vision" },
+    ],
+    faq: [
+      {
+        q: "How do I use Qwen in NodeTool?",
+        a: "Add `DASHSCOPE_API_KEY` in settings and pick a Qwen model on a chat or agent node. Get the key at the Alibaba Cloud Model Studio console.",
+      },
+      {
+        q: "Which Alibaba models are available?",
+        a: "Whatever Model Studio lists for your account — NodeTool reads the models endpoint live, so qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl models appear without an update.",
+      },
+      {
+        q: "What does Alibaba Cloud cost in NodeTool?",
+        a: "Model Studio's list price, minus whatever free quota your account still has. NodeTool adds no fee.",
+      },
+    ],
+  }),
+  direct("llm", {
     slug: "moonshot-kimi",
     providerId: "moonshot",
     name: "Moonshot (Kimi)",

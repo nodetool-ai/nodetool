@@ -6,8 +6,8 @@ description: "How to add a new OpenAI-compatible cloud provider (Groq, Mistral, 
 
 > **Audience:** Coding agents and contributors who want to add a new OpenAI-compatible cloud provider or change how an existing one exposes models.
 
-This guide covers seven providers that share one implementation pattern:
-**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Cohere**, and **OpenRouter**.
+This guide covers eight providers that share one implementation pattern:
+**Groq**, **Mistral**, **DeepSeek**, **Moonshot (Kimi)**, **Cerebras**, **Alibaba Cloud (Qwen)**, **Cohere**, and **OpenRouter**.
 
 ---
 
@@ -120,7 +120,7 @@ export class DeepSeekProvider extends OpenAIProvider {
 }
 ```
 
-Groq, Mistral, Cerebras, and OpenRouter follow this pattern exactly. OpenRouter adds a few extras: `defaultHeaders` on the `OpenAI` client (HTTP-Referer, X-Title), `textToImage`, and a `hasToolSupport` override that returns `false` for o1/o3 model IDs.
+Groq, Mistral, Cerebras, Alibaba Cloud, and OpenRouter follow this pattern exactly. Alibaba Cloud reads `DASHSCOPE_API_KEY` and points at Model Studio's international DashScope endpoint, `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`. OpenRouter adds a few extras: `defaultHeaders` on the `OpenAI` client (HTTP-Referer, X-Title), `textToImage`, and a `hasToolSupport` override that returns `false` for o1/o3 model IDs.
 
 ---
 
@@ -189,7 +189,7 @@ The empty string for `ACME_API_KEY` is intentional — it forces the registry to
 
 ### Chat models are fetched dynamically — no change needed
 
-If Groq, DeepSeek, Mistral, Cerebras, or OpenRouter adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
+If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, or OpenRouter adds a new chat model, it appears in the model picker automatically on the next call to `getAvailableLanguageModels()`. No code change is required.
 
 ### Tool-support overrides
 

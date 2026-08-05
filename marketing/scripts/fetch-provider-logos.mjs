@@ -40,6 +40,7 @@ const PROVIDER_DOMAINS = {
   openrouter: "openrouter.ai",
   huggingface: "huggingface.co",
   cerebras: "cerebras.ai",
+  alibaba: "alibabacloud.com",
   moonshot: "moonshot.ai",
   // media specialists
   elevenlabs: "elevenlabs.io",

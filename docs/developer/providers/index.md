@@ -14,7 +14,7 @@ NodeTool spans many providers but only a few distinct mechanisms. Find your prov
 
 | Mechanism | What "add a model" means | Providers |
 | :-------- | :----------------------- | :-------- |
-| **Dynamic fetch** | Nothing — models appear from the provider's live `/models` (or local daemon) endpoint. Code only for capability/cost overrides. | [OpenAI](openai.md) (chat), [Anthropic](anthropic.md), [Gemini](gemini.md) (text), [xAI](xai.md), [OpenAI-compatible](openai-compatible.md) (Groq, Mistral, DeepSeek, Moonshot, Cerebras, Cohere, OpenRouter), [Ollama](ollama.md), [Local inference](local-inference.md) (LM Studio, llama.cpp, vLLM) |
+| **Dynamic fetch** | Nothing — models appear from the provider's live `/models` (or local daemon) endpoint. Code only for capability/cost overrides. | [OpenAI](openai.md) (chat), [Anthropic](anthropic.md), [Gemini](gemini.md) (text), [xAI](xai.md), [OpenAI-compatible](openai-compatible.md) (Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter), [Ollama](ollama.md), [Local inference](local-inference.md) (LM Studio, llama.cpp, vLLM) |
 | **Static model list** | A code edit to a hardcoded array in the provider (plus cost entry). | [OpenAI](openai.md) (image), [Gemini](gemini.md) (Imagen/Veo) |
 | **Codegen from upstream schemas** | Add an endpoint id to a config, run the generator — the manifest is regenerated, never hand-edited. | [FAL](fal.md), [Replicate](replicate.md), [KIE](kie.md) |
 | **Hand-maintained manifest** | Add a JSON entry to the package manifest. | [AtlasCloud](atlascloud.md), [Topaz](topaz.md), [Together](together.md) |
@@ -26,7 +26,7 @@ NodeTool spans many providers but only a few distinct mechanisms. Find your prov
 - **[Anthropic (Claude)](anthropic.md)** — models fetched live from the Anthropic API.
 - **[Google Gemini](gemini.md)** — text auto-fetches; Imagen/Veo are static lists.
 - **[xAI (Grok)](xai.md)** — chat, image, and video classified from `/v1/models`.
-- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Cohere, OpenRouter, and how to add a new one.
+- **[OpenAI-compatible providers](openai-compatible.md)** — Groq, Mistral, DeepSeek, Moonshot, Cerebras, Alibaba Cloud, Cohere, OpenRouter, and how to add a new one.
 - **[FAL](fal.md)** — nodes generated from FAL OpenAPI schemas via codegen.
 - **[Replicate](replicate.md)** — nodes generated from Replicate model schemas via codegen.
 - **[KIE](kie.md)** — nodes generated from per-model configs into a manifest.

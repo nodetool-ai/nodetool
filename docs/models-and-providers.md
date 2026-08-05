@@ -54,6 +54,7 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | Groq | Llama, Qwen, GPT-OSS, Kimi K2 on LPU inference |
 | Mistral | Mistral Large, Mistral Medium, Mistral Small, Mixtral, Codestral, Magistral |
 | Cerebras | Llama, Qwen, GPT-OSS on wafer-scale inference |
+| Alibaba Cloud | Qwen3-Max, Qwen-Plus, Qwen-Flash, Qwen-Turbo, Qwen3-VL |
 | GMI Cloud | Llama, DeepSeek, Qwen (open-weight) |
 | Moonshot | Kimi K2, Kimi latest |
 | <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax-Text, MiniMax M2 |

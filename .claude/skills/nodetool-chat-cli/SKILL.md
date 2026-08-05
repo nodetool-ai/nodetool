@@ -54,7 +54,7 @@ nodetool chat --sandbox
 | `--trace-stdout [pretty\|json]` | Stream spans to stdout |
 
 Providers: `anthropic`, `claude_agent_sdk`, `openai`, `codex`, `gemini`, `xai`,
-`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `gmi`,
+`groq`, `mistral`, `deepseek`, `moonshot`, `minimax`, `cerebras`, `alibaba`, `gmi`,
 `together`, `openrouter`, `huggingface`, `replicate`, `kie`, `aki`, `ollama`,
 `lmstudio`, `mlx`. Any other registered provider id (e.g. `vllm`) also works when
 passed explicitly.
