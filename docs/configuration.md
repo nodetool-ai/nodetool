@@ -171,6 +171,7 @@ Security notes:
 | `NODETOOL_WS_DRAIN_TIMEOUT_MS` | How long a send waits for a slow reader before it is dropped | no | Default `30000`; the drop uses code `1001` so clients reconnect |
 | `NODETOOL_WS_MAX_QUEUED_FRAMES` | Undelivered inbound frames per connection before it is closed | no | Default `2000`; closes with code `1008` |
 | `NODETOOL_DISABLE_TRIGGERS` | Skip trigger ingestion on this process (no dispatcher, scheduler, file watcher, or webhook route) | no | Ingestion is **on** by default. Set to `1` when a second server shares one database, or for an embedded server that must not start background work |
+| `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
 | `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |
