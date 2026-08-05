@@ -2,6 +2,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
+import { trimTrailingSlashes } from "./openai-compat/index.js";
 import type { ChatCompletionsRequest } from "./openai-compat/types.js";
 import {
   PROVIDER_IDS,
@@ -26,7 +27,7 @@ export const ALIBABA_DEFAULT_BASE_URL =
 export function resolveAlibabaBaseURL(override?: string): string {
   const raw =
     override || process.env["DASHSCOPE_BASE_URL"] || ALIBABA_DEFAULT_BASE_URL;
-  return raw.replace(/\/+$/, "");
+  return trimTrailingSlashes(raw);
 }
 
 /**
