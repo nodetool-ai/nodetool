@@ -3,6 +3,7 @@ import {
   CLOUD_NODE_NAMESPACES,
   CLOUD_NODE_ALLOWLIST,
   CLOUD_NODE_DENYLIST,
+  CLOUD_HOST_FILE_NODES,
   CLOUD_PROVIDER_IDS,
   CLOUD_BUILTIN_PACK_IDS,
   isCloudNodeType,
@@ -133,6 +134,31 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
       "nodetool.text.SaveTextFile"
     ]) {
       expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+  });
+
+  it("drops the host-filesystem nodes from the managed cloud", () => {
+    for (const nodeType of CLOUD_HOST_FILE_NODES) {
+      expect(isCloudNodeType(nodeType)).toBe(false);
+    }
+    // The node users reach for first — a local path picker in the browser.
+    expect(CLOUD_HOST_FILE_NODES).toContain(
+      "nodetool.input.DocumentFileInput"
+    );
+  });
+
+  it("keeps the asset-store counterparts of the dropped file nodes", () => {
+    // Assets, not host paths, are how the cloud moves files around. Dropping
+    // the disk nodes must not take these with them.
+    for (const nodeType of [
+      "nodetool.input.AssetFolderInput",
+      "nodetool.input.DocumentInput",
+      "nodetool.image.LoadImageAssets",
+      "nodetool.image.SaveImage",
+      "nodetool.audio.SaveAudio",
+      "nodetool.video.SaveVideo"
+    ]) {
+      expect(isCloudNodeType(nodeType)).toBe(true);
     }
   });
 
