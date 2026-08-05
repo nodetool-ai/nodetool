@@ -9,6 +9,8 @@
  * creation time via applyDefaultModels — these tracks intentionally do not
  * hardcode a provider.
  */
+import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
+
 export type WelcomeTrackId = "image" | "video" | "audio" | "agent";
 
 export interface WelcomeTrack {
@@ -31,6 +33,12 @@ export interface WelcomeTrack {
   promptInput: string;
   /** Output handle on the model node that feeds the Preview. */
   outputHandle: string;
+  /**
+   * What a provider must be able to do for this track's model node to run.
+   * Narrows provider onboarding to the ones that unblock the track the user
+   * just picked.
+   */
+  capability: OnboardingCapability;
 }
 
 export {
@@ -50,7 +58,8 @@ export const WELCOME_TRACKS: WelcomeTrack[] = [
       "a brutalist concrete pavilion at dusk, fog rolling in low, single warm light from inside, photograph, medium format",
     modelType: "nodetool.image.TextToImage",
     promptInput: "prompt",
-    outputHandle: "output"
+    outputHandle: "output",
+    capability: "text_to_image"
   },
   {
     id: "video",
@@ -62,6 +71,7 @@ export const WELCOME_TRACKS: WelcomeTrack[] = [
     samplePrompt:
       "slow dolly through an empty library at golden hour, dust in the air, 24fps, cinematic",
     modelType: "nodetool.video.TextToVideo",
+    capability: "text_to_video",
     promptInput: "prompt",
     outputHandle: "output"
   },
@@ -75,6 +85,7 @@ export const WELCOME_TRACKS: WelcomeTrack[] = [
     samplePrompt:
       "a calm narrator: you are listening to nodetool. every model, your keys, your canvas.",
     modelType: "nodetool.audio.TextToSpeech",
+    capability: "text_to_speech",
     promptInput: "text",
     outputHandle: "audio"
   },
@@ -88,6 +99,7 @@ export const WELCOME_TRACKS: WelcomeTrack[] = [
     samplePrompt:
       "draft a 4-line tagline for a creative tool that runs every AI model locally or in the cloud, no hype words",
     modelType: "nodetool.agents.Agent",
+    capability: "generate_message",
     promptInput: "prompt",
     outputHandle: "text"
   }

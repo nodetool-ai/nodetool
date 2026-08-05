@@ -26,7 +26,6 @@ import {
   updateBrowserJobNodeProperties
 } from "../lib/workflow/browserWorkflowRunner";
 import { useNotificationStore, Notification } from "./NotificationStore";
-import useOnboardingStore from "./OnboardingStore";
 import useMetadataStore from "./MetadataStore";
 import { reactFlowEdgeToGraphEdge } from "./reactFlowEdgeToGraphEdge";
 import { reactFlowNodeToGraphNode } from "./reactFlowNodeToGraphNode";
@@ -428,7 +427,8 @@ export const createWorkflowRunnerStore = (
       inputSignatures?: Record<string, string>,
       options?: RunOptions
     ) => {
-      useOnboardingStore.getState().markStep("run-workflow");
+      // The "run a workflow" onboarding step is marked when a run *completes*
+      // (see workflowUpdates.ts) — a run that fails hasn't taught anything.
       const activeNodeTypes = nodes
         .filter((node) => !node.data?.bypassed)
         .map((node) => node.type)

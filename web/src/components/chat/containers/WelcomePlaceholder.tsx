@@ -87,7 +87,7 @@ const SUGGESTIONS = [
 ];
 
 // Cloud LLM providers we point first-time users at. Each maps to an API key
-// they can add on the Settings → API Keys tab.
+// they can add on the Settings → Models & Providers tab.
 const SETUP_PROVIDERS = [
   { name: "OpenAI", icon: openaiIcon, mono: true },
   { name: "Anthropic", icon: anthropicIcon, mono: true },

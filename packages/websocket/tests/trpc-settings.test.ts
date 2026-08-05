@@ -33,12 +33,18 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
   const actual = await orig<typeof import("@nodetool-ai/runtime")>();
   return {
     ...actual,
-    clearProviderCache: vi.fn()
+    clearProviderCache: vi.fn(),
+    checkCredential: vi.fn(),
+    readCredentialEnv: vi.fn(() => undefined)
   };
 });
 
 import { Setting, Secret, clearSecretCache } from "@nodetool-ai/models";
-import { clearProviderCache } from "@nodetool-ai/runtime";
+import {
+  clearProviderCache,
+  checkCredential,
+  readCredentialEnv
+} from "@nodetool-ai/runtime";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -385,6 +391,138 @@ describe("settings router", () => {
       const caller = createCaller(makeCtx({ userId: null }));
       await expect(
         caller.settings.secrets.delete({ key: "X" })
+      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    });
+  });
+
+  // ── settings.secrets.validate ────────────────────────────────────
+  describe("secrets.validate", () => {
+    const mockCheck = () => checkCredential as ReturnType<typeof vi.fn>;
+
+    it("probes the candidate value without reading the stored secret", async () => {
+      mockCheck().mockResolvedValue({
+        status: "valid",
+        message: "OpenAI accepted the key."
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "OPENAI_API_KEY",
+        value: "  sk-candidate  "
+      });
+
+      expect(checkCredential).toHaveBeenCalledWith(
+        "OPENAI_API_KEY",
+        "sk-candidate"
+      );
+      expect(Secret.find).not.toHaveBeenCalled();
+      expect(res).toEqual({
+        status: "valid",
+        valid: true,
+        message: "OpenAI accepted the key."
+      });
+    });
+
+    it("falls back to the stored secret when no value is given", async () => {
+      (Secret.find as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeSecretStub({
+          id: "s1",
+          key: "GROQ_API_KEY",
+          decryptedValue: "stored-key"
+        })
+      );
+      mockCheck().mockResolvedValue({
+        status: "invalid",
+        message: "Groq rejected the key (401)."
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "GROQ_API_KEY"
+      });
+
+      expect(checkCredential).toHaveBeenCalledWith("GROQ_API_KEY", "stored-key");
+      expect(res.status).toBe("invalid");
+      expect(res.valid).toBe(false);
+    });
+
+    it("reports a provider with no probe as unverifiable, not valid", async () => {
+      mockCheck().mockResolvedValue({
+        status: "unverifiable",
+        message: "NodeTool has no quick check for FAL_API_KEY."
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "FAL_API_KEY",
+        value: "fal-key"
+      });
+
+      expect(res.status).toBe("unverifiable");
+      expect(res.valid).toBe(false);
+    });
+
+    it("reports an undecryptable stored secret as invalid", async () => {
+      (Secret.find as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeSecretStub({
+          id: "s1",
+          key: "OPENAI_API_KEY",
+          isUnreadable: true
+        })
+      );
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "OPENAI_API_KEY"
+      });
+
+      expect(res.status).toBe("invalid");
+      expect(res.message).toMatch(/decrypt/i);
+      expect(checkCredential).not.toHaveBeenCalled();
+    });
+
+    it("reports a key that is stored nowhere as invalid", async () => {
+      (Secret.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (readCredentialEnv as ReturnType<typeof vi.fn>).mockReturnValue(
+        undefined
+      );
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "MISTRAL_API_KEY"
+      });
+
+      expect(res.status).toBe("invalid");
+      expect(res.message).toMatch(/No key is stored/i);
+      expect(checkCredential).not.toHaveBeenCalled();
+    });
+
+    it("falls back to the process env when nothing is stored", async () => {
+      (Secret.find as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+      (readCredentialEnv as ReturnType<typeof vi.fn>).mockReturnValue(
+        "env-key"
+      );
+      mockCheck().mockResolvedValue({
+        status: "valid",
+        message: "Mistral accepted the key."
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "MISTRAL_API_KEY"
+      });
+
+      expect(checkCredential).toHaveBeenCalledWith(
+        "MISTRAL_API_KEY",
+        "env-key"
+      );
+      expect(res.valid).toBe(true);
+    });
+
+    it("rejects unauthenticated callers", async () => {
+      const caller = createCaller(makeCtx({ userId: null }));
+      await expect(
+        caller.settings.secrets.validate({ key: "OPENAI_API_KEY" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     });
   });

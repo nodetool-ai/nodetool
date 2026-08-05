@@ -249,6 +249,21 @@ export const providerCostSchema = z.object({
 });
 export type ProviderCost = z.infer<typeof providerCostSchema>;
 
+/**
+ * Machine-readable companion to `node_update.error`. Lets a surface act on a
+ * failure — reopen provider onboarding on the offending key, say — without
+ * matching the prose the provider layer wrote.
+ */
+export const nodeErrorDetailSchema = z.object({
+  /** `provider_auth`: the provider refused the credential (401/403). */
+  code: z.string(),
+  /** Provider id as the runtime knows it (e.g. `openai`). */
+  provider: z.string().nullable().optional(),
+  /** Secret key holding that provider's credential (e.g. `OPENAI_API_KEY`). */
+  secret_key: z.string().nullable().optional()
+});
+export type NodeErrorDetail = z.infer<typeof nodeErrorDetailSchema>;
+
 export const nodeUpdateSchema = z.object({
   type: z.literal("node_update"),
   node_id: z.string(),
@@ -256,6 +271,8 @@ export const nodeUpdateSchema = z.object({
   node_type: z.string(),
   status: z.string(),
   error: z.string().nullable().optional(),
+  /** Structured cause behind `error`, when the failure has one. */
+  error_detail: nodeErrorDetailSchema.nullable().optional(),
   result: z.record(z.string(), z.unknown()).nullable().optional(),
   properties: z.record(z.string(), z.unknown()).nullable().optional(),
   /** Actual provider charge for the last completed run (when reported by the node). */

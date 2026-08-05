@@ -37,7 +37,17 @@ everything on this page still works. See the
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
 2. Run the installer.
-3. Open the app. There is no setup wizard.
+3. Open the app. There is no setup wizard — it opens on the Dashboard and asks
+   what you want to make. Pick a track and it drops a starter workflow on the
+   canvas; skip it and you get an empty one.
+
+![First launch: pick what you want to make](assets/screenshots/onboarding-welcome.png)
+
+Under the tracks is a getting-started checklist — connect a provider, open a
+template, run it, build your own. It disappears when you finish the four steps
+or press Dismiss, and the app then opens straight into the workspace.
+
+![Getting-started checklist](assets/screenshots/onboarding-checklist.png)
 
 Step-by-step instructions per operating system are on the
 [Installation](installation.md) page.
@@ -49,10 +59,14 @@ an **API key**: a long password-like string you copy from an AI company's
 website. It lets NodeTool send requests on your account, and that company bills
 you for what you use.
 
-Open **Settings → Providers** and paste a key from
+The checklist's **Connect an AI provider** step opens this dialog — sign in with
+one click where the provider supports it, or paste a key from
 [OpenAI](https://platform.openai.com),
 [Anthropic](https://www.anthropic.com), or
-[Google](https://ai.google.dev). One key is enough for the examples below.
+[Google](https://ai.google.dev). One key is enough for the examples below. You
+can reach the same providers any time under **Settings → Models & Providers**.
+
+![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
 Want the AI to run on your own machine instead, with no account and no bill?
 That works too, and it needs a download of several gigabytes per model. See
@@ -73,7 +87,9 @@ place boxes and draw lines between them.
 
 You don't have to build one yet. NodeTool ships with **templates**: finished
 workflows you can open and run as they are. Find them on the Dashboard, the
-screen you land on when the app opens, or on the Examples page.
+screen you land on until you finish the checklist, or on the Examples page.
+After that the app opens straight into the workspace; **Settings → General →
+Show Welcome Screen** puts the Dashboard back on startup.
 
 ![Examples page](assets/screenshots/examples-page.png)
 
@@ -141,7 +157,7 @@ of the category list.
   every node, even in a pack that is switched off, so nothing is ever truly
   hidden.
 - **Providers** — nodes for an AI company appear as soon as you add that
-  company's API key, in **Settings → API Keys** or with the **Add API key**
+  company's API key, in **Settings → Models & Providers** or with the **Add API key**
   button right here. No restart needed. Packs that run on your own machine, like
   Transformers.js, need no key and have a normal on/off switch.
 

@@ -33,6 +33,9 @@ import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import useOnboardingStore from "./OnboardingStore";
+import { openProviderOnboarding } from "./ProviderOnboardingStore";
+import type { NodeErrorDetail } from "@nodetool-ai/protocol";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -218,6 +221,33 @@ globalWebSocketManager.setResumeJobIdProvider(() => {
 // different workflows don't ping-pong a shared id and repeatedly wipe the
 // trace timeline.
 const traceRunJobIds = new Map<string, string | null>();
+
+/**
+ * Runs that already opened provider onboarding. A missing credential usually
+ * fails every model node in the graph, and one dialog per run is the point —
+ * the second one would just re-open what the user is already looking at.
+ */
+const authPromptedRuns = new Set<string>();
+
+/**
+ * A node died because the provider refused the credential. Send the user to
+ * the screen that fixes it, pre-expanded on the key that failed, instead of
+ * leaving them to read the provider's prose out of a toast.
+ */
+const promptForProviderAuth = (
+  detail: NodeErrorDetail,
+  runKey: string
+): void => {
+  if (detail.code !== "provider_auth" || authPromptedRuns.has(runKey)) {
+    return;
+  }
+  authPromptedRuns.add(runKey);
+  const provider = detail.provider ?? "the provider";
+  openProviderOnboarding({
+    reason: `The run stopped because ${provider} rejected the credentials. Reconnect it to continue.`,
+    ...(detail.secret_key ? { highlightSecretKey: detail.secret_key } : {})
+  });
+};
 
 // Per-(jobId, node_id) "a generation_complete landed this run" set. Gates the
 // node_update{completed} fallback so a generator (which emits N
@@ -993,6 +1023,8 @@ export const handleUpdate = (
       ) {
         traceRunJobIds.set(workflow.id, incomingTraceJobId);
         useTraceStore.getState().startRun(new Date().toISOString());
+        // A fresh run gets a fresh chance to surface a credential problem.
+        authPromptedRuns.delete(incomingTraceJobId ?? workflow.id);
         // Clear the saw-generation_complete flags for this incoming job so a
         // reused jobId can't poison the next run's node_update{completed}
         // fallback (a stale flag would suppress a legitimate synthesis).
@@ -1093,6 +1125,11 @@ export const handleUpdate = (
 
     switch (job.status) {
       case "completed": {
+        // A run that finished is what the "run a workflow" onboarding step
+        // asks for; a failed or cancelled one isn't. Preview runs don't count.
+        if (isRunnerJob && !silentJob) {
+          useOnboardingStore.getState().markStep("run-workflow");
+        }
         // No toast — completion is reflected in the Queue panel/overlay.
         // Don't clear this run's per-job state (progress/timings/edges): with
         // per-job keys those clears span the whole workflow and would wipe a
@@ -1256,6 +1293,9 @@ export const handleUpdate = (
     // on and wrongly marks the run as errored — treat it as no error.
     if (normalizedNodeError && nodeErrorDisplay) {
       console.error("WorkflowRunner update error", normalizedNodeError);
+      if (update.error_detail) {
+        promptForProviderAuth(update.error_detail, jobId ?? workflow.id);
+      }
       runner.addNotification({
         type: "error",
         alert: true,

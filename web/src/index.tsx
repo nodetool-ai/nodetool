@@ -57,6 +57,8 @@ import { loadRuntimeConfig, isAuthRequired } from "./lib/runtimeConfig";
 import { initAnalytics } from "./lib/analytics";
 import { initSupabaseFromConfig } from "./lib/supabaseClient";
 import { initKeyListeners } from "./stores/KeyPressedStore";
+import useOnboardingStore, { startRouteFor } from "./stores/OnboardingStore";
+import { useSettingsStore } from "./stores/SettingsStore";
 import useRemoteSettingsStore from "./stores/RemoteSettingStore";
 import { loadMetadata, prefetchMetadata } from "./serverState/useMetadata";
 import { WorkflowManagerProvider } from "./contexts/WorkflowManagerContext";
@@ -169,14 +171,24 @@ const NavigateToStart = () => {
   const state = useAuth((auth) => auth.state);
   const navigate = useNavigate();
 
-  // The tabbed workspace is the app entry point. Previously-open workflows are
-  // restored as tabs from localStorage by the WorkspaceTabsStore.
+  // The tabbed workspace is the app entry point for returning users;
+  // previously-open workflows are restored as tabs from localStorage by the
+  // WorkspaceTabsStore. Users who still have getting-started steps open land on
+  // the dashboard instead, where the welcome hero, templates and tutorials are.
   useEffect(() => {
     if (state === "init") {
       return;
     }
     if (!isAuthRequired() || state === "logged_in") {
-      navigate("/workspace", { replace: true });
+      // Both stores persist to sync localStorage, so their state is already
+      // rehydrated by the time this effect runs — reading it non-reactively
+      // here decides the entry route once, with no post-hydration redirect.
+      const { completedSteps, dismissed } = useOnboardingStore.getState();
+      const { showWelcomeOnStartup } = useSettingsStore.getState().settings;
+      navigate(
+        startRouteFor({ completedSteps, dismissed }, showWelcomeOnStartup),
+        { replace: true }
+      );
     } else if (state === "logged_out" || state === "error") {
       navigate("/login", { replace: true });
     }

@@ -563,7 +563,7 @@ function SettingsPage() {
                 scrollButtons={false}
               >
                 <Tab label="General" id="settings-tab-0" />
-                <Tab label="API Keys" id="settings-tab-1" />
+                <Tab label="Models & Providers" id="settings-tab-1" />
                 <Tab label="Integrations" id="settings-tab-2" />
                 <Tab label="About" id={`settings-tab-${aboutTabIndex}`} />
               </Tabs>
@@ -618,7 +618,7 @@ function SettingsPage() {
                           label="Show Welcome Screen"
                           checked={!!settings.showWelcomeOnStartup}
                           onChange={handleShowWelcomeChange}
-                          description="Show the welcome screen when starting the application."
+                          description="Start on the dashboard, with the welcome screen and templates, until getting started is finished. When off, the app opens straight into the workspace."
                         />
                       </SearchItem>
 

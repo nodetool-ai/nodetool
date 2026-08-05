@@ -1,8 +1,10 @@
 import { describe, it, expect } from "vitest";
 import {
   annotateProviderError,
-  httpStatusFromError
+  httpStatusFromError,
+  providerFailureDetail
 } from "../../src/providers/provider-error.js";
+import { registerProvider, unregisterProvider } from "../../src/providers/provider-registry.js";
 import { BaseProvider } from "../../src/providers/base-provider.js";
 import type { Message, ProviderStreamItem } from "../../src/providers/types.js";
 
@@ -133,5 +135,34 @@ describe("BaseProvider traced wrappers", () => {
         model: "gemini-3-pro"
       })
     ).rejects.toThrow(/refused the request \(403\)/);
+  });
+});
+
+describe("providerFailureDetail", () => {
+  it("names the provider and its secret key on a credential failure", () => {
+    registerProvider("test-openai", FailingProvider as never, {
+      TEST_OPENAI_API_KEY: ""
+    });
+    try {
+      for (const status of [401, 403]) {
+        const error = httpError(status, "nope");
+        annotateProviderError(error, { provider: "test-openai" });
+        expect(providerFailureDetail(error)).toEqual({
+          code: "provider_auth",
+          provider: "test-openai",
+          secretKey: "TEST_OPENAI_API_KEY"
+        });
+      }
+    } finally {
+      unregisterProvider("test-openai");
+    }
+  });
+
+  it("attaches nothing to failures that are not about credentials", () => {
+    const error = httpError(429, "Rate limit reached");
+    annotateProviderError(error, { provider: "openai" });
+    expect(providerFailureDetail(error)).toBeNull();
+    expect(providerFailureDetail(new Error("plain"))).toBeNull();
+    expect(providerFailureDetail(undefined)).toBeNull();
   });
 });

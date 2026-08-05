@@ -25,6 +25,7 @@ const mockUseSecretsStore = useSecretsStore as unknown as jest.Mock;
 const mockUseNotificationStore = useNotificationStore as unknown as jest.Mock;
 
 const updateSecret = jest.fn().mockResolvedValue(undefined);
+const validateSecret = jest.fn();
 const addNotification = jest.fn();
 
 const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
@@ -57,8 +58,13 @@ const renderCard = (
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseOAuthConnection.mockReturnValue(oauthState({}));
+  validateSecret.mockResolvedValue({
+    status: "valid",
+    valid: true,
+    message: "Anthropic accepted the key."
+  });
   mockUseSecretsStore.mockImplementation((selector: (s: unknown) => unknown) =>
-    selector({ updateSecret })
+    selector({ updateSecret, validateSecret })
   );
   mockUseNotificationStore.mockImplementation(
     (selector: (s: unknown) => unknown) => selector({ addNotification })
@@ -80,7 +86,7 @@ describe("ProviderOnboardingCard", () => {
     expect(connect).toHaveBeenCalledTimes(1);
   });
 
-  it("saves a pasted API key for a key-based provider", async () => {
+  it("validates a pasted API key before saving it", async () => {
     renderCard(anthropic);
     await userEvent.click(
       screen.getByRole("button", { name: /add api key/i })
@@ -95,8 +101,67 @@ describe("ProviderOnboardingCard", () => {
         "sk-test-123"
       )
     );
+    expect(validateSecret).toHaveBeenCalledWith(
+      "ANTHROPIC_API_KEY",
+      "sk-test-123"
+    );
     expect(addNotification).toHaveBeenCalledWith(
       expect.objectContaining({ type: "success" })
+    );
+  });
+
+  it("refuses to save a key the provider rejected, and offers to save it anyway", async () => {
+    validateSecret.mockResolvedValue({
+      status: "invalid",
+      valid: false,
+      message: "Anthropic rejected the key (401)."
+    });
+    renderCard(anthropic);
+    await userEvent.click(
+      screen.getByRole("button", { name: /add api key/i })
+    );
+    const input = screen.getByPlaceholderText(/paste your anthropic api key/i);
+    await userEvent.type(input, "sk-bad");
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/rejected the key/i)).toBeInTheDocument()
+    );
+    expect(updateSecret).not.toHaveBeenCalled();
+    expect(input).toHaveValue("sk-bad");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: /save anyway/i })
+    );
+    await waitFor(() =>
+      expect(updateSecret).toHaveBeenCalledWith("ANTHROPIC_API_KEY", "sk-bad")
+    );
+  });
+
+  it("saves a key nothing could verify, and says so", async () => {
+    validateSecret.mockResolvedValue({
+      status: "unverifiable",
+      valid: false,
+      message: "NodeTool has no quick check for ANTHROPIC_API_KEY."
+    });
+    renderCard(anthropic);
+    await userEvent.click(
+      screen.getByRole("button", { name: /add api key/i })
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText(/paste your anthropic api key/i),
+      "sk-unknown"
+    );
+    await userEvent.click(screen.getByRole("button", { name: /^connect$/i }));
+
+    await waitFor(() =>
+      expect(updateSecret).toHaveBeenCalledWith(
+        "ANTHROPIC_API_KEY",
+        "sk-unknown"
+      )
+    );
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "warning" })
     );
   });
 

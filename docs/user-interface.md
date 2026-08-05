@@ -340,6 +340,12 @@ Open documents sit in a tab bar across the top — workflows, sketches, timeline
 
 ![Workspace tab bar](assets/screenshots/editor-tabs-bar.png)
 
+With no tabs open, the workspace shows the chat composer and a few sample
+prompts: describe a workflow in plain language and the agent builds it for you.
+The getting-started checklist sits above them until you finish or dismiss it.
+
+![Empty workspace](assets/screenshots/onboarding-empty-workspace.png)
+
 ### Rearranging Panels
 
 - **Move**: Drag a panel tab to a new location

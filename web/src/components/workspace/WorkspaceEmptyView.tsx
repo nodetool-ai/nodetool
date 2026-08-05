@@ -15,7 +15,14 @@ import type { Message, MessageContent } from "../../stores/ApiTypes";
 import ChatInputSection from "../chat/containers/ChatInputSection";
 import GettingStartedChecklist from "../portal/GettingStartedChecklist";
 import { PAGE_TAB_TITLES } from "./pageTabs";
-import { Caption, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  Caption,
+  MOTION,
+  SPACING,
+  TYPOGRAPHY,
+  getSpacingPx
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -39,8 +46,43 @@ const styles = (theme: Theme) =>
     ".empty-onboarding": {
       width: "100%",
       maxWidth: 720
+    },
+    ".empty-prompts": {
+      display: "flex",
+      flexWrap: "wrap",
+      justifyContent: "center",
+      gap: getSpacingPx(SPACING.md),
+      maxWidth: 720
+    },
+    ".empty-prompt": {
+      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.lg)}`,
+      borderRadius: BORDER_RADIUS.pill,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      background: "transparent",
+      color: theme.vars.palette.text.secondary,
+      ...TYPOGRAPHY.sans.label,
+      cursor: "pointer",
+      transition: `border-color ${MOTION.fast}, color ${MOTION.fast}`,
+      "&:hover": {
+        borderColor: theme.vars.palette.action.focus,
+        color: theme.vars.palette.text.primary
+      },
+      "&:disabled": {
+        cursor: "default",
+        opacity: 0.6
+      }
     }
   });
+
+/**
+ * Starting points that show the agent builds workflows from plain language —
+ * the graph tools are there, but nothing on this screen said so.
+ */
+const SAMPLE_PROMPTS = [
+  "Build a workflow that turns a prompt into an image",
+  "Build a workflow that summarizes a PDF into bullet points",
+  "Build a workflow that transcribes an audio file and translates it"
+] as const;
 
 /**
  * Shown in the workspace when no tabs are open. Carries the chat composer that
@@ -102,6 +144,13 @@ const WorkspaceEmptyView = () => {
     [openTab]
   );
 
+  const handleSendPrompt = useCallback(
+    (prompt: string) => {
+      void handleSend([{ type: "text", text: prompt }]);
+    },
+    [handleSend]
+  );
+
   const handleConnectProvider = useCallback(() => {
     openProviderOnboarding({
       capability: "generate_message",
@@ -135,6 +184,7 @@ const WorkspaceEmptyView = () => {
 
   // ChatInputSection has no "stopping" state; the composer treats it as idle.
   const inputStatus = status === "stopping" ? "connected" : status;
+  const isBusy = status === "loading" || status === "streaming";
 
   return (
     <div css={emptyStyles} className="workspace-empty">
@@ -148,8 +198,22 @@ const WorkspaceEmptyView = () => {
         />
       </div>
       <Caption color="secondary">
-        No tabs open — ask below to start a chat, or use + to open a document.
+        Describe a workflow in plain language and the agent builds it for you —
+        or use + to open a document.
       </Caption>
+      <div className="empty-prompts">
+        {SAMPLE_PROMPTS.map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            className="empty-prompt"
+            disabled={isBusy}
+            onClick={() => handleSendPrompt(prompt)}
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
       <div className="empty-composer">
         <ChatInputSection
           status={inputStatus}

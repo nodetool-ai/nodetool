@@ -29,6 +29,13 @@ jest.mock("../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManagerStore: () => ({ getState: () => mockManager })
 }));
 
+const mockAddNotification = jest.fn();
+jest.mock("../../stores/NotificationStore", () => ({
+  useNotificationStore: {
+    getState: () => ({ addNotification: mockAddNotification })
+  }
+}));
+
 jest.mock("../../stores/MetadataStore", () => {
   const store = jest.fn() as jest.Mock & { getState: jest.Mock };
   store.getState = jest.fn();
@@ -120,5 +127,36 @@ describe("useCreateStarterWorkflow", () => {
     expect(mockNs.createNode).not.toHaveBeenCalled();
     expect(mockNs.onConnect).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/editor/wf-1");
+  });
+
+  it("tells the user which node type is missing instead of failing silently", () => {
+    (useMetadataStore.getState as jest.Mock).mockReturnValue({
+      getMetadata: jest.fn((type: string) =>
+        type === "nodetool.image.TextToImage"
+          ? undefined
+          : { node_type: type, properties: [] }
+      )
+    });
+
+    const { result } = renderHook(() => useCreateStarterWorkflow());
+
+    act(() => {
+      result.current("image");
+    });
+
+    expect(mockAddNotification).toHaveBeenCalledTimes(1);
+    const notification = mockAddNotification.mock.calls[0][0];
+    expect(notification.type).toBe("warning");
+    expect(notification.content).toContain("nodetool.image.TextToImage");
+  });
+
+  it("reports nothing when the graph is wired successfully", () => {
+    const { result } = renderHook(() => useCreateStarterWorkflow());
+
+    act(() => {
+      result.current("image");
+    });
+
+    expect(mockAddNotification).not.toHaveBeenCalled();
   });
 });

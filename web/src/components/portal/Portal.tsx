@@ -3,27 +3,25 @@
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { usePortalChat } from "./usePortalChat";
 import { useDashboardData } from "../../hooks/useDashboardData";
 import { useWorkflowActions } from "../../hooks/useWorkflowActions";
 import { useHasConfiguredProvider } from "../../hooks/useHasConfiguredProvider";
 import { usePanelStore } from "../../stores/PanelStore";
-import { LanguageModel } from "../../stores/ApiTypes";
-import PortalSetupFlow from "./PortalSetupFlow";
+import { openProviderOnboarding } from "../../stores/ProviderOnboardingStore";
 import DashboardHero from "./DashboardHero";
 import DashboardDownloads from "./DashboardDownloads";
 import GettingStartedChecklist from "./GettingStartedChecklist";
-import DashboardTemplates from "./DashboardTemplates";
+import DashboardTemplates, {
+  DASHBOARD_TEMPLATES_SECTION_ID
+} from "./DashboardTemplates";
 import DashboardTutorials from "./DashboardTutorials";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
 import { useCreateStarterWorkflow } from "../../hooks/useCreateStarterWorkflow";
 import { WELCOME_TRACKS, type WelcomeTrackId } from "./welcomeTracks";
 import { Box, SPACING, getSpacingPx } from "../ui_primitives";
-
-type PortalState = "idle" | "setup";
 
 const styles = (theme: Theme) =>
   css({
@@ -42,28 +40,12 @@ const styles = (theme: Theme) =>
     },
     "main": {
       paddingBottom: getSpacingPx(SPACING.md)
-    },
-
-    // Setup state (no provider configured yet)
-    ".portal-setup-container": {
-      flex: 1,
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      padding: `0 ${getSpacingPx(SPACING.xxl)}`,
-      paddingTop: getSpacingPx(SPACING.md)
-    },
-    ".portal-setup-message": {
-      maxWidth: 480,
-      padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}` // was 16px 20px
     }
   });
 
 const Portal: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
-  const [portalState, setPortalState] = useState<PortalState>("idle");
   const [pendingTrack, setPendingTrack] = useState<WelcomeTrackId | null>(null);
 
   // The dashboard wants the full width; collapse the left panel on entry.
@@ -71,7 +53,6 @@ const Portal: React.FC = () => {
     usePanelStore.getState().setVisibility(false);
   }, []);
 
-  const { setSelectedModel } = usePortalChat();
   const { sortedWorkflows, isLoadingWorkflows } = useDashboardData();
   const { handleCreateNewWorkflow } = useWorkflowActions();
 
@@ -81,16 +62,38 @@ const Portal: React.FC = () => {
   const handlePickTrack = useCallback(
     (trackId: WelcomeTrackId) => {
       // A starter workflow needs a model to run; route key-less users through
-      // provider setup first so their first Run doesn't fail.
+      // the shared provider onboarding first so their first Run doesn't fail.
       if (!hasConfiguredProvider) {
         setPendingTrack(trackId);
-        setPortalState("setup");
+        const track = WELCOME_TRACKS.find((t) => t.id === trackId);
+        openProviderOnboarding({
+          ...(track ? { capability: track.capability } : {}),
+          ...(track
+            ? {
+                reason: `Almost there — your ${track.label} starter needs a model to run.`
+              }
+            : {})
+        });
         return;
       }
       createStarterWorkflow(trackId);
     },
     [hasConfiguredProvider, createStarterWorkflow]
   );
+
+  // Picking a track without a provider parks it here; once one is connected the
+  // starter opens on its own, so the user finishes the thing they asked for
+  // rather than landing back on the dashboard.
+  const createStarter = useRef(createStarterWorkflow);
+  createStarter.current = createStarterWorkflow;
+  useEffect(() => {
+    if (!pendingTrack || !hasConfiguredProvider) {
+      return;
+    }
+    const trackId = pendingTrack;
+    setPendingTrack(null);
+    createStarter.current(trackId);
+  }, [pendingTrack, hasConfiguredProvider]);
 
   const handleOpenWorkflow = useCallback(
     (workflowId: string) => {
@@ -103,66 +106,20 @@ const Portal: React.FC = () => {
     navigate("/settings");
   }, [navigate]);
 
-  const handleGettingStarted = useCallback(() => {
-    navigate("/dashboard");
+  // Already on the dashboard, so "browse templates" is a scroll, not a route
+  // change. The templates section owns the anchor id.
+  const handleOpenTemplates = useCallback(() => {
+    const section = document.getElementById(DASHBOARD_TEMPLATES_SECTION_ID);
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      navigate("/examples");
+    }
   }, [navigate]);
 
-  const handleSetupComplete = useCallback(
-    (defaultModel: string | null) => {
-      if (defaultModel) {
-        const [provider, ...idParts] = defaultModel.split(":");
-        const id = idParts.join(":");
-        const model: LanguageModel = {
-          type: "language_model",
-          provider,
-          id,
-          name: id
-        };
-        setSelectedModel(model);
-      }
-      setPortalState("idle");
-
-      if (pendingTrack) {
-        const trackId = pendingTrack;
-        setPendingTrack(null);
-        createStarterWorkflow(trackId);
-      }
-    },
-    [pendingTrack, setSelectedModel, createStarterWorkflow]
-  );
-
-  const handleSetupBack = useCallback(() => {
-    setPendingTrack(null);
-    setPortalState("idle");
-  }, []);
-
   const handleConnectProvider = useCallback(() => {
-    setPortalState("setup");
+    openProviderOnboarding();
   }, []);
-
-  if (portalState === "setup") {
-    const pendingTrackLabel = pendingTrack
-      ? WELCOME_TRACKS.find((t) => t.id === pendingTrack)?.label
-      : undefined;
-    return (
-      <Box css={styles(theme)}>
-        <div className="portal-setup-container">
-          <div className="portal-setup-message">
-            <PortalSetupFlow
-              onComplete={handleSetupComplete}
-              onBack={handleSetupBack}
-              trackId={pendingTrack}
-              message={
-                pendingTrackLabel
-                  ? `Almost there — your ${pendingTrackLabel} starter needs a model to run. Connect an AI provider:`
-                  : undefined
-              }
-            />
-          </div>
-        </div>
-      </Box>
-    );
-  }
 
   return (
     <Box css={styles(theme)}>
@@ -177,7 +134,7 @@ const Portal: React.FC = () => {
           <GettingStartedChecklist
             hasConfiguredProvider={hasConfiguredProvider}
             onConnectProvider={handleConnectProvider}
-            onOpenTemplates={handleGettingStarted}
+            onOpenTemplates={handleOpenTemplates}
             onCreateWorkflow={handleCreateNewWorkflow}
           />
           <DashboardTutorials />
@@ -190,7 +147,7 @@ const Portal: React.FC = () => {
           />
           <DashboardFooter
             workflowCount={sortedWorkflows.length}
-            onGettingStarted={handleGettingStarted}
+            onGettingStarted={handleOpenTemplates}
           />
         </main>
       </div>

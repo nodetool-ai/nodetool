@@ -152,6 +152,22 @@ export {
 } from "./provider-registry.js";
 export type { GetSecret } from "./provider-registry.js";
 export {
+  annotateProviderError,
+  httpStatusFromError,
+  providerFailureDetail
+} from "./provider-error.js";
+export type { ProviderFailureDetail } from "./provider-error.js";
+export {
+  checkCredential,
+  isCredentialVerifiable,
+  verifiableCredentialKeys
+} from "./credential-check.js";
+export type {
+  CredentialCheckStatus,
+  CredentialCheckResult,
+  CheckCredentialOptions
+} from "./credential-check.js";
+export {
   listOfflineModelIds,
   offlineModelIndexProviders
 } from "./offline-model-index.js";

@@ -10,7 +10,11 @@
 
 import { Secret, Setting, clearSecretCache } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
-import { clearProviderCache } from "@nodetool-ai/runtime";
+import {
+  clearProviderCache,
+  checkCredential,
+  readCredentialEnv
+} from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
@@ -29,6 +33,8 @@ import {
   secretUpsertInput,
   secretDeleteInput,
   secretDeleteOutput,
+  secretValidateInput,
+  secretValidateOutput,
   type SecretResponse
 } from "@nodetool-ai/protocol/api-schemas/settings.js";
 
@@ -137,6 +143,52 @@ const secretsRouter = router({
       clearSecretCache(ctx.userId, input.key);
       clearProviderCache();
       return { message: "Secret deleted successfully" };
+    }),
+
+  /**
+   * Spend one small request against the provider to find out whether a
+   * credential works. With no `value`, the stored key (or the process env
+   * fallback the runtime would use) is checked instead — that's the "Test
+   * connection" case. Never throws on a bad key: an unusable credential is a
+   * result, not a server error.
+   */
+  validate: protectedProcedure
+    .input(secretValidateInput)
+    .output(secretValidateOutput)
+    .mutation(async ({ ctx, input }) => {
+      let value = input.value?.trim();
+      if (!value) {
+        const secret = await Secret.find(ctx.userId, input.key);
+        if (secret) {
+          try {
+            value = (await secret.getDecryptedValue()) ?? undefined;
+          } catch {
+            // An undecryptable secret is unusable, and saying so is more
+            // useful than a decryption stack trace.
+            return {
+              status: "invalid" as const,
+              valid: false,
+              message:
+                "The stored key could not be decrypted. Enter it again to replace it."
+            };
+          }
+        }
+        value = value || readCredentialEnv(input.key);
+      }
+      if (!value) {
+        return {
+          status: "invalid" as const,
+          valid: false,
+          message: `No key is stored for ${input.key}.`
+        };
+      }
+
+      const result = await checkCredential(input.key, value);
+      return {
+        status: result.status,
+        valid: result.status === "valid",
+        message: result.message
+      };
     })
 });
 

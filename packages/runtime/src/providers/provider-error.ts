@@ -9,8 +9,27 @@
  * so existing message matching (rate limit, context length) still works.
  */
 
+import { getProviderSecretKey } from "./provider-registry.js";
+
 /** Marks an error already annotated, so nested wrappers don't stack hints. */
 const ANNOTATED = Symbol.for("nodetool.provider.errorAnnotated");
+
+/**
+ * Machine-readable companion to the prose hint. Surfaces that want to *act* on
+ * a failure — reopen provider onboarding on the failing key, say — read this
+ * instead of matching the message text.
+ */
+export interface ProviderFailureDetail {
+  /** `provider_auth` is the only code today: the credential was refused. */
+  code: "provider_auth";
+  /** Provider id as the runtime knows it (e.g. `openai`). */
+  provider: string;
+  /** Secret key holding that provider's credential, when one is registered. */
+  secretKey: string | null;
+}
+
+/** Field carrying {@link ProviderFailureDetail} on an annotated error. */
+const FAILURE_DETAIL = Symbol.for("nodetool.provider.failureDetail");
 
 interface ErrorLike {
   status?: unknown;
@@ -20,6 +39,18 @@ interface ErrorLike {
   name?: unknown;
   message?: unknown;
   [ANNOTATED]?: boolean;
+  [FAILURE_DETAIL]?: ProviderFailureDetail;
+}
+
+/**
+ * The structured detail {@link annotateProviderError} attached, or null when
+ * the error is not a credential failure.
+ */
+export function providerFailureDetail(
+  error: unknown
+): ProviderFailureDetail | null {
+  if (!error || typeof error !== "object") return null;
+  return (error as ErrorLike)[FAILURE_DETAIL] ?? null;
 }
 
 function numericStatus(value: unknown): number | null {
@@ -144,6 +175,18 @@ export function annotateProviderError(
     context.model && context.model !== "unknown" ? context.model : "";
   const hint = hintFor(candidate, context.provider, model);
   if (!hint) return error;
+
+  // 401/403 both mean "the credential didn't work" as far as a user is
+  // concerned — one is rejected, the other refused — and both are fixed on the
+  // same screen, so both carry the structured detail.
+  const status = httpStatusFromError(candidate);
+  if (status === 401 || status === 403) {
+    candidate[FAILURE_DETAIL] = {
+      code: "provider_auth",
+      provider: context.provider,
+      secretKey: getProviderSecretKey(context.provider)
+    };
+  }
 
   candidate[ANNOTATED] = true;
   const original = candidate.message.trim();

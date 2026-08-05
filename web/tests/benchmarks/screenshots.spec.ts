@@ -284,6 +284,30 @@ async function seedWorkspaceTabs(
 }
 
 /**
+ * Seed the onboarding store as a first-run user: nothing completed, nothing
+ * dismissed. `seedLocalStorage` writes the opposite state under the legacy
+ * `onboarding` key; the current store persists to `nodetool-onboarding`
+ * (version 1 — a mismatch makes zustand drop the seeded state), and
+ * `isOnboardingFinished` reads it to decide whether the dashboard hero and the
+ * getting-started checklist render at all.
+ */
+async function seedFirstRunOnboarding(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    try {
+      window.localStorage.setItem(
+        "nodetool-onboarding",
+        JSON.stringify({
+          state: { completedSteps: [], dismissed: false },
+          version: 1
+        })
+      );
+    } catch {
+      /* ignore — localStorage may be unavailable */
+    }
+  });
+}
+
+/**
  * Navigate to a page and wait for the app shell to finish loading.
  *
  * The app renders a "Loading NodeTool…" spinner until /api/nodes/metadata
@@ -516,6 +540,109 @@ if (process.env.JEST_WORKER_ID) {
       await gotoPage(page, "/dashboard");
       await waitForScreenshotReady(page, "dashboard-tablet.png");
       await saveScreenshot(page, "dashboard-tablet.png");
+    });
+
+    // ── Onboarding ──────────────────────────────────────────────────────────
+    //
+    // First launch routes `/` to /dashboard until onboarding is finished. These
+    // captures pin that first-run state explicitly (seedFirstRunOnboarding) so
+    // the welcome hero and the checklist render regardless of what the legacy
+    // `onboarding` key says.
+
+    test("Onboarding – welcome flow", async ({ page }) => {
+      test.skip(shouldSkip("onboarding-welcome.png"), "Already captured");
+      await seedFirstRunOnboarding(page);
+      await gotoPage(page, "/dashboard");
+      await page
+        .getByText(/what do you want to make today/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      // The four track cards rise in with staggered delays up to 480ms.
+      await waitForAnimation(page, 1200);
+      await saveScreenshot(page, "onboarding-welcome.png");
+    });
+
+    test("Onboarding – getting-started checklist", async ({ page }) => {
+      test.skip(shouldSkip("onboarding-checklist.png"), "Already captured");
+      await seedFirstRunOnboarding(page);
+      await gotoPage(page, "/dashboard");
+      const checklist = '[aria-label="Getting started checklist"]';
+      await page
+        .locator(checklist)
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      const ok = await saveElementScreenshot(
+        page,
+        checklist,
+        "onboarding-checklist.png",
+        8000
+      );
+      if (!ok) {
+        await saveScreenshot(page, "onboarding-checklist.png");
+      }
+    });
+
+    test("Onboarding – empty workspace", async ({ page }) => {
+      test.skip(
+        shouldSkip("onboarding-empty-workspace.png"),
+        "Already captured"
+      );
+      await seedFirstRunOnboarding(page);
+      // No open tabs → WorkspaceShell renders WorkspaceEmptyView.
+      await seedWorkspaceTabs(page, [], "");
+      await gotoPage(page, "/workspace");
+      await page
+        .locator(".workspace-empty")
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await page
+        .getByText(/turns a prompt into an image/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 10000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "onboarding-empty-workspace.png");
+    });
+
+    // The dialog every blocked-on-a-provider path opens. The preview route
+    // mounts it pre-opened, which is steadier than driving a UI trigger whose
+    // button is disabled once the seeded backend reports a configured key.
+    test("Onboarding – provider dialog", async ({ page }) => {
+      test.skip(
+        shouldSkip("provider-onboarding-dialog.png"),
+        "Already captured"
+      );
+      await gotoPage(page, "/preview/provider-onboarding");
+      await page
+        .getByText(/connect an ai provider/i)
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "provider-onboarding-dialog.png");
+    });
+
+    // Settings → Models & Providers (tab index 1), where each connected
+    // provider card carries a Test button that verifies the stored key.
+    test("Settings – Models & Providers", async ({ page }) => {
+      test.skip(shouldSkip("settings-providers-test.png"), "Already captured");
+      await gotoPage(page, "/settings?tab=1");
+      await page
+        .getByRole("button", { name: /^test$/i })
+        .first()
+        .waitFor({ state: "visible", timeout: 15000 })
+        .catch(() => {});
+      await ensureNoVisibleProgress(page);
+      await waitForAnimation(page, 800);
+      await saveScreenshot(page, "settings-providers-test.png");
     });
 
     // ── Editor ──────────────────────────────────────────────────────────────
