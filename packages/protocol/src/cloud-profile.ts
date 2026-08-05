@@ -119,14 +119,56 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
 ];
 
 /**
- * Node types removed even though their namespace is allowed. Two groups:
+ * Nodes that read or write a path on the server's own filesystem and sit
+ * inside an otherwise-allowed namespace, so only naming them keeps them out.
  *
+ * Two shapes end up here. Most declare a path property the editor renders as a
+ * native file/folder picker (`json_schema_extra: { type: "file_path" }`) —
+ * `nodetool.input.DocumentFileInput` is the one users hit first. The rest take
+ * a plain string path and call `fs` in `process()`; nothing in their metadata
+ * distinguishes them, which is why this list is written out rather than
+ * derived.
+ *
+ * Split out from {@link CLOUD_NODE_DENYLIST} so the "no host filesystem in the
+ * cloud" rule is one reviewable list instead of entries scattered by namespace.
+ */
+export const CLOUD_HOST_FILE_NODES: readonly string[] = [
+  // Path pickers — a local path typed into a browser tab points at the
+  // container's disk, not the user's machine.
+  "nodetool.input.DocumentFileInput",
+  "nodetool.input.FilePathInput",
+  "nodetool.input.FolderPathInput",
+  // Media loaders/savers that go to disk. Their asset-store siblings
+  // (LoadImageAssets, SaveImage, SaveAudio, SaveVideo, …) stay.
+  "nodetool.audio.LoadAudioFile",
+  "nodetool.audio.LoadAudioFolder",
+  "nodetool.audio.SaveAudioFile",
+  "nodetool.image.LoadImageFile",
+  "nodetool.image.LoadImageFolder",
+  "nodetool.image.SaveImageFile",
+  "nodetool.video.LoadVideoFile",
+  "nodetool.video.SaveVideoFile",
+  "nodetool.model3d.LoadModel3DFile",
+  "nodetool.model3d.SaveModel3DFile"
+];
+
+/**
+ * Node types removed even though their namespace is allowed. Three groups:
+ *
+ * - Host-filesystem nodes — {@link CLOUD_HOST_FILE_NODES} above, which this
+ *   list embeds. A node that reads or writes a path on the server's own disk
+ *   has no meaning in a managed multi-tenant cloud: the path belongs to the
+ *   container, not to the user sitting in the browser. The matching HTTP
+ *   surfaces are already refused in production (`/api/files/local`, the
+ *   workspace routes, tRPC `files.list`), so leaving the nodes in the palette
+ *   only offers a picker that cannot pick and a run that cannot resolve.
+ *   Assets are the cloud's file story: the `*Assets` loaders and the plain
+ *   `SaveImage`/`SaveAudio`/`SaveVideo`/`SaveDataframe` savers go through the
+ *   asset store and stay.
  * - `nodetool.text.*` file I/O — `nodetool.text` is whole-listed for its
  *   creative-text toolkit and ASR, but the folder/asset loaders and the two
  *   filesystem writers (`SaveText`, `SaveTextFile` — both call fs.writeFile on
- *   an unsandboxed host path) are dropped: arbitrary host-filesystem access
- *   isn't appropriate for a managed multi-tenant cloud (same reason the
- *   shell/Docker code runners stay out).
+ *   an unsandboxed host path) are dropped, for the same reason.
  * - `nodetool.agents.*` — the developer/automation-flavored agents that wrap
  *   the very integrations the cloud profile drops (shell, git, sqlite,
  *   supabase, http, filesystem, browser, office docs). Kept agents: Agent,
@@ -134,6 +176,7 @@ export const CLOUD_NODE_ALLOWLIST: readonly string[] = [
  *   FfmpegAgent, DocumentAgent.
  */
 export const CLOUD_NODE_DENYLIST: readonly string[] = [
+  ...CLOUD_HOST_FILE_NODES,
   "nodetool.text.LoadTextFolder",
   "nodetool.text.LoadTextAssets",
   "nodetool.text.SaveText",

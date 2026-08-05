@@ -2,6 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   BUILTIN_NODE_PACKS,
+  CLOUD_HOST_FILE_NODES,
   CLOUD_PROFILE_ENV,
   NODE_ENV_VAR,
   isCloudNodeType
@@ -261,9 +262,37 @@ describe("applyCloudNodePolicy", () => {
     expect(remaining).not.toContain("nodetool.text.LoadTextFolder");
     expect(remaining).not.toContain("nodetool.text.SaveText");
     expect(remaining).not.toContain("nodetool.text.SaveTextFile");
+    // …the same goes for every node that reads or writes a host path,
+    // including the file/folder pickers in the otherwise-allowed input
+    // namespace…
+    for (const nodeType of CLOUD_HOST_FILE_NODES) {
+      expect(remaining).not.toContain(nodeType);
+    }
+    // …while the asset-store equivalents stay, since assets are how the cloud
+    // moves files…
+    expect(remaining).toContain("nodetool.input.AssetFolderInput");
+    expect(remaining).toContain("nodetool.image.LoadImageAssets");
+    expect(remaining).toContain("nodetool.image.SaveImage");
     // …while the creative media core stays.
     expect(remaining.some((t) => t.startsWith("nodetool.image."))).toBe(true);
     expect(remaining.some((t) => t.startsWith("nodetool.audio."))).toBe(true);
+  }
+
+  /**
+   * Drift guard. A path property the editor renders as a native picker is the
+   * one host-filesystem shape that is visible in metadata, so a node added
+   * later inside an allowed namespace is caught here rather than in
+   * production. Nodes taking a plain string path look like any other string
+   * node and can only be caught by naming them in CLOUD_HOST_FILE_NODES.
+   */
+  function expectNoNativePathPickers(registry: NodeRegistry): void {
+    const offenders = registry.list().filter((nodeType) =>
+      (registry.getMetadata(nodeType)?.properties ?? []).some((property) => {
+        const kind = property.json_schema_extra?.["type"];
+        return kind === "file_path" || kind === "folder_path";
+      })
+    );
+    expect(offenders).toEqual([]);
   }
 
   it("is a no-op when the cloud profile is off", () => {
@@ -293,5 +322,16 @@ describe("applyCloudNodePolicy", () => {
     const registry = fullRegistry();
     applyCloudNodePolicy(registry);
     expectCuratedSurface(registry);
+  });
+
+  it("leaves no native file/folder picker in the cloud surface", () => {
+    delete process.env[CLOUD_PROFILE_ENV];
+    process.env[NODE_ENV_VAR] = "production";
+    const registry = fullRegistry();
+    // The pickers exist before the policy runs — otherwise this guard would
+    // pass for the wrong reason.
+    expect(registry.list()).toContain("nodetool.input.DocumentFileInput");
+    applyCloudNodePolicy(registry);
+    expectNoNativePathPickers(registry);
   });
 });
