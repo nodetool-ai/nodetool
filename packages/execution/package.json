@@ -17,6 +17,7 @@
   "dependencies": {
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/gpu": "*",
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
@@ -52,6 +53,12 @@
       "types": "./dist/timeline-debug/index.d.ts",
       "import": "./dist/timeline-debug/index.js",
       "default": "./dist/timeline-debug/index.js"
+    },
+    "./sketch-debug": {
+      "nodetool-dev": "./src/sketch-debug/index.ts",
+      "types": "./dist/sketch-debug/index.d.ts",
+      "import": "./dist/sketch-debug/index.js",
+      "default": "./dist/sketch-debug/index.js"
     }
   },
   "license": "MIT",

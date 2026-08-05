@@ -184,8 +184,25 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "CLAUDE.md § nodetool timeline validate / debug"
   },
   {
+    id: "sketch-validate",
+    title: "Sketch static check",
+    command: "nodetool sketch validate <id|file.json>",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    agentTool: "validate_sketch",
+    docs: "CLAUDE.md § nodetool sketch validate / debug"
+  },
+  {
+    id: "sketch-debug",
+    title: "Sketch edit-session replay",
+    command: "nodetool sketch debug <id|file.json> --interact '[...]'",
+    kind: "execution",
+    capabilities: ["json", "interact", "no-db"],
+    docs: "CLAUDE.md § nodetool sketch validate / debug"
+  },
+  {
     id: "sketch-versions",
-    title: "Sketch version history (snapshot, restore, check the restore)",
+    title: "Sketch version history (snapshot, restore, validate the restore)",
     command:
       "nodetool sketch versions list|show|create|restore|delete <id> [<version>]",
     kind: "execution",
@@ -298,11 +315,14 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "sketch",
-    title: "Sketches (image documents, version history)",
-    harnesses: ["sketch-versions", "eval"],
+    title: "Sketches (image documents, ui_sketch_* tools, version history)",
+    harnesses: ["sketch-validate", "sketch-debug", "sketch-versions", "eval"],
     paths: [
+      "packages/execution/src/sketch-debug/",
+      "packages/cli/src/sketch-debug/",
       "packages/cli/src/commands/sketch-versions.ts",
       "packages/cli/src/commands/sketch.ts",
+      "packages/agents/src/tools/sketch-version-tools.ts",
       "packages/models/src/image-document-version.ts",
       "packages/websocket/src/trpc/routers/sketch.ts"
     ]
