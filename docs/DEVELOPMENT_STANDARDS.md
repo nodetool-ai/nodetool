@@ -196,7 +196,7 @@ Server state lives in TanStack Query (`web/src/serverState/`). Zustand and Query
 
 ## 7. ReactFlow 12
 
-The node graph uses ReactFlow 12.10.0. The runtime semantics live in `@nodetool-ai/kernel`; the UI layer is in `web/src/components/`.
+The node graph uses ReactFlow 12.11. The runtime semantics live in `@nodetool-ai/kernel`; the UI layer is in `web/src/components/`.
 
 ### Rules
 
@@ -357,10 +357,10 @@ The WebSocket server (port 7777, `/ws`) carries workflow runtime traffic in **Ms
 - **Use `GlobalWebSocketManager` singleton** in the frontend. Never construct `WebSocket` directly.
 - **MsgPack only** for `/ws` payloads. JSON only on REST.
 - **Every message has a `type` discriminator** that is validated with Zod (or the equivalent in the `@nodetool-ai/protocol` schema set).
-- **Heartbeat**: client and server exchange ping/pong every 30s. Idle for 2× heartbeat → close.
-- **Reconnection**: exponential backoff, max 5 attempts, jitter. Resume by sending a `resume` message with the last seen sequence number.
-- **Backpressure**: senders check `bufferedAmount` and pause when it exceeds a threshold (`WS_BACKPRESSURE_BYTES`).
-- **Sequence numbers** monotonically increase per connection so the receiver can detect drops.
+- **Heartbeat**: the server pings every 20s (`NODETOOL_WS_PING_INTERVAL_MS`) and drops a peer after 70s of silence (`NODETOOL_WS_IDLE_TIMEOUT_MS`). The client runs its own watchdog: 45s without a frame, then a 10s pong deadline.
+- **Reconnection**: exponential backoff with half-to-full jitter, capped at 30s, retried indefinitely (`reconnectAttempts` defaults to `Infinity`). Resume by sending `resume_chat` / `resume_job` with the highest `last_seq` already received; the server replies `chat_resumed` / `job_resumed`, then replays.
+- **Backpressure**: senders check `bufferedAmount` and wait for drain above `NODETOOL_WS_MAX_BUFFERED_BYTES` (default 8 MiB). A peer that stays behind for `NODETOOL_WS_DRAIN_TIMEOUT_MS` (default 30s) is closed with 1001.
+- **Sequence numbers** (`chat_seq` per thread, `job_seq` per job) monotonically increase so a reconnecting client can ask for what it missed.
 
 ---
 

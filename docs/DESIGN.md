@@ -33,7 +33,7 @@ extend the spacing, font-size, color, and border-radius rules to plain `.css` fi
 barrel) have reached zero violations and are promoted to **`error`** to lock them
 in — a new raw px/rem font size, raw hex/rgb color, magic/`var(--rounded-*)` radius,
 or deep primitive import fails the gate. **Motion** (`transition`/`animation`
-timing, via `design-tokens/motion-tokens` in TSX and `scripts/lint-motion-css.mjs`
+timing, via `design-tokens/motion-tokens` in TSX and `web/scripts/lint-motion-css.mjs`
 in `.css`) and **`zIndex`** (`design-tokens/zindex-tokens` — object-literal
 `zIndex` magic integers) are also migrated and locked at **`error`**. All design-token
 categories are now at zero violations and enforced.
@@ -262,7 +262,7 @@ Spacing is enforced end-to-end and is currently at **zero** violations:
   ([`eslint.design.mjs`](../web/eslint.design.mjs)) flags raw px on
   `padding`/`margin`/`gap` (incl. logical props, MUI `sx` short props like
   `p`/`mt`, shorthand strings, and px inside `styled`/`css` template literals).
-- **CSS** — [`scripts/lint-spacing-css.mjs`](../web/scripts/lint-spacing-css.mjs)
+- **CSS** — [`web/scripts/lint-spacing-css.mjs`](../web/scripts/lint-spacing-css.mjs)
   flags raw px in `.css` spacing declarations.
 
 Both run in `npm run lint:design`. Because spacing is clean, keep it that way:
@@ -442,7 +442,7 @@ Magic numbers: `1`, `3`, `4`, `7`, `10`, `18`, `20`. Raw `"var(--rounded-*)"` st
 
 ### Enforcement (border radius is fully linted)
 
-Zero violations — locked in at **`error`**. In TSX, `design-tokens/border-radius-tokens` flags any object-literal `borderRadius` that is a magic number, a raw `Npx` string, or a raw `var(--rounded-*)` string; `0` (flush) is allowed. In plain `.css`, `scripts/lint-radius-css.mjs` flags any `border-radius` with a raw px/em/rem/% value (use `var(--rounded-*)`; `0` allowed). The one sanctioned raw value is `theme.shape.borderRadius` in `ThemeNodetool.tsx` — MUI's base multiplier, carrying a scoped `eslint-disable`.
+Zero violations — locked in at **`error`**. In TSX, `design-tokens/border-radius-tokens` flags any object-literal `borderRadius` that is a magic number, a raw `Npx` string, or a raw `var(--rounded-*)` string; `0` (flush) is allowed. In plain `.css`, `web/scripts/lint-radius-css.mjs` flags any `border-radius` with a raw px/em/rem/% value (use `var(--rounded-*)`; `0` allowed). The one sanctioned raw value is `theme.shape.borderRadius` in `ThemeNodetool.tsx` — MUI's base multiplier, carrying a scoped `eslint-disable`.
 
 ---
 
@@ -569,7 +569,7 @@ easing). Use the matching `--motion-*` custom property instead —
 
 ### Enforcement (motion is fully linted at `error`)
 
-In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. The `ui_primitives/` layer is exempt (it defines the tokens). Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
+In TSX, `design-tokens/motion-tokens` flags any object-literal `transition` / `animation` / `transitionDuration` / `transitionDelay` / `animationDuration` / `animationDelay` whose value carries a non-zero `s`/`ms` timing, and any raw `transition` / `animation` timing inside `styled` / `css` template-literal CSS. In plain `.css`, `web/scripts/lint-motion-css.mjs` flags the same properties (and their `-duration` / `-delay` longhands); `.css` files use the `--motion-*` custom properties from `vars.css` (mirrors of the `MOTION.*` tiers). `0` / `0s` (no delay), keyword-only values (`none`), delays written as numeric expressions (see above), and values built from `MOTION.*` tokens / `var(--motion-*)` are allowed. Both are locked in at **`error`** (zero violations) — a new raw `s`/`ms` timing fails the gate. The `ui_primitives/` layer is exempt (it defines the tokens). Template-literal `@media (prefers-reduced-motion)` blocks (in `css\`\`` styled templates and plain `.css`) stay raw, since `reducedMotion()` is a JS object helper; object-css blocks use `reducedMotion()`.
 
 ---
 

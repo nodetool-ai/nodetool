@@ -118,7 +118,7 @@ nodetool package node-docs            # one page per node (default: docs/nodes)
 nodetool package workflow-docs        # docs for workflow examples (default: docs/workflows)
 ```
 
-The full set of `package` subcommands is: `list`, `init`, `docs`, `node-docs`, and `workflow-docs`. (Note: the top-level `nodetool install` / `nodetool uninstall` commands configure the MCP server, not node packages.)
+The full set of `package` subcommands is: `list`, `init`, `docs`, `node-docs`, and `workflow-docs`. (Note: `nodetool mcp install` / `nodetool mcp uninstall` configure the MCP server, not node packages.)
 
 ## Building Packages
 

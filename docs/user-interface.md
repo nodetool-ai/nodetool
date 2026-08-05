@@ -38,9 +38,9 @@ A linear, card-based alternative to the node graph. Better for simple pipelines 
 
 Docs: [Chain Editor](chain-editor.md)
 
-### Chat — `/chat/:thread_id?`
+### Chat — the Chats panel
 
-Conversational AI with multi-thread history, an always-on agent loop, tools, and workflow integration.
+Conversational AI with multi-thread history, an always-on agent loop, tools, and workflow integration. Threads are listed in the **Chats** panel in the left rail and open as workspace tabs. (The legacy `/chat/:thread_id?` URL redirects into `/workspace`, opening that thread as a tab.)
 
 ![Chat](assets/screenshots/global-chat-interface.png)
 

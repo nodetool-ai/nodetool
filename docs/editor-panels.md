@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Editor Panels"
-description: "Every dockable panel around the NodeTool Workflow Editor — left, right, bottom, and floating."
+description: "Every panel around the NodeTool Workflow Editor — left, right, bottom, and floating."
 ---
 
-The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surrounded by four dockable panels that host the workflow explorer, inspector, runtime diagnostics, and quick actions. This page covers each panel in depth.
+The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surrounded by four panels that host the workflow explorer, inspector, runtime diagnostics, and quick actions. This page covers each panel in depth.
 
 ![Editor Layout](assets/screenshots/editor-empty-state.png)
 
@@ -12,7 +12,7 @@ The NodeTool [Workflow Editor]({{ '/workflow-editor' | relative_url }}) is surro
 
 ## Left Panel
 
-Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Apps**.
+Opens from the icons down the left edge. It's a tabbed drawer — click an icon to expand, click the same icon to collapse. The top-level views are: **Nodes**, **Workflows**, **Chats**, **Sketches**, **Timelines**, **Storyboards**, **Scripts**, **Apps**, **Settings**, **History**, **Favorites**, **Assets**, and **Library**.
 
 ![Left Panel](assets/screenshots/editor-left-panel.png)
 
@@ -185,7 +185,7 @@ See [User Interface → App Menu]({{ '/user-interface#the-app-menu' | relative_u
 
 ## Customizing the Layout
 
-Every panel is a dockview tab — drag tabs between panels, out of panels to float them, or onto other tabs to stack them. The editor remembers your layout per workspace.
+Each panel stays on its own edge. Click a rail icon to open or collapse it, and drag its inner edge to resize. Open/collapsed state and size are remembered between sessions.
 
 Three combinations you'll land on most often:
 
@@ -200,8 +200,6 @@ Left panel plus the Inspector, for editing node properties while browsing:
 Everything open, with the logs docked at the bottom for a run:
 
 ![Left panel, inspector and logs open](assets/screenshots/editor-panels-left-plus-inspector-plus-logs.png)
-
-To reset: open the command menu (`Ctrl+K` / `⌘+K`), type "reset layout", and hit Enter.
 
 ---
 

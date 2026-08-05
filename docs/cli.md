@@ -80,11 +80,7 @@ nodetool serve
 nodetool serve --host 0.0.0.0 --port 8080
 ```
 
-You can also set the bind address and port via environment variables:
-
-```bash
-PORT=8080 HOST=0.0.0.0 nodetool serve
-```
+`serve` passes the two flags to the server as `HOST` and `PORT`, overwriting whatever those variables already held — use the flags, not the environment, to move the server.
 
 ### `nodetool workflows run <workflow_id_or_file>`
 

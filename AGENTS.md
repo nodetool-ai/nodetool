@@ -487,20 +487,20 @@ These three areas have full sections in the central standards doc:
 ## Technologies
 
 ### TypeScript Backend (`packages/`)
-- **Node.js LTS**, **TypeScript 5.4+**, **ES Modules**
-- **Vitest** for testing
+- **Node.js 22.22.1**, **TypeScript 5.7**, **ES Modules**
+- **Vitest 4** for testing
 - Key packages: `@nodetool-ai/websocket` (server), `@nodetool-ai/kernel` (runtime), `@nodetool-ai/cli` (CLI)
 - See [packages/AGENTS.md](packages/AGENTS.md) for full package list
 
 ### Web
-- **React 18.2.0**, **TypeScript 5.7.2**, **Vite 6.4.1**
-- **MUI v7.2.0** + Emotion, **Zustand 4.5.7**, **ReactFlow 12.10.0**
-- **TanStack Query v5.62.3**, **React Router v7.12.0**
-- **Jest 29.7.0** + React Testing Library 16.1.0, **Playwright** for E2E
+- **React 19.2**, **TypeScript 5.9**, **Vite 8**
+- **MUI v7.3** + Emotion, **Zustand 5**, **ReactFlow 12.11**
+- **TanStack Query v5**, **React Router v7**
+- **Jest 29.7** + React Testing Library 16.3, **Playwright** for E2E
 
 ### Electron
-- **Electron 39.8.8**, **React 19.1.0**, **TypeScript 5.3.3**
-- **Zustand 5.0.3**, **Vite 6.4.1**
+- **Electron 39.8.10**, **React 19.2**, **TypeScript 5.9**
+- **Zustand 5**, **Vite 8**
 
 ### Mobile
 - **React Native / Expo** - See [mobile/README.md](mobile/README.md)
