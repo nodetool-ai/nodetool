@@ -30,7 +30,6 @@ import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import ErrorOutlineIcon from "@mui/icons-material/ErrorOutline";
 import { ChainNodeProperties } from "./ChainNodeProperties";
 import { OutputSelector } from "./OutputSelector";
-import { InputMappingSelector } from "./InputMappingSelector";
 import OutputRenderer from "../node/OutputRenderer";
 import {
   useNodeStatus,
@@ -224,24 +223,15 @@ export const ChainNodeCard: React.FC<ChainNodeCardProps> = memo(function ChainNo
             </Text>
           )}
 
-          {index > 0 && previousNodes.length > 0 && (
-            <InputMappingSelector
-              properties={node.metadata.properties}
-              inputMappings={node.inputMappings}
-              previousNodes={previousNodes}
-              onSetMapping={onSetInputMapping}
-            />
-          )}
-
-          <Divider spacing="compact" color="subtle" />
-
           <ChainNodeProperties
             nodeId={node.id}
             nodeType={node.nodeType}
             properties={node.metadata.properties}
             values={node.properties}
-            connectedInputs={Object.keys(node.inputMappings)}
+            inputMappings={node.inputMappings}
+            previousNodes={previousNodes}
             onUpdate={onUpdateProperty}
+            onSetInputMapping={onSetInputMapping}
           />
 
           {node.metadata.outputs.length > 1 && (
