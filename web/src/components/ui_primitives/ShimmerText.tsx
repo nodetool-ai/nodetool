@@ -19,9 +19,14 @@ const sweep = keyframes`
 `;
 
 const shimmerCss = css({
-  display: "inline-block",
+  // `inline`, not `inline-block`: an atomic inline is not ellipsized, so a
+  // shimmering label inside a truncating parent (the tool-call name) gets
+  // hard-clipped mid-character instead of ending in `…`.
+  display: "inline",
+  // The dim stops stay legible on their own — the sweep is a highlight
+  // passing over readable text, not a fade to near-invisible.
   background:
-    "linear-gradient(90deg, color-mix(in srgb, currentColor 45%, transparent) 0%, currentColor 50%, color-mix(in srgb, currentColor 45%, transparent) 100%)",
+    "linear-gradient(90deg, color-mix(in srgb, currentColor 70%, transparent) 0%, currentColor 50%, color-mix(in srgb, currentColor 70%, transparent) 100%)",
   backgroundSize: "200% 100%",
   WebkitBackgroundClip: "text",
   backgroundClip: "text",
