@@ -421,5 +421,85 @@ describe("workflow runs survive a dropped socket", () => {
     const update = decodeAll(ws1).find((m) => m.type === "job_update");
     expect(update?.status).toBe("failed");
     expect(String(update?.error)).toMatch(/replay is unavailable/i);
+
+    // …and settles the row itself: an unclaimed zombie row that kept reading
+    // "running" would be rediscovered by reload reconciliation on every page
+    // load, re-reporting the same loss forever.
+    const row = (await Job.get(jobId)) as Job | null;
+    expect(row?.status).toBe("failed");
+  });
+
+  it("leaves a running row claimed by another instance untouched", async () => {
+    const jobId = "resilient-job-9";
+    process.env["NODETOOL_INSTANCE_ID"] = "instance-a";
+    try {
+      await Job.create({
+        id: jobId,
+        workflow_id: "wf",
+        user_id: "1",
+        status: "running",
+        runner_instance: "instance-b",
+        params: {},
+        graph: { nodes: [], edges: [] }
+      });
+
+      await runner1.handleCommand({
+        command: "reconnect_job",
+        data: { job_id: jobId, workflow_id: "wf" }
+      });
+
+      // Reported failed to THIS client (no replay is possible here), but the
+      // row stays running: the run may well be alive on instance-b.
+      const update = decodeAll(ws1).find((m) => m.type === "job_update");
+      expect(update?.status).toBe("failed");
+      const row = (await Job.get(jobId)) as Job | null;
+      expect(row?.status).toBe("running");
+    } finally {
+      delete process.env["NODETOOL_INSTANCE_ID"];
+    }
+  });
+
+  it("treats another user's row as missing and leaves it untouched", async () => {
+    const jobId = "resilient-job-11";
+    await Job.create({
+      id: jobId,
+      workflow_id: "wf",
+      user_id: "2",
+      status: "running",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    });
+
+    await runner1.handleCommand({
+      command: "reconnect_job",
+      data: { job_id: jobId, workflow_id: "wf" }
+    });
+
+    const update = decodeAll(ws1).find((m) => m.type === "job_update");
+    expect(String(update?.error)).toMatch(/not found/i);
+    const row = (await Job.get(jobId)) as Job | null;
+    expect(row?.status).toBe("running");
+  });
+
+  it("never settles a suspended row", async () => {
+    const jobId = "resilient-job-10";
+    await Job.create({
+      id: jobId,
+      workflow_id: "wf",
+      user_id: "1",
+      status: "suspended",
+      params: {},
+      graph: { nodes: [], edges: [] }
+    });
+
+    await runner1.handleCommand({
+      command: "reconnect_job",
+      data: { job_id: jobId, workflow_id: "wf" }
+    });
+
+    // Suspended is a durable, resumable state — replay being gone does not
+    // make the run dead.
+    const row = (await Job.get(jobId)) as Job | null;
+    expect(row?.status).toBe("suspended");
   });
 });
