@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 57;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 58;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -477,6 +477,11 @@ describe("Built-in migrations", () => {
     // The provider_session continuation token column is added by migration.
     expect(
       await adapter.columnExists("nodetool_messages", "provider_session")
+    ).toBe(true);
+
+    // The owning-instance stamp multi-machine routing reads.
+    expect(
+      await adapter.columnExists("nodetool_jobs", "runner_instance")
     ).toBe(true);
 
     // The trigger safety counters are added by migration onto a table an

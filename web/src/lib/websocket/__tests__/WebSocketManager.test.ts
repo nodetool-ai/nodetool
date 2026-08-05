@@ -79,6 +79,92 @@ describe("WebSocketManager", () => {
     });
   });
 
+  describe("teardown during URL resolution", () => {
+    /**
+     * A URL provider makes `establishConnection` yield before it constructs
+     * the socket, and in that window `this.ws` is null — so a `destroy()` or
+     * `disconnect()` has nothing to close. Opening the socket afterwards
+     * would leave an orphan: unreachable by the manager, still holding a
+     * runner session on the server, possibly authenticated with a token that
+     * was being replaced.
+     */
+    class RecordingSocket {
+      static instances: RecordingSocket[] = [];
+      readyState = 0;
+      binaryType = "arraybuffer";
+      onopen: (() => void) | null = null;
+      onmessage: ((event: { data: unknown }) => void) | null = null;
+      onerror: ((event: unknown) => void) | null = null;
+      onclose: ((event: unknown) => void) | null = null;
+      constructor(public url: string) {
+        RecordingSocket.instances.push(this);
+      }
+      send(): void {
+        /* no-op */
+      }
+      close(): void {
+        this.readyState = 3;
+      }
+    }
+
+    beforeEach(() => {
+      RecordingSocket.instances = [];
+      (globalThis as unknown as { WebSocket: unknown }).WebSocket =
+        RecordingSocket;
+    });
+
+    it("opens no socket when destroyed while the URL is being resolved", async () => {
+      let releaseUrl: (url: string) => void = () => undefined;
+      const mgr = createManager({
+        urlProvider: () =>
+          new Promise<string>((resolve) => {
+            releaseUrl = resolve;
+          })
+      });
+
+      const pending = mgr.connect();
+      mgr.destroy();
+      releaseUrl("ws://localhost:7777/ws?api_key=stale");
+
+      await expect(pending).rejects.toThrow("abandoned");
+      expect(RecordingSocket.instances).toHaveLength(0);
+      expect(mgr.getState()).toBe("disconnected");
+    });
+
+    it("opens no socket when disconnected while the URL is being resolved", async () => {
+      let releaseUrl: (url: string) => void = () => undefined;
+      const mgr = createManager({
+        urlProvider: () =>
+          new Promise<string>((resolve) => {
+            releaseUrl = resolve;
+          })
+      });
+
+      const pending = mgr.connect();
+      mgr.disconnect();
+      releaseUrl("ws://localhost:7777/ws");
+
+      await expect(pending).rejects.toThrow("abandoned");
+      expect(RecordingSocket.instances).toHaveLength(0);
+    });
+
+    it("opens the socket normally when nothing tore it down", async () => {
+      const mgr = createManager({
+        urlProvider: async () => "ws://localhost:7777/ws?api_key=fresh"
+      });
+
+      const pending = mgr.connect();
+      await Promise.resolve();
+      await Promise.resolve();
+      RecordingSocket.instances[0]?.onopen?.();
+      await pending;
+
+      expect(RecordingSocket.instances).toHaveLength(1);
+      expect(RecordingSocket.instances[0].url).toContain("api_key=fresh");
+      mgr.destroy();
+    });
+  });
+
   describe("event emitter integration", () => {
     it("supports on/off/emit pattern", () => {
       const mgr = createManager();

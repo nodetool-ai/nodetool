@@ -141,6 +141,16 @@ export function getDbType(): DbDialect {
 }
 
 /**
+ * The postgres.js client, for the few features Drizzle does not cover —
+ * currently only LISTEN/NOTIFY in `job-control-bus.ts`. Internal: not exported
+ * from the package index, so no consumer can start issuing raw SQL through it.
+ * Null unless a PostgreSQL connection is active.
+ */
+export function getPgClient(): Sql | null {
+  return _dbType === "postgres" ? _pgClient : null;
+}
+
+/**
  * Get the underlying better-sqlite3 Database instance for raw queries.
  * Only available when using SQLite.
  */
@@ -271,6 +281,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     suspension_metadata_json: "text",
     execution_strategy: "text",
     execution_id: "text",
+    runner_instance: "text",
     metadata_json: "text",
     created_at: "text",
     updated_at: "text"
@@ -648,6 +659,7 @@ function getCreateSchemaSql(): string {
       "suspension_metadata_json" text,
       "execution_strategy" text,
       "execution_id" text,
+      "runner_instance" text,
       "metadata_json" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL

@@ -31,6 +31,11 @@ import {
   isPublicAuthExemptRoute
 } from "./lib/public-routes.js";
 import { isWebSocketUpgrade, denyUnauthorized } from "./lib/ws-upgrade.js";
+import { replayUpgradeToOwner } from "./lib/fly-replay.js";
+import {
+  startJobCancelPoller,
+  startJobControlSubscription
+} from "./job-control.js";
 import {
   resolveTrustLocalhost,
   isLoopbackAddress,
@@ -881,6 +886,15 @@ app.addHook("onRequest", async (req, reply) => {
   });
 });
 
+// Multi-instance only: a handshake asking to resume a run that another machine
+// owns is answered with a fly-replay instruction instead of being accepted
+// here, so the client reconnects onto the process holding the run's session.
+// Registered after the auth hook because it scopes the lookup to req.userId.
+// Inert (one env read, no DB) without NODETOOL_INSTANCE_ID / FLY_MACHINE_ID.
+app.addHook("onRequest", async (req, reply) => {
+  await replayUpgradeToOwner(req, reply);
+});
+
 // WebSocket support
 await app.register(fastifyWebSocket);
 
@@ -1230,6 +1244,13 @@ await app.register(websocketPlugin, {
   }
 });
 
+// One subscription for the whole process, not one per connection: a bus
+// message names a job, and the registry holding it is process-wide. The poller
+// beside it re-reads this instance's own runs, so a cancel still lands when the
+// bus does not deliver.
+const stopJobControl = await startJobControlSubscription();
+const stopJobCancelPoller = startJobCancelPoller();
+
 await app.register(healthRoute);
 await app.register(configRoute);
 
@@ -1481,6 +1502,8 @@ async function shutdown(signal: string): Promise<void> {
     // best-effort cleanup
   }
   stopReaper();
+  stopJobControl();
+  stopJobCancelPoller();
   try {
     await triggerServices.stop();
   } catch (err) {

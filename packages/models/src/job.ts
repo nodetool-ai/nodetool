@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.job`.
  */
 
-import { eq, and, desc, lt } from "drizzle-orm";
+import { eq, and, desc, lt, inArray, notInArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { jobs } from "./schema/jobs.js";
@@ -52,6 +52,12 @@ export class Job extends DBModel {
   declare suspension_metadata_json: Record<string, unknown> | null;
   declare execution_strategy: string | null;
   declare execution_id: string | null;
+  /**
+   * The server instance executing this run, when the deployment has more than
+   * one (see `getInstanceId` in the websocket package). Null means
+   * single-machine: nothing routes by it.
+   */
+  declare runner_instance: string | null;
   declare metadata_json: Record<string, unknown> | null;
   declare created_at: string;
   declare updated_at: string;
@@ -85,6 +91,7 @@ export class Job extends DBModel {
     this.suspension_metadata_json ??= null;
     this.execution_strategy ??= null;
     this.execution_id ??= null;
+    this.runner_instance ??= null;
     this.metadata_json ??= null;
     this.name ??= "";
   }
@@ -227,6 +234,55 @@ export class Job extends DBModel {
   }
 
   // ── Static queries ───────────────────────────────────────────────
+
+  /**
+   * Cancel a run without reading it first.
+   *
+   * A cancel arriving on an instance that does not own the run races the
+   * owner's own terminal write. Loading the row, mutating it and calling
+   * `save()` would send a full-row upsert built from a snapshot taken before
+   * that race — resurrecting a `completed` job as `cancelled` and overwriting
+   * the cost and timestamps the owner had just written. This touches only the
+   * two columns a cancel owns, and only while the row is still active.
+   *
+   * Returns whether a row actually changed: false means the run was already
+   * terminal (or is not this user's), which is the caller's cue that there was
+   * nothing to cancel.
+   */
+  static async markCancelledIfActive(
+    jobId: string,
+    userId: string
+  ): Promise<boolean> {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const updated = await db
+      .update(jobs)
+      .set({ status: "cancelled", finished_at: now, updated_at: now })
+      .where(
+        and(
+          eq(jobs.id, jobId),
+          eq(jobs.user_id, userId),
+          notInArray(jobs.status, ["completed", "failed", "cancelled"])
+        )
+      )
+      .returning({ id: jobs.id });
+    return updated.length > 0;
+  }
+
+  /**
+   * Which of these ids are now cancelled. The poller's one query per tick —
+   * indexed on the primary key, and bounded by how many runs an instance is
+   * actually executing.
+   */
+  static async cancelledAmong(jobIds: string[]): Promise<string[]> {
+    if (jobIds.length === 0) return [];
+    const db = getDb();
+    const rows = await db
+      .select({ id: jobs.id })
+      .from(jobs)
+      .where(and(inArray(jobs.id, jobIds), eq(jobs.status, "cancelled")));
+    return rows.map((row: { id: string }) => row.id);
+  }
 
   /** Find a job by id, scoped to the user. */
   static async find(userId: string, jobId: string): Promise<Job | null> {

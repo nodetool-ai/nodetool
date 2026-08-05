@@ -38,6 +38,60 @@ same format. Every message is a map/object with at least a `type` field.
    reference client retries up to 10 times starting at 1 s).
 4. **Close** — call `socket.close()` or let the server close the connection.
 
+## Multi-Instance Deployments
+
+A run's replay buffer and its cancel/stream hooks live in the one server
+process executing it, so on a deployment with more than one instance both
+`reconnect_job` and `cancel_job` have to reach that process. Two environment
+variables drive this, and with neither set the whole mechanism is inert:
+
+- `NODETOOL_INSTANCE_ID` — this instance's identity.
+- `FLY_MACHINE_ID` — the fallback, set by Fly on every machine. It is also the
+  value `fly-replay: instance=<id>` addresses.
+
+The instance executing a run stamps its id on the job row (`runner_instance`).
+Two things follow.
+
+**Resuming lands on the owner.** A reconnecting client appends
+`?resume_job=<job_id>` to the handshake URL. If that job is non-terminal and
+owned by another instance, the server answers the upgrade with
+`fly-replay: instance=<owner>` instead of accepting it, and Fly's proxy
+re-issues the whole handshake there. A request the proxy already replayed
+(`fly-replay-src` present) is never replayed again, so this cannot ping-pong.
+The hint names one job — with runs in flight on several instances the rest
+reconnect wherever they land and fall back to `reconnect_job`'s persisted-row
+answer: the right status, without the replayed frames.
+
+The client retires the hint after two consecutive failed connects, so the third
+attempt goes out bare. Without that, a deploy that retires the owning machine
+while its row still reads `running` would have every reconnect replayed at a
+machine that no longer exists — and since the browser shares one socket across
+chat and every other consumer, all of them would stay dark. A successful
+connect resets the count.
+
+**Cancel travels between instances.** `cancel_job` for a run this process does
+not hold, whose row names a *different* instance, marks the row cancelled with
+a conditional update — only while it is still non-terminal, so it cannot
+overwrite the owner's own outcome — and publishes the verb on a control bus:
+PostgreSQL `LISTEN`/`NOTIFY` on channel `nodetool_job_control`, an in-process
+emitter under SQLite. Every instance subscribes once and cancels the run if it
+holds the session. A row with no `runner_instance` (an HTTP, trigger, or MCP
+run — nothing holds a session for those anywhere) is left alone and still
+answers "Job not found or already completed".
+
+`LISTEN` needs a session-pooled or direct connection. Behind a transaction
+pooler — Supabase's port 6543, which the app itself uses — it never delivers.
+Point `NODETOOL_JOB_CONTROL_DATABASE_URL` (or `DIRECT_URL` /
+`DATABASE_DIRECT_URL`) at a direct URL and the listener opens its own
+single connection there; without one it warns and falls back to the pooled
+client.
+
+Which is survivable, because the row is the signal of record: every instance
+re-reads its own running runs on a timer (`NODETOOL_JOB_CANCEL_POLL_MS`,
+default 15000, `0` disables) and cancels any whose row now reads `cancelled`.
+One indexed query per tick, bounded by that instance's concurrency. The bus
+makes a cancel immediate; the poll makes it certain.
+
 ## Client → Server Commands
 
 All client messages contain `command` and `data` fields.

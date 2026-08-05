@@ -18,6 +18,7 @@ jest.mock("../../lib/websocket/GlobalWebSocketManager", () => ({
     send: jest.fn().mockResolvedValue(undefined),
     subscribe: jest.fn().mockReturnValue(jest.fn()),
     isConnectionOpen: jest.fn().mockReturnValue(true),
+    setResumeJobIdProvider: jest.fn(),
   },
 }));
 

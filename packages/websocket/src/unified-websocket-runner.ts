@@ -68,6 +68,8 @@ import {
   type DBModel,
   type ThreadMemoryResource
 } from "@nodetool-ai/models";
+import { getInstanceId } from "./lib/instance-id.js";
+import { requestRemoteJobCancel } from "./job-control.js";
 import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
@@ -3281,6 +3283,9 @@ export class UnifiedWebSocketRunner {
     // `jobs.cancel` — doesn't remove the job from `jobQueue`, so drainQueue
     // can still hand us a cancelled job.)
     phaseStartedAt = performance.now();
+    // Which machine holds this run's session, for owner-aware reconnects and
+    // cross-instance cancel. Null on a single-machine deployment.
+    const instanceId = getInstanceId();
     if (executionOptions.persistence === "job") {
       try {
         const existing = await Job.get(jobId);
@@ -3303,9 +3308,14 @@ export class UnifiedWebSocketRunner {
             return;
           }
           // Was persisted as "queued" while waiting for a slot — flip it to
-          // running now that it's actually starting.
-          if (existing.status !== "running") {
+          // running now that it's actually starting. The stamp goes on here
+          // too: the queued row may have been written by another instance.
+          if (
+            existing.status !== "running" ||
+            existing.runner_instance !== instanceId
+          ) {
             existing.markRunning();
+            existing.runner_instance = instanceId;
             await existing.save();
           }
         } else {
@@ -3317,7 +3327,8 @@ export class UnifiedWebSocketRunner {
             name: req.job_name ?? "",
             started_at: new Date().toISOString(),
             params: req.params ?? {},
-            graph
+            graph,
+            runner_instance: instanceId
           });
         }
       } catch (error) {
@@ -4174,6 +4185,17 @@ export class UnifiedWebSocketRunner {
           message: "Job cancellation requested",
           job_id: jobId,
           workflow_id: workflowId ?? registered.workflowId ?? ""
+        };
+      }
+      // Nothing local holds it. With more than one instance the run may be
+      // executing on another machine: persist the cancellation and put the
+      // verb on the control bus for whichever instance owns the session.
+      const remote = await requestRemoteJobCancel(this.userId ?? "1", jobId);
+      if (remote.cancelled) {
+        return {
+          message: "Job cancellation requested",
+          job_id: jobId,
+          workflow_id: workflowId ?? remote.workflowId ?? ""
         };
       }
       return {
@@ -8132,10 +8154,13 @@ export class UnifiedWebSocketRunner {
             active.status = "cancelled";
           } else {
             // The run may be executing on the connection that started it —
-            // this client reconnected to it. Cancel through its hooks.
+            // this client reconnected to it. Cancel through its hooks, or,
+            // when nothing local holds it, across the control bus.
             const registered = jobRunRegistry.get(this.userId ?? "1", jobId);
             if (registered && registered.status === "running") {
               registered.cancel();
+            } else {
+              await requestRemoteJobCancel(this.userId ?? "1", jobId);
             }
           }
         }

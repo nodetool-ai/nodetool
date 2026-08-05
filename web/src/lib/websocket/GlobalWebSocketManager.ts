@@ -55,6 +55,21 @@ type GlobalWebSocketEvent = keyof GlobalWebSocketEvents;
 const RECONNECT_INTERVAL_MS = 1000;
 
 /**
+ * How many consecutive failed connects still carry the `resume_job` hint.
+ *
+ * The hint asks the server to replay the handshake at the instance that owns
+ * the run. When that instance is gone — a deploy replaces machine ids while
+ * the job row still reads `running` — the replay is addressed at a dead
+ * machine and the handshake fails. Retrying with the same hint fails the same
+ * way forever, and because this is the one socket the whole app shares, chat
+ * and every other consumer stay dark with it. So the third attempt goes out
+ * hint-less and connects wherever the proxy puts it; `reconnect_job` then
+ * answers from the persisted row — the run's real status, without the replayed
+ * frames.
+ */
+const MAX_HINTED_ATTEMPTS = 2;
+
+/**
  * Global WebSocket Manager - Singleton pattern.
  *
  * Establishes a single shared WebSocket to the unified backend and
@@ -67,6 +82,8 @@ const RECONNECT_INTERVAL_MS = 1000;
 class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
   private static instance: GlobalWebSocketManager | null = null;
   private wsManager: WebSocketManager | null = null;
+  private resumeJobIdProvider: (() => string | null) | null = null;
+  private consecutiveConnectFailures = 0;
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   /** Routing keys already reported as unhandled (log once, payload-free). */
   private loggedUnhandledKeys = new Set<string>();
@@ -148,6 +165,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
       this.wsManager = new WebSocketManager({
         url: wsUrl,
+        // Every reconnect re-resolves the URL: the auth token may have been
+        // refreshed, and a run that is still going needs its `resume_job` hint
+        // recomputed against the state at that moment.
+        urlProvider: () => this.buildAuthenticatedUrl(),
         binaryType: "arraybuffer",
         reconnect: true,
         reconnectInterval: RECONNECT_INTERVAL_MS
@@ -157,6 +178,7 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
         console.info("GlobalWebSocketManager: Connected");
         this.isConnected = true;
         this.isConnecting = false;
+        this.consecutiveConnectFailures = 0;
 
         // After a reconnect, any `resource_change` events emitted while we
         // were offline are gone — refresh every active query so the UI
@@ -188,6 +210,11 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
       this.wsManager.on("close", (code: number, reason: string) => {
         console.info("GlobalWebSocketManager: Disconnected");
+        // A close with no open before it is a connect that never landed. Two
+        // of those in a row retire the resume hint (see MAX_HINTED_ATTEMPTS).
+        if (!this.isConnected) {
+          this.consecutiveConnectFailures += 1;
+        }
         this.isConnected = false;
         this.isConnecting = false;
         this.emit("close", code, reason);
@@ -502,20 +529,56 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
     };
   }
 
+  /**
+   * Name the run this connection should be routed back to, when the server is
+   * spread over more than one instance.
+   *
+   * A run's replay buffer and control hooks live in the one process executing
+   * it, so a reconnect balanced onto a different machine sees neither. The
+   * hint lets the server replay the handshake at the owning instance
+   * (`fly-replay`); it is ignored on a single-machine deployment.
+   *
+   * One job id, deliberately: the handshake resolves to exactly one machine.
+   * With runs in flight on several instances the rest still reconnect here and
+   * fall back to `reconnect_job`'s persisted-row path — their status is
+   * correct, they just lose the replayed frames.
+   */
+  setResumeJobIdProvider(provider: (() => string | null) | null): void {
+    this.resumeJobIdProvider = provider;
+  }
+
   private async buildAuthenticatedUrl(): Promise<string> {
+    const params = new URLSearchParams();
     try {
       const { supabase } = await import("../supabaseClient");
       const {
         data: { session }
       } = await supabase.auth.getSession();
       if (session?.access_token) {
-        return `${UNIFIED_WS_URL}?api_key=${session.access_token}`;
+        params.set("api_key", session.access_token);
       }
     } catch (error) {
       console.error("GlobalWebSocketManager: Failed to resolve auth token", error);
     }
 
-    return UNIFIED_WS_URL;
+    // The hint is an optimization; a store that cannot answer costs replayed
+    // frames, never the connection.
+    if (this.consecutiveConnectFailures < MAX_HINTED_ATTEMPTS) {
+      try {
+        const resumeJobId = this.resumeJobIdProvider?.();
+        if (resumeJobId) {
+          params.set("resume_job", resumeJobId);
+        }
+      } catch (error) {
+        console.error(
+          "GlobalWebSocketManager: Failed to resolve the resumable job",
+          error
+        );
+      }
+    }
+
+    const query = params.toString();
+    return query ? `${UNIFIED_WS_URL}?${query}` : UNIFIED_WS_URL;
   }
 }
 

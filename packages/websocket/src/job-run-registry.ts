@@ -278,6 +278,11 @@ export class JobRunRegistry {
     return this.sessions.get(this.key(userId, jobId)) ?? null;
   }
 
+  /** Every run this process is still executing. The cancel poller's input. */
+  runningSessions(): JobRunSession[] {
+    return [...this.sessions.values()].filter((s) => s.status === "running");
+  }
+
   /**
    * Runs still executing for a user, across every connection. The
    * concurrency caps count runs, not sockets: a detached run still occupies

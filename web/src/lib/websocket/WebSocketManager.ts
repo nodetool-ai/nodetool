@@ -51,6 +51,13 @@ export interface WebSocketConfig {
   heartbeatTimeout?: number;
   /** Cap on messages queued while offline; the oldest are dropped first. */
   maxQueueSize?: number;
+  /**
+   * Resolve the URL afresh for every connect attempt. `url` is fixed at
+   * construction, but a reconnect may need different query parameters than the
+   * first connect did — a refreshed auth token, or the run this client wants
+   * the server to route it back to. Falls back to `url` when it throws.
+   */
+  urlProvider?: () => string | Promise<string>;
 }
 
 export interface WebSocketMessage {
@@ -114,8 +121,9 @@ const STATE_TRANSITIONS: Record<string, ConnectionStateTransition> = {
 };
 
 export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
-  private config: Required<Omit<WebSocketConfig, "protocols">> & {
+  private config: Required<Omit<WebSocketConfig, "protocols" | "urlProvider">> & {
     protocols?: string | string[];
+    urlProvider?: () => string | Promise<string>;
   };
   private ws: WebSocket | null = null;
   private state: ConnectionState = "disconnected";
@@ -127,6 +135,15 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
   private reconnectAttempt = 0;
   private reconnectPending = false;
   private intentionalDisconnect = false;
+  /**
+   * Bumped by every teardown. `establishConnection` may await a URL provider,
+   * and during that await `this.ws` is null — so a `disconnect()`/`destroy()`
+   * landing in the window has nothing to close, and the socket it thought it
+   * had killed opens a moment later with no owner: an orphan holding a server
+   * runner session, possibly on a token that was being replaced. The attempt
+   * re-checks the counter after the await and abandons the connect instead.
+   */
+  private connectGeneration = 0;
   private messageQueue: WebSocketMessage[] = [];
   private connectionPromise: Promise<void> | null = null;
   private connectionResolver: (() => void) | null = null;
@@ -146,7 +163,8 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
       binaryType: config.binaryType ?? "arraybuffer",
       heartbeatInterval: config.heartbeatInterval ?? 45000,
       heartbeatTimeout: config.heartbeatTimeout ?? 10000,
-      maxQueueSize: config.maxQueueSize ?? 100
+      maxQueueSize: config.maxQueueSize ?? 100,
+      urlProvider: config.urlProvider
     };
   }
 
@@ -202,6 +220,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
   public disconnect(): void {
     this.intentionalDisconnect = true;
+    this.connectGeneration += 1;
     this.reconnectPending = false;
     this.clearTimers();
     this.messageQueue = [];
@@ -493,12 +512,24 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
     this.intentionalDisconnect = false;
     this.clearTimers();
 
+    // Only yield when there is actually a provider to consult: callers rely on
+    // the socket existing by the time `connect()` returns to the event loop.
+    const provider = this.config.urlProvider;
+    const generation = this.connectGeneration;
+    const url = provider ? await this.resolveUrl(provider) : this.config.url;
+
+    // Torn down while we were resolving the URL — opening the socket now would
+    // leave one nothing can reach.
+    if (this.connectGeneration !== generation || this.intentionalDisconnect) {
+      throw new Error("Connection abandoned before the socket was opened");
+    }
+
     return new Promise<void>((resolve, reject) => {
       this.connectionResolver = resolve;
       this.connectionRejector = reject;
 
       try {
-        this.ws = new WebSocket(this.config.url, this.config.protocols);
+        this.ws = new WebSocket(url, this.config.protocols);
         this.ws.binaryType = this.config.binaryType;
         this.setupEventHandlers();
         this.startConnectionTimeout();
@@ -508,6 +539,22 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
         reject(err);
       }
     });
+  }
+
+  /**
+   * The URL for the connect about to be made. A provider that fails must not
+   * cost us the connection — the configured URL still reaches the server, just
+   * without whatever the provider wanted to add.
+   */
+  private async resolveUrl(
+    provider: () => string | Promise<string>
+  ): Promise<string> {
+    try {
+      return await provider();
+    } catch (error) {
+      console.error("WebSocketManager: URL provider failed", error);
+      return this.config.url;
+    }
   }
 
   private getReconnectDelay(): number {
@@ -701,6 +748,7 @@ export class WebSocketManager extends EventEmitter<WebSocketManagerEvents> {
 
   public destroy(): void {
     this.intentionalDisconnect = true;
+    this.connectGeneration += 1;
     this.clearTimers();
     this.removeAllListeners();
 

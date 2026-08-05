@@ -180,10 +180,36 @@ const mapJobStatusToRunState = (status: string): RunState | undefined => {
 
 type WorkflowSubscription = {
   workflowId: string;
+  runnerStore: WorkflowRunnerStore;
   unsubscribe: () => void;
 };
 
 const workflowSubscriptions = new Map<string, WorkflowSubscription>();
+
+/**
+ * True for a run the server is executing and this client can be replayed —
+ * the same predicate `resumeInFlightJob` uses. An in-browser run holds no
+ * socket, so there is nothing on the server to resume.
+ */
+const resumableJobId = (runnerStore: WorkflowRunnerStore): string | null => {
+  const { job_id, state, isBrowserRun } = runnerStore.getState();
+  return job_id && state === "running" && !isBrowserRun ? job_id : null;
+};
+
+/**
+ * The run a reconnecting socket should be routed back to, for a server spread
+ * over several instances. One id is all the handshake can carry: it resolves
+ * to a single machine, so with runs on several instances only the first is
+ * routed and the others fall back to `reconnect_job`'s persisted row — correct
+ * status, no replayed frames.
+ */
+globalWebSocketManager.setResumeJobIdProvider(() => {
+  for (const { runnerStore } of workflowSubscriptions.values()) {
+    const jobId = resumableJobId(runnerStore);
+    if (jobId) return jobId;
+  }
+  return null;
+});
 
 // Per-workflow job_id whose run is currently being recorded into the
 // TraceStore. Used to call startRun() exactly once per run (startRun clears
@@ -399,11 +425,11 @@ export const subscribeToWorkflowUpdates = (
   // from the job's last seen `job_seq`. In-browser runs hold no socket, so they
   // have nothing to resume.
   const resumeInFlightJob = () => {
-    const { job_id, state, isBrowserRun, jobReplayCursor } =
-      runnerStore.getState();
-    if (!job_id || state !== "running" || isBrowserRun) {
+    const job_id = resumableJobId(runnerStore);
+    if (!job_id) {
       return;
     }
+    const { jobReplayCursor } = runnerStore.getState();
     void globalWebSocketManager
       .send({
         type: "reconnect_job",
@@ -425,6 +451,7 @@ export const subscribeToWorkflowUpdates = (
 
   workflowSubscriptions.set(workflowId, {
     workflowId,
+    runnerStore,
     unsubscribe: () => {
       unsubscribeWorkflow();
       unsubscribeRunnerStore();

@@ -64,6 +64,15 @@ export type { ModelObserverCallback, DrizzleTable } from "./base-model.js";
 // ── Domain Models ────────────────────────────────────────────────────
 export { Job } from "./job.js";
 export type { JobStatus } from "./job.js";
+export {
+  publishJobControl,
+  subscribeJobControl,
+  resetJobControlBusForTests
+} from "./job-control-bus.js";
+export type {
+  JobControlMessage,
+  JobControlHandler
+} from "./job-control-bus.js";
 
 export { Workflow } from "./workflow.js";
 export type {

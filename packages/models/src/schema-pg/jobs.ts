@@ -35,6 +35,9 @@ export const jobs = pgTable(
     ),
     execution_strategy: text("execution_strategy"),
     execution_id: text("execution_id"),
+    // The server instance executing this run (Fly machine id). Null on a
+    // single-machine deployment; see packages/websocket/src/lib/instance-id.ts.
+    runner_instance: text("runner_instance"),
     metadata_json: jsonText<Record<string, unknown>>()("metadata_json"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
