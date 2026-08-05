@@ -9,7 +9,7 @@ A pre-commit pass that removes patterns LLMs add reflexively but humans wouldn't
 
 This skill complements (does not replace) [`AGENTS.md`](../../../AGENTS.md), [`CLAUDE.md`](../../../CLAUDE.md), and [`web/src/components/ui_primitives/STRATEGY.md`](../../../web/src/components/ui_primitives/STRATEGY.md). Those define the rules. This skill defines the patterns to actively hunt and remove.
 
-Unslop is a quality pass, not a bug hunt. For correctness review of a diff, branch, or PR — including the NodeTool-specific landmines — use [`nodetool-code-review`](../nodetool-code-review/SKILL.md); a full pre-merge pass runs both.
+Unslop is a quality pass, not a bug hunt. For correctness review of a diff, branch, or PR — including the NodeTool-specific landmines — use [`code-review`](../code-review/SKILL.md); a full pre-merge pass runs both.
 
 ## How to use
 

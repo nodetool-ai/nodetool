@@ -12,7 +12,7 @@ without being told how.
 | `commands/serve.md` | `/serve` — start the API on :7777 in the background and poll until it answers. |
 | `commands/verify.md` | `/verify` — typecheck, lint, test, and fix what breaks. |
 | `commands/onboard.md` | `/onboard <area>` — locate the owning workspace, entry point, nearest example, and the pitfalls that apply. |
-| `skills/` | 19 NodeTool skills (workflow building, custom nodes, API reference, deployment, troubleshooting, code review) plus 18 general engineering skills — see below. Claude loads these on its own when a task matches. |
+| `skills/` | 18 NodeTool skills (workflow building, custom nodes, API reference, deployment, troubleshooting) plus 18 general engineering skills — see below. Claude loads these on its own when a task matches. |
 
 ## Engineering skills
 
@@ -44,7 +44,7 @@ you can also type them:
 | :--- | :--- |
 | `/tdd` | Red-green-refactor loop, one vertical slice at a time. |
 | `/diagnosing-bugs` | Diagnosis loop for hard bugs and performance regressions. |
-| `/code-review` | Two-axis review of a diff: standards and spec, as parallel sub-agents. |
+| `/code-review` | Three-axis review of a diff — correctness, standards, spec — as parallel sub-agents. |
 | `/codebase-design` | Vocabulary for deep modules — small interfaces, clean seams. |
 | `/domain-modeling` | Sharpen domain terms, update `CONTEXT.md` and ADRs. |
 | `/prototype` | Throwaway prototype to answer a design question. |
@@ -52,10 +52,11 @@ you can also type them:
 | `/resolving-merge-conflicts` | Work an in-progress merge or rebase hunk by hunk. |
 | `/wizard` | Generate a bash wizard for steps only a human can perform. |
 
-Two names overlap with what NodeTool already ships: `/code-review` here is the
-generic two-axis review, while `nodetool-code-review` knows this repo's
-landmines (cross-package imports, MsgPack framing, `ui_primitives`, packaged
-Electron paths). Reach for the NodeTool one on NodeTool code.
+`/code-review` is a merge of upstream's skill and the old
+`nodetool-code-review`, which it replaces: upstream's Standards and Spec axes
+plus a Correctness axis carrying this repo's landmines (cross-package imports,
+MsgPack framing, Zustand subscriptions, `ui_primitives`, packaged-Electron
+paths, IPC security). It pairs with `unslop` for a full pre-merge pass.
 
 The upstream skills also ship a Codex `agents/` directory per skill; those were
 dropped on the way in, since this repo drives them through Claude Code. To
