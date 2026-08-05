@@ -9,6 +9,7 @@
  *
  *   list_sketches          — find a sketch to work on
  *   list_sketch_versions   — its snapshots, newest first
+ *   get_sketch_version     — read one snapshot's document without restoring
  *   create_sketch_version  — pin the current state as a manual snapshot
  *   restore_sketch_version — roll the document back to one
  *
@@ -226,6 +227,59 @@ export class ListSketchVersionsTool extends Tool {
   }
 }
 
+export class GetSketchVersionTool extends Tool {
+  readonly name = "get_sketch_version";
+  readonly description =
+    "Read one snapshot of a sketch without restoring it: the version's " +
+    "metadata plus the full document it stored. Use this to inspect or " +
+    "compare versions before deciding which one to restore.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      image_document_id: {
+        type: "string" as const,
+        description: "Sketch (image document) id."
+      },
+      version: {
+        type: "number" as const,
+        description: "Version number to read, from list_sketch_versions."
+      }
+    },
+    required: ["image_document_id", "version"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const doc = await loadSketch(context, params["image_document_id"]);
+    if (isError(doc)) return doc;
+
+    const number = versionNumber(params["version"]);
+    if (isError(number)) return number;
+
+    const version = await ImageDocumentVersion.findByVersion(doc.id, number);
+    if (!version) {
+      return {
+        error: `Sketch ${doc.id} has no version ${number}. Call list_sketch_versions to see the available ones.`
+      };
+    }
+
+    const document = parseVersionDocument(version.document);
+    if (isError(document)) return document;
+
+    return {
+      image_document_id: doc.id,
+      ...toVersionListItem(version),
+      document
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    return `Reading v${String(params["version"])} of sketch ${String(params["image_document_id"])}`;
+  }
+}
+
 export class CreateSketchVersionTool extends Tool {
   readonly name = "create_sketch_version";
   readonly description =
@@ -372,6 +426,7 @@ export class RestoreSketchVersionTool extends Tool {
 export const SKETCH_VERSION_TOOL_NAMES = [
   "list_sketches",
   "list_sketch_versions",
+  "get_sketch_version",
   "create_sketch_version",
   "restore_sketch_version"
 ] as const;

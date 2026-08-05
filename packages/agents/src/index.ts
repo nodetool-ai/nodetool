@@ -421,6 +421,7 @@ export {
 export {
   ListSketchesTool,
   ListSketchVersionsTool,
+  GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool,
   SKETCH_VERSION_TOOL_NAMES
@@ -428,6 +429,7 @@ export {
 export {
   ListTimelinesTool,
   ListTimelineVersionsTool,
+  GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool,
   TIMELINE_VERSION_TOOL_NAMES

@@ -9,6 +9,7 @@ import {
 import {
   ListTimelinesTool,
   ListTimelineVersionsTool,
+  GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool
 } from "../src/tools/timeline-version-tools.js";
@@ -74,12 +75,14 @@ describe("timeline version tools", () => {
       expect.arrayContaining([
         "list_timelines",
         "list_timeline_versions",
+        "get_timeline_version",
         "create_timeline_version",
         "restore_timeline_version"
       ])
     );
     expect(permissionCategoryFor("list_timelines")).toBe("read");
     expect(permissionCategoryFor("list_timeline_versions")).toBe("read");
+    expect(permissionCategoryFor("get_timeline_version")).toBe("read");
     expect(permissionCategoryFor("create_timeline_version")).toBe("write");
     expect(permissionCategoryFor("restore_timeline_version")).toBe("write");
   });
@@ -146,6 +149,47 @@ describe("timeline version tools", () => {
       save_type: "manual"
     })) as { versions: Array<{ version: number }> };
     expect(manualOnly.versions.map((v) => v.version)).toEqual([1]);
+  });
+
+  it("reads one version's document without restoring it", async () => {
+    const row = await makeTimeline();
+    await new CreateTimelineVersionTool().process(ctx(), {
+      timeline_id: row.id,
+      name: "the good cut"
+    });
+
+    const result = (await new GetTimelineVersionTool().process(ctx(), {
+      timeline_id: row.id,
+      version: 1
+    })) as {
+      version: number;
+      saveType: string;
+      name: string;
+      document: { clips: unknown[] };
+    };
+    expect(result).toMatchObject({
+      version: 1,
+      saveType: "manual",
+      name: "the good cut",
+      fps: 30
+    });
+    expect(result.document.clips).toHaveLength(1);
+
+    // Reading is not restoring: the sequence row is untouched.
+    const after = (await TimelineSequence.findById(row.id))!;
+    expect(after.updated_at).toBe(row.updated_at);
+
+    const missing = (await new GetTimelineVersionTool().process(ctx(), {
+      timeline_id: row.id,
+      version: 7
+    })) as { error: string };
+    expect(missing.error).toContain("no version 7");
+
+    const otherUser = (await new GetTimelineVersionTool().process(ctx("other"), {
+      timeline_id: row.id,
+      version: 1
+    })) as { error: string };
+    expect(otherUser.error).toContain("was not found");
   });
 
   it("restores a version, snapshots the overwritten state, and validates the result", async () => {

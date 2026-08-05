@@ -1312,16 +1312,16 @@ forward is a workflow.
   for tracks, clips, trims, and animations; \`validate_timeline\` statically
   checks a sequence before the user renders it. \`list_timelines\` finds one;
   every sequence also keeps a snapshot history, read with
-  \`list_timeline_versions\`, pinned with \`create_timeline_version\` and
-  rolled back with \`restore_timeline_version\` — none of which needs an open
-  editor.
+  \`list_timeline_versions\` and \`get_timeline_version\`, pinned with
+  \`create_timeline_version\` and rolled back with
+  \`restore_timeline_version\` — none of which needs an open editor.
 - **sketch** — a layered image document. Family \`+sketch\`: layers, drawing
   tools, generating into a layer, rendering the result to an asset.
   \`validate_sketch\` statically checks a document — the open one or any saved
   one by id. \`list_sketches\` finds one; every sketch also keeps a snapshot
-  history, read with \`list_sketch_versions\`, pinned with
-  \`create_sketch_version\` and rolled back with \`restore_sketch_version\` —
-  none of which needs an open editor.
+  history, read with \`list_sketch_versions\` and \`get_sketch_version\`,
+  pinned with \`create_sketch_version\` and rolled back with
+  \`restore_sketch_version\` — none of which needs an open editor.
 - **model3d** — a 3D scene. Family \`+ui_3d\`: add and transform objects, set
   materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`list_collections\`,

@@ -9,6 +9,7 @@ import {
 import {
   ListSketchesTool,
   ListSketchVersionsTool,
+  GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool
 } from "../src/tools/sketch-version-tools.js";
@@ -66,11 +67,13 @@ describe("sketch version tools", () => {
       expect.arrayContaining([
         "list_sketches",
         "list_sketch_versions",
+        "get_sketch_version",
         "create_sketch_version",
         "restore_sketch_version"
       ])
     );
     expect(permissionCategoryFor("list_sketch_versions")).toBe("read");
+    expect(permissionCategoryFor("get_sketch_version")).toBe("read");
     expect(permissionCategoryFor("restore_sketch_version")).toBe("write");
     expect(permissionCategoryFor("validate_sketch")).toBe("read");
   });
@@ -135,6 +138,47 @@ describe("sketch version tools", () => {
       save_type: "manual"
     })) as { versions: Array<{ version: number }> };
     expect(manualOnly.versions.map((v) => v.version)).toEqual([1]);
+  });
+
+  it("reads one version's document without restoring it", async () => {
+    const row = await makeSketch();
+    await new CreateSketchVersionTool().process(ctx(), {
+      image_document_id: row.id,
+      name: "the good one"
+    });
+
+    const result = (await new GetSketchVersionTool().process(ctx(), {
+      image_document_id: row.id,
+      version: 1
+    })) as {
+      version: number;
+      saveType: string;
+      name: string;
+      document: { sketch: { activeLayerId: string } };
+    };
+    expect(result).toMatchObject({
+      version: 1,
+      saveType: "manual",
+      name: "the good one",
+      width: 1024
+    });
+    expect(result.document.sketch.activeLayerId).toBe("layer-1");
+
+    // Reading is not restoring: the document row is untouched.
+    const after = (await ImageDocument.findById(row.id))!;
+    expect(after.updated_at).toBe(row.updated_at);
+
+    const missing = (await new GetSketchVersionTool().process(ctx(), {
+      image_document_id: row.id,
+      version: 7
+    })) as { error: string };
+    expect(missing.error).toContain("no version 7");
+
+    const otherUser = (await new GetSketchVersionTool().process(ctx("other"), {
+      image_document_id: row.id,
+      version: 1
+    })) as { error: string };
+    expect(otherUser.error).toContain("was not found");
   });
 
   it("restores a version, snapshots the overwritten state, and validates the result", async () => {

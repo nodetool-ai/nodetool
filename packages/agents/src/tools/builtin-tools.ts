@@ -108,12 +108,14 @@ import {
 import {
   ListSketchesTool,
   ListSketchVersionsTool,
+  GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool
 } from "./sketch-version-tools.js";
 import {
   ListTimelinesTool,
   ListTimelineVersionsTool,
+  GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool
 } from "./timeline-version-tools.js";
@@ -157,12 +159,14 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   ListSketchesTool,
   ListSketchVersionsTool,
+  GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool,
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   ListTimelinesTool,
   ListTimelineVersionsTool,
+  GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool,
 
