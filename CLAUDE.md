@@ -667,6 +667,30 @@ old document is restored against today's schema, so what it used to pass is not
 what it passes now — a restore whose document no longer validates exits
 non-zero and prints the issues.
 
+### nodetool sketch versions (Sketch Version History)
+
+`sketch versions` reads and writes an image document's snapshot history against
+the local database — manual saves, the autosaves `sketch.update` writes at most
+every five minutes, and the pre-restore snapshot that makes a restore undoable.
+The per-layer generation takes (`sketch.versions.*` in the tRPC router) are a
+different thing: those record one generated image on one layer, these snapshot
+the whole document. All five subcommands take `--json`.
+
+```bash
+npm run dev:nodetool -- sketch versions list <image_document_id> --save-type manual --limit 10
+npm run dev:nodetool -- sketch versions show <image_document_id> 3 --json
+npm run dev:nodetool -- sketch versions create <image_document_id> --name "before the repaint"
+npm run dev:nodetool -- sketch versions restore <image_document_id> 3
+npm run dev:nodetool -- sketch versions delete <image_document_id> 3 --yes
+```
+
+`restore` mirrors the tRPC router (`sketch.documentVersions.restore`): it
+snapshots the current state as a `restore` version, then CAS-writes the old
+document and its canvas settings back onto the image document. A sketch has no
+validator harness, so the check afterwards is the one a headless run can make —
+the restored document must still parse as a JSON object; one that no longer
+does exits non-zero. Layer bitmaps stay opaque to that check.
+
 ### Script voicing tools (no workflow, no browser)
 
 An agent voices a script and cuts it without authoring a workflow:
