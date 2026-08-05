@@ -26,12 +26,12 @@ Prefer to watch first? Here is a finished example running. The
 |-----------|---------|-------------|
 | **Memory (RAM)** | 8 GB | 16 GB or more |
 | **Free disk space** | 10 GB | 50 GB if you download AI models |
-| **Graphics card (GPU)** | Not needed | 8 GB or more of video memory |
 | **Operating system** | macOS 13+, Windows 10+, Ubuntu 22+ | The latest version |
 
-A graphics card only matters if you want AI models to run on your own machine.
-Without one, NodeTool sends the work to an online AI service instead, and
-everything on this page still works. See the
+No graphics card needed. The simplest way to use NodeTool is to connect an
+online AI service with your own key, and the models then run on that service's
+machines. A graphics card only enters the picture if you later decide to run
+models on your own machine — see the
 [hardware notes](installation.md#what-different-tasks-need).
 
 ### Install it
