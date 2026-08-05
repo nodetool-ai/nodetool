@@ -1,19 +1,20 @@
 ---
 layout: page
 title: "Chat"
-description: "Chat with models, run agents, generate media, and trigger workflows."
+description: "Ask the agent to build workflows and edit your open documents, generate media, and run saved workflows."
 ---
 
-Chat is the always-on chat surface inside NodeTool. It talks to any provider, runs tools, kicks off agents, generates images, video, and speech, and triggers your saved workflows — all from one composer.
+Chat is where you tell NodeTool what to make. The agent behind it plans, calls tools, builds and edits the document you have open, generates images, video, and speech, and runs your saved workflows, all from one composer. It talks to any configured provider.
 
 ---
 
 ## Overview
 
+- Builds and edits workflows, sketches, timelines, storyboards, scripts, and mini apps
+- Every turn runs the agent loop; the assistant plans and calls tools as a task needs them
 - 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
 - One composer for chat, image, video, and speech generation
 - Tools: web search, files, code execution, HTTP, and more
-- Every turn runs the agent loop — the assistant plans and calls tools on its own as a task needs it
 - Permission modes (Plan / Default / Auto) set how much the agent may do without asking
 - Run saved workflows from chat
 - Multiple threads, persistent history
@@ -129,6 +130,8 @@ When a request calls for it, the assistant can:
 
 | Capability | Examples |
 |------------|---------|
+| **Building workflows** | Plan a graph, validate it against the node library, save it, run it, debug what failed |
+| **Editing open documents** | Add a node, rewire an edge, add a timeline track, paint a sketch layer, place an app widget |
 | **Web research** | Search the web, browse pages, extract content |
 | **File operations** | Read, write, and organize files in your workspace |
 | **Code execution** | Run JavaScript in a sandboxed environment |
@@ -144,17 +147,42 @@ As the agent runs, the thread shows the task plan, each step's status as it star
 
 ---
 
-## Workflow Integration
+## Building and Editing From Chat
 
-You can ask the agent to run a saved workflow as part of a turn: it calls the workflow with your inputs and streams the results back into the chat. You can also ask it to build or modify workflows — it uses workspace tools to write the workflow configuration for you.
+### Building a workflow
 
-Save a workflow in the [workflow editor](workflow-editor.md) first, then reference it from chat.
+Describe what the workflow should do and the agent runs its build loop: plan the
+graph, validate it against the node library, save it as a workflow, run it, and
+debug whatever failed. The result is a normal workflow in your library, opened
+in the editor like any other.
 
-Inside the editor the same agent is one panel over, with the open graph as its
-subject — ask it to add a node, rewire a connection, or explain what a branch
-does.
+### Editing what you have open
+
+The agent reads the document in front of you and edits it with the same actions
+the interface offers. Ask it to add a node, rewire a connection, or explain what
+a branch does, and watch the change land on the canvas.
 
 ![Workflow assistant panel](assets/screenshots/editor-workflow-assistant.png)
+
+The same holds on every other surface:
+
+| Open document | Ask for |
+|---|---|
+| Workflow | "Add an upscale step after the image node and preview both." |
+| Sketch | "Add a shadow layer at 40% opacity, multiply blend." |
+| Timeline | "Put the narration on a new audio track and fade the last clip out." |
+| Storyboard | "Render stills for every shot, then clips for the ones I picked." |
+| Script | "Voice every draft line with the cast voices and send it to a timeline." |
+| Mini app | "Add a tone dropdown and show the result underneath the button." |
+
+Each editor tool names the document it acts on, so a request that targets
+something you don't have open comes back saying which documents are.
+
+### Running a saved workflow
+
+Choose a workflow in the composer, or ask for it by name. The agent calls it with
+your inputs and streams the results into the thread. Save the workflow in the
+[workflow editor](workflow-editor.md) first.
 
 ---
 

@@ -16,6 +16,9 @@ A visual way to use AI. Instead of writing code, you place boxes on a page and
 draw lines between them. Each box does one job, and the lines carry results from
 one box to the next.
 
+- **You can ask instead of place.** An agent lives in the app and builds those
+  boxes and lines for you when you describe what you want. What it produces is
+  the same picture you would have drawn, so you can read it and change it.
 - **It runs on your computer.** Models that run locally use your own hardware,
   and what they produce stays on your disk.
 - **You bring your own accounts.** When a workflow uses an online AI service
@@ -30,6 +33,24 @@ one box to the next.
 ---
 
 ## The building blocks
+
+### The agent
+
+The **agent** is the assistant you talk to in the Chats panel. Give it a goal in
+plain English and it works out the steps, calls tools, and edits your documents:
+it plans a graph, checks it against the node library, saves it as a workflow,
+runs it, and tells you what came back.
+
+Two things make it different from a chatbot that writes instructions for you:
+
+- **It acts on the document you have open.** A workflow, a sketch, a timeline, a
+  storyboard, a script, a mini app. It uses the same actions the interface
+  offers, so you see each change land and can undo it.
+- **It leaves everything editable.** There is no generated artifact you can only
+  regenerate. Whatever it builds, you can open, read, and rewire.
+
+A permission chip on each thread sets how far it may go on its own: propose
+only, ask before acting, or run everything. See [Chat](global-chat.md).
 
 ### Nodes
 
@@ -111,12 +132,13 @@ Timelines are where results become finished media:
 - Regenerate a generated clip after you change its settings.
 - Export the whole sequence as a video asset.
 
-### Agents
+### Agent nodes
 
-An **agent** node takes a goal written in plain English, works out the steps
-itself, and uses tools such as web search, file access, or running code to get
-there. Use one when you can describe the outcome but not the exact steps. A
-normal node does one fixed thing; an agent decides what to do.
+The agent above builds workflows. An **Agent node** is an agent placed *inside*
+one: it takes a goal written in plain English, works out the steps itself, and
+uses tools such as web search, file access, or running code to get there. Use
+one when a step of your pipeline is describable but not scriptable. A normal
+node does one fixed thing; an Agent node decides what to do.
 
 ### Mini-Apps
 
@@ -144,6 +166,8 @@ Most work in NodeTool follows one loop:
 
 The editors are separate because painting an image and cutting a video are
 different problems, but they share one pool of assets and one set of AI services.
+The agent works in every one of them, so any step of the loop is something you
+can do by hand or ask for.
 
 {% mermaid %}
 graph LR
@@ -212,6 +236,8 @@ the one step that needs it while the rest runs locally.
 | **Clip** | One piece of media placed on a timeline track |
 | **Generated clip / layer** | A clip or layer produced by a workflow instead of imported |
 | **Stale** | A generated result whose settings changed since it was last produced |
+| **Agent** | The assistant you ask for changes, and the node that plans its own steps |
+| **Permission mode** | How far the agent may act without asking: Plan, Default, or Auto |
 | **Model** | The trained AI a node calls |
 | **Provider** | Whoever runs the model: your own machine, OpenAI, FAL, and so on |
 
@@ -277,6 +303,7 @@ See the [Developer Guide](developer/) and
 ## Next
 
 - [Quick Start](getting-started.md) — run something in 10 minutes
+- [Chat](global-chat.md) — the agent, its tools, and permission modes
 - [Glossary](glossary.md) — single-word definitions
 - [Workflow Editor](workflow-editor.md)
 - [Asset Management](asset-management.md)

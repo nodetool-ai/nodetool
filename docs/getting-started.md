@@ -1,11 +1,12 @@
 ---
 layout: page
 title: "Quick Start"
-description: "Install NodeTool, run a ready-made example, change it, and turn it into a small app anyone can use."
+description: "Install NodeTool, ask the agent to build a workflow, run a ready-made example, change it, and turn it into a small app anyone can use."
 ---
 
-Install NodeTool, open a ready-made example, run it, change it, and turn it into
-a form anyone can use. About 10 minutes. No account required.
+Install NodeTool, ask its agent to build something, open a ready-made example,
+change it, and turn it into a form anyone can use. About 10 minutes. No account
+required.
 
 This page assumes you have never used a tool like this. Every term is explained
 the first time it appears, and the [Glossary](glossary.md) covers the rest.
@@ -74,7 +75,37 @@ That works too, and it needs a download of several gigabytes per model. See
 
 ---
 
-## Step 2 — Run a ready-made example
+## Step 2 — Ask for what you want
+
+The fastest way in is to describe the result and let the agent build it. Click
+the **Chats** icon in the left rail, start a new thread, pick a model with the
+chip in the composer, and type something like:
+
+> Build me a workflow that takes a product photo and a short brief and writes
+> three ad captions for it.
+
+The agent plans a graph, checks it against the node library, saves it as a
+workflow, and runs it. The thread shows each step as it happens: the plan, every
+tool it calls, and what came back. When it finishes, open the workflow it made
+and you are looking at ordinary nodes and lines, the same as if you had placed
+them yourself.
+
+Three things worth knowing on the first try:
+
+- **The permission chip decides how far it goes on its own.** *Plan* proposes
+  without touching anything, *Default* asks before actions, *Auto* runs
+  everything. It is set per thread.
+- **It works on whatever you have open.** With a workflow, sketch, timeline, or
+  storyboard in front of you, ask for a change to *that* document: "add an
+  upscale step after the image node", "put the voiceover on a new audio track".
+- **You can stop and take over at any point.** Nothing it built is locked.
+
+Full details are in [Chat](global-chat.md) and
+[Chat & Agents](global-chat-agents.md).
+
+---
+
+## Step 3 — Run a ready-made example
 
 Everything you build lives on a **canvas**: a large open work area where you
 place boxes and draw lines between them.
@@ -126,7 +157,7 @@ being made instead of waiting for a finished file.
 
 ---
 
-## Step 3 — Change something
+## Step 4 — Change something
 
 The template is now yours. Change it, run it again, and see what happens. Every
 run uses whatever is on the canvas at that moment, so there is nothing to
@@ -140,6 +171,9 @@ rebuild or recompile.
 4. To watch any value anywhere in the workflow, press `Space` to open the node
    list, search for "Preview", and drop one onto the canvas. Connect a line into
    it and it will show whatever arrives.
+5. Or describe the change instead of making it: with the workflow open, ask the
+   agent in the Chats panel to "add a second image model and preview both".
+   It edits the graph in front of you, and you can undo it like any other edit.
 
 ### Finding more nodes
 
@@ -166,7 +200,7 @@ shared workflows run without setup.
 
 ---
 
-## Step 4 — Turn it into an app
+## Step 5 — Turn it into an app
 
 A **Mini-App** is the same workflow with the boxes and lines hidden. What's left
 is a plain form: fill in the fields, press a button, get the result. Hand it to
@@ -178,6 +212,10 @@ someone who should never have to look at a canvas.
 
 ![A Mini App running](assets/screenshots/mini-app-run.png)
 
+The agent builds these too. In the App Builder, ask it for the form you want —
+"a dropdown for tone, a big text box for the brief, and the result underneath" —
+and it places and wires the widgets.
+
 To design the form yourself, see [Mini Apps](mini-apps.md) for what they are,
 [Building Mini Apps](mini-apps-guide.md) for worked examples, and
 [App Builder](app-builder.md) for the editor.
@@ -186,10 +224,11 @@ To design the form yourself, see [Mini Apps](mini-apps.md) for what they are,
 
 ## What you just learned
 
-The four steps above are the loop NodeTool is built around: gather your files,
-build a workflow, produce something, and share it as a Mini-App.
+The steps above are the loop NodeTool is built around: gather your files, get a
+workflow built (by asking, or by hand), produce something, and share it as a
+Mini-App.
 
-Two other work areas plug into the same loop. The
+Two other work areas plug into the same loop, and the agent works in both. The
 [Sketch Editor](sketch-editor.md) is for still images built from layers, the way
 Photoshop works. The [Video Editor](video-editor.md) is for arranging video and
 audio clips over time. Anything any of them produces is a file NodeTool calls an
@@ -205,6 +244,7 @@ has the full picture with a diagram.
 
 | If you want to | Read |
 |------|------|
+| Get more out of the agent | [Chat](global-chat.md), [Chat & Agents](global-chat-agents.md) |
 | Understand how workflows work | [Key Concepts](key-concepts.md) |
 | Learn the interface | [User Interface](user-interface.md), [Workflow Editor](workflow-editor.md) |
 | See more examples | [Gallery](workflows/), [Cookbook](cookbook.md) |

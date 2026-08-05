@@ -6,7 +6,7 @@ description: "Why NodeTool exists, what agent-first means, and head-to-head comp
 
 > NodeTool is the open-source, agent-first creative AI workspace — every major model, your keys, one canvas.
 
-## The day NodeTool replaces
+Ask its agent for what you want and it builds the workflow on a node canvas where image, video, audio, and LLM models run side by side. Then you open that canvas and change it. Bring your keys, or run everything locally. Open source, AGPL-3.0.
 
 Say you're making a thirty-second product video. The storyboard prompts live in a ChatGPT tab. The stills come from a Flux tab, downloaded one by one. You upload each still to a video model, download the clips, drag them into an editor on your desktop, then open a fourth tab for music. Four subscriptions, a downloads folder full of `final_v3.png`, and when the client asks for a warmer version next Tuesday, the recipe exists only in your chat history and your memory.
 
@@ -20,7 +20,11 @@ None of those tools is bad. They just don't compose:
 
 ## The same day on one canvas
 
-In NodeTool, that video is one graph. The script prompt feeds GPT-5.6, the shot descriptions feed Flux, the stills feed Wan, the voiceover comes from ElevenLabs, and every hop is a typed edge — image, audio, text, embeddings — not a paste. Warmer version? Change one prompt node and rerun. The whole pipeline is a file you can save, version, share, or hand to a client as a Mini-App with the graph hidden.
+Ask for it, then own it:
+
+**An agent that builds the pipeline.** Describe the result and it plans the graph, wires it, picks models, and runs it. Chat tools that write prose hand you instructions; this one hands you a running workflow.
+
+**Nothing generated behind glass.** What the agent builds is the same graph you would have drawn. Open it, rewire it, swap a model, re-run. It edits sketches, timelines, storyboards, and mini apps the same way.
 
 Your keys stay yours. OpenAI, Anthropic, Gemini, Replicate, FAL, Kie, ElevenLabs, MiniMax, HuggingFace — you pay each provider its list price, with no credit markup. And local and cloud mix per node: run Llama on MLX for the script, route the render to FAL, keep the client's source footage on disk.
 
@@ -30,7 +34,7 @@ Here is the part the comparison tables miss. NodeTool is agent-first: every edit
 
 The agent stays on the job after the build. Supervised runs put it on the failure path — when a step fails mid-run it decides whether to retry, repair the output, skip the item, or stop, inside a decision and cost budget you set, with every intervention logged. And the toolbelt speaks MCP, so Claude Desktop, Claude Code, or any MCP-aware agent can drive the same surfaces you click.
 
-Other tools bolt a chat panel onto an editor. NodeTool built the editor as something an agent can operate.
+**Agents inside the pipeline too.** Planning, tool calling, streaming. Drop an Agent node into any graph as one step of it.
 
 ## Head-to-head comparisons
 

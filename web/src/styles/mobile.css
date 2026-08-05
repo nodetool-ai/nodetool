@@ -579,6 +579,30 @@
     min-width: 44px !important;
   }
 
+  /* Output/preview action buttons (download, add to assets, copy) overlay the
+     rendered output and size their icon to fill the button, so the blanket
+     44px rule above turned them into full-width icons. Give them a tappable
+     32px box with a fixed icon instead. */
+  .mobile .actions .action-button,
+  .mobile .actions .copy-button,
+  .mobile .video-preview-actions .MuiIconButton-root,
+  .mobile .dataframe-action-buttons .MuiIconButton-root {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    padding: 0 !important;
+  }
+
+  .mobile .actions .action-button svg,
+  .mobile .actions .copy-button svg,
+  .mobile .video-preview-actions .MuiIconButton-root svg,
+  .mobile .dataframe-action-buttons .MuiIconButton-root svg {
+    width: 18px !important;
+    height: 18px !important;
+    font-size: 18px !important;
+  }
+
   .mobile .main-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
