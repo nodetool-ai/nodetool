@@ -73,3 +73,54 @@ describe("checkLifecycle: failing fixtures", () => {
     ]);
   });
 });
+
+/**
+ * The ws-server cancel shape. `cancelJob` answers the command with a terminal
+ * `job_update` straight away (`unified-websocket-runner.ts`, "announce it right
+ * away") and deliberately does NOT set `active.finished`, so the drain keeps
+ * running and the node terminals follow it. Judging node state against that
+ * eager ack calls a converged run dirty — the authoritative terminal is the
+ * last one. Duplicate terminals stay `terminal-uniqueness.ts`'s business.
+ */
+describe("checkLifecycle: a surface that emits an eager terminal ack", () => {
+  it("judges node state against the final job_update terminal, not the eager ack", () => {
+    const record = baseRecord([
+      makeFrame(0, "ws-server", "server_to_client", { type: "job_update", status: "running", job_id: "job-1" }),
+      makeFrame(1, "ws-server", "server_to_client", { type: "node_update", node_id: "n1", status: "running" }),
+      // The eager cancel ack. Untagged — the driver tags the *second*
+      // occurrence redundant, not the first, so "last non-redundant" would
+      // re-select this frame and keep the bug.
+      makeFrame(2, "ws-server", "server_to_client", { type: "job_update", status: "cancelled", job_id: "job-1" }),
+      makeFrame(3, "ws-server", "server_to_client", { type: "node_update", node_id: "n1", status: "cancelled" }),
+      {
+        ...makeFrame(4, "ws-server", "server_to_client", {
+          type: "job_update",
+          status: "cancelled",
+          job_id: "job-1"
+        }),
+        redundant: "ws-eager-cancel-ack"
+      }
+    ]);
+
+    expect(checkLifecycle(record)).toEqual([]);
+  });
+
+  it("still flags a node that never closes, even with duplicate terminals", () => {
+    const record = baseRecord([
+      makeFrame(0, "ws-server", "server_to_client", { type: "node_update", node_id: "n1", status: "running" }),
+      makeFrame(1, "ws-server", "server_to_client", { type: "job_update", status: "cancelled", job_id: "job-1" }),
+      {
+        ...makeFrame(2, "ws-server", "server_to_client", {
+          type: "job_update",
+          status: "cancelled",
+          job_id: "job-1"
+        }),
+        redundant: "ws-eager-cancel-ack"
+      }
+    ]);
+
+    const invariantIds = checkLifecycle(record).map((v) => v.invariant);
+    expect(invariantIds).toContain("lifecycle.unmatched-running");
+    expect(invariantIds).toContain("lifecycle.running-after-job-terminal");
+  });
+});
