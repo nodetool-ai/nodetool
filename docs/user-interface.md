@@ -219,13 +219,15 @@ When you select a node, the right panel shows its **configuration**:
 
 ## Chat
 
-AI assistant built into NodeTool.
+The agent that builds and edits your documents, one panel over from whatever you
+have open.
 
 ![Chat Interface](assets/screenshots/global-chat-interface.png)
 
 ### Features
 
-- **Chat** with AI models
+- **Build a workflow** from a description, then open and edit it
+- **Edit the open document** – graph, sketch, timeline, storyboard, script, or mini app
 - **Run workflows** from conversation
 - **Agent loop** for autonomous, multi-step task execution
 - **File sharing** – images, audio, documents
