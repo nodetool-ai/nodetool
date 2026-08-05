@@ -18,7 +18,8 @@ import { createLogger } from "@nodetool-ai/config";
 import type {
   CorrelationLineage,
   NodeDescriptor,
-  ControlEvent
+  ControlEvent,
+  NodeErrorDetail
 } from "@nodetool-ai/protocol";
 import { EMPTY_LINEAGE } from "@nodetool-ai/protocol";
 
@@ -32,7 +33,8 @@ import type {
 import {
   createInvocationAccount,
   inInvocationAccount,
-  isRecoverableNodeError
+  isRecoverableNodeError,
+  providerFailureDetail
 } from "@nodetool-ai/runtime";
 import type {
   DecidedBy,
@@ -357,6 +359,7 @@ export class NodeActor {
 
   private async _runImpl(): Promise<ActorResult> {
     let errorMessage: string | undefined;
+    let errorDetail: NodeErrorDetail | undefined;
     let suspend: ActorResult["suspend"] | undefined;
     this._executionContext?.clearProviderCost?.();
     try {
@@ -533,6 +536,17 @@ export class NodeActor {
         });
       } else {
         errorMessage = err instanceof Error ? err.message : String(err);
+        // A credential failure carries the provider and the key that failed,
+        // so the editor can send the user straight to the screen that fixes it
+        // instead of asking them to parse the message.
+        const failure = providerFailureDetail(err);
+        if (failure) {
+          errorDetail = {
+            code: failure.code,
+            provider: failure.provider,
+            secret_key: failure.secretKey
+          };
+        }
         // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only
         log.error("Actor failed", {
           nodeId: this.node.id,
@@ -560,7 +574,7 @@ export class NodeActor {
     }
 
     if (errorMessage !== undefined) {
-      this._emitNodeStatus("error", undefined, errorMessage);
+      this._emitNodeStatus("error", undefined, errorMessage, errorDetail);
       return { outputs: {}, error: errorMessage };
     }
 
@@ -1945,7 +1959,8 @@ export class NodeActor {
   private _emitNodeStatus(
     status: string,
     result?: Record<string, unknown>,
-    error?: string
+    error?: string,
+    errorDetail?: NodeErrorDetail
   ): void {
     this._emitMessage({
       type: "node_update",
@@ -1955,6 +1970,7 @@ export class NodeActor {
       status,
       result: result ?? null,
       error: error ?? null,
+      error_detail: errorDetail ?? null,
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)

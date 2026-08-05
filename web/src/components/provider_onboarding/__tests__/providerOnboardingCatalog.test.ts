@@ -1,6 +1,7 @@
 import {
   ONBOARDING_PROVIDERS,
   CAPABILITY_LABELS,
+  isOnboardingProviderAvailable,
   providersForCapability
 } from "../providerOnboardingCatalog";
 import type { OnboardingCapability } from "../../../stores/ProviderOnboardingStore";
@@ -37,8 +38,25 @@ describe("providerOnboardingCatalog", () => {
     expect(tts.some((p) => p.id === "anthropic")).toBe(false);
   });
 
-  it("returns the full curated list when no capability is given", () => {
-    expect(providersForCapability()).toHaveLength(ONBOARDING_PROVIDERS.length);
+  it("returns every available provider when no capability is given", () => {
+    expect(providersForCapability()).toHaveLength(
+      ONBOARDING_PROVIDERS.filter(isOnboardingProviderAvailable).length
+    );
+  });
+
+  it("only offers a same-machine sign-in where it can complete", () => {
+    // jsdom serves the page from localhost, where the loopback callback works.
+    const claude = ONBOARDING_PROVIDERS.find((p) => p.id === "claude")!;
+    expect(claude.localOnly).toBe(true);
+    expect(isOnboardingProviderAvailable(claude)).toBe(true);
+    expect(providersForCapability("generate_message")).toContain(claude);
+  });
+
+  it("offers the Claude subscription as an OAuth-only entry", () => {
+    const claude = ONBOARDING_PROVIDERS.find((p) => p.id === "claude")!;
+    expect(claude.oauth).toBe("claude");
+    expect(claude.oauthOnly).toBe(true);
+    expect(claude.tagline).toMatch(/no api key/i);
   });
 
   it("orders recommended providers first", () => {
@@ -56,5 +74,6 @@ describe("providerOnboardingCatalog", () => {
   it("leads with one-click OAuth providers among the recommended set", () => {
     expect(ONBOARDING_PROVIDERS.some((p) => p.oauth === "openai")).toBe(true);
     expect(ONBOARDING_PROVIDERS.some((p) => p.oauth === "hf")).toBe(true);
+    expect(ONBOARDING_PROVIDERS.some((p) => p.oauth === "claude")).toBe(true);
   });
 });

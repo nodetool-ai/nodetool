@@ -79,3 +79,26 @@ export type SecretDeleteInput = z.infer<typeof secretDeleteInput>;
 export const secretDeleteOutput = z.object({
   message: z.string()
 });
+
+// ── secrets.validate ──────────────────────────────────────────────
+// Probes a provider credential against the provider's own listing endpoint.
+// `value` is the candidate the user just typed; omit it to check the key
+// already stored for this user.
+export const secretValidateInput = z.object({
+  key: z.string().min(1),
+  value: z.string().optional()
+});
+export type SecretValidateInput = z.infer<typeof secretValidateInput>;
+
+export const secretValidateOutput = z.object({
+  /**
+   * `valid` — the provider accepted it. `invalid` — the provider rejected it.
+   * `unverifiable` — nothing was learned (no probe for this provider, timeout,
+   * network failure, or a status that says nothing about the credential).
+   */
+  status: z.enum(["valid", "invalid", "unverifiable"]),
+  /** True only for `valid` — kept so callers can branch without the enum. */
+  valid: z.boolean(),
+  message: z.string()
+});
+export type SecretValidateOutput = z.infer<typeof secretValidateOutput>;

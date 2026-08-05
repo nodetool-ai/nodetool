@@ -4,6 +4,17 @@ import { createErrorMessage } from "../utils/errorHandling";
 import { SecretResponse } from "./ApiTypes";
 import { queryClient } from "../queryClient";
 
+/**
+ * What the server learned by probing a credential. `unverifiable` is its own
+ * answer on purpose — a provider NodeTool has no cheap check for, or one that
+ * did not answer, must not read as a working key.
+ */
+export interface SecretValidation {
+  status: "valid" | "invalid" | "unverifiable";
+  valid: boolean;
+  message: string;
+}
+
 interface SecretsStore {
   secrets: SecretResponse[];
   isLoading: boolean;
@@ -14,6 +25,11 @@ interface SecretsStore {
   fetchDecryptedSecret: (key: string) => Promise<string | null>;
   updateSecret: (key: string, value: string, description?: string) => Promise<void>;
   deleteSecret: (key: string) => Promise<void>;
+  /**
+   * Ask the server to probe a credential. Omit `value` to test the key already
+   * stored. Never rejects — a failed probe is a result.
+   */
+  validateSecret: (key: string, value?: string) => Promise<SecretValidation>;
 }
 
 // Provider availability is derived from configured secrets, and downstream
@@ -105,6 +121,22 @@ const useSecretsStore = create<SecretsStore>((set, get) => ({
         error: createErrorMessage(error, "Failed to delete secret").message
       });
       throw error;
+    }
+  },
+
+  validateSecret: async (key: string, value?: string) => {
+    try {
+      return await trpcClient.settings.secrets.validate.mutate({
+        key,
+        ...(value !== undefined ? { value } : {})
+      });
+    } catch {
+      // The server was unreachable, which says nothing about the key itself.
+      return {
+        status: "unverifiable" as const,
+        valid: false,
+        message: "Couldn't reach the server to check the key."
+      };
     }
   }
 }));

@@ -65,7 +65,7 @@ const SectionHeading = ({
 /**
  * Global onboarding dialog shown whenever a user is blocked by an unconfigured
  * AI provider. Introduces providers in plain language, leads with one-click
- * OAuth sign-in (OpenAI, Hugging Face), offers inline API-key entry for the
+ * OAuth sign-in (Claude, OpenAI, Hugging Face), offers inline API-key entry for the
  * rest, points at a free local option, and explains how costs work.
  */
 const ProviderOnboardingDialog: React.FC = () => {

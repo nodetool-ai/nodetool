@@ -1,4 +1,5 @@
 import type { OnboardingCapability } from "../../stores/ProviderOnboardingStore";
+import { isElectron, isLocalhost } from "../../lib/env";
 
 import openaiIcon from "../../icons/providers/openai.svg";
 import anthropicIcon from "../../icons/providers/anthropic.svg";
@@ -19,7 +20,19 @@ export interface OnboardingProvider {
   /** Single-color (black) glyph — needs inverting in dark mode to stay visible. */
   mono?: boolean;
   /** Supports one-click OAuth sign-in instead of pasting a key. */
-  oauth?: "openai" | "hf";
+  oauth?: "openai" | "hf" | "claude";
+  /**
+   * Authentication is OAuth-only — there is no API key to store, so the card
+   * offers sign-in and nothing else. `secretKey` is a display id, not a secret
+   * NodeTool persists.
+   */
+  oauthOnly?: boolean;
+  /**
+   * Connecting only works when the browser and the server share a machine —
+   * the flow finishes on the server's loopback listener and writes credentials
+   * to its filesystem. Hidden on hosted deployments, where it can't complete.
+   */
+  localOnly?: boolean;
   /** Short, plain-language description of what the provider is good for. */
   tagline: string;
   /** Capabilities this provider unlocks (matches the providers endpoint). */
@@ -61,6 +74,25 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     keyUrl: "https://platform.openai.com/api-keys",
     pricingUrl: "https://openai.com/api/pricing/",
     costHint: "Pay per token, ~$0.15–$5 per 1M tokens depending on the model.",
+    recommended: true
+  },
+  {
+    id: "claude",
+    name: "Claude",
+    // Display id, not a stored secret: the sign-in writes Claude Code's own
+    // credential file. Matches the key APIKeysTab uses for the same card.
+    secretKey: "CLAUDE_SUBSCRIPTION",
+    icon: anthropicIcon,
+    mono: true,
+    oauth: "claude",
+    oauthOnly: true,
+    localOnly: true,
+    tagline: "Use a Claude Pro or Max subscription — no API key.",
+    capabilities: ["generate_message"],
+    keyUrl: "https://claude.com/pricing",
+    pricingUrl: "https://claude.com/pricing",
+    costHint: "Included in your Claude subscription — no per-token API bill.",
+    freeTier: "No API key",
     recommended: true
   },
   {
@@ -193,15 +225,24 @@ export const CAPABILITY_LABELS: Record<OnboardingCapability, string> = {
 };
 
 /**
+ * Hosted deployments can't finish a same-machine sign-in — hide those entries
+ * there. Mirrors the same rule in the settings provider catalog.
+ */
+export const isOnboardingProviderAvailable = (
+  provider: OnboardingProvider
+): boolean => !provider.localOnly || isLocalhost || isElectron;
+
+/**
  * Providers for a blocking capability, recommended ones first. With no
  * capability we show the whole curated list (recommended first).
  */
 export const providersForCapability = (
   capability?: OnboardingCapability
 ): OnboardingProvider[] => {
+  const available = ONBOARDING_PROVIDERS.filter(isOnboardingProviderAvailable);
   const matches = capability
-    ? ONBOARDING_PROVIDERS.filter((p) => p.capabilities.includes(capability))
-    : ONBOARDING_PROVIDERS;
+    ? available.filter((p) => p.capabilities.includes(capability))
+    : available;
   return [...matches].sort(
     (a, b) => Number(b.recommended ?? false) - Number(a.recommended ?? false)
   );

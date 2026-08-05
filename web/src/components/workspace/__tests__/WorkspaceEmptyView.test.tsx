@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import WorkspaceEmptyView from "../WorkspaceEmptyView";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -81,11 +82,18 @@ jest.mock("../../chat/containers/ChatInputSection", () => ({
   )
 }));
 
+// The provider signal reads OAuth connection state through TanStack Query.
 const renderEmptyView = () =>
   render(
-    <ThemeProvider theme={mockTheme}>
-      <WorkspaceEmptyView />
-    </ThemeProvider>
+    <QueryClientProvider
+      client={
+        new QueryClient({ defaultOptions: { queries: { retry: false } } })
+      }
+    >
+      <ThemeProvider theme={mockTheme}>
+        <WorkspaceEmptyView />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 describe("WorkspaceEmptyView", () => {

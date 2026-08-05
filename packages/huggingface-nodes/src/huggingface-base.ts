@@ -27,7 +27,7 @@ export function getHfToken(secrets: Record<string, string> | undefined): string 
   if (!key) {
     throw new Error(
       "HF_TOKEN is not configured. Add a Hugging Face access token with " +
-        "'Inference Providers' permission in Settings → API Keys."
+        "'Inference Providers' permission in Settings → Models & Providers."
     );
   }
   return key;

@@ -381,7 +381,7 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
             <WarningBanner
               compact
               message={`No ${apiKeyName} configured`}
-              description={`Add it in Settings → API Keys before provisioning a ${
+              description={`Add it in Settings → Models & Providers before provisioning a ${
                 target === "runpod" ? "RunPod" : "Vast.ai"
               } worker — provisioning fails without it.`}
             />
