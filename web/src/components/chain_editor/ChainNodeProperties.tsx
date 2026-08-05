@@ -14,6 +14,7 @@ import {
   Box,
   BORDER_RADIUS,
   MOTION,
+  Z_INDEX,
   FlexColumn,
   FlexRow,
   Text,
@@ -301,7 +302,14 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
                 sx={{ position: "relative" }}
               >
                 {hasCompatibleSource && (
-                  <Box sx={{ position: "absolute", top: -6, right: -4, zIndex: 1 }}>
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: -6,
+                      right: -4,
+                      zIndex: Z_INDEX.raised,
+                    }}
+                  >
                     <ToolbarIconButton
                       size="small"
                       ariaLabel={`Connect ${prop.title ?? prop.name} to a previous step`}
