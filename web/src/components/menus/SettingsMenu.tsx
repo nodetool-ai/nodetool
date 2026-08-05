@@ -618,7 +618,7 @@ function SettingsPage() {
                           label="Show Welcome Screen"
                           checked={!!settings.showWelcomeOnStartup}
                           onChange={handleShowWelcomeChange}
-                          description="Show the welcome screen when starting the application."
+                          description="Start on the dashboard, with the welcome screen and templates, until getting started is finished. When off, the app opens straight into the workspace."
                         />
                       </SearchItem>
 

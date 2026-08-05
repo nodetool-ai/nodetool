@@ -15,7 +15,9 @@ import PortalSetupFlow from "./PortalSetupFlow";
 import DashboardHero from "./DashboardHero";
 import DashboardDownloads from "./DashboardDownloads";
 import GettingStartedChecklist from "./GettingStartedChecklist";
-import DashboardTemplates from "./DashboardTemplates";
+import DashboardTemplates, {
+  DASHBOARD_TEMPLATES_SECTION_ID
+} from "./DashboardTemplates";
 import DashboardTutorials from "./DashboardTutorials";
 import DashboardWorkflows from "./DashboardWorkflows";
 import DashboardFooter from "./DashboardFooter";
@@ -103,8 +105,15 @@ const Portal: React.FC = () => {
     navigate("/settings");
   }, [navigate]);
 
-  const handleGettingStarted = useCallback(() => {
-    navigate("/dashboard");
+  // Already on the dashboard, so "browse templates" is a scroll, not a route
+  // change. The templates section owns the anchor id.
+  const handleOpenTemplates = useCallback(() => {
+    const section = document.getElementById(DASHBOARD_TEMPLATES_SECTION_ID);
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    } else {
+      navigate("/examples");
+    }
   }, [navigate]);
 
   const handleSetupComplete = useCallback(
@@ -177,7 +186,7 @@ const Portal: React.FC = () => {
           <GettingStartedChecklist
             hasConfiguredProvider={hasConfiguredProvider}
             onConnectProvider={handleConnectProvider}
-            onOpenTemplates={handleGettingStarted}
+            onOpenTemplates={handleOpenTemplates}
             onCreateWorkflow={handleCreateNewWorkflow}
           />
           <DashboardTutorials />
@@ -190,7 +199,7 @@ const Portal: React.FC = () => {
           />
           <DashboardFooter
             workflowCount={sortedWorkflows.length}
-            onGettingStarted={handleGettingStarted}
+            onGettingStarted={handleOpenTemplates}
           />
         </main>
       </div>

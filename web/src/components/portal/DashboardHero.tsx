@@ -4,6 +4,9 @@ import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { memo } from "react";
 import { MOTION, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
+import useOnboardingStore, {
+  isOnboardingFinished
+} from "../../stores/OnboardingStore";
 import WelcomeFlow from "./WelcomeFlow";
 import { wrapStyles } from "./dashboardChrome";
 import type { WelcomeTrackId } from "./welcomeTracks";
@@ -87,12 +90,22 @@ interface DashboardHeroProps {
   onOpenSettings: () => void;
 }
 
+/**
+ * First-run hero: the "what do you want to make today?" track picker. It
+ * retires itself once the user finishes or dismisses onboarding, leaving the
+ * dashboard to open on its own content.
+ */
 const DashboardHero: React.FC<DashboardHeroProps> = ({
   onPickTrack,
   onOpenEmptyCanvas,
   onOpenSettings
 }) => {
   const theme = useTheme();
+  const onboardingFinished = useOnboardingStore(isOnboardingFinished);
+
+  if (onboardingFinished) {
+    return null;
+  }
 
   return (
     <section css={heroStyles(theme)}>

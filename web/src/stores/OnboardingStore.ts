@@ -15,6 +15,38 @@ export type OnboardingStepId =
   | "run-workflow"
   | "create-workflow";
 
+/** Every step the checklist tracks, in checklist order. */
+export const ONBOARDING_STEP_IDS: readonly OnboardingStepId[] = [
+  "open-template",
+  "run-workflow",
+  "create-workflow"
+];
+
+interface OnboardingProgress {
+  completedSteps: OnboardingStepId[];
+  dismissed: boolean;
+}
+
+/** True once the user dismissed the checklist or finished every step. */
+export const isOnboardingFinished = ({
+  completedSteps,
+  dismissed
+}: OnboardingProgress): boolean =>
+  dismissed || ONBOARDING_STEP_IDS.every((id) => completedSteps.includes(id));
+
+/**
+ * Where a fresh app launch should land. New users go to the dashboard, which
+ * carries the welcome hero, templates and tutorials; everyone else goes
+ * straight to the tabbed workspace.
+ */
+export const startRouteFor = (
+  progress: OnboardingProgress,
+  showWelcomeOnStartup: boolean
+): "/dashboard" | "/workspace" =>
+  showWelcomeOnStartup && !isOnboardingFinished(progress)
+    ? "/dashboard"
+    : "/workspace";
+
 interface OnboardingStore {
   completedSteps: OnboardingStepId[];
   dismissed: boolean;

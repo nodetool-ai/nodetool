@@ -37,7 +37,8 @@ everything on this page still works. See the
 
 1. Download NodeTool from [nodetool.ai](https://nodetool.ai).
 2. Run the installer.
-3. Open the app. There is no setup wizard.
+3. Open the app. There is no setup wizard — it opens on the Dashboard, with a
+   getting-started checklist you can dismiss.
 
 Step-by-step instructions per operating system are on the
 [Installation](installation.md) page.
@@ -73,7 +74,9 @@ place boxes and draw lines between them.
 
 You don't have to build one yet. NodeTool ships with **templates**: finished
 workflows you can open and run as they are. Find them on the Dashboard, the
-screen you land on when the app opens, or on the Examples page.
+screen you land on until you finish the checklist, or on the Examples page.
+After that the app opens straight into the workspace; **Settings → General →
+Show Welcome Screen** puts the Dashboard back on startup.
 
 ![Examples page](assets/screenshots/examples-page.png)
 

@@ -94,10 +94,30 @@ describe("WorkspaceEmptyView", () => {
     useOnboardingStore.setState({ completedSteps: [], dismissed: false });
   });
 
-  it("renders the composer with the empty-workspace hint", () => {
+  it("renders the composer with the agent-building hint", () => {
     renderEmptyView();
-    expect(screen.getByText(/No tabs open/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Describe a workflow in plain language/)
+    ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "send" })).toBeInTheDocument();
+  });
+
+  it("sends a sample prompt into a new chat tab", async () => {
+    const user = userEvent.setup();
+    renderEmptyView();
+
+    const prompt = "Build a workflow that turns a prompt into an image";
+    await user.click(screen.getByRole("button", { name: prompt }));
+
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: [{ type: "text", text: prompt }]
+        }),
+        "thread-1"
+      )
+    );
   });
 
   it("opens a chat tab for the new thread and sends the message to it", async () => {

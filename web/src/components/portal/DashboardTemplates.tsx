@@ -31,6 +31,9 @@ import {
 
 const MAX_VISIBLE = 8;
 
+/** Anchor the dashboard checklist scrolls to for its "open a template" step. */
+export const DASHBOARD_TEMPLATES_SECTION_ID = "dashboard-templates";
+
 const styles = (theme: Theme) =>
   css({
     paddingTop: getSpacingPx(SPACING.md),
@@ -187,7 +190,10 @@ const DashboardTemplates: React.FC<DashboardTemplatesProps> = ({
       : `hand-picked · ${Math.min(filtered.length, MAX_VISIBLE)}`;
 
   return (
-    <section css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}>
+    <section
+      id={DASHBOARD_TEMPLATES_SECTION_ID}
+      css={fullPage ? [styles(theme), fullPageStyles] : styles(theme)}
+    >
       <div css={wrapStyles(theme)}>
         <SectionHeader title="Start from a template" count={countLabel}>
           <DashboardSearchBox

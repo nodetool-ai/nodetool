@@ -33,6 +33,7 @@ import usePropertyValidationStore from "./PropertyValidationStore";
 import type { WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
+import useOnboardingStore from "./OnboardingStore";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED, NOTIFICATION_TIMEOUT_WORKFLOW_SUSPENDED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -1093,6 +1094,11 @@ export const handleUpdate = (
 
     switch (job.status) {
       case "completed": {
+        // A run that finished is what the "run a workflow" onboarding step
+        // asks for; a failed or cancelled one isn't. Preview runs don't count.
+        if (isRunnerJob && !silentJob) {
+          useOnboardingStore.getState().markStep("run-workflow");
+        }
         // No toast — completion is reflected in the Queue panel/overlay.
         // Don't clear this run's per-job state (progress/timings/edges): with
         // per-job keys those clears span the whole workflow and would wipe a

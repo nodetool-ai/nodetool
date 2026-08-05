@@ -4,6 +4,7 @@ import type { Connection } from "@xyflow/react";
 import { useWorkflowManagerStore } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";
 import useOnboardingStore from "../stores/OnboardingStore";
+import { useNotificationStore } from "../stores/NotificationStore";
 import {
   WELCOME_TRACKS,
   STRING_NODE_TYPE,
@@ -44,9 +45,23 @@ export const useCreateStarterWorkflow = (): ((trackId: WelcomeTrackId) => void) 
       const previewMeta = meta.getMetadata(PREVIEW_NODE_TYPE);
 
       // The model node comes from an optional node pack. If it (or the core
-      // String/Preview nodes) isn't registered in this deployment, open the
-      // fresh editor instead of wiring a graph with unknown nodes.
+      // String/Preview nodes) isn't registered in this deployment, say so —
+      // an empty editor with no explanation reads as a broken starter.
       if (!nodeStore || !stringMeta || !modelMeta || !previewMeta) {
+        const missingTypes: string[] = [];
+        if (!stringMeta) missingTypes.push(STRING_NODE_TYPE);
+        if (!modelMeta) missingTypes.push(track.modelType);
+        if (!previewMeta) missingTypes.push(PREVIEW_NODE_TYPE);
+
+        useNotificationStore.getState().addNotification({
+          type: "warning",
+          alert: true,
+          content: missingTypes.length
+            ? `The ${track.label} starter needs ${missingTypes.join(
+                ", "
+              )}, which isn't installed. Install the node pack from the Packages page, then try again. Opening an empty canvas.`
+            : `The ${track.label} starter could not be prepared. Opening an empty canvas.`
+        });
         goToEditor();
         return;
       }
