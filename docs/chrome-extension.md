@@ -67,6 +67,17 @@ The extension icon appears in your toolbar. Click it to open the popup, which sh
 
 > **Standalone package**: `chrome-extension/` is intentionally outside the root npm workspace, Turbo pipeline, and CI — it has its own `package.json` and is built on demand. `npm run build:packages` at the repo root does **not** build it.
 
+### Downloading a prebuilt copy
+
+A server that already has the extension built will hand it to you zipped, which saves cloning the repo on the machine running Chrome — the desktop app's install helper uses this.
+
+```bash
+curl "http://localhost:7777/api/extension/download" -o nodetool-chrome-extension.zip
+unzip nodetool-chrome-extension.zip -d nodetool-extension
+```
+
+Load `nodetool-extension/` with **Load unpacked**. A server with no build to hand out answers `404` with `{"detail": "Extension build not found"}` — build from source as above, or point the server at an existing build with `NODETOOL_EXTENSION_DIST`. See [API Reference](api-reference.md#downloading-the-chrome-extension).
+
 ### Development commands
 
 ```bash

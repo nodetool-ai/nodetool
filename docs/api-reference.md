@@ -37,6 +37,13 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
+| Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
+| Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
+| Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
+| Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
+| Providers | `/api/kie/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
+| Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
+| Extension | `/api/extension/download`         | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The built Chrome extension as a zip; `404` when the server has no build |
 | Workflow WS | `/ws`                           | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Workflow execution, chat, job control, live updates (MessagePack or JSON) |
 | Agent WS  | `/ws/agent`                       | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Agent runtime |
 | Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
@@ -283,6 +290,212 @@ The file path may be nested (`audio/loop.mp3`); `..` segments and backslashes
 are rejected. Responses carry
 `cache-control: public, max-age=31536000, immutable` and an ETag, since a
 package's assets change only when the package version does.
+
+### Provider Credits
+
+`GET /api/fal/credits` and `GET /api/kie/credits` report what the account behind
+the server's API key has left. The editor shows the number next to the provider;
+call them yourself to watch a budget from outside the UI.
+
+Both read the key the **server** holds — the stored `FAL_API_KEY` / `KIE_API_KEY`
+secret, falling back to the same environment variable — not anything the caller
+sends. With no key configured the answer is `204 No Content`.
+
+```bash
+curl "http://localhost:7777/api/fal/credits" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "credit_balance": { "amount": 42.5, "currency": "USD" },
+  "username": "your-fal-account"
+}
+```
+
+kie.ai bills in credits rather than dollars, so its `currency` is the literal
+string `"credits"`:
+
+```json
+{ "credit_balance": { "amount": 1200, "currency": "credits" } }
+```
+
+A provider that refuses the key still answers `200`, with the reason spelled out
+— the SPA treats a gateway status as a bug in NodeTool, so the failure is carried
+in the body instead:
+
+```json
+{
+  "unavailable": true,
+  "detail": "Invalid API key or malformed Authorization header",
+  "credit_balance": null
+}
+```
+
+Reading a fal.ai balance needs an **Admin** key (create one at
+<https://fal.ai/dashboard/keys>); an ordinary key gets `403` from fal.ai, which
+comes back as an `unavailable` body saying so.
+
+### Provider Pricing
+
+`GET /api/fal/pricing` returns the unit price of one or more fal.ai endpoints.
+Repeat `endpoint_id` for each; omitting it entirely is a `400`. Prices are cached
+per endpoint for an hour, and the route answers `204` when no `FAL_API_KEY` is
+configured.
+
+```bash
+curl "http://localhost:7777/api/fal/pricing?endpoint_id=fal-ai/flux/schnell&endpoint_id=fal-ai/flux/dev" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "byEndpointId": {
+    "fal-ai/flux/schnell": {
+      "unit_price": 0.003,
+      "billing_unit": "megapixel",
+      "currency": "USD"
+    }
+  },
+  "fetched_at": "2026-08-05T08:21:49.251Z"
+}
+```
+
+`GET /api/kie/pricing` is the same shape over kie.ai model ids (`?model_id=`,
+repeatable, `400` when absent). It needs no API key — kie.ai publishes its
+pricing pages openly — and returns a per-model summary:
+
+```json
+{
+  "byModelId": {
+    "flux-2/pro-text-to-image": {
+      "model_id": "flux-2/pro-text-to-image",
+      "unit_price": 9,
+      "billing_unit": "second",
+      "currency": "credits",
+      "usd_price": 0.045,
+      "tier_count": 4,
+      "pricing_url": "https://kie.ai/flux-2"
+    }
+  },
+  "fetched_at": "2026-08-05T08:19:54.783Z"
+}
+```
+
+Most kie.ai models are priced in tiers. `unit_price` is the cheapest of them,
+`tier_count` says how many there were, and `billing_unit` is `"varies"` when the
+tiers are not billed by the same unit.
+
+An id with no published price is absent from the map rather than an error, so a
+request for five models can come back with three.
+
+### Resolving a KIE Model's Schema
+
+kie.ai adds models faster than a node can be written for each, so `KieAINode`
+takes its shape from the model's documentation. `POST
+/api/kie/resolve-dynamic-schema` does that parse: give it the docs page as
+`model_info`, get back the node's dynamic properties, inputs, and outputs. The
+editor calls it when you paste docs into the node; call it directly to check what
+a page would produce before wiring anything.
+
+```bash
+curl -X POST "http://localhost:7777/api/kie/resolve-dynamic-schema" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"model_info": "| **Format** | `bytedance/seedance-2` |\n\n### input Object Parameters\n\n#### prompt\n- **Type**: `string`\n- **Required**: No\n- **Description**: The text prompt for the video.\n"}'
+```
+
+```json
+{
+  "model_id": "bytedance/seedance-2",
+  "dynamic_properties": { "prompt": "" },
+  "dynamic_inputs": {
+    "prompt": {
+      "type": "str",
+      "type_args": [],
+      "optional": true,
+      "description": "The text prompt for the video."
+    }
+  },
+  "dynamic_outputs": {
+    "video": { "type": "video", "type_args": [], "optional": false }
+  }
+}
+```
+
+The model id comes from the docs' **Format** row; parameters are read from the
+`#### <name>` headings under **input Object Parameters**, so an excerpt missing
+that section resolves to a node with no inputs.
+
+Docs with no recognizable model id are a `400`
+(`{"code": "INVALID_INPUT", "detail": "Could not find model ID in documentation"}`),
+as is a missing or empty `model_info`.
+
+### What a Published App Runs
+
+Publishing a mini app freezes a snapshot: the document as it stood, plus the
+graph of every workflow its operations call. `GET
+/api/applications/{id}/released-document` returns that snapshot, so a runtime can
+serve the published app without reading the draft the author is still editing.
+
+```bash
+curl "http://localhost:7777/api/applications/<application_id>/released-document" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "id": "548770b4c014436ba8549509575e9be6",
+  "applicationId": "76a381309a584a13b823b297cbd9b4b1",
+  "version": 1,
+  "document": {
+    "schemaVersion": 3,
+    "ui": { "root": { "props": {} }, "content": [], "zones": {} },
+    "operations": [],
+    "resources": [],
+    "variables": []
+  },
+  "capabilities": { "workflows": [], "resources": [] },
+  "released": true,
+  "createdAt": "2026-08-05T08:19:40.275Z",
+  "workflows": [
+    {
+      "workflowId": "wf_abc123",
+      "version": 4,
+      "graphHash": "9f2c…",
+      "graph": { "nodes": [], "edges": [] }
+    }
+  ]
+}
+```
+
+Each entry in `workflows` is the graph as the release froze it. `version` and
+`graph` are `null` on a snapshot published before releases pinned anything — a
+runtime that meets one falls back to the live workflow.
+
+An app with nothing published answers `200` with a body of `null`; an app you do
+not own is a `404`. Publishing itself is a tRPC call (`applications.publish`),
+not a REST route.
+
+### Downloading the Chrome Extension
+
+`GET /api/extension/download` zips up the browser extension build the server can
+find and hands it over, so you can load it unpacked without cloning the repo.
+
+```bash
+curl "http://localhost:7777/api/extension/download" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o nodetool-chrome-extension.zip
+```
+
+The response is `application/zip` with
+`content-disposition: attachment; filename="nodetool-chrome-extension.zip"`. The
+server looks for the build at `NODETOOL_EXTENSION_DIST` (set by the desktop app
+to its bundled copy), then walks up from its own directory and the working
+directory looking for `chrome-extension/dist/manifest.json`. When none of those
+holds a build, the answer is `404` with
+`{"detail": "Extension build not found"}` — build it first, per
+[Chrome Extension](chrome-extension.md#installing).
 
 ### Health Check
 
