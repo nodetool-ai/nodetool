@@ -250,6 +250,11 @@ sec(
   "Alibaba Cloud",
   "Alibaba Cloud Model Studio (DashScope) API key for accessing Qwen models through the OpenAI-compatible endpoint. Get yours at https://modelstudio.console.alibabacloud.com/"
 );
+s(
+  "DASHSCOPE_BASE_URL",
+  "Alibaba Cloud",
+  "Base URL for Alibaba Cloud Model Studio's OpenAI-compatible endpoint. Model Studio keys are region-scoped; set this to your region's endpoint (default: https://dashscope-intl.aliyuncs.com/compatible-mode/v1, the international/Singapore region)"
+);
 sec(
   "CEREBRAS_API_KEY",
   "Cerebras",

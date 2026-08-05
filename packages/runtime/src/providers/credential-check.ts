@@ -13,6 +13,8 @@
  * `unverifiable` — never `valid` — whenever the status doesn't decide it.
  */
 
+import { resolveAlibabaBaseURL } from "./alibaba-provider.js";
+
 /**
  * - `valid` — the provider accepted the credential.
  * - `invalid` — the provider rejected it (401/403). Fix the key.
@@ -87,8 +89,7 @@ const PROBES: Record<string, CredentialProbe> = {
   },
   DASHSCOPE_API_KEY: {
     label: "Alibaba Cloud",
-    url: () =>
-      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1/models",
+    url: () => `${resolveAlibabaBaseURL()}/models`,
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
   CEREBRAS_API_KEY: {

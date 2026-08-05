@@ -286,7 +286,7 @@ registerBuiltinProvider(PROVIDER_IDS.MESHY, MeshyProvider, { MESHY_API_KEY: "" }
 registerBuiltinProvider(PROVIDER_IDS.RODIN, RodinProvider, { RODIN_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.OPENROUTER, OpenRouterProvider, { OPENROUTER_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.TOGETHER, TogetherProvider, { TOGETHER_API_KEY: "" });
-registerBuiltinProvider(PROVIDER_IDS.ALIBABA, AlibabaProvider, { DASHSCOPE_API_KEY: "" });
+registerBuiltinProvider(PROVIDER_IDS.ALIBABA, AlibabaProvider, { DASHSCOPE_API_KEY: "", DASHSCOPE_BASE_URL: "" });
 registerBuiltinProvider(PROVIDER_IDS.CEREBRAS, CerebrasProvider, { CEREBRAS_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.EVOLINK, EvolinkProvider, { EVOLINK_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.GMI, GMIProvider, { GMI_API_KEY: "" });

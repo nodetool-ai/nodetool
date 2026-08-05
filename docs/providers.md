@@ -95,7 +95,7 @@ Cerebras runs chat models on its high-throughput inference hardware. Text only. 
 
 ## Alibaba Cloud
 
-Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Text only. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`; models are fetched live from its `/models` endpoint. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Alibaba Cloud Model Studio serves the Qwen chat models — qwen3-max, qwen-plus, qwen-flash, qwen-turbo, and the qwen3-vl vision line — with streaming and tool calling. Text only. Cloud only, keyed by `DASHSCOPE_API_KEY`, over the DashScope OpenAI-compatible endpoint (default `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`, the international/Singapore region); models are fetched live from its `/models` endpoint. Model Studio keys are region-scoped — set `DASHSCOPE_BASE_URL` to your region's `/compatible-mode/v1` endpoint when the key was created outside Singapore. Tool calling is gated per model family: Qwen-Math, QVQ, OCR, translation, and audio models are outside Alibaba's function-calling list and are not sent tools. Get a key at [Model Studio](https://modelstudio.console.alibabacloud.com/). See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## GMI Cloud
 

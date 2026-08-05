@@ -4,7 +4,8 @@ import type { Message } from "../../src/providers/types.js";
 import {
   chatJsonResponse,
   chatSSEResponse,
-  mockChatFetch
+  mockChatFetch,
+  requestBodyOf
 } from "./helpers/compat-fetch.js";
 
 describe("AlibabaProvider", () => {
@@ -36,12 +37,73 @@ describe("AlibabaProvider", () => {
     });
   });
 
-  it("has tool support for all models", async () => {
+  it("has tool support for function-calling model families", async () => {
     const provider = new AlibabaProvider(
       { DASHSCOPE_API_KEY: "k" },
       { client: {} as any }
     );
     expect(await provider.hasToolSupport("qwen3-max")).toBe(true);
+    expect(await provider.hasToolSupport("qwen-plus")).toBe(true);
+    expect(await provider.hasToolSupport("qwen-flash")).toBe(true);
+  });
+
+  it("denies tool support for families outside the function-calling list", async () => {
+    const provider = new AlibabaProvider(
+      { DASHSCOPE_API_KEY: "k" },
+      { client: {} as any }
+    );
+    expect(await provider.hasToolSupport("qwen-math-plus")).toBe(false);
+    expect(await provider.hasToolSupport("qvq-max")).toBe(false);
+    expect(await provider.hasToolSupport("qwen-vl-ocr")).toBe(false);
+    expect(await provider.hasToolSupport("qwen-mt-turbo")).toBe(false);
+    expect(await provider.hasToolSupport("QVQ-72B-Preview")).toBe(false);
+  });
+
+  it("honors DASHSCOPE_BASE_URL for region-specific endpoints", async () => {
+    const mockFetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: [{ id: "qwen-plus" }] })
+    });
+    const provider = new AlibabaProvider(
+      {
+        DASHSCOPE_API_KEY: "k",
+        DASHSCOPE_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1/"
+      },
+      { client: {} as any, fetchFn: mockFetch as any }
+    );
+
+    await provider.getAvailableLanguageModels();
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://dashscope.aliyuncs.com/compatible-mode/v1/models",
+      expect.anything()
+    );
+    expect(provider.getContainerEnv()).toEqual({
+      DASHSCOPE_API_KEY: "k",
+      DASHSCOPE_BASE_URL: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    });
+  });
+
+  it("sends max_tokens instead of max_completion_tokens", async () => {
+    const fetchMock = mockChatFetch(
+      chatJsonResponse({
+        choices: [{ message: { content: "ok", tool_calls: null } }]
+      })
+    );
+
+    const provider = new AlibabaProvider(
+      { DASHSCOPE_API_KEY: "k" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    await provider.generateMessage({
+      messages: [{ role: "user", content: "hi" }] as Message[],
+      model: "qwen-plus",
+      maxTokens: 512
+    });
+
+    const body = requestBodyOf(fetchMock);
+    expect(body.max_tokens).toBe(512);
+    expect(body).not.toHaveProperty("max_completion_tokens");
   });
 
   it("fetches available language models", async () => {
