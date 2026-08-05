@@ -271,6 +271,7 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     suspension_metadata_json: "text",
     execution_strategy: "text",
     execution_id: "text",
+    runner_instance: "text",
     metadata_json: "text",
     created_at: "text",
     updated_at: "text"
@@ -648,6 +649,7 @@ function getCreateSchemaSql(): string {
       "suspension_metadata_json" text,
       "execution_strategy" text,
       "execution_id" text,
+      "runner_instance" text,
       "metadata_json" text,
       "created_at" text NOT NULL,
       "updated_at" text NOT NULL

@@ -2497,6 +2497,29 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_tsv_timeline");
       await db.execute("DROP TABLE IF EXISTS timeline_sequence_versions");
     }
+  },
+
+  // ── Stamp the machine executing a run onto its job row ─────────────
+  // With more than one server instance behind the Fly proxy, a reconnecting
+  // client lands on a random machine while the run lives on exactly one. The
+  // row records which, so the upgrade can be replayed to the owner and a
+  // cancel can be addressed at it. Null everywhere on a single-machine
+  // deployment, where the column is inert.
+  {
+    version: "20260805_000000",
+    name: "add_runner_instance_to_jobs",
+    createsTables: [],
+    modifiesTables: ["nodetool_jobs"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_jobs"))) return;
+      if (await db.columnExists("nodetool_jobs", "runner_instance")) return;
+      await db.execute(
+        "ALTER TABLE nodetool_jobs ADD COLUMN runner_instance TEXT"
+      );
+    },
+    async down() {
+      // no-op: dropping columns is unsafe across dialects and versions
+    }
   }
 ];
 

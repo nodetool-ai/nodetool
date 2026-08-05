@@ -47,6 +47,7 @@ const mockGlobalWebSocketManager = {
   isConnected: true,
   isConnecting: false,
   isConnectionOpen: jest.fn().mockReturnValue(true),
+  setResumeJobIdProvider: jest.fn(),
   getWebSocket: jest.fn().mockReturnValue(null),
   getConnectionState: jest.fn().mockReturnValue({ isConnected: true, isConnecting: false }),
   addListener: jest.fn(),
