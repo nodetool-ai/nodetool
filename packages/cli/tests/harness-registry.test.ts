@@ -95,6 +95,16 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("maps a sketch version-history change onto the sketch surface", () => {
+    const plan = planGate([
+      "packages/models/src/image-document-version.ts",
+      "packages/cli/src/commands/sketch-versions.ts"
+    ]);
+    expect(plan.surfaces.map((s) => s.id)).toContain("sketch");
+    expect(plan.manual.map((m) => m.harnessId)).toContain("sketch-versions");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("reports files no surface claims", () => {
     const plan = planGate(["README.md"]);
     expect(plan.unmappedFiles).toEqual(["README.md"]);

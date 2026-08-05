@@ -2520,6 +2520,57 @@ export const migrations: MigrationDef[] = [
     async down() {
       // no-op: dropping columns is unsafe across dialects and versions
     }
+  },
+
+  // ── Sketch version history ─────────────────────────────────────────
+  // Snapshots of an image document: the document plus the canvas settings it
+  // was written against, so restoring one restores what the editor showed.
+  // `save_type` separates manual saves from autosaves and the snapshot taken
+  // before a restore — only autosaves are pruned. The unique index on
+  // (image_document_id, version) is what keeps two concurrent writers from
+  // minting the same version number; the foreign key keeps a deleted
+  // document's history from outliving it.
+  {
+    version: "20260805_000001",
+    name: "create_image_document_versions",
+    createsTables: ["image_document_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS image_document_versions (
+          id TEXT PRIMARY KEY NOT NULL,
+          image_document_id TEXT NOT NULL REFERENCES image_documents (id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL,
+          name TEXT,
+          version INTEGER NOT NULL DEFAULT 1,
+          save_type TEXT NOT NULL DEFAULT 'manual',
+          width INTEGER NOT NULL DEFAULT 1024,
+          height INTEGER NOT NULL DEFAULT 1024,
+          background_color TEXT NOT NULL DEFAULT '#ffffff',
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_idv_document ON image_document_versions (image_document_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_idv_user ON image_document_versions (user_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_idv_document_save_type_created ON image_document_versions (image_document_id, save_type, created_at)"
+      );
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_idv_document_version ON image_document_versions (image_document_id, version)"
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_idv_document_version");
+      await db.execute("DROP INDEX IF EXISTS idx_idv_document_save_type_created");
+      await db.execute("DROP INDEX IF EXISTS idx_idv_user");
+      await db.execute("DROP INDEX IF EXISTS idx_idv_document");
+      await db.execute("DROP TABLE IF EXISTS image_document_versions");
+    }
   }
 ];
 

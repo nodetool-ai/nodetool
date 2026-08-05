@@ -7,10 +7,17 @@
  *   create      (mutation) — ImageDocumentResponse
  *   update      (mutation) — ImageDocumentResponse
  *   delete      (mutation) — { ok: true }
- *   versions:
+ *   versions:                — per-layer generation takes
  *     list        (query)    — LayerVersion[]
  *     append      (mutation) — LayerVersion
  *     setFavorite (mutation) — LayerVersion
+ *     delete      (mutation) — { ok: true }
+ *   documentVersions:        — whole-document snapshot history
+ *     list        (query)    — SketchVersionListItem[]
+ *     get         (query)    — SketchVersionResponse
+ *     create      (mutation) — SketchVersionListItem (manual snapshot)
+ *     restore     (mutation) — ImageDocumentResponse (snapshots the
+ *                              pre-restore state first, so it is undoable)
  *     delete      (mutation) — { ok: true }
  *   layers:
  *     create      (mutation) — LayerWorkflowBinding
@@ -21,10 +28,14 @@ import { z } from "zod";
 import {
   ImageDocument,
   ImageDocumentConflictError,
+  ImageDocumentVersion,
   Workflow,
   createTimeOrderedUuid
 } from "@nodetool-ai/models";
-import type { ImageDocumentData } from "@nodetool-ai/models";
+import type {
+  ImageDocumentData,
+  ImageDocumentSaveType
+} from "@nodetool-ai/models";
 import type { LayerWorkflowBinding } from "@nodetool-ai/image-editor";
 import { computeDependencyHash } from "@nodetool-ai/image-editor/dependencyHash.js";
 import {
@@ -32,10 +43,17 @@ import {
   createImageDocumentInput,
   createLayerInput,
   createLayerResponse,
+  createSketchVersionInput,
+  deleteSketchVersionInput,
+  getSketchVersionInput,
   imageDocumentListItem,
   imageDocumentResponse,
   layerVersion,
-  patchImageDocumentInput
+  listSketchVersionsInput,
+  patchImageDocumentInput,
+  restoreSketchVersionInput,
+  sketchVersionListItem,
+  sketchVersionResponse
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -90,6 +108,65 @@ function toListItem(doc: ImageDocument) {
     name: doc.name,
     updatedAt: doc.updated_at
   };
+}
+
+/**
+ * A version row carries its document as JSON text on SQLite and as an object on
+ * Postgres, so parse only when it is a string. A row that is neither is
+ * corrupt, and reporting that beats handing the client a string it will treat
+ * as a document.
+ */
+function parseVersionDocument(raw: unknown): unknown {
+  if (typeof raw !== "string") return raw;
+  try {
+    return JSON.parse(raw) as unknown;
+  } catch {
+    throwApiError(
+      ApiErrorCode.INTERNAL_ERROR,
+      "Stored version document is not valid JSON"
+    );
+  }
+}
+
+function toDocumentVersionListItem(
+  version: InstanceType<typeof ImageDocumentVersion>
+) {
+  return {
+    id: version.id,
+    version: version.version,
+    name: version.name ?? null,
+    saveType: version.save_type as ImageDocumentSaveType,
+    width: version.width,
+    height: version.height,
+    backgroundColor: version.background_color,
+    createdAt: version.created_at
+  };
+}
+
+// ── autosave snapshot cadence ───────────────────────────────────────────────
+
+/** A document write only snapshots when the last autosave is this old. */
+const AUTOSAVE_VERSION_INTERVAL_MS = 5 * 60 * 1000;
+/** Autosave snapshots kept per sketch; older ones are pruned. */
+const MAX_AUTOSAVE_VERSIONS = 20;
+
+const lastAutosaveVersionTime = new Map<string, number>();
+
+// Entries older than the interval can never suppress a snapshot again, so drop
+// them. Without this the map grows one permanent entry per sketch ever saved
+// (including deleted ones) for the lifetime of the process.
+function recordAutosaveVersion(id: string, now: number): void {
+  for (const [key, ts] of lastAutosaveVersionTime) {
+    if (now - ts >= AUTOSAVE_VERSION_INTERVAL_MS) {
+      lastAutosaveVersionTime.delete(key);
+    }
+  }
+  lastAutosaveVersionTime.set(id, now);
+}
+
+/** Test hook: forget the autosave cadence so a suite can drive it from zero. */
+export function __resetSketchAutosaveVersionState(): void {
+  lastAutosaveVersionTime.clear();
 }
 
 async function loadOwned(
@@ -317,6 +394,29 @@ export const sketchRouter = router({
           "Document was modified since last read (optimistic concurrency conflict)"
         );
       }
+
+      if (input.document !== undefined) {
+        // Best-effort history: a snapshot that fails must never fail the save
+        // the user actually asked for (and the versions table may not exist on
+        // an older database).
+        try {
+          const now = Date.now();
+          const last = lastAutosaveVersionTime.get(input.id);
+          if (last === undefined || now - last >= AUTOSAVE_VERSION_INTERVAL_MS) {
+            recordAutosaveVersion(input.id, now);
+            await ImageDocumentVersion.snapshot(updated, {
+              saveType: "autosave"
+            });
+            await ImageDocumentVersion.pruneAutosaves(
+              input.id,
+              MAX_AUTOSAVE_VERSIONS
+            );
+          }
+        } catch {
+          // non-fatal — the document write already succeeded
+        }
+      }
+
       return updated.toResponse();
     }),
 
@@ -326,6 +426,10 @@ export const sketchRouter = router({
     .mutation(async ({ ctx, input }) => {
       const doc = await loadOwned(ctx.userId, input.id);
       await doc.delete();
+      // Belt-and-braces with the FK cascade: version rows outliving their
+      // document would be unreachable garbage.
+      await ImageDocumentVersion.deleteForDocument(input.id);
+      lastAutosaveVersionTime.delete(input.id);
       return { ok: true as const };
     }),
 
@@ -425,6 +529,106 @@ export const sketchRouter = router({
 
           return { ok: true as const };
         });
+      })
+  }),
+
+  documentVersions: router({
+    list: protectedProcedure
+      .input(listSketchVersionsInput)
+      .output(z.array(sketchVersionListItem))
+      .query(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const versions = await ImageDocumentVersion.listForDocument(input.id, {
+          limit: input.limit,
+          saveType: input.saveType
+        });
+        return versions.map(toDocumentVersionListItem);
+      }),
+
+    get: protectedProcedure
+      .input(getSketchVersionInput)
+      .output(sketchVersionResponse)
+      .query(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const version = await ImageDocumentVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Sketch version not found");
+        }
+        return {
+          ...toDocumentVersionListItem(version),
+          document: parseVersionDocument(version.document)
+        };
+      }),
+
+    create: protectedProcedure
+      .input(createSketchVersionInput)
+      .output(sketchVersionListItem)
+      .mutation(async ({ ctx, input }) => {
+        const doc = await loadOwned(ctx.userId, input.id);
+        const version = await ImageDocumentVersion.snapshot(doc, {
+          saveType: "manual",
+          name: input.name ?? null
+        });
+        return toDocumentVersionListItem(version);
+      }),
+
+    restore: protectedProcedure
+      .input(restoreSketchVersionInput)
+      .output(imageDocumentResponse)
+      .mutation(async ({ ctx, input }) => {
+        const doc = await loadOwned(ctx.userId, input.id);
+        const version = await ImageDocumentVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Sketch version not found");
+        }
+
+        // Snapshot what is about to be overwritten first, so a restore is
+        // itself undoable.
+        await ImageDocumentVersion.snapshot(doc, {
+          saveType: "restore",
+          name: `Before restore to v${input.version}`
+        });
+
+        const document = parseVersionDocument(version.document);
+        const updated = await ImageDocument.updateFieldsIfUnchanged(
+          input.id,
+          doc.updated_at,
+          {
+            document: JSON.stringify(document),
+            width: version.width,
+            height: version.height,
+            background_color: version.background_color
+          }
+        );
+        if (!updated) {
+          throwApiError(
+            ApiErrorCode.ALREADY_EXISTS,
+            "Document was modified since last read (optimistic concurrency conflict)"
+          );
+        }
+        return updated.toResponse();
+      }),
+
+    delete: protectedProcedure
+      .input(deleteSketchVersionInput)
+      .output(okOutput)
+      .mutation(async ({ ctx, input }) => {
+        await loadOwned(ctx.userId, input.id);
+        const version = await ImageDocumentVersion.findByVersion(
+          input.id,
+          input.version
+        );
+        if (!version) {
+          throwApiError(ApiErrorCode.NOT_FOUND, "Sketch version not found");
+        }
+        await version.delete();
+        return { ok: true as const };
       })
   }),
 

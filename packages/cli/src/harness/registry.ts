@@ -184,6 +184,15 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "CLAUDE.md § nodetool timeline validate / debug"
   },
   {
+    id: "sketch-versions",
+    title: "Sketch version history (snapshot, restore, check the restore)",
+    command:
+      "nodetool sketch versions list|show|create|restore|delete <id> [<version>]",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "CLAUDE.md § nodetool sketch versions"
+  },
+  {
     id: "eval",
     title:
       "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, script-planner, tool-loop×8, app-build)",
@@ -285,6 +294,17 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/src/commands/timeline-versions.ts",
       "packages/models/src/timeline-sequence-version.ts",
       "packages/websocket/src/trpc/routers/timeline.ts"
+    ]
+  },
+  {
+    id: "sketch",
+    title: "Sketches (image documents, version history)",
+    harnesses: ["sketch-versions", "eval"],
+    paths: [
+      "packages/cli/src/commands/sketch-versions.ts",
+      "packages/cli/src/commands/sketch.ts",
+      "packages/models/src/image-document-version.ts",
+      "packages/websocket/src/trpc/routers/sketch.ts"
     ]
   },
   {

@@ -533,6 +533,19 @@ const TABLE_COLUMNS: Record<string, Record<string, string>> = {
     created_at: "text",
     updated_at: "text"
   },
+  image_document_versions: {
+    id: "text",
+    image_document_id: "text",
+    user_id: "text",
+    name: "text",
+    version: "integer NOT NULL DEFAULT 1",
+    save_type: "text NOT NULL DEFAULT 'manual'",
+    width: "integer NOT NULL DEFAULT 1024",
+    height: "integer NOT NULL DEFAULT 1024",
+    background_color: "text NOT NULL DEFAULT '#ffffff'",
+    document: "text",
+    created_at: "text"
+  },
   nodetool_workflow_collaborators: {
     id: "text",
     workflow_id: "text",
@@ -948,6 +961,25 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_image_document_user" ON "image_documents" ("user_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_project" ON "image_documents" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_image_document_updated" ON "image_documents" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "image_document_versions" (
+      "id" text PRIMARY KEY NOT NULL,
+      "image_document_id" text NOT NULL REFERENCES "image_documents" ("id") ON DELETE CASCADE,
+      "user_id" text NOT NULL,
+      "name" text,
+      "version" integer NOT NULL DEFAULT 1,
+      "save_type" text NOT NULL DEFAULT 'manual',
+      "width" integer NOT NULL DEFAULT 1024,
+      "height" integer NOT NULL DEFAULT 1024,
+      "background_color" text NOT NULL DEFAULT '#ffffff',
+      "document" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_idv_document" ON "image_document_versions" ("image_document_id");
+    CREATE INDEX IF NOT EXISTS "idx_idv_user" ON "image_document_versions" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_idv_document_save_type_created" ON "image_document_versions" ("image_document_id", "save_type", "created_at");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_idv_document_version" ON "image_document_versions" ("image_document_id", "version");
+
     CREATE TABLE IF NOT EXISTS "worker_profiles" (
       "id" text PRIMARY KEY NOT NULL,
       "name" text NOT NULL,

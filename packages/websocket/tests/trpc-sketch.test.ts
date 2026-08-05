@@ -78,6 +78,17 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       return doc;
     }
   }
+  // Version history is exercised in trpc-sketch-versions.test.ts; here it only
+  // needs to stay off the database. Plain statics so `vi.resetAllMocks()`
+  // doesn't strip their bodies.
+  class StubImageDocumentVersion {
+    static async snapshot() {
+      return null;
+    }
+    static async pruneAutosaves() {}
+    static async deleteForDocument() {}
+  }
+
   return {
     ...actual,
     Workflow: {
@@ -85,6 +96,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       find: vi.fn()
     },
     ImageDocument: StubImageDocument,
+    ImageDocumentVersion: StubImageDocumentVersion,
     createTimeOrderedUuid: () => "test-uuid"
   };
 });

@@ -18,6 +18,7 @@ export { appSettings } from "./settings.js";
 export { timelineSequences } from "./timeline-sequences.js";
 export { timelineSequenceVersions } from "./timeline-sequence-versions.js";
 export { imageDocuments } from "./image-documents.js";
+export { imageDocumentVersions } from "./image-document-versions.js";
 export { storyboards } from "./storyboards.js";
 export { applications, applicationVersions } from "./applications.js";
 export {
