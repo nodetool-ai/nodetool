@@ -1970,7 +1970,10 @@ export class NodeActor {
       status,
       result: result ?? null,
       error: error ?? null,
-      error_detail: errorDetail ?? null,
+      // Omitted (not null) when absent: every consumer treats a missing
+      // detail as "no structured cause", and the reliability goldens pin
+      // the node_update wire shape for ordinary runs.
+      ...(errorDetail ? { error_detail: errorDetail } : {}),
       properties:
         this.node.properties && typeof this.node.properties === "object"
           ? (this.node.properties as Record<string, unknown>)
