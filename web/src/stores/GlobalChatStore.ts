@@ -748,8 +748,26 @@ const useGlobalChatStore = create<GlobalChatState>()(
           globalWebSocketManager.subscribeEvent("open", resumeInFlightThreads)
         );
 
+        // Discover turns this client knows nothing about. A page reload
+        // wipes threadRuntime and the replay cursors, so the loop above
+        // finds nothing even though the server kept the agent turn running.
+        // `list_chat_turns` answers with one `chat_turn_active` frame per
+        // running turn; the protocol handler reattaches each thread.
+        const discoverRunningTurns = () => {
+          void globalWebSocketManager
+            .send({ command: "list_chat_turns", data: {} })
+            .catch((e) => console.error("Failed to send list_chat_turns:", e));
+        };
+        eventUnsubscribes.push(
+          globalWebSocketManager.subscribeEvent("open", discoverRunningTurns)
+        );
+
         if (globalWebSocketManager.isConnectionOpen()) {
           sendManifest();
+          // The initial connection's "open" fired before these subscribers
+          // existed — run discovery for it now that the per-thread handlers
+          // are registered.
+          discoverRunningTurns();
         }
 
         eventUnsubscribes.push(
@@ -1377,9 +1395,21 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
             set((state) => {
               const existingMessages = state.messageCache[threadId] || [];
+              // A full refresh replaces the cache with persisted history —
+              // but the trailing `local-stream-*` placeholder holds streamed
+              // text of a reply that is not persisted yet (it exists while a
+              // resume replay and this REST load race), so carry it over
+              // instead of wiping it.
               const updatedMessages = cursor
                 ? [...existingMessages, ...messages]
-                : messages;
+                : [
+                    ...messages,
+                    ...existingMessages.filter(
+                      (m) =>
+                        typeof m.id === "string" &&
+                        m.id.startsWith("local-stream-")
+                    )
+                  ];
 
               return {
                 messageCache: {
