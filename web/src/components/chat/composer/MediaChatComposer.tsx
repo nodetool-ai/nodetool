@@ -84,6 +84,7 @@ import { usePromptHistory } from "../hooks/usePromptHistory";
 import { useMessageQueue } from "../../../hooks/useMessageQueue";
 import { createMediaComposerStyles } from "./MediaChatComposer.styles";
 import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
+import { useChatDraftStore } from "../../../stores/ChatDraftStore";
 import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
@@ -130,6 +131,10 @@ export interface MediaChatComposerProps {
   /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
    *  app builder / video / 3d editor agent panels which are hardcoded to chat. */
   hideModePicker?: boolean;
+  /** Thread this composer writes to. A surface that opened the thread with a
+   *  prompt in mind (the dashboard quick starters) seeds it through
+   *  ChatDraftStore; the seed lands in the textarea once, unsent. */
+  threadId?: string | null;
 }
 
 /**
@@ -165,7 +170,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   trailingActions,
   leadingActions,
   placeholder: placeholderOverride,
-  hideModePicker = false
+  hideModePicker = false,
+  threadId
 }) => {
   const theme = useTheme();
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
@@ -326,6 +332,19 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       textareaRef.current?.focus();
     }
   }, [autoFocus, autoFocusEnabled]);
+
+  // A seeded prompt is consumed once, and only into an empty box — the user's
+  // own half-written text always wins.
+  const takeDraft = useChatDraftStore((s) => s.takeDraft);
+  useEffect(() => {
+    if (!threadId) {
+      return;
+    }
+    const draft = takeDraft(threadId);
+    if (draft) {
+      setPrompt((current) => (current ? current : draft));
+    }
+  }, [threadId, takeDraft]);
 
   // Close any open model / option dialogs whenever the mode changes. The
   // image- and video-model dialogs are intentionally shared between the

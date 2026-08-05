@@ -198,9 +198,9 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
       </div>
       <h1 className="welcome-heading">What do you want to make today?</h1>
       <p className="welcome-sub">
-        Pick one. We&apos;ll drop a starter workflow onto the canvas so you can run
-        it and make it your own. You can always change your mind, or skip and
-        explore.
+        Pick one. We&apos;ll open a chat in that mode with an example prompt ready
+        to go — press send, or write your own. You can always change your mind,
+        or skip and explore.
       </p>
 
       <div className="welcome-grid">
@@ -226,7 +226,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
               </div>
               <div className="welcome-card-title">{track.label}</div>
               <div className="welcome-card-blurb">{track.blurb}</div>
-              <span className="welcome-card-node">{track.nodeLabel}</span>
+              <span className="welcome-card-node">{track.modeLabel}</span>
             </button>
           );
         })}
@@ -239,7 +239,7 @@ const WelcomeFlow: React.FC<WelcomeFlowProps> = ({
           </button>
           <span className="welcome-footer-divider" />
           <span className="welcome-footer-hint">
-            Each pick is a real, editable workflow.
+            Each pick opens a chat with the prompt already written.
           </span>
         </div>
       )}
