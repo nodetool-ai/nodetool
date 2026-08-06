@@ -214,7 +214,7 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "eval",
     title:
-      "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, script-planner, tool-loop×8, app-build)",
+      "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, script-planner, subtask, codeact, tool-loop×8, app-build)",
     command: "nodetool eval <suite> -p <provider> -m <model> [--min-success N]",
     kind: "eval",
     capabilities: ["json", "gated"],

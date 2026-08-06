@@ -26,10 +26,12 @@ import {
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
-import { StepExecutor } from "./step-executor.js";
+import { StepExecutor, type StepExecutorOptions } from "./step-executor.js";
+import { CodeActExecutor } from "./codeact/codeact-executor.js";
+import { resolveExecutionMode } from "./codeact/execution-mode.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { Step, Task } from "./types.js";
+import type { AgentExecutionMode, Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
 
 const DEFAULT_MAX_STEPS = 50;
@@ -65,6 +67,8 @@ export interface TaskExecutorOptions {
   upstreamMemoryKeys?: string[];
   /** External cancellation, forwarded to every step executor. */
   signal?: AbortSignal;
+  /** Step action space — JSON tool calls (default) or CodeAct. */
+  executionMode?: AgentExecutionMode;
 }
 
 export class TaskExecutor {
@@ -83,6 +87,7 @@ export class TaskExecutor {
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
   private signal?: AbortSignal;
+  private executionMode: AgentExecutionMode;
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -103,6 +108,19 @@ export class TaskExecutor {
       opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.signal = opts.signal;
+    this.executionMode = resolveExecutionMode(opts.executionMode);
+  }
+
+  /**
+   * The two executors share the option shape and message contract; the mode
+   * picks the action space (docs/codeact-design.md).
+   */
+  private createStepExecutor(
+    opts: StepExecutorOptions
+  ): StepExecutor | CodeActExecutor {
+    return this.executionMode === "codeact"
+      ? new CodeActExecutor(opts)
+      : new StepExecutor(opts);
   }
 
   /**
@@ -165,7 +183,7 @@ export class TaskExecutor {
       }
 
       const stepGenerators = normalSteps.map((step) => {
-        const executor = new StepExecutor({
+        const executor = this.createStepExecutor({
           task: this.task,
           step,
           context: this.context,
@@ -414,7 +432,7 @@ export class TaskExecutor {
     });
 
     const generators = ephemeralSteps.map((ephStep) => {
-      const executor = new StepExecutor({
+      const executor = this.createStepExecutor({
         task: this.task,
         step: ephStep,
         context: this.context,

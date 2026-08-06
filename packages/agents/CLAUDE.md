@@ -459,6 +459,30 @@ downstream may treat a failure as a satisfied dependency: `TaskExecutor` blocks
 dependents and marks them failed with the blocking step named, and a plan whose
 every task failed throws instead of compiling a deliverable out of nothing.
 
+## CodeAct Execution Mode (`src/codeact/`)
+
+An alternative action space for the step loop (`executionMode: "codeact"` on
+`AgentOptions`, or the `NODETOOL_AGENT_EXECUTION_MODE` setting; default stays
+`"tools"`). Instead of one JSON tool call per
+action, each step acts by writing JavaScript that runs in the QuickJS sandbox
+with the toolbelt exposed as `tools.<name>()` functions, a `state` object that
+persists across actions, and `finish(result)` for host-validated completion.
+Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
+
+- `CodeActExecutor` mirrors `StepExecutor`'s message contract, memory writes,
+  and failure semantics — consumers work unchanged. Bridged tool calls surface
+  as `tool_call_update` events (ids `codeact_<n>`).
+- The mode threads through `TaskExecutor`, `ParallelTaskExecutor`, and
+  `ScriptRunner` sub-agents; each resolves `resolveExecutionMode(explicit)` —
+  explicit option > `NODETOOL_AGENT_EXECUTION_MODE` > `"tools"`. The setting
+  is registered in the websocket settings registry (Settings UI, group
+  Execution) and mirrored into the environment at server startup. CLI:
+  `nodetool agent run <yaml> --codeact` (YAML: `execution_mode: codeact`).
+- Eval suite `codeact` runs the same offline instrumented cases through either
+  executor for a mode comparison: `nodetool eval codeact -p <p> -m <m>`.
+- Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`
+  (scripted provider, real sandbox, no network).
+
 ## Script Mode (code-shaped orchestration)
 
 The third planning mode next to `TaskPlan` and the graph planner: the LLM

@@ -48,12 +48,14 @@ import {
   createSecurityMonitorConsult
 } from "./security-monitor.js";
 import type {
+  AgentExecutionMode,
   PlanApprovalDecision,
   RequestPlanApproval,
   Task,
   TaskPlan
 } from "./types.js";
 import { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
+import { resolveExecutionMode } from "./codeact/execution-mode.js";
 import type { PlanCache, CheckpointStore } from "./checkpoint-store.js";
 import { resolveAgentPolicy, type AgentPolicy } from "./agent-policy.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -279,6 +281,14 @@ export interface AgentOptions {
    */
   useGraphPlanner?: boolean;
   /**
+   * Step action space: `"tools"` (default) is the classic one-JSON-tool-call-
+   * per-action loop; `"codeact"` has each step act by writing JavaScript that
+   * runs in the QuickJS sandbox with the toolbelt exposed as `tools.<name>()`
+   * functions (docs/codeact-design.md). Orthogonal to the planning mode —
+   * script-mode sub-agents and process-mode fan-outs honor it too.
+   */
+  executionMode?: AgentExecutionMode;
+  /**
    * Use the script planner: the LLM authors a JavaScript orchestration
    * script (loops, conditionals, budget-scaled fan-out) instead of a
    * TaskPlan, and {@link ScriptRunner} executes it deterministically in the
@@ -401,6 +411,7 @@ export class Agent {
   private readonly autoPersistMemory: boolean;
   private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
+  private readonly executionMode: AgentExecutionMode;
   private readonly useScriptPlanner: boolean;
   private readonly script?: string;
   private readonly graphSource?: AgentGraphSource;
@@ -447,6 +458,7 @@ export class Agent {
     this.autoPersistMemory = opts.autoPersistMemory === true;
     this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
+    this.executionMode = resolveExecutionMode(opts.executionMode);
     this.useScriptPlanner = opts.useScriptPlanner === true;
     this.script = opts.script;
     this.graphSource = opts.graph;
@@ -862,7 +874,8 @@ export class Agent {
       checkpointStore: this.checkpointStore,
       runId: this.runId,
       planTools: this.tools.map((t) => t.name),
-      signal: this.signal
+      signal: this.signal,
+      executionMode: this.executionMode
     });
 
     for await (const item of executor.execute()) {
@@ -1186,7 +1199,8 @@ export class Agent {
       maxTokens: this.policy.maxTokens,
       maxConcurrentAgents: this.policy.maxConcurrentAgents,
       maxAgentCalls: this.policy.maxAgentCalls,
-      signal: this.signal
+      signal: this.signal,
+      executionMode: this.executionMode
     });
 
     const runGen = runner.execute(script);
@@ -1441,7 +1455,8 @@ export class Agent {
       maxTokens: this.policy.maxTokens,
       maxConcurrentAgents: this.policy.maxConcurrentAgents,
       parallelExecution: true,
-      signal: this.signal
+      signal: this.signal,
+      executionMode: this.executionMode
     });
 
     for await (const item of executor.executeTasks()) {

@@ -39,6 +39,27 @@ export function getRegisteredSettings(): SettingDefinition[] {
   return registry;
 }
 
+export const AGENT_EXECUTION_MODE_ENV = "NODETOOL_AGENT_EXECUTION_MODE";
+
+/**
+ * Mirror the stored agent execution mode into the environment so the agents
+ * package (which resolves NODETOOL_AGENT_EXECUTION_MODE) honors what the
+ * Settings UI saved. A real environment variable wins over the stored value;
+ * an unavailable settings store leaves the env/default in place.
+ */
+export async function applyAgentExecutionModeSetting(): Promise<void> {
+  if (process.env[AGENT_EXECUTION_MODE_ENV]) return;
+  try {
+    const setting = await Setting.find("1", AGENT_EXECUTION_MODE_ENV);
+    const value = setting?.value.trim().toLowerCase();
+    if (value === "codeact" || value === "tools") {
+      process.env[AGENT_EXECUTION_MODE_ENV] = value;
+    }
+  } catch {
+    // Settings store unavailable — the env var / default applies.
+  }
+}
+
 /** Get a single setting value from DB, then env var. */
 export async function getSetting(key: string): Promise<string | null> {
   const setting = await Setting.find("1", key);
@@ -134,6 +155,12 @@ s(
   "MAX_CONCURRENT_RUNS_PER_WORKFLOW",
   "Execution",
   "Maximum number of concurrent runs of the same workflow before additional runs queue (default: 4). Only applies to runs that opt into concurrency (e.g. timeline/sketch generation); canvas runs always stay sequential per workflow. Also bounded by MAX_CONCURRENT_JOBS."
+);
+s(
+  AGENT_EXECUTION_MODE_ENV,
+  "Execution",
+  "How agent steps act on their toolbelt: 'tools' (default) makes one JSON tool call per action; 'codeact' has each step write sandboxed JavaScript that calls the same tools (docs/codeact-design.md). Applied at server startup; a real environment variable wins over the stored value.",
+  ["tools", "codeact"]
 );
 
 // Provider endpoints

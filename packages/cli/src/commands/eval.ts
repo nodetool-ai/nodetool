@@ -306,6 +306,43 @@ const subtaskSuite: EvalSuite = {
   }
 };
 
+/** CodeAct execution suite (code actions vs JSON tool calls). */
+const codeActSuite: EvalSuite = {
+  id: "codeact",
+  description:
+    "Run the CodeAct execution eval suite (steps act by writing sandboxed JavaScript over the toolbelt — docs/codeact-design.md) against a provider/model",
+  async listCases() {
+    const { CODEACT_EVAL_CASES } = await import("@nodetool-ai/agents");
+    return CODEACT_EVAL_CASES.map((c) => ({
+      id: c.id,
+      description: c.description
+    }));
+  },
+  async run(deps) {
+    const { CODEACT_EVAL_CASES, runCodeActEval, formatCodeActReport } =
+      await import("@nodetool-ai/agents");
+
+    const cases = selectCases(CODEACT_EVAL_CASES, deps.caseIds);
+    deps.log(
+      `Running ${cases.length} codeact case(s) with ${deps.providerId}/${deps.model}`
+    );
+
+    const report = await runCodeActEval({
+      provider: deps.provider,
+      model: deps.model,
+      cases,
+      maxIterations: deps.maxIterations,
+      onEvent: deps.onEvent
+    });
+
+    return {
+      report,
+      formatted: formatCodeActReport(report),
+      successRate: report.summary.successRate
+    };
+  }
+};
+
 /** TaskPlanner multi-task (plan mode) DAG-quality suite. */
 const taskPlannerSuite: EvalSuite = {
   id: "task-planner",
@@ -557,6 +594,7 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
   taskPlannerSuite,
   scriptPlannerSuite,
   subtaskSuite,
+  codeActSuite,
   appBuildSuite,
   makeToolLoopSuite(
     "tool-loop",
