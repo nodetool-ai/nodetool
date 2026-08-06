@@ -31,6 +31,11 @@ export const CONTRACT_MODEL_AUTH_ERROR = "contract-test-model-error-401";
  * packages/runtime/src/providers/*.ts (grep for "does not support chat").
  */
 export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
+  nodetool:
+    "Delegating provider (NodeTool's managed models): it makes no wire calls " +
+    "of its own — chat routes to the delegate named in NODETOOL_MODELS, whose " +
+    "own cassette covers the contract. An id outside the curated catalog " +
+    "(like the contract model) rejects cleanly.",
   fal_ai: "Image/video generation provider; generateMessage(s) always throws.",
   elevenlabs: "Text-to-speech provider; generateMessage(s) always throws.",
   topaz: "Image upscaling provider; generateMessage(s) always throws.",
