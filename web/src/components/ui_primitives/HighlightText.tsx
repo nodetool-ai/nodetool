@@ -5,18 +5,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 
-const hexToRgb = (hex: string) => {
-  const normalizedHex = hex.trim();
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(
-    normalizedHex
-  );
-  if (!result) {return null;}
-  return `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(
-    result[3],
-    16
-  )}`;
-};
-
 interface HighlightTextProps {
   text: string;
   query: string | null;
@@ -29,6 +17,8 @@ interface TextPart {
   text: string;
   match: boolean;
 }
+
+const EMPTY_PARTS: TextPart[] = [];
 
 /**
  * Tokenize text by splitting on the query string
@@ -60,22 +50,16 @@ const tokenize = (text: string, query: string | null): TextPart[] => {
   }
 };
 
-const highlightStyles = (theme: Theme, matchStyle: "primary" | "underline") => {
-  const rgbColor = hexToRgb(
-    getComputedStyle(document.documentElement).getPropertyValue(
-      "--palette-primary-main"
-    ) || "#1976d2"
-  );
-
-  return css({
+const highlightStyles = (theme: Theme, matchStyle: "primary" | "underline") =>
+  css({
     ".highlight-match": {
       ...(matchStyle === "primary" && {
-        color: "var(--palette-primary-main)",
+        color: theme.vars.palette.primary.main,
         fontWeight: 600
       }),
       ...(matchStyle === "underline" && {
-        borderBottom: `2px solid rgba(${rgbColor || "25, 118, 210"}, 0.6)`,
-        color: "var(--palette-primary-main)"
+        borderBottom: `2px solid rgba(${theme.vars.palette.primary.mainChannel} / 0.6)`,
+        color: theme.vars.palette.primary.main
       }),
       transition: MOTION.all
     },
@@ -88,7 +72,6 @@ const highlightStyles = (theme: Theme, matchStyle: "primary" | "underline") => {
       marginBottom: "0.25em"
     }
   });
-};
 
 /**
  * Format text as bullet list if needed
@@ -111,34 +94,37 @@ export const HighlightText = memo<HighlightTextProps>(
     );
 
     const parts = useMemo(
-      () => tokenize(text, query),
-      [text, query]
+      () => (isBulletList ? EMPTY_PARTS : tokenize(text, query)),
+      [text, query, isBulletList]
     );
 
     const lines = useMemo(
-      () => isBulletList ? formatBulletList(text) : null,
-      [text, isBulletList]
+      () =>
+        isBulletList
+          ? formatBulletList(text).map((line) => ({
+              line,
+              parts: tokenize(line, query)
+            }))
+          : null,
+      [text, query, isBulletList]
     );
 
-    if (isBulletList && lines) {
+    if (lines) {
       return (
         <ul className={className} css={styles}>
-          {lines.map((line, lineIndex) => {
-            const lineParts = tokenize(line, query);
-            return (
-              <li key={`${line}-${lineIndex}`}>
-                {lineParts.map((part, partIndex) =>
-                  part.match ? (
-                    <span key={`${lineIndex}-${partIndex}-${part.text}`} className="highlight-match">
-                      {part.text}
-                    </span>
-                  ) : (
-                    <span key={`${lineIndex}-${partIndex}-${part.text}`}>{part.text}</span>
-                  )
-                )}
-              </li>
-            );
-          })}
+          {lines.map(({ line, parts: lineParts }, lineIndex) => (
+            <li key={`${line}-${lineIndex}`}>
+              {lineParts.map((part, partIndex) =>
+                part.match ? (
+                  <span key={`${lineIndex}-${partIndex}-${part.text}`} className="highlight-match">
+                    {part.text}
+                  </span>
+                ) : (
+                  <span key={`${lineIndex}-${partIndex}-${part.text}`}>{part.text}</span>
+                )
+              )}
+            </li>
+          ))}
         </ul>
       );
     }
