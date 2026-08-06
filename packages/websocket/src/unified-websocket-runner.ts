@@ -149,6 +149,13 @@ import {
   type ToolSearchEntry
 } from "@nodetool-ai/agents";
 import {
+  createChatCodeActSession,
+  resolveExecutionMode,
+  EXECUTE_CODE_TOOL_NAME,
+  type ChatCodeActSession,
+  type ChatCodeActToolCall
+} from "@nodetool-ai/agents";
+import {
   getBuiltinTools,
   getAllMcpTools,
   registerBuiltinTools,
@@ -5195,13 +5202,19 @@ export class UnifiedWebSocketRunner {
     // deferred tools. Assigned during tool resolution below; read lazily here
     // because the resume `loadFullHistory` thunk and the prepend both run after.
     let toolSearchReminder = "";
+    // In codeact mode: the action contract + tool catalog section, assigned
+    // once the session exists (before the system message is materialized).
+    let codeactPromptSection = "";
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
         permissionMode,
         extraSystemPrompt,
         uiContext
       );
-      return toolSearchReminder ? `${base}\n\n${toolSearchReminder}` : base;
+      const suffix = [toolSearchReminder, codeactPromptSection]
+        .filter((s) => s.length > 0)
+        .join("\n\n");
+      return suffix ? `${base}\n\n${suffix}` : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5476,13 +5489,25 @@ export class UnifiedWebSocketRunner {
     }
     const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
 
+    // Execution mode for this turn. When the stored setting (or
+    // NODETOOL_AGENT_EXECUTION_MODE) says "codeact", the chat turn presents a
+    // single `execute_code` tool and the model acts by writing sandboxed
+    // JavaScript over the same toolbelt (docs/codeact-design.md). The session
+    // is created below, once the tool router and processing context exist.
+    const useCodeAct =
+      resolveExecutionMode() === "codeact" && allSchemas.length > 0;
+
     // The live tool list handed to the provider. On the generic path it starts
     // with the minimal resident set + ToolSearch and GROWS in place as
     // ToolSearch reveals deferred tools — base-provider's loop re-reads this
     // array each iteration, so pushes become callable on the next turn.
     const providerToolSchemas: ProviderTool[] = [];
     let deferredToolCount = 0;
-    if (provider.usesNativeToolSearch) {
+    if (useCodeAct) {
+      // Codeact replaces the ToolSearch deferral machinery: the session's
+      // in-sandbox `searchTools()` covers discovery, and the only provider
+      // tools are `execute_code` (+ `view_image`, pushed below).
+    } else if (provider.usesNativeToolSearch) {
       // Native tool search (Claude Agent SDK): pass everything; the SDK defers.
       providerToolSchemas.push(...allSchemas);
     } else {
@@ -5549,6 +5574,49 @@ export class UnifiedWebSocketRunner {
       provider: providerId,
       model
     } satisfies ActiveModelSelection);
+
+    // CodeAct session for this turn. Created here so its prompt section is in
+    // place before the system message is materialized below. The tool router
+    // (`executeTool`, defined further down) is late-bound through a ref; it is
+    // assigned before the provider loop can run any action.
+    let codeactExecuteToolRef:
+      | ((toolCall: ProviderToolCall) => Promise<string | MessageContent[]>)
+      | null = null;
+    let codeactSession: ChatCodeActSession | null = null;
+    if (useCodeAct) {
+      codeactSession = createChatCodeActSession({
+        tools: allSchemas
+          .filter((s) => s.name !== "view_image")
+          .map((s) => ({
+            name: s.name,
+            description: s.description,
+            inputSchema: s.inputSchema
+          })),
+        executeTool: async (call: ChatCodeActToolCall) => {
+          if (!codeactExecuteToolRef) {
+            throw new Error("Tool router not ready");
+          }
+          return codeactExecuteToolRef({
+            id: call.id,
+            name: call.name,
+            args: call.args
+          });
+        },
+        context: ctx,
+        signal
+      });
+      providerToolSchemas.push(codeactSession.providerTool);
+      // `view_image` stays a direct provider tool: it is the one channel that
+      // puts pixels into the model's context, and pixels cannot ride the
+      // sandbox's JSON observation envelope.
+      const viewImage = allSchemas.find((s) => s.name === "view_image");
+      if (viewImage) providerToolSchemas.push(viewImage);
+      codeactPromptSection = codeactSession.systemPromptSection;
+      log.info("Chat turn running in codeact mode", {
+        threadId,
+        toolCount: allSchemas.length
+      });
+    }
 
     // Prepend system prompt if first message isn't system role — matches Python
     if (chatHistory.length === 0 || chatHistory[0].role !== "system") {
@@ -5746,6 +5814,20 @@ export class UnifiedWebSocketRunner {
         : JSON.stringify(processed);
     };
 
+    // Late-bind the codeact bridge to the router above, and route
+    // `execute_code` calls into the sandbox session; everything else (only
+    // `view_image` is offered in codeact mode) keeps the normal path.
+    codeactExecuteToolRef = executeTool;
+    const session = codeactSession;
+    const effectiveExecuteTool = session
+      ? async (
+          toolCall: ProviderToolCall
+        ): Promise<string | MessageContent[]> =>
+          toolCall.name === EXECUTE_CODE_TOOL_NAME
+            ? session.executeAction(toolCall.args)
+            : executeTool(toolCall)
+      : executeTool;
+
     // Tool name by call id, so persisted tool messages keep their name (the
     // provider Message carries only the id).
     const toolNames = new Map<string, string>();
@@ -5758,8 +5840,9 @@ export class UnifiedWebSocketRunner {
         threadId,
         providerSession: capturedSession,
         loadFullHistory: loadFullHistory ?? undefined,
-        executeTool: useTools ? executeTool : undefined,
+        executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
+        sequentialTools: session ? true : undefined,
         signal
       })) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)

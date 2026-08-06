@@ -181,7 +181,7 @@ s(
 s(
   AGENT_EXECUTION_MODE_ENV,
   "Execution",
-  "How agent steps act on their toolbelt: 'tools' (default) makes one JSON tool call per action; 'codeact' has each step write sandboxed JavaScript that calls the same tools (docs/codeact-design.md). Applied at server startup; a real environment variable wins over the stored value.",
+  "How agent steps and chat turns act on their toolbelt: 'tools' (default) makes one JSON tool call per action; 'codeact' has each action write sandboxed JavaScript that calls the same tools — chat turns then also edit workflow graphs through the openWorkflow() object model (docs/codeact-design.md). Applied at server startup; a real environment variable wins over the stored value.",
   ["tools", "codeact"]
 );
 

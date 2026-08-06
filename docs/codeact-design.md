@@ -178,6 +178,46 @@ The action executes with the same privileges tool mode already grants:
 - CLI: `nodetool agent run <yaml> --codeact`; the agent YAML also takes
   `execution_mode: codeact`. Flag > YAML > setting.
 
+## Chat turns (websocket runner)
+
+The chat websocket runner honors the same setting: when `resolveExecutionMode()`
+says `codeact`, a plain chat turn presents `execute_code` (plus `view_image`,
+the one channel that puts pixels into context and so cannot ride the JSON
+observation envelope) instead of the toolbelt, and the ToolSearch deferral
+machinery is replaced by the in-sandbox `searchTools()`. The adapter is
+`createChatCodeActSession` (`packages/agents/src/codeact/chat-codeact.ts`): a
+chat toolbelt mixes server tools with client (`ui_*`) tools that exist
+server-side only as schemas, so instead of `buildToolBridge` the session
+bridges `tools.<name>()` to the chat runner's own `executeTool` router —
+permission gating, client round-trips over the ToolBridge, and asset
+materialization all stay where they are. `state` persists across the turn's
+actions; there is no `finish()` — a plain assistant message ends the turn, and
+the prompt says so (`variant: "chat"` of `buildCodeActSystemPrompt`).
+
+## Workflow graph editing: the JS object model
+
+When the belt carries the `ui_*` workflow document tools, code actions get an
+object model instead of one bridged call per mutation
+(`packages/agents/src/codeact/graph-model.ts`):
+
+```js
+const wf = await openWorkflow(workflowId);
+const input = wf.addNode("in1", "nodetool.input.StringInput", { name: "prompt" });
+wf.addNode("llm1", "nodetool.agents.Agent", {}, { x: 400, y: 120 });
+wf.connect("in1", "output", "llm1", "prompt");
+wf.node("llm1").setTitle("Draft").set({ system: "be brief" });
+await wf.commit();
+```
+
+Mutators are synchronous: they update a local mirror (`wf.nodes`, `wf.edges`,
+`wf.node(id)`) and queue the equivalent `ui_*` operation. `commit()` replays
+the queue through the bridged tools — the same contract the renderer and the
+headless document tools implement, so routing, validation, and live-editor
+sync are untouched. A failed commit names the failing operation and keeps it
+(and everything after it) queued for a retry; removing a never-committed node
+cancels its queued ops instead of issuing a delete. Tests:
+`packages/agents/tests/chat-codeact.test.ts`.
+
 ## Evaluation
 
 `eval codeact` (registered next to `subtask`): objectives with instrumented
@@ -203,5 +243,3 @@ finalization — no network, no model.
   action space, not about Python specifically.
 - Replacing planners. GraphPlanner/ScriptPlanner/CodePlanner already use
   code-shaped *artifacts*; this changes the step execution loop only.
-- The chat/websocket toolbelt. Chat turns keep tool mode; wiring codeact into
-  the websocket runner is a follow-up once step-level evals justify it.
