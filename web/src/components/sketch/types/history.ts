@@ -1,11 +1,9 @@
 /**
  * Sketch Editor – History Types
  *
- * Undo/redo history entries, layer structure snapshots, and top-level editor
- * state interface.
+ * Undo/redo history entries and layer structure snapshots.
  */
 
-import type { Point } from "./geometry";
 import type {
   Layer,
   LayerType,
@@ -17,7 +15,6 @@ import type {
   SketchDocument
 } from "./document";
 import type { Selection } from "./selection";
-import type { SketchTool } from "./tools";
 
 // ─── History ──────────────────────────────────────────────────────────────────
 
@@ -85,16 +82,4 @@ export interface HistoryEntry {
   restoreMode: HistoryRestoreMode;
   action: string;
   timestamp: number;
-}
-
-// ─── Editor State ─────────────────────────────────────────────────────────────
-
-export interface SketchEditorState {
-  document: SketchDocument;
-  activeTool: SketchTool;
-  zoom: number;
-  pan: Point;
-  isDrawing: boolean;
-  history: HistoryEntry[];
-  historyIndex: number;
 }

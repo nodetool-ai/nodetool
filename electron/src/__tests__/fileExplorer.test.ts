@@ -30,7 +30,7 @@ import {
   getLogsDir,
   openSystemDirectory,
 } from "../fileExplorer";
-import { logMessage, LOG_FILE } from "../logger";
+import { logMessage } from "../logger";
 import { getCondaEnvPath } from "../config";
 
 const mockShell = shell as jest.Mocked<typeof shell>;

@@ -90,8 +90,7 @@ export type {
   Color,
   ColorMode,
   Selection,
-  HistoryEntry,
-  SketchEditorState
+  HistoryEntry
 } from "./types";
 
 export type {
