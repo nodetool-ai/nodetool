@@ -278,6 +278,167 @@ describe("GeminiProvider", () => {
     expect(params.properties.ids.items).toEqual({ type: "number" });
   });
 
+  it("rewrites `const` (Zod literals) into a form Gemini accepts", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "animate",
+        description: "",
+        inputSchema: {
+          type: "object",
+          properties: {
+            animations: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  role: { const: "in" },
+                  weight: { const: 1 },
+                  enabled: { const: true, description: "Flag." }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    const item = params.properties.animations.items.properties;
+    expect(JSON.stringify(params)).not.toContain('"const"');
+    expect(item.role).toEqual({ type: "string", enum: ["in"] });
+    expect(item.weight).toEqual({
+      type: "integer",
+      description: "Must be 1."
+    });
+    expect(item.enabled).toEqual({
+      type: "boolean",
+      description: "Flag. Must be true."
+    });
+  });
+
+  it("keeps a property literally named `const`", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "tool",
+        description: "",
+        inputSchema: {
+          type: "object",
+          properties: { const: { type: "string" } }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.properties.const).toEqual({ type: "string" });
+  });
+
+  it("inlines local $refs and drops $defs", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "tool",
+        description: "",
+        inputSchema: {
+          type: "object",
+          $defs: {
+            Point: { type: "object", properties: { x: { type: "number" } } }
+          },
+          properties: {
+            start: { $ref: "#/$defs/Point" },
+            end: { $ref: "#/$defs/Point", description: "End." }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.$defs).toBeUndefined();
+    expect(params.properties.start).toEqual({
+      type: "object",
+      properties: { x: { type: "number" } }
+    });
+    expect(params.properties.end.description).toBe("End.");
+    expect(params.properties.end.properties.x).toEqual({ type: "number" });
+  });
+
+  it("degrades a recursive $ref to a permissive object", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "tool",
+        description: "",
+        inputSchema: {
+          type: "object",
+          $defs: {
+            Node: {
+              type: "object",
+              properties: { child: { $ref: "#/$defs/Node" } }
+            }
+          },
+          properties: { root: { $ref: "#/$defs/Node" } }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.properties.root.properties.child).toEqual({
+      type: "object"
+    });
+  });
+
+  it("maps oneOf/allOf and nullable unions onto Gemini's dialect", () => {
+    const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+
+    const { geminiTools } = provider.formatTools([
+      {
+        name: "tool",
+        description: "",
+        inputSchema: {
+          type: "object",
+          properties: {
+            choice: {
+              oneOf: [{ type: "string" }, { type: "number" }]
+            },
+            merged: {
+              allOf: [
+                {
+                  type: "object",
+                  properties: { a: { type: "string" } },
+                  required: ["a"]
+                },
+                { properties: { b: { type: "string" } }, required: ["b"] }
+              ]
+            },
+            note: { type: ["string", "null"] }
+          }
+        }
+      }
+    ]);
+
+    const params = geminiTools[0].functionDeclarations[0].parameters as any;
+    expect(params.properties.choice.anyOf).toEqual([
+      { type: "string" },
+      { type: "number" }
+    ]);
+    expect(params.properties.choice.oneOf).toBeUndefined();
+    expect(params.properties.merged.type).toBe("object");
+    expect(Object.keys(params.properties.merged.properties).sort()).toEqual([
+      "a",
+      "b"
+    ]);
+    expect(params.properties.merged.required.sort()).toEqual(["a", "b"]);
+    expect(params.properties.note).toEqual({
+      type: "string",
+      nullable: true
+    });
+  });
+
   it("fetches available language models", async () => {
     const fetchFn = vi.fn().mockResolvedValue(
       makeFetchResponse({
@@ -700,7 +861,9 @@ describe("GeminiProvider", () => {
       messages: [{ role: "user", content: "go" }],
       tools: [{ name: "ui_storyboard_add_shot" }]
     });
-    expect(JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig).toBeUndefined();
+    expect(
+      JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig
+    ).toBeUndefined();
 
     // A built-in with no function declarations needs no flag either.
     fetchFn.mockClear();
@@ -709,7 +872,9 @@ describe("GeminiProvider", () => {
       messages: [{ role: "user", content: "go" }],
       tools: [{ name: "web_search" }]
     });
-    expect(JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig).toBeUndefined();
+    expect(
+      JSON.parse(fetchFn.mock.calls[0][1].body).toolConfig
+    ).toBeUndefined();
   });
 
   it("maps code-interpreter tools to Gemini code execution", async () => {
