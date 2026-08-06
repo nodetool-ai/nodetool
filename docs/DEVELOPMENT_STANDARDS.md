@@ -110,7 +110,7 @@ Both the web app and the Electron renderer run **React 19.2**. Mobile uses React
 
 ## 4. Zustand
 
-Stores live in `web/src/stores/` and `electron/src/stores/` (both on Zustand 5.0). The slice pattern and `subscribeWithSelector` are used throughout.
+Stores live in `web/src/stores/` (Zustand 5.0). The Electron main process has one store of its own, `electron/src/WorkflowRunner.ts`. The slice pattern is used for the larger stores (`GlobalChatStore`).
 
 ### Rules
 
@@ -202,7 +202,7 @@ The node graph uses ReactFlow 12.11. The runtime semantics live in `@nodetool-ai
 
 - **Node and edge data is plain JSON.** No class instances, no functions, no `Date` objects in node data — it must serialize cleanly to MsgPack.
 - **One Zustand store for graph state**, with selectors per node — never subscribe to the full nodes array from a leaf node component.
-- **Use `useNodes` / `useEdges` selectors** wrapped from the canonical hooks; don't call ReactFlow internals directly outside `web/src/components/node_graph/`.
+- **Use the `useNodes` selector** from `web/src/contexts/NodeContext.tsx`; don't call ReactFlow internals directly outside `web/src/components/node_editor/` and `web/src/components/node/`.
 - **Custom node components are memoized** (`React.memo`) and rely on prop equality, not store subscriptions, for their inputs.
 - **Edge validation** happens at connect time via `isValidConnection`. Don't add edges that the runtime would reject.
 - **No layout effects in node renders** — they re-render frequently and pre-paint work tanks frame rate.

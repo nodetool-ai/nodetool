@@ -22,7 +22,7 @@ Supports both **SQLite** (local / Electron) and **PostgreSQL / Supabase** (cloud
 | `RunEvent` | `run_events` | Append-only execution event log |
 | `RunLease` | `run_leases` | Worker lease records |
 | `Setting` | `nodetool_settings` | Per-user key/value settings |
-| `TeamTask` | `nodetool_team_tasks` | Multi-agent task coordination |
+| `teamTasks` | `nodetool_team_tasks` | Multi-agent task coordination — Drizzle table only, no `DBModel` class |
 
 ## Quick Start
 

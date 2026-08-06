@@ -20,7 +20,7 @@ Or run a single command without installing:
 
 ```bash
 npx --package=@nodetool-ai/cli nodetool --help
-npx --package=@nodetool-ai/cli nodetool-chat --agent
+npx --package=@nodetool-ai/cli nodetool-chat
 ```
 
 **Requires Node.js 22.x.** Check with `node --version`; install via [nvm](https://github.com/nvm-sh/nvm) if needed.
@@ -277,7 +277,7 @@ nodetool chat --url ws://localhost:7777/ws
 
 ### `nodetool workflows`
 
-Manage workflows via the API.
+Manage workflows. Reads the local database by default; `--api-url` targets a remote server.
 
 **Subcommands:** `list`, `get`, `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`
 
@@ -340,13 +340,13 @@ nodetool workflows import-bundle my-pack.nodetool
 
 ### `nodetool jobs`
 
-Query job status and results.
+Query job status and results. Reads the local database by default.
 
 **Subcommands:** `list`, `get`
 
 **Options:**
 
-- `--api-url <url>` — API base URL (default: `http://localhost:7777`).
+- `--api-url <url>` — query a remote server instead of the local database.
 - `--workflow-id <id>` — filter by workflow ID (for `list`).
 - `--limit <n>` — max results (default: `100`).
 - `--json` — output as JSON.
@@ -368,13 +368,13 @@ nodetool jobs get <job_id>
 
 ### `nodetool assets`
 
-Manage uploaded files and workflow assets.
+Manage uploaded files and workflow assets. Reads the local database by default.
 
 **Subcommands:** `list`, `get`
 
 **Options:**
 
-- `--api-url <url>` — API base URL (default: `http://localhost:7777`).
+- `--api-url <url>` — query a remote server instead of the local database.
 - `--query <q>` — search query (for `list`).
 - `--content-type <type>` — filter by content type (for `list`).
 - `--limit <n>` — max results (default: `100`).
@@ -435,7 +435,7 @@ nodetool settings show --json
 
 ### `nodetool models`
 
-List models and providers via the API.
+List models and providers. Queries local providers and caches by default; `--api-url` targets a remote server.
 
 **Subcommands:**
 
@@ -510,7 +510,7 @@ filesystem.
 
 Run YAML-defined autonomous agents from the command line.
 
-**Subcommands:** `run`, `test`, `list`
+**Subcommands:** `run`, `test`, `list`, `diagnose`
 
 ```bash
 # Run an agent with an objective
@@ -521,6 +521,9 @@ nodetool agent test agent.yaml
 
 # List configs in a directory
 nodetool agent list examples/agents/
+
+# Aggregate a failed run into one report
+nodetool agent diagnose <job_id>
 ```
 
 See the [Agent CLI](agent-cli.md) reference for full details.
