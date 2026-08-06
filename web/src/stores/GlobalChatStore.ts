@@ -40,6 +40,11 @@ import {
   isTRPCErrorWithCode,
   ApiErrorCode
 } from "@nodetool-ai/protocol/api-schemas";
+import {
+  isModelSelected,
+  NO_MODEL_SELECTED_MESSAGE,
+  noMediaModelSelectedMessage
+} from "@nodetool-ai/protocol";
 import { DEFAULT_MODEL } from "../config/constants";
 import { ConnectionState } from "../lib/websocket/WebSocketManager";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -875,8 +880,33 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // `agent_planner` are no longer sent on the wire.
         const outgoing = message as ChatOutgoingMessage;
         const mediaGeneration = outgoing.media_generation ?? null;
+        const isMediaGeneration =
+          !!mediaGeneration && mediaGeneration.mode !== "chat";
 
         set({ error: null });
+
+        // Nothing is picked yet — the default selection carries the "empty"
+        // provider sentinel. Sending would persist the user's turn and then
+        // fail in provider resolution, so stop here and say what to do.
+        const modelForSend = isMediaGeneration
+          ? {
+              provider: mediaGeneration?.provider ?? message.provider,
+              id: mediaGeneration?.model ?? message.model
+            }
+          : selectedModel;
+        if (!isModelSelected(modelForSend)) {
+          const reason = isMediaGeneration
+            ? noMediaModelSelectedMessage(mediaGeneration?.mode ?? "media")
+            : NO_MODEL_SELECTED_MESSAGE;
+          const knownThreadId = targetThreadId ?? currentThreadId;
+          set((state) => ({
+            error: reason,
+            ...(knownThreadId
+              ? threadRuntimeUpdate(state, knownThreadId, { error: reason })
+              : {})
+          }));
+          return;
+        }
 
         // Ensure WebSocket connection is established before sending
         try {
@@ -970,8 +1000,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         // use the provider/model chosen in the media composer instead of the
         // default language model so text-to-image / text-to-video calls are
         // routed correctly on the server.
-        const isMediaGeneration =
-          !!mediaGeneration && mediaGeneration.mode !== "chat";
         // The client no longer drives the toolbelt: `tools` and `collections`
         // are dropped from the send path. The active per-thread permission
         // mode is sent instead and governs how the agent's gated tool calls

@@ -152,6 +152,14 @@ describe("GlobalChatStore", () => {
       currentThreadId: null,
       status: "disconnected",
       error: null,
+      // The shipped default carries the "empty" provider sentinel, which
+      // sendMessage refuses; these tests exercise the sending path.
+      selectedModel: {
+        type: "language_model",
+        provider: "openai",
+        id: "gpt-5.4-mini",
+        name: "gpt-5.4-mini"
+      },
       progress: { current: 0, total: 0 }
     } as any);
   });
@@ -210,8 +218,8 @@ describe("GlobalChatStore", () => {
           workflow_id: null,
           thread_id: threadId,
           memory_enabled: false,
-          model: "gpt-oss:20b",
-          provider: "empty",
+          model: "gpt-5.4-mini",
+          provider: "openai",
           permission_mode: "default",
           media_generation: null
         }
@@ -220,6 +228,32 @@ describe("GlobalChatStore", () => {
       if (mockServer) {mockServer.stop();}
       store.getState().disconnect();
     }
+  });
+
+  it("sendMessage refuses to send when no model is selected", async () => {
+    mockGlobalWebSocketManager.send.mockClear();
+    const threadId = await store.getState().createNewThread();
+    store.setState({
+      selectedModel: {
+        type: "language_model",
+        provider: "empty",
+        id: "gpt-oss:20b",
+        name: "gpt-oss:20b"
+      }
+    } as any);
+
+    await store.getState().sendMessage({
+      role: "user",
+      type: "message",
+      content: "hello"
+    } as Message);
+
+    expect(mockGlobalWebSocketManager.send).not.toHaveBeenCalled();
+    expect(store.getState().error).toMatch(/No model selected/i);
+    expect(store.getState().threadRuntime[threadId]?.error).toMatch(
+      /No model selected/i
+    );
+    expect(store.getState().messageCache[threadId] ?? []).toEqual([]);
   });
 
   it("switchThread does nothing for invalid id", () => {
@@ -899,8 +933,8 @@ describe("GlobalChatStore", () => {
           workflow_id: "test-workflow",
           thread_id: threadId,
           memory_enabled: false,
-          model: "gpt-oss:20b",
-          provider: "empty",
+          model: "gpt-5.4-mini",
+          provider: "openai",
           permission_mode: "default",
           media_generation: null
         }

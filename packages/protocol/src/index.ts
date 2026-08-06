@@ -10,6 +10,7 @@ export * from "./graph.js";
 export * from "./api-types.js";
 export * from "./package-assets.js";
 export * from "./resource-uri.js";
+export * from "./model-selection.js";
 export { TypeMetadata } from "./type-metadata.js";
 export { validateType, type ValidationResult } from "./typecheck.js";
 export {

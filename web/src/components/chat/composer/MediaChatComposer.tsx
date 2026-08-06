@@ -45,6 +45,7 @@ import type {
 import MediaControlChip from "./MediaControlChip";
 import MediaModeMenu from "./MediaModeMenu";
 import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
+import SelectModelBanner from "./SelectModelBanner";
 import { useModeProviderSetup } from "./useModeProviderSetup";
 import PiComposerControls, { piModeAvailable } from "./PiComposerControls";
 import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
@@ -72,7 +73,11 @@ import type {
   TTSModel,
   VideoModel
 } from "../../../stores/ApiTypes";
-import type { Entity } from "@nodetool-ai/protocol";
+import {
+  isModelSelected,
+  type Entity,
+  type ModelSelection
+} from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
 import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
 import { resolveAssetUri } from "../../node/output";
@@ -522,6 +527,66 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     mode === "image_to_video" ||
     mode === "audio";
 
+  const chatModel = selectedModel ?? languageModel;
+
+  const modelGate = useMemo((): {
+    model: ModelSelection | null | undefined;
+    label: string;
+    open: () => void;
+  } | null => {
+    if (isPi) return null;
+    if (mode === "chat")
+      return {
+        model: chatModel,
+        label: "language",
+        open: () => setLanguageModelOpen(true)
+      };
+    if (mode === "image")
+      return {
+        model: imageParams.model,
+        label: "image",
+        open: () => setImageModelOpen(true)
+      };
+    if (mode === "image_edit")
+      return {
+        model: imageEditParams.model,
+        label: "image edit",
+        open: () => setImageModelOpen(true)
+      };
+    if (mode === "video")
+      return {
+        model: videoParams.model,
+        label: "video",
+        open: () => setVideoModelOpen(true)
+      };
+    if (mode === "image_to_video")
+      return {
+        model: imageToVideoParams.model,
+        label: "image to video",
+        open: () => setVideoModelOpen(true)
+      };
+    if (mode === "audio")
+      return {
+        model: audioParams.model,
+        label: "speech",
+        open: () => setTtsModelOpen(true)
+      };
+    return null;
+  }, [
+    isPi,
+    mode,
+    chatModel,
+    imageParams.model,
+    imageEditParams.model,
+    videoParams.model,
+    imageToVideoParams.model,
+    audioParams.model
+  ]);
+
+  // A send with no model picked can only fail on the server, so the composer
+  // refuses it and opens the picker instead.
+  const needsModel = !!modelGate && !isModelSelected(modelGate.model);
+
   const canGenerate = prompt.trim().length > 0 || droppedFiles.length > 0;
 
   const handleSend = useCallback(() => {
@@ -532,6 +597,12 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     // the server. Keep the prompt and guide the user through provider setup.
     if (providerSetup.needsSetup) {
       providerSetup.openSetup();
+      return;
+    }
+    // Nothing is picked for this mode. The server rejects such a turn, so keep
+    // the prompt and open the picker instead of sending.
+    if (needsModel) {
+      modelGate?.open();
       return;
     }
     const content: MessageContent[] = [];
@@ -554,7 +625,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     sendMessage,
     clearFiles,
     recordHistory,
-    providerSetup
+    providerSetup,
+    needsModel,
+    modelGate
   ]);
 
   const handlePaste = useCallback(
@@ -871,10 +944,9 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const { strengthOptions, stepsOptions } = useMemo(buildImageEditOptions, []);
 
   const chatProviderLabel = useMemo(() => {
-    const m = selectedModel ?? languageModel;
-    if (!m?.id) return "Select model";
-    return m.name || m.id;
-  }, [selectedModel, languageModel]);
+    if (!isModelSelected(chatModel)) return "Select model";
+    return chatModel.name || chatModel.id;
+  }, [chatModel]);
 
   const isBusy = isLoading || isStreaming;
   const isDisabled = disabled || isBusy;
@@ -928,6 +1000,15 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           <ModeProviderSetupBanner
             reason={providerSetup.reason}
             onConnect={providerSetup.openSetup}
+          />
+        )}
+
+        {!providerSetup.needsSetup && needsModel && modelGate && (
+          <SelectModelBanner
+            reason={`Pick a ${modelGate.label} model to ${
+              isMediaMode ? "generate" : "send"
+            }.`}
+            onSelect={modelGate.open}
           />
         )}
 
