@@ -178,45 +178,9 @@
     max-width: 100% !important;
   }
 
-  /* Model Menu fullscreen on mobile — match Settings dialog pattern. */
-  .mobile .model-menu__dialog .MuiDialog-paper {
-    margin: 0 !important;
-    width: 100vw !important;
-    max-width: 100vw !important;
-    height: 100dvh !important;
-    max-height: 100dvh !important;
-    border-radius: 0 !important;
-  }
-
-  /* Collapse complex 3-column grid → single column */
-  .mobile .model-menu__grid {
-    display: grid !important;
-    grid-template-columns: 1fr !important;
-    grid-template-rows: auto 1fr !important;
-    gap: var(--spacing-xs) !important;
-  }
-
-  /* Hide provider list and sidebar (favorites/recent) */
-  .mobile .model-menu__providers-list,
-  .mobile .model-menu__sidebar {
-    display: none !important;
-  }
-
-  /* Hide advanced filters bar (keep just search) */
-  .mobile .model-menu__filters-bar {
-    display: none !important;
-  }
-
-  /* Expand model list to full width */
-  .mobile .model-menu__model-list-container {
-    max-width: none !important;
-    width: 100% !important;
-  }
-
-  /* Hide footer counts and other non-essential info */
-  .mobile .model-menu__footer {
-    display: none !important;
-  }
+  /* The model menu handles its own narrow-screen layout in
+     ModelMenuDialogBase (full-screen paper, horizontal provider strip), so it
+     needs no overrides here. */
 
   /* Chat Composer Mobile Styles
      Keep compose-message in its default column layout on mobile so the

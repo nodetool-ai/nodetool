@@ -126,6 +126,26 @@ test.describe("Chat Interface", () => {
     );
   });
 
+  test("composer model selector keeps its provider strip @responsive", async ({
+    page
+  }) => {
+    // On narrow screens the provider rail becomes a horizontal strip. A stale
+    // `.mobile` stylesheet once hid it outright, leaving the menu with no way
+    // to filter by provider.
+    await gotoPage(page, "/chat/thread-story");
+    await waitForComposer(page);
+    expect(await openComposerChip(page, "model")).toBe(true);
+
+    const strip = page.locator(".model-menu__providers-list").first();
+    await expect(strip).toBeVisible();
+    const box = await strip.boundingBox();
+    expect(box?.width ?? 0).toBeGreaterThan(0);
+    expect(box?.height ?? 0).toBeGreaterThan(0);
+    await expect(
+      page.locator(".model-menu__provider-item").first()
+    ).toBeVisible();
+  });
+
   test("dashboard / portal @responsive @smoke", async ({ page }) => {
     // The portal (/dashboard) is the chat-led home surface: header + composer
     // + recent threads. Grouped with chat since it shares the composer shell.
