@@ -53,7 +53,7 @@ const SelectProperty: React.FC<PropertyProps<string>> = ({
         onChange={onChange}
         options={selectOptions}
         label={property.name}
-        placeholder={property.name}
+        placeholder="Select…"
         tabIndex={tabIndex}
         changed={changed}
       />

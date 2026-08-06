@@ -223,7 +223,13 @@ const InstallPanel = memo(function InstallPanel({
         <TextInput
           value={spec}
           onChange={(e) => setSpec(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && spec.trim() && status.kind !== "installing") {
+              handleInstall();
+            }
+          }}
           placeholder="@scope/package or package@version"
+          slotProps={{ htmlInput: { "aria-label": "Package to install" } }}
           fullWidth
           disabled={status.kind === "installing"}
         />

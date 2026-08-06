@@ -37,6 +37,7 @@ import {
 import CodeAuthoringModelNotice from "../../model_menu/CodeAuthoringModelNotice";
 import { useNodes } from "../../../contexts/NodeContext";
 import { useMonacoEditor } from "../../../hooks/editor/useMonacoEditor";
+import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
 import {
   CODE_AUTHORING_SOURCE_LABEL,
   useCodeAuthoringModel
@@ -163,6 +164,7 @@ const CodeGenDialogInner = ({
     isBlocked
   } = useCodeAuthoringModel();
   const { generate, cancel, reset, result, isPending } = useGenerateCode();
+  const autoFocusEnabled = useAutoFocusEnabled();
 
   const [instruction, setInstruction] = useState("");
   const [isCodeOpen, setIsCodeOpen] = useState(false);
@@ -307,6 +309,9 @@ const CodeGenDialogInner = ({
           onChange={(event) => setInstruction(event.target.value)}
           multiline
           rows={3}
+          // The dialog opens for one purpose: describing the node. Skipped on
+          // touch, where the keyboard would cover the field it just focused.
+          autoFocus={autoFocusEnabled}
           disabled={isPending || isBlocked}
           slotProps={{ htmlInput: { maxLength: MAX_INSTRUCTION_LENGTH } }}
         />

@@ -17,6 +17,9 @@ export interface SearchInputProps {
   onChange: (value: string) => void;
   /** Placeholder text */
   placeholder?: string;
+  /** Accessible name. Defaults to the placeholder, which is the only visible
+   * hint these fields carry — without it the input is announced unnamed. */
+  ariaLabel?: string;
   /** Whether to show clear button */
   showClear?: boolean;
   /** Size variant */
@@ -124,6 +127,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   value,
   onChange,
   placeholder = "Search...",
+  ariaLabel,
   showClear = true,
   size = "small",
   disabled = false,
@@ -159,16 +163,25 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
   }, [onChange, debounceMs]);
   
   const handleClear = useCallback(() => {
+    // Drop the pending debounced change, or it fires after the clear and puts
+    // the query the user just wiped back into the parent.
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = undefined;
+    }
     setLocalValue("");
     onChange("");
     onClear?.();
   }, [onChange, onClear]);
-  
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === "Enter" && onSubmit) {
       onSubmit(localValue);
     }
-    if (e.key === "Escape") {
+    if (e.key === "Escape" && localValue) {
+      // Escape clears the query first; a second Escape reaches the menu or
+      // dialog around us and closes it. One key press must not do both.
+      e.stopPropagation();
       handleClear();
     }
   }, [localValue, onSubmit, handleClear]);
@@ -200,6 +213,7 @@ export const SearchInput = memo(forwardRef<HTMLInputElement, SearchInputProps>((
         sx={sx}
         inputRef={ref}
         slotProps={{
+          htmlInput: { "aria-label": ariaLabel ?? placeholder },
           input: {
             startAdornment: (
               <InputAdornment position="start">
