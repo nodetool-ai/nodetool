@@ -5,26 +5,44 @@
  * A single generation prompt bar (model + output settings + Generate) that
  * grows to fill, with Save / Export and an activity slot on the right. The
  * project name lives in the workspace tab, so it isn't repeated here.
+ *
+ * On phones the four labelled actions won't fit beside the prompt, so they
+ * collapse into one overflow menu and the prompt takes the width it needs
+ * (see `TopBarPrompt`'s `compact` layout).
  */
 
-import React, { memo } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { useTheme } from "@mui/material/styles";
 import { css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { FlexRow, EditorButton } from "../ui_primitives";
+import {
+  FlexRow,
+  EditorButton,
+  EditorMenu,
+  MenuItemPrimitive,
+  ToolbarIconButton,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import FileDownloadIcon from "@mui/icons-material/FileDownload";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
 
 import { TopBarPrompt } from "./TopBarPrompt";
+import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
 
-const styles = (theme: Theme) =>
+const styles = (theme: Theme, compact: boolean) =>
   css({
-    height: 48,
+    // Phones need two rows for the prompt + chip rail; let the bar size to it.
+    height: compact ? "auto" : 48,
+    minHeight: compact ? 48 : undefined,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper,
-    padding: `0 ${theme.spacing(1.5)}`,
+    padding: compact
+      ? `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.md)}`
+      : `0 ${theme.spacing(1.5)}`,
     flexShrink: 0
   });
 
@@ -60,9 +78,90 @@ export const TopBar: React.FC<TopBarProps> = memo(
     activitySlot
   }) => {
     const theme = useTheme();
+    const isMobile = useTimelineIsMobile();
+    const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
+      null
+    );
+    const closeOverflow = useCallback(() => setOverflowAnchor(null), []);
+
+    // "Save as Asset" anchors a folder popover to whatever element was clicked.
+    // From the overflow menu that element is the menu item, which unmounts on
+    // close — so anchor the popover to the overflow button instead.
+    const overflowButtonRef = React.useRef<HTMLButtonElement>(null);
+    const runFromMenu = useCallback(
+      (action: () => void) => () => {
+        closeOverflow();
+        action();
+      },
+      [closeOverflow]
+    );
+
+    if (isMobile) {
+      const hasActions =
+        !!onOpenSettings || !!onSave || !!onSaveToAssets || !!onExportVideo;
+      return (
+        <FlexRow align="flex-start" gap={SPACING.sm} fullWidth css={styles(theme, true)}>
+          <TopBarPrompt compact />
+          {activitySlot}
+          {hasActions && (
+            <>
+              <ToolbarIconButton
+                ref={overflowButtonRef}
+                onClick={(e) => setOverflowAnchor(e.currentTarget)}
+                tooltip="More actions"
+                aria-label="More actions"
+                sx={{ flexShrink: 0 }}
+              >
+                <MoreVertIcon fontSize="small" />
+              </ToolbarIconButton>
+              <EditorMenu
+                anchorEl={overflowAnchor}
+                open={!!overflowAnchor}
+                onClose={closeOverflow}
+              >
+                {onOpenSettings && (
+                  <MenuItemPrimitive
+                    icon={<TuneIcon fontSize="small" />}
+                    label="Project settings"
+                    onClick={runFromMenu(onOpenSettings)}
+                  />
+                )}
+                {onSave && (
+                  <MenuItemPrimitive
+                    icon={<SaveIcon fontSize="small" />}
+                    label={isSaving ? "Saving…" : "Save"}
+                    disabled={isSaving}
+                    onClick={runFromMenu(onSave)}
+                  />
+                )}
+                {onSaveToAssets && (
+                  <MenuItemPrimitive
+                    icon={<VideoLibraryOutlinedIcon fontSize="small" />}
+                    label="Save as Asset"
+                    disabled={isExporting}
+                    onClick={runFromMenu(() => {
+                      const anchor = overflowButtonRef.current;
+                      if (anchor) onSaveToAssets(anchor);
+                    })}
+                  />
+                )}
+                {onExportVideo && (
+                  <MenuItemPrimitive
+                    icon={<FileDownloadIcon fontSize="small" />}
+                    label={isExporting ? "Exporting…" : "Export video"}
+                    disabled={isExporting}
+                    onClick={runFromMenu(onExportVideo)}
+                  />
+                )}
+              </EditorMenu>
+            </>
+          )}
+        </FlexRow>
+      );
+    }
 
     return (
-      <FlexRow align="center" gap={1} fullWidth css={styles(theme)}>
+      <FlexRow align="center" gap={1} fullWidth css={styles(theme, false)}>
         {/* Quick-prompt generation bar — grows to fill */}
         <TopBarPrompt />
 

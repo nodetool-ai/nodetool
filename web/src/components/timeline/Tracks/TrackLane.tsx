@@ -46,6 +46,8 @@ import {
   isCompatibleWithTrack
 } from "../dnd/assetToClipAdapter";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
+import { useLongPress } from "../../../hooks/timeline/useLongPress";
+import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 
 const DEFAULT_TRACK_HEIGHT_PX = 64;
 /** Duration (ms) the mismatch warning banner remains visible. */
@@ -130,6 +132,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const heightPx = track.heightPx ?? DEFAULT_TRACK_HEIGHT_PX;
 
+  const laneRef = useRef<HTMLDivElement>(null);
   const isRubberBandingRef = useRef(false);
   const rbStartRef = useRef({ x: 0, y: 0 });
   /** Selection snapshot taken at pointerdown when Shift is held (union mode). */
@@ -307,6 +310,39 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
     ]
   );
 
+  /** Open the lane menu at a viewport point, resolving the time under it. */
+  const openLaneMenuAt = useCallback(
+    (clientX: number, clientY: number, laneEl: HTMLDivElement) => {
+      if (track.locked) {
+        return;
+      }
+      const rect = laneEl.getBoundingClientRect();
+      const dropX = clientX - rect.left;
+      const startMs = Math.max(0, Math.round(dropX * msPerPx));
+      setContextMenuPos({ x: clientX, y: clientY, startMs });
+    },
+    [track.locked, msPerPx]
+  );
+
+  // Touch equivalent of the right-click menu below: without it a phone has no
+  // way to add a clip to an empty lane.
+  const laneLongPress = useLongPress(
+    useCallback(
+      (point: LongPressPoint) => {
+        const laneEl = laneRef.current;
+        if (!laneEl || point.target !== laneEl) {
+          return;
+        }
+        // The hold became a menu, not a band — drop the gesture pointerdown
+        // started so releasing doesn't re-select.
+        isRubberBandingRef.current = false;
+        setRubberBand(null);
+        openLaneMenuAt(point.clientX, point.clientY, laneEl);
+      },
+      [openLaneMenuAt]
+    )
+  );
+
   const handleLanePointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       // Only respond to primary button on the lane itself (not clips)
@@ -314,6 +350,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         return;
       }
       if (e.button !== 0) {
+        return;
+      }
+
+      // Touch: a drag across empty lane means "scroll the timeline", so the
+      // gesture is left to the scroller. Rubber-band marquee needs a second
+      // pointer to hold a modifier and has no equivalent on a phone; only the
+      // seek and the long-press menu below apply. (Capturing the pointer here
+      // would also suppress the native scroll outright.)
+      if (e.pointerType === "touch") {
+        laneLongPress.start(e);
+        const touchRect = e.currentTarget.getBoundingClientRect();
+        seek(Math.round((e.clientX - touchRect.left) * msPerPx));
         return;
       }
 
@@ -355,7 +403,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const timeMs = Math.round(localX * msPerPx);
       seek(timeMs);
     },
-    [clearSelection, msPerPx, seek, track.id]
+    [clearSelection, laneLongPress, msPerPx, seek, track.id]
   );
 
   // Apply the rubber-band selection for the given content-space range. Deduped
@@ -387,6 +435,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   const handleLanePointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      laneLongPress.move(e);
       if (!isRubberBandingRef.current || e.buttons !== 1) {
         return;
       }
@@ -410,17 +459,18 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
       const rbStartMs = left * msPerPx;
       applyRubberBandSelection(rbStartMs, rbStartMs + width * msPerPx);
     },
-    [msPerPx, applyRubberBandSelection]
+    [laneLongPress, msPerPx, applyRubberBandSelection]
   );
 
   const handleLanePointerUp = useCallback(() => {
+    laneLongPress.cancel();
     isRubberBandingRef.current = false;
     rbBaseSelectionRef.current = null;
     rbLastAppliedRef.current = null;
     rbTrackClipsRef.current = [];
     rbLaneRectRef.current = null;
     setRubberBand(null);
-  }, []);
+  }, [laneLongPress]);
 
   const handleLaneContextMenu = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -432,12 +482,9 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
         return;
       }
       e.preventDefault();
-      const rect = e.currentTarget.getBoundingClientRect();
-      const dropX = e.clientX - rect.left;
-      const startMs = Math.max(0, Math.round(dropX * msPerPx));
-      setContextMenuPos({ x: e.clientX, y: e.clientY, startMs });
+      openLaneMenuAt(e.clientX, e.clientY, e.currentTarget);
     },
-    [track.locked, msPerPx]
+    [track.locked, openLaneMenuAt]
   );
 
   const handleAddClipFromMenu = useCallback(() => {
@@ -480,6 +527,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track }) => {
 
   return (
     <div
+      ref={laneRef}
       css={laneStyles(theme, heightPx, track.visible, rubberBand !== null, isDragOver, isDragReject)}
       data-testid={`track-lane-${track.id}`}
       onPointerDown={handleLanePointerDown}

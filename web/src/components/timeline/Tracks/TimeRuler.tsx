@@ -239,12 +239,19 @@ function computeTickIntervals(msPerPx: number): {
   return { majorMs, minorMs };
 }
 
-/** Formats ms into M:SS (e.g. 0:05, 1:30). */
-function formatTimecode(ms: number): string {
-  const totalSec = Math.floor(ms / 1000);
+/**
+ * Formats ms into M:SS (e.g. 0:05, 1:30), gaining decimals once the tick
+ * interval is sub-second — otherwise zooming past 1 s/tick prints the same
+ * label on every tick ("0:02  0:02  0:02") and the ruler stops saying where
+ * anything is.
+ */
+export function formatTimecode(ms: number, majorMs = 1000): string {
+  const totalSec = ms / 1000;
   const min = Math.floor(totalSec / 60);
-  const sec = totalSec % 60;
-  return `${min}:${String(sec).padStart(2, "0")}`;
+  const sec = totalSec - min * 60;
+  const decimals = majorMs >= 1000 ? 0 : majorMs >= 500 ? 1 : 2;
+  const secText = sec.toFixed(decimals);
+  return `${min}:${sec < 10 ? "0" : ""}${secText}`;
 }
 
 export interface TimeRulerProps {
@@ -410,7 +417,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
         if (isMajor) {
           ctx.fillStyle = textColor;
-          ctx.fillText(formatTimecode(tMs), px + 3, 3);
+          ctx.fillText(formatTimecode(tMs, majorMs), px + 3, 3);
         }
       }
 

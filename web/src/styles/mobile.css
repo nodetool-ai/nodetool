@@ -599,6 +599,19 @@
     font-size: 18px !important;
   }
 
+  /* A timeline track header is 132px wide and 64px tall and carries up to six
+     toggles (visible, lock, mute, solo, effects, delete). At 44px each they
+     need 264px, so the blanket rule above pushed four of them out of a
+     clipped box. 30x26 keeps every control reachable inside the header and
+     still clears the 24x24 minimum. */
+  .mobile .timeline-track-controls > button {
+    width: 30px !important;
+    height: 26px !important;
+    min-width: 30px !important;
+    min-height: 26px !important;
+    padding: 0 !important;
+  }
+
   .mobile .main-container {
     height: 100dvh !important;
     max-height: 100dvh !important;
