@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { ApiErrorCode } from "./error-codes.js";
-import { admitSpend } from "./credit-gate.js";
+import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
@@ -1699,6 +1699,25 @@ export function resolveRunJobUserId(
   return requestUserId?.trim() || connectionUserId?.trim() || "1";
 }
 
+interface DirectMediaGenerationRequest {
+  mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
+  provider: string;
+  model: string;
+  prompt: string;
+  sourceAssetId?: string;
+  maskAssetId?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  strength?: number;
+  numInferenceSteps?: number;
+  variations?: number;
+  voice?: string;
+  speed?: number;
+  audioFormat?: string;
+}
+
 interface ActiveJob {
   jobId: string;
   workflowId: string | null;
@@ -3110,14 +3129,20 @@ export class UnifiedWebSocketRunner {
   private async admitCreditRun(req: RunJobRequest): Promise<boolean> {
     const { usesNodetool, estimatedUsd } = this.estimateNodetoolSpend(req);
     if (!usesNodetool) return true;
+    // Pin the job id now so the reservation taken here can be released at the
+    // run's terminal state (and on cancel-while-queued) under the same key.
+    req.job_id ??= randomUUID();
     const decision = await admitSpend(this.userId, estimatedUsd);
-    if (decision.allowed) return true;
-    return this.refuseRun(
-      req,
-      req.job_id ?? randomUUID(),
-      ApiErrorCode.BUDGET_EXCEEDED,
-      decision.reason
-    );
+    if (!decision.allowed) {
+      return this.refuseRun(
+        req,
+        req.job_id,
+        ApiErrorCode.BUDGET_EXCEEDED,
+        decision.reason
+      );
+    }
+    reserveSpend(this.userId ?? "1", req.job_id, estimatedUsd);
+    return true;
   }
 
   async runJob(req: RunJobRequest): Promise<void> {
@@ -3622,6 +3647,7 @@ export class UnifiedWebSocketRunner {
       }
       await this.persistTerminalJobStatus(active);
       await this.settleApplicationInvocation(active);
+      releaseSpend(this.userId ?? "1", active.jobId);
     } finally {
       // Terminal: the session stops buffering and starts its retention
       // window, so a client reconnecting shortly after still gets the tail
@@ -4099,6 +4125,7 @@ export class UnifiedWebSocketRunner {
 
     await this.persistTerminalJobStatus(active);
     await this.settleApplicationInvocation(active);
+    releaseSpend(this.userId ?? "1", active.jobId);
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.
   }
@@ -4252,6 +4279,7 @@ export class UnifiedWebSocketRunner {
     // and tell the client it's cancelled before it ever starts.
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
+      releaseSpend(this.userId ?? "1", jobId);
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       // Mark the persisted queued row cancelled so it leaves the queue in
       // jobs.list too (not just the in-memory queue).
@@ -7609,24 +7637,9 @@ export class UnifiedWebSocketRunner {
    * image layers and the timeline's direct-gen video / audio clips; the
    * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
    */
-  private async runDirectMediaGeneration(req: {
-    mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
-    provider: string;
-    model: string;
-    prompt: string;
-    sourceAssetId?: string;
-    maskAssetId?: string;
-    width?: number;
-    height?: number;
-    aspectRatio?: string;
-    resolution?: string;
-    strength?: number;
-    numInferenceSteps?: number;
-    variations?: number;
-    voice?: string;
-    speed?: number;
-    audioFormat?: string;
-  }): Promise<{ asset_ids: string[] }> {
+  private async runDirectMediaGeneration(
+    req: DirectMediaGenerationRequest
+  ): Promise<{ asset_ids: string[] }> {
     if (!this.resolveProvider) {
       throw new Error("No provider resolver configured");
     }
@@ -7636,18 +7649,61 @@ export class UnifiedWebSocketRunner {
     if (!req.prompt || !req.prompt.trim()) {
       throw new Error("prompt is required");
     }
-
     const userId = this.userId ?? "1";
-    // Only NodeTool's managed provider is metered; BYOK providers run on the
-    // user's own keys. Direct generation has no per-node estimate, so the
-    // gate refuses on an empty balance.
-    if (req.provider === "nodetool") {
-      const creditDecision = await admitSpend(userId, 0);
-      if (!creditDecision.allowed) {
-        throw new Error(creditDecision.reason);
-      }
-    }
     const provider = await this.resolveProvider(req.provider, userId);
+    if (req.provider !== "nodetool") {
+      // BYOK: the user's own keys, never metered.
+      return this.runDirectMediaGenerationInner(req, provider);
+    }
+
+    // NodeTool's managed provider: admit against the balance (including
+    // in-flight reservations), reserve the unit-price estimate for the
+    // duration of the call, and record the spend as a prediction row so the
+    // balance actually decrements. Cost is the larger of the delegate's own
+    // tracked cost and the unit-price estimate — fal-style delegates bill
+    // per unit and track nothing themselves.
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const unit = getModelUnitPrice({ id: req.model, provider: "nodetool" });
+    const estimatedUsd = (unit?.unit_price ?? 0) * variations;
+    const decision = await admitSpend(userId, estimatedUsd);
+    if (!decision.allowed) {
+      throw new Error(decision.reason);
+    }
+    const reservationKey = `media:${randomUUID()}`;
+    reserveSpend(userId, reservationKey, estimatedUsd);
+    try {
+      const result = await this.runDirectMediaGenerationInner(req, provider);
+      const cost = Math.max(provider.getTotalCost(), estimatedUsd);
+      if (cost > 0) {
+        try {
+          await Prediction.create<Prediction>({
+            user_id: userId,
+            provider: "nodetool",
+            model: req.model,
+            node_type: `direct.${req.mode}`,
+            cost,
+            currency: "USD",
+            billing_unit: unit?.billing_unit ?? null,
+            quantity: variations,
+            workflow_id: null,
+            node_id: "",
+            status: "completed"
+          });
+        } catch (err) {
+          this.logError("direct media cost persistence failed", err);
+        }
+      }
+      return result;
+    } finally {
+      releaseSpend(userId, reservationKey);
+    }
+  }
+
+  private async runDirectMediaGenerationInner(
+    req: DirectMediaGenerationRequest,
+    provider: BaseProvider
+  ): Promise<{ asset_ids: string[] }> {
+    const userId = this.userId ?? "1";
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
     const storeAsset = async (
@@ -7950,6 +8006,26 @@ export class UnifiedWebSocketRunner {
       language: req.language,
       word_timestamps: true
     });
+
+    // Metered provider: record what the delegate tracked so the spend lands
+    // in the ledger the balance is computed from. Best-effort, never throws.
+    if (req.provider === "nodetool" && provider.getTotalCost() > 0) {
+      try {
+        await Prediction.create<Prediction>({
+          user_id: userId,
+          provider: "nodetool",
+          model: req.model,
+          node_type: "direct.transcription",
+          cost: provider.getTotalCost(),
+          currency: "USD",
+          workflow_id: null,
+          node_id: "",
+          status: "completed"
+        });
+      } catch (err) {
+        this.logError("direct transcription cost persistence failed", err);
+      }
+    }
 
     const words = (result.chunks ?? [])
       .map((chunk) => ({

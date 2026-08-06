@@ -74,15 +74,17 @@ const StudioAccountPage = () => {
                     {status.periodKey})
                   </Text>
                 </FlexColumn>
-                <EditorButton
-                  variant="outlined"
-                  disabled={topup.isPending}
-                  onClick={() => topup.mutate({ credits: TOPUP_CREDITS })}
-                >
-                  {topup.isPending
-                    ? "Adding…"
-                    : `Add ${TOPUP_CREDITS} credits (test)`}
-                </EditorButton>
+                {status.testTopupEnabled && (
+                  <EditorButton
+                    variant="outlined"
+                    disabled={topup.isPending}
+                    onClick={() => topup.mutate({ credits: TOPUP_CREDITS })}
+                  >
+                    {topup.isPending
+                      ? "Adding…"
+                      : `Add ${TOPUP_CREDITS} credits (test)`}
+                  </EditorButton>
+                )}
               </FlexRow>
               <Text size="smaller" color="secondary" sx={{ mt: SPACING.md }}>
                 Credits meter NodeTool's managed models only — bring your own

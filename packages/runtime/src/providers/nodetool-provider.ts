@@ -39,7 +39,6 @@ const PLATFORM_KEYS: Record<string, string> = {
 
 export class NodetoolProvider extends BaseProvider {
   private secrets: Record<string, unknown>;
-  private inner = new Map<string, BaseProvider>();
   private _absorbedCost = 0;
 
   static override requiredSecrets(): string[] {
@@ -61,7 +60,14 @@ export class NodetoolProvider extends BaseProvider {
     return this.platformKey(delegateProvider) != null;
   }
 
-  /** The delegate serving a nodetool model id, constructed on platform keys. */
+  /**
+   * The delegate serving a nodetool model id, constructed on platform keys.
+   * A fresh instance per call on purpose: cost is read off the delegate's
+   * cumulative counter after the call, and a shared delegate serving
+   * overlapping calls would double-count one call's cost into another's
+   * absorption window. Construction is cheap — both delegates build their
+   * network clients lazily.
+   */
   private delegateFor(modelId: string): {
     provider: BaseProvider;
     model: string;
@@ -77,15 +83,11 @@ export class NodetoolProvider extends BaseProvider {
           `(missing ${PLATFORM_KEYS[def.delegate.provider]}).`
       );
     }
-    let instance = this.inner.get(def.delegate.provider);
-    if (!instance) {
-      instance =
-        def.delegate.provider === "fal_ai"
-          ? new FalProvider({ FAL_API_KEY: key })
-          : new AnthropicProvider({ ANTHROPIC_API_KEY: key });
-      this.inner.set(def.delegate.provider, instance);
-    }
-    return { provider: instance, model: def.delegate.model };
+    const provider =
+      def.delegate.provider === "fal_ai"
+        ? new FalProvider({ FAL_API_KEY: key })
+        : new AnthropicProvider({ ANTHROPIC_API_KEY: key });
+    return { provider, model: def.delegate.model };
   }
 
   /** Run a delegated call and absorb the delegate's cost delta as our own. */
@@ -111,7 +113,6 @@ export class NodetoolProvider extends BaseProvider {
 
   override resetCost(): void {
     this._absorbedCost = 0;
-    for (const inner of this.inner.values()) inner.resetCost();
   }
 
   protected override declaredCapabilities(): ProviderCapability[] {

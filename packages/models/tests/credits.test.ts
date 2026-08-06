@@ -18,12 +18,12 @@ const USER = "u1";
 const FREE = CREDIT_PLANS.find((p) => p.id === "free")!;
 const CREATOR = CREDIT_PLANS.find((p) => p.id === "creator")!;
 
-const spend = (cost: number) =>
+const spend = (cost: number, provider = "nodetool") =>
   Prediction.create<Prediction>({
     user_id: USER,
     node_id: "n",
     node_type: "test",
-    provider: "test",
+    provider,
     model: "test",
     cost
   });
@@ -97,6 +97,19 @@ describe("credits", () => {
     if (!big.allowed) {
       expect(big.reason).toContain("credits");
     }
+  });
+
+  it("only managed-provider spend counts — BYOK predictions never drain credits", async () => {
+    await creditStatus(USER);
+    await spend(0.5, "fal_ai");
+    await spend(1.25, "anthropic");
+    const untouched = await creditStatus(USER);
+    expect(untouched.spentCredits).toBe(0);
+    expect(untouched.balanceCredits).toBe(FREE.monthlyCredits);
+
+    await spend(0.02, "nodetool");
+    const managed = await creditStatus(USER);
+    expect(managed.spentCredits).toBe(2);
   });
 
   it("credits are per user", async () => {

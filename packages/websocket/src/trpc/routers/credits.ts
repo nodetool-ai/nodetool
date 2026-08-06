@@ -15,11 +15,22 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/credits.js";
 import { NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
 
+/**
+ * Whether the unauthenticated-by-payment test top-up is allowed. Off unless
+ * the operator explicitly opts a development server in: minted credits unlock
+ * spend on platform-owned keys, so an open mint endpoint is an open wallet.
+ */
+const testTopupEnabled = (): boolean => {
+  const value = process.env.NODETOOL_ENABLE_TEST_TOPUP?.toLowerCase();
+  return value === "1" || value === "true";
+};
+
 const statusFor = async (userId: string) => {
   const status = await creditStatus(userId);
   return {
     ...status,
     meteredProvider: NODETOOL_PROVIDER_ID,
+    testTopupEnabled: testTopupEnabled(),
     plans: [...CREDIT_PLANS]
   };
 };
@@ -49,7 +60,8 @@ export const creditsRouter = router({
     }),
 
   /**
-   * Prototype top-up: adds credits with no payment behind it. A payment
+   * Development-only top-up: adds credits with no payment behind it, and is
+   * refused unless the operator sets NODETOOL_ENABLE_TEST_TOPUP. A payment
    * provider integration replaces this mutation with a checkout session and
    * writes the ledger row from the webhook instead.
    */
@@ -57,6 +69,14 @@ export const creditsRouter = router({
     .input(topupInput)
     .output(creditStatusOutput)
     .mutation(async ({ ctx, input }) => {
+      if (!testTopupEnabled()) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message:
+            "Top-ups are disabled on this server: no payment provider is " +
+            "configured and NODETOOL_ENABLE_TEST_TOPUP is not set."
+        });
+      }
       await grantCredits(
         ctx.userId,
         input.credits,

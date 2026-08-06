@@ -25,6 +25,8 @@ export const creditStatusOutput = z.object({
    * are never gated — both models coexist on one server.
    */
   meteredProvider: z.string(),
+  /** True only on dev servers that opt into the no-payment test top-up. */
+  testTopupEnabled: z.boolean(),
   plans: z.array(creditPlan)
 });
 export type CreditStatusOutput = z.infer<typeof creditStatusOutput>;

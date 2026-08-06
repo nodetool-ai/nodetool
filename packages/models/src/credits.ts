@@ -12,7 +12,8 @@
  * would write `topup` rows and flip `plan_id`; until then plan switches are
  * instant and top-ups are stubbed.
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
+import { NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
 
 import { getDb } from "./db.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
@@ -222,10 +223,18 @@ export async function creditStatus(userId: string): Promise<CreditStatus> {
     .where(eq(creditLedger.user_id, userId));
   const grantedCredits = Number(grantRows[0]?.total ?? 0);
 
+  // Only the managed provider's spend counts against credits — BYOK
+  // predictions (fal_ai, anthropic, …) ride the user's own keys and must
+  // never drain the balance.
   const spendRows = await db
     .select({ total: sql<number>`COALESCE(SUM(${predictions.cost}), 0)` })
     .from(predictions)
-    .where(eq(predictions.user_id, userId));
+    .where(
+      and(
+        eq(predictions.user_id, userId),
+        eq(predictions.provider, NODETOOL_PROVIDER_ID)
+      )
+    );
   const spentUsd = Number(spendRows[0]?.total ?? 0);
   const spentCredits = Math.ceil(spentUsd / USD_PER_CREDIT);
 
