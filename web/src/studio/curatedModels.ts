@@ -39,11 +39,6 @@ export const STUDIO_CLIP_MODEL: VideoModelValue = {
   name: "Kling O1 Standard"
 };
 
-/**
- * Credits are a beginner-friendly veneer over the prediction ledger:
- * 1 credit = one US cent of provider spend. The grant is a flat prototype
- * allowance; the real product replaces it with purchased balances enforced
- * server-side (see docs/agentic-video-product.md).
- */
-export const USD_PER_CREDIT = 0.01;
-export const STUDIO_CREDIT_GRANT = 1_000;
+// Credits and plans are server-owned: balance, plan catalog, and enforcement
+// live in @nodetool-ai/models (`credits.ts`) behind `trpc.credits.*`.
+// See docs/agentic-video-product.md.

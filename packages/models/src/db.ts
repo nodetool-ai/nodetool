@@ -1161,6 +1161,25 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_application_invocation_created" ON "application_invocations" ("created_at");
     CREATE INDEX IF NOT EXISTS "idx_application_invocation_invocation" ON "application_invocations" ("invocation_id");
 
+    CREATE TABLE IF NOT EXISTS "nodetool_credit_ledger" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "delta" integer NOT NULL,
+      "kind" text NOT NULL,
+      "description" text,
+      "period_key" text,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_credit_ledger_user" ON "nodetool_credit_ledger" ("user_id");
+
+    CREATE TABLE IF NOT EXISTS "nodetool_user_subscriptions" (
+      "user_id" text PRIMARY KEY NOT NULL,
+      "plan_id" text NOT NULL DEFAULT 'free',
+      "status" text NOT NULL DEFAULT 'active',
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS "scripts" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,

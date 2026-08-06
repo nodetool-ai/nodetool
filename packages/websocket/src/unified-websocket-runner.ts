@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { ApiErrorCode } from "./error-codes.js";
+import { admitSpend, creditsEnforced } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
@@ -3059,9 +3060,29 @@ export class UnifiedWebSocketRunner {
     return true;
   }
 
+  /**
+   * Gate every run on the user's credit balance when the deployment enforces
+   * credits (NODETOOL_CREDITS_ENFORCED — the Studio product). Estimates are
+   * floors, so an empty balance refuses even a 0-estimate run. Fails open on
+   * gate errors, like the application-budget gate above.
+   */
+  private async admitCreditRun(req: RunJobRequest): Promise<boolean> {
+    if (!creditsEnforced()) return true;
+    const estimatedUsd = await this.estimateRunCost(req);
+    const decision = await admitSpend(this.userId, estimatedUsd);
+    if (decision.allowed) return true;
+    return this.refuseRun(
+      req,
+      req.job_id ?? randomUUID(),
+      ApiErrorCode.BUDGET_EXCEEDED,
+      decision.reason
+    );
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
+    if (!(await this.admitCreditRun(req))) return;
     const max = await this.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -7576,6 +7597,12 @@ export class UnifiedWebSocketRunner {
     }
 
     const userId = this.userId ?? "1";
+    // Direct generation has no per-node estimate; the gate still refuses an
+    // empty balance when the deployment enforces credits.
+    const creditDecision = await admitSpend(userId, 0);
+    if (!creditDecision.allowed) {
+      throw new Error(creditDecision.reason);
+    }
     const provider = await this.resolveProvider(req.provider, userId);
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
@@ -7852,6 +7879,10 @@ export class UnifiedWebSocketRunner {
     }
 
     const userId = this.userId ?? "1";
+    const creditDecision = await admitSpend(userId, 0);
+    if (!creditDecision.allowed) {
+      throw new Error(creditDecision.reason);
+    }
     const asset = await Asset.find(userId, req.assetId);
     if (!asset) {
       throw new Error(`Audio asset not found: ${req.assetId}`);

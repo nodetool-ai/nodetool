@@ -333,3 +333,22 @@ export function getGlobalAdapterResolver():
 // Legacy types kept for API compat
 export type { IndexSpec } from "./legacy-compat.js";
 export type { ModelClass, AdapterResolver } from "./legacy-compat.js";
+export {
+  CREDIT_PLANS,
+  DEFAULT_PLAN_ID,
+  USD_PER_CREDIT,
+  checkCredits,
+  creditStatus,
+  ensureMonthlyGrant,
+  getSubscription,
+  grantCredits,
+  periodKeyFor,
+  planById,
+  setSubscriptionPlan
+} from "./credits.js";
+export type {
+  CreditDecision,
+  CreditPlan,
+  CreditStatus,
+  UserSubscription
+} from "./credits.js";
