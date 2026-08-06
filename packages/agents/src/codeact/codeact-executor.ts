@@ -88,9 +88,11 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "browser",
   "http_request",
   "download_file",
-  // Workspace files.
+  // Workspace files — the Claude-agent core set (read/write/edit/glob/grep
+  // above) stays top level in full.
   "read_file",
   "write_file",
+  "edit_file",
   "list_directory",
   // Shared agent memory.
   "memory_list",
