@@ -69,6 +69,10 @@ const styles = (theme: Theme) =>
     }
   });
 
+// Constant, so `memo(AssetGridRow)` actually hits — a literal at the call site
+// gave every visible row a new `style` object on every render.
+const ROW_STYLE: React.CSSProperties = { width: "100%", height: "100%" };
+
 interface AssetGridContentProps {
   itemSpacing?: number;
   assets?: Asset[];
@@ -432,7 +436,7 @@ const AssetGridContent: React.FC<AssetGridContentProps> = memo(({
             >
               <AssetGridRow
                 index={vi.index}
-                style={{ width: "100%", height: "100%" }}
+                style={ROW_STYLE}
                 data={itemData}
               />
             </div>

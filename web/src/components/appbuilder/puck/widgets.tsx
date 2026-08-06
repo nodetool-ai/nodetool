@@ -265,9 +265,13 @@ export const ImageWidget: React.FC<WidgetCommon & {
   placeholder?: string;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const sources = asItems(value)
-    .map(resolveImageSrc)
-    .filter((src): src is string => src !== null);
+  const sources = React.useMemo(
+    () =>
+      asItems(value)
+        .map(resolveImageSrc)
+        .filter((src): src is string => src !== null),
+    [value]
+  );
   const height = numOr(props.height, 240);
   if (sources.length === 0) {
     return (
@@ -297,9 +301,13 @@ export const AudioWidget: React.FC<WidgetCommon & { placeholder?: string }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
-  const sources = asItems(value)
-    .map((item) => resolveMediaSrc(item, "audio/mpeg"))
-    .filter((src): src is string => src !== null);
+  const sources = React.useMemo(
+    () =>
+      asItems(value)
+        .map((item) => resolveMediaSrc(item, "audio/mpeg"))
+        .filter((src): src is string => src !== null),
+    [value]
+  );
   if (sources.length === 0) {
     return (
       <MediaPlaceholder height={56} text={props.placeholder ?? "No audio yet"} />
@@ -319,9 +327,13 @@ export const VideoWidget: React.FC<WidgetCommon & {
   placeholder?: string;
 }> = (props) => {
   const { value } = useBinding(props, "read");
-  const sources = asItems(value)
-    .map((item) => resolveMediaSrc(item, "video/mp4"))
-    .filter((src): src is string => src !== null);
+  const sources = React.useMemo(
+    () =>
+      asItems(value)
+        .map((item) => resolveMediaSrc(item, "video/mp4"))
+        .filter((src): src is string => src !== null),
+    [value]
+  );
   const height = numOr(props.height, 320);
   if (sources.length === 0) {
     return (
