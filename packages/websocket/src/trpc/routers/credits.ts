@@ -13,13 +13,13 @@ import {
   setPlanInput,
   topupInput
 } from "@nodetool-ai/protocol/api-schemas/credits.js";
-import { creditsEnforced } from "../../credit-gate.js";
+import { NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
 
 const statusFor = async (userId: string) => {
   const status = await creditStatus(userId);
   return {
     ...status,
-    enforced: creditsEnforced(),
+    meteredProvider: NODETOOL_PROVIDER_ID,
     plans: [...CREDIT_PLANS]
   };
 };

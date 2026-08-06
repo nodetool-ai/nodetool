@@ -75,14 +75,24 @@ Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
 - **API**: `trpc.credits.status | setPlan | topup`
   (`packages/websocket/src/trpc/routers/credits.ts`, schemas in
   `packages/protocol/src/api-schemas/credits.ts`).
-- **Enforcement** (`packages/websocket/src/credit-gate.ts`): off by default —
-  the open platform meters cost but never blocks. A Studio deployment sets
-  `NODETOOL_CREDITS_ENFORCED=1`, and then every spend path refuses on an
-  empty balance with `BUDGET_EXCEEDED`: workflow runs (`admitCreditRun` in
-  `unified-websocket-runner.ts`, next to the application-budget gate, using
-  the same cost estimate as a floor) and the direct `generate_media` /
-  `transcribe_audio` RPCs the script editor voices through. Like the app
-  gate, it fails open on gate errors.
+- **The `nodetool` provider is what gets metered.** NodeTool's own managed
+  models are a real provider (`packages/runtime/src/providers/nodetool-provider.ts`,
+  id `nodetool`): each curated model (`NODETOOL_MODELS` in
+  `@nodetool-ai/protocol`) names a delegate provider+model, and the provider
+  runs the delegate on *platform-owned* keys (`NODETOOL_PLATFORM_FAL_KEY`,
+  `NODETOOL_PLATFORM_ANTHROPIC_KEY`) rather than the user's. Cost is absorbed
+  from the delegate at the delegate's price, and
+  `@nodetool-ai/model-pricing` translates `nodetool/...` ids to the delegate
+  before lookup so estimates are real numbers. Models appear in the pickers
+  only when their platform key is set.
+- **Enforcement follows the provider, not the deployment**
+  (`packages/websocket/src/credit-gate.ts`): a workflow run is gated only on
+  the slice of its estimate whose provider is `nodetool`
+  (`estimateNodetoolSpend` → `admitCreditRun`, next to the
+  application-budget gate); the direct `generate_media`/`transcribe_audio`
+  RPCs are gated only when called with `provider: "nodetool"`. BYOK
+  providers are never gated — credits and bring-your-own-key coexist on one
+  server, per user, per call. The gate fails open on its own errors.
 - **UI**: the header chip reads `credits.status` and links to
   `/studio/account` — balance, usage, plan cards, and the (clearly labeled)
   test top-up.

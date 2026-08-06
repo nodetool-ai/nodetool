@@ -20,8 +20,11 @@ export const creditStatusOutput = z.object({
   spentCredits: z.number().int(),
   balanceCredits: z.number().int(),
   spentUsd: z.number(),
-  /** Whether the server refuses runs when the balance is empty. */
-  enforced: z.boolean(),
+  /**
+   * The provider whose spend the balance meters ("nodetool"). BYOK providers
+   * are never gated — both models coexist on one server.
+   */
+  meteredProvider: z.string(),
   plans: z.array(creditPlan)
 });
 export type CreditStatusOutput = z.infer<typeof creditStatusOutput>;

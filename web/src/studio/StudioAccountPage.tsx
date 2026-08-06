@@ -84,12 +84,10 @@ const StudioAccountPage = () => {
                     : `Add ${TOPUP_CREDITS} credits (test)`}
                 </EditorButton>
               </FlexRow>
-              {!status.enforced && (
-                <Text size="smaller" color="secondary" sx={{ mt: SPACING.md }}>
-                  This server tracks credits but does not block generation
-                  (NODETOOL_CREDITS_ENFORCED is off).
-                </Text>
-              )}
+              <Text size="smaller" color="secondary" sx={{ mt: SPACING.md }}>
+                Credits meter NodeTool's managed models only — bring your own
+                provider keys and those calls stay unmetered.
+              </Text>
             </Card>
 
             <FlexColumn gap={SPACING.sm} sx={{ width: "100%", maxWidth: 880 }}>

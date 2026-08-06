@@ -213,7 +213,8 @@ export const CLOUD_PROVIDER_IDS: readonly string[] = [
   "mistral",
   "xai",
   "fal_ai",
-  "kie"
+  "kie",
+  "nodetool"
 ];
 
 /**

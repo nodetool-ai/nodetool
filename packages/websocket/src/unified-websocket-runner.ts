@@ -4,7 +4,7 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { ApiErrorCode } from "./error-codes.js";
-import { admitSpend, creditsEnforced } from "./credit-gate.js";
+import { admitSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
@@ -2876,6 +2876,44 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /**
+   * The slice of a run that spends through NodeTool's managed provider —
+   * the only spend the credit balance meters. BYOK nodes are excluded on
+   * purpose: their cost rides the user's own keys.
+   */
+  private estimateNodetoolSpend(req: RunJobRequest): {
+    usesNodetool: boolean;
+    estimatedUsd: number;
+  } {
+    const nodes = req.graph?.nodes;
+    if (!nodes || !this.getNodeMetadata) {
+      return { usesNodetool: false, estimatedUsd: 0 };
+    }
+    try {
+      const estimate = estimateWorkflowCost({
+        nodes: nodes.map((node) => ({
+          id: String(node.id),
+          type: String(node.type),
+          data: (node.data ?? {}) as Record<string, unknown>
+        })),
+        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
+        getModelPrice: getModelUnitPrice
+      });
+      const items = estimate.items.filter(
+        (item) => item.provider === "nodetool"
+      );
+      const total = items.reduce(
+        (sum, item) =>
+          sum + (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
+        0
+      );
+      return { usesNodetool: items.length > 0, estimatedUsd: total };
+    } catch (err) {
+      this.logError("nodetool spend estimate failed", err);
+      return { usesNodetool: false, estimatedUsd: 0 };
+    }
+  }
+
   /** Tell the client a run was refused, in the shape a failed job takes. */
   private refuseRun(
     req: RunJobRequest,
@@ -3061,14 +3099,17 @@ export class UnifiedWebSocketRunner {
   }
 
   /**
-   * Gate every run on the user's credit balance when the deployment enforces
-   * credits (NODETOOL_CREDITS_ENFORCED — the Studio product). Estimates are
-   * floors, so an empty balance refuses even a 0-estimate run. Fails open on
-   * gate errors, like the application-budget gate above.
+   * Gate a run on the user's credit balance — but only the part of the run
+   * that spends through NodeTool's managed provider. A graph with no
+   * `nodetool` models passes untouched (BYOK stays unmetered); one with them
+   * is refused when the balance is empty or can't cover the estimate.
+   * Estimates are floors, so an empty balance refuses even a 0-estimate
+   * nodetool call. Fails open on gate errors, like the application-budget
+   * gate above.
    */
   private async admitCreditRun(req: RunJobRequest): Promise<boolean> {
-    if (!creditsEnforced()) return true;
-    const estimatedUsd = await this.estimateRunCost(req);
+    const { usesNodetool, estimatedUsd } = this.estimateNodetoolSpend(req);
+    if (!usesNodetool) return true;
     const decision = await admitSpend(this.userId, estimatedUsd);
     if (decision.allowed) return true;
     return this.refuseRun(
@@ -7597,11 +7638,14 @@ export class UnifiedWebSocketRunner {
     }
 
     const userId = this.userId ?? "1";
-    // Direct generation has no per-node estimate; the gate still refuses an
-    // empty balance when the deployment enforces credits.
-    const creditDecision = await admitSpend(userId, 0);
-    if (!creditDecision.allowed) {
-      throw new Error(creditDecision.reason);
+    // Only NodeTool's managed provider is metered; BYOK providers run on the
+    // user's own keys. Direct generation has no per-node estimate, so the
+    // gate refuses on an empty balance.
+    if (req.provider === "nodetool") {
+      const creditDecision = await admitSpend(userId, 0);
+      if (!creditDecision.allowed) {
+        throw new Error(creditDecision.reason);
+      }
     }
     const provider = await this.resolveProvider(req.provider, userId);
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
@@ -7879,9 +7923,11 @@ export class UnifiedWebSocketRunner {
     }
 
     const userId = this.userId ?? "1";
-    const creditDecision = await admitSpend(userId, 0);
-    if (!creditDecision.allowed) {
-      throw new Error(creditDecision.reason);
+    if (req.provider === "nodetool") {
+      const creditDecision = await admitSpend(userId, 0);
+      if (!creditDecision.allowed) {
+        throw new Error(creditDecision.reason);
+      }
     }
     const asset = await Asset.find(userId, req.assetId);
     if (!asset) {

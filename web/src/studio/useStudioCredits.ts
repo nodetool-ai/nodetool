@@ -1,8 +1,8 @@
 /**
  * Server-backed Studio credits: balance, plan, and the plan catalog come from
- * `trpc.credits.status`, which accrues the month's plan grant on read. The
- * server enforces spend only when the deployment sets
- * NODETOOL_CREDITS_ENFORCED (`enforced` in the payload says so).
+ * `trpc.credits.status`, which accrues the month's plan grant on read.
+ * Credits meter only the `nodetool` provider (`meteredProvider` in the
+ * payload) — BYOK providers stay unmetered.
  */
 
 import { trpc } from "../trpc/client";

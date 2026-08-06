@@ -36,6 +36,7 @@ import { HuggingFaceProvider } from "./huggingface-provider.js";
 import { PythonProvider } from "./python-provider.js";
 import { ReplicateProvider } from "./replicate-provider.js";
 import { FalProvider } from "./fal-provider.js";
+import { NodetoolProvider } from "./nodetool-provider.js";
 import { KieProvider } from "./kie-provider.js";
 import { ElevenLabsProvider } from "./elevenlabs-provider.js";
 import { TopazProvider } from "./topaz-provider.js";
@@ -81,6 +82,7 @@ export { HuggingFaceProvider };
 export { PythonProvider };
 export { ReplicateProvider };
 export { FalProvider };
+export { NodetoolProvider };
 export { KieProvider };
 export {
   registerWebhookWait,
@@ -276,6 +278,19 @@ registerBuiltinProvider(PROVIDER_IDS.MOONSHOT, MoonshotProvider, { KIMI_API_KEY:
 registerBuiltinProvider(PROVIDER_IDS.MINIMAX, MinimaxProvider, { MINIMAX_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.REPLICATE, ReplicateProvider, { REPLICATE_API_TOKEN: "" });
 registerBuiltinProvider(PROVIDER_IDS.FAL_AI, FalProvider, { FAL_API_KEY: "" });
+// NodeTool's own managed models: curated delegates on platform-owned keys,
+// metered against the user's credit balance. Registered with no required
+// kwargs — availability is per model, decided by which platform keys are set
+// (the model listers return only funded entries).
+registerBuiltinProvider(
+  PROVIDER_IDS.NODETOOL,
+  NodetoolProvider,
+  {},
+  {
+    NODETOOL_PLATFORM_FAL_KEY: "",
+    NODETOOL_PLATFORM_ANTHROPIC_KEY: ""
+  }
+);
 registerBuiltinProvider(PROVIDER_IDS.KIE, KieProvider, { KIE_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ElevenLabsProvider, { ELEVENLABS_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.TOPAZ, TopazProvider, { TOPAZ_API_KEY: "" });

@@ -27,6 +27,7 @@ import type {
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { getGenspendPrice, GENSPEND_CURRENCY } from "./genspend-catalog.js";
+import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 
 interface CatalogPrice {
   unit_price?: unknown;
@@ -86,6 +87,17 @@ function genspendPrice(model: SelectedModel): ModelUnitPricingLike | null {
 export function getModelUnitPrice(
   model: SelectedModel
 ): ModelUnitPricingLike | null {
+  // NodeTool's managed models price at their delegate's rate: translate the
+  // curated id to the underlying provider+model before the catalog lookups,
+  // so credit estimates for the metered provider are real numbers.
+  if (model.provider === "nodetool") {
+    const delegate = resolveNodetoolDelegate(model.id);
+    if (!delegate) return null;
+    return getModelUnitPrice({
+      id: delegate.model,
+      provider: delegate.provider
+    });
+  }
   return falPrice(model.id) ?? kiePrice(model.id) ?? genspendPrice(model);
 }
 
