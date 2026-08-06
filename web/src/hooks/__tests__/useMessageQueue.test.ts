@@ -7,9 +7,24 @@ describe("useMessageQueue", () => {
   const mockOnStop = jest.fn();
   const mockTextareaRef = {
     current: {
-      focus: jest.fn()
+      focus: jest.fn(),
+      blur: jest.fn()
     } as unknown as HTMLTextAreaElement
   };
+
+  const mockPointer = (coarse: boolean) => {
+    window.matchMedia = jest.fn().mockImplementation((query: string) => ({
+      matches: query.includes("pointer: coarse") ? coarse : false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn()
+    })) as unknown as typeof window.matchMedia;
+  };
+  const originalMatchMedia = window.matchMedia;
 
   const createMockContent = (text: string): MessageContent[] => [
     { type: "text", text }
@@ -22,6 +37,7 @@ describe("useMessageQueue", () => {
 
   afterEach(() => {
     jest.useRealTimers();
+    window.matchMedia = originalMatchMedia;
   });
 
   describe("initial state", () => {
@@ -162,6 +178,34 @@ describe("useMessageQueue", () => {
       });
 
       expect(mockTextareaRef.current.focus).toHaveBeenCalled();
+    });
+
+    it("blurs the textarea after sending on a touch device", () => {
+      mockPointer(true);
+
+      const { result } = renderHook(() =>
+        useMessageQueue({
+          isLoading: false,
+          isStreaming: false,
+          onSendMessage: mockOnSendMessage,
+          textareaRef: mockTextareaRef
+        })
+      );
+
+      act(() => {
+        result.current.sendMessage(
+          createMockContent("test message"),
+          "test message"
+        );
+      });
+
+      expect(mockTextareaRef.current.blur).toHaveBeenCalled();
+
+      act(() => {
+        jest.runAllTimers();
+      });
+
+      expect(mockTextareaRef.current.focus).not.toHaveBeenCalled();
     });
   });
 
