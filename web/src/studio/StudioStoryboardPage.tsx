@@ -1,0 +1,123 @@
+/** @jsxImportSource @emotion/react */
+/**
+ * Studio storyboard page: the existing storyboard editor (board + agent
+ * panel + generation queue) inside the Studio chrome, minus the workspace
+ * sidebar and tab machinery. Two Studio-specific behaviors:
+ *
+ * - New boards get the curated Studio models stamped on (director, still,
+ *   clip), so a beginner never touches a model picker.
+ * - Assembling navigates straight to `/studio/timeline/:id`, the product's
+ *   one finishing surface.
+ */
+
+import { useCallback, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTheme } from "@mui/material/styles";
+import { FlexColumn } from "../components/ui_primitives";
+import StoryboardBoard from "../components/storyboard/StoryboardBoard";
+import StoryboardAgentPanel from "../components/storyboard/StoryboardAgentPanel";
+import StoryboardQueueOverlay from "../components/storyboard/StoryboardQueueOverlay";
+import { useStoryboardStore } from "../stores/storyboard/StoryboardStore";
+import { useStoryboardGenerationSubscriptions } from "../stores/storyboard/StoryboardGenerationStore";
+import { useStoryboardServerSync } from "../hooks/storyboard/useStoryboardServerSync";
+import { useStoryboardAgentBridge } from "../hooks/storyboard/useStoryboardAgentBridge";
+import { useDirectScreenplay } from "../hooks/storyboard/useDirectScreenplay";
+import { useAssembleTimeline } from "../hooks/storyboard/useAssembleTimeline";
+import StudioShell from "./StudioShell";
+import {
+  STUDIO_CLIP_MODEL,
+  STUDIO_DIRECTOR_MODEL,
+  STUDIO_STILL_MODEL
+} from "./curatedModels";
+
+/** Stamp the curated models onto a board that has none selected. */
+const useStudioModelPolicy = (boardId: string) => {
+  const hasAnyModel = useStoryboardStore((state) => {
+    const board = state.boards[boardId];
+    return board
+      ? Boolean(board.directorModel || board.imageModel || board.videoModel)
+      : null;
+  });
+  useEffect(() => {
+    if (hasAnyModel === false) {
+      const store = useStoryboardStore.getState();
+      store.setDirectorModel(boardId, STUDIO_DIRECTOR_MODEL);
+      store.setImageModel(boardId, STUDIO_STILL_MODEL);
+      store.setVideoModel(boardId, STUDIO_CLIP_MODEL);
+    }
+  }, [hasAnyModel, boardId]);
+};
+
+const StudioStoryboardPage = () => {
+  const { boardId = "" } = useParams<{ boardId: string }>();
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
+  const title = useStoryboardStore(
+    (state) => state.boards[boardId]?.title ?? ""
+  );
+
+  useEffect(() => {
+    ensureBoard(boardId);
+  }, [ensureBoard, boardId]);
+
+  useStoryboardServerSync(boardId);
+  useStoryboardAgentBridge(boardId);
+  useStoryboardGenerationSubscriptions();
+  useStudioModelPolicy(boardId);
+
+  const { direct, directing, error: directError } = useDirectScreenplay();
+  const handleDirect = useCallback(
+    (shotCount: number) => direct(boardId, shotCount),
+    [direct, boardId]
+  );
+
+  const { assemble, assembling, error: assembleError } = useAssembleTimeline();
+  const handleAssemble = useCallback(() => {
+    void assemble(boardId)
+      .then((result) => navigate(`/studio/timeline/${result.sequenceId}`))
+      .catch(() => {
+        // Surfaced via assembleError; swallow to keep the click handler quiet.
+      });
+  }, [assemble, boardId, navigate]);
+
+  return (
+    <StudioShell title={title || "Untitled storyboard"}>
+      <div
+        style={{
+          display: "flex",
+          flex: 1,
+          minHeight: 0,
+          position: "relative"
+        }}
+      >
+        <StoryboardQueueOverlay boardId={boardId} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <StoryboardBoard
+            boardId={boardId}
+            readOnly={false}
+            onDirect={handleDirect}
+            directing={directing}
+            directError={directError}
+            onAssemble={handleAssemble}
+            assembling={assembling}
+            assembleError={assembleError}
+          />
+        </div>
+        <FlexColumn
+          fullHeight
+          sx={{
+            width: 320,
+            flexShrink: 0,
+            minHeight: 0,
+            borderLeft: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <StoryboardAgentPanel boardId={boardId} />
+        </FlexColumn>
+      </div>
+    </StudioShell>
+  );
+};
+
+export default StudioStoryboardPage;
