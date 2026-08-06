@@ -126,7 +126,12 @@ function moduleFromCategory(category: string): ModuleConfig["moduleName"] | null
   if (lower.includes("video models")) {
     return "video";
   }
-  if (lower.includes("audio") || lower.includes("suno") || lower.includes("elevenlabs")) {
+  if (
+    lower.includes("audio") ||
+    lower.includes("music models") ||
+    lower.includes("suno") ||
+    lower.includes("elevenlabs")
+  ) {
     return "audio";
   }
   if (!lower.includes("image models")) {
@@ -387,8 +392,15 @@ function mapField(paramName: string, schema: JsonRecord, required: boolean): {
   return { field };
 }
 
+/**
+ * Read the page's OpenAPI YAML block. Descriptions inside the spec sometimes
+ * embed their own fenced examples (```json …```), always indented; only the
+ * block's own closing fence sits at column 0. Matching the first ``` of any
+ * kind truncates the spec mid-operation, and the half-document still parses as
+ * YAML — the model then drops out of the manifest with no error.
+ */
 function extractOpenApi(markdown: string): JsonRecord | null {
-  const match = markdown.match(/```ya?ml\s*([\s\S]*?)```/i);
+  const match = markdown.match(/```ya?ml\s*\n([\s\S]*?)\n```[ \t]*(?:\n|$)/i);
   if (!match) {
     return null;
   }
