@@ -138,23 +138,57 @@ interface GeminiVideoOperation {
 }
 
 // Gemini's function-declaration schema is a strict subset of OpenAPI 3.0.
-// It rejects JSON-Schema-only fields like `additionalProperties`, `$schema`,
-// `$id`, `$ref`, `definitions`, `patternProperties`, etc. Any one of these
+// It rejects JSON-Schema-only fields like `const`, `additionalProperties`,
+// `$schema`, `$ref`, `definitions`, `patternProperties`, etc. Any one of these
 // anywhere in the tree causes a 400 that aborts the entire tool batch, so we
-// recursively strip them before sending.
+// recursively strip them before sending. Zod 4's `z.toJSONSchema` (draft
+// 2020-12) emits several of them — `const` for every `z.literal()`, `$ref` +
+// `$defs` for every reused schema — so tools defined in Zod hit this.
 const GEMINI_UNSUPPORTED_SCHEMA_KEYS = new Set([
   "additionalProperties",
   "$schema",
   "$id",
   "$ref",
+  "$defs",
+  "$comment",
   "definitions",
   "patternProperties",
   "propertyNames",
   "unevaluatedProperties",
+  "unevaluatedItems",
   "dependentSchemas",
   "dependentRequired",
   "exclusiveMinimum",
-  "exclusiveMaximum"
+  "exclusiveMaximum",
+  "const",
+  "allOf",
+  "oneOf",
+  "not",
+  "if",
+  "then",
+  "else",
+  "prefixItems",
+  "additionalItems",
+  "contains",
+  "minContains",
+  "maxContains",
+  "uniqueItems",
+  "multipleOf",
+  "examples",
+  "readOnly",
+  "writeOnly",
+  "deprecated",
+  "contentEncoding",
+  "contentMediaType"
+]);
+
+/** Keywords whose value is data, not a schema — never recurse into them. */
+const GEMINI_DATA_KEYS = new Set([
+  "enum",
+  "const",
+  "default",
+  "example",
+  "examples"
 ]);
 
 function isArraySchemaType(type: unknown): boolean {
@@ -167,24 +201,185 @@ function isArraySchemaType(type: unknown): boolean {
   return false;
 }
 
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/** The JSON Schema type name for a primitive literal, if it has one. */
+function primitiveSchemaType(value: unknown): string | undefined {
+  if (typeof value === "string") return "string";
+  if (typeof value === "boolean") return "boolean";
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return Number.isInteger(value) ? "integer" : "number";
+  }
+  return undefined;
+}
+
+function resolveJsonPointer(
+  root: unknown,
+  pointer: string
+): { found: boolean; value: unknown } {
+  if (pointer === "#" || pointer === "") return { found: true, value: root };
+  if (!pointer.startsWith("#/")) return { found: false, value: undefined };
+  let cursor: unknown = root;
+  for (const rawSegment of pointer.slice(2).split("/")) {
+    const segment = decodeURIComponent(rawSegment)
+      .replace(/~1/g, "/")
+      .replace(/~0/g, "~");
+    if (Array.isArray(cursor)) {
+      const index = Number(segment);
+      if (!Number.isInteger(index) || index < 0 || index >= cursor.length) {
+        return { found: false, value: undefined };
+      }
+      cursor = cursor[index];
+      continue;
+    }
+    if (!isPlainObject(cursor) || !(segment in cursor)) {
+      return { found: false, value: undefined };
+    }
+    cursor = cursor[segment];
+  }
+  return { found: true, value: cursor };
+}
+
+/**
+ * Inline local `$ref`s so dropping `$defs` doesn't leave empty schemas behind.
+ * A ref that is cyclic or unresolvable degrades to a permissive object.
+ */
+function inlineGeminiRefs(
+  node: unknown,
+  root: unknown,
+  seen: ReadonlySet<string>
+): unknown {
+  if (Array.isArray(node)) {
+    return node.map((item) => inlineGeminiRefs(item, root, seen));
+  }
+  if (!isPlainObject(node)) return node;
+
+  if (typeof node.$ref === "string") {
+    const { $ref, ...rest } = node;
+    if (seen.has($ref)) return { type: "object", ...rest };
+    const { found, value } = resolveJsonPointer(root, $ref);
+    if (!found || !isPlainObject(value)) return { type: "object", ...rest };
+    const resolved = inlineGeminiRefs(
+      value,
+      root,
+      new Set([...seen, $ref])
+    ) as Record<string, unknown>;
+    const overrides = inlineGeminiRefs(rest, root, seen) as Record<
+      string,
+      unknown
+    >;
+    return { ...resolved, ...overrides };
+  }
+
+  const out: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    out[key] = GEMINI_DATA_KEYS.has(key)
+      ? value
+      : inlineGeminiRefs(value, root, seen);
+  }
+  return out;
+}
+
+/** Fold `allOf` members into the parent schema; parent keys win. */
+function mergeAllOf(
+  out: Record<string, unknown>,
+  members: unknown[]
+): Record<string, unknown> {
+  for (const member of members) {
+    const sanitized = sanitizeSchemaNode(member);
+    if (!isPlainObject(sanitized)) continue;
+    for (const [key, value] of Object.entries(sanitized)) {
+      if (key === "properties" && isPlainObject(value)) {
+        out.properties = { ...value, ...((out.properties as object) ?? {}) };
+        continue;
+      }
+      if (key === "required" && Array.isArray(value)) {
+        const existing = Array.isArray(out.required) ? out.required : [];
+        out.required = [...new Set([...existing, ...value])];
+        continue;
+      }
+      if (out[key] === undefined) out[key] = value;
+    }
+  }
+  return out;
+}
+
+function sanitizeSchemaNode(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sanitizeSchemaNode);
+  if (!isPlainObject(value)) return value;
+
+  const out: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value)) {
+    if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(key)) continue;
+    if (key === "properties" && isPlainObject(nested)) {
+      const properties: Record<string, unknown> = {};
+      // Property *names* are data — a property called "const" must survive.
+      for (const [name, sub] of Object.entries(nested)) {
+        properties[name] = sanitizeSchemaNode(sub);
+      }
+      out.properties = properties;
+      continue;
+    }
+    if (key === "items") {
+      out.items = sanitizeSchemaNode(
+        Array.isArray(nested) ? (nested[0] ?? { type: "string" }) : nested
+      );
+      continue;
+    }
+    if (key === "anyOf" && Array.isArray(nested)) {
+      out.anyOf = nested.map(sanitizeSchemaNode);
+      continue;
+    }
+    out[key] = GEMINI_DATA_KEYS.has(key) ? nested : sanitizeSchemaNode(nested);
+  }
+
+  // `oneOf` means the same thing to a model as `anyOf`, which Gemini accepts.
+  if (out.anyOf === undefined && Array.isArray(value.oneOf)) {
+    out.anyOf = value.oneOf.map(sanitizeSchemaNode);
+  }
+  if (Array.isArray(value.allOf)) mergeAllOf(out, value.allOf);
+
+  // `const` is what Zod emits for a literal. A single-value `enum` says the
+  // same thing in Gemini's dialect, but only for strings — its `enum` is a
+  // list of strings — so other literals keep the constraint in the description.
+  if (value.const !== undefined && out.enum === undefined) {
+    const literalType = primitiveSchemaType(value.const);
+    if (literalType === "string") {
+      out.enum = [value.const];
+      out.type ??= "string";
+    } else if (literalType) {
+      out.type ??= literalType;
+      const hint = `Must be ${JSON.stringify(value.const)}.`;
+      out.description =
+        typeof out.description === "string" && out.description
+          ? `${out.description} ${hint}`
+          : hint;
+    }
+  }
+
+  // Gemini's `type` is one string; JSON Schema allows a union. `["x","null"]`
+  // is Zod's optional/nullable shape and maps onto `nullable`.
+  if (Array.isArray(out.type)) {
+    const named = out.type.filter(
+      (t): t is string => typeof t === "string" && t.toLowerCase() !== "null"
+    );
+    if (named.length < out.type.length) out.nullable = true;
+    if (named.length > 0) out.type = named[0];
+    else delete out.type;
+  }
+
+  // Gemini rejects an array schema that omits `items` ("items: missing
+  // field"). JSON Schema allows it, so backfill a permissive default.
+  if (isArraySchemaType(out.type) && out.items === undefined) {
+    out.items = { type: "string" };
+  }
+  return out;
+}
+
 function sanitizeGeminiSchema(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map(sanitizeGeminiSchema);
-  }
-  if (value && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value)) {
-      if (GEMINI_UNSUPPORTED_SCHEMA_KEYS.has(k)) continue;
-      out[k] = sanitizeGeminiSchema(v);
-    }
-    // Gemini rejects an array schema that omits `items` ("items: missing
-    // field"). JSON Schema allows it, so backfill a permissive default.
-    if (isArraySchemaType(out.type) && out.items === undefined) {
-      out.items = { type: "string" };
-    }
-    return out;
-  }
-  return value;
+  return sanitizeSchemaNode(inlineGeminiRefs(value, value, new Set()));
 }
 
 function sanitizeToolName(name: string): string {
@@ -713,7 +908,9 @@ export class GeminiProvider extends BaseProvider {
   private applyTools(
     body: GeminiRequest,
     tools: ProviderTool[],
-    geminiTools: Array<{ functionDeclarations: Array<Record<string, unknown>> }>,
+    geminiTools: Array<{
+      functionDeclarations: Array<Record<string, unknown>>;
+    }>,
     nameMap: Map<string, string>,
     toolChoice?: string | "any"
   ): void {
