@@ -170,12 +170,16 @@ Security notes:
 | `NODETOOL_WS_MAX_BUFFERED_BYTES` | Outbound buffer per connection before sends wait for drain | no | Default `8388608` (8 MiB) |
 | `NODETOOL_WS_DRAIN_TIMEOUT_MS` | How long a send waits for a slow reader before it is dropped | no | Default `30000`; the drop uses code `1001` so clients reconnect |
 | `NODETOOL_WS_MAX_QUEUED_FRAMES` | Undelivered inbound frames per connection before it is closed | no | Default `2000`; closes with code `1008` |
+| `NODETOOL_WS_MAX_MESSAGE_BYTES` | Largest inbound WebSocket frame accepted before it is deserialized | no | Default `268435456` (256 MiB). MsgPack can expand a small frame into a huge structure, so the raw byte length is checked first. A non-numeric or non-positive value falls back to the default rather than turning the cap off |
+| `NODETOOL_MAX_UPLOAD_BYTES` | Largest payload a single storage upload may write | no | Default `1073741824` (1 GiB). Applies to every backend (file, S3, Supabase); an over-size write throws instead of reaching the backend. Same strict parsing as the frame cap |
+| `NODETOOL_PACKAGE_REGISTRY_URL` | Index the node-pack browser reads available packs from | no | Default `https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json`. Point it at your own index to offer an internal pack list. See [Node Packs](node-packs.md) |
 | `NODETOOL_DISABLE_TRIGGERS` | Skip trigger ingestion on this process (no dispatcher, scheduler, file watcher, or webhook route) | no | Ingestion is **on** by default. Set to `1` when a second server shares one database, or for an embedded server that must not start background work |
 | `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
 | `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |
 | `NODETOOL_WORKER_TOKEN` | Worker bearer token for admin endpoints | yes | Rotate regularly |
+| `NODETOOL_ADMIN_TOKEN` | Admin bearer token the `nodetool deploy` user and database subcommands send to a remote deployment | yes | Equivalent to their `--token` flag, which wins when both are set. Without either, an interactive shell prompts for it and a non-interactive one exits `1`. See [Deployment](deployment.md) |
 
 Use `nodetool settings show` to view resolved values and verify the merge order.
 
