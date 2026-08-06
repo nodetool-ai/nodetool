@@ -9,10 +9,9 @@ import {
   getSandboxManifest,
   type SandboxManifest
 } from "../code-gen/sandbox-manifest.js";
-import type { Tool } from "../tools/base-tool.js";
-import { renderToolCatalog } from "./tool-api.js";
+import { renderToolCatalog, type ToolSignatureSource } from "./tool-api.js";
 
-const ACTION_CONTRACT = `# CodeAct Execution
+const ACTION_CONTRACT_BASE = `# CodeAct Execution
 
 You act by writing JavaScript. Each turn, call the \`execute_code\` tool with a
 program; it runs in a sandbox and the observation (return value, console logs,
@@ -30,8 +29,20 @@ Rules:
   memory — not in the transcript.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
 - Top-level \`await\` and \`return\` work. There is no module loader: no
-  \`import\`/\`require\`, and \`eval\`/\`Function\` are disabled.
+  \`import\`/\`require\`, and \`eval\`/\`Function\` are disabled.`;
+
+const ACTION_CONTRACT_STEP = `${ACTION_CONTRACT_BASE}
 - Do not ask the user questions. Choose a reasonable assumption and proceed.`;
+
+const ACTION_CONTRACT_CHAT = `${ACTION_CONTRACT_BASE}
+- When you need the user's decision, stop writing code and ask in a plain
+  assistant message.`;
+
+const CHAT_COMPLETION = `# Answering the user
+
+This is a chat turn, not a step: there is no \`finish()\`. When the work is
+done, reply to the user with a normal assistant message containing no tool
+call — that message ends the turn.`;
 
 const FINISH_SCHEMA = `# Completing the step
 
@@ -45,7 +56,10 @@ Call \`await finish(result)\` when the objective is met, or — for a purely
 textual answer — reply with a final assistant message containing no tool call.`;
 
 /** Compact, manifest-derived sandbox reference: signatures only. */
-function renderSandboxSummary(manifest: SandboxManifest): string {
+function renderSandboxSummary(
+  manifest: SandboxManifest,
+  variant: "step" | "chat"
+): string {
   const lines: string[] = [];
   for (const bridge of Object.values(manifest.bridges)) {
     if (bridge.internal || bridge.members.length === 0) continue;
@@ -56,8 +70,10 @@ function renderSandboxSummary(manifest: SandboxManifest): string {
   for (const helper of Object.values(manifest.guestHelpers)) {
     lines.push(`- ${helper.signature}`);
   }
+  const besides =
+    variant === "chat" ? "`tools.*`, `state`" : "`tools.*`, `state`, `finish`";
   return [
-    `# Sandbox API (besides \`tools.*\`, \`state\`, \`finish\`)`,
+    `# Sandbox API (besides ${besides})`,
     lines.join("\n"),
     `Built-ins: ${manifest.nativeGlobals.join(", ")}.`,
     `Not available: ${manifest.blockedGlobals.join(", ")}.`,
@@ -67,31 +83,47 @@ function renderSandboxSummary(manifest: SandboxManifest): string {
 
 export interface CodeActPromptOptions {
   /** Tools documented in full (signature + description) in the prompt. */
-  tools: Tool[];
+  tools: ToolSignatureSource[];
   /**
    * Deferred long tail: callable like any other tool, but listed by name
    * only — the model pulls a signature in with `searchTools()` first.
    */
-  deferredTools?: Tool[];
+  deferredTools?: ToolSignatureSource[];
   /** Declared output schema (JSON schema) of the step, if any. */
   resultSchema?: Record<string, unknown> | null;
   /** Caller preamble — layered before the contract, never replacing it. */
   preamble?: string;
   manifest?: SandboxManifest;
+  /**
+   * `"step"` (default) is the agent-step contract: `finish()` completes the
+   * step and user questions are forbidden. `"chat"` is the chat-turn
+   * contract: no `finish()`, a plain assistant message answers the user, and
+   * asking the user is allowed. Chat callers ignore `resultSchema`.
+   */
+  variant?: "step" | "chat";
+  /** Extra sections appended after the tool catalog (e.g. the graph model). */
+  extraSections?: string[];
 }
 
 export function buildCodeActSystemPrompt(
   options: CodeActPromptOptions
 ): string {
   const manifest = options.manifest ?? getSandboxManifest();
+  const variant = options.variant ?? "step";
   const sections: string[] = [];
   if (options.preamble?.trim()) sections.push(options.preamble.trim());
-  sections.push(ACTION_CONTRACT);
-  sections.push(options.resultSchema ? FINISH_SCHEMA : FINISH_FREEFORM);
-  if (options.resultSchema) {
-    sections.push(
-      `# Output schema\n\`\`\`json\n${JSON.stringify(options.resultSchema, null, 2)}\n\`\`\``
-    );
+  sections.push(
+    variant === "chat" ? ACTION_CONTRACT_CHAT : ACTION_CONTRACT_STEP
+  );
+  if (variant === "chat") {
+    sections.push(CHAT_COMPLETION);
+  } else {
+    sections.push(options.resultSchema ? FINISH_SCHEMA : FINISH_FREEFORM);
+    if (options.resultSchema) {
+      sections.push(
+        `# Output schema\n\`\`\`json\n${JSON.stringify(options.resultSchema, null, 2)}\n\`\`\``
+      );
+    }
   }
   sections.push(`# Tools\n${renderToolCatalog(options.tools)}`);
   const deferred = options.deferredTools ?? [];
@@ -106,6 +138,9 @@ export function buildCodeActSystemPrompt(
         deferred.map((t) => t.name).join(", ")
     );
   }
-  sections.push(renderSandboxSummary(manifest));
+  for (const section of options.extraSections ?? []) {
+    if (section.trim()) sections.push(section.trim());
+  }
+  sections.push(renderSandboxSummary(manifest, variant));
   return sections.join("\n\n");
 }

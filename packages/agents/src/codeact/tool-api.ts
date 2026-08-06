@@ -42,7 +42,7 @@ export interface ToolBridge {
 }
 
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
-function toTransferable(value: unknown): unknown {
+export function toTransferable(value: unknown): unknown {
   if (value === null || value === undefined) return null;
   if (
     typeof value === "string" ||
@@ -62,7 +62,7 @@ function toTransferable(value: unknown): unknown {
  * An `{error}` payload from a tool is a failure the guest should see as a
  * thrown exception, not as a value to compute on.
  */
-function extractErrorPayload(result: unknown): string | null {
+export function extractErrorPayload(result: unknown): string | null {
   if (result === null || typeof result !== "object" || Array.isArray(result)) {
     return null;
   }
@@ -195,6 +195,17 @@ export const CODEACT_RESERVED_NAMES = [
 // Signature rendering (JSON schema → compact TS-ish signature)
 // ---------------------------------------------------------------------------
 
+/**
+ * The structural slice of a tool the signature renderer needs. `Tool`
+ * instances satisfy it, and so do bare provider-tool schemas — the chat
+ * runner documents client (`ui_*`) tools that exist only as JSON schemas.
+ */
+export interface ToolSignatureSource {
+  name: string;
+  description?: string;
+  inputSchema?: unknown;
+}
+
 function schemaTypeLabel(schema: unknown, depth = 0): string {
   if (schema === null || typeof schema !== "object") return "unknown";
   const s = schema as Record<string, unknown>;
@@ -235,7 +246,7 @@ function firstSentence(text: string): string {
 }
 
 /** The bare call signature: `await tools.web_search({query: string, ...})`. */
-export function toolSignature(tool: Tool): string {
+export function toolSignature(tool: ToolSignatureSource): string {
   const schema = tool.inputSchema as JsonSchema;
   const params = schemaTypeLabel(schema);
   const args = params === "{}" ? "" : params;
@@ -243,11 +254,14 @@ export function toolSignature(tool: Tool): string {
 }
 
 /** Signature bullet + first sentence of the description. */
-export function renderToolSignature(tool: Tool): string {
-  return `- ${toolSignature(tool)}\n  ${firstSentence(tool.description)}`;
+export function renderToolSignature(tool: ToolSignatureSource): string {
+  const description = firstSentence(tool.description ?? "");
+  return description
+    ? `- ${toolSignature(tool)}\n  ${description}`
+    : `- ${toolSignature(tool)}`;
 }
 
-export function renderToolCatalog(tools: Tool[]): string {
+export function renderToolCatalog(tools: ToolSignatureSource[]): string {
   if (tools.length === 0) return "(no tools available)";
   return tools.map(renderToolSignature).join("\n");
 }

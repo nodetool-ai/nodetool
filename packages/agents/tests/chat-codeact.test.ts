@@ -1,0 +1,399 @@
+/**
+ * Chat CodeAct session tests — code actions run in the real QuickJS sandbox
+ * against a fake chat tool router, including the workflow graph object model.
+ * No network, no model.
+ */
+import { describe, it, expect } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  createChatCodeActSession,
+  type ChatCodeActToolCall
+} from "../src/codeact/chat-codeact.js";
+import { hasGraphModelTools } from "../src/codeact/graph-model.js";
+import { createMockContext } from "./_helpers/mock-context.js";
+
+const objectSchema = (props: Record<string, unknown>) => ({
+  type: "object",
+  properties: props
+});
+
+const GENERIC_TOOLS = [
+  {
+    name: "add",
+    description: "Add two numbers.",
+    inputSchema: objectSchema({ a: { type: "number" }, b: { type: "number" } })
+  },
+  {
+    name: "always_fails",
+    description: "Fails every time.",
+    inputSchema: objectSchema({})
+  }
+];
+
+const GRAPH_TOOLS = [
+  "ui_get_graph",
+  "ui_add_node",
+  "ui_connect_nodes",
+  "ui_update_node_data",
+  "ui_delete_node",
+  "ui_delete_edge",
+  "ui_move_node",
+  "ui_set_node_title"
+].map((name) => ({
+  name,
+  description: `Graph document tool ${name}.`,
+  inputSchema: objectSchema({ workflow_id: { type: "string" } })
+}));
+
+interface FakeGraph {
+  nodes: Array<Record<string, unknown>>;
+  edges: Array<Record<string, unknown>>;
+}
+
+/**
+ * A fake chat tool router over an in-memory graph document. Returns JSON
+ * strings the way the chat runner's `executeTool` does.
+ */
+function createFakeRouter(graph: FakeGraph) {
+  const calls: ChatCodeActToolCall[] = [];
+  let edgeSeq = 0;
+  const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+    calls.push(call);
+    const args = call.args;
+    switch (call.name) {
+      case "add":
+        return JSON.stringify({
+          sum: Number(args["a"]) + Number(args["b"])
+        });
+      case "always_fails":
+        return JSON.stringify({ error: "boom", message: "always fails" });
+      case "ui_get_graph":
+        return JSON.stringify({
+          ok: true,
+          workflow_id: args["workflow_id"] ?? "wf1",
+          nodes: graph.nodes,
+          edges: graph.edges
+        });
+      case "ui_add_node":
+        graph.nodes.push({
+          id: args["id"],
+          type: args["type"],
+          position: args["position"],
+          data: { properties: args["properties"] ?? {} }
+        });
+        return JSON.stringify({ ok: true, node_id: args["id"] });
+      case "ui_connect_nodes": {
+        if (args["target_handle"] === "bad") {
+          return JSON.stringify({
+            error: `Target handle 'bad' not found`
+          });
+        }
+        edgeSeq++;
+        graph.edges.push({
+          id: `e${edgeSeq}`,
+          source: args["source_node_id"],
+          sourceHandle: args["source_handle"],
+          target: args["target_node_id"],
+          targetHandle: args["target_handle"]
+        });
+        return JSON.stringify({ ok: true, edge_id: `e${edgeSeq}` });
+      }
+      case "ui_update_node_data":
+      case "ui_set_node_title":
+      case "ui_move_node":
+      case "ui_delete_node":
+      case "ui_delete_edge":
+        return JSON.stringify({ ok: true });
+      default:
+        return JSON.stringify({ error: `Unknown tool ${call.name}` });
+    }
+  };
+  return { executeTool, calls };
+}
+
+function makeSession(
+  tools: Array<{ name: string; description: string; inputSchema: unknown }>,
+  executeTool: (call: ChatCodeActToolCall) => Promise<unknown>
+) {
+  return createChatCodeActSession({
+    tools,
+    executeTool,
+    context: createMockContext() as unknown as ProcessingContext
+  });
+}
+
+async function runAction(
+  session: ReturnType<typeof createChatCodeActSession>,
+  code: string
+) {
+  const observation = await session.executeAction({ code });
+  return JSON.parse(observation) as {
+    ok: boolean;
+    result?: unknown;
+    error?: string;
+    logs?: string[];
+    toolCalls: number;
+  };
+}
+
+describe("createChatCodeActSession", () => {
+  it("bridges tool calls through the router and reports the call count", async () => {
+    const { executeTool, calls } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const r = await tools.add({ a: 2, b: 3 });\nreturn r.sum;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe(5);
+    expect(obs.toolCalls).toBe(1);
+    expect(calls[0]).toMatchObject({ name: "add", id: "codeact_1" });
+  });
+
+  it("surfaces {error} tool payloads as thrown guest errors", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `try {\n  await tools.always_fails({});\n  return "no throw";\n} catch (e) {\n  return "caught: " + e.message;\n}`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toContain("caught:");
+    expect(obs.result).toContain("always fails");
+  });
+
+  it("persists state across actions within the session", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const first = await runAction(session, `state.count = 41;\nreturn "set";`);
+    expect(first.ok).toBe(true);
+    const second = await runAction(session, `return state.count + 1;`);
+    expect(second.ok).toBe(true);
+    expect(second.result).toBe(42);
+  });
+
+  it("rejects finish() with chat guidance", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `try {\n  await finish({ done: true });\n  return "finished";\n} catch (e) {\n  return e.message;\n}`
+    );
+    expect(obs.ok).toBe(true);
+    expect(String(obs.result)).toContain("does not exist in chat");
+  });
+
+  it("answers searchTools() with signatures over the schema catalog", async () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const hits = await searchTools("select:add");\nreturn hits[0];`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toMatchObject({ name: "add" });
+    expect((obs.result as { signature: string }).signature).toContain(
+      "await tools.add("
+    );
+  });
+
+  it("documents the chat contract and graph model in the prompt section", () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const withGraph = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    expect(withGraph.systemPromptSection).toContain("openWorkflow(");
+    expect(withGraph.systemPromptSection).toContain("normal assistant message");
+    expect(withGraph.systemPromptSection).not.toContain("# Output schema");
+
+    const withoutGraph = makeSession(GENERIC_TOOLS, executeTool);
+    expect(withoutGraph.systemPromptSection).not.toContain("openWorkflow(");
+  });
+});
+
+describe("graph object model (openWorkflow)", () => {
+  it("queues mutations locally and replays them through ui_* on commit", async () => {
+    const graph: FakeGraph = { nodes: [], edges: [] };
+    const { executeTool, calls } = createFakeRouter(graph);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+const input = wf.addNode("in1", "nodetool.input.StringInput", { name: "prompt" });
+const agent = wf.addNode("llm1", "nodetool.agents.Agent", {}, { x: 400, y: 100 });
+wf.connect("in1", "output", "llm1", "prompt");
+agent.setTitle("Draft").set({ system: "be brief" }).moveTo(420, 120);
+const pendingBefore = wf.pending();
+const summary = await wf.commit();
+return { pendingBefore, pendingAfter: wf.pending(), summary, nodeIds: wf.nodes.map((n) => n.id) };
+`
+    );
+    expect(obs.ok).toBe(true);
+    const result = obs.result as {
+      pendingBefore: number;
+      pendingAfter: number;
+      summary: { applied: number; nodes: number; edges: number };
+      nodeIds: string[];
+    };
+    expect(result.pendingBefore).toBe(6);
+    expect(result.pendingAfter).toBe(0);
+    expect(result.summary.applied).toBe(6);
+    expect(result.summary.nodes).toBe(2);
+    expect(result.summary.edges).toBe(1);
+    expect(result.nodeIds).toEqual(["in1", "llm1"]);
+
+    const opCalls = calls.filter((c) => c.name !== "ui_get_graph");
+    expect(opCalls.map((c) => c.name)).toEqual([
+      "ui_add_node",
+      "ui_add_node",
+      "ui_connect_nodes",
+      "ui_set_node_title",
+      "ui_update_node_data",
+      "ui_move_node"
+    ]);
+    expect(opCalls[0].args).toMatchObject({
+      workflow_id: "wf1",
+      id: "in1",
+      type: "nodetool.input.StringInput",
+      properties: { name: "prompt" }
+    });
+    expect(opCalls[2].args).toMatchObject({
+      workflow_id: "wf1",
+      source_node_id: "in1",
+      source_handle: "output",
+      target_node_id: "llm1",
+      target_handle: "prompt"
+    });
+    expect(opCalls[4].args).toMatchObject({
+      node_id: "llm1",
+      data: { properties: { system: "be brief" } }
+    });
+  });
+
+  it("keeps the failed op and the rest of the queue when commit fails", async () => {
+    const graph: FakeGraph = { nodes: [], edges: [] };
+    const { executeTool, calls } = createFakeRouter(graph);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+wf.addNode("a", "t.A", {});
+wf.connect("a", "output", "missing", "bad");
+wf.addNode("b", "t.B", {});
+let failure = null;
+try {
+  await wf.commit();
+} catch (e) {
+  failure = e.message;
+}
+return { failure, pending: wf.pending() };
+`
+    );
+    expect(obs.ok).toBe(true);
+    const result = obs.result as { failure: string; pending: number };
+    expect(result.failure).toContain("ui_connect_nodes");
+    expect(result.failure).toContain("1 ops were applied");
+    // Failed connect + the later add stay queued for a retry.
+    expect(result.pending).toBe(2);
+    expect(calls.filter((c) => c.name === "ui_add_node")).toHaveLength(1);
+  });
+
+  it("cancels queued ops when an uncommitted node is removed", async () => {
+    const graph: FakeGraph = { nodes: [], edges: [] };
+    const { executeTool, calls } = createFakeRouter(graph);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+const keep = wf.addNode("keep", "t.A", {});
+const drop = wf.addNode("drop", "t.B", {});
+wf.connect("keep", "output", "drop", "input");
+drop.setTitle("doomed");
+wf.removeNode("drop");
+const summary = await wf.commit();
+return { summary, edges: wf.edges.length };
+`
+    );
+    expect(obs.ok).toBe(true);
+    const result = obs.result as {
+      summary: { applied: number };
+      edges: number;
+    };
+    // Only the surviving node's add remains.
+    expect(result.summary.applied).toBe(1);
+    expect(result.edges).toBe(0);
+    expect(calls.filter((c) => c.name === "ui_delete_node")).toHaveLength(0);
+    expect(
+      calls.filter((c) => c.name === "ui_add_node").map((c) => c.args["id"])
+    ).toEqual(["keep"]);
+  });
+
+  it("reads an existing graph into the mirror and edits it", async () => {
+    const graph: FakeGraph = {
+      nodes: [
+        {
+          id: "n1",
+          type: "t.Old",
+          position: { x: 10, y: 20 },
+          data: { properties: { value: 1 }, title: "Old node" }
+        }
+      ],
+      edges: [
+        {
+          id: "e_existing",
+          source: "n1",
+          sourceHandle: "output",
+          target: "n1",
+          targetHandle: "self"
+        }
+      ]
+    };
+    const { executeTool, calls } = createFakeRouter(graph);
+    const session = makeSession(
+      [...GENERIC_TOOLS, ...GRAPH_TOOLS],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `
+const wf = await openWorkflow("wf1");
+const n = wf.node("n1");
+const before = { title: n.title, value: n.properties.value };
+n.set({ value: 2 });
+wf.removeEdge("e_existing");
+await wf.commit();
+return { before, edges: wf.edges.length };
+`
+    );
+    expect(obs.ok).toBe(true);
+    const result = obs.result as {
+      before: { title: string; value: number };
+      edges: number;
+    };
+    expect(result.before).toEqual({ title: "Old node", value: 1 });
+    expect(calls.some((c) => c.name === "ui_delete_edge")).toBe(true);
+  });
+});
+
+describe("hasGraphModelTools", () => {
+  it("requires the read and constructive mutations", () => {
+    expect(
+      hasGraphModelTools(["ui_get_graph", "ui_add_node", "ui_connect_nodes"])
+    ).toBe(true);
+    expect(hasGraphModelTools(["ui_get_graph", "ui_add_node"])).toBe(false);
+    expect(hasGraphModelTools([])).toBe(false);
+  });
+});

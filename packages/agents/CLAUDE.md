@@ -489,10 +489,19 @@ Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `NODETOOL_AGENT_EXECUTION_MODE` environment variable pins the mode and wins
   over both. CLI:
   `nodetool agent run <yaml> --codeact` (YAML: `execution_mode: codeact`).
+- Chat turns honor the same setting: the websocket runner swaps the toolbelt
+  for `execute_code` (+ `view_image`) via `createChatCodeActSession`
+  (`src/codeact/chat-codeact.ts`), which bridges `tools.<name>()` to the chat
+  runner's own tool router instead of `buildToolBridge` — permission gating
+  and client (`ui_*`) round-trips stay where they are. When the belt carries
+  the `ui_*` workflow document tools, actions also get the graph object model
+  (`src/codeact/graph-model.ts`): `openWorkflow()` returns a model whose
+  synchronous mutators queue ops against a local mirror and `commit()` replays
+  them through the same `ui_*` contract.
 - Eval suite `codeact` runs the same offline instrumented cases through either
   executor for a mode comparison: `nodetool eval codeact -p <p> -m <m>`.
-- Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`
-  (scripted provider, real sandbox, no network).
+- Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
+  `tests/chat-codeact.test.ts` (scripted provider, real sandbox, no network).
 
 ## Script Mode (code-shaped orchestration)
 

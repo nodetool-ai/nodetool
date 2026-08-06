@@ -380,6 +380,19 @@ export {
   CODEACT_RESERVED_NAMES,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION
 } from "./codeact/tool-api.js";
+export type { ToolSignatureSource } from "./codeact/tool-api.js";
+export { createChatCodeActSession } from "./codeact/chat-codeact.js";
+export type {
+  ChatCodeActSession,
+  ChatCodeActSessionOptions,
+  ChatCodeActToolCall
+} from "./codeact/chat-codeact.js";
+export {
+  GRAPH_MODEL_PRELUDE,
+  GRAPH_MODEL_PROMPT_SECTION,
+  GRAPH_MODEL_TOOL_NAMES,
+  hasGraphModelTools
+} from "./codeact/graph-model.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
