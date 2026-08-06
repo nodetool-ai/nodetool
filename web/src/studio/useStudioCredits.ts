@@ -14,6 +14,8 @@ export interface StudioCredits {
   status: CreditStatusOutput | null;
   remaining: number;
   loading: boolean;
+  /** The balance request failed — the balance is unknown, not full or empty. */
+  unavailable: boolean;
   refetch: () => void;
 }
 
@@ -27,6 +29,7 @@ export function useStudioCredits(): StudioCredits {
     status: query.data ?? null,
     remaining: query.data?.balanceCredits ?? 0,
     loading: query.isLoading,
+    unavailable: query.isError,
     refetch: () => void query.refetch()
   };
 }

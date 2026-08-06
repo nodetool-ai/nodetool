@@ -6,7 +6,7 @@
  * navigates to `/studio/timeline/:id`.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import GroupsIcon from "@mui/icons-material/Groups";
@@ -28,6 +28,7 @@ import {
   useScriptTitle
 } from "../stores/script/ScriptStore";
 import { useScriptServerSync } from "../hooks/script/useScriptServerSync";
+import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useScriptAgentBridge } from "../hooks/script/useScriptAgentBridge";
 import { useAssembleScriptTimeline } from "../hooks/script/useAssembleScriptTimeline";
 import StudioShell from "./StudioShell";
@@ -49,6 +50,15 @@ const StudioScriptPage = () => {
 
   useScriptServerSync(scriptId);
   useScriptAgentBridge(scriptId);
+
+  const undo = useScriptStore((state) => state.undo);
+  const redo = useScriptStore((state) => state.redo);
+  useDocumentUndoShortcuts({
+    active: true,
+    enabled: true,
+    onUndo: useCallback(() => undo(scriptId), [undo, scriptId]),
+    onRedo: useCallback(() => redo(scriptId), [redo, scriptId])
+  });
 
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();

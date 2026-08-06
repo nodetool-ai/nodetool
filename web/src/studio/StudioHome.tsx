@@ -6,7 +6,7 @@
  * editor, which is the one finishing surface the product has.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import TheatersRoundedIcon from "@mui/icons-material/TheatersRounded";
@@ -56,6 +56,7 @@ const PathCard = ({
   description,
   cta,
   busy,
+  disabled,
   onStart
 }: {
   icon: React.ReactNode;
@@ -63,6 +64,7 @@ const PathCard = ({
   description: string;
   cta: string;
   busy: boolean;
+  disabled: boolean;
   onStart: () => void;
 }) => (
   <Card
@@ -78,7 +80,7 @@ const PathCard = ({
       <Text size="small" color="secondary">
         {description}
       </Text>
-      <EditorButton variant="contained" onClick={onStart} disabled={busy}>
+      <EditorButton variant="contained" onClick={onStart} disabled={disabled}>
         {busy ? "Creating…" : cta}
       </EditorButton>
     </FlexColumn>
@@ -94,7 +96,9 @@ const StudioHome = () => {
 
   const storyboards = useStoryboards();
   const scripts = useScripts();
-  const timelines = useTimelines("default");
+  // No project filter: storyboards and scripts list all the user's documents,
+  // so the merged recent list scopes timelines the same way.
+  const timelines = useTimelines();
 
   const recent = useMemo<RecentProject[]>(() => {
     const rows: RecentProject[] = [
@@ -122,20 +126,34 @@ const StudioHome = () => {
       .slice(0, 12);
   }, [storyboards.data, scripts.data, timelines.data]);
 
+  // One creation at a time: both cards disable while either runs, and the
+  // handlers guard on a ref as well so a double-activation can't create two
+  // projects or race the navigation.
+  const creatingRef = useRef(false);
   const startStoryboard = useCallback(() => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setCreating("storyboard");
     createStoryboard
       .mutateAsync({ name: "Untitled storyboard", projectId: "default" })
       .then((created) => navigate(`/studio/storyboard/${created.id}`))
-      .finally(() => setCreating(null));
+      .finally(() => {
+        creatingRef.current = false;
+        setCreating(null);
+      });
   }, [createStoryboard, navigate]);
 
   const startScript = useCallback(() => {
+    if (creatingRef.current) return;
+    creatingRef.current = true;
     setCreating("script");
     createScript
       .mutateAsync({ name: "Untitled script", projectId: "default" })
       .then((created) => navigate(`/studio/script/${created.id}`))
-      .finally(() => setCreating(null));
+      .finally(() => {
+        creatingRef.current = false;
+        setCreating(null);
+      });
   }, [createScript, navigate]);
 
   return (
@@ -161,6 +179,7 @@ const StudioHome = () => {
             description="Describe your idea. The director agent breaks it into shots, renders stills, animates them into clips, and cuts them together."
             cta="New storyboard"
             busy={creating === "storyboard"}
+            disabled={creating !== null}
             onStart={startStoryboard}
           />
           <PathCard
@@ -169,6 +188,7 @@ const StudioHome = () => {
             description="Write or generate a script, cast a voice for every speaker, and turn the voiced lines into a video with captions."
             cta="New script"
             busy={creating === "script"}
+            disabled={creating !== null}
             onStart={startScript}
           />
         </FlexRow>
