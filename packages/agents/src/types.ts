@@ -74,3 +74,11 @@ export type RequestPlanApproval = (
  * wiring at every construction site.
  */
 export const PLAN_APPROVAL_CONTEXT_KEY = "request_plan_approval";
+
+/**
+ * How a step acts on its toolbelt. `"tools"` is the classic loop — one JSON
+ * tool call per action. `"codeact"` runs JavaScript actions in the QuickJS
+ * sandbox with the toolbelt exposed as `tools.<name>()` functions
+ * (docs/codeact-design.md).
+ */
+export type AgentExecutionMode = "tools" | "codeact";

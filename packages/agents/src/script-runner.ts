@@ -40,9 +40,11 @@ import type {
   ProcessingMessage,
   StepResult
 } from "@nodetool-ai/protocol";
-import { StepExecutor } from "./step-executor.js";
+import { StepExecutor, type StepExecutorOptions } from "./step-executor.js";
+import { CodeActExecutor } from "./codeact/codeact-executor.js";
+import { resolveExecutionMode } from "./codeact/execution-mode.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { Step, Task } from "./types.js";
+import type { AgentExecutionMode, Step, Task } from "./types.js";
 import { runInSandbox } from "./js-sandbox.js";
 
 const log = createLogger("nodetool.agents.script-runner");
@@ -86,6 +88,8 @@ export interface ScriptRunnerOptions {
   scriptTimeoutMs?: number;
   /** External cancellation, forwarded to every sub-agent step executor. */
   signal?: AbortSignal;
+  /** Action space for every `agent()` sub-agent. Default `"tools"`. */
+  executionMode?: AgentExecutionMode;
 }
 
 /** Simple counting semaphore; released slots go to waiters FIFO. */
@@ -246,6 +250,7 @@ export class ScriptRunner {
   private readonly signal?: AbortSignal;
   private readonly maxAgentCalls: number;
   private readonly scriptTimeoutMs: number;
+  private readonly executionMode: AgentExecutionMode;
   private readonly semaphore: Semaphore;
   private readonly channel = new MessageChannel();
   private agentCalls = 0;
@@ -262,6 +267,7 @@ export class ScriptRunner {
     this.signal = opts.signal;
     this.maxAgentCalls = opts.maxAgentCalls ?? DEFAULT_MAX_AGENT_CALLS;
     this.scriptTimeoutMs = opts.scriptTimeoutMs ?? DEFAULT_SCRIPT_TIMEOUT_MS;
+    this.executionMode = resolveExecutionMode(opts.executionMode);
     this.semaphore = new Semaphore(
       opts.maxConcurrentAgents ?? DEFAULT_MAX_CONCURRENT_AGENTS
     );
@@ -396,7 +402,7 @@ export class ScriptRunner {
       ? this.tools.filter((t) => opts.tools!.includes(t.name))
       : [...this.tools];
 
-    const executor = new StepExecutor({
+    const executorOpts: StepExecutorOptions = {
       task,
       step,
       context: this.context,
@@ -407,7 +413,11 @@ export class ScriptRunner {
       maxIterations: this.maxStepIterations,
       maxTokens: this.maxTokens,
       signal: this.signal
-    });
+    };
+    const executor =
+      this.executionMode === "codeact"
+        ? new CodeActExecutor(executorOpts)
+        : new StepExecutor(executorOpts);
 
     let result: unknown = null;
     let error: string | null = null;

@@ -501,7 +501,14 @@ const StepInspector: React.FC<{ step: StepState }> = memo(({ step }) => {
                 <strong>{call.name || "tool"}</strong>
                 {call.message ? `  ${call.message}` : ""}
               </span>
-              {Object.keys(call.args ?? {}).length > 0 ? (
+              {call.name === "execute_code" &&
+              typeof call.args?.["code"] === "string" ? (
+                // A CodeAct action's one argument is a JavaScript program —
+                // show the program, not its JSON-escaped string.
+                <pre className="tl-inspector-code">
+                  {call.args["code"] as string}
+                </pre>
+              ) : Object.keys(call.args ?? {}).length > 0 ? (
                 <pre className="tl-inspector-code">
                   {JSON.stringify(call.args, null, 2)}
                 </pre>

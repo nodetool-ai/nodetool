@@ -44,6 +44,7 @@ import { ToolResult } from "./toolResults";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
 import type { MediaGenerationRequest } from "../../../stores/MediaGenerationStore";
 import { visibleToolArgs as visibleArgs } from "../../../core/chat/toolCallFields";
+import { CodeBlock } from "./markdown_elements/CodeBlock";
 
 /**
  * PrettyJson - Memoized component for displaying formatted JSON.
@@ -73,6 +74,13 @@ PrettyJson.displayName = "PrettyJson";
  * tree icon signals that this card represents a deeper sub-execution.
  */
 const RUN_SUBTASK_TOOL_NAME = "run_subtask";
+
+/**
+ * `execute_code` is the CodeAct action primitive (docs/codeact-design.md):
+ * its one argument is a JavaScript program, so the card renders it as a
+ * highlighted code block instead of a JSON-escaped string.
+ */
+const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
 function formatTime(dateStr?: string | null): string | null {
   if (!dateStr) {
@@ -105,6 +113,7 @@ const ToolCallCard: React.FC<{
   );
   const runningToolMessage = useGlobalChatStore((s) => s.currentToolMessage);
   const isSubtask = tc.name === RUN_SUBTASK_TOOL_NAME;
+  const isCodeAction = tc.name === EXECUTE_CODE_TOOL_NAME;
 
   // For run_subtask we lift `description` / `prompt` (Claude-Code Task naming)
   // out of args into headline + expanded body. Tolerate the older
@@ -121,15 +130,22 @@ const ToolCallCard: React.FC<{
   const subtaskInstructions = isSubtask
     ? (pickString("prompt") ?? pickString("instructions"))
     : null;
+  const actionCode = isCodeAction ? pickString("code") : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
-    if (!isSubtask || !base) return base;
+    if (!base) return base;
+    if (isCodeAction) {
+      const stripped: Record<string, unknown> = { ...base };
+      delete stripped["code"];
+      return Object.keys(stripped).length > 0 ? stripped : null;
+    }
+    if (!isSubtask) return base;
     const stripped: Record<string, unknown> = { ...base };
     for (const k of ["description", "prompt", "title", "instructions"]) {
       delete stripped[k];
     }
     return Object.keys(stripped).length > 0 ? stripped : null;
-  }, [rawArgs, isSubtask]);
+  }, [rawArgs, isSubtask, isCodeAction]);
 
   const hasArgs = !!displayArgs && Object.keys(displayArgs).length > 0;
   const resultContent = result?.content;
@@ -138,7 +154,7 @@ const ToolCallCard: React.FC<{
     resultContent != null &&
     !(typeof resultContent === "string" && resultContent.trim().length === 0);
   const hasDetails =
-    !!hasArgs || (isSubtask && !!subtaskInstructions) || hasResult;
+    !!hasArgs || (isSubtask && !!subtaskInstructions) || !!actionCode || hasResult;
   const isRunning = runningToolCallId && tc.id && runningToolCallId === tc.id;
   const durationLabel =
     !isRunning && typeof durationMs === "number"
@@ -245,6 +261,14 @@ const ToolCallCard: React.FC<{
               <Text size="small" className="subtask-instructions">
                 {subtaskInstructions}
               </Text>
+            </FlexColumn>
+          )}
+          {actionCode && (
+            <FlexColumn gap={0.5}>
+              <Caption className="tool-section-title">Code</Caption>
+              <CodeBlock inline={false} className="language-javascript">
+                {actionCode}
+              </CodeBlock>
             </FlexColumn>
           )}
           {hasArgs && (

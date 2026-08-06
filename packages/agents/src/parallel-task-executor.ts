@@ -28,7 +28,7 @@ import { TaskExecutor } from "./task-executor.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { Task, TaskPlan } from "./types.js";
+import type { AgentExecutionMode, Task, TaskPlan } from "./types.js";
 import type { Checkpoint, CheckpointStore } from "./checkpoint-store.js";
 import { hashPlanCheckpointKey } from "./checkpoint-store.js";
 
@@ -74,6 +74,8 @@ export interface ParallelTaskExecutorOptions {
   planTools?: string[];
   /** External cancellation, forwarded to every task and step executor. */
   signal?: AbortSignal;
+  /** Step action space — JSON tool calls (default) or CodeAct. */
+  executionMode?: AgentExecutionMode;
 }
 
 export class ParallelTaskExecutor {
@@ -93,6 +95,7 @@ export class ParallelTaskExecutor {
   private readonly runId?: string;
   private readonly planTools?: string[];
   private readonly signal?: AbortSignal;
+  private readonly executionMode?: AgentExecutionMode;
   /**
    * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
    * unsatisfiable dependency, or an error result). Tracked separately from
@@ -121,6 +124,7 @@ export class ParallelTaskExecutor {
     this.runId = opts.runId;
     this.planTools = opts.planTools;
     this.signal = opts.signal;
+    this.executionMode = opts.executionMode;
   }
 
   /**
@@ -333,7 +337,8 @@ export class ParallelTaskExecutor {
       maxConcurrentAgents: this.maxConcurrentAgents,
       parallelExecution: true, // Enable parallel step execution within each task
       upstreamMemoryKeys,
-      signal: this.signal
+      signal: this.signal,
+      executionMode: this.executionMode
     });
 
     let taskResult: unknown = null;

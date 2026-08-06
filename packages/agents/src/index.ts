@@ -8,7 +8,8 @@ export type {
   Task,
   TaskPlan,
   PlanApprovalDecision,
-  RequestPlanApproval
+  RequestPlanApproval,
+  AgentExecutionMode
 } from "./types.js";
 export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
@@ -357,6 +358,28 @@ export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 // Core execution
 export { StepExecutor } from "./step-executor.js";
 export type { StepExecutorOptions } from "./step-executor.js";
+export {
+  CodeActExecutor,
+  DEFAULT_CODEACT_MAX_ITERATIONS,
+  EXECUTE_CODE_TOOL_NAME,
+  CODEACT_RESIDENT_TOOL_NAMES,
+  CODEACT_DEFER_THRESHOLD
+} from "./codeact/codeact-executor.js";
+export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
+export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
+export {
+  resolveExecutionMode,
+  AGENT_EXECUTION_MODE_ENV
+} from "./codeact/execution-mode.js";
+export {
+  buildToolBridge,
+  renderToolCatalog,
+  renderToolSignature,
+  toolSignature,
+  CODEACT_PRELUDE,
+  CODEACT_RESERVED_NAMES,
+  DEFAULT_MAX_TOOL_CALLS_PER_ACTION
+} from "./codeact/tool-api.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
@@ -707,6 +730,29 @@ export type {
   ToolInvocation,
   ToolRecorder
 } from "./evals/subtask-cases.js";
+
+// CodeAct evaluation harness (code actions vs JSON tool calls)
+export {
+  runCodeActEval,
+  formatCodeActReport,
+  checkCodeActExpectations
+} from "./evals/codeact-eval.js";
+export type {
+  CodeActObservation,
+  CodeActCaseResult,
+  CodeActEvalReport,
+  RunCodeActEvalOptions
+} from "./evals/codeact-eval.js";
+export {
+  CODEACT_EVAL_CASES,
+  createCodeActTools,
+  createCodeActRecorder
+} from "./evals/codeact-cases.js";
+export type {
+  CodeActEvalCase,
+  CodeActEvalExpectations,
+  CodeActToolRecorder
+} from "./evals/codeact-cases.js";
 
 // Planning-mode evaluation harnesses (TaskPlanner DAG, ScriptPlanner script)
 export {
