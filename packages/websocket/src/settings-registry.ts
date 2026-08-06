@@ -42,19 +42,41 @@ export function getRegisteredSettings(): SettingDefinition[] {
 export const AGENT_EXECUTION_MODE_ENV = "NODETOOL_AGENT_EXECUTION_MODE";
 
 /**
- * Mirror the stored agent execution mode into the environment so the agents
- * package (which resolves NODETOOL_AGENT_EXECUTION_MODE) honors what the
- * Settings UI saved. A real environment variable wins over the stored value;
- * an unavailable settings store leaves the env/default in place.
+ * Whether a real environment variable pins the execution mode. Captured once
+ * at module load, before anything mirrors a stored value into `process.env` —
+ * afterwards the two are indistinguishable, and a deployment that set the mode
+ * in its environment must keep winning over whatever the Settings UI saved.
+ */
+const AGENT_EXECUTION_MODE_PINNED_BY_ENV = Boolean(
+  process.env[AGENT_EXECUTION_MODE_ENV]
+);
+
+/**
+ * Mirror an agent execution mode into the environment so the agents package
+ * (which resolves NODETOOL_AGENT_EXECUTION_MODE) honors what the Settings UI
+ * saved. Called at startup with the stored value and again whenever the
+ * setting is written, so a change applies to the next run instead of waiting
+ * for a restart. Returns false when the value is not a mode, or when an
+ * environment variable pins it.
+ */
+export function setAgentExecutionModeEnv(value: string | null): boolean {
+  if (AGENT_EXECUTION_MODE_PINNED_BY_ENV) return false;
+  const mode = value?.trim().toLowerCase();
+  if (mode !== "codeact" && mode !== "tools") return false;
+  process.env[AGENT_EXECUTION_MODE_ENV] = mode;
+  return true;
+}
+
+/**
+ * Load the stored agent execution mode into the environment at server startup.
+ * A real environment variable wins over the stored value; an unavailable
+ * settings store leaves the env/default in place.
  */
 export async function applyAgentExecutionModeSetting(): Promise<void> {
-  if (process.env[AGENT_EXECUTION_MODE_ENV]) return;
+  if (AGENT_EXECUTION_MODE_PINNED_BY_ENV) return;
   try {
     const setting = await Setting.find("1", AGENT_EXECUTION_MODE_ENV);
-    const value = setting?.value.trim().toLowerCase();
-    if (value === "codeact" || value === "tools") {
-      process.env[AGENT_EXECUTION_MODE_ENV] = value;
-    }
+    setAgentExecutionModeEnv(setting?.value ?? null);
   } catch {
     // Settings store unavailable — the env var / default applies.
   }

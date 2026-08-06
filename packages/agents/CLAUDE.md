@@ -482,8 +482,12 @@ Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - The mode threads through `TaskExecutor`, `ParallelTaskExecutor`, and
   `ScriptRunner` sub-agents; each resolves `resolveExecutionMode(explicit)` —
   explicit option > `NODETOOL_AGENT_EXECUTION_MODE` > `"tools"`. The setting
-  is registered in the websocket settings registry (Settings UI, group
-  Execution) and mirrored into the environment at server startup. CLI:
+  is registered in the websocket settings registry and exposed in the web
+  Settings UI (General → Execution → "Agent Execution Mode"). The stored value
+  is mirrored into the environment at server startup and again on every write,
+  so switching modes applies to the next run without a restart; a real
+  `NODETOOL_AGENT_EXECUTION_MODE` environment variable pins the mode and wins
+  over both. CLI:
   `nodetool agent run <yaml> --codeact` (YAML: `execution_mode: codeact`).
 - Eval suite `codeact` runs the same offline instrumented cases through either
   executor for a mode comparison: `nodetool eval codeact -p <p> -m <m>`.
