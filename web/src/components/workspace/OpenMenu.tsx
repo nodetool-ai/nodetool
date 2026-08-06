@@ -548,6 +548,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Filter workflows"
+                slotProps={{ htmlInput: { "aria-label": "Filter workflows" } }}
                 value={wfFilter}
                 onChange={(e) => setWfFilter(e.target.value)}
               />
@@ -585,6 +586,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Filter chats"
+                slotProps={{ htmlInput: { "aria-label": "Filter chats" } }}
                 value={chatFilter}
                 onChange={(e) => setChatFilter(e.target.value)}
               />
@@ -622,6 +624,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
                 autoFocus={autoFocusEnabled}
                 fullWidth
                 placeholder="Search assets (2+ chars)"
+                slotProps={{ htmlInput: { "aria-label": "Search assets" } }}
                 value={assetQuery}
                 onChange={(e) => setAssetQuery(e.target.value)}
               />

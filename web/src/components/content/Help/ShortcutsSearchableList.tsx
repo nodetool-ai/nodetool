@@ -66,6 +66,7 @@ export const ShortcutsSearchableList: React.FC<ShortcutsSearchableListProps> = (
         variant="outlined"
         size="small"
         placeholder={searchPlaceholder}
+        slotProps={{ htmlInput: { "aria-label": searchPlaceholder } }}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         sx={{

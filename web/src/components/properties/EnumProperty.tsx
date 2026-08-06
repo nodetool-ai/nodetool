@@ -66,7 +66,7 @@ const EnumProperty: React.FC<PropertyProps> = ({
         onChange={onChange}
         options={options}
         label={property.name}
-        placeholder={property.name}
+        placeholder="Select…"
         tabIndex={tabIndex}
         changed={changed}
       />
