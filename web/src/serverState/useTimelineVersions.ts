@@ -20,7 +20,6 @@ import { trpc, trpcClient } from "../trpc/client";
 
 import type { RouterOutputs } from "../trpc/client";
 
-export type TimelineSequenceData = RouterOutputs["timeline"]["get"];
 export type TimelineVersionListItem =
   RouterOutputs["timeline"]["versions"]["list"][number];
 export type TimelineVersionSaveType = TimelineVersionListItem["saveType"];

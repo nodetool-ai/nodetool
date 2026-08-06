@@ -65,14 +65,8 @@ import SimpleFilterBody from "./SimpleFilterBody";
 import { SIMPLE_FILTER_NODE_TYPES } from "./SimpleFilterBody.constants";
 import AudioOutBody, { AUDIO_OUT_NODE_TYPE } from "../synth/AudioOutBody";
 import SynthModuleBody from "../synth/SynthModuleBody";
-import {
-  SYNTH_MODULE_CONFIGS,
-  SYNTH_NODE_TYPES
-} from "../synth/synthModules";
-import {
-  AUDIO_EFFECT_CONFIGS,
-  AUDIO_EFFECT_NODE_TYPES
-} from "../synth/audioEffectModules";
+import { SYNTH_NODE_TYPES } from "../synth/synthModules";
+import { AUDIO_EFFECT_NODE_TYPES } from "../synth/audioEffectModules";
 
 export interface BespokeBodyProps {
   id: string;

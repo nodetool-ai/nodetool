@@ -11,7 +11,6 @@ import {
   EdgeChange,
   Node,
   NodeChange,
-  NodeTypes,
   XYPosition,
   addEdge,
   OnNodesChange,

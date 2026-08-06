@@ -1,4 +1,4 @@
-import { BrowserWindow, Menu, app } from 'electron';
+import { BrowserWindow, Menu } from 'electron';
 import { createWorkflowWindow } from '../workflowWindow';
 
 jest.mock('electron', () => {

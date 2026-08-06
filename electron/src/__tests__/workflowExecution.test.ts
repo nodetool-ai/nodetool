@@ -2,7 +2,6 @@ import { clipboard, nativeImage } from 'electron';
 import { runWorkflow } from '../workflowExecution';
 import { createWorkflowRunner } from '../WorkflowRunner';
 import { createWorkflowWindow } from '../workflowWindow';
-import { logMessage } from '../logger';
 import { Workflow } from '../types';
 
 jest.mock('electron', () => ({
