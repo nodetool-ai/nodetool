@@ -128,6 +128,12 @@ import {
   createIpcMainHandler,
   initializeIpcHandlers,
 } from '../ipc';
+import type {
+  ClipboardContentInfo,
+  DialogOpenResult,
+  IpcRequest,
+  ServerState,
+} from '../types.d';
 
 const Channels = {
   CLIPBOARD_WRITE_TEXT: 'clipboard-write-text',
@@ -196,6 +202,30 @@ const setupWorkflowShortcutsMock = setupWorkflowShortcuts as jest.MockedFunction
 const emitWorkflowsChangedMock = emitWorkflowsChanged as jest.MockedFunction<typeof emitWorkflowsChanged>;
 const shellMock = shell as jest.Mocked<typeof shell>;
 
+/**
+ * The callbacks `initializeIpcHandlers` registered, read back off the mocked
+ * `ipcMain`. Their real signatures are per-channel generics over `IpcRequest`;
+ * these tests drive one channel at a time with hand-built payloads.
+ */
+type IpcInvokeHandler<R> = (
+  event: unknown,
+  ...args: unknown[]
+) => Promise<R> | R;
+type IpcListener = (event: unknown, ...args: unknown[]) => void;
+
+/** Pass the channel's `IpcResponse` type when the test reads the result. */
+const invokeHandlerFor = <R = unknown>(
+  channel: string
+): IpcInvokeHandler<R> =>
+  ipcMainMock.handle.mock.calls.find(
+    ([registered]) => registered === channel
+  )?.[1] as unknown as IpcInvokeHandler<R>;
+
+const listenerFor = (channel: string): IpcListener =>
+  ipcMainMock.on.mock.calls.find(
+    ([registered]) => registered === channel
+  )?.[1] as unknown as IpcListener;
+
 beforeEach(() => {
   jest.clearAllMocks();
 });
@@ -203,7 +233,10 @@ beforeEach(() => {
 describe('IPC utilities', () => {
   it('createIpcMainHandler registers handler with ipcMain.handle', () => {
     const handler = jest.fn();
-    createIpcMainHandler(Channels.CLIPBOARD_READ_TEXT as any, handler);
+    createIpcMainHandler(
+      Channels.CLIPBOARD_READ_TEXT as keyof IpcRequest,
+      handler
+    );
     expect(ipcMainMock.handle).toHaveBeenCalledWith(
       Channels.CLIPBOARD_READ_TEXT,
       expect.any(Function)
@@ -215,24 +248,18 @@ describe('IPC utilities', () => {
 describe('initializeIpcHandlers', () => {
   it('registers handlers and triggers clipboard functions', async () => {
     clipboardMock.readText.mockReturnValue('clipboard');
-    serverMock.getServerState.mockReturnValue({ running: true } as any);
+    // The handler returns whatever getServerState gave it, verbatim — this
+    // stub stands in for a full ServerState only to be compared by identity.
+    serverMock.getServerState.mockReturnValue({
+      running: true,
+    } as unknown as ServerState);
 
     initializeIpcHandlers();
 
-    const handleCalls = ipcMainMock.handle.mock.calls;
-
-    const writeHandler = handleCalls.find(
-      ([channel]) => channel === Channels.CLIPBOARD_WRITE_TEXT
-    )?.[1] as any;
-    const readHandler = handleCalls.find(
-      ([channel]) => channel === Channels.CLIPBOARD_READ_TEXT
-    )?.[1] as any;
-    const stateHandler = handleCalls.find(
-      ([channel]) => channel === Channels.GET_SERVER_STATE
-    )?.[1] as any;
-    const logHandler = handleCalls.find(
-      ([channel]) => channel === Channels.OPEN_LOG_FILE
-    )?.[1] as any;
+    const writeHandler = invokeHandlerFor(Channels.CLIPBOARD_WRITE_TEXT);
+    const readHandler = invokeHandlerFor(Channels.CLIPBOARD_READ_TEXT);
+    const stateHandler = invokeHandlerFor(Channels.GET_SERVER_STATE);
+    const logHandler = invokeHandlerFor(Channels.OPEN_LOG_FILE);
 
     await writeHandler({}, { text: 'text' });
     expect(clipboardMock.writeText).toHaveBeenCalledWith('text', undefined);
@@ -252,9 +279,7 @@ describe('initializeIpcHandlers', () => {
   it('runs app handler and workflow handlers', async () => {
     initializeIpcHandlers();
 
-    const runHandler = ipcMainMock.handle.mock.calls.find(
-      ([channel]) => channel === Channels.RUN_APP
-    )?.[1] as any;
+    const runHandler = invokeHandlerFor(Channels.RUN_APP);
 
     await runHandler({}, '42');
     expect(loggerMock).toHaveBeenCalledWith(
@@ -262,22 +287,16 @@ describe('initializeIpcHandlers', () => {
     );
     expect(serverMock.runApp).toHaveBeenCalledWith('42');
 
-    const createHandler = ipcMainMock.handle.mock.calls.find(
-      ([channel]) => channel === Channels.ON_CREATE_WORKFLOW
-    )?.[1] as any;
+    const createHandler = invokeHandlerFor(Channels.ON_CREATE_WORKFLOW);
     await createHandler({}, { name: 'wf' });
     expect(registerWorkflowShortcutMock).toHaveBeenCalled();
     expect(emitWorkflowsChangedMock).toHaveBeenCalled();
 
-    const updateHandler = ipcMainMock.handle.mock.calls.find(
-      ([channel]) => channel === Channels.ON_UPDATE_WORKFLOW
-    )?.[1] as any;
+    const updateHandler = invokeHandlerFor(Channels.ON_UPDATE_WORKFLOW);
     await updateHandler({}, { name: 'wf2' });
     expect(registerWorkflowShortcutMock).toHaveBeenCalledTimes(2);
 
-    const deleteHandler = ipcMainMock.handle.mock.calls.find(
-      ([channel]) => channel === Channels.ON_DELETE_WORKFLOW
-    )?.[1] as any;
+    const deleteHandler = invokeHandlerFor(Channels.ON_DELETE_WORKFLOW);
     await deleteHandler({}, { name: 'wf3', settings: { shortcut: 's' } });
     expect(globalShortcutMock.unregister).toHaveBeenCalledWith('s');
     expect(emitWorkflowsChangedMock).toHaveBeenCalledTimes(3);
@@ -286,24 +305,20 @@ describe('initializeIpcHandlers', () => {
   it('handles window events correctly', () => {
     initializeIpcHandlers();
 
-    const closeHandler = ipcMainMock.on.mock.calls.find(
-      ([channel]) => channel === Channels.WINDOW_CLOSE
-    )?.[1] as any;
-    const minimizeHandler = ipcMainMock.on.mock.calls.find(
-      ([channel]) => channel === Channels.WINDOW_MINIMIZE
-    )?.[1] as any;
-    const maximizeHandler = ipcMainMock.on.mock.calls.find(
-      ([channel]) => channel === Channels.WINDOW_MAXIMIZE
-    )?.[1] as any;
+    const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
+    const minimizeHandler = listenerFor(Channels.WINDOW_MINIMIZE);
+    const maximizeHandler = listenerFor(Channels.WINDOW_MAXIMIZE);
 
-    const mockWindow: any = {
+    const mockWindow = {
       close: jest.fn(),
       minimize: jest.fn(),
       maximize: jest.fn(),
       unmaximize: jest.fn(),
       isMaximized: jest.fn().mockReturnValue(false),
     };
-    browserWindowMock.getFocusedWindow.mockReturnValue(mockWindow);
+    browserWindowMock.getFocusedWindow.mockReturnValue(
+      mockWindow as unknown as BrowserWindow
+    );
 
     closeHandler({});
     expect(mockWindow.close).toHaveBeenCalled();
@@ -325,7 +340,10 @@ describe('initializeIpcHandlers', () => {
       throw new Error('Remove handler error');
     });
     
-    createIpcMainHandler(Channels.CLIPBOARD_READ_TEXT as any, handler);
+    createIpcMainHandler(
+      Channels.CLIPBOARD_READ_TEXT as keyof IpcRequest,
+      handler
+    );
     
     expect(loggerMock).toHaveBeenCalledWith(
       expect.stringContaining('Warning removing existing IPC handler'),
@@ -343,18 +361,14 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle SHOW_ITEM_IN_FOLDER', async () => {
-      const showItemHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.SHOW_ITEM_IN_FOLDER
-      )?.[1] as any;
+      const showItemHandler = invokeHandlerFor(Channels.SHOW_ITEM_IN_FOLDER);
 
       await showItemHandler({}, '/path/to/file');
       expect(serverMock.showItemInFolder).toHaveBeenCalledWith('/path/to/file');
     });
 
     it('should handle START_SERVER', async () => {
-      const startServerHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.START_SERVER
-      )?.[1] as any;
+      const startServerHandler = invokeHandlerFor(Channels.START_SERVER);
 
       await startServerHandler({});
       expect(serverMock.initializeBackendServer).toHaveBeenCalled();
@@ -362,9 +376,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle RESTART_SERVER', async () => {
-      const restartServerHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.RESTART_SERVER
-      )?.[1] as any;
+      const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
 
       await restartServerHandler({});
       expect(serverMock.stopServer).toHaveBeenCalled();
@@ -375,9 +387,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle RESTART_SERVER with stop server error', async () => {
       serverMock.stopServer.mockRejectedValue(new Error('Stop error'));
       
-      const restartServerHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.RESTART_SERVER
-      )?.[1] as any;
+      const restartServerHandler = invokeHandlerFor(Channels.RESTART_SERVER);
 
       await restartServerHandler({});
       expect(loggerMock).toHaveBeenCalledWith(
@@ -390,9 +400,7 @@ describe('initializeIpcHandlers', () => {
       const packages = [{ id: 'pkg1', name: 'Package 1' }];
       packageManagerMock.fetchAvailablePackages.mockResolvedValue(packages);
       
-      const listAvailableHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_LIST_AVAILABLE
-      )?.[1] as any;
+      const listAvailableHandler = invokeHandlerFor(Channels.PACKAGE_LIST_AVAILABLE);
 
       const result = await listAvailableHandler({});
       expect(packageManagerMock.fetchAvailablePackages).toHaveBeenCalled();
@@ -403,9 +411,7 @@ describe('initializeIpcHandlers', () => {
       const packages = [{ id: 'installed1', name: 'Installed 1' }];
       packageManagerMock.listInstalledPackages.mockResolvedValue(packages);
       
-      const listInstalledHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_LIST_INSTALLED
-      )?.[1] as any;
+      const listInstalledHandler = invokeHandlerFor(Channels.PACKAGE_LIST_INSTALLED);
 
       const result = await listInstalledHandler({});
       expect(packageManagerMock.listInstalledPackages).toHaveBeenCalled();
@@ -416,9 +422,7 @@ describe('initializeIpcHandlers', () => {
       packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
       packageManagerMock.installPackage.mockResolvedValue({ success: true });
       
-      const installHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_INSTALL
-      )?.[1] as any;
+      const installHandler = invokeHandlerFor(Channels.PACKAGE_INSTALL);
 
       const result = await installHandler({}, { repo_id: 'valid-repo' });
       expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
@@ -429,9 +433,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle PACKAGE_INSTALL with invalid repo', async () => {
       packageManagerMock.validateRepoId.mockReturnValue({ valid: false, error: 'Invalid repo' });
       
-      const installHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_INSTALL
-      )?.[1] as any;
+      const installHandler = invokeHandlerFor(Channels.PACKAGE_INSTALL);
 
       const result = await installHandler({}, { repo_id: 'invalid-repo' });
       expect(result).toEqual({
@@ -445,9 +447,7 @@ describe('initializeIpcHandlers', () => {
       packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
       packageManagerMock.uninstallPackage.mockResolvedValue({ success: true });
       
-      const uninstallHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_UNINSTALL
-      )?.[1] as any;
+      const uninstallHandler = invokeHandlerFor(Channels.PACKAGE_UNINSTALL);
 
       const result = await uninstallHandler({}, { repo_id: 'valid-repo' });
       expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
@@ -459,9 +459,7 @@ describe('initializeIpcHandlers', () => {
       packageManagerMock.validateRepoId.mockReturnValue({ valid: true });
       packageManagerMock.updatePackage.mockResolvedValue({ success: true });
       
-      const updateHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_UPDATE
-      )?.[1] as any;
+      const updateHandler = invokeHandlerFor(Channels.PACKAGE_UPDATE);
 
       const result = await updateHandler({}, 'valid-repo');
       expect(packageManagerMock.validateRepoId).toHaveBeenCalledWith('valid-repo');
@@ -473,9 +471,7 @@ describe('initializeIpcHandlers', () => {
       const searchResults = [{ id: 'node1', name: 'Node 1' }];
       packageManagerMock.searchNodes.mockResolvedValue(searchResults);
       
-      const searchHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_SEARCH_NODES
-      )?.[1] as any;
+      const searchHandler = invokeHandlerFor(Channels.PACKAGE_SEARCH_NODES);
 
       const result = await searchHandler({}, 'search-query');
       expect(packageManagerMock.searchNodes).toHaveBeenCalledWith('search-query');
@@ -489,9 +485,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle PACKAGE_SEARCH_NODES with error', async () => {
       packageManagerMock.searchNodes.mockRejectedValue(new Error('Search error'));
       
-      const searchHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_SEARCH_NODES
-      )?.[1] as any;
+      const searchHandler = invokeHandlerFor(Channels.PACKAGE_SEARCH_NODES);
 
       const result = await searchHandler({}, 'query');
       expect(loggerMock).toHaveBeenCalledWith(
@@ -502,9 +496,7 @@ describe('initializeIpcHandlers', () => {
     });
 
     it('should handle PACKAGE_OPEN_EXTERNAL', async () => {
-      const openExternalHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.PACKAGE_OPEN_EXTERNAL
-      )?.[1] as any;
+      const openExternalHandler = invokeHandlerFor(Channels.PACKAGE_OPEN_EXTERNAL);
 
       await openExternalHandler({}, 'https://example.com');
       expect(shellMock.openExternal).toHaveBeenCalledWith('https://example.com');
@@ -521,9 +513,7 @@ describe('initializeIpcHandlers', () => {
         throw new Error('Window error');
       });
 
-      const closeHandler = ipcMainMock.on.mock.calls.find(
-        ([channel]) => channel === Channels.WINDOW_CLOSE
-      )?.[1] as any;
+      const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
 
       closeHandler({});
       expect(loggerMock).toHaveBeenCalledWith(
@@ -537,9 +527,7 @@ describe('initializeIpcHandlers', () => {
         throw new Error('Minimize error');
       });
 
-      const minimizeHandler = ipcMainMock.on.mock.calls.find(
-        ([channel]) => channel === Channels.WINDOW_MINIMIZE
-      )?.[1] as any;
+      const minimizeHandler = listenerFor(Channels.WINDOW_MINIMIZE);
 
       minimizeHandler({});
       expect(loggerMock).toHaveBeenCalledWith(
@@ -553,9 +541,7 @@ describe('initializeIpcHandlers', () => {
         throw new Error('Maximize error');
       });
 
-      const maximizeHandler = ipcMainMock.on.mock.calls.find(
-        ([channel]) => channel === Channels.WINDOW_MAXIMIZE
-      )?.[1] as any;
+      const maximizeHandler = listenerFor(Channels.WINDOW_MAXIMIZE);
 
       maximizeHandler({});
       expect(loggerMock).toHaveBeenCalledWith(
@@ -567,9 +553,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle null window in close', () => {
       browserWindowMock.getFocusedWindow.mockReturnValue(null);
 
-      const closeHandler = ipcMainMock.on.mock.calls.find(
-        ([channel]) => channel === Channels.WINDOW_CLOSE
-      )?.[1] as any;
+      const closeHandler = listenerFor(Channels.WINDOW_CLOSE);
 
       closeHandler({});
       // Should not throw or call window methods
@@ -585,9 +569,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: false, filePaths: ['/path/to/file.txt'] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FILE);
 
       const result = await dialogHandler({}, { title: 'Select File', defaultPath: '/home' });
       
@@ -604,9 +586,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: false, filePaths: ['/path/to/file1.txt', '/path/to/file2.txt'] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FILE);
 
       const result = await dialogHandler({}, { title: 'Select Files', multiSelections: true });
       
@@ -623,9 +603,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: true, filePaths: [] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FILE
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FILE);
 
       const result = await dialogHandler({}, {});
       
@@ -637,9 +615,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FOLDER);
 
       const result = await dialogHandler({}, { title: 'Select Folder', defaultPath: '/home' });
       
@@ -656,9 +632,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: false, filePaths: ['/path/to/folder'] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FOLDER);
 
       const result = await dialogHandler({}, { title: 'Pick Folder', buttonLabel: 'Choose' });
       
@@ -675,9 +649,7 @@ describe('initializeIpcHandlers', () => {
       const mockResult = { canceled: true, filePaths: [] };
       dialogMock.showOpenDialog.mockResolvedValue(mockResult);
 
-      const dialogHandler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.DIALOG_OPEN_FOLDER
-      )?.[1] as any;
+      const dialogHandler = invokeHandlerFor<DialogOpenResult>(Channels.DIALOG_OPEN_FOLDER);
 
       const result = await dialogHandler({}, {});
       
@@ -695,9 +667,7 @@ describe('initializeIpcHandlers', () => {
       clipboardMock.availableFormats.mockReturnValue([]);
       clipboardMock.readText.mockReturnValue('');
 
-      const handler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.CLIPBOARD_READ_FILE_PATHS
-      )?.[1] as any;
+      const handler = invokeHandlerFor(Channels.CLIPBOARD_READ_FILE_PATHS);
 
       const result = await handler({});
       expect(result).toEqual([]);
@@ -706,9 +676,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle CLIPBOARD_GET_CONTENT_INFO', async () => {
       clipboardMock.availableFormats.mockReturnValue(['text/plain', 'text/html']);
 
-      const handler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.CLIPBOARD_GET_CONTENT_INFO
-      )?.[1] as any;
+      const handler = invokeHandlerFor<ClipboardContentInfo>(Channels.CLIPBOARD_GET_CONTENT_INFO);
 
       const result = await handler({});
       expect(result.formats).toEqual(['text/plain', 'text/html']);
@@ -722,9 +690,7 @@ describe('initializeIpcHandlers', () => {
       const mockBuffer = Buffer.from('test data');
       clipboardMock.readBuffer.mockReturnValue(mockBuffer);
 
-      const handler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
-      )?.[1] as any;
+      const handler = invokeHandlerFor(Channels.CLIPBOARD_READ_BUFFER);
 
       const result = await handler({}, 'text/plain');
       expect(result).toBe(mockBuffer.toString('base64'));
@@ -733,9 +699,7 @@ describe('initializeIpcHandlers', () => {
     it('should handle CLIPBOARD_READ_BUFFER with empty buffer', async () => {
       clipboardMock.readBuffer.mockReturnValue(Buffer.alloc(0));
 
-      const handler = ipcMainMock.handle.mock.calls.find(
-        ([channel]) => channel === Channels.CLIPBOARD_READ_BUFFER
-      )?.[1] as any;
+      const handler = invokeHandlerFor(Channels.CLIPBOARD_READ_BUFFER);
 
       const result = await handler({}, 'text/plain');
       expect(result).toBeNull();

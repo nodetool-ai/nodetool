@@ -1,4 +1,13 @@
 import { handleChatWebSocketMessage } from "../chatProtocol";
+import type { WebSocketMessage } from "../../../lib/websocket/GlobalWebSocketManager";
+import type { GlobalChatState } from "../../../stores/GlobalChatStore";
+
+/**
+ * Each case stands up only the slice of GlobalChatState its reducer reads; the
+ * full state is ~70 fields wide. Reads off the result stay type-checked.
+ */
+const partialChatState = (state: unknown): GlobalChatState =>
+  state as GlobalChatState;
 import { FrontendToolRegistry } from "../../../lib/tools/frontendTools";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 
@@ -18,7 +27,8 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 
 describe("chatProtocol", () => {
   describe("agent turn status", () => {
-    const makeState = (threadRuntimeStatus: string) => ({
+    const makeState = (threadRuntimeStatus: string): GlobalChatState =>
+      partialChatState({
       status: "streaming",
       currentThreadId: "thread-1",
       threads: {
@@ -52,7 +62,7 @@ describe("chatProtocol", () => {
     // model asked for tools, so the turn continues. Resetting to idle here is
     // what flips the composer back to Run while tools are still running.
     it("stays busy on an assistant message that requests tool calls", async () => {
-      let capturedState: any = makeState("streaming");
+      let capturedState: GlobalChatState = makeState("streaming");
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
@@ -67,7 +77,7 @@ describe("chatProtocol", () => {
           thread_id: "thread-1",
           content: null,
           tool_calls: [{ id: "c1", name: "ui_sketch_get_state", args: {} }]
-        } as any,
+        } as unknown as WebSocketMessage,
         set,
         () => capturedState
       );
@@ -76,7 +86,7 @@ describe("chatProtocol", () => {
     });
 
     it("goes idle on a final assistant message with no tool calls", async () => {
-      let capturedState: any = makeState("streaming");
+      let capturedState: GlobalChatState = makeState("streaming");
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
@@ -90,7 +100,7 @@ describe("chatProtocol", () => {
           role: "assistant",
           thread_id: "thread-1",
           content: "All done."
-        } as any,
+        } as unknown as WebSocketMessage,
         set,
         () => capturedState
       );
@@ -104,7 +114,8 @@ describe("chatProtocol", () => {
   // dispatch branch they were dropped and the user saw a silent "Thinking…"
   // for the whole plan.
   describe("planner progress events", () => {
-    const makeState = () => ({
+    const makeState = (): GlobalChatState =>
+      partialChatState({
       status: "streaming",
       currentThreadId: "thread-1",
       threads: {
@@ -135,8 +146,8 @@ describe("chatProtocol", () => {
       updateThreadTitle: jest.fn()
     });
 
-    const dispatch = async (payload: any) => {
-      let capturedState: any = makeState();
+    const dispatch = async (payload: WebSocketMessage) => {
+      let capturedState: GlobalChatState = makeState();
       const set = jest.fn((updater) => {
         capturedState = {
           ...capturedState,
@@ -194,7 +205,7 @@ describe("chatProtocol", () => {
 
   describe("title generation", () => {
     it("generates title from first user message when first assistant chunk completes", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -208,7 +219,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -217,7 +228,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as any,
+        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -226,7 +237,7 @@ describe("chatProtocol", () => {
     });
 
     it("does not generate title when thread already has a title", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -240,7 +251,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -249,7 +260,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi there!", done: true } as any,
+        { type: "chunk", content: "Hi there!", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -258,7 +269,7 @@ describe("chatProtocol", () => {
     });
 
     it("does not generate title for non-first assistant messages", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -274,7 +285,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -283,7 +294,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Second answer", done: true } as any,
+        { type: "chunk", content: "Second answer", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -292,7 +303,7 @@ describe("chatProtocol", () => {
     });
 
     it("handles array content for title generation", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -306,7 +317,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -315,7 +326,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as any,
+        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -324,7 +335,7 @@ describe("chatProtocol", () => {
     });
 
     it("uses fallback title for non-text content", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -338,7 +349,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -347,7 +358,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as any,
+        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -356,7 +367,7 @@ describe("chatProtocol", () => {
     });
 
     it("truncates long titles to 50 characters", async () => {
-      let capturedState: any = {
+      let capturedState: GlobalChatState = partialChatState({
         status: "connected",
         currentThreadId: "thread-1",
         threads: {
@@ -370,7 +381,7 @@ describe("chatProtocol", () => {
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn(),
         updateThreadTitle: jest.fn()
-      };
+      });
 
       const set = jest.fn((updater) => {
         capturedState = { ...capturedState, ...(typeof updater === "function" ? updater(capturedState) : updater) };
@@ -379,7 +390,7 @@ describe("chatProtocol", () => {
       const get = () => capturedState;
 
       await handleChatWebSocketMessage(
-        { type: "chunk", content: "Hi!", done: true } as any,
+        { type: "chunk", content: "Hi!", done: true } as unknown as WebSocketMessage,
         set,
         get
       );
@@ -396,15 +407,15 @@ describe("chatProtocol", () => {
     const get = () =>
       ({
         status: "stopping"
-      }) as any;
+      }) as unknown as GlobalChatState;
 
-    await handleChatWebSocketMessage({ type: "chunk", content: "hi" } as any, set, get);
+    await handleChatWebSocketMessage({ type: "chunk", content: "hi" } as unknown as WebSocketMessage, set, get);
 
     expect(set).not.toHaveBeenCalled();
   });
 
   it("applies chunks using chunk.thread_id when currentThreadId points to a different thread", async () => {
-    let capturedState: any = {
+    let capturedState: GlobalChatState = partialChatState({
       status: "connected",
       currentThreadId: "thread-current",
       threads: {
@@ -430,7 +441,7 @@ describe("chatProtocol", () => {
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
       updateThreadTitle: jest.fn()
-    };
+    });
 
     const set = jest.fn((updater) => {
       capturedState = {
@@ -447,7 +458,7 @@ describe("chatProtocol", () => {
         thread_id: "thread-stream",
         content: "Hi from stream",
         done: true
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
@@ -474,7 +485,7 @@ describe("chatProtocol", () => {
     const clearTimeoutSpy = jest.spyOn(global, "clearTimeout");
 
     const timeoutId = setTimeout(() => undefined, 5000);
-    let capturedState: any = {
+    let capturedState: GlobalChatState = partialChatState({
       status: "loading",
       currentThreadId: "thread-1",
       threadRuntime: {
@@ -510,7 +521,7 @@ describe("chatProtocol", () => {
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
       updateThreadTitle: jest.fn()
-    };
+    });
 
     const set = jest.fn((updater) => {
       capturedState = {
@@ -527,7 +538,7 @@ describe("chatProtocol", () => {
         role: "assistant",
         thread_id: "thread-1",
         content: "Hi there!"
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
@@ -555,7 +566,7 @@ describe("chatProtocol", () => {
     // local-stream-* placeholder from the text. The server then re-sends that
     // same text as an assistant message with tool_calls. The placeholder must be
     // replaced — not joined by a second copy of the text.
-    let capturedState: any = {
+    let capturedState: GlobalChatState = partialChatState({
       status: "streaming",
       currentThreadId: "thread-1",
       threads: {
@@ -579,7 +590,7 @@ describe("chatProtocol", () => {
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
       updateThreadTitle: jest.fn()
-    };
+    });
 
     const set = jest.fn((updater) => {
       capturedState = {
@@ -599,7 +610,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Let me search for that.",
         tool_calls: [{ id: "call-1", name: "web_search", args: {} }]
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
@@ -623,7 +634,7 @@ describe("chatProtocol", () => {
     // finalized message ("Searching") was matching the older longer placeholder
     // ("Searching the web for results") via candidateNormalized.startsWith(incoming)
     // and overwriting it instead of replacing the correct trailing placeholder.
-    let capturedState: any = {
+    let capturedState: GlobalChatState = partialChatState({
       status: "streaming",
       currentThreadId: "thread-1",
       threads: {
@@ -662,7 +673,7 @@ describe("chatProtocol", () => {
       selectedModel: { provider: "", id: "" },
       summarizeThread: jest.fn(),
       updateThreadTitle: jest.fn()
-    };
+    });
 
     const set = jest.fn((updater) => {
       capturedState = {
@@ -682,7 +693,7 @@ describe("chatProtocol", () => {
         created_at: new Date().toISOString(),
         content: "Searching",
         tool_calls: [{ id: "call-2", name: "web_search", args: {} }]
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
@@ -716,7 +727,7 @@ describe("chatProtocol", () => {
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as any;
+      }) as unknown as GlobalChatState;
 
     await handleChatWebSocketMessage(
       {
@@ -725,7 +736,7 @@ describe("chatProtocol", () => {
         name: "unknown_tool",
         args: {},
         thread_id: "thread-1"
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
@@ -754,7 +765,7 @@ describe("chatProtocol", () => {
         messageCache: {},
         selectedModel: { provider: "", id: "" },
         summarizeThread: jest.fn()
-      }) as any;
+      }) as unknown as GlobalChatState;
 
     await handleChatWebSocketMessage(
       {
@@ -763,7 +774,7 @@ describe("chatProtocol", () => {
         name: "ui_fail",
         args: {},
         thread_id: "thread-1"
-      } as any,
+      } as unknown as WebSocketMessage,
       set,
       get
     );
