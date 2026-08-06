@@ -2,6 +2,270 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "blackforestlabs/flux-3/image-to-video": {
+      className: "Flux3ImageToVideo",
+      docstring:
+        "FLUX 3 animates a still image into a video with cinematic motion.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "flux-3"],
+      useCases: [
+        "Animate a generated still",
+        "Turn photos into moving shots",
+        "Create b-roll from artwork",
+        "Add camera motion to a frame",
+        "Produce short clips from key art"
+      ]
+    },
+
+    "blackforestlabs/flux-3/image-to-video/draft": {
+      className: "Flux3ImageToVideoDraft",
+      docstring:
+        "FLUX 3 Draft animates a still image into a low-cost preview video, meant to be enhanced afterwards.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux-3",
+        "draft"
+      ],
+      useCases: [
+        "Preview an animation before a full render",
+        "Iterate cheaply on motion ideas",
+        "Check framing and pacing",
+        "Generate rough cuts for review",
+        "Feed drafts into the enhance pass"
+      ]
+    },
+
+    "blackforestlabs/flux-3/keyframes-to-video": {
+      className: "Flux3KeyframesToVideo",
+      docstring:
+        "FLUX 3 generates a video that passes through a set of keyframe images.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux-3",
+        "keyframes"
+      ],
+      useCases: [
+        "Direct a shot with explicit keyframes",
+        "Interpolate between storyboard frames",
+        "Control the arc of a generated clip",
+        "Animate a sequence of stills",
+        "Match a planned camera path"
+      ]
+    },
+
+    "blackforestlabs/flux-3/keyframes-to-video/draft": {
+      className: "Flux3KeyframesToVideoDraft",
+      docstring:
+        "FLUX 3 Draft generates a low-cost preview video through a set of keyframe images.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux-3",
+        "keyframes",
+        "draft"
+      ],
+      useCases: [
+        "Preview a keyframed shot cheaply",
+        "Check timing between storyboard frames",
+        "Iterate on a camera path",
+        "Review pacing before a full render",
+        "Feed drafts into the enhance pass"
+      ]
+    },
+
+    "blackforestlabs/flux-3/first-last-frame-to-video": {
+      className: "Flux3FirstLastFrameToVideo",
+      docstring:
+        "FLUX 3 generates a video that starts at one image and ends at another.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux-3",
+        "transition"
+      ],
+      useCases: [
+        "Morph between two images",
+        "Create transitions for an edit",
+        "Animate before-and-after shots",
+        "Bridge two storyboard frames",
+        "Produce looping clips"
+      ]
+    },
+
+    "blackforestlabs/flux-3/first-last-frame-to-video/draft": {
+      className: "Flux3FirstLastFrameToVideoDraft",
+      docstring:
+        "FLUX 3 Draft generates a low-cost preview video between a first and last frame.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "flux-3",
+        "transition",
+        "draft"
+      ],
+      useCases: [
+        "Preview a transition before a full render",
+        "Check the arc between two frames",
+        "Iterate cheaply on morphs",
+        "Review pacing of a bridge shot",
+        "Feed drafts into the enhance pass"
+      ]
+    },
+
+    "minimax/h3/image-to-video": {
+      className: "MinimaxH3ImageToVideo",
+      docstring:
+        "MiniMax H3 animates a still image into a video with smooth, natural motion.",
+      tags: ["video", "generation", "image-to-video", "img2vid", "minimax"],
+      useCases: [
+        "Animate photos and artwork",
+        "Add motion to product stills",
+        "Create clips from generated images",
+        "Produce social media videos",
+        "Extend a still into a shot"
+      ]
+    },
+
+    "minimax/h3/reference-to-video": {
+      className: "MinimaxH3ReferenceToVideo",
+      docstring:
+        "MiniMax H3 generates videos that keep the subjects from reference images consistent.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "reference"
+      ],
+      useCases: [
+        "Keep a character consistent across shots",
+        "Generate videos from subject references",
+        "Place a product into a generated scene",
+        "Produce series with a recurring cast",
+        "Control style with reference frames"
+      ]
+    },
+
+    "xai/grok-imagine-video/v1.5/reference-to-video": {
+      className: "GrokImagineVideoV15ReferenceToVideo",
+      docstring:
+        "Grok Imagine Video 1.5 generates videos guided by reference images.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "grok",
+        "xai",
+        "reference"
+      ],
+      useCases: [
+        "Generate videos from subject references",
+        "Keep characters consistent across clips",
+        "Guide style with reference frames",
+        "Animate a product in a new scene",
+        "Produce reference-matched footage"
+      ]
+    },
+
+    "fal-ai/kling-video/v2.5-turbo/pro/image-to-video": {
+      className: "KlingVideoV25TurboProImageToVideo",
+      docstring:
+        "Kling 2.5 Turbo Pro animates a still image into a high-quality video with fast turnaround.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "kling",
+        "turbo"
+      ],
+      useCases: [
+        "Animate stills at pro quality",
+        "Create cinematic shots from key art",
+        "Produce videos on a tight deadline",
+        "Generate marketing footage from photos",
+        "Iterate on animations quickly"
+      ]
+    },
+
+    "fal-ai/minimax/hailuo-2.3/pro/image-to-video": {
+      className: "MinimaxHailuo23ProImageToVideo",
+      docstring:
+        "MiniMax Hailuo 2.3 Pro animates a still image into a high-fidelity video.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "minimax",
+        "hailuo",
+        "pro"
+      ],
+      useCases: [
+        "Animate stills at high fidelity",
+        "Create expressive character motion",
+        "Produce cinematic clips from photos",
+        "Generate polished promo footage",
+        "Extend key art into a shot"
+      ]
+    },
+
+    "fal-ai/wan-25-preview/image-to-video": {
+      className: "Wan25PreviewImageToVideo",
+      docstring:
+        "Wan 2.5 Preview animates a still image into a video with synchronized audio support.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "wan",
+        "preview"
+      ],
+      useCases: [
+        "Animate photos with matching audio",
+        "Create clips from generated images",
+        "Produce short social videos",
+        "Add motion to illustrations",
+        "Prototype shots before a full render"
+      ]
+    },
+
+    "fal-ai/veo3.1/fast/reference-to-video": {
+      className: "Veo31FastReferenceToVideo",
+      docstring:
+        "Veo 3.1 Fast generates videos guided by reference images, optimized for speed.",
+      tags: [
+        "video",
+        "generation",
+        "image-to-video",
+        "img2vid",
+        "veo",
+        "fast",
+        "reference"
+      ],
+      useCases: [
+        "Generate videos from subject references quickly",
+        "Keep a character consistent across shots",
+        "Iterate on reference-guided clips",
+        "Produce drafts before a full-quality render",
+        "Match style to supplied frames"
+      ]
+    },
+
     "fal-ai/pixverse/v5.6/image-to-video": {
       className: "PixverseV56ImageToVideo",
       docstring: "Generate high-quality videos from images with Pixverse v5.6.",
