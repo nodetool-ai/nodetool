@@ -424,6 +424,36 @@ export class ReplicateProvider extends BaseProvider {
         id: "lucataco/qwen2.5-omni-7b",
         name: "Qwen2.5 Omni 7B",
         provider: "replicate"
+      },
+      {
+        id: "google/gemini-3-flash",
+        name: "Gemini 3 Flash",
+        provider: "replicate"
+      },
+      {
+        id: "openai/gpt-5-structured",
+        name: "GPT-5 Structured",
+        provider: "replicate"
+      },
+      {
+        id: "moonshotai/kimi-k2-thinking",
+        name: "Kimi K2 Thinking",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-4.0-h-small",
+        name: "Granite 4.0 H Small",
+        provider: "replicate"
+      },
+      {
+        id: "nvidia/nemotron-3-nano-30b-a3b",
+        name: "Nemotron 3 Nano 30B A3B",
+        provider: "replicate"
+      },
+      {
+        id: "nvidia/nemotron-nano-v2-12b-vl",
+        name: "Nemotron Nano V2 12B VL",
+        provider: "replicate"
       }
     ];
   }
@@ -509,6 +539,36 @@ export class ReplicateProvider extends BaseProvider {
         id: "inworld/realtime-tts-1.5-mini",
         name: "Inworld Realtime TTS 1.5 Mini",
         provider: "replicate"
+      },
+      {
+        id: "elevenlabs/v2-multilingual",
+        name: "ElevenLabs V2 Multilingual",
+        provider: "replicate"
+      },
+      {
+        id: "elevenlabs/turbo-v2.5",
+        name: "ElevenLabs Turbo V2.5",
+        provider: "replicate"
+      },
+      {
+        id: "elevenlabs/flash-v2.5",
+        name: "ElevenLabs Flash V2.5",
+        provider: "replicate"
+      },
+      {
+        id: "minimax/speech-2.6-hd",
+        name: "MiniMax Speech 2.6 HD",
+        provider: "replicate"
+      },
+      {
+        id: "minimax/speech-2.6-turbo",
+        name: "MiniMax Speech 2.6 Turbo",
+        provider: "replicate"
+      },
+      {
+        id: "resemble-ai/chatterbox",
+        name: "Chatterbox",
+        provider: "replicate"
       }
     ];
   }
@@ -568,6 +628,21 @@ export class ReplicateProvider extends BaseProvider {
       {
         id: "ibm-granite/granite-speech-3.3-8b",
         name: "Granite Speech 3.3 8B",
+        provider: "replicate"
+      },
+      {
+        id: "ibm-granite/granite-speech-4.1-2b",
+        name: "Granite Speech 4.1 2B",
+        provider: "replicate"
+      },
+      {
+        id: "nvidia/canary-qwen-2.5b",
+        name: "Canary Qwen 2.5B",
+        provider: "replicate"
+      },
+      {
+        id: "victor-upmeet/whisperx",
+        name: "WhisperX Large V3",
         provider: "replicate"
       }
     ];
@@ -658,6 +733,18 @@ export class ReplicateProvider extends BaseProvider {
         name: "ImageBind",
         provider: "replicate",
         dimensions: 1024
+      },
+      {
+        id: "openai/clip",
+        name: "CLIP ViT-L/14",
+        provider: "replicate",
+        dimensions: 768
+      },
+      {
+        id: "krthr/clip-embeddings",
+        name: "CLIP Embeddings",
+        provider: "replicate",
+        dimensions: 768
       }
     ];
   }
@@ -872,10 +959,9 @@ export class ReplicateProvider extends BaseProvider {
     modelId: string,
     input: Record<string, unknown>
   ): Promise<Uint8Array> {
-    const output = await this._client.run(
-      modelId as `${string}/${string}`,
-      { input }
-    );
+    const output = await this._client.run(modelId as `${string}/${string}`, {
+      input
+    });
     return this._fetchOutputBytes(output);
   }
 
