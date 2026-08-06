@@ -49,9 +49,12 @@ import {
 import { linkAbort } from "../utils/link-abort.js";
 import {
   buildToolBridge,
+  toolSignature,
   CODEACT_PRELUDE,
-  type ToolCallRecord
+  type ToolCallRecord,
+  type ToolSearchHit
 } from "./tool-api.js";
+import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
 
 const log = createLogger("nodetool.agents.codeact");
@@ -63,6 +66,37 @@ const log = createLogger("nodetool.agents.codeact");
 export const DEFAULT_CODEACT_MAX_ITERATIONS = 20;
 
 export const EXECUTE_CODE_TOOL_NAME = "execute_code";
+
+/**
+ * Tools documented in full in the prompt regardless of toolbelt size — the
+ * high-traffic set nearly every step reaches for (mirroring the chat
+ * runner's resident-toolbelt idea). Everything else is deferred: still
+ * callable, but discovered through `searchTools()` first, so a 70-tool belt
+ * does not cost 70 signatures of prompt.
+ */
+export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
+  // Web + retrieval.
+  "web_search",
+  "browser",
+  "http_request",
+  "download_file",
+  // Workspace files.
+  "read_file",
+  "write_file",
+  "list_directory",
+  // Shared agent memory.
+  "memory_list",
+  "memory_read",
+  "memory_write",
+  // Delegation.
+  "run_subtask"
+]);
+
+/**
+ * Toolbelts at or below this size skip the split entirely — deferring three
+ * tools saves nothing and costs a discovery round.
+ */
+export const CODEACT_DEFER_THRESHOLD = 16;
 
 export interface CodeActExecutorOptions {
   task: Task;
@@ -83,6 +117,13 @@ export interface CodeActExecutorOptions {
   actionTimeoutMs?: number;
   /** Tool calls one action may consume. Default 50. */
   maxToolCallsPerAction?: number;
+  /**
+   * Tools documented in full in the prompt. Defaults to
+   * {@link CODEACT_RESIDENT_TOOL_NAMES}; the rest of the toolbelt is
+   * deferred behind `searchTools()` once the belt exceeds
+   * {@link CODEACT_DEFER_THRESHOLD}.
+   */
+  residentToolNames?: Iterable<string>;
 }
 
 /** Observation envelope returned to the model after each code action. */
@@ -113,6 +154,8 @@ export class CodeActExecutor {
   private readonly actionTimeoutMs?: number;
   private readonly maxToolCallsPerAction?: number;
   private readonly resultSchema: Record<string, unknown> | null;
+  private readonly residentTools: Tool[];
+  private readonly deferredTools: Tool[];
   /** Persists across actions within the step (CaveAgent-style runtime state). */
   private readonly state: Record<string, unknown> = {};
   private result: unknown = null;
@@ -140,9 +183,25 @@ export class CodeActExecutor {
       if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
     }
 
+    // Progressive disclosure: resident tools are documented in full; the
+    // long tail is name-only in the prompt and discovered via searchTools().
+    // Every tool stays callable either way — the split spends prompt tokens,
+    // not capability.
+    const residentNames = new Set(
+      opts.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
+    );
+    if (this.tools.length <= CODEACT_DEFER_THRESHOLD) {
+      this.residentTools = [...this.tools];
+      this.deferredTools = [];
+    } else {
+      this.residentTools = this.tools.filter((t) => residentNames.has(t.name));
+      this.deferredTools = this.tools.filter((t) => !residentNames.has(t.name));
+    }
+
     this.resultSchema = this.loadResultSchema();
     this.systemPrompt = buildCodeActSystemPrompt({
-      tools: this.tools,
+      tools: this.residentTools,
+      deferredTools: this.deferredTools,
       resultSchema: this.resultSchema,
       preamble: opts.systemPrompt
     });
@@ -247,6 +306,40 @@ export class CodeActExecutor {
       return { ok: true };
     };
 
+    // Discovery over the FULL toolbelt (resident hits included, so a
+    // redundant query still answers instead of coming back empty).
+    const searchCatalog = this.tools.map((t) => ({
+      name: t.name,
+      description: t.description
+    }));
+    const searchToolsBridge = async (
+      query: unknown,
+      maxResults: unknown
+    ): Promise<
+      { ok: true; result: ToolSearchHit[] } | { ok: false; error: string }
+    > => {
+      try {
+        const limit =
+          typeof maxResults === "number" && Number.isFinite(maxResults)
+            ? Math.max(1, Math.min(25, Math.floor(maxResults)))
+            : 5;
+        const byName = new Map(this.tools.map((t) => [t.name, t]));
+        const hits = searchTools(searchCatalog, String(query ?? ""), limit).map(
+          (entry): ToolSearchHit => {
+            const tool = byName.get(entry.name) as Tool;
+            return {
+              name: entry.name,
+              signature: toolSignature(tool),
+              description: tool.description
+            };
+          }
+        );
+        return { ok: true, result: hits };
+      } catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : String(e) };
+      }
+    };
+
     const executeAction = async (
       args: Record<string, unknown>
     ): Promise<string | MessageContent[]> => {
@@ -269,6 +362,7 @@ export class CodeActExecutor {
         globals: {
           ...bridge.globals,
           __finish: finishBridge,
+          __searchTools: searchToolsBridge,
           state: this.state
         }
       });

@@ -170,6 +170,13 @@ async function finish(result) {
   }
   return "step finished";
 }
+async function searchTools(query, maxResults) {
+  const __r = await __searchTools(String(query), maxResults === undefined ? 5 : maxResults);
+  if (!__r || __r.ok !== true) {
+    throw new Error(__r && __r.error ? __r.error : "searchTools failed");
+  }
+  return __r.result;
+}
 `;
 
 /** Names the prelude and bridge globals claim inside the guest. */
@@ -177,9 +184,11 @@ export const CODEACT_RESERVED_NAMES = [
   "tools",
   "finish",
   "state",
+  "searchTools",
   "__callTool",
   "__finish",
-  "__toolNames"
+  "__toolNames",
+  "__searchTools"
 ] as const;
 
 // ---------------------------------------------------------------------------
@@ -225,15 +234,27 @@ function firstSentence(text: string): string {
   return period > 0 ? trimmed.slice(0, period + 1) : trimmed;
 }
 
-/** `await tools.web_search({query: string, limit?: number})` + description. */
-export function renderToolSignature(tool: Tool): string {
+/** The bare call signature: `await tools.web_search({query: string, ...})`. */
+export function toolSignature(tool: Tool): string {
   const schema = tool.inputSchema as JsonSchema;
   const params = schemaTypeLabel(schema);
   const args = params === "{}" ? "" : params;
-  return `- await tools.${tool.name}(${args})\n  ${firstSentence(tool.description)}`;
+  return `await tools.${tool.name}(${args})`;
+}
+
+/** Signature bullet + first sentence of the description. */
+export function renderToolSignature(tool: Tool): string {
+  return `- ${toolSignature(tool)}\n  ${firstSentence(tool.description)}`;
 }
 
 export function renderToolCatalog(tools: Tool[]): string {
   if (tools.length === 0) return "(no tools available)";
   return tools.map(renderToolSignature).join("\n");
+}
+
+/** What `searchTools()` returns to the guest, per matched tool. */
+export interface ToolSearchHit {
+  name: string;
+  signature: string;
+  description: string;
 }

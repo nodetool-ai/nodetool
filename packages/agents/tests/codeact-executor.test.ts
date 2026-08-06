@@ -179,9 +179,7 @@ describe("CodeActExecutor", () => {
       model: "m",
       tools: []
     });
-    for await (const _msg of executor.execute()) {
-      // drain
-    }
+    for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
     expect(executor.getResult()).toEqual({ answer: 42 });
@@ -207,9 +205,7 @@ describe("CodeActExecutor", () => {
       model: "m",
       tools: []
     });
-    for await (const _msg of executor.execute()) {
-      // drain
-    }
+    for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
     expect(executor.getResult()).toEqual({ answer: 7 });
@@ -243,9 +239,7 @@ describe("CodeActExecutor", () => {
       model: "m",
       tools: [new FailingTool()]
     });
-    for await (const _msg of executor.execute()) {
-      // drain
-    }
+    for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
     expect(executor.getResult()).toEqual({ answer: 1 });
@@ -267,9 +261,7 @@ describe("CodeActExecutor", () => {
       model: "m",
       tools: []
     });
-    for await (const _msg of executor.execute()) {
-      // drain
-    }
+    for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
     expect(executor.getResult()).toEqual({ answer: 3 });
@@ -290,9 +282,7 @@ describe("CodeActExecutor", () => {
       model: "m",
       tools: []
     });
-    for await (const _msg of executor.execute()) {
-      // drain
-    }
+    for await (const msg of executor.execute()) void msg;
 
     expect(step.completed).toBe(true);
     expect(executor.getResult()).toBe("The capital of France is Paris.");
@@ -346,5 +336,84 @@ describe("resolveExecutionMode", () => {
       if (saved === undefined) delete process.env[AGENT_EXECUTION_MODE_ENV];
       else process.env[AGENT_EXECUTION_MODE_ENV] = saved;
     }
+  });
+});
+
+describe("CodeAct progressive tool disclosure", () => {
+  class NamedTool extends Tool {
+    constructor(
+      readonly name: string,
+      readonly description: string
+    ) {
+      super();
+    }
+    protected override readonly jsonSchema = {
+      type: "object",
+      properties: { value: { type: "string" } },
+      required: ["value"]
+    };
+    async process(
+      _context: ProcessingContext,
+      params: Record<string, unknown>
+    ): Promise<unknown> {
+      return { echoed: params["value"], via: this.name };
+    }
+  }
+
+  const bigBelt = () => [
+    new NamedTool("web_search", "Search the web."),
+    new NamedTool("lookup_customer", "Look up a customer record by id."),
+    ...Array.from(
+      { length: 16 },
+      (_, i) => new NamedTool(`filler_tool_${i}`, `Filler tool number ${i}.`)
+    )
+  ];
+
+  it("keeps resident tools documented and defers the long tail in the prompt", async () => {
+    const { buildCodeActSystemPrompt } = await import("../src/codeact/prompt.js");
+    const tools = bigBelt();
+    const resident = tools.filter((t) => t.name === "web_search");
+    const deferred = tools.filter((t) => t.name !== "web_search");
+    const prompt = buildCodeActSystemPrompt({
+      tools: resident,
+      deferredTools: deferred
+    });
+
+    // Resident: full signature. Deferred: name only, discoverable.
+    expect(prompt).toContain("await tools.web_search(");
+    expect(prompt).toContain("lookup_customer");
+    expect(prompt).not.toContain("await tools.lookup_customer(");
+    expect(prompt).toContain('searchTools("query")');
+  });
+
+  it("discovers a deferred tool via searchTools and calls it", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `const hits = await searchTools("+lookup customer");
+             const name = hits[0].name;
+             const r = await tools[name]({value: "c42"});
+             await finish({answer: r.echoed === "c42" && r.via === "lookup_customer" ? 1 : 0});`
+          )
+        ]
+      }
+    ]);
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: bigBelt()
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(step.completed).toBe(true);
+    expect(executor.getResult()).toEqual({ answer: 1 });
   });
 });

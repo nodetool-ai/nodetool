@@ -66,7 +66,13 @@ function renderSandboxSummary(manifest: SandboxManifest): string {
 }
 
 export interface CodeActPromptOptions {
+  /** Tools documented in full (signature + description) in the prompt. */
   tools: Tool[];
+  /**
+   * Deferred long tail: callable like any other tool, but listed by name
+   * only — the model pulls a signature in with `searchTools()` first.
+   */
+  deferredTools?: Tool[];
   /** Declared output schema (JSON schema) of the step, if any. */
   resultSchema?: Record<string, unknown> | null;
   /** Caller preamble — layered before the contract, never replacing it. */
@@ -88,6 +94,18 @@ export function buildCodeActSystemPrompt(
     );
   }
   sections.push(`# Tools\n${renderToolCatalog(options.tools)}`);
+  const deferred = options.deferredTools ?? [];
+  if (deferred.length > 0) {
+    sections.push(
+      `# More tools (discover before calling)\n` +
+        `These are also callable via \`tools.<name>()\`, but only their names ` +
+        `are listed here. Call \`await searchTools("query")\` (or ` +
+        `\`searchTools("select:name1,name2")\`) first — it returns each ` +
+        `match's signature and description. Do not guess arguments for a ` +
+        `tool you have not looked up.\n\n` +
+        deferred.map((t) => t.name).join(", ")
+    );
+  }
   sections.push(renderSandboxSummary(manifest));
   return sections.join("\n\n");
 }

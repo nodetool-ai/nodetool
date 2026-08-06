@@ -361,7 +361,9 @@ export type { StepExecutorOptions } from "./step-executor.js";
 export {
   CodeActExecutor,
   DEFAULT_CODEACT_MAX_ITERATIONS,
-  EXECUTE_CODE_TOOL_NAME
+  EXECUTE_CODE_TOOL_NAME,
+  CODEACT_RESIDENT_TOOL_NAMES,
+  CODEACT_DEFER_THRESHOLD
 } from "./codeact/codeact-executor.js";
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
@@ -373,6 +375,7 @@ export {
   buildToolBridge,
   renderToolCatalog,
   renderToolSignature,
+  toolSignature,
   CODEACT_PRELUDE,
   CODEACT_RESERVED_NAMES,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION
