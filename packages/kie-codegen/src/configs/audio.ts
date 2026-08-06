@@ -504,6 +504,108 @@ export const audioConfig: ModuleConfig = {
       ]
     },
     {
+      "className": "Gemini31FlashTts",
+      "modelId": "google/gemini-3-1-flash-tts",
+      "title": "Gemini 3.1 Flash Text to speech",
+      "description": "Gemini 3.1 Flash Text to speech via Kie.ai.\n\n    kie, audio, ai\n\n    Content generation using elevenlabs/audio-isolation",
+      "outputType": "audio",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "default": 1,
+          "title": "Temperature",
+          "description": "Sampling temperature, e.g., 1",
+          "required": false,
+          "min": 0,
+          "max": 2
+        },
+        {
+          "name": "scene",
+          "type": "str",
+          "default": "",
+          "title": "Scene",
+          "description": "Scene description, e.g., \"A quiet, warm room with a fireplace crackling softly.\"",
+          "required": false
+        },
+        {
+          "name": "sample_context",
+          "type": "str",
+          "default": "",
+          "title": "Sample Context",
+          "description": "Sample context/overall tone, e.g., \"Audiobook style narration. Tone is gentle and inviting.\"",
+          "required": false
+        },
+        {
+          "name": "speakers",
+          "type": "list[image]",
+          "default": [],
+          "title": "Speakers",
+          "description": "List of speaker configurations",
+          "required": true
+        },
+        {
+          "name": "dialogue_turns",
+          "type": "list[image]",
+          "default": [],
+          "title": "Dialogue Turns",
+          "description": "List of dialogue turns, output in sequential order",
+          "required": true
+        }
+      ]
+    },
+    {
+      "className": "Gemini25ProTts",
+      "modelId": "google/gemini-2-5-pro-tts",
+      "title": "Gemini 2.5 Pro Text to Speech",
+      "description": "Gemini 2.5 Pro Text to Speech via Kie.ai.\n\n    kie, audio, ai\n\n    Content generation using elevenlabs/audio-isolation",
+      "outputType": "audio",
+      "fields": [
+        {
+          "name": "temperature",
+          "type": "float",
+          "default": 1,
+          "title": "Temperature",
+          "description": "Sampling temperature, e.g., 1",
+          "required": false,
+          "min": 0,
+          "max": 2
+        },
+        {
+          "name": "scene",
+          "type": "str",
+          "default": "",
+          "title": "Scene",
+          "description": "Scene description, e.g., \"A quiet, warm room with a fireplace crackling softly.\"",
+          "required": false
+        },
+        {
+          "name": "sample_context",
+          "type": "str",
+          "default": "",
+          "title": "Sample Context",
+          "description": "Sample context/overall tone, e.g., \"Audiobook style narration. Tone is gentle and inviting.\"",
+          "required": false
+        },
+        {
+          "name": "speakers",
+          "type": "list[image]",
+          "default": [],
+          "title": "Speakers",
+          "description": "List of speaker configurations",
+          "required": true
+        },
+        {
+          "name": "dialogue_turns",
+          "type": "list[image]",
+          "default": [],
+          "title": "Dialogue Turns",
+          "description": "List of dialogue turns, output in sequential order",
+          "required": true
+        }
+      ]
+    },
+    {
       "className": "GenerateMusic",
       "modelId": "generate-music",
       "title": "Generate Music",
@@ -692,8 +794,8 @@ export const audioConfig: ModuleConfig = {
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Description of the desired audio extension content. - Required when `defaultParamFlag` is `true`. - Character limits by model: - **V4**: Maximum 3000 characters - **V4_5 & V4_5PLUS**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V5_5 & V5**: Maximum 5000 characters - Describes how the music should continue or change in the extension.",
-          "required": true
+          "description": "Prompt describing the desired audio extension content. - Required when `defaultParamFlag` is `true` (this parameter is not needed if `instrumental` is `true`). - Character limits by model: - **V4**: Max 3,000 characters - **V4_5 and V4_5PLUS**: Max 5,000 characters - **V4_5ALL**: Max 5,000 characters - **V5_5 and V5**: Max 5,000 characters - Describe how the music should continue or evolve in the extended section.",
+          "required": false
         },
         {
           "name": "style",
@@ -748,7 +850,7 @@ export const audioConfig: ModuleConfig = {
           "type": "enum",
           "default": "",
           "title": "Vocal Gender",
-          "description": "Vocal gender preference for the singing voice. Optional. Use 'm' for male and 'f' for female. Based on practice, this parameter can only increase the probability but cannot guarantee adherence to male/female voice instructions.",
+          "description": "Vocal gender preference. Optional. 'm' denotes a male voice, and 'f' denotes a female voice. In practice, this parameter only influences the probability and does not guarantee strict adherence to the gender instruction. This parameter is not required if `instrumental` is set to `true`.",
           "required": false,
           "values": [
             "m",
@@ -810,7 +912,7 @@ export const audioConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Is it an instrumental track? The prompt parameter is required only if false. If true, do not include it.",
+          "description": "Indicates whether it is an instrumental track. If true, passing the `prompt` and `vocalGender` parameters is prohibited.",
           "required": false
         }
       ],
@@ -819,11 +921,6 @@ export const audioConfig: ModuleConfig = {
           "field": "audioId",
           "rule": "not_empty",
           "message": "Audio Id is required"
-        },
-        {
-          "field": "prompt",
-          "rule": "not_empty",
-          "message": "Prompt is required"
         },
         {
           "field": "model",
@@ -1016,7 +1113,7 @@ export const audioConfig: ModuleConfig = {
       "className": "UploadAndExtendAudio",
       "modelId": "upload-and-extend-audio",
       "title": "Upload And Extend Audio",
-      "description": "Upload And Extend Audio via Kie.ai.\n\n    kie, audio, ai\n\n    > This API extends audio tracks while preserving their original style. It includes Suno's upload functionality, allowing users to upload audio files for processing. The expected result is a longer track that seamlessly continues the input style.",
+      "description": "Upload And Extend Audio via Kie.ai.\n\n    kie, audio, ai\n\n    # Upload and Extend Music",
       "outputType": "audio",
       "useSuno": true,
       "sunoEndpoint": "/api/v1/generate/upload-extend",
@@ -1048,15 +1145,15 @@ export const audioConfig: ModuleConfig = {
           "type": "bool",
           "default": false,
           "title": "Instrumental",
-          "description": "Determines whether the audio is instrumental (without lyrics). - In custom parameter mode (`customMode: true`): - If `true`: only `style`, `title`, and `uploadUrl` are required. - If `false`: `style`, `title`, `prompt` (`prompt` will be used as exact lyrics), and `uploadUrl` are required. - In non-custom parameter mode (`defaultParamFlag: false`): does not affect required fields (only `uploadUrl` needed). If `false`, lyrics will be automatically generated.",
-          "required": true
+          "description": "Determines whether the audio is instrumental (without lyrics). - In custom parameter mode (`defaultParamFlag: true`): - If `true`: Only `style`, `title`, and `uploadUrl` are required; `prompt` and `vocalGender` do not need to be specified. - If `false`: `style`, `title`, and `uploadUrl` are required; `prompt` is optional (if provided, it serves as a prompt); `vocalGender` does not need to be specified. - In non-custom parameter mode (`defaultParamFlag: false`): Does not affect mandatory fields (only `uploadUrl` is required); `prompt` is optional. If set to `false`, lyrics will be automatically generated. Optional; defaults to `false`.",
+          "required": false
         },
         {
           "name": "prompt",
           "type": "str",
           "default": "",
           "title": "Prompt",
-          "description": "Description of how the music should be extended. Required when defaultParamFlag is true. Character limits by model: - **V5_5 & V5**: Maximum 5000 characters - **V4_5PLUS & V4_5**: Maximum 5000 characters - **V4_5ALL**: Maximum 5000 characters - **V4**: Maximum 3000 characters",
+          "description": "Describe how the music should be extended. Optional; if provided, it will be used as a prompt. Subject to model character limits: - **V5_5 & V5**: Max 5,000 characters - **V4_5PLUS & V4_5**: Max 5,000 characters - **V4_5ALL**: Max 5,000 characters - **V4**: Max 3,000 characters",
           "required": false
         },
         {
@@ -1700,6 +1797,97 @@ export const audioConfig: ModuleConfig = {
           "field": "audioId",
           "rule": "not_empty",
           "message": "Audio Id is required"
+        }
+      ]
+    },
+    {
+      "className": "GeneratePersona",
+      "modelId": "generate-persona",
+      "title": "Generate Persona",
+      "description": "Generate Persona via Kie.ai.\n\n    kie, audio, ai\n\n    Generate Persona",
+      "outputType": "audio",
+      "useSuno": true,
+      "sunoEndpoint": "/api/v1/generate/generate-persona",
+      "fields": [
+        {
+          "name": "taskId",
+          "type": "str",
+          "default": "",
+          "title": "Task Id",
+          "description": "Unique identifier of the original music generation task. This can be a taskId returned from any of the following endpoints: - Generate Music (/api/v1/generate) - Extend Music (/api/v1/generate/extend)",
+          "required": true
+        },
+        {
+          "name": "audioId",
+          "type": "str",
+          "default": "",
+          "title": "Audio Id",
+          "description": "Unique identifier of the audio track to create Persona for. This ID is returned in the callback data after music generation completes.",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "str",
+          "default": "",
+          "title": "Name",
+          "description": "Name for the Persona. A descriptive name that captures the essence of the musical style or character.",
+          "required": true
+        },
+        {
+          "name": "description",
+          "type": "str",
+          "default": "",
+          "title": "Description",
+          "description": "Detailed description of the Persona's musical characteristics, style, and personality. Be specific about genre, mood, instrumentation, and vocal qualities.",
+          "required": true
+        },
+        {
+          "name": "vocalStart",
+          "type": "float",
+          "default": 0,
+          "title": "Vocal Start",
+          "description": "Start time (in seconds) for Persona analysis segment extraction. Used to specify the time point in the audio from which to extract the segment for Persona analysis. Must be less than vocalEnd, and vocalEnd - vocalStart must be between 10–30 seconds. Defaults to 0.0.",
+          "required": false,
+          "min": 0
+        },
+        {
+          "name": "vocalEnd",
+          "type": "float",
+          "default": 30,
+          "title": "Vocal End",
+          "description": "End time (in seconds) for Persona analysis segment extraction. Together with vocalStart, used to specify the time range for analysis. vocalEnd - vocalStart must be between 10–30 seconds. Defaults to 30.0.",
+          "required": false,
+          "min": 0
+        },
+        {
+          "name": "style",
+          "type": "str",
+          "default": "",
+          "title": "Style",
+          "description": "Optional. Used to supplement the description of the music style tag corresponding to the Persona, such as \"Electronic Pop\", \"Jazz Trio\", etc.",
+          "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "taskId",
+          "rule": "not_empty",
+          "message": "Task Id is required"
+        },
+        {
+          "field": "audioId",
+          "rule": "not_empty",
+          "message": "Audio Id is required"
+        },
+        {
+          "field": "name",
+          "rule": "not_empty",
+          "message": "Name is required"
+        },
+        {
+          "field": "description",
+          "rule": "not_empty",
+          "message": "Description is required"
         }
       ]
     },
