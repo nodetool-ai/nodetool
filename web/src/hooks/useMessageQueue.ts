@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { MessageContent } from "../stores/ApiTypes";
+import { useAutoFocusEnabled } from "./useAutoFocusEnabled";
 
 interface QueuedMessage {
   content: MessageContent[];
@@ -36,6 +37,7 @@ export function useMessageQueue({
 }: UseMessageQueueOptions): UseMessageQueueReturn {
   const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null);
   const sendMessageRef = useRef(onSendMessage);
+  const keepFocusAfterSend = useAutoFocusEnabled();
 
   useEffect(() => {
     sendMessageRef.current = onSendMessage;
@@ -44,14 +46,22 @@ export function useMessageQueue({
   const sendMessageNow = useCallback(
     (content: MessageContent[], messagePrompt: string) => {
       sendMessageRef.current(content, messagePrompt);
-      // Keep focus in the textarea after sending
-      if (textareaRef?.current) {
+      if (!textareaRef?.current) {
+        return;
+      }
+      if (keepFocusAfterSend) {
+        // Keep focus in the textarea after sending
         requestAnimationFrame(() => {
           textareaRef.current?.focus();
         });
+        return;
       }
+      // On touch the focus holds the virtual keyboard open over the reply that
+      // just started streaming. Drop it synchronously so the dismissal still
+      // rides the send gesture (iOS Safari ignores a deferred blur).
+      textareaRef.current.blur();
     },
-    [textareaRef]
+    [textareaRef, keepFocusAfterSend]
   );
 
   const sendMessage = useCallback(
