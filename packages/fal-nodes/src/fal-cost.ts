@@ -159,9 +159,14 @@ function inferQuantity(
   return 1;
 }
 
+function isVagueBillingUnit(unit: string): boolean {
+  return /\bunits?\b|\bcredits?\b/i.test(unit.trim());
+}
+
 /**
  * Estimate the cost of a completed FAL call. Returns `null` when no pricing is
- * known for the node type.
+ * known for the node type, or when the billing unit is vague (e.g. "units" or
+ * "credits") and the unit_price doesn't represent a meaningful per-output cost.
  */
 export function estimateFalCost(
   nodeType: string,
@@ -173,6 +178,8 @@ export function estimateFalCost(
 
   const unitPrice = finiteNumber(pricing.unit_price);
   if (unitPrice == null) return null;
+
+  if (isVagueBillingUnit(pricing.billing_unit)) return null;
 
   const quantity = inferQuantity(pricing.billing_unit, res, args);
   const cost = unitPrice * quantity;
