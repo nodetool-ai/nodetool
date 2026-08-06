@@ -9,33 +9,16 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ParseResult } from "@llamaindex/liteparse";
 
-type DocumentRefLike = {
-  uri?: string;
-  data?: Uint8Array | string;
-};
-
-function asBytes(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
+import {
+  requireDocumentBytes,
+  type DocumentRefLike
+} from "../document-bytes.js";
 
 async function resolvePdfBuffer(
   pdf: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<Buffer> {
-  if (pdf.data) {
-    return Buffer.from(asBytes(pdf.data));
-  } else if (pdf.uri) {
-    const uri = pdf.uri.startsWith("file://") ? pdf.uri.slice(7) : pdf.uri;
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(pdf.uri);
-      if (stored !== null) return Buffer.from(stored);
-    }
-    const { promises: fs } = await import("node:fs");
-    return fs.readFile(uri);
-  }
-  throw new Error("No PDF data or URI provided");
+  return requireDocumentBytes(pdf, context, "PDF");
 }
 
 async function parsePdf(

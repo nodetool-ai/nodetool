@@ -121,6 +121,22 @@ describe("assets.createUpload", () => {
     );
   });
 
+  it("files an upload with no parent under the caller's root folder", async () => {
+    // Regression: the node property dropzones upload without a folder, and a
+    // required parent_id rejected every one of them with a 400 — a picked
+    // file never reached the property.
+    assetCreate.mockResolvedValue(pendingAsset());
+    await createCaller(makeCtx()).assets.createUpload({
+      name: "doc.pdf",
+      content_type: "application/pdf",
+      parent_id: "",
+      size: 1024
+    });
+    expect(assetCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ parent_id: "user-1" })
+    );
+  });
+
   it("rejects a declared size over the cap before minting anything", async () => {
     process.env["NODETOOL_MAX_UPLOAD_BYTES"] = "1000";
     await expect(

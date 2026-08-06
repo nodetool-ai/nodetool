@@ -9,17 +9,11 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-
-type DocumentRefLike = {
-  uri?: string;
-  data?: Uint8Array | string;
-};
-
-function asBytes(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
+import { fileURLToPath } from "node:url";
+import {
+  requireDocumentBytes,
+  type DocumentRefLike
+} from "../document-bytes.js";
 
 function expandUser(p: string): string {
   if (!p) return p;
@@ -28,34 +22,29 @@ function expandUser(p: string): string {
   return p;
 }
 
+/**
+ * epub2 reads from a path, so anything that isn't already a local file lands
+ * in a temp file the caller deletes afterwards.
+ */
 async function resolveEpubPath(
   doc: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<{ filePath: string; cleanup?: () => Promise<void> }> {
-  if (doc.uri && !doc.data) {
-    const uri = doc.uri.startsWith("file://") ? doc.uri.slice(7) : doc.uri;
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(doc.uri);
-      if (stored !== null) {
-        const tmp = path.join(
-          os.tmpdir(),
-          `nodetool-epub-${Date.now()}-${Math.random().toString(36).slice(2)}.epub`
-        );
-        await fs.writeFile(tmp, Buffer.from(stored));
-        return { filePath: tmp, cleanup: async () => fs.unlink(tmp).catch(() => {}) };
-      }
-    }
+  const uri = typeof doc.uri === "string" ? doc.uri : "";
+  if (uri && !doc.data && !/^[a-z][a-z0-9+.-]*:/i.test(uri)) {
     return { filePath: expandUser(uri) };
   }
-  if (doc.data) {
-    const tmp = path.join(
-      os.tmpdir(),
-      `nodetool-epub-${Date.now()}-${Math.random().toString(36).slice(2)}.epub`
-    );
-    await fs.writeFile(tmp, Buffer.from(asBytes(doc.data)));
-    return { filePath: tmp, cleanup: async () => fs.unlink(tmp).catch(() => {}) };
+  if (uri.startsWith("file://")) {
+    return { filePath: fileURLToPath(uri) };
   }
-  throw new Error("No EPUB data or URI provided");
+
+  const bytes = await requireDocumentBytes(doc, context, "EPUB");
+  const tmp = path.join(
+    os.tmpdir(),
+    `nodetool-epub-${Date.now()}-${Math.random().toString(36).slice(2)}.epub`
+  );
+  await fs.writeFile(tmp, bytes);
+  return { filePath: tmp, cleanup: async () => fs.unlink(tmp).catch(() => {}) };
 }
 
 async function loadEpub(

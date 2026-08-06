@@ -87,7 +87,8 @@ export type UploadTarget = z.infer<typeof uploadTarget>;
 export const createUploadInput = z.object({
   name: z.string().min(1),
   content_type: z.string().min(1),
-  parent_id: z.string().min(1),
+  /** Empty or omitted means the user's root folder, as on `POST /api/assets/`. */
+  parent_id: z.string().optional(),
   /** Declared byte size, checked against the upload cap before minting. */
   size: z.number().int().nonnegative(),
   workflow_id: z.string().nullable().optional(),

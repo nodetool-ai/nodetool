@@ -872,7 +872,49 @@ export class FileStorageAdapter implements StorageAdapter {
         commonPrefixes: [...commonPrefixes].sort()
       };
     }
-    return { entries: [], commonPrefixes: [] };
+
+    // No delimiter: flat listing of everything under the prefix, the shape S3
+    // returns. `resolveAssetBytes` relies on it for the extension-tolerant
+    // lookup that turns `asset://<id>` into `<id>.pdf` on disk.
+    const walk = async (dirAbs: string, keyPrefix: string): Promise<void> => {
+      let children: Array<{
+        name: string;
+        isDirectory: () => boolean;
+        isFile: () => boolean;
+      }>;
+      try {
+        children = (await rd(dirAbs, {
+          withFileTypes: true
+        })) as unknown as typeof children;
+      } catch {
+        return;
+      }
+      for (const child of children) {
+        const childAbs = join(dirAbs, child.name);
+        const childKey = keyPrefix ? `${keyPrefix}/${child.name}` : child.name;
+        if (child.isDirectory()) {
+          await walk(childAbs, childKey);
+          continue;
+        }
+        if (!child.isFile()) continue;
+        try {
+          const s = await st(childAbs);
+          entries.push({
+            key: childKey,
+            uri: pathToFileURL(childAbs).toString(),
+            size: s.size,
+            modifiedAt: s.mtimeMs
+          });
+        } catch {
+          // skip
+        }
+      }
+    };
+    await walk(baseAbs, isRoot ? "" : normalizeStorageKey(prefix));
+    return {
+      entries: entries.sort((a, b) => a.key.localeCompare(b.key)),
+      commonPrefixes: []
+    };
   }
 
   async delete(uri: string): Promise<boolean> {

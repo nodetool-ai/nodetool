@@ -16,11 +16,19 @@ import PlaceholderNode from "./PlaceholderNode";
  */
 export const usePlaceholderNodeTypes = (): NodeTypes => {
   const unknownNodeTypes = useMetadataStore((state) => state.unknownNodeTypes);
+  const nodeTypes = useMetadataStore((state) => state.nodeTypes);
   return useMemo(
     () =>
       Object.fromEntries(
-        unknownNodeTypes.map((nodeType) => [nodeType, PlaceholderNode])
+        unknownNodeTypes
+          // A graph opened before the registry finished loading records every
+          // one of its types as unknown. The set is append-only, and these
+          // entries are spread over the real ones — so without this filter a
+          // type the registry knows keeps rendering as a placeholder for the
+          // rest of the session.
+          .filter((nodeType) => !nodeTypes[nodeType])
+          .map((nodeType) => [nodeType, PlaceholderNode])
       ) satisfies NodeTypes,
-    [unknownNodeTypes]
+    [unknownNodeTypes, nodeTypes]
   );
 };

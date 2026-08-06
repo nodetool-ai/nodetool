@@ -288,9 +288,15 @@ export const createNodeStore = (
         // tree into every bundle that touches this store. `addUnknownNodeTypes`
         // keeps the array identity when nothing is new, since those surfaces
         // memoize the prop on it and a fresh identity remounts the canvas.
-        const missingNodeTypes = sanitizedNodes
-          .map((node) => node.type)
-          .filter((type): type is string => !!type && !nodeTypes[type]);
+        // An empty registry means metadata hasn't loaded yet, not that every
+        // type in the graph is gone — recording them here would mark the whole
+        // workflow missing.
+        const registryLoaded = Object.keys(nodeTypes).length > 0;
+        const missingNodeTypes = registryLoaded
+          ? sanitizedNodes
+              .map((node) => node.type)
+              .filter((type): type is string => !!type && !nodeTypes[type])
+          : [];
         if (missingNodeTypes.length > 0) {
           addUnknownNodeTypes(missingNodeTypes);
         }

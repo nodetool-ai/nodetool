@@ -10,6 +10,10 @@ import {
   loadNodeFsPromises,
   loadNodePath
 } from "@nodetool-ai/nodes-utils";
+import {
+  resolveDocumentBytes,
+  type DocumentRefLike as DocumentBytesRef
+} from "../document-bytes.js";
 
 const NODE_ONLY: readonly Platform[] = ["node"];
 
@@ -79,30 +83,16 @@ function splitByChunk(
 
 async function readDocumentText(refOrPath: unknown, context?: ProcessingContext): Promise<string> {
   if (typeof refOrPath === "string" && refOrPath) {
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(refOrPath);
-      if (stored !== null) return Buffer.from(stored).toString("utf8");
-    }
+    const bytes = await resolveDocumentBytes({ uri: refOrPath }, context);
+    if (bytes) return bytes.toString("utf8");
     const fs = await loadNodeFsPromises();
     return fs.readFile(toFilePath(refOrPath), "utf8");
   }
   if (refOrPath && typeof refOrPath === "object") {
     const ref = refOrPath as DocumentRefLike;
     if (typeof ref.text === "string") return ref.text;
-    if (ref.data) {
-      const bytes = asBytes(ref.data);
-      return Buffer.from(bytes).toString("utf8");
-    }
-    if (typeof ref.uri === "string" && ref.uri) {
-      if (context?.storage) {
-        const stored = await context.storage.retrieve(ref.uri);
-        if (stored !== null) return Buffer.from(stored).toString("utf8");
-      }
-      if (ref.uri.startsWith("file://") || !ref.uri.startsWith("http")) {
-        const fs = await loadNodeFsPromises();
-        return fs.readFile(toFilePath(ref.uri), "utf8");
-      }
-    }
+    const bytes = await resolveDocumentBytes(ref as DocumentBytesRef, context);
+    if (bytes) return bytes.toString("utf8");
   }
   return "";
 }

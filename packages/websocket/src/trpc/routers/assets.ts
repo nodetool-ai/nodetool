@@ -350,7 +350,7 @@ export const assetsRouter = router({
         user_id: ctx.userId,
         name: input.name,
         content_type: input.content_type,
-        parent_id: input.parent_id,
+        parent_id: input.parent_id || ctx.userId,
         workflow_id: input.workflow_id ?? null,
         node_id: input.node_id ?? null,
         job_id: input.job_id ?? null,

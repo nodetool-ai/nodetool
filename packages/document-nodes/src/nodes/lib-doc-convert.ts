@@ -6,6 +6,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
+import { resolveDocumentBytes } from "../document-bytes.js";
 
 const execFile = promisify(execFileCb);
 
@@ -140,23 +141,6 @@ function refToBytes(ref: unknown): Buffer | null {
   return null;
 }
 
-async function loadFromUri(uri: string, context?: ProcessingContext): Promise<Buffer | null> {
-  if (!uri) return null;
-  if (context?.storage) {
-    const stored = await context.storage.retrieve(uri);
-    if (stored !== null) return Buffer.from(stored);
-  }
-  let filePath = uri;
-  if (filePath.startsWith("file://")) {
-    filePath = decodeURIComponent(new URL(filePath).pathname);
-  }
-  try {
-    return Buffer.from(await fs.readFile(filePath));
-  } catch {
-    return null;
-  }
-}
-
 async function pdfToText(inputBytes: Buffer): Promise<string> {
   const { LiteParse } = await import("@llamaindex/liteparse");
   const parser = new LiteParse({ ocrEnabled: false });
@@ -239,8 +223,8 @@ export class ConvertToMarkdownLibNode extends BaseNode {
     if (doc && typeof doc === "object") {
       const uri = typeof doc.uri === "string" ? doc.uri : "";
       let bytes = refToBytes(doc);
-      if ((!bytes || bytes.length === 0) && uri) {
-        bytes = await loadFromUri(uri, context);
+      if ((!bytes || bytes.length === 0) && (uri || doc.asset_id)) {
+        bytes = await resolveDocumentBytes({ uri, asset_id: doc.asset_id }, context);
       }
       if (bytes && bytes.length > 0) {
         return { output: await convertBytes(bytes, turndown) };

@@ -3,35 +3,16 @@
  */
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { promises as fs } from "node:fs";
-
-type DocumentRefLike = {
-  uri?: string;
-  data?: Uint8Array | string;
-};
-
-function asBytes(data: Uint8Array | string | undefined): Uint8Array {
-  if (!data) return new Uint8Array();
-  if (data instanceof Uint8Array) return data;
-  return Uint8Array.from(Buffer.from(data, "base64"));
-}
+import {
+  requireDocumentBytes,
+  type DocumentRefLike
+} from "../document-bytes.js";
 
 async function resolvePptxBuffer(
   doc: DocumentRefLike,
   context?: ProcessingContext
 ): Promise<Buffer> {
-  if (doc.data) {
-    return Buffer.from(asBytes(doc.data));
-  }
-  if (doc.uri) {
-    const uri = doc.uri.startsWith("file://") ? doc.uri.slice(7) : doc.uri;
-    if (context?.storage) {
-      const stored = await context.storage.retrieve(doc.uri);
-      if (stored !== null) return Buffer.from(stored);
-    }
-    return fs.readFile(uri);
-  }
-  throw new Error("No PPTX data or URI provided");
+  return requireDocumentBytes(doc, context, "PPTX");
 }
 
 const PPTX_INPUT = {
