@@ -316885,5 +316885,6947 @@
       }
     ],
     "moduleName": "vision"
+  },
+  {
+    "endpointId": "fal-ai/flux-2/edit",
+    "className": "Flux2Edit",
+    "docstring": "FLUX.2 Edit changes an existing image from a text instruction while keeping the rest intact.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "flux",
+      "flux-2"
+    ],
+    "useCases": [
+      "Edit an image from a written instruction",
+      "Replace or remove objects in a photo",
+      "Restyle an image without redrawing it",
+      "Adjust lighting, color, or background",
+      "Iterate on a generated image"
+    ],
+    "inputFields": [
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "The number of inference steps to perform.",
+        "fieldType": "input",
+        "required": false,
+        "min": 4,
+        "max": 50
+      },
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "regular",
+        "description": "The acceleration level to use for the image generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "The URLs of the images for editing. A maximum of 4 images are allowed, if more are provided, only the first 4 will be used.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 2.5,
+        "description": "Guidance Scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 20
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to edit the image.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If set to true, the prompt will be expanded for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The seed to use for the generation. If not provided, a random seed will be used.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The edited images",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The acceleration level to use for the image generation."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "fal-ai/flux-2/lora/edit",
+    "className": "Flux2LoraEdit",
+    "docstring": "FLUX.2 Edit with LoRA weights applies custom-trained styles and subjects while editing an image.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "flux",
+      "flux-2",
+      "lora"
+    ],
+    "useCases": [
+      "Edit images in a custom-trained style",
+      "Insert a fine-tuned subject into a photo",
+      "Apply brand styles to existing images",
+      "Restyle a set of images consistently",
+      "Combine editing with LoRA adapters"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 2.5,
+        "description": "Guidance Scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If set to true, the prompt will be expanded for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "The number of inference steps to perform.",
+        "fieldType": "input",
+        "required": false,
+        "min": 4,
+        "max": 50
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "The URLs of the images for editing. A maximum of 4 images are allowed.",
+        "fieldType": "input",
+        "required": true,
+        "max": 4,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "regular",
+        "description": "The acceleration level to use for the image generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The seed to use for the generation. If not provided, a random seed will be used.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "loras",
+        "tsType": "LoRAInput[]",
+        "propType": "list[LoRAInput]",
+        "default": [],
+        "description": "List of LoRA weights to apply (maximum 3). Each LoRA can be a URL, HuggingFace repo ID, or local path.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The edited images",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The acceleration level to use for the image generation."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "fal-ai/flux-pro/kontext",
+    "className": "FluxProKontext",
+    "docstring": "FLUX.1 Kontext [pro] edits images from text instructions with strong character and scene consistency.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "flux",
+      "kontext"
+    ],
+    "useCases": [
+      "Edit a photo from a written instruction",
+      "Keep a character consistent across edits",
+      "Change scenes while preserving subjects",
+      "Restyle images without losing structure",
+      "Make iterative local edits"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Image prompt for the omni model.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2",
+        "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "SafetyTolerance",
+        "enumValues": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The aspect ratio of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16",
+          "9:21"
+        ]
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "\n            The same seed and the same prompt given to the same version of the model\n            will output the same image every time.\n        ",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 3.5,
+        "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt when looking for a related image to show you.\n        ",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 20
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "jpeg",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png"
+        ]
+      },
+      {
+        "name": "enhance_prompt",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Whether to enhance the prompt for better results.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "Image[]",
+        "propType": "list[Image]",
+        "default": [],
+        "description": "The generated image files info.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "SafetyTolerance",
+        "values": [
+          [
+            "VALUE_1",
+            "1"
+          ],
+          [
+            "VALUE_2",
+            "2"
+          ],
+          [
+            "VALUE_3",
+            "3"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ]
+        ],
+        "description": "The safety tolerance level for the generated image. 1 being the most strict and 5 being the most permissive."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_9_21",
+            "9:21"
+          ]
+        ],
+        "description": "The aspect ratio of the generated image."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "microsoft/mai-image-2.5-pro/edit",
+    "className": "MaiImage25ProEdit",
+    "docstring": "MAI Image 2.5 Pro Edit modifies an existing image from a text instruction.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "mai",
+      "microsoft"
+    ],
+    "useCases": [
+      "Edit photos from written instructions",
+      "Retouch product images",
+      "Replace backgrounds and objects",
+      "Adjust style and lighting",
+      "Refine generated images"
+    ],
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The aspect ratio of the generated image. Use \"auto\" to match the input or let the model decide.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The instruction describing how to edit the input image(s).",
+        "fieldType": "input",
+        "required": true,
+        "min": 3,
+        "max": 5000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The URL of the image to edit. Provide one http(s) or data: URL.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The edited images.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "description",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The description of the generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ]
+        ],
+        "description": "The aspect ratio of the generated image. Use \"auto\" to match the input or let the model decide."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "alibaba/qwen-image-3/edit",
+    "className": "QwenImage3Edit",
+    "docstring": "Qwen Image 3 Edit modifies an existing image from a text instruction, including text in the image.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "qwen",
+      "alibaba"
+    ],
+    "useCases": [
+      "Edit images from English or Chinese instructions",
+      "Rewrite text rendered inside an image",
+      "Replace objects and backgrounds",
+      "Restyle images while keeping layout",
+      "Localize graphics for another language"
+    ],
+    "inputFields": [
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed for reproducibility (0-2147483647).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "Reference images for editing (1-3 images required). Order matters: reference as 'image 1', 'image 2', 'image 3' in prompt. Resolution: 384-2048px each dimension. Max size: 10MB each. Formats: JPEG, JPG, PNG (no alpha), WEBP.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Content to avoid in the generated image. Max 500 characters.",
+        "fieldType": "input",
+        "required": false,
+        "max": 500
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the desired edit. Supports Chinese and English. Max 5000 characters.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The size of the generated image. If not provided, the model determines the resolution automatically. Total number of pixels must be between 512x512 and 1440x1440.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable automatic LLM prompt rewriting for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable content moderation for input and output.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "File[]",
+        "propType": "list[File]",
+        "default": [],
+        "description": "Generated images.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the generated image. If not provided, the model determines the resolution automatically. Total number of pixels must be between 512x512 and 1440x1440."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "fal-ai/ideogram/object-removal",
+    "className": "IdeogramObjectRemoval",
+    "docstring": "Ideogram Object Removal erases a masked object from an image and fills the gap.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "ideogram",
+      "inpainting"
+    ],
+    "useCases": [
+      "Remove unwanted objects from photos",
+      "Clean up product shots",
+      "Erase people from backgrounds",
+      "Delete watermarks and logos",
+      "Prepare images for compositing"
+    ],
+    "inputFields": [
+      {
+        "name": "mask",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "A black-and-white mask matching the source image dimensions. White pixels are removed and black pixels are preserved (maximum file size 10MB).",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "mask_url"
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The source image containing the object to remove (maximum file size 10MB).",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The image with the masked object removed.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "pixelcut/product-photo",
+    "className": "PixelcutProductPhoto",
+    "docstring": "Pixelcut Product Photo turns a product shot into a styled studio photo with background and shadow.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "pixelcut",
+      "product"
+    ],
+    "useCases": [
+      "Turn phone shots into studio product photos",
+      "Place products on generated backgrounds",
+      "Add realistic shadows to cutouts",
+      "Produce catalog-ready imagery",
+      "Batch-style an e-commerce catalog"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the product image to be processed.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "shadow",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Shadow: choose a type ('Generative'/'Drop'; unset = no shadow) and set its params.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "watermark",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Optional logo/watermark image overlaid on top of the output. Off by default; omit for no watermark.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "When true, return the result as a data URL instead of uploading to storage.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "square_hd",
+        "description": "Output canvas size. A preset (square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9) or a custom {width, height}. Defaults to square_hd (1024x1024).",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "background",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Output background: solid color (default white), transparent, or an image.",
+        "fieldType": "input",
+        "required": false,
+        "nestedAssetKey": "image_url"
+      },
+      {
+        "name": "mode",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "'Color' fills with `color` (white by default); 'Transparent' leaves it transparent (always PNG); 'Image' composites onto `image_url`.",
+        "fieldType": "input",
+        "required": false,
+        "parentField": "background"
+      },
+      {
+        "name": "image_fit",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "How the background image fills the canvas: 'Cover' fills and crops, 'Contain' fits and letterboxes onto `color`, 'Stretch' distorts to fit.",
+        "fieldType": "input",
+        "required": false,
+        "parentField": "background"
+      },
+      {
+        "name": "color",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Solid background color (R/G/B, 0–255). Applies when mode is 'Color'. Defaults to white.",
+        "fieldType": "input",
+        "required": false,
+        "parentField": "background"
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": null,
+        "description": "The format of the resultant image (PNG or JPEG). When not set, matches the input format. JPEG cannot be combined with a transparent background.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "png",
+          "jpeg"
+        ]
+      },
+      {
+        "name": "margin",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Canvas margins around the product: `all` for every side plus optional per-side overrides. Defaults to 20% on all sides.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Catalog-ready product photo.",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "Output canvas size. A preset (square_hd, square, portrait_4_3, portrait_16_9, landscape_4_3, landscape_16_9) or a custom {width, height}. Defaults to square_hd (1024x1024)."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "JPEG",
+            "jpeg"
+          ]
+        ],
+        "description": "The format of the resultant image (PNG or JPEG). When not set, matches the input format. JPEG cannot be combined with a transparent background."
+      }
+    ],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "fal-ai/feynobg",
+    "className": "Feynobg",
+    "docstring": "Feynobg removes the background from an image and returns a cutout.",
+    "tags": [
+      "editing",
+      "image-to-image",
+      "img2img",
+      "background-removal",
+      "cutout"
+    ],
+    "useCases": [
+      "Remove backgrounds from product photos",
+      "Create transparent cutouts",
+      "Prepare assets for compositing",
+      "Isolate subjects for design work",
+      "Batch-process catalog images"
+    ],
+    "inputFields": [
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Seed used for reproducible inference.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to remove the background from.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If true, the output is returned as a data URI and is not stored in request history.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "dict",
+    "outputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "The background-removed image with a transparent alpha channel.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "Seed used for reproducible inference.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "image_to_image"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/image-to-video",
+    "className": "Flux3ImageToVideo",
+    "docstring": "FLUX 3 animates a still image into a video with cinematic motion.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3"
+    ],
+    "useCases": [
+      "Animate a generated still",
+      "Turn photos into moving shots",
+      "Create b-roll from artwork",
+      "Add camera motion to a frame",
+      "Produce short clips from key art"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image the video starts from (PNG, JPEG, or WebP).",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/image-to-video/draft",
+    "className": "Flux3ImageToVideoDraft",
+    "docstring": "FLUX 3 Draft animates a still image into a low-cost preview video, meant to be enhanced afterwards.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3",
+      "draft"
+    ],
+    "useCases": [
+      "Preview an animation before a full render",
+      "Iterate cheaply on motion ideas",
+      "Check framing and pacing",
+      "Generate rough cuts for review",
+      "Feed drafts into the enhance pass"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL or data URI of the opening keyframe image.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the draft video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the draft video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The draft video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "draft_cache",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Durable encrypted cache bundle; pass it to `draft-enhance` for a full-quality render.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/keyframes-to-video",
+    "className": "Flux3KeyframesToVideo",
+    "docstring": "FLUX 3 generates a video that passes through a set of keyframe images.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3",
+      "keyframes"
+    ],
+    "useCases": [
+      "Direct a shot with explicit keyframes",
+      "Interpolate between storyboard frames",
+      "Control the arc of a generated clip",
+      "Animate a sequence of stills",
+      "Match a planned camera path"
+    ],
+    "inputFields": [
+      {
+        "name": "keyframes",
+        "tsType": "Flux3Keyframe[]",
+        "propType": "list[Flux3Keyframe]",
+        "default": [],
+        "description": "Keyframe images pinned to frame positions in the generated video. Up to 10 keyframes with unique `frame_index` values.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 5,
+        "description": "Duration of the generated video in seconds. An explicit duration is required to validate keyframe positions.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. An explicit duration is required to validate keyframe positions."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/keyframes-to-video/draft",
+    "className": "Flux3KeyframesToVideoDraft",
+    "docstring": "FLUX 3 Draft generates a low-cost preview video through a set of keyframe images.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3",
+      "keyframes",
+      "draft"
+    ],
+    "useCases": [
+      "Preview a keyframed shot cheaply",
+      "Check timing between storyboard frames",
+      "Iterate on a camera path",
+      "Review pacing before a full render",
+      "Feed drafts into the enhance pass"
+    ],
+    "inputFields": [
+      {
+        "name": "keyframes",
+        "tsType": "Flux3Keyframe[]",
+        "propType": "list[Flux3Keyframe]",
+        "default": [],
+        "description": "Keyframe images pinned to frame positions in the generated draft. Up to 10 keyframes with unique `frame_index` values.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 10
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the draft video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the draft video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 5,
+        "description": "Draft duration in whole seconds from 5 through 20. An explicit duration is required to validate keyframe positions.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The draft video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "draft_cache",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Durable encrypted cache bundle; pass it to `draft-enhance` for a full-quality render.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Draft duration in whole seconds from 5 through 20. An explicit duration is required to validate keyframe positions."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/first-last-frame-to-video",
+    "className": "Flux3FirstLastFrameToVideo",
+    "docstring": "FLUX 3 generates a video that starts at one image and ends at another.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3",
+      "transition"
+    ],
+    "useCases": [
+      "Morph between two images",
+      "Create transitions for an edit",
+      "Animate before-and-after shots",
+      "Bridge two storyboard frames",
+      "Produce looping clips"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "start_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image used as the first frame of the video (PNG, JPEG, or WebP).",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "start_image_url"
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 5,
+        "description": "Duration of the generated video in seconds. An explicit duration is required to place the end frame.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image used as the last frame of the video (PNG, JPEG, or WebP).",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "end_image_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. An explicit duration is required to place the end frame."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/first-last-frame-to-video/draft",
+    "className": "Flux3FirstLastFrameToVideoDraft",
+    "docstring": "FLUX 3 Draft generates a low-cost preview video between a first and last frame.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "flux-3",
+      "transition",
+      "draft"
+    ],
+    "useCases": [
+      "Preview a transition before a full render",
+      "Check the arc between two frames",
+      "Iterate cheaply on morphs",
+      "Review pacing of a bridge shot",
+      "Feed drafts into the enhance pass"
+    ],
+    "inputFields": [
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL or data URI of the image used as the last frame of the draft.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "end_image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the draft video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "start_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL or data URI of the image used as the first frame of the draft.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "start_image_url"
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the draft video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": 5,
+        "description": "Draft duration in whole seconds from 5 through 20. An explicit duration pins the two images to the video boundaries.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The draft video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "draft_cache",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Durable encrypted cache bundle; pass it to `draft-enhance` for a full-quality render.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Draft duration in whole seconds from 5 through 20. An explicit duration pins the two images to the video boundaries."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "minimax/h3/image-to-video",
+    "className": "MinimaxH3ImageToVideo",
+    "docstring": "MiniMax H3 animates a still image into a video with smooth, natural motion.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax"
+    ],
+    "useCases": [
+      "Animate photos and artwork",
+      "Add motion to product stills",
+      "Create clips from generated images",
+      "Produce social media videos",
+      "Extend a still into a shot"
+    ],
+    "inputFields": [
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "end_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "Optional URL of the image to use as the last frame, for first-to-last keyframe generation.",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "end_image_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2K",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "768P",
+          "2K"
+        ]
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to use as the first frame. The output aspect ratio follows this image.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 7000
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_768P",
+            "768P"
+          ],
+          [
+            "VALUE_2K",
+            "2K"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "minimax/h3/reference-to-video",
+    "className": "MinimaxH3ReferenceToVideo",
+    "docstring": "MiniMax H3 generates videos that keep the subjects from reference images consistent.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax",
+      "reference"
+    ],
+    "useCases": [
+      "Keep a character consistent across shots",
+      "Generate videos from subject references",
+      "Place a product into a generated scene",
+      "Produce series with a recurring cast",
+      "Control style with reference frames"
+    ],
+    "inputFields": [
+      {
+        "name": "reference_video_urls",
+        "tsType": "video[]",
+        "propType": "list[video]",
+        "default": [],
+        "description": "URLs of motion/reference video clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Video 1, Video 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "URLs of subject/style reference images, referenced in the prompt as Image 1, Image 2, and so on. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 9,
+        "apiParamName": "reference_image_urls"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2K",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "768P",
+          "2K"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "adaptive",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "adaptive",
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "reference_audio_urls",
+        "tsType": "audio[]",
+        "propType": "list[audio]",
+        "default": [],
+        "description": "URLs of reference audio clips (2-15 seconds each, combined duration at most 15 seconds), referenced in the prompt as Audio 1, Audio 2, and so on. Audio cannot be the only reference input; provide at least one reference image or video with it. Reference images, videos, and audio clips must add up to at most 12 files.",
+        "fieldType": "input",
+        "required": false,
+        "max": 3
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation. Refer to reference assets by their modality and order in the reference lists: Image 1, Image 2, Video 1, Audio 1, and so on.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 7000
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_768P",
+            "768P"
+          ],
+          [
+            "VALUE_2K",
+            "2K"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "ADAPTIVE",
+            "adaptive"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "xai/grok-imagine-video/v1.5/reference-to-video",
+    "className": "GrokImagineVideoV15ReferenceToVideo",
+    "docstring": "Grok Imagine Video 1.5 generates videos guided by reference images.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "grok",
+      "xai",
+      "reference"
+    ],
+    "useCases": [
+      "Generate videos from subject references",
+      "Keep characters consistent across clips",
+      "Guide style with reference frames",
+      "Animate a product in a new scene",
+      "Produce reference-matched footage"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "480p",
+        "description": "Resolution of the output video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the video. Tag references as <IMAGE_0>, <IMAGE_1>, etc.",
+        "fieldType": "input",
+        "required": true,
+        "max": 4096
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "reference_images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "One or more reference image URLs to guide the video generation as style and content references. Reference in prompt as <IMAGE_0>, <IMAGE_1>, etc. Maximum 7 images.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 7,
+        "apiParamName": "reference_image_urls"
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 8,
+        "description": "Video duration in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 15
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ]
+        ],
+        "description": "Resolution of the output video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/kling-video/v2.5-turbo/pro/image-to-video",
+    "className": "KlingVideoV25TurboProImageToVideo",
+    "docstring": "Kling 2.5 Turbo Pro animates a still image into a high-quality video with fast turnaround.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "kling",
+      "turbo"
+    ],
+    "useCases": [
+      "Animate stills at pro quality",
+      "Create cinematic shots from key art",
+      "Produce videos on a tight deadline",
+      "Generate marketing footage from photos",
+      "Iterate on animations quickly"
+    ],
+    "inputFields": [
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "5",
+        "description": "The duration of the generated video in seconds",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "cfg_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.5,
+        "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        ",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "blur, distort, and low quality",
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "max": 2500
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "input",
+        "required": true,
+        "max": 2500
+      },
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to be used for the video",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "tail_image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to be used for the end of the video",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "tail_image_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ]
+        ],
+        "description": "The duration of the generated video in seconds"
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/minimax/hailuo-2.3/pro/image-to-video",
+    "className": "MinimaxHailuo23ProImageToVideo",
+    "docstring": "MiniMax Hailuo 2.3 Pro animates a still image into a high-fidelity video.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "minimax",
+      "hailuo",
+      "pro"
+    ],
+    "useCases": [
+      "Animate stills at high fidelity",
+      "Create expressive character motion",
+      "Produce cinematic clips from photos",
+      "Generate polished promo footage",
+      "Extend key art into a shot"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to use as the first frame",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "prompt_optimizer",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to use the model's prompt optimizer",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 2000
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/wan-25-preview/image-to-video",
+    "className": "Wan25PreviewImageToVideo",
+    "docstring": "Wan 2.5 Preview animates a still image into a video with synchronized audio support.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "wan",
+      "preview"
+    ],
+    "useCases": [
+      "Animate photos with matching audio",
+      "Create clips from generated images",
+      "Produce short social videos",
+      "Add motion to illustrations",
+      "Prototype shots before a full render"
+    ],
+    "inputFields": [
+      {
+        "name": "image",
+        "tsType": "image",
+        "propType": "image",
+        "default": null,
+        "description": "URL of the image to use as the first frame. Must be publicly accessible or base64 data URI.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_url"
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "1080p",
+        "description": "Video resolution. Valid values: 480p, 720p, 1080p",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Negative prompt to describe content to avoid. Max 500 characters.",
+        "fieldType": "input",
+        "required": false,
+        "max": 500
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the desired video motion. Max 1500 characters.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 1500
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed for reproducibility. If None, a random seed is chosen.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "5",
+        "description": "Duration of the generated video in seconds. Choose between 5 or 10 seconds.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "5",
+          "10"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to enable prompt rewriting using LLM.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "\nURL of the audio to use as the background music. Must be publicly accessible.\nLimit handling: If the audio duration exceeds the duration value (5 or 10 seconds),\nthe audio is truncated to the first 5 or 10 seconds, and the rest is discarded. If\nthe audio is shorter than the video, the remaining part of the video will be silent.\nFor example, if the audio is 3 seconds long and the video duration is 5 seconds, the\nfirst 3 seconds of the output video will have sound, and the last 2 seconds will be silent.\n- Format: WAV, MP3.\n- Duration: 3 to 30 s.\n- File size: Up to 15 MB.\n",
+        "fieldType": "input",
+        "required": false,
+        "apiParamName": "audio_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video file",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "actual_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The actual prompt used if prompt rewriting was enabled",
+        "fieldType": "output",
+        "required": false
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Video resolution. Valid values: 480p, 720p, 1080p"
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. Choose between 5 or 10 seconds."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/veo3.1/fast/reference-to-video",
+    "className": "Veo31FastReferenceToVideo",
+    "docstring": "Veo 3.1 Fast generates videos guided by reference images, optimized for speed.",
+    "tags": [
+      "video",
+      "generation",
+      "image-to-video",
+      "img2vid",
+      "veo",
+      "fast",
+      "reference"
+    ],
+    "useCases": [
+      "Generate videos from subject references quickly",
+      "Keep a character consistent across shots",
+      "Iterate on reference-guided clips",
+      "Produce drafts before a full-quality render",
+      "Match style to supplied frames"
+    ],
+    "inputFields": [
+      {
+        "name": "images",
+        "tsType": "image[]",
+        "propType": "list[image]",
+        "default": [],
+        "description": "URLs of the reference images to use for consistent subject appearance",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "image_urls"
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "4",
+        "description": "The safety tolerance level for content moderation. 1 is the most strict (blocks most content), 6 is the least strict.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "SafetyTolerance",
+        "enumValues": [
+          "1",
+          "2",
+          "3",
+          "4",
+          "5",
+          "6"
+        ]
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p",
+          "4k"
+        ]
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "string",
+        "propType": "str",
+        "default": "8s",
+        "description": "The duration of the generated video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate",
+        "fieldType": "input",
+        "required": true,
+        "max": 20000
+      },
+      {
+        "name": "auto_fix",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "Whether to automatically attempt to fix prompts that fail content policy or other validation checks by rewriting them.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "SafetyTolerance",
+        "values": [
+          [
+            "VALUE_1",
+            "1"
+          ],
+          [
+            "VALUE_2",
+            "2"
+          ],
+          [
+            "VALUE_3",
+            "3"
+          ],
+          [
+            "VALUE_4",
+            "4"
+          ],
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_6",
+            "6"
+          ]
+        ],
+        "description": "The safety tolerance level for content moderation. 1 is the most strict (blocks most content), 6 is the least strict."
+      },
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ],
+          [
+            "VALUE_4K",
+            "4k"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "image_to_video"
+  },
+  {
+    "endpointId": "fal-ai/flux-2",
+    "className": "Flux2",
+    "docstring": "FLUX.2 generates images from text with strong prompt adherence and photographic detail.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "flux",
+      "flux-2"
+    ],
+    "useCases": [
+      "Generate photorealistic images from prompts",
+      "Create detailed illustrations and concept art",
+      "Produce marketing and product visuals",
+      "Render text inside images accurately",
+      "Generate variations of a single prompt"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 2.5,
+        "description": "Guidance Scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If set to true, the prompt will be expanded for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "The number of inference steps to perform.",
+        "fieldType": "input",
+        "required": false,
+        "min": 4,
+        "max": 50
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "regular",
+        "description": "The acceleration level to use for the image generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The seed to use for the generation. If not provided, a random seed will be used.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The acceleration level to use for the image generation."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "fal-ai/flux-2/lora",
+    "className": "Flux2Lora",
+    "docstring": "FLUX.2 with LoRA weights applies custom-trained styles and subjects to text-to-image generation.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "flux",
+      "flux-2",
+      "lora"
+    ],
+    "useCases": [
+      "Generate images in a custom-trained style",
+      "Render a fine-tuned subject or character",
+      "Apply brand styles to generated images",
+      "Combine multiple LoRA adapters",
+      "Produce consistent art direction across a set"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "guidance_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 2.5,
+        "description": "Guidance Scale is a measure of how close you want the model to stick to your prompt when looking for a related image to show you.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 20
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If set to true, the prompt will be expanded for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "If set to true, the safety checker will be enabled.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_inference_steps",
+        "tsType": "number",
+        "propType": "int",
+        "default": 28,
+        "description": "The number of inference steps to perform.",
+        "fieldType": "input",
+        "required": false,
+        "min": 4,
+        "max": 50
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "acceleration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "regular",
+        "description": "The acceleration level to use for the image generation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Acceleration",
+        "enumValues": [
+          "none",
+          "regular",
+          "high"
+        ]
+      },
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The seed to use for the generation. If not provided, a random seed will be used.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "loras",
+        "tsType": "LoRAInput[]",
+        "propType": "list[LoRAInput]",
+        "default": [],
+        "description": "List of LoRA weights to apply (maximum 3). Each LoRA can be a URL, HuggingFace repo ID, or local path.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "landscape_4_3",
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The prompt used for generating the image.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "timings",
+        "tsType": "object",
+        "propType": "dict[str, any]",
+        "default": "",
+        "description": "",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "\n            Seed of the generated Image. It will be the same value of the one passed in the\n            input or the randomly generated that was used in case none was passed.\n        ",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "has_nsfw_concepts",
+        "tsType": "boolean[]",
+        "propType": "list[bool]",
+        "default": [],
+        "description": "Whether the generated images contain NSFW concepts.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "Acceleration",
+        "values": [
+          [
+            "NONE",
+            "none"
+          ],
+          [
+            "REGULAR",
+            "regular"
+          ],
+          [
+            "HIGH",
+            "high"
+          ]
+        ],
+        "description": "The acceleration level to use for the image generation."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the image to generate. The width and height must be between 512 and 2048 pixels."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "microsoft/mai-image-2.5-pro",
+    "className": "MaiImage25Pro",
+    "docstring": "MAI Image 2.5 Pro is Microsoft's high-end text-to-image model for photorealistic generation.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "mai",
+      "microsoft"
+    ],
+    "useCases": [
+      "Generate photorealistic images from prompts",
+      "Create editorial and advertising visuals",
+      "Produce detailed product renders",
+      "Generate stylized illustrations",
+      "Create high-resolution creative assets"
+    ],
+    "inputFields": [
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "The aspect ratio of the generated image. Use \"auto\" to let the model decide based on the prompt.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "1:1",
+          "4:3",
+          "3:4",
+          "16:9",
+          "9:16",
+          "3:2",
+          "2:3"
+        ]
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt to generate an image from.",
+        "fieldType": "input",
+        "required": true,
+        "min": 3,
+        "max": 5000
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "ImageFile[]",
+        "propType": "list[ImageFile]",
+        "default": [],
+        "description": "The generated images.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "description",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The description of the generated images.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ]
+        ],
+        "description": "The aspect ratio of the generated image. Use \"auto\" to let the model decide based on the prompt."
+      },
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "alibaba/qwen-image-3/text-to-image",
+    "className": "QwenImage3TextToImage",
+    "docstring": "Qwen Image 3 generates images from text with strong multilingual text rendering.",
+    "tags": [
+      "generation",
+      "text-to-image",
+      "txt2img",
+      "qwen",
+      "alibaba"
+    ],
+    "useCases": [
+      "Generate images from English or Chinese prompts",
+      "Render legible text inside images",
+      "Create posters and social media graphics",
+      "Produce illustrations with fine detail",
+      "Generate design mockups from descriptions"
+    ],
+    "inputFields": [
+      {
+        "name": "seed",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Random seed for reproducibility (0-2147483647).",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "num_images",
+        "tsType": "number",
+        "propType": "int",
+        "default": 1,
+        "description": "The number of images to generate.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 4
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Content to avoid in the generated image. Max 500 characters.",
+        "fieldType": "input",
+        "required": false,
+        "max": 500
+      },
+      {
+        "name": "output_format",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "png",
+        "description": "The format of the generated image.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "OutputFormat",
+        "enumValues": [
+          "jpeg",
+          "png",
+          "webp"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt describing the desired image. Supports Chinese and English. Max 5000 characters.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 5000
+      },
+      {
+        "name": "image_size",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "square_hd",
+        "description": "The size of the generated image. Total number of pixels must be between 512x512 and 2048x2048.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "ImageSize",
+        "enumValues": [
+          "square_hd",
+          "square",
+          "portrait_4_3",
+          "portrait_16_9",
+          "landscape_4_3",
+          "landscape_16_9"
+        ]
+      },
+      {
+        "name": "enable_prompt_expansion",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable automatic LLM prompt rewriting for better results.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "enable_safety_checker",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Enable content moderation for input and output.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "sync_mode",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": false,
+        "description": "If `True`, the media will be returned as a data URI and the output data won't be available in the request history.",
+        "fieldType": "input",
+        "required": false
+      }
+    ],
+    "outputType": "image",
+    "outputFields": [
+      {
+        "name": "images",
+        "tsType": "File[]",
+        "propType": "list[File]",
+        "default": [],
+        "description": "Generated images.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "OutputFormat",
+        "values": [
+          [
+            "JPEG",
+            "jpeg"
+          ],
+          [
+            "PNG",
+            "png"
+          ],
+          [
+            "WEBP",
+            "webp"
+          ]
+        ],
+        "description": "The format of the generated image."
+      },
+      {
+        "name": "ImageSize",
+        "values": [
+          [
+            "SQUARE_HD",
+            "square_hd"
+          ],
+          [
+            "SQUARE",
+            "square"
+          ],
+          [
+            "PORTRAIT_4_3",
+            "portrait_4_3"
+          ],
+          [
+            "PORTRAIT_16_9",
+            "portrait_16_9"
+          ],
+          [
+            "LANDSCAPE_4_3",
+            "landscape_4_3"
+          ],
+          [
+            "LANDSCAPE_16_9",
+            "landscape_16_9"
+          ]
+        ],
+        "description": "The size of the generated image. Total number of pixels must be between 512x512 and 2048x2048."
+      }
+    ],
+    "moduleName": "text_to_image"
+  },
+  {
+    "endpointId": "alibaba/qwen-audio-3-tts",
+    "className": "QwenAudio3Tts",
+    "docstring": "Qwen Audio 3.0 TTS (Flash) synthesizes natural speech from text with low latency.",
+    "tags": [
+      "audio",
+      "tts",
+      "text-to-speech",
+      "qwen",
+      "alibaba"
+    ],
+    "useCases": [
+      "Narrate scripts and articles",
+      "Voice assistants and chatbots",
+      "Generate multilingual voiceovers",
+      "Produce audiobook drafts",
+      "Add speech to videos"
+    ],
+    "inputFields": [
+      {
+        "name": "voice",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Cherry",
+        "description": "The voice used for speech synthesis. See the [Qwen-TTS voice list](https://www.alibabacloud.com/help/en/model-studio/qwen-tts-voice-list) for each voice's language and dialect coverage.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Voice",
+        "enumValues": [
+          "Cherry",
+          "Serena",
+          "Ethan",
+          "Chelsie",
+          "Momo",
+          "Vivian",
+          "Moon",
+          "Maia",
+          "Kai",
+          "Nofish",
+          "Bella",
+          "Jennifer",
+          "Ryan",
+          "Katerina",
+          "Aiden",
+          "Mia",
+          "Mochi",
+          "Bellona",
+          "Vincent",
+          "Bunny",
+          "Neil",
+          "Elias",
+          "Arthur",
+          "Nini",
+          "Seren",
+          "Pip",
+          "Stella",
+          "Bodega",
+          "Sonrisa",
+          "Alek",
+          "Dolce",
+          "Sohee",
+          "Lenn",
+          "Emilien",
+          "Andre",
+          "Jada",
+          "Dylan",
+          "Li",
+          "Marcus",
+          "Roy",
+          "Peter",
+          "Sunny",
+          "Eric",
+          "Rocky",
+          "Kiki"
+        ]
+      },
+      {
+        "name": "language",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "Auto",
+        "description": "Language of the input text. `Auto` lets the model detect it; setting it explicitly improves pronunciation and intonation.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Language",
+        "enumValues": [
+          "Auto",
+          "Chinese",
+          "English",
+          "Spanish",
+          "Russian",
+          "Italian",
+          "French",
+          "Korean",
+          "Japanese",
+          "German",
+          "Portuguese"
+        ]
+      },
+      {
+        "name": "text",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text to convert to speech.",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 2000
+      }
+    ],
+    "outputType": "audio",
+    "outputFields": [
+      {
+        "name": "audio",
+        "tsType": "audio",
+        "propType": "audio",
+        "default": null,
+        "description": "The generated speech audio file.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Voice",
+        "values": [
+          [
+            "CHERRY",
+            "Cherry"
+          ],
+          [
+            "SERENA",
+            "Serena"
+          ],
+          [
+            "ETHAN",
+            "Ethan"
+          ],
+          [
+            "CHELSIE",
+            "Chelsie"
+          ],
+          [
+            "MOMO",
+            "Momo"
+          ],
+          [
+            "VIVIAN",
+            "Vivian"
+          ],
+          [
+            "MOON",
+            "Moon"
+          ],
+          [
+            "MAIA",
+            "Maia"
+          ],
+          [
+            "KAI",
+            "Kai"
+          ],
+          [
+            "NOFISH",
+            "Nofish"
+          ],
+          [
+            "BELLA",
+            "Bella"
+          ],
+          [
+            "JENNIFER",
+            "Jennifer"
+          ],
+          [
+            "RYAN",
+            "Ryan"
+          ],
+          [
+            "KATERINA",
+            "Katerina"
+          ],
+          [
+            "AIDEN",
+            "Aiden"
+          ],
+          [
+            "MIA",
+            "Mia"
+          ],
+          [
+            "MOCHI",
+            "Mochi"
+          ],
+          [
+            "BELLONA",
+            "Bellona"
+          ],
+          [
+            "VINCENT",
+            "Vincent"
+          ],
+          [
+            "BUNNY",
+            "Bunny"
+          ],
+          [
+            "NEIL",
+            "Neil"
+          ],
+          [
+            "ELIAS",
+            "Elias"
+          ],
+          [
+            "ARTHUR",
+            "Arthur"
+          ],
+          [
+            "NINI",
+            "Nini"
+          ],
+          [
+            "SEREN",
+            "Seren"
+          ],
+          [
+            "PIP",
+            "Pip"
+          ],
+          [
+            "STELLA",
+            "Stella"
+          ],
+          [
+            "BODEGA",
+            "Bodega"
+          ],
+          [
+            "SONRISA",
+            "Sonrisa"
+          ],
+          [
+            "ALEK",
+            "Alek"
+          ],
+          [
+            "DOLCE",
+            "Dolce"
+          ],
+          [
+            "SOHEE",
+            "Sohee"
+          ],
+          [
+            "LENN",
+            "Lenn"
+          ],
+          [
+            "EMILIEN",
+            "Emilien"
+          ],
+          [
+            "ANDRE",
+            "Andre"
+          ],
+          [
+            "JADA",
+            "Jada"
+          ],
+          [
+            "DYLAN",
+            "Dylan"
+          ],
+          [
+            "LI",
+            "Li"
+          ],
+          [
+            "MARCUS",
+            "Marcus"
+          ],
+          [
+            "ROY",
+            "Roy"
+          ],
+          [
+            "PETER",
+            "Peter"
+          ],
+          [
+            "SUNNY",
+            "Sunny"
+          ],
+          [
+            "ERIC",
+            "Eric"
+          ],
+          [
+            "ROCKY",
+            "Rocky"
+          ],
+          [
+            "KIKI",
+            "Kiki"
+          ]
+        ],
+        "description": "The voice used for speech synthesis. See the [Qwen-TTS voice list](https://www.alibabacloud.com/help/en/model-studio/qwen-tts-voice-list) for each voice's language and dialect coverage."
+      },
+      {
+        "name": "Language",
+        "values": [
+          [
+            "AUTO",
+            "Auto"
+          ],
+          [
+            "CHINESE",
+            "Chinese"
+          ],
+          [
+            "ENGLISH",
+            "English"
+          ],
+          [
+            "SPANISH",
+            "Spanish"
+          ],
+          [
+            "RUSSIAN",
+            "Russian"
+          ],
+          [
+            "ITALIAN",
+            "Italian"
+          ],
+          [
+            "FRENCH",
+            "French"
+          ],
+          [
+            "KOREAN",
+            "Korean"
+          ],
+          [
+            "JAPANESE",
+            "Japanese"
+          ],
+          [
+            "GERMAN",
+            "German"
+          ],
+          [
+            "PORTUGUESE",
+            "Portuguese"
+          ]
+        ],
+        "description": "Language of the input text. `Auto` lets the model detect it; setting it explicitly improves pronunciation and intonation."
+      }
+    ],
+    "moduleName": "text_to_speech"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/text-to-video",
+    "className": "Flux3TextToVideo",
+    "docstring": "FLUX 3 generates videos from text prompts with cinematic motion and detail.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "flux-3"
+    ],
+    "useCases": [
+      "Generate cinematic clips from a prompt",
+      "Create b-roll for edits",
+      "Produce animated concept sequences",
+      "Generate short social videos",
+      "Explore motion ideas before a full shoot"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the video you want to generate.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/text-to-video/draft",
+    "className": "Flux3TextToVideoDraft",
+    "docstring": "FLUX 3 Draft generates low-cost preview videos from text, meant to be enhanced afterwards.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "flux-3",
+      "draft"
+    ],
+    "useCases": [
+      "Preview a prompt before paying for a full render",
+      "Iterate quickly on shot ideas",
+      "Generate rough cuts for review",
+      "Test motion and framing cheaply",
+      "Feed drafts into the enhance pass"
+    ],
+    "inputFields": [
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the draft video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the draft video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The draft video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "draft_cache",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Durable encrypted cache bundle; pass it to `draft-enhance` for a full-quality render.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "minimax/h3/text-to-video",
+    "className": "MinimaxH3TextToVideo",
+    "docstring": "MiniMax H3 generates videos from text prompts with smooth motion and strong prompt following.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "minimax"
+    ],
+    "useCases": [
+      "Generate videos from written scenes",
+      "Create narrative shots for edits",
+      "Produce stylized motion pieces",
+      "Generate ads and promos",
+      "Prototype sequences from a script"
+    ],
+    "inputFields": [
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 5,
+        "description": "The duration of the video in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 5,
+        "max": 15
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "2K",
+        "description": "The resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "768P",
+          "2K"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text prompt for video generation",
+        "fieldType": "input",
+        "required": true,
+        "min": 1,
+        "max": 7000
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "21:9",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_768P",
+            "768P"
+          ],
+          [
+            "VALUE_2K",
+            "2K"
+          ]
+        ],
+        "description": "The resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "xai/grok-imagine-video/v1.5/text-to-video",
+    "className": "GrokImagineVideoV15TextToVideo",
+    "docstring": "Grok Imagine Video 1.5 generates videos from text prompts.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "grok",
+      "xai"
+    ],
+    "useCases": [
+      "Generate clips from a written prompt",
+      "Create social media videos",
+      "Produce stylized animations",
+      "Explore visual ideas fast",
+      "Generate short promotional videos"
+    ],
+    "inputFields": [
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the output video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "480p",
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Text description of the desired video.",
+        "fieldType": "input",
+        "required": true,
+        "max": 4096
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "Aspect ratio of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "4:3",
+          "3:2",
+          "1:1",
+          "2:3",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "number",
+        "propType": "int",
+        "default": 6,
+        "description": "Video duration in seconds.",
+        "fieldType": "input",
+        "required": false,
+        "min": 1,
+        "max": 15
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_480P",
+            "480p"
+          ],
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the output video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_3_2",
+            "3:2"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_2_3",
+            "2:3"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video."
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "fal-ai/kling-video/v2.5-turbo/pro/text-to-video",
+    "className": "KlingVideoV25TurboProTextToVideo",
+    "docstring": "Kling 2.5 Turbo Pro generates high-quality videos from text with fast turnaround.",
+    "tags": [
+      "video",
+      "generation",
+      "text-to-video",
+      "txt2vid",
+      "kling",
+      "turbo"
+    ],
+    "useCases": [
+      "Generate pro-quality clips from prompts",
+      "Create cinematic short sequences",
+      "Produce videos on a tight deadline",
+      "Generate marketing footage",
+      "Iterate on shots quickly"
+    ],
+    "inputFields": [
+      {
+        "name": "cfg_scale",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0.5,
+        "description": "\n            The CFG (Classifier Free Guidance) scale is a measure of how close you want\n            the model to stick to your prompt.\n        ",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 1
+      },
+      {
+        "name": "negative_prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "blur, distort, and low quality",
+        "description": "",
+        "fieldType": "input",
+        "required": false,
+        "max": 2500
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "",
+        "fieldType": "input",
+        "required": true,
+        "max": 2500
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "16:9",
+        "description": "The aspect ratio of the generated video frame",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "16:9",
+          "9:16",
+          "1:1"
+        ]
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "5",
+        "description": "The duration of the generated video in seconds",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "5",
+          "10"
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ]
+        ],
+        "description": "The aspect ratio of the generated video frame"
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "VALUE_5",
+            "5"
+          ],
+          [
+            "VALUE_10",
+            "10"
+          ]
+        ],
+        "description": "The duration of the generated video in seconds"
+      }
+    ],
+    "moduleName": "text_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/extend-video",
+    "className": "Flux3ExtendVideo",
+    "docstring": "FLUX 3 continues an existing video, generating more footage from where it ends.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "flux-3"
+    ],
+    "useCases": [
+      "Extend a clip that ends too early",
+      "Continue a shot for an edit",
+      "Chain clips into a longer sequence",
+      "Add tail footage for transitions",
+      "Lengthen generated b-roll"
+    ],
+    "inputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "URL of the input video. MP4, under 50 MB and under 15 seconds.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      },
+      {
+        "name": "resolution",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "720p",
+        "description": "Resolution of the generated video.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Resolution",
+        "enumValues": [
+          "720p",
+          "1080p"
+        ]
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing how the video continues from the source clip's final frames.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The generated video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "seed",
+        "tsType": "number",
+        "propType": "int",
+        "default": -1,
+        "description": "The seed used for the generation.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "Resolution",
+        "values": [
+          [
+            "VALUE_720P",
+            "720p"
+          ],
+          [
+            "VALUE_1080P",
+            "1080p"
+          ]
+        ],
+        "description": "Resolution of the generated video."
+      },
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated video. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Duration of the generated video in seconds. `auto` lets the model choose."
+      }
+    ],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/extend-video/draft",
+    "className": "Flux3ExtendVideoDraft",
+    "docstring": "FLUX 3 Draft continues an existing video as a low-cost preview, meant to be enhanced afterwards.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "flux-3",
+      "draft"
+    ],
+    "useCases": [
+      "Preview an extension before a full render",
+      "Check how a shot continues",
+      "Iterate cheaply on endings",
+      "Review pacing of a longer cut",
+      "Feed drafts into the enhance pass"
+    ],
+    "inputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "URL or data URI of the source MP4, at most 50 MiB.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      },
+      {
+        "name": "prompt",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "The text prompt describing the draft video.",
+        "fieldType": "input",
+        "required": true
+      },
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "aspect_ratio",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "AspectRatio",
+        "enumValues": [
+          "auto",
+          "21:9",
+          "2:1",
+          "16:9",
+          "4:3",
+          "1:1",
+          "3:4",
+          "9:16"
+        ]
+      },
+      {
+        "name": "generate_audio",
+        "tsType": "boolean",
+        "propType": "bool",
+        "default": true,
+        "description": "Whether to generate audio for the draft video.",
+        "fieldType": "input",
+        "required": false
+      },
+      {
+        "name": "duration",
+        "tsType": "enum",
+        "propType": "enum",
+        "default": "auto",
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`.",
+        "fieldType": "input",
+        "required": false,
+        "enumRef": "Duration",
+        "enumValues": [
+          "auto",
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20
+        ]
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The draft video.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "draft_cache",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Durable encrypted cache bundle; pass it to `draft-enhance` for a full-quality render.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [
+      {
+        "name": "AspectRatio",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "RATIO_21_9",
+            "21:9"
+          ],
+          [
+            "RATIO_2_1",
+            "2:1"
+          ],
+          [
+            "RATIO_16_9",
+            "16:9"
+          ],
+          [
+            "RATIO_4_3",
+            "4:3"
+          ],
+          [
+            "RATIO_1_1",
+            "1:1"
+          ],
+          [
+            "RATIO_3_4",
+            "3:4"
+          ],
+          [
+            "RATIO_9_16",
+            "9:16"
+          ]
+        ],
+        "description": "Aspect ratio of the generated draft. `auto` lets the model choose."
+      },
+      {
+        "name": "Duration",
+        "values": [
+          [
+            "AUTO",
+            "auto"
+          ],
+          [
+            "VALUE_5",
+            5
+          ],
+          [
+            "VALUE_6",
+            6
+          ],
+          [
+            "VALUE_7",
+            7
+          ],
+          [
+            "VALUE_8",
+            8
+          ],
+          [
+            "VALUE_9",
+            9
+          ],
+          [
+            "VALUE_10",
+            10
+          ],
+          [
+            "VALUE_11",
+            11
+          ],
+          [
+            "VALUE_12",
+            12
+          ],
+          [
+            "VALUE_13",
+            13
+          ],
+          [
+            "VALUE_14",
+            14
+          ],
+          [
+            "VALUE_15",
+            15
+          ],
+          [
+            "VALUE_16",
+            16
+          ],
+          [
+            "VALUE_17",
+            17
+          ],
+          [
+            "VALUE_18",
+            18
+          ],
+          [
+            "VALUE_19",
+            19
+          ],
+          [
+            "VALUE_20",
+            20
+          ]
+        ],
+        "description": "Draft duration in whole seconds from 5 through 20, or `auto`."
+      }
+    ],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "blackforestlabs/flux-3/draft-enhance",
+    "className": "Flux3DraftEnhance",
+    "docstring": "FLUX 3 Draft Enhance upgrades a draft video to full quality, keeping its motion and composition.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "flux-3",
+      "enhance"
+    ],
+    "useCases": [
+      "Finalize an approved draft",
+      "Upgrade preview clips to delivery quality",
+      "Keep motion while raising detail",
+      "Render only the takes that survived review",
+      "Complete the draft-then-enhance workflow"
+    ],
+    "inputFields": [
+      {
+        "name": "safety_tolerance",
+        "tsType": "number",
+        "propType": "int",
+        "default": 2,
+        "description": "The safety tolerance level for the generated video. 0 is the strictest and 4 is the most permissive.",
+        "fieldType": "input",
+        "required": false,
+        "min": 0,
+        "max": 4
+      },
+      {
+        "name": "draft_cache_url",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "URL or data URI of the encrypted draft cache bundle to enhance.",
+        "fieldType": "input",
+        "required": true
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The enhanced video.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "video_to_video"
+  },
+  {
+    "endpointId": "fal-ai/heygen/v3/filler-word-removal",
+    "className": "HeygenV3FillerWordRemoval",
+    "docstring": "HeyGen v3 removes filler words from a talking-head video and closes the cuts.",
+    "tags": [
+      "video",
+      "editing",
+      "video-to-video",
+      "vid2vid",
+      "heygen",
+      "speech"
+    ],
+    "useCases": [
+      "Clean up ums and ahs in interviews",
+      "Tighten talking-head footage",
+      "Polish webinar and course recordings",
+      "Shorten podcast video cuts",
+      "Prepare footage for publishing"
+    ],
+    "inputFields": [
+      {
+        "name": "title",
+        "tsType": "string",
+        "propType": "str",
+        "default": "",
+        "description": "Optional display title for the removal job.",
+        "fieldType": "input",
+        "required": false,
+        "max": 255
+      },
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "URL of the source video to remove filler words and long silences from.",
+        "fieldType": "input",
+        "required": true,
+        "apiParamName": "video_url"
+      }
+    ],
+    "outputType": "video",
+    "outputFields": [
+      {
+        "name": "video",
+        "tsType": "video",
+        "propType": "video",
+        "default": null,
+        "description": "The cleaned video file.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "output_duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Duration of the cleaned video in seconds.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "reduction_pct",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Percentage of the source duration removed.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "num_cuts",
+        "tsType": "number",
+        "propType": "int",
+        "default": 0,
+        "description": "Number of filler-word segments removed.",
+        "fieldType": "output",
+        "required": true
+      },
+      {
+        "name": "original_duration",
+        "tsType": "number",
+        "propType": "float",
+        "default": 0,
+        "description": "Duration of the source video in seconds.",
+        "fieldType": "output",
+        "required": true
+      }
+    ],
+    "enums": [],
+    "moduleName": "video_to_video"
   }
 ]

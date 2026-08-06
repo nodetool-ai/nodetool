@@ -2,6 +2,83 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "blackforestlabs/flux-3/extend-video": {
+      className: "Flux3ExtendVideo",
+      docstring:
+        "FLUX 3 continues an existing video, generating more footage from where it ends.",
+      tags: ["video", "editing", "video-to-video", "vid2vid", "flux-3"],
+      useCases: [
+        "Extend a clip that ends too early",
+        "Continue a shot for an edit",
+        "Chain clips into a longer sequence",
+        "Add tail footage for transitions",
+        "Lengthen generated b-roll"
+      ]
+    },
+
+    "blackforestlabs/flux-3/extend-video/draft": {
+      className: "Flux3ExtendVideoDraft",
+      docstring:
+        "FLUX 3 Draft continues an existing video as a low-cost preview, meant to be enhanced afterwards.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "flux-3",
+        "draft"
+      ],
+      useCases: [
+        "Preview an extension before a full render",
+        "Check how a shot continues",
+        "Iterate cheaply on endings",
+        "Review pacing of a longer cut",
+        "Feed drafts into the enhance pass"
+      ]
+    },
+
+    "blackforestlabs/flux-3/draft-enhance": {
+      className: "Flux3DraftEnhance",
+      docstring:
+        "FLUX 3 Draft Enhance upgrades a draft video to full quality, keeping its motion and composition.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "flux-3",
+        "enhance"
+      ],
+      useCases: [
+        "Finalize an approved draft",
+        "Upgrade preview clips to delivery quality",
+        "Keep motion while raising detail",
+        "Render only the takes that survived review",
+        "Complete the draft-then-enhance workflow"
+      ]
+    },
+
+    "fal-ai/heygen/v3/filler-word-removal": {
+      className: "HeygenV3FillerWordRemoval",
+      docstring:
+        "HeyGen v3 removes filler words from a talking-head video and closes the cuts.",
+      tags: [
+        "video",
+        "editing",
+        "video-to-video",
+        "vid2vid",
+        "heygen",
+        "speech"
+      ],
+      useCases: [
+        "Clean up ums and ahs in interviews",
+        "Tighten talking-head footage",
+        "Polish webinar and course recordings",
+        "Shorten podcast video cuts",
+        "Prepare footage for publishing"
+      ]
+    },
+
     "fal-ai/amt-interpolation": {
       className: "AMTInterpolation",
       docstring:

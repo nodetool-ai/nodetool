@@ -16,6 +16,131 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "fal-ai/flux-2/edit": {
+      className: "Flux2Edit",
+      docstring:
+        "FLUX.2 Edit changes an existing image from a text instruction while keeping the rest intact.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "flux-2"],
+      useCases: [
+        "Edit an image from a written instruction",
+        "Replace or remove objects in a photo",
+        "Restyle an image without redrawing it",
+        "Adjust lighting, color, or background",
+        "Iterate on a generated image"
+      ]
+    },
+
+    "fal-ai/flux-2/lora/edit": {
+      className: "Flux2LoraEdit",
+      docstring:
+        "FLUX.2 Edit with LoRA weights applies custom-trained styles and subjects while editing an image.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "flux",
+        "flux-2",
+        "lora"
+      ],
+      useCases: [
+        "Edit images in a custom-trained style",
+        "Insert a fine-tuned subject into a photo",
+        "Apply brand styles to existing images",
+        "Restyle a set of images consistently",
+        "Combine editing with LoRA adapters"
+      ]
+    },
+
+    "fal-ai/flux-pro/kontext": {
+      className: "FluxProKontext",
+      docstring:
+        "FLUX.1 Kontext [pro] edits images from text instructions with strong character and scene consistency.",
+      tags: ["editing", "image-to-image", "img2img", "flux", "kontext"],
+      useCases: [
+        "Edit a photo from a written instruction",
+        "Keep a character consistent across edits",
+        "Change scenes while preserving subjects",
+        "Restyle images without losing structure",
+        "Make iterative local edits"
+      ]
+    },
+
+    "microsoft/mai-image-2.5-pro/edit": {
+      className: "MaiImage25ProEdit",
+      docstring:
+        "MAI Image 2.5 Pro Edit modifies an existing image from a text instruction.",
+      tags: ["editing", "image-to-image", "img2img", "mai", "microsoft"],
+      useCases: [
+        "Edit photos from written instructions",
+        "Retouch product images",
+        "Replace backgrounds and objects",
+        "Adjust style and lighting",
+        "Refine generated images"
+      ]
+    },
+
+    "alibaba/qwen-image-3/edit": {
+      className: "QwenImage3Edit",
+      docstring:
+        "Qwen Image 3 Edit modifies an existing image from a text instruction, including text in the image.",
+      tags: ["editing", "image-to-image", "img2img", "qwen", "alibaba"],
+      useCases: [
+        "Edit images from English or Chinese instructions",
+        "Rewrite text rendered inside an image",
+        "Replace objects and backgrounds",
+        "Restyle images while keeping layout",
+        "Localize graphics for another language"
+      ]
+    },
+
+    "fal-ai/ideogram/object-removal": {
+      className: "IdeogramObjectRemoval",
+      docstring:
+        "Ideogram Object Removal erases a masked object from an image and fills the gap.",
+      tags: ["editing", "image-to-image", "img2img", "ideogram", "inpainting"],
+      useCases: [
+        "Remove unwanted objects from photos",
+        "Clean up product shots",
+        "Erase people from backgrounds",
+        "Delete watermarks and logos",
+        "Prepare images for compositing"
+      ]
+    },
+
+    "pixelcut/product-photo": {
+      className: "PixelcutProductPhoto",
+      docstring:
+        "Pixelcut Product Photo turns a product shot into a styled studio photo with background and shadow.",
+      tags: ["editing", "image-to-image", "img2img", "pixelcut", "product"],
+      useCases: [
+        "Turn phone shots into studio product photos",
+        "Place products on generated backgrounds",
+        "Add realistic shadows to cutouts",
+        "Produce catalog-ready imagery",
+        "Batch-style an e-commerce catalog"
+      ]
+    },
+
+    "fal-ai/feynobg": {
+      className: "Feynobg",
+      docstring:
+        "Feynobg removes the background from an image and returns a cutout.",
+      tags: [
+        "editing",
+        "image-to-image",
+        "img2img",
+        "background-removal",
+        "cutout"
+      ],
+      useCases: [
+        "Remove backgrounds from product photos",
+        "Create transparent cutouts",
+        "Prepare assets for compositing",
+        "Isolate subjects for design work",
+        "Batch-process catalog images"
+      ]
+    },
+
     // FLUX Redux Family - Style Transfer
     "fal-ai/flux/schnell/redux": {
       className: "FluxSchnellRedux",

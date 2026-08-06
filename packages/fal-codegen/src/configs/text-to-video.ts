@@ -2,6 +2,90 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "blackforestlabs/flux-3/text-to-video": {
+      className: "Flux3TextToVideo",
+      docstring:
+        "FLUX 3 generates videos from text prompts with cinematic motion and detail.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "flux-3"],
+      useCases: [
+        "Generate cinematic clips from a prompt",
+        "Create b-roll for edits",
+        "Produce animated concept sequences",
+        "Generate short social videos",
+        "Explore motion ideas before a full shoot"
+      ]
+    },
+
+    "blackforestlabs/flux-3/text-to-video/draft": {
+      className: "Flux3TextToVideoDraft",
+      docstring:
+        "FLUX 3 Draft generates low-cost preview videos from text, meant to be enhanced afterwards.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "flux-3",
+        "draft"
+      ],
+      useCases: [
+        "Preview a prompt before paying for a full render",
+        "Iterate quickly on shot ideas",
+        "Generate rough cuts for review",
+        "Test motion and framing cheaply",
+        "Feed drafts into the enhance pass"
+      ]
+    },
+
+    "minimax/h3/text-to-video": {
+      className: "MinimaxH3TextToVideo",
+      docstring:
+        "MiniMax H3 generates videos from text prompts with smooth motion and strong prompt following.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "minimax"],
+      useCases: [
+        "Generate videos from written scenes",
+        "Create narrative shots for edits",
+        "Produce stylized motion pieces",
+        "Generate ads and promos",
+        "Prototype sequences from a script"
+      ]
+    },
+
+    "xai/grok-imagine-video/v1.5/text-to-video": {
+      className: "GrokImagineVideoV15TextToVideo",
+      docstring:
+        "Grok Imagine Video 1.5 generates videos from text prompts.",
+      tags: ["video", "generation", "text-to-video", "txt2vid", "grok", "xai"],
+      useCases: [
+        "Generate clips from a written prompt",
+        "Create social media videos",
+        "Produce stylized animations",
+        "Explore visual ideas fast",
+        "Generate short promotional videos"
+      ]
+    },
+
+    "fal-ai/kling-video/v2.5-turbo/pro/text-to-video": {
+      className: "KlingVideoV25TurboProTextToVideo",
+      docstring:
+        "Kling 2.5 Turbo Pro generates high-quality videos from text with fast turnaround.",
+      tags: [
+        "video",
+        "generation",
+        "text-to-video",
+        "txt2vid",
+        "kling",
+        "turbo"
+      ],
+      useCases: [
+        "Generate pro-quality clips from prompts",
+        "Create cinematic short sequences",
+        "Produce videos on a tight deadline",
+        "Generate marketing footage",
+        "Iterate on shots quickly"
+      ]
+    },
+
     "fal-ai/hunyuan-video": {
       className: "HunyuanVideo",
       docstring:

@@ -16,6 +16,69 @@ export const config: ModuleConfig = {
     }
   },
   configs: {
+    "fal-ai/flux-2": {
+      className: "Flux2",
+      docstring:
+        "FLUX.2 generates images from text with strong prompt adherence and photographic detail.",
+      tags: ["generation", "text-to-image", "txt2img", "flux", "flux-2"],
+      useCases: [
+        "Generate photorealistic images from prompts",
+        "Create detailed illustrations and concept art",
+        "Produce marketing and product visuals",
+        "Render text inside images accurately",
+        "Generate variations of a single prompt"
+      ]
+    },
+
+    "fal-ai/flux-2/lora": {
+      className: "Flux2Lora",
+      docstring:
+        "FLUX.2 with LoRA weights applies custom-trained styles and subjects to text-to-image generation.",
+      tags: [
+        "generation",
+        "text-to-image",
+        "txt2img",
+        "flux",
+        "flux-2",
+        "lora"
+      ],
+      useCases: [
+        "Generate images in a custom-trained style",
+        "Render a fine-tuned subject or character",
+        "Apply brand styles to generated images",
+        "Combine multiple LoRA adapters",
+        "Produce consistent art direction across a set"
+      ]
+    },
+
+    "microsoft/mai-image-2.5-pro": {
+      className: "MaiImage25Pro",
+      docstring:
+        "MAI Image 2.5 Pro is Microsoft's high-end text-to-image model for photorealistic generation.",
+      tags: ["generation", "text-to-image", "txt2img", "mai", "microsoft"],
+      useCases: [
+        "Generate photorealistic images from prompts",
+        "Create editorial and advertising visuals",
+        "Produce detailed product renders",
+        "Generate stylized illustrations",
+        "Create high-resolution creative assets"
+      ]
+    },
+
+    "alibaba/qwen-image-3/text-to-image": {
+      className: "QwenImage3TextToImage",
+      docstring:
+        "Qwen Image 3 generates images from text with strong multilingual text rendering.",
+      tags: ["generation", "text-to-image", "txt2img", "qwen", "alibaba"],
+      useCases: [
+        "Generate images from English or Chinese prompts",
+        "Render legible text inside images",
+        "Create posters and social media graphics",
+        "Produce illustrations with fine detail",
+        "Generate design mockups from descriptions"
+      ]
+    },
+
     "fal-ai/flux/dev": {
       className: "FluxDev",
       docstring:

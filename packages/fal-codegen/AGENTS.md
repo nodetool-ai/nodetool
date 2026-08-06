@@ -13,6 +13,10 @@ OpenAPI schemas.
 4. `src/node-generator.ts` applies local config overrides.
 5. `npm run generate:fal` writes `packages/fal-nodes/src/fal-manifest.json`.
 
+To add endpoints without regenerating everything, list them in `src/configs/`
+and run `npx tsx scripts/append-new-endpoints.ts`, which fetches only what the
+manifest is missing.
+
 ## Editing Rules
 
 - Do not edit `packages/fal-nodes/src/fal-manifest.json` directly.
