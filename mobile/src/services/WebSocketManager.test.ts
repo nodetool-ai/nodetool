@@ -7,6 +7,43 @@
  */
 
 import { WebSocketManager } from './WebSocketManager';
+import type { ConnectionState } from '../types/chat';
+
+/**
+ * The parts of a close/message event the manager reads. React Native's own
+ * `WebSocketCloseEvent`/`WebSocketMessageEvent` are Event subclasses these
+ * tests have no way to construct.
+ */
+type CloseEventLike = { code?: number; reason?: string };
+type MessageEventLike = { data: string | ArrayBuffer | Blob };
+
+/**
+ * The private surface these tests drive — reconnect bookkeeping, the timers,
+ * the state machine. Declaring it means a rename inside WebSocketManager fails
+ * the build instead of leaving a test reading `undefined`.
+ */
+interface WebSocketManagerInternals {
+  ws: WebSocket | null;
+  state: ConnectionState;
+  reconnectTimer: ReturnType<typeof setTimeout> | null;
+  connectionTimer: ReturnType<typeof setTimeout> | null;
+  reconnectAttempt: number;
+  intentionalDisconnect: boolean;
+  connectionResolver: (() => void) | null;
+  connectionRejector: ((error: Error) => void) | null;
+  transitionTo(action: string): boolean;
+  getReconnectDelay(): number;
+  shouldReconnect(event: CloseEventLike): boolean;
+  scheduleReconnect(): void;
+  clearTimers(): void;
+  handleClose(event: CloseEventLike): void;
+  handleConnectionError(error: Error): void;
+}
+
+const internals = (
+  manager: WebSocketManager | null
+): WebSocketManagerInternals =>
+  manager as unknown as WebSocketManagerInternals;
 
 // Controllable stand-in for the AppState-backed lifecycle module, so tests can
 // drive foreground/background transitions deterministically.
@@ -51,8 +88,8 @@ class MockWebSocket {
   binaryType: string = 'arraybuffer';
   readyState: number = MockWebSocket.CONNECTING;
   onopen: (() => void) | null = null;
-  onclose: ((event: { code: number; reason: string }) => void) | null = null;
-  onmessage: ((event: { data: any }) => void) | null = null;
+  onclose: ((event: CloseEventLike) => void) | null = null;
+  onmessage: ((event: MessageEventLike) => void) | null = null;
   onerror: ((event: { message: string }) => void) | null = null;
 
   constructor(url: string, _protocols?: unknown, options?: { headers?: Record<string, string> }) {
@@ -77,7 +114,7 @@ class MockWebSocket {
     this.onerror?.({ message });
   }
 
-  simulateMessage(data: any) {
+  simulateMessage(data: MessageEventLike['data']) {
     this.onmessage?.({ data });
   }
 }
@@ -478,8 +515,7 @@ describe('WebSocketManager', () => {
   describe('State transitions', () => {
     it('handles invalid state transition action', () => {
       manager = new WebSocketManager(defaultConfig);
-      // Access private method via any cast for testing
-      const result = (manager as any).transitionTo('invalid_action');
+      const result = internals(manager).transitionTo('invalid_action');
       expect(result).toBe(false);
     });
 
@@ -490,7 +526,7 @@ describe('WebSocketManager', () => {
       await connectPromise;
       
       // Try to transition to connecting from connected (invalid)
-      const result = (manager as any).transitionTo('connect');
+      const result = internals(manager).transitionTo('connect');
       expect(result).toBe(false);
     });
 
@@ -579,7 +615,7 @@ describe('WebSocketManager', () => {
       manager.connect();
       
       // Clear the WebSocket before disconnect
-      (manager as any).ws = null;
+      internals(manager).ws = null;
       
       manager.disconnect();
       expect(manager.getState()).toBe('disconnected');
@@ -638,19 +674,19 @@ describe('WebSocketManager', () => {
       });
       
       // Set reconnectAttempt to 1 (first actual attempt)
-      (manager as any).reconnectAttempt = 1;
+      internals(manager).reconnectAttempt = 1;
       
       // Access private method to test delay calculation. The result carries
       // half-to-full jitter, so it lands in (delay/2, delay].
       // Formula: reconnectInterval * decay^attempt
-      const delay1 = (manager as any).getReconnectDelay();
+      const delay1 = internals(manager).getReconnectDelay();
       expect(delay1).toBeGreaterThan(750); // 1000 * 1.5^1 = 1500, halved
       expect(delay1).toBeLessThanOrEqual(1500);
 
       // Simulate subsequent reconnect attempts
-      (manager as any).reconnectAttempt = 3;
+      internals(manager).reconnectAttempt = 3;
       const delays3 = Array.from({ length: 20 }, () =>
-        (manager as any).getReconnectDelay()
+        internals(manager).getReconnectDelay()
       );
       for (const delay3 of delays3) {
         expect(delay3).toBeGreaterThan(1687.5); // 1000 * 1.5^3 = 3375, halved
@@ -671,7 +707,7 @@ describe('WebSocketManager', () => {
       // Test no-reconnect codes
       const noReconnectCodes = [1008, 1009, 1010, 1011, 4000, 4001, 4003];
       noReconnectCodes.forEach(code => {
-        const result = (manager as any).shouldReconnect({ code, reason: '' });
+        const result = internals(manager).shouldReconnect({ code, reason: '' });
         expect(result).toBe(false);
       });
     });
@@ -684,8 +720,8 @@ describe('WebSocketManager', () => {
         timeoutInterval: 300000,
       });
       
-      (manager as any).intentionalDisconnect = true;
-      const result = (manager as any).shouldReconnect({ code: 1000, reason: '' });
+      internals(manager).intentionalDisconnect = true;
+      const result = internals(manager).shouldReconnect({ code: 1000, reason: '' });
       expect(result).toBe(false);
     });
 
@@ -696,7 +732,7 @@ describe('WebSocketManager', () => {
         timeoutInterval: 300000,
       });
       
-      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      const result = internals(manager).shouldReconnect({ code: 1006, reason: '' });
       expect(result).toBe(false);
     });
 
@@ -708,8 +744,8 @@ describe('WebSocketManager', () => {
         timeoutInterval: 300000,
       });
       
-      (manager as any).reconnectAttempt = 5;
-      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      internals(manager).reconnectAttempt = 5;
+      const result = internals(manager).shouldReconnect({ code: 1006, reason: '' });
       expect(result).toBe(false);
     });
 
@@ -721,7 +757,7 @@ describe('WebSocketManager', () => {
         timeoutInterval: 300000,
       });
       
-      const result = (manager as any).shouldReconnect({ code: 1006, reason: '' });
+      const result = internals(manager).shouldReconnect({ code: 1006, reason: '' });
       expect(result).toBe(true);
     });
 
@@ -734,13 +770,13 @@ describe('WebSocketManager', () => {
       });
       
       // Manually set reconnectTimer
-      (manager as any).reconnectTimer = setTimeout(() => {}, 10000);
+      internals(manager).reconnectTimer = setTimeout(() => {}, 10000);
       
       // Call scheduleReconnect - should return early
-      (manager as any).scheduleReconnect();
+      internals(manager).scheduleReconnect();
       
       // Should still have the same timer (no duplicate)
-      expect((manager as any).reconnectTimer).toBeTruthy();
+      expect(internals(manager).reconnectTimer).toBeTruthy();
     });
 
     it('clearTimers clears both timers', () => {
@@ -750,14 +786,14 @@ describe('WebSocketManager', () => {
       });
       
       // Set up timers
-      (manager as any).connectionTimer = setTimeout(() => {}, 10000);
-      (manager as any).reconnectTimer = setTimeout(() => {}, 10000);
+      internals(manager).connectionTimer = setTimeout(() => {}, 10000);
+      internals(manager).reconnectTimer = setTimeout(() => {}, 10000);
       
       // Clear timers
-      (manager as any).clearTimers();
+      internals(manager).clearTimers();
       
-      expect((manager as any).connectionTimer).toBeNull();
-      expect((manager as any).reconnectTimer).toBeNull();
+      expect(internals(manager).connectionTimer).toBeNull();
+      expect(internals(manager).reconnectTimer).toBeNull();
     });
   });
 
@@ -771,10 +807,9 @@ describe('WebSocketManager', () => {
       mockWebSocketInstance?.simulateOpen();
       await connectPromise;
       
-      // Simulate close with undefined values (edge case in some environments)
-      // Using 'as any' since TypeScript WebSocketCloseEvent normally requires
-      // code/reason, but real WebSocket implementations may send undefined values
-      mockWebSocketInstance?.onclose?.({ code: undefined, reason: undefined } as any);
+      // Real WebSocket implementations may deliver a close event with neither
+      // field set — WebSocketCloseEvent marks both optional for that reason.
+      mockWebSocketInstance?.onclose?.({ code: undefined, reason: undefined });
       
       // Should handle gracefully by defaulting to code=0 and reason=''
       expect(onClose).toHaveBeenCalledWith(0, '');
@@ -784,10 +819,10 @@ describe('WebSocketManager', () => {
       manager = new WebSocketManager(defaultConfig);
       
       // Force state to one that can't transition to disconnected
-      (manager as any).state = 'disconnected';
+      internals(manager).state = 'disconnected';
       
       // Call handleClose directly
-      (manager as any).handleClose({ code: 1000, reason: 'test' });
+      internals(manager).handleClose({ code: 1000, reason: 'test' });
       
       // Should handle gracefully
       expect(manager.getState()).toBe('disconnected');
@@ -802,17 +837,17 @@ describe('WebSocketManager', () => {
       
       // Set up a rejector
       const rejector = jest.fn();
-      (manager as any).connectionRejector = rejector;
-      (manager as any).connectionResolver = jest.fn();
+      internals(manager).connectionRejector = rejector;
+      internals(manager).connectionResolver = jest.fn();
       
       // Call handleConnectionError
       const error = new Error('Test error');
-      (manager as any).handleConnectionError(error);
+      internals(manager).handleConnectionError(error);
       
       expect(onError).toHaveBeenCalledWith(error);
       expect(rejector).toHaveBeenCalledWith(error);
-      expect((manager as any).connectionRejector).toBeNull();
-      expect((manager as any).connectionResolver).toBeNull();
+      expect(internals(manager).connectionRejector).toBeNull();
+      expect(internals(manager).connectionResolver).toBeNull();
     });
   });
 
@@ -844,19 +879,19 @@ describe('WebSocketManager', () => {
       mockWebSocketInstance?.simulateClose(1006, 'suspended');
 
       expect(manager.getState()).toBe('disconnected');
-      expect((manager as any).reconnectTimer).toBeNull();
-      expect((manager as any).reconnectAttempt).toBe(0);
+      expect(internals(manager).reconnectTimer).toBeNull();
+      expect(internals(manager).reconnectAttempt).toBe(0);
     });
 
     it('cancels a pending reconnect timer when the app is backgrounded', () => {
       manager = new WebSocketManager(lifecycleConfig);
-      (manager as any).state = 'disconnected';
-      (manager as any).scheduleReconnect();
-      expect((manager as any).reconnectTimer).toBeTruthy();
+      internals(manager).state = 'disconnected';
+      internals(manager).scheduleReconnect();
+      expect(internals(manager).reconnectTimer).toBeTruthy();
 
       mockLifecycle.emit('background');
 
-      expect((manager as any).reconnectTimer).toBeNull();
+      expect(internals(manager).reconnectTimer).toBeNull();
     });
 
     it('reconnects immediately on foreground with the backoff counter reset', async () => {
@@ -869,15 +904,15 @@ describe('WebSocketManager', () => {
       mockLifecycle.emit('background');
       firstSocket?.simulateClose(1006, 'suspended');
       // Pretend earlier attempts had already grown the backoff.
-      (manager as any).reconnectAttempt = 7;
+      internals(manager).reconnectAttempt = 7;
 
       mockLifecycle.emit('foreground');
 
       // A brand new socket was opened without waiting out any delay.
       expect(mockWebSocketInstance).not.toBe(firstSocket);
       expect(manager.getState()).toBe('reconnecting');
-      expect((manager as any).reconnectAttempt).toBe(0);
-      expect((manager as any).reconnectTimer).toBeNull();
+      expect(internals(manager).reconnectAttempt).toBe(0);
+      expect(internals(manager).reconnectTimer).toBeNull();
     });
 
     it('fires onOpen again after a lifecycle-driven reconnect', async () => {

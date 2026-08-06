@@ -4,12 +4,25 @@
 
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react-native';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import ChatScreen from './ChatScreen';
 import { useChatStore } from '../stores/ChatStore';
+import type { RootStackParamList } from '../navigation/types';
+import type { Message, MessageContent } from '../types/chat';
+
+/** The props the stubbed ChatView below actually reads. */
+interface MockChatViewProps {
+  status: string;
+  messages: Message[];
+  onSendMessage: (content: MessageContent[], text: string) => void;
+  onStop?: () => void;
+  error?: string | null;
+  statusMessage?: string | null;
+}
 
 // Mock ChatView component
 jest.mock('../components/chat', () => ({
-  ChatView: ({ status, messages, onSendMessage, onStop, error, statusMessage }: any) => {
+  ChatView: ({ status, messages, onSendMessage, onStop, error, statusMessage }: MockChatViewProps) => {
     const { Text, View, TouchableOpacity } = require('react-native');
     return (
       <View testID="chat-view">
@@ -35,13 +48,39 @@ jest.mock('../stores/ChatStore', () => ({
   useChatStore: jest.fn(),
 }));
 
+type ChatState = ReturnType<typeof useChatStore.getState>;
+type ChatScreenProps = NativeStackScreenProps<RootStackParamList, 'Chat'>;
+
+/** The slice of the store these tests stand up, with the actions as spies. */
+type MockChatStore = Pick<
+  ChatState,
+  'status' | 'error' | 'statusMessage' | 'currentThreadId' | 'messageCache'
+> & {
+  connect: jest.Mock;
+  disconnect: jest.Mock;
+  sendMessage: jest.Mock;
+  stopGeneration: jest.Mock;
+  createNewThread: jest.Mock;
+  getCurrentMessages: jest.Mock;
+};
+
+const useChatStoreMock = useChatStore as unknown as jest.Mock;
+
+/** Point the mocked store hook at a state object, selector-aware. */
+const mockStoreState = (state: MockChatStore): void => {
+  useChatStoreMock.mockImplementation(
+    (selector?: (chatState: MockChatStore) => unknown) =>
+      selector ? selector(state) : state
+  );
+};
+
 describe('ChatScreen', () => {
-  const mockStore = {
+  const mockStore: MockChatStore = {
     status: 'connected',
     error: null,
     statusMessage: null,
     currentThreadId: 'thread-1',
-    messageCache: { 'thread-1': [] } as Record<string, any[]>,
+    messageCache: { 'thread-1': [] },
     connect: jest.fn().mockResolvedValue(undefined),
     disconnect: jest.fn(),
     sendMessage: jest.fn().mockResolvedValue(undefined),
@@ -56,27 +95,30 @@ describe('ChatScreen', () => {
     goBack: jest.fn(),
   };
 
+  // ChatScreen takes the full navigator prop pair; these tests drive only the
+  // three navigation methods above and never read the route.
+  const renderChatScreen = () =>
+    render(
+      <ChatScreen
+        navigation={mockNavigation as unknown as ChatScreenProps['navigation']}
+        route={{} as ChatScreenProps['route']}
+      />
+    );
+
   beforeEach(() => {
     jest.clearAllMocks();
-    (useChatStore as any).mockImplementation((selector?: any) => {
-      if (selector) {
-        return selector(mockStore);
-      }
-      return mockStore;
-    });
+    mockStoreState(mockStore);
   });
 
   describe('Rendering', () => {
     it('renders ChatView component', () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       expect(screen.getByTestId('chat-view')).toBeTruthy();
     });
 
     it('renders a safe-area-context SafeAreaView container', () => {
-      const { UNSAFE_root } = render(
-        <ChatScreen navigation={mockNavigation as any} route={{} as any} />
-      );
+      const { UNSAFE_root } = renderChatScreen();
 
       const safeAreaView = UNSAFE_root.findByType(
         require('react-native-safe-area-context').SafeAreaView
@@ -89,7 +131,7 @@ describe('ChatScreen', () => {
 
   describe('Initialization', () => {
     it('calls connect on mount', async () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       await waitFor(() => {
         expect(mockStore.connect).toHaveBeenCalled();
@@ -102,14 +144,9 @@ describe('ChatScreen', () => {
         currentThreadId: null,
       };
       
-      (useChatStore as any).mockImplementation((selector?: any) => {
-        if (selector) {
-          return selector(storeWithoutThread);
-        }
-        return storeWithoutThread;
-      });
+      mockStoreState(storeWithoutThread);
       
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       await waitFor(() => {
         expect(storeWithoutThread.createNewThread).toHaveBeenCalled();
@@ -119,7 +156,7 @@ describe('ChatScreen', () => {
     it('handles connection error gracefully', async () => {
       mockStore.connect.mockRejectedValueOnce(new Error('Connection failed'));
       
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       // Should not throw
       await waitFor(() => {
@@ -130,7 +167,7 @@ describe('ChatScreen', () => {
 
   describe('Header configuration', () => {
     it('sets header right button', () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       expect(mockNavigation.setOptions).toHaveBeenCalled();
     });
@@ -141,14 +178,9 @@ describe('ChatScreen', () => {
         selectedModel: { id: 'gpt-4', name: 'GPT-4', provider: 'openai' },
       };
       
-      (useChatStore as any).mockImplementation((selector?: any) => {
-        if (selector) {
-          return selector(storeWithModel);
-        }
-        return storeWithModel;
-      });
+      mockStoreState(storeWithModel);
 
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
@@ -163,14 +195,9 @@ describe('ChatScreen', () => {
         selectedModel: null,
       };
       
-      (useChatStore as any).mockImplementation((selector?: any) => {
-        if (selector) {
-          return selector(storeWithoutModel);
-        }
-        return storeWithoutModel;
-      });
+      mockStoreState(storeWithoutModel);
 
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
@@ -180,7 +207,7 @@ describe('ChatScreen', () => {
     });
 
     it('header button creates new chat', async () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       // Get the headerRight component
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
@@ -199,7 +226,7 @@ describe('ChatScreen', () => {
     it('handles new chat error gracefully', async () => {
       mockStore.createNewThread.mockRejectedValueOnce(new Error('Failed'));
       
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       const setOptionsCall = mockNavigation.setOptions.mock.calls[0][0];
       const HeaderRight = setOptionsCall.headerRight;
@@ -218,7 +245,7 @@ describe('ChatScreen', () => {
 
   describe('Props passing', () => {
     it('passes status to ChatView', () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       expect(screen.getByTestId('status')).toHaveTextContent('connected');
     });
@@ -229,7 +256,7 @@ describe('ChatScreen', () => {
         { id: '2', type: 'message', role: 'assistant', content: 'Hi' },
       ];
 
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
 
       expect(screen.getByTestId('message-count')).toHaveTextContent('2');
     });
@@ -240,14 +267,9 @@ describe('ChatScreen', () => {
         error: 'Connection error',
       };
       
-      (useChatStore as any).mockImplementation((selector?: any) => {
-        if (selector) {
-          return selector(storeWithError);
-        }
-        return storeWithError;
-      });
+      mockStoreState(storeWithError);
       
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       expect(screen.getByTestId('error')).toHaveTextContent('Connection error');
     });
@@ -258,14 +280,9 @@ describe('ChatScreen', () => {
         statusMessage: 'Reconnecting...',
       };
       
-      (useChatStore as any).mockImplementation((selector?: any) => {
-        if (selector) {
-          return selector(storeWithStatus);
-        }
-        return storeWithStatus;
-      });
+      mockStoreState(storeWithStatus);
       
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       expect(screen.getByTestId('status-message')).toHaveTextContent('Reconnecting...');
     });
@@ -273,7 +290,7 @@ describe('ChatScreen', () => {
 
   describe('User interactions', () => {
     it('calls sendMessage when send button pressed', () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       fireEvent.press(screen.getByTestId('send-button'));
       
@@ -281,7 +298,7 @@ describe('ChatScreen', () => {
     });
 
     it('calls stopGeneration when stop button pressed', () => {
-      render(<ChatScreen navigation={mockNavigation as any} route={{} as any} />);
+      renderChatScreen();
       
       fireEvent.press(screen.getByTestId('stop-button'));
       
@@ -290,7 +307,7 @@ describe('ChatScreen', () => {
   });
 
   describe('Different status states', () => {
-    const statuses = [
+    const statuses: ChatState['status'][] = [
       'disconnected',
       'connecting',
       'connected',
@@ -310,16 +327,9 @@ describe('ChatScreen', () => {
           status,
         };
         
-        (useChatStore as any).mockImplementation((selector?: any) => {
-          if (selector) {
-            return selector(storeWithStatus);
-          }
-          return storeWithStatus;
-        });
+        mockStoreState(storeWithStatus);
         
-        const { UNSAFE_root } = render(
-          <ChatScreen navigation={mockNavigation as any} route={{} as any} />
-        );
+        const { UNSAFE_root } = renderChatScreen();
         
         expect(UNSAFE_root).toBeTruthy();
       });

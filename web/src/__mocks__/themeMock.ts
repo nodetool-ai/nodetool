@@ -1,5 +1,178 @@
 import { createTheme } from "@mui/material/styles";
 
+/**
+ * `createTheme` under Jest derives none of what MUI reads in CSS-variables mode
+ * — the `*Channel` strings, the per-component palette slots — so the mock bolts
+ * it on. Typing that surface makes a typo in a mock key a build error instead of
+ * a component rendering `undefined` where a color belongs.
+ */
+
+/** A palette color slot plus the channel strings `alpha()` reads off it. */
+interface MockPaletteColor {
+  main: string;
+  dark?: string;
+  light?: string;
+  mainChannel?: string;
+  darkChannel?: string;
+  lightChannel?: string;
+  contrastText?: string;
+  contrastTextChannel?: string;
+}
+
+interface MockLinearProgressBg {
+  primaryBg: string;
+  secondaryBg: string;
+  errorBg: string;
+  infoBg: string;
+  successBg: string;
+  warningBg: string;
+  inheritBg: string;
+}
+
+interface MockVarsPalette {
+  grey: Record<string, string>;
+  primary: MockPaletteColor;
+  secondary: MockPaletteColor;
+  info: MockPaletteColor;
+  error: MockPaletteColor;
+  warning: MockPaletteColor;
+  success: MockPaletteColor;
+  divider: string;
+  text: {
+    primary: string;
+    secondary: string;
+    disabled: string;
+    primaryChannel?: string;
+    secondaryChannel?: string;
+    disabledChannel?: string;
+  };
+  background: { default: string; paper: string };
+  action: {
+    hover: string;
+    selected: string;
+    disabled: string;
+    disabledBackground: string;
+    active: string;
+    hoverOpacity?: number;
+    selectedOpacity?: number;
+    disabledOpacity?: number;
+    focusOpacity?: number;
+    activatedOpacity?: number;
+  };
+  Paper: { paper: string };
+  c_link: string;
+  c_link_visited: string;
+  common: {
+    white: string;
+    black: string;
+    onBackground?: string;
+    onBackgroundChannel?: string;
+    background?: string;
+    backgroundChannel?: string;
+  };
+  primaryChannel: string;
+  secondaryChannel: string;
+  infoChannel: string;
+  errorChannel: string;
+  warningChannel: string;
+  successChannel: string;
+  greyChannel: string;
+  textChannel: string;
+  dividerChannel: string;
+  backgroundDefaultChannel: string;
+  backgroundPaperChannel: string;
+  Alert: Record<string, string>;
+  glass: { blur: string; backgroundDialog: string };
+  Button: { inheritContainedBg: string; inheritContainedHoverBg: string };
+  /** Everything below is assigned after the literal is built. */
+  Switch?: { defaultColor: string };
+  LinearProgress?: MockLinearProgressBg;
+  ButtonGroup?: { inheritContainedBg: string; inheritContainedHoverBg: string };
+  FilledInput?: { bg: string; hoverBg: string; disabledBg: string };
+  TableCell?: { border: string };
+  Tooltip?: { bg: string };
+  OutlinedInput?: { border: string; hoverBorder: string };
+  Slider?: Record<string, string>;
+  Chip?: {
+    defaultAvatarColor: string;
+    defaultIconColor: string;
+    defaultBorder: string;
+  };
+}
+
+interface MockZIndex {
+  mobileStepper: number;
+  fab: number;
+  speedDial: number;
+  appBar: number;
+  drawer: number;
+  modal: number;
+  snackbar: number;
+  tooltip: number;
+  behind: number;
+  base: number;
+  commandMenu: number;
+  popover: number;
+  popover2: number;
+  autocomplete: number;
+  floating: number;
+  highest: number;
+}
+
+interface MockRounded {
+  xs: string;
+  sm: string;
+  md: string;
+  lg: string;
+  xl: string;
+  xxl: string;
+  pill: string;
+  circle: string;
+  dialog: string;
+  node: string;
+  buttonSmall: string;
+  buttonLarge: string;
+}
+
+interface MockThemeVars {
+  palette: MockVarsPalette;
+  spacing: (factor: number) => string;
+  shadows: string[];
+  /** Assigned after the literal is built. */
+  tooltip?: Record<string, string>;
+  zIndex?: MockZIndex;
+  avatar?: { defaultColor: string; defaultAvatarColor: string };
+  chip?: { defaultColor: string };
+  Switch?: { defaultColor: string };
+  opacity?: {
+    inputPlaceholder: number;
+    inputUnderline: number;
+    switchTrackDisabled: number;
+    switchTrack: number;
+  };
+  shape?: { borderRadius: number };
+  rounded?: MockRounded;
+}
+
+/** The mock as this file assembles it, before it is handed out as a theme. */
+interface MockThemeDraft {
+  palette: {
+    LinearProgress: MockLinearProgressBg;
+    Switch?: { defaultColor: string };
+  };
+  vars: MockThemeVars;
+  tooltip: Record<string, string>;
+  zIndex: MockZIndex;
+  avatar: { defaultColor: string; defaultAvatarColor: string };
+  chip: { defaultColor: string };
+  Switch: { defaultColor: string };
+  alpha: (color: string, opacity: number) => string;
+  getColorSchemeSelector: (scheme: string) => string;
+  components: Record<string, { styleOverrides: Record<string, object> }>;
+  shape: { borderRadius: number };
+  rounded: MockRounded;
+}
+
 // Create a simple mock theme for testing
 const mockTheme = createTheme({
   palette: {
@@ -14,17 +187,6 @@ const mockTheme = createTheme({
     text: {
       primary: "#fff"
     },
-    // MUI derives these track colors when a real palette is built; the mock
-    // declares them so LinearProgress-based primitives render under Jest.
-    LinearProgress: {
-      primaryBg: "#3a5a72",
-      secondaryBg: "#3a3a3a",
-      errorBg: "#5a3a3a",
-      infoBg: "#3a4a5a",
-      successBg: "#3a5a3a",
-      warningBg: "#5a4a3a",
-      inheritBg: "#444444"
-    },
     // Add the custom palette properties
     c_hl1: "#77b4e6",
     c_white: "#FCFCFC",
@@ -34,7 +196,7 @@ const mockTheme = createTheme({
     c_gray4: "#959595",
     c_gray5: "#BDBDBD",
     c_gray6: "#D9D9D9"
-  } as any, // Use 'as any' to bypass TypeScript checking for custom properties
+  },
   fontSizeGiant: "22px",
   fontSizeBig: "18px",
   fontSizeNormal: "15px",
@@ -54,8 +216,24 @@ const mockTheme = createTheme({
   }
 });
 
+// The one seam where the mock stops being a MUI `Theme`; every mutation below
+// is checked against `MockThemeDraft`.
+const draft = mockTheme as unknown as MockThemeDraft;
+
+// MUI derives these track colors when a real palette is built; the mock
+// declares them so LinearProgress-based primitives render under Jest.
+draft.palette.LinearProgress = {
+  primaryBg: "#3a5a72",
+  secondaryBg: "#3a3a3a",
+  errorBg: "#5a3a3a",
+  infoBg: "#3a4a5a",
+  successBg: "#3a5a3a",
+  warningBg: "#5a4a3a",
+  inheritBg: "#444444"
+};
+
 // Add vars property directly to the theme object
-(mockTheme as any).vars = {
+draft.vars = {
   palette: {
     grey: {
       0: "#000000",
@@ -163,7 +341,6 @@ const mockTheme = createTheme({
       warningTextColor: "#ff9800"
     },
     // Add glass effect for ResultOverlay component
-    // Add glass effect for ResultOverlay component
     glass: {
       blur: "blur(12px)",
       backgroundDialog: "rgba(0, 0, 0, 0.5)"
@@ -189,11 +366,11 @@ const mockTheme = createTheme({
 };
 
 // Add tooltip property to theme
-(mockTheme as any).tooltip = {};
-(mockTheme as any).vars.tooltip = {};
+draft.tooltip = {};
+draft.vars.tooltip = {};
 
 // Add zIndex for MUI components plus Nodetool's custom scale
-const zIndexScale = {
+const zIndexScale: MockZIndex = {
   // MUI
   mobileStepper: 1000,
   fab: 1050,
@@ -213,49 +390,49 @@ const zIndexScale = {
   floating: 10003,
   highest: 100000
 };
-(mockTheme as any).zIndex = { ...zIndexScale };
-(mockTheme as any).vars.zIndex = { ...zIndexScale };
+draft.zIndex = { ...zIndexScale };
+draft.vars.zIndex = { ...zIndexScale };
 
 // Add avatar properties for MUI Chip component
-(mockTheme as any).vars.avatar = {
+draft.vars.avatar = {
   defaultColor: "#9e9e9e",
   defaultAvatarColor: "#9e9e9e"
 };
-(mockTheme as any).avatar = {
+draft.avatar = {
   defaultColor: "#9e9e9e",
   defaultAvatarColor: "#9e9e9e"
 };
 
 // Add chip properties for MUI Chip component
-(mockTheme as any).vars.chip = {
+draft.vars.chip = {
   defaultColor: "#616161"
 };
-(mockTheme as any).chip = {
+draft.chip = {
   defaultColor: "#616161"
 };
 
 // Add Switch properties for MUI Switch component
-(mockTheme as any).vars.Switch = {
+draft.vars.Switch = {
   defaultColor: "#9e9e9e"
 };
-(mockTheme as any).Switch = {
+draft.Switch = {
   defaultColor: "#9e9e9e"
 };
-(mockTheme as any).vars.palette.Switch = {
+draft.vars.palette.Switch = {
   defaultColor: "#9e9e9e"
 };
-(mockTheme as any).palette.Switch = {
+draft.palette.Switch = {
   defaultColor: "#9e9e9e"
 };
 
 // LinearProgress track colors, which MUI reads off `vars.palette` in CSS
 // variables mode.
-(mockTheme as any).vars.palette.LinearProgress = {
-  ...(mockTheme as any).palette.LinearProgress
+draft.vars.palette.LinearProgress = {
+  ...draft.palette.LinearProgress
 };
 
 // Add theme.alpha() method for MUI v7 CSS variables mode
-(mockTheme as any).alpha = (color: string, opacity: number) => {
+draft.alpha = (color: string, opacity: number) => {
   // If color already has rgba, return as-is with adjusted alpha
   if (color && color.startsWith("rgba")) {return color;}
   // For CSS var references or hex colors, return rgba fallback
@@ -263,51 +440,51 @@ const zIndexScale = {
 };
 
 // Add theme.getColorSchemeSelector() for MUI v7 CSS variables mode
-(mockTheme as any).getColorSchemeSelector = (scheme: string) => `&[data-color-scheme="${scheme}"]`;
+draft.getColorSchemeSelector = (scheme: string) => `&[data-color-scheme="${scheme}"]`;
 
 // Add color channels for MUI v7 alpha() function used by ButtonGroup, OutlinedInput, etc.
-(mockTheme as any).vars.palette.ButtonGroup = {
+draft.vars.palette.ButtonGroup = {
   inheritContainedBg: "rgba(255, 255, 255, 0.08)",
   inheritContainedHoverBg: "rgba(255, 255, 255, 0.12)",
 };
-(mockTheme as any).vars.palette.common.onBackground = "#ffffff";
-(mockTheme as any).vars.palette.common.onBackgroundChannel = "255 255 255";
-(mockTheme as any).vars.palette.common.background = "#000000";
-(mockTheme as any).vars.palette.common.backgroundChannel = "0 0 0";
-(mockTheme as any).vars.palette.primary.mainChannel = "119 180 230";
-(mockTheme as any).vars.palette.primary.darkChannel = "90 154 206";
-(mockTheme as any).vars.palette.primary.lightChannel = "156 204 232";
-(mockTheme as any).vars.palette.primary.contrastText = "#000000";
-(mockTheme as any).vars.palette.primary.contrastTextChannel = "0 0 0";
-(mockTheme as any).vars.palette.secondary.mainChannel = "156 39 176";
-(mockTheme as any).vars.palette.error.mainChannel = "244 67 54";
-(mockTheme as any).vars.palette.warning.mainChannel = "255 152 0";
-(mockTheme as any).vars.palette.info.mainChannel = "33 150 243";
-(mockTheme as any).vars.palette.success.mainChannel = "76 175 80";
-(mockTheme as any).vars.palette.text.primaryChannel = "255 255 255";
-(mockTheme as any).vars.palette.text.secondaryChannel = "189 189 189";
-(mockTheme as any).vars.palette.text.disabledChannel = "158 158 158";
-(mockTheme as any).vars.palette.action.hoverOpacity = 0.08;
-(mockTheme as any).vars.palette.action.selectedOpacity = 0.16;
-(mockTheme as any).vars.palette.action.disabledOpacity = 0.38;
-(mockTheme as any).vars.palette.action.focusOpacity = 0.12;
-(mockTheme as any).vars.palette.action.activatedOpacity = 0.12;
-(mockTheme as any).vars.palette.FilledInput = {
+draft.vars.palette.common.onBackground = "#ffffff";
+draft.vars.palette.common.onBackgroundChannel = "255 255 255";
+draft.vars.palette.common.background = "#000000";
+draft.vars.palette.common.backgroundChannel = "0 0 0";
+draft.vars.palette.primary.mainChannel = "119 180 230";
+draft.vars.palette.primary.darkChannel = "90 154 206";
+draft.vars.palette.primary.lightChannel = "156 204 232";
+draft.vars.palette.primary.contrastText = "#000000";
+draft.vars.palette.primary.contrastTextChannel = "0 0 0";
+draft.vars.palette.secondary.mainChannel = "156 39 176";
+draft.vars.palette.error.mainChannel = "244 67 54";
+draft.vars.palette.warning.mainChannel = "255 152 0";
+draft.vars.palette.info.mainChannel = "33 150 243";
+draft.vars.palette.success.mainChannel = "76 175 80";
+draft.vars.palette.text.primaryChannel = "255 255 255";
+draft.vars.palette.text.secondaryChannel = "189 189 189";
+draft.vars.palette.text.disabledChannel = "158 158 158";
+draft.vars.palette.action.hoverOpacity = 0.08;
+draft.vars.palette.action.selectedOpacity = 0.16;
+draft.vars.palette.action.disabledOpacity = 0.38;
+draft.vars.palette.action.focusOpacity = 0.12;
+draft.vars.palette.action.activatedOpacity = 0.12;
+draft.vars.palette.FilledInput = {
   bg: "rgba(255, 255, 255, 0.09)",
   hoverBg: "rgba(255, 255, 255, 0.13)",
   disabledBg: "rgba(255, 255, 255, 0.12)",
 };
-(mockTheme as any).vars.palette.TableCell = {
+draft.vars.palette.TableCell = {
   border: "rgba(81, 81, 81, 1)",
 };
-(mockTheme as any).vars.palette.Tooltip = {
+draft.vars.palette.Tooltip = {
   bg: "rgba(97, 97, 97, 0.92)",
 };
-(mockTheme as any).vars.palette.OutlinedInput = {
+draft.vars.palette.OutlinedInput = {
   border: "rgba(255, 255, 255, 0.23)",
   hoverBorder: "#ffffff",
 };
-(mockTheme as any).vars.palette.Slider = {
+draft.vars.palette.Slider = {
   primaryTrack: "rgba(119, 180, 230, 0.62)",
   secondaryTrack: "rgba(156, 39, 176, 0.62)",
   errorTrack: "rgba(244, 67, 54, 0.62)",
@@ -317,14 +494,14 @@ const zIndexScale = {
 };
 
 // Add Chip palette properties for MUI Chip component (theme.vars.palette.Chip)
-(mockTheme as any).vars.palette.Chip = {
+draft.vars.palette.Chip = {
   defaultAvatarColor: "#9e9e9e",
   defaultIconColor: "#9e9e9e",
   defaultBorder: "#616161",
 };
 
 // Add opacity vars for MUI InputBase component
-(mockTheme as any).vars.opacity = {
+draft.vars.opacity = {
   inputPlaceholder: 0.42,
   inputUnderline: 0.42,
   switchTrackDisabled: 0.12,
@@ -332,8 +509,8 @@ const zIndexScale = {
 };
 
 // Ensure components overrides exist for MUI that reference theme.components
-(mockTheme as any).components = {
-  ...((mockTheme as any).components || {}),
+draft.components = {
+  ...(draft.components || {}),
   MuiTooltip: {
     styleOverrides: {
       tooltip: {}
@@ -349,16 +526,16 @@ const zIndexScale = {
 };
 
 // Ensure theme shape matches MUI v7 expectations without forcing internal flags
-(mockTheme as any).shape = {
+draft.shape = {
   borderRadius: 4
 };
-(mockTheme as any).vars.shape = {
+draft.vars.shape = {
   borderRadius: 4
 };
 
 // Mirror the `rounded` token set from ThemeNodetool so components that read
 // `theme.rounded.*` work under test.
-const roundedTokens = {
+const roundedTokens: MockRounded = {
   xs: "2px",
   sm: "4px",
   md: "6px",
@@ -372,7 +549,7 @@ const roundedTokens = {
   buttonSmall: "4px",
   buttonLarge: "6px"
 };
-(mockTheme as any).rounded = roundedTokens;
-(mockTheme as any).vars.rounded = roundedTokens;
+draft.rounded = roundedTokens;
+draft.vars.rounded = roundedTokens;
 
 export default mockTheme;
