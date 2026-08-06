@@ -223,8 +223,9 @@ export function getSketchAgentHandler(documentId: string): SketchAgentHandler {
     throw new Error(
       `No image document "${documentId}" is open. ` +
         (open.length > 0
-          ? `Open documents: ${open.join(", ")}.`
-          : "No image documents are currently open.")
+          ? `Open documents: ${open.join(", ")}. `
+          : "No image documents are currently open. ") +
+        'Call ui_open_document with type "sketch" to open it.'
     );
   }
   return handler;

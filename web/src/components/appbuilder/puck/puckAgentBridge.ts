@@ -112,8 +112,9 @@ export function getPuckAgentHandler(applicationId: string): PuckAgentHandler {
     throw new Error(
       `No app builder is open for application "${applicationId}". ` +
         (open.length > 0
-          ? `Open app builders: ${open.join(", ")}.`
-          : "No app builders are currently open.")
+          ? `Open app builders: ${open.join(", ")}. `
+          : "No app builders are currently open. ") +
+        'Call ui_open_document with type "app" to open it.'
     );
   }
   return handler;
