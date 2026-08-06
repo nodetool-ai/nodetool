@@ -32,13 +32,15 @@ const PointerIcon: React.FC = () => (
   </svg>
 );
 
-const buttonStyles = (theme: Theme, active: boolean) =>
+const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    height: 24,
-    padding: theme.spacing(0, 3, 0, 2),
+    height: compact ? 28 : 24,
+    minWidth: compact ? 28 : undefined,
+    padding: compact ? 0 : theme.spacing(0, 3, 0, 2),
     background: active ? theme.vars.palette.action.selected : "transparent",
     border: `1px solid ${active ? theme.vars.palette.divider : "transparent"}`,
     color: active
@@ -63,7 +65,7 @@ const buttonStyles = (theme: Theme, active: boolean) =>
       borderColor: theme.vars.palette.primary.main
     },
     "& svg": {
-      fontSize: 14
+      fontSize: compact ? 16 : 14
     }
   });
 
@@ -71,6 +73,7 @@ interface ToolButtonProps {
   label: string;
   shortcut: string;
   active: boolean;
+  compact: boolean;
   onClick: () => void;
   children: React.ReactNode;
 }
@@ -79,6 +82,7 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   label,
   shortcut,
   active,
+  compact,
   onClick,
   children
 }) => {
@@ -87,19 +91,24 @@ const ToolButton: React.FC<ToolButtonProps> = ({
     <Tooltip title={`${label} (${shortcut})`}>
       <button
         type="button"
-        css={buttonStyles(theme, active)}
+        css={buttonStyles(theme, active, compact)}
         onClick={onClick}
         aria-label={label}
         aria-pressed={active}
       >
         {children}
-        <span>{label}</span>
+        {!compact && <span>{label}</span>}
       </button>
     </Tooltip>
   );
 };
 
-export const ToolToggle: React.FC = memo(() => {
+export interface ToolToggleProps {
+  /** Phone toolbar: icon-only buttons on a 28px touch target. */
+  compact?: boolean;
+}
+
+export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) => {
   const activeTool = useTimelineUIStore((s) => s.activeTool);
   const setActiveTool = useTimelineUIStore((s) => s.setActiveTool);
   return (
@@ -108,6 +117,7 @@ export const ToolToggle: React.FC = memo(() => {
         label="Select"
         shortcut="V"
         active={activeTool === "select"}
+        compact={compact}
         onClick={() => setActiveTool("select")}
       >
         <PointerIcon />
@@ -116,6 +126,7 @@ export const ToolToggle: React.FC = memo(() => {
         label="Cut"
         shortcut="C"
         active={activeTool === "cut"}
+        compact={compact}
         onClick={() => setActiveTool("cut")}
       >
         <ContentCutOutlinedIcon />

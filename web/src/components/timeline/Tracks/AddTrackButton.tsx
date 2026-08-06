@@ -22,13 +22,15 @@ import type { TimelineTrack } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { Popover, MenuItemPrimitive, MOTION, BORDER_RADIUS } from "../../ui_primitives";
 
-const buttonStyles = (theme: Theme) =>
+const buttonStyles = (theme: Theme, compact: boolean) =>
   css({
     display: "inline-flex",
     alignItems: "center",
+    justifyContent: "center",
     gap: 6,
-    height: 24,
-    padding: theme.spacing(0, 3, 0, 2),
+    height: compact ? 28 : 24,
+    minWidth: compact ? 28 : undefined,
+    padding: compact ? 0 : theme.spacing(0, 3, 0, 2),
     background: "transparent",
     border: "1px solid transparent",
     color: theme.vars.palette.text.secondary,
@@ -45,7 +47,7 @@ const buttonStyles = (theme: Theme) =>
       borderColor: theme.vars.palette.divider
     },
     "& svg": {
-      fontSize: 14
+      fontSize: compact ? 18 : 14
     }
   });
 
@@ -78,7 +80,12 @@ const TRACK_TYPES: TrackTypeOption[] = [
   }
 ];
 
-export const AddTrackButton: React.FC = memo(() => {
+export interface AddTrackButtonProps {
+  /** Phone toolbar: drop the "Track" label, keep the icon and a 28px target. */
+  compact?: boolean;
+}
+
+export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = false }) => {
   const theme = useTheme();
   const addTrack = useTimelineStore((s) => s.addTrack);
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
@@ -103,14 +110,15 @@ export const AddTrackButton: React.FC = memo(() => {
     <>
       <button
         type="button"
-        css={buttonStyles(theme)}
+        css={buttonStyles(theme, compact)}
         onClick={handleOpen}
         aria-label="Add track"
+        title="Add track"
         aria-haspopup="menu"
         data-testid="add-track-button"
       >
         <AddIcon />
-        <span>Track</span>
+        {!compact && <span>Track</span>}
       </button>
       <Popover
         open={Boolean(anchorEl)}

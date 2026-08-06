@@ -11,6 +11,10 @@
  * chips, then the primary Generate action. The model / duration / resolution /
  * aspect controls are the shared `MediaControlChip` + option menus, so options
  * track the selected model's manifest.
+ *
+ * On phones (`compact`) that one row is 600px of content in 390px of viewport,
+ * so it wraps into two: prompt + Generate on top, the setting chips below in a
+ * horizontally scrollable rail.
  */
 
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -28,10 +32,12 @@ import { useTimelineDirectGenJob } from "../../hooks/timeline/useTimelineDirectG
 import { useLastDirectGenModel } from "../../hooks/timeline/useLastDirectGenModel";
 import {
   EditorButton,
+  FlexColumn,
   FlexRow,
   LoadingSpinner,
   TextInput,
-  Toast
+  Toast,
+  SPACING
 } from "../ui_primitives";
 import MediaControlChip from "../chat/composer/MediaControlChip";
 import MediaOptionMenu from "../chat/composer/MediaOptionMenu";
@@ -66,7 +72,12 @@ function pickOrCreateVideoTrack(): string | undefined {
   return video.id;
 }
 
-export const TopBarPrompt: React.FC = memo(() => {
+export interface TopBarPromptProps {
+  /** Phone layout: prompt + Generate on one row, setting chips on a second. */
+  compact?: boolean;
+}
+
+export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false }) => {
   const theme = useTheme();
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -192,44 +203,71 @@ export const TopBarPrompt: React.FC = memo(() => {
     setVideoModelOpen(false);
   }, []);
 
-  return (
-    <>
-      <FlexRow
-        gap={1}
-        align="center"
-        data-testid="topbar-prompt"
-        sx={{ flex: 1, minWidth: 0 }}
-      >
-        <TextInput
-          value={prompt}
-          onChange={(e) => setPrompt(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Generate a video at the playhead…"
-          compact
-          fullWidth
-          disabled={busy}
-          inputProps={{
-            "aria-label": "Quick text-to-video prompt",
-            "data-testid": "topbar-prompt-input"
-          }}
-          slotProps={{
-            input: {
-              startAdornment: (
-                <AutoAwesomeIcon
-                  fontSize="small"
-                  sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
-                />
-              )
-            }
-          }}
-          sx={{
-            flex: 1,
-            minWidth: 160,
-            "& .MuiOutlinedInput-root": { height: 34 }
-          }}
-        />
+  const promptField = (
+    <TextInput
+      value={prompt}
+      onChange={(e) => setPrompt(e.target.value)}
+      onKeyDown={handleKeyDown}
+      placeholder={
+        compact ? "Generate a video…" : "Generate a video at the playhead…"
+      }
+      compact
+      fullWidth
+      disabled={busy}
+      inputProps={{
+        "aria-label": "Quick text-to-video prompt",
+        "data-testid": "topbar-prompt-input"
+      }}
+      slotProps={{
+        input: {
+          startAdornment: (
+            <AutoAwesomeIcon
+              fontSize="small"
+              sx={{ mr: 0.5, color: theme.vars.palette.primary.main }}
+            />
+          )
+        }
+      }}
+      sx={{
+        flex: 1,
+        minWidth: compact ? 0 : 160,
+        "& .MuiOutlinedInput-root": { height: 34 }
+      }}
+    />
+  );
 
-        <MediaControlChip
+  const generateButton = (
+    <EditorButton
+      variant="contained"
+      size="small"
+      disabled={!canSubmit}
+      onClick={() => void handleSubmit()}
+      startIcon={
+        busy ? (
+          <LoadingSpinner inline size={14} color="inherit" />
+        ) : (
+          <AutoAwesomeIcon fontSize="small" />
+        )
+      }
+      data-testid="topbar-generate"
+      // Icon-only on phones: the label costs ~70px the prompt needs, and the
+      // sparkle plus the field's placeholder already say what it does.
+      aria-label="Generate video"
+      sx={{
+        flexShrink: 0,
+        height: 34,
+        ...(compact
+          ? { minWidth: 44, px: 1, "& .MuiButton-startIcon": { m: 0 } }
+          : null)
+      }}
+    >
+      {compact ? null : "Generate"}
+    </EditorButton>
+  );
+
+  const settingChips = (
+    <>
+      <MediaControlChip
           ref={videoModelAnchorRef}
           icon={<MovieIcon fontSize="small" />}
           label={selectedModel?.name || "Select Model"}
@@ -295,27 +333,57 @@ export const TopBarPrompt: React.FC = memo(() => {
           onClose={() => setAspectAnchor(null)}
           value={aspect}
           options={aspectOptions}
-          onChange={(v) => setAspect(v)}
-        />
+        onChange={(v) => setAspect(v)}
+      />
+    </>
+  );
 
-        <EditorButton
-          variant="contained"
-          size="small"
-          disabled={!canSubmit}
-          onClick={() => void handleSubmit()}
-          startIcon={
-            busy ? (
-              <LoadingSpinner inline size={14} color="inherit" />
-            ) : (
-              <AutoAwesomeIcon fontSize="small" />
-            )
-          }
-          data-testid="topbar-generate"
-          sx={{ flexShrink: 0, height: 34 }}
+  return (
+    <>
+      {compact ? (
+        <FlexColumn
+          gap={SPACING.xs}
+          data-testid="topbar-prompt"
+          sx={{ flex: 1, minWidth: 0 }}
         >
-          Generate
-        </EditorButton>
-      </FlexRow>
+          <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
+            {promptField}
+            {generateButton}
+          </FlexRow>
+          {/* Chip rail — scrolls horizontally rather than wrapping, so the bar
+              keeps a predictable two-row height whatever the model name is. */}
+          <FlexRow
+            gap={SPACING.sm}
+            align="center"
+            sx={{
+              minWidth: 0,
+              overflowX: "auto",
+              overflowY: "hidden",
+              pb: SPACING.micro,
+              scrollbarWidth: "none",
+              "&::-webkit-scrollbar": { display: "none" },
+              // The chips set `flexShrink: 1` themselves when truncating; in a
+              // scrolling rail that squeezes the model name down to "Selec…"
+              // instead of letting the rail scroll. Element selector so this
+              // outranks the chip's own single-class rule.
+              "& > button": { flexShrink: 0 }
+            }}
+          >
+            {settingChips}
+          </FlexRow>
+        </FlexColumn>
+      ) : (
+        <FlexRow
+          gap={1}
+          align="center"
+          data-testid="topbar-prompt"
+          sx={{ flex: 1, minWidth: 0 }}
+        >
+          {promptField}
+          {settingChips}
+          {generateButton}
+        </FlexRow>
+      )}
       <Toast
         open={error !== null}
         message={error ?? ""}

@@ -24,7 +24,7 @@ import {
   isTranscriptClip,
   type TranscriptSegment
 } from "../../../stores/timeline/transcriptOps";
-import { TRACK_HEADER_WIDTH_PX } from "./TrackHeader";
+import { trackHeaderWidthCss } from "./TrackHeader";
 
 export const SCRIPT_LANE_HEIGHT_PX = 46;
 
@@ -98,7 +98,7 @@ const PauseChip = styled("div")(({ theme }) => ({
 }));
 
 const HeaderCell = styled("div")(({ theme }) => ({
-  width: TRACK_HEADER_WIDTH_PX,
+  width: trackHeaderWidthCss,
   height: SCRIPT_LANE_HEIGHT_PX,
   flexShrink: 0,
   display: "flex",

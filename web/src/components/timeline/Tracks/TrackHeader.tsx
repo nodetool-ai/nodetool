@@ -46,6 +46,20 @@ import ConfirmDialog from "../../dialogs/ConfirmDialog";
 
 export const TRACK_HEADER_WIDTH_PX = 192;
 /**
+ * Phone header width. 192px is half a 390px viewport — the lanes get less room
+ * than the labels. 132px is the narrowest that still fits the full control row
+ * (five 24px buttons + padding) once the reorder grip is dropped.
+ */
+export const MOBILE_TRACK_HEADER_WIDTH_PX = 132;
+/**
+ * The header width is read by four separate style blocks across three files
+ * (this header, the script lane header, the TRACKS label, the lane offsets).
+ * TracksRegion sets this custom property on its container so all of them
+ * follow one value without threading a prop through every layer.
+ */
+export const TRACK_HEADER_WIDTH_VAR = "--timeline-track-header-width";
+export const trackHeaderWidthCss = `var(${TRACK_HEADER_WIDTH_VAR}, ${TRACK_HEADER_WIDTH_PX}px)`;
+/**
  * Private drag MIME for track-reorder drags. Distinct from the asset-drop
  * types ("asset" / "selectedAssetIds") so the lane/empty-area asset-drop
  * handlers never react to a track being reordered.
@@ -56,16 +70,18 @@ const MAX_TRACK_HEIGHT_PX = 300;
 const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
 
-const headerStyles = (theme: Theme, heightPx: number) =>
+const headerStyles = (theme: Theme, heightPx: number, compact: boolean) =>
   css({
     position: "relative",
-    width: TRACK_HEADER_WIDTH_PX,
+    width: trackHeaderWidthCss,
     height: heightPx,
     flexShrink: 0,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
-    padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
+    padding: compact
+      ? `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.sm)}`
+      : `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.lg)}`,
     backgroundColor: theme.vars.palette.background.default,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     overflow: "hidden",
@@ -184,13 +200,27 @@ const indexChipStyles = (theme: Theme) =>
     backgroundColor: "transparent"
   });
 
-const controlsRowStyles = css({
-  display: "flex",
-  flexDirection: "row",
-  alignItems: "center",
-  gap: getSpacingPx(SPACING.micro),
-  marginLeft: `-${getSpacingPx(SPACING.xs)}` // align icon edges flush with the type glyph
-});
+const controlsRowStyles = (compact: boolean) =>
+  css({
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: getSpacingPx(compact ? SPACING.none : SPACING.micro),
+    // align icon edges flush with the type glyph
+    marginLeft: compact ? 0 : `-${getSpacingPx(SPACING.xs)}`,
+    // An audio track carries six controls (visible, lock, mute, solo, fx,
+    // delete), which is more than a 132px header fits. Scroll the row rather
+    // than clip it — the header's `overflow: hidden` would otherwise drop
+    // delete and the effects chain with no way to reach them on a phone.
+    ...(compact
+      ? {
+          overflowX: "auto" as const,
+          scrollbarWidth: "none" as const,
+          "&::-webkit-scrollbar": { display: "none" },
+          "& > *": { flexShrink: 0 }
+        }
+      : null)
+  });
 
 const iconButtonStyles = (theme: Theme, active = true) =>
   css({
@@ -241,9 +271,16 @@ export interface TrackHeaderProps {
   track: TimelineTrack;
   /** Pre-computed 1-based index within the track's type group. */
   typedIndex: number;
+  /**
+   * Phone layout: tighter padding, and the type glyph and reorder grip give up
+   * their space to the name. The grip is no loss — it drives HTML5 drag-and-
+   * drop, which doesn't fire from touch — and the index chip (V1 / A1) already
+   * carries the type the glyph was showing.
+   */
+  compact?: boolean;
 }
 
-export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex }) => {
+export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex, compact = false }) => {
   const theme = useTheme();
 
   const setTrackVisible = useTimelineStore((s) => s.setTrackVisible);
@@ -446,7 +483,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
     <>
     <div
       ref={headerRef}
-      css={headerStyles(theme, heightPx)}
+      css={headerStyles(theme, heightPx, compact)}
       data-testid={`track-header-${track.id}`}
       onDragOver={handleDragOver}
       onDrop={handleDrop}
@@ -460,26 +497,30 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       )}
       {/* Top row: drag handle · type glyph · name · index chip */}
       <div css={topRowStyles}>
-        <div
-          css={dragHandleStyles(theme)}
-          draggable
-          onDragStart={handleDragStart}
-          onDragEnd={handleDragEnd}
-          aria-label={`Reorder ${track.name}`}
-          role="button"
-          tabIndex={-1}
-          title="Drag to reorder track"
-          data-testid={`track-drag-handle-${track.id}`}
-        >
-          <DragIndicatorIcon />
-        </div>
-        <div
-          css={typeGlyphStyles(theme, accent)}
-          aria-hidden
-          title={meta.label}
-        >
-          <TypeIcon />
-        </div>
+        {!compact && (
+          <>
+            <div
+              css={dragHandleStyles(theme)}
+              draggable
+              onDragStart={handleDragStart}
+              onDragEnd={handleDragEnd}
+              aria-label={`Reorder ${track.name}`}
+              role="button"
+              tabIndex={-1}
+              title="Drag to reorder track"
+              data-testid={`track-drag-handle-${track.id}`}
+            >
+              <DragIndicatorIcon />
+            </div>
+            <div
+              css={typeGlyphStyles(theme, accent)}
+              aria-hidden
+              title={meta.label}
+            >
+              <TypeIcon />
+            </div>
+          </>
+        )}
         <div css={nameWrapStyles}>
           <input
             ref={inputRef}
@@ -504,7 +545,10 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(({ track, typedIndex
       </div>
 
       {/* Controls row */}
-      <div css={controlsRowStyles}>
+      <div
+        css={controlsRowStyles(compact)}
+        className={compact ? "timeline-track-controls" : undefined}
+      >
         <Tooltip title={track.visible ? "Hide track" : "Show track"}>
           <button
             type="button"

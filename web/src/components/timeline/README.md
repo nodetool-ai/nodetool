@@ -4,6 +4,38 @@ The timeline editor (`/timeline/:sequenceId`) is a generation-aware media
 sequencing surface. Tracks hold imported or AI-generated clips; each clip
 remembers how it was made and can be re-generated, versioned, and exported.
 
+## Phone layout
+
+Below the `sm` breakpoint (`useTimelineIsMobile`, matching `MobileClassProvider`
+and the sketch editor) the shell drops to one column:
+
+- **TopBar** wraps into two rows — prompt + Generate above, the model and
+  output chips in a scrolling rail below — and Settings / Save / Save as Asset
+  / Export collapse into one overflow menu.
+- **Preview** takes the full width. Inspector, Assistant, History, and the
+  script transcript move into a bottom sheet opened from the status bar, so
+  preview and tracks — the two you need at once — stay stacked and both usable.
+- **Track headers** narrow to 132px and drop the reorder grip (HTML5 drag
+  doesn't fire from touch) and the type glyph (the V1 / A1 chip already carries
+  the type). The control row scrolls: an audio track has six toggles and the
+  header fits four.
+- **Toolbar** buttons go icon-only on a 44px row.
+
+Touch gestures, since a phone has no right-click, no hover, and no Ctrl+wheel:
+
+| Gesture | Effect |
+| --- | --- |
+| Long press a clip | Clip menu (split, duplicate, lock, replace, delete) |
+| Long press empty lane | Lane menu (add text, add generated clip) |
+| Drag a clip | Move it, across tracks included |
+| Drag a clip edge | Trim (22px hit area, 8px visible grip) |
+| Drag empty lane | Scroll the timeline — marquee select is mouse-only |
+| Two-finger pinch | Zoom, anchored between the fingers |
+| Drag the divider | Resize the tracks panel |
+
+Long press is `useLongPress`, which composes with the existing pointer handlers
+rather than replacing them, so a hold and a drag can share one element.
+
 ## Asset Drag-and-Drop
 
 ### From AssetExplorer → TrackLane (supported)

@@ -43,6 +43,8 @@ import {
   useIsClipSelected
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
+import { useLongPress } from "../../../hooks/timeline/useLongPress";
+import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import useWorkflowRunsStore from "../../../stores/WorkflowRunsStore";
 import { useAssetStore } from "../../../stores/AssetStore";
 import { getAssetUrl } from "../../../utils/assetHelpers";
@@ -90,6 +92,8 @@ function isClipCompatibleWithTrack(
 }
 
 const TRIM_HANDLE_WIDTH_PX = 8;
+/** Hit area for the same grip under a finger; the visible width stays 8px. */
+const TOUCH_TRIM_HANDLE_WIDTH_PX = 22;
 const MIN_CLIP_WIDTH_PX = 4;
 const CLIP_RADIUS_PX = parseFloat(BORDER_RADIUS.md);
 /** Width below which we suppress secondary chrome (duration label). */
@@ -381,7 +385,21 @@ const trimHandleStyles = (edge: "start" | "end", locked: boolean) =>
     "&:hover": {
       backgroundColor: locked ? undefined : "var(--palette-c_overlay_strong)"
     },
-    zIndex: Z_INDEX.base + 2
+    zIndex: Z_INDEX.base + 2,
+    // A fingertip covers far more than 8px. Widen the hit area on touch
+    // without widening the visible grip, via a transparent inset overlay —
+    // otherwise trimming a clip on a phone means repeatedly missing the
+    // handle and dragging the clip instead.
+    "@media (pointer: coarse)": {
+      "&::after": {
+        content: '""',
+        position: "absolute",
+        top: 0,
+        bottom: 0,
+        [edge === "start" ? "left" : "right"]: 0,
+        width: TOUCH_TRIM_HANDLE_WIDTH_PX
+      }
+    }
   });
 
 const statusBadgeStyles = css({
@@ -557,6 +575,20 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
   const dragStartMsRef = useRef(0);
   const isDraggingRef = useRef(false);
 
+  const [contextMenuPos, setContextMenuPos] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
+  // Touch equivalent of right-clicking the clip. Every clip action a phone can
+  // reach — split, duplicate, delete, replace — lives in that menu, and a hold
+  // doesn't produce a `contextmenu` event on touch.
+  const clipLongPress = useLongPress(
+    useCallback((point: LongPressPoint) => {
+      setContextMenuPos({ x: point.clientX, y: point.clientY });
+    }, [])
+  );
+
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
       if (!clip || clip.locked) {
@@ -586,6 +618,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       dragStartXRef.current = e.clientX;
       dragStartMsRef.current = clip.startMs;
       isDraggingRef.current = false;
+      clipLongPress.start(e);
       history.begin();
 
       // Snapshot the snap candidates ONCE at gesture start. The set of clip
@@ -653,6 +686,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       };
 
       const onMove = (ev: PointerEvent) => {
+        clipLongPress.move(ev);
         if (ev.buttons !== 1) return;
         const freshClip = useTimelineStore
           .getState()
@@ -706,6 +740,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       };
 
       const onUpOrCancel = () => {
+        clipLongPress.cancel();
         window.removeEventListener("pointermove", onMove);
         window.removeEventListener("pointerup", onUpOrCancel);
         window.removeEventListener("pointercancel", onUpOrCancel);
@@ -733,6 +768,7 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
     [
       clip,
       activeTool,
+      clipLongPress,
       msPerPx,
       splitClipAtTime,
       clipId,
@@ -741,11 +777,6 @@ export const Clip: React.FC<ClipProps> = memo(({ clipId }) => {
       history
     ]
   );
-
-  const [contextMenuPos, setContextMenuPos] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
 
   const handleContextMenu = useCallback(
     (e: React.MouseEvent) => {

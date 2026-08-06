@@ -65,7 +65,12 @@ import {
   copyClipsToClipboard,
   hasClipboardClips
 } from "../../../stores/timeline/clipboardOps";
-import { TRACK_HEADER_WIDTH_PX } from "./TrackHeader";
+import {
+  MOBILE_TRACK_HEADER_WIDTH_PX,
+  TRACK_HEADER_WIDTH_PX,
+  TRACK_HEADER_WIDTH_VAR,
+  trackHeaderWidthCss
+} from "./TrackHeader";
 import { TrackHeader } from "./TrackHeader";
 import { TrackLane } from "./TrackLane";
 import { TimeRuler } from "./TimeRuler";
@@ -87,6 +92,7 @@ import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import { FlexRow, HelpButton, FONT_SIZE_MONO, FONT_WEIGHT, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useHasScript } from "../../../hooks/timeline/useHasScript";
+import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile";
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -117,24 +123,30 @@ const containerStyles = (theme: Theme) =>
     backgroundColor: theme.vars.palette.background.default
   });
 
-const toolbarStyles = (theme: Theme) =>
+const TOOLBAR_HEIGHT_PX = 36;
+/** Phone toolbar: tall enough for the app-wide 44px touch target. */
+const TOUCH_TOOLBAR_HEIGHT_PX = 44;
+
+const toolbarStyles = (theme: Theme, compact: boolean) =>
   css({
-    height: 36,
+    height: compact ? TOUCH_TOOLBAR_HEIGHT_PX : TOOLBAR_HEIGHT_PX,
     flexShrink: 0,
-    padding: `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)}`,
+    padding: compact
+      ? `0 ${getSpacingPx(SPACING.sm)}`
+      : `0 ${getSpacingPx(SPACING.lg)} 0 ${getSpacingPx(SPACING.md)}`,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     backgroundColor: theme.vars.palette.background.paper
   });
 
-const tracksSectionHeaderStyles = (theme: Theme) =>
+const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
   css({
-    width: TRACK_HEADER_WIDTH_PX,
+    width: trackHeaderWidthCss,
     height: 28,
     flexShrink: 0,
     display: "flex",
     alignItems: "center",
     gap: getSpacingPx(SPACING.sm),
-    padding: `0 ${getSpacingPx(SPACING.lg)}`,
+    padding: `0 ${getSpacingPx(compact ? SPACING.sm : SPACING.lg)}`,
     backgroundColor: theme.vars.palette.background.paper,
     borderBottom: `1px solid ${theme.vars.palette.divider}`,
     color: theme.vars.palette.text.secondary,
@@ -175,6 +187,11 @@ const headerColumnStyles = (theme: Theme) =>
 const scrollableAreaStyles = css({
   flex: "1 1 auto",
   overflowX: "auto",
+  // Panning stays with the browser (it scrolls this element); pinching does
+  // not, so the two-finger gesture below zooms the timeline instead of the
+  // page. Without this the browser claims the pinch and the handler never
+  // sees the second pointer.
+  touchAction: "pan-x pan-y",
   // Vertical scrolling lives here (not on the outer row) so the horizontal
   // scrollbar stays pinned to the bottom of the visible viewport instead of
   // sliding off-screen below a tall track stack. The header column's scrollTop
@@ -199,6 +216,10 @@ export interface TracksRegionProps {
 export const TracksRegion: React.FC<TracksRegionProps> = memo(
   ({ heightPx }) => {
     const theme = useTheme();
+    const isMobile = useTimelineIsMobile();
+    const headerWidthPx = isMobile
+      ? MOBILE_TRACK_HEADER_WIDTH_PX
+      : TRACK_HEADER_WIDTH_PX;
 
     const tracks = useTimelineStore((s) => s.tracks);
     // Content extent for sizing the ruler / scroll width. The stored
@@ -333,7 +354,9 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     );
 
     // Track area height minus toolbar + ruler + bottom scrollbar
-    const TOOLBAR_HEIGHT = 36;
+    const TOOLBAR_HEIGHT = isMobile
+      ? TOUCH_TOOLBAR_HEIGHT_PX
+      : TOOLBAR_HEIGHT_PX;
     const RULER_HEIGHT = 28;
     const lanesHeight = Math.max(
       0,
@@ -461,6 +484,90 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           cancelAnimationFrame(zoomRafIdRef.current);
           zoomRafIdRef.current = null;
         }
+      };
+    }, [uiStoreApi]);
+
+    // Pinch-to-zoom (touch). The desktop route to zoom is Ctrl+wheel, which a
+    // phone has no way to produce; without this the only zoom on a phone is the
+    // status-bar buttons, and trimming to a frame needs a scale you can reach
+    // mid-gesture. Feeds the same setZoom + `zoomAnchorRef` path the wheel
+    // handler uses, so the point between the fingers stays put as the lanes
+    // rescale.
+    useEffect(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+
+      const points = new Map<number, { x: number; y: number }>();
+      let startDistance = 0;
+      let startMsPerPx = 0;
+      let rafId: number | null = null;
+
+      const twoPoints = (): [{ x: number; y: number }, { x: number; y: number }] | null => {
+        if (points.size !== 2) return null;
+        const [a, b] = [...points.values()];
+        return [a, b];
+      };
+
+      const applyPinch = () => {
+        rafId = null;
+        const pair = twoPoints();
+        if (!pair || startDistance === 0) return;
+        const [a, b] = pair;
+        const distance = Math.hypot(a.x - b.x, a.y - b.y);
+        if (distance === 0) return;
+
+        // Fingers apart → smaller msPerPx → zoomed in.
+        const next = Math.min(
+          MAX_MS_PER_PX,
+          Math.max(MIN_MS_PER_PX, startMsPerPx * (startDistance / distance))
+        );
+        const current = uiStoreApi.getState().msPerPx;
+        if (next === current) return;
+
+        const rect = el.getBoundingClientRect();
+        const midPx = (a.x + b.x) / 2 - rect.left;
+        zoomAnchorRef.current = {
+          timeMs: (el.scrollLeft + midPx) * current,
+          cursorPx: midPx
+        };
+        uiStoreApi.getState().setZoom(next);
+      };
+
+      const onPointerDown = (e: PointerEvent) => {
+        if (e.pointerType !== "touch") return;
+        points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (points.size === 2) {
+          const pair = twoPoints();
+          if (!pair) return;
+          startDistance = Math.hypot(pair[0].x - pair[1].x, pair[0].y - pair[1].y);
+          startMsPerPx = uiStoreApi.getState().msPerPx;
+        }
+      };
+
+      const onPointerMove = (e: PointerEvent) => {
+        if (!points.has(e.pointerId)) return;
+        points.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        if (points.size !== 2 || startDistance === 0) return;
+        // A pinch delivers well over one move per frame per finger; batch to
+        // one setZoom per frame so the lanes/clips/ruler re-render once.
+        if (rafId === null) rafId = requestAnimationFrame(applyPinch);
+      };
+
+      const onPointerUp = (e: PointerEvent) => {
+        points.delete(e.pointerId);
+        if (points.size < 2) startDistance = 0;
+      };
+
+      el.addEventListener("pointerdown", onPointerDown);
+      el.addEventListener("pointermove", onPointerMove);
+      el.addEventListener("pointerup", onPointerUp);
+      el.addEventListener("pointercancel", onPointerUp);
+      return () => {
+        el.removeEventListener("pointerdown", onPointerDown);
+        el.removeEventListener("pointermove", onPointerMove);
+        el.removeEventListener("pointerup", onPointerUp);
+        el.removeEventListener("pointercancel", onPointerUp);
+        if (rafId !== null) cancelAnimationFrame(rafId);
       };
     }, [uiStoreApi]);
 
@@ -817,7 +924,12 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     return (
       <div
         css={containerStyles(theme)}
-        style={{ height: heightPx }}
+        style={
+          {
+            height: heightPx,
+            [TRACK_HEADER_WIDTH_VAR]: `${headerWidthPx}px`
+          } as React.CSSProperties
+        }
         data-testid="tracks-region"
         aria-label="Tracks region"
       >
@@ -825,23 +937,27 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <FlexRow
           align="center"
           gap={0.5}
-          css={toolbarStyles(theme)}
+          css={toolbarStyles(theme, isMobile)}
           data-testid="timeline-toolbar"
         >
-          <ToolToggle />
+          <ToolToggle compact={isMobile} />
           <div style={{ flex: "1 1 auto" }} />
-          <ScriptToggleButton />
-          <AddTrackButton />
-          <HelpButton
-            onClick={() => setShortcutsOpen(true)}
-            iconVariant="helpOutline"
-            tooltip="Keyboard shortcuts (?)"
-          />
+          <ScriptToggleButton compact={isMobile} />
+          <AddTrackButton compact={isMobile} />
+          {/* The shortcut sheet documents keyboard bindings — nothing a phone
+              can act on, and the row has no width to spare. */}
+          {!isMobile && (
+            <HelpButton
+              onClick={() => setShortcutsOpen(true)}
+              iconVariant="helpOutline"
+              tooltip="Keyboard shortcuts (?)"
+            />
+          )}
         </FlexRow>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
         <FlexRow align="stretch" fullWidth>
-          <div css={tracksSectionHeaderStyles(theme)}>
+          <div css={tracksSectionHeaderStyles(theme, isMobile)}>
             <span>Tracks</span>
             <span
               css={trackCountChipStyles(theme)}
@@ -879,7 +995,11 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
                 {hasScript && track.id === scriptBeforeTrackId && (
                   <ScriptLaneHeader />
                 )}
-                <TrackHeader track={track} typedIndex={typedIndexMap.get(track.id) ?? 1} />
+                <TrackHeader
+                  track={track}
+                  typedIndex={typedIndexMap.get(track.id) ?? 1}
+                  compact={isMobile}
+                />
                 {expandedFxTrackId === track.id && (
                   <div
                     style={{ height: FX_PANEL_HEIGHT_PX }}
@@ -935,7 +1055,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <TimelineScrollbar
           contentWidthPx={totalWidthPx}
           viewportWidthPx={fxPanelWidth}
-          leftInsetPx={TRACK_HEADER_WIDTH_PX}
+          leftInsetPx={headerWidthPx}
           onScrollTo={scrollToLeft}
         />
 
@@ -949,7 +1069,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             position: "absolute",
             top: TOOLBAR_HEIGHT,
             bottom: 0,
-            left: TRACK_HEADER_WIDTH_PX,
+            left: headerWidthPx,
             right: 0,
             pointerEvents: "none",
             overflow: "hidden"

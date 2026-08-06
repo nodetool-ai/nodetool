@@ -6,9 +6,16 @@
  *   TopBar (48 px)
  *   ─── resizable split ─────────────────────────
  *   FlexRow: PreviewArea (55 %) | InspectorArea (45 %)
- *   ─── horizontal drag handle (mouse + keyboard resizable) ────
+ *   ─── horizontal drag handle (pointer + keyboard resizable) ────
  *   TracksArea (user-resizable, default 240 px)
  *   BottomStatusBar (32 px)
+ *
+ * On phones there is no room for three columns: the transcript and inspector
+ * leave the row entirely and the preview takes the full width, so preview and
+ * tracks — the two surfaces you need simultaneously to edit — stay stacked and
+ * both usable. Inspector / Assistant / History / Script move into a bottom
+ * sheet opened from the status bar, mirroring how mobile video editors slide
+ * property panels over the timeline.
  *
  * Loading: shows LoadingSpinner centred in the preview region.
  * Not-found / error: shows EmptyState in the preview only; route and editor
@@ -30,13 +37,17 @@ import {
   FlexColumn,
   FlexRow,
   LoadingSpinner,
+  MobileBottomSheet,
   ProgressBar,
   TabGroup,
   Text,
+  ToolbarIconButton,
+  BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import SubtitlesOutlinedIcon from "@mui/icons-material/SubtitlesOutlined";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { TopBar } from "./TopBar";
@@ -70,8 +81,11 @@ import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIn
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
+import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
 
 const HANDLE_HEIGHT_PX = 6;
+/** Phone drag handle — 6px is under any reasonable touch target. */
+const TOUCH_HANDLE_HEIGHT_PX = 20;
 const DEFAULT_TRACKS_HEIGHT_PX = 240;
 const MIN_TRACKS_HEIGHT_PX = 80;
 const MAX_TRACKS_HEIGHT_PX = 600;
@@ -115,14 +129,36 @@ const inspectorRegionStyles = (theme: Theme) =>
     justifyContent: "flex-start"
   });
 
-const dragHandleStyles = (theme: Theme) =>
+const dragHandleStyles = (theme: Theme, tall: boolean) =>
   css({
-    height: HANDLE_HEIGHT_PX,
+    height: tall ? TOUCH_HANDLE_HEIGHT_PX : HANDLE_HEIGHT_PX,
     cursor: "ns-resize",
     flexShrink: 0,
     backgroundColor: theme.vars.palette.divider,
     transition: MOTION.background,
     outline: "none",
+    // The handle is a drag target, not a scroll surface: without this a touch
+    // drag scrolls the page instead of resizing (and the pointermove stream
+    // ends in a pointercancel).
+    touchAction: "none",
+    // Grip affordance — a bare 6px line reads as a border, not a control.
+    ...(tall
+      ? {
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          backgroundColor: theme.vars.palette.background.paper,
+          borderTop: `1px solid ${theme.vars.palette.divider}`,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          "&::after": {
+            content: '""',
+            width: 36,
+            height: 3,
+            borderRadius: BORDER_RADIUS.sm,
+            backgroundColor: theme.vars.palette.text.disabled
+          }
+        }
+      : null),
     "&:hover, &.dragging": {
       backgroundColor: theme.vars.palette.primary.main
     },
@@ -156,13 +192,16 @@ const PreviewRegion: React.FC<{
   onCreateNewSequence?: () => void;
   createSequencePending?: boolean;
   createSequenceErrorMessage?: string | null;
+  /** Phone layout: the preview owns the whole row, no inspector beside it. */
+  fullWidth?: boolean;
 }> = memo(({
   isLoading,
   sequenceUnavailable,
   onRetryFetch,
   onCreateNewSequence,
   createSequencePending,
-  createSequenceErrorMessage
+  createSequenceErrorMessage,
+  fullWidth = false
 }) => {
   const theme = useTheme();
   // Canvas size + fps come from the store — the single source of truth the
@@ -175,7 +214,11 @@ const PreviewRegion: React.FC<{
     <FlexColumn
       css={previewRegionStyles(theme)}
       fullHeight
-      sx={{ flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }}
+      sx={
+        fullWidth
+          ? { flex: "1 1 auto", minWidth: 0, minHeight: 0, borderRight: "none" }
+          : { flex: "0 1 55%", minWidth: 0, minHeight: 0, width: 0 }
+      }
     >
       {isLoading ? (
         <LoadingSpinner text="Loading sequence…" />
@@ -233,21 +276,26 @@ const PreviewRegion: React.FC<{
 });
 PreviewRegion.displayName = "PreviewRegion";
 
-type InspectorTab = "inspector" | "agent" | "history";
+type InspectorTab = "inspector" | "agent" | "history" | "script";
+
+const INSPECTOR_TABS = [
+  { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
+  { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
+  { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
+];
+
+const SCRIPT_TAB = {
+  value: "script",
+  label: "Script",
+  icon: <SubtitlesOutlinedIcon />
+};
 
 const InspectorRegion: React.FC<{ sequenceId: string | undefined }> = memo(
   ({ sequenceId }) => {
   const theme = useTheme();
   const [tab, setTab] = useState<InspectorTab>("inspector");
 
-  const tabs = useMemo(
-    () => [
-      { value: "inspector", label: "Inspector", icon: <TuneOutlinedIcon /> },
-      { value: "agent", label: "Assistant", icon: <AutoAwesomeIcon /> },
-      { value: "history", label: "History", icon: <HistoryOutlinedIcon /> }
-    ],
-    []
-  );
+  const tabs = INSPECTOR_TABS;
 
   return (
     <FlexColumn
@@ -300,13 +348,77 @@ const TranscriptRegion: React.FC = memo(() => {
 TranscriptRegion.displayName = "TranscriptRegion";
 
 /**
+ * Phone-only bottom sheet holding the panels that don't fit beside the
+ * preview: Inspector, Assistant, History, and the Script transcript when the
+ * sequence has one. Opened from the status bar; the tabs sit in the sheet
+ * header so switching panels never costs a close/reopen.
+ *
+ * `MobileBottomSheet` unmounts its content on close (`keepMounted: false`), so
+ * the tab choice is held here — reopening lands where the user left off.
+ */
+const MobilePanelSheet: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  sequenceId: string | undefined;
+  tab: InspectorTab;
+  onTabChange: (tab: InspectorTab) => void;
+}> = memo(({ open, onClose, sequenceId, tab, onTabChange }) => {
+  const hasScript = useHasScript();
+  const tabs = useMemo(
+    () => (hasScript ? [...INSPECTOR_TABS, SCRIPT_TAB] : INSPECTOR_TABS),
+    [hasScript]
+  );
+
+  // A sequence can lose its script while the Script tab is showing.
+  const activeTab = tab === "script" && !hasScript ? "inspector" : tab;
+
+  const tabRail = (
+    <TabGroup
+      tabs={tabs}
+      value={activeTab}
+      onChange={(value) => onTabChange(value as InspectorTab)}
+      size="small"
+      fullWidth
+    />
+  );
+
+  return (
+    <MobileBottomSheet
+      open={open}
+      onClose={onClose}
+      headerExtras={tabRail}
+      // Short enough that the preview stays visible above it — you adjust a
+      // clip's transform or colour by watching the frame, not the form.
+      maxHeight="62vh"
+      showDragHandle
+      showClose={false}
+      ariaLabel="Timeline panels"
+    >
+      <FlexColumn fullWidth sx={{ height: "52vh", minHeight: 0 }}>
+        {activeTab === "inspector" ? (
+          <TimelineInspector />
+        ) : activeTab === "agent" ? (
+          <TimelineAgentPanel />
+        ) : activeTab === "script" ? (
+          <TranscriptPanel />
+        ) : (
+          <TimelineVersionHistoryPanel sequenceId={sequenceId} />
+        )}
+      </FlexColumn>
+    </MobileBottomSheet>
+  );
+});
+MobilePanelSheet.displayName = "MobilePanelSheet";
+
+/**
  * Zoom + generation-count status bar, isolated from the editor shell.
  *
  * Subscribes to `msPerPx` (changes per zoom tick) and the generation counts
  * (change per WebSocket progress message) itself, so those high-frequency
  * updates re-render only this leaf instead of the whole `TimelineEditorBody`.
  */
-const TimelineStatusBar: React.FC = memo(() => {
+const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
+  ({ actionSlot }) => {
   const msPerPx = useTimelineUIStore((s) => s.msPerPx);
   const setZoom = useTimelineUIStore((s) => s.setZoom);
   // Convert msPerPx to a dimensionless ratio for ZoomControls (1 = default zoom)
@@ -326,9 +438,11 @@ const TimelineStatusBar: React.FC = memo(() => {
       onZoomChange={handleZoomChange}
       generatingCount={generatingCount}
       failedCount={failedCount}
+      actionSlot={actionSlot}
     />
   );
-});
+  }
+);
 TimelineStatusBar.displayName = "TimelineStatusBar";
 
 interface TimelineEditorProps {
@@ -355,6 +469,14 @@ const TimelineEditorBody: React.FC<
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const theme = useTheme();
+  const isMobile = useTimelineIsMobile();
+
+  // Phone panel sheet (Inspector / Assistant / History / Script).
+  const [panelSheetOpen, setPanelSheetOpen] = useState(false);
+  const [panelTab, setPanelTab] = useState<InspectorTab>("inspector");
+  const openPanelSheet = useCallback(() => setPanelSheetOpen(true), []);
+  const closePanelSheet = useCallback(() => setPanelSheetOpen(false), []);
+  const hasSelection = useTimelineUIStore((s) => s.selectedClipIds.size > 0);
 
   // Register the ui_timeline_* agent tools against this instance, addressable
   // by sequence id whether or not this editor is the focused surface.
@@ -423,22 +545,28 @@ const TimelineEditorBody: React.FC<
   const pendingHeightRef = useRef<number | null>(null);
   const resizeRafIdRef = useRef<number | null>(null);
 
-  /** Begin mouse drag — capture start position and activate drag state. */
-  const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    dragStartYRef.current = e.clientY;
-    dragStartHeightRef.current = tracksHeight;
-    setIsDragging(true);
-  }, [tracksHeight]);
+  /** Begin drag — capture start position and activate drag state. */
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
+      e.preventDefault();
+      dragStartYRef.current = e.clientY;
+      dragStartHeightRef.current = tracksHeight;
+      setIsDragging(true);
+    },
+    [tracksHeight]
+  );
 
   /**
-   * Register / unregister window-level mouse listeners for the duration of a
+   * Register / unregister window-level pointer listeners for the duration of a
    * drag. Cleanup runs on unmount, preventing listener leaks if the user
    * navigates away mid-drag.
    *
-   * `onMouseMove` fires far more often than the display refreshes, so it only
+   * Pointer events (not mouse) so the handle drags under touch as well as a
+   * mouse; `pointercancel` ends the drag when the OS takes the gesture over.
+   *
+   * `pointermove` fires far more often than the display refreshes, so it only
    * records the latest height in a ref and schedules at most one
-   * `setTracksHeight` per animation frame — otherwise every mousemove tick
+   * `setTracksHeight` per animation frame — otherwise every move tick
    * re-rendered the whole shell.
    */
   useEffect(() => {
@@ -458,7 +586,7 @@ const TimelineEditorBody: React.FC<
       }
     };
 
-    const onMouseMove = (ev: MouseEvent) => {
+    const onPointerMove = (ev: PointerEvent) => {
       const deltaY = dragStartYRef.current - ev.clientY; // drag up → taller
       pendingHeightRef.current = Math.min(
         MAX_TRACKS_HEIGHT_PX,
@@ -469,7 +597,7 @@ const TimelineEditorBody: React.FC<
       }
     };
 
-    const onMouseUp = () => {
+    const onPointerUp = () => {
       if (resizeRafIdRef.current !== null) {
         cancelAnimationFrame(resizeRafIdRef.current);
         resizeRafIdRef.current = null;
@@ -483,16 +611,18 @@ const TimelineEditorBody: React.FC<
       setIsDragging(false);
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("pointermove", onPointerMove);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointercancel", onPointerUp);
 
     return () => {
       if (resizeRafIdRef.current !== null) {
         cancelAnimationFrame(resizeRafIdRef.current);
         resizeRafIdRef.current = null;
       }
-      window.removeEventListener("mousemove", onMouseMove);
-      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("pointermove", onPointerMove);
+      window.removeEventListener("pointerup", onPointerUp);
+      window.removeEventListener("pointercancel", onPointerUp);
       document.body.style.userSelect = "";
       handleEl?.classList.remove("dragging");
     };
@@ -610,7 +740,7 @@ const TimelineEditorBody: React.FC<
         css={middleAreaStyles(theme)}
         sx={{ flex: "1 1 0", minHeight: 0, overflow: "hidden" }}
       >
-        <TranscriptRegion />
+        {!isMobile && <TranscriptRegion />}
         <PreviewRegion
           isLoading={isLoading}
           sequenceUnavailable={sequenceUnavailable}
@@ -620,11 +750,12 @@ const TimelineEditorBody: React.FC<
           }
           createSequencePending={createTimeline.isPending}
           createSequenceErrorMessage={createErrorMessage}
+          fullWidth={isMobile}
         />
-        <InspectorRegion sequenceId={sequenceId} />
+        {!isMobile && <InspectorRegion sequenceId={sequenceId} />}
       </FlexRow>
 
-      {/* ── Horizontal drag handle (mouse + keyboard resizable) ───── */}
+      {/* ── Horizontal drag handle (pointer + keyboard resizable) ─── */}
       <div
         ref={handleRef}
         role="separator"
@@ -634,8 +765,8 @@ const TimelineEditorBody: React.FC<
         aria-valuemin={MIN_TRACKS_HEIGHT_PX}
         aria-valuemax={MAX_TRACKS_HEIGHT_PX}
         tabIndex={0}
-        css={dragHandleStyles(theme)}
-        onMouseDown={handleMouseDown}
+        css={dragHandleStyles(theme, isMobile)}
+        onPointerDown={handlePointerDown}
         onKeyDown={handleKeyDown}
       />
 
@@ -643,7 +774,34 @@ const TimelineEditorBody: React.FC<
       <TracksRegion heightPx={tracksHeight} />
 
       {/* ── Bottom status bar ─────────────────────────────────────── */}
-      <TimelineStatusBar />
+      <TimelineStatusBar
+        actionSlot={
+          isMobile ? (
+            <ToolbarIconButton
+              onClick={openPanelSheet}
+              tooltip="Panels"
+              aria-label="Open panels"
+              // Tinted while a clip is selected: that's when the Inspector has
+              // something to show, and it's the only hint on a phone that
+              // tapping a clip led somewhere.
+              sx={{ color: hasSelection ? "primary.main" : undefined }}
+            >
+              <TuneOutlinedIcon fontSize="small" />
+            </ToolbarIconButton>
+          ) : undefined
+        }
+      />
+
+      {/* ── Phone panel sheet ─────────────────────────────────────── */}
+      {isMobile && (
+        <MobilePanelSheet
+          open={panelSheetOpen}
+          onClose={closePanelSheet}
+          sequenceId={sequenceId}
+          tab={panelTab}
+          onTabChange={setPanelTab}
+        />
+      )}
 
       {/* ── Project settings dialog (canvas size + fps) ───────────── */}
       <ProjectSettingsDialog

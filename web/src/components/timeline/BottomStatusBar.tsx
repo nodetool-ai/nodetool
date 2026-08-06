@@ -59,6 +59,12 @@ export interface BottomStatusBarProps {
   zoom?: number;
   /** Callback when zoom changes */
   onZoomChange?: (zoom: number) => void;
+  /**
+   * Optional control rendered at the start of the bar. The phone layout puts
+   * the panel-sheet toggle here, where a thumb reaches it and it can't collide
+   * with the zoom controls on the right.
+   */
+  actionSlot?: React.ReactNode;
 }
 
 const noop = () => {};
@@ -70,7 +76,8 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
     failedCount = 0,
     costEstimate,
     zoom = 1,
-    onZoomChange
+    onZoomChange,
+    actionSlot
   }) => {
     const theme = useTheme();
 
@@ -85,8 +92,10 @@ export const BottomStatusBar: React.FC<BottomStatusBarProps> = memo(
         fullWidth
         css={styles(theme)}
       >
-        {/* Left: local/cloud + counts */}
-        <FlexRow gap={2} align="center">
+        {/* Left: panel toggle + local/cloud + counts */}
+        <FlexRow gap={2} align="center" sx={{ minWidth: 0 }}>
+          {actionSlot}
+
           <FlexRow gap={1} align="center">
             <ModeIcon
               sx={{ fontSize: 14, color: theme.vars.palette.text.secondary }}
