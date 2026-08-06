@@ -142,8 +142,9 @@ export function getScriptAgentHandler(scriptId: string): ScriptAgentHandler {
     throw new Error(
       `No script "${scriptId}" is open. ` +
         (open.length > 0
-          ? `Open scripts: ${open.join(", ")}.`
-          : "No scripts are currently open.")
+          ? `Open scripts: ${open.join(", ")}. `
+          : "No scripts are currently open. ") +
+        'Call ui_open_document with type "script" to open it.'
     );
   }
   return handler;

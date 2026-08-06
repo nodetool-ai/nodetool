@@ -140,8 +140,9 @@ export function getStoryboardAgentHandler(
     throw new Error(
       `No storyboard "${boardId}" is open. ` +
         (open.length > 0
-          ? `Open storyboards: ${open.join(", ")}.`
-          : "No storyboards are currently open.")
+          ? `Open storyboards: ${open.join(", ")}. `
+          : "No storyboards are currently open. ") +
+        'Call ui_open_document with type "storyboard" to open it.'
     );
   }
   return handler;
