@@ -31,6 +31,12 @@ describe("isFalVagueBillingSummary", () => {
 
   it("is case-insensitive", () => {
     expect(isFalVagueBillingSummary({ billing_unit: "Units" })).toBe(true);
+    expect(isFalVagueBillingSummary({ billing_unit: "Credits" })).toBe(true);
+  });
+
+  it("returns true when billing_unit is 'credits'", () => {
+    expect(isFalVagueBillingSummary({ billing_unit: "credits" })).toBe(true);
+    expect(isFalVagueBillingSummary({ billing_unit: "credit" })).toBe(true);
   });
 
   it("returns false for 'megapixel'", () => {
@@ -62,6 +68,16 @@ describe("formatFalUnitPricingShort", () => {
   it("handles zero price", () => {
     const result = formatFalUnitPricingShort(makePricing({ unit_price: 0 }));
     expect(result).toContain("$");
+  });
+
+  it('returns "pricing varies" for vague billing (units)', () => {
+    const result = formatFalUnitPricingShort(makePricing({ billing_unit: "units", unit_price: 1 }));
+    expect(result).toBe("pricing varies");
+  });
+
+  it('returns "pricing varies" for vague billing (credits)', () => {
+    const result = formatFalUnitPricingShort(makePricing({ billing_unit: "credits", unit_price: 1 }));
+    expect(result).toBe("pricing varies");
   });
 });
 

@@ -125,6 +125,10 @@ interface ResolvedPrice {
   confidence: CostConfidence;
 }
 
+function isVagueBillingUnit(unit: string): boolean {
+  return /\bunits?\b|\bcredits?\b/i.test(unit.trim());
+}
+
 /**
  * The model selected on a generic node, read from the value of its first
  * provider-model property (e.g. `model` on TextToImage). Returns null when the
@@ -172,6 +176,9 @@ function resolvePrice(
 ): ResolvedPrice | null {
   const fal = metadata?.fal_unit_pricing;
   if (fal && Number.isFinite(fal.unit_price)) {
+    if (isVagueBillingUnit(fal.billing_unit)) {
+      return null;
+    }
     return {
       provider: "fal",
       model: fal.endpoint_id ?? null,
