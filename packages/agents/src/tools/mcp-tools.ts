@@ -30,6 +30,7 @@ import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
 import { FindModelTool } from "./find-model-tool.js";
+import { ListModelsTool } from "./list-models-tool.js";
 import {
   GenerateImageTool,
   EditImageTool,
@@ -2079,58 +2080,6 @@ export class GetAssetTool extends Tool {
 }
 
 // ============================================================================
-// Model Tools
-// ============================================================================
-
-export class ListModelsTool extends Tool {
-  readonly name = "list_models";
-  readonly description =
-    "List available AI models with flexible filtering options.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      provider: {
-        type: "string" as const,
-        description:
-          "Filter by provider (all, openai, anthropic, ollama, etc.)",
-        default: "all"
-      },
-      model_type: {
-        type: "string" as const,
-        description: "Filter by model type (e.g. language, image)"
-      },
-      downloaded_only: {
-        type: "boolean" as const,
-        description: "Only show downloaded models",
-        default: false
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of models to return",
-        default: 50
-      }
-    },
-    required: [] as string[]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const provider = String(params["provider"] ?? "all");
-    return apiGet(context, "/api/models/all", {
-      provider: provider !== "all" ? provider : undefined,
-      model_type: params["model_type"] as string | undefined
-    });
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const provider = params["provider"] ?? "all";
-    return `Listing models from ${provider}`;
-  }
-}
-
-// ============================================================================
 // Helper
 // ============================================================================
 
@@ -2145,6 +2094,7 @@ export interface GetAllMcpToolsOptions {
   /**
    * Configured BaseProvider instances by id. When supplied, the agent gets:
    * - `find_model` — pick a `{provider, model_id}` for any capability.
+   * - `list_models` — browse everything the configured providers offer.
    * - `generate_image` / `edit_image` / `generate_video` / `animate_image` /
    *   `generate_speech` / `transcribe_audio` / `embed_text` — direct
    *   provider-backed media generation tools usable from any agent loop.
@@ -2174,7 +2124,6 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new StartBackgroundJobTool(),
     new ListAssetsTool(),
     new GetAssetTool(),
-    new ListModelsTool(),
     // Asset persistence — used by the agent to surface artifacts (text
     // reports, images, audio) into the chat. Media-generation tools save
     // their outputs as assets automatically; use save_asset for anything
@@ -2201,6 +2150,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   if (options.providers && Object.keys(options.providers).length > 0) {
     tools.push(
       new FindModelTool(options.providers),
+      new ListModelsTool(options.providers),
       new GenerateImageTool(),
       new EditImageTool(),
       new GenerateVideoTool(),

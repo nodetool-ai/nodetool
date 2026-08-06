@@ -27,6 +27,7 @@ import {
   ValidateTimelineTool,
   ValidateSketchTool,
   FindModelTool,
+  ListModelsTool,
   GenerateImageTool,
   EditImageTool,
   GenerateVideoTool,
@@ -329,8 +330,8 @@ function errorResponse(err: unknown) {
  * same catalogs `unified-websocket-runner` assembles a chat toolbelt from, so
  * the two surfaces cannot drift.
  *
- * `providers` is the map `find_model` reads at call time — it is passed by
- * reference and filled in lazily, so it is empty here.
+ * `providers` is the map `find_model` and `list_models` read at call time — it
+ * is passed by reference and filled in lazily, so it is empty here.
  */
 function collectBridgedTools(
   options: McpServerOptions | undefined,
@@ -364,7 +365,8 @@ function collectBridgedTools(
     new GenerateSpeechTool(),
     new TranscribeAudioTool(),
     new EmbedTextTool(),
-    new FindModelTool(providers)
+    new FindModelTool(providers),
+    new ListModelsTool(providers)
   ];
 }
 

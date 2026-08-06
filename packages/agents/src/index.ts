@@ -127,7 +127,6 @@ export {
   StartBackgroundJobTool,
   ListAssetsTool,
   GetAssetTool,
-  ListModelsTool,
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
@@ -213,6 +212,7 @@ export {
 } from "./tools/workspace-tools.js";
 export { ListProviderModelsTool } from "./tools/model-tools.js";
 export { FindModelTool } from "./tools/find-model-tool.js";
+export { ListModelsTool } from "./tools/list-models-tool.js";
 export {
   GenerateImageTool,
   EditImageTool,

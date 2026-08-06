@@ -26,7 +26,6 @@ import {
   StartBackgroundJobTool,
   ListAssetsTool,
   GetAssetTool,
-  ListModelsTool,
   getAllMcpTools
 } from "../src/tools/mcp-tools.js";
 
@@ -1076,32 +1075,6 @@ describe("GetAssetTool", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Model Tools
-// ---------------------------------------------------------------------------
-
-describe("ListModelsTool", () => {
-  const tool = new ListModelsTool();
-
-  it("calls GET /api/models/all", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/models/all");
-  });
-
-  it("passes provider filter", async () => {
-    await tool.process(ctx, { provider: "openai" });
-    expect(lastFetchUrl()).toContain("provider=openai");
-  });
-
-  it("userMessage includes provider", () => {
-    expect(tool.userMessage({ provider: "anthropic" })).toContain("anthropic");
-  });
-
-  it("userMessage uses 'all' when no provider given", () => {
-    expect(tool.userMessage({})).toContain("all");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // Error handling
 // ---------------------------------------------------------------------------
 
@@ -1148,7 +1121,6 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("start_background_job");
     expect(names).toContain("list_assets");
     expect(names).toContain("get_asset");
-    expect(names).toContain("list_models");
     // Asset persistence tools — always available so the agent can surface
     // text/binary artifacts into the chat asset browser.
     expect(names).toContain("save_asset");
@@ -1180,6 +1152,7 @@ describe("getAllMcpTools", () => {
       providers: { fake: {} as any }
     }).map((t) => t.name);
     expect(names).toContain("find_model");
+    expect(names).toContain("list_models");
     expect(names).toContain("generate_image");
     expect(names).toContain("edit_image");
     expect(names).toContain("generate_video");
@@ -1203,9 +1176,10 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("embed_text");
   });
 
-  it("omits find_model and media tools when no providers are supplied", () => {
+  it("omits the provider-backed tools when no providers are supplied", () => {
     const names = getAllMcpTools().map((t) => t.name);
     expect(names).not.toContain("find_model");
+    expect(names).not.toContain("list_models");
     expect(names).not.toContain("generate_image");
     expect(names).not.toContain("generate_speech");
   });
