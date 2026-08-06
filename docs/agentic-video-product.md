@@ -57,31 +57,56 @@ Changing the lineup is editing that file. If the product later needs per-plan
 lineups (e.g. faster models on the free tier), the same shape can move to a
 server-delivered config.
 
-## Credits
+## Credits and plans
 
-Prototype semantics, in `web/src/studio/useStudioCredits.ts`:
+Server-owned, in `packages/models/src/credits.ts` (`@nodetool-ai/models`):
 
-- 1 credit = $0.01 of provider spend.
-- Balance = flat grant (1,000 credits) minus everything in the prediction
-  ledger for the last 90 days, read from `costs.dashboard`.
-- Display-only: the chip in the Studio header. Nothing is blocked
-  client-side.
+- **1 credit = $0.01 of provider spend.** Spend is never double-booked: the
+  balance is `sum(grant ledger) - ceil(prediction spend / 1¢)`, read straight
+  from the `nodetool_predictions` rows every provider call already writes.
+- **Ledger** (`nodetool_credit_ledger`) holds grants only: monthly plan
+  accruals, top-ups, adjustments. Plan grants use the row id
+  `plan:<userId>:<planId>:<YYYY-MM>`, so the lazy accrual (run on every
+  status read) is idempotent by primary key — no cron.
+- **Plans** (`nodetool_user_subscriptions`, catalog `CREDIT_PLANS`): Free
+  300/mo, Creator 3,000/mo ($12), Pro 10,000/mo ($40). Switching is instant
+  and unbilled; a payment provider integration replaces the `topup` mutation
+  with a checkout session and writes ledger rows from its webhook.
+- **API**: `trpc.credits.status | setPlan | topup`
+  (`packages/websocket/src/trpc/routers/credits.ts`, schemas in
+  `packages/protocol/src/api-schemas/credits.ts`).
+- **The `nodetool` provider is what gets metered.** NodeTool's own managed
+  models are a real provider (`packages/runtime/src/providers/nodetool-provider.ts`,
+  id `nodetool`): each curated model (`NODETOOL_MODELS` in
+  `@nodetool-ai/protocol`) names a delegate provider+model, and the provider
+  runs the delegate on *platform-owned* keys (`NODETOOL_PLATFORM_FAL_KEY`,
+  `NODETOOL_PLATFORM_ANTHROPIC_KEY`) rather than the user's. Cost is absorbed
+  from the delegate at the delegate's price, and
+  `@nodetool-ai/model-pricing` translates `nodetool/...` ids to the delegate
+  before lookup so estimates are real numbers. Models appear in the pickers
+  only when their platform key is set.
+- **Enforcement follows the provider, not the deployment**
+  (`packages/websocket/src/credit-gate.ts`): a workflow run is gated only on
+  the slice of its estimate whose provider is `nodetool`
+  (`estimateNodetoolSpend` → `admitCreditRun`, next to the
+  application-budget gate); the direct `generate_media`/`transcribe_audio`
+  RPCs are gated only when called with `provider: "nodetool"`. BYOK
+  providers are never gated — credits and bring-your-own-key coexist on one
+  server, per user, per call. The gate fails open on its own errors.
+- **UI**: the header chip reads `credits.status` and links to
+  `/studio/account` — balance, usage, plan cards, and the (clearly labeled)
+  test top-up.
 
-The path to real enforcement already exists in the platform and is the next
-step after the prototype validates:
+Still open, in order of value:
 
-1. **Server gate.** The `application_budgets` machinery
-   (`packages/models/src/application-budget.ts`, enforced in
-   `unified-websocket-runner.ts` with `BUDGET_EXCEEDED`) already does
-   estimate → reserve → settle per invocation. Generalize the key from
-   `application_id` to a user-scoped budget row and every generation path —
-   storyboard stills/clips, voicing, timeline generate — is gated by the same
-   code.
-2. **Purchases.** A `credits` tRPC router (alongside `costsRouter`) exposing
-   balance + top-ups; grants become ledger rows instead of a client constant.
-3. **Estimates before spend.** `@nodetool-ai/model-pricing`
+1. **Per-action estimates.** `@nodetool-ai/model-pricing`
    (`getModelUnitPrice`) prices the curated models per unit, so shot cards
    and the voice-all button can show "≈ 3 credits" before the click.
+2. **Payments.** Stripe (or similar) in front of `setPlan`/`topup`; the
+   ledger and gate don't change.
+3. **Direct-RPC metering.** `generate_media`/`transcribe_audio` are gated but
+   still write no prediction rows, so their spend doesn't decrement the
+   balance. Recording a row at the provider's reported cost closes that.
 
 ## From prototype to product
 

@@ -1,11 +1,13 @@
 /**
- * The Studio model policy: one curated model per role, stamped onto every new
- * Studio project so beginners never see a model picker. Editing these values
- * is the whole "model management" surface of the product.
+ * The Studio model policy: every new Studio project is stamped with NodeTool's
+ * own managed models — the `nodetool` provider — so beginners never see a
+ * model picker and never need an API key. Those calls run on platform keys
+ * and are metered against the credit balance; users who dig into the reused
+ * editors can still pick any BYOK provider, unmetered.
  *
- * Ids must exist in the corresponding provider catalog — `nodetool validate`
- * rejects unknown provider/model pairs at run time, so a typo here fails
- * loudly, not silently.
+ * The curated catalog itself (ids, names, delegates) is
+ * `NODETOOL_MODELS` in `@nodetool-ai/protocol` — this file just selects which
+ * entry fills each Studio role.
  */
 
 import type {
@@ -17,33 +19,24 @@ import type {
 /** Directs screenplays and drives the in-editor assistants. */
 export const STUDIO_DIRECTOR_MODEL: LanguageModelValue = {
   type: "language_model",
-  id: "claude-sonnet-5",
-  provider: "anthropic",
-  name: "Claude Sonnet 5"
+  id: "nodetool/director",
+  provider: "nodetool",
+  name: "NodeTool Director"
 };
 
 /** Renders storyboard keyframe stills. */
 export const STUDIO_STILL_MODEL: ImageModelValue = {
   type: "image_model",
-  id: "fal-ai/flux-1/schnell",
-  provider: "fal_ai",
-  name: "FLUX.1 Schnell",
+  id: "nodetool/flux-schnell",
+  provider: "nodetool",
+  name: "NodeTool Still (FLUX Schnell)",
   path: ""
 };
 
 /** Animates keyframes into shot clips. */
 export const STUDIO_CLIP_MODEL: VideoModelValue = {
   type: "video_model",
-  id: "fal-ai/kling-video/o1/standard/image-to-video",
-  provider: "fal_ai",
-  name: "Kling O1 Standard"
+  id: "nodetool/kling-standard",
+  provider: "nodetool",
+  name: "NodeTool Clip (Kling Standard)"
 };
-
-/**
- * Credits are a beginner-friendly veneer over the prediction ledger:
- * 1 credit = one US cent of provider spend. The grant is a flat prototype
- * allowance; the real product replaces it with purchased balances enforced
- * server-side (see docs/agentic-video-product.md).
- */
-export const USD_PER_CREDIT = 0.01;
-export const STUDIO_CREDIT_GRANT = 1_000;

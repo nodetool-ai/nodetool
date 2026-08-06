@@ -23,14 +23,18 @@ import {
 import { useStudioCredits } from "./useStudioCredits";
 
 const CreditsChip = () => {
-  const { remaining, used, grant, loading } = useStudioCredits();
+  const navigate = useNavigate();
+  const { status, remaining, loading } = useStudioCredits();
+  const title = status
+    ? `${status.plan.name} plan — ${status.spentCredits} of ${status.grantedCredits} credits used. 1 credit = 1¢ of generation. Click to manage.`
+    : "Plan & credits";
   return (
-    <Tooltip
-      title={`${used} of ${grant} credits used. 1 credit = 1¢ of generation.`}
-    >
+    <Tooltip title={title}>
       <span>
         <Chip
           compact
+          clickable
+          onClick={() => navigate("/studio/account")}
           color={remaining > 0 ? "primary" : "error"}
           icon={<BoltRoundedIcon />}
           label={loading ? "credits…" : `${remaining} credits`}

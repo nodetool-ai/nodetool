@@ -145,6 +145,9 @@ const StudioScriptPage = React.lazy(() => import("./studio/StudioScriptPage"));
 const StudioTimelinePage = React.lazy(
   () => import("./studio/StudioTimelinePage")
 );
+const StudioAccountPage = React.lazy(
+  () => import("./studio/StudioAccountPage")
+);
 import {
   ChatThreadRedirect,
   WorkflowEditorRedirect
@@ -441,7 +444,8 @@ function getRoutes() {
         { path: "/studio", el: <StudioHome /> },
         { path: "/studio/storyboard/:boardId", el: <StudioStoryboardPage /> },
         { path: "/studio/script/:scriptId", el: <StudioScriptPage /> },
-        { path: "/studio/timeline/:sequenceId", el: <StudioTimelinePage /> }
+        { path: "/studio/timeline/:sequenceId", el: <StudioTimelinePage /> },
+        { path: "/studio/account", el: <StudioAccountPage /> }
       ] as const
     ).map(({ path, el }) => ({
       path,

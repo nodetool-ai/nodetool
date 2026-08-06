@@ -2571,6 +2571,50 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_idv_document");
       await db.execute("DROP TABLE IF EXISTS image_document_versions");
     }
+  },
+
+  // ── User credits and subscription plans ────────────────────────────
+  // The Studio product's billing veneer. The ledger holds grants only
+  // (plan accruals, top-ups, adjustments); spend already lives in
+  // nodetool_predictions, so balance = sum(delta) - spend-in-credits.
+  // Plan grants use the id `plan:<userId>:<periodKey>` so the lazy monthly
+  // accrual is idempotent by primary key. One subscription row per user;
+  // payment state stays out until a payment provider is wired in.
+  {
+    version: "20260806_000000",
+    name: "create_credit_ledger_and_subscriptions",
+    createsTables: ["nodetool_credit_ledger", "nodetool_user_subscriptions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_credit_ledger (
+          id TEXT PRIMARY KEY NOT NULL,
+          user_id TEXT NOT NULL,
+          delta INTEGER NOT NULL,
+          kind TEXT NOT NULL,
+          description TEXT,
+          period_key TEXT,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_credit_ledger_user ON nodetool_credit_ledger (user_id)"
+      );
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS nodetool_user_subscriptions (
+          user_id TEXT PRIMARY KEY NOT NULL,
+          plan_id TEXT NOT NULL DEFAULT 'free',
+          status TEXT NOT NULL DEFAULT 'active',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_user_subscriptions");
+      await db.execute("DROP INDEX IF EXISTS idx_credit_ledger_user");
+      await db.execute("DROP TABLE IF EXISTS nodetool_credit_ledger");
+    }
   }
 ];
 

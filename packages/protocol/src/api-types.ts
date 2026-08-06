@@ -1042,6 +1042,9 @@ export const PROVIDER_IDS = {
   CEREBRAS: "cerebras",
   EVOLINK: "evolink",
   GMI: "gmi",
+  // NodeTool's own managed models: curated delegates run on platform keys and
+  // metered against the user's credit balance (BYOK providers stay unmetered).
+  NODETOOL: "nodetool",
   // Media / 3D / utility APIs
   REPLICATE: "replicate",
   FAL_AI: "fal_ai",

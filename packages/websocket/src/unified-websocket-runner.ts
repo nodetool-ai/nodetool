@@ -4,6 +4,7 @@ import { pathToFileURL } from "node:url";
 import { getSecret } from "@nodetool-ai/models";
 import { getSetting } from "./settings-registry.js";
 import { ApiErrorCode } from "./error-codes.js";
+import { admitSpend, releaseSpend, reserveSpend } from "./credit-gate.js";
 import { JobConcurrencyQueue } from "./job-queue.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
 import {
@@ -1698,6 +1699,25 @@ export function resolveRunJobUserId(
   return requestUserId?.trim() || connectionUserId?.trim() || "1";
 }
 
+interface DirectMediaGenerationRequest {
+  mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
+  provider: string;
+  model: string;
+  prompt: string;
+  sourceAssetId?: string;
+  maskAssetId?: string;
+  width?: number;
+  height?: number;
+  aspectRatio?: string;
+  resolution?: string;
+  strength?: number;
+  numInferenceSteps?: number;
+  variations?: number;
+  voice?: string;
+  speed?: number;
+  audioFormat?: string;
+}
+
 interface ActiveJob {
   jobId: string;
   workflowId: string | null;
@@ -2875,6 +2895,44 @@ export class UnifiedWebSocketRunner {
     }
   }
 
+  /**
+   * The slice of a run that spends through NodeTool's managed provider —
+   * the only spend the credit balance meters. BYOK nodes are excluded on
+   * purpose: their cost rides the user's own keys.
+   */
+  private estimateNodetoolSpend(req: RunJobRequest): {
+    usesNodetool: boolean;
+    estimatedUsd: number;
+  } {
+    const nodes = req.graph?.nodes;
+    if (!nodes || !this.getNodeMetadata) {
+      return { usesNodetool: false, estimatedUsd: 0 };
+    }
+    try {
+      const estimate = estimateWorkflowCost({
+        nodes: nodes.map((node) => ({
+          id: String(node.id),
+          type: String(node.type),
+          data: (node.data ?? {}) as Record<string, unknown>
+        })),
+        getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
+        getModelPrice: getModelUnitPrice
+      });
+      const items = estimate.items.filter(
+        (item) => item.provider === "nodetool"
+      );
+      const total = items.reduce(
+        (sum, item) =>
+          sum + (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
+        0
+      );
+      return { usesNodetool: items.length > 0, estimatedUsd: total };
+    } catch (err) {
+      this.logError("nodetool spend estimate failed", err);
+      return { usesNodetool: false, estimatedUsd: 0 };
+    }
+  }
+
   /** Tell the client a run was refused, in the shape a failed job takes. */
   private refuseRun(
     req: RunJobRequest,
@@ -3059,9 +3117,38 @@ export class UnifiedWebSocketRunner {
     return true;
   }
 
+  /**
+   * Gate a run on the user's credit balance — but only the part of the run
+   * that spends through NodeTool's managed provider. A graph with no
+   * `nodetool` models passes untouched (BYOK stays unmetered); one with them
+   * is refused when the balance is empty or can't cover the estimate.
+   * Estimates are floors, so an empty balance refuses even a 0-estimate
+   * nodetool call. Fails open on gate errors, like the application-budget
+   * gate above.
+   */
+  private async admitCreditRun(req: RunJobRequest): Promise<boolean> {
+    const { usesNodetool, estimatedUsd } = this.estimateNodetoolSpend(req);
+    if (!usesNodetool) return true;
+    // Pin the job id now so the reservation taken here can be released at the
+    // run's terminal state (and on cancel-while-queued) under the same key.
+    req.job_id ??= randomUUID();
+    const decision = await admitSpend(this.userId, estimatedUsd);
+    if (!decision.allowed) {
+      return this.refuseRun(
+        req,
+        req.job_id,
+        ApiErrorCode.BUDGET_EXCEEDED,
+        decision.reason
+      );
+    }
+    reserveSpend(this.userId ?? "1", req.job_id, estimatedUsd);
+    return true;
+  }
+
   async runJob(req: RunJobRequest): Promise<void> {
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
+    if (!(await this.admitCreditRun(req))) return;
     const max = await this.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -3560,6 +3647,7 @@ export class UnifiedWebSocketRunner {
       }
       await this.persistTerminalJobStatus(active);
       await this.settleApplicationInvocation(active);
+      releaseSpend(this.userId ?? "1", active.jobId);
     } finally {
       // Terminal: the session stops buffering and starts its retention
       // window, so a client reconnecting shortly after still gets the tail
@@ -4037,6 +4125,7 @@ export class UnifiedWebSocketRunner {
 
     await this.persistTerminalJobStatus(active);
     await this.settleApplicationInvocation(active);
+    releaseSpend(this.userId ?? "1", active.jobId);
     // Slot release + queue drain happen in the streamJobMessages wrapper's
     // finally, so they run even if the drain loop above throws.
   }
@@ -4190,6 +4279,7 @@ export class UnifiedWebSocketRunner {
     // and tell the client it's cancelled before it ever starts.
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
+      releaseSpend(this.userId ?? "1", jobId);
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       // Mark the persisted queued row cancelled so it leaves the queue in
       // jobs.list too (not just the in-memory queue).
@@ -7547,24 +7637,9 @@ export class UnifiedWebSocketRunner {
    * image layers and the timeline's direct-gen video / audio clips; the
    * chat-path equivalents stay in `handleMediaGenerationMessage` for now.
    */
-  private async runDirectMediaGeneration(req: {
-    mode: "image" | "image_edit" | "inpaint" | "video" | "audio";
-    provider: string;
-    model: string;
-    prompt: string;
-    sourceAssetId?: string;
-    maskAssetId?: string;
-    width?: number;
-    height?: number;
-    aspectRatio?: string;
-    resolution?: string;
-    strength?: number;
-    numInferenceSteps?: number;
-    variations?: number;
-    voice?: string;
-    speed?: number;
-    audioFormat?: string;
-  }): Promise<{ asset_ids: string[] }> {
+  private async runDirectMediaGeneration(
+    req: DirectMediaGenerationRequest
+  ): Promise<{ asset_ids: string[] }> {
     if (!this.resolveProvider) {
       throw new Error("No provider resolver configured");
     }
@@ -7574,9 +7649,61 @@ export class UnifiedWebSocketRunner {
     if (!req.prompt || !req.prompt.trim()) {
       throw new Error("prompt is required");
     }
-
     const userId = this.userId ?? "1";
     const provider = await this.resolveProvider(req.provider, userId);
+    if (req.provider !== "nodetool") {
+      // BYOK: the user's own keys, never metered.
+      return this.runDirectMediaGenerationInner(req, provider);
+    }
+
+    // NodeTool's managed provider: admit against the balance (including
+    // in-flight reservations), reserve the unit-price estimate for the
+    // duration of the call, and record the spend as a prediction row so the
+    // balance actually decrements. Cost is the larger of the delegate's own
+    // tracked cost and the unit-price estimate — fal-style delegates bill
+    // per unit and track nothing themselves.
+    const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
+    const unit = getModelUnitPrice({ id: req.model, provider: "nodetool" });
+    const estimatedUsd = (unit?.unit_price ?? 0) * variations;
+    const decision = await admitSpend(userId, estimatedUsd);
+    if (!decision.allowed) {
+      throw new Error(decision.reason);
+    }
+    const reservationKey = `media:${randomUUID()}`;
+    reserveSpend(userId, reservationKey, estimatedUsd);
+    try {
+      const result = await this.runDirectMediaGenerationInner(req, provider);
+      const cost = Math.max(provider.getTotalCost(), estimatedUsd);
+      if (cost > 0) {
+        try {
+          await Prediction.create<Prediction>({
+            user_id: userId,
+            provider: "nodetool",
+            model: req.model,
+            node_type: `direct.${req.mode}`,
+            cost,
+            currency: "USD",
+            billing_unit: unit?.billing_unit ?? null,
+            quantity: variations,
+            workflow_id: null,
+            node_id: "",
+            status: "completed"
+          });
+        } catch (err) {
+          this.logError("direct media cost persistence failed", err);
+        }
+      }
+      return result;
+    } finally {
+      releaseSpend(userId, reservationKey);
+    }
+  }
+
+  private async runDirectMediaGenerationInner(
+    req: DirectMediaGenerationRequest,
+    provider: BaseProvider
+  ): Promise<{ asset_ids: string[] }> {
+    const userId = this.userId ?? "1";
     const variations = Math.max(1, Math.min(Number(req.variations ?? 1), 8));
 
     const storeAsset = async (
@@ -7852,6 +7979,12 @@ export class UnifiedWebSocketRunner {
     }
 
     const userId = this.userId ?? "1";
+    if (req.provider === "nodetool") {
+      const creditDecision = await admitSpend(userId, 0);
+      if (!creditDecision.allowed) {
+        throw new Error(creditDecision.reason);
+      }
+    }
     const asset = await Asset.find(userId, req.assetId);
     if (!asset) {
       throw new Error(`Audio asset not found: ${req.assetId}`);
@@ -7873,6 +8006,26 @@ export class UnifiedWebSocketRunner {
       language: req.language,
       word_timestamps: true
     });
+
+    // Metered provider: record what the delegate tracked so the spend lands
+    // in the ledger the balance is computed from. Best-effort, never throws.
+    if (req.provider === "nodetool" && provider.getTotalCost() > 0) {
+      try {
+        await Prediction.create<Prediction>({
+          user_id: userId,
+          provider: "nodetool",
+          model: req.model,
+          node_type: "direct.transcription",
+          cost: provider.getTotalCost(),
+          currency: "USD",
+          workflow_id: null,
+          node_id: "",
+          status: "completed"
+        });
+      } catch (err) {
+        this.logError("direct transcription cost persistence failed", err);
+      }
+    }
 
     const words = (result.chunks ?? [])
       .map((chunk) => ({

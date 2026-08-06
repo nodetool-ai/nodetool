@@ -108,6 +108,7 @@ export const formatGenericProviderName = (provider?: string): string => {
     "point-e": "Point-E",
     meshy: "Meshy AI",
     "meshy-ai": "Meshy AI",
+    nodetool: "NodeTool",
     rodin: "Rodin AI",
     "rodin-ai": "Rodin AI",
     mlx: "MLX"

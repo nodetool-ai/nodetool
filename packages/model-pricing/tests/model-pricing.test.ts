@@ -63,4 +63,21 @@ describe("getModelUnitPrice", () => {
   it("returns null for a model in no catalog", () => {
     expect(getModelUnitPrice({ id: "no-such/model", provider: null })).toBeNull();
   });
+
+  it("prices a nodetool model at its delegate's rate", () => {
+    const direct = getModelUnitPrice({
+      id: "fal-ai/flux-1/schnell",
+      provider: "fal_ai"
+    });
+    expect(direct).not.toBeNull();
+    expect(
+      getModelUnitPrice({ id: "nodetool/flux-schnell", provider: "nodetool" })
+    ).toEqual(direct);
+  });
+
+  it("returns null for an unknown nodetool model id", () => {
+    expect(
+      getModelUnitPrice({ id: "nodetool/nope", provider: "nodetool" })
+    ).toBeNull();
+  });
 });

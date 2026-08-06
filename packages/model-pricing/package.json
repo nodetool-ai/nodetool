@@ -17,7 +17,8 @@
   "dependencies": {
     "@nodetool-ai/fal-nodes": "*",
     "@nodetool-ai/kie-nodes": "*",
-    "@nodetool-ai/node-sdk": "*"
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*"
   },
   "devDependencies": {
     "typescript": "^5.7.2",
