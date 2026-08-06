@@ -79,7 +79,7 @@ describe('settings module', () => {
   });
 
   test('autoUpdatesEnabled can be set to true', async () => {
-    const { updateSetting, readSettings } = await import('../settings');
+    const { updateSetting } = await import('../settings');
     
     // Enable auto-updates
     updateSetting('autoUpdatesEnabled', true);

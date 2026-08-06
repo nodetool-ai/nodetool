@@ -43,6 +43,10 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
 | Providers | `/api/kie/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
 | Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
+| SDK       | `/api/sdk/v1/models`              | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Paged model catalog with per-model availability and the wire value a node property takes |
+| SDK       | `/api/sdk/v1/model-downloads`     | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Snapshot of this caller's model downloads, running and finished |
+| SDK       | `/api/sdk/v1/model-downloads`     | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Start a model download; `202` with the operation's first state |
+| SDK       | `/api/sdk/v1/model-downloads/cancel` | `POST`         | Depends on `AUTH_PROVIDER`                     | no                          | Cancel one download by `operation_id` |
 | Extension | `/api/extension/download`         | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The built Chrome extension as a zip; `404` when the server has no build |
 | Workflow WS | `/ws`                           | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Workflow execution, chat, job control, live updates (MessagePack or JSON) |
 | Agent WS  | `/ws/agent`                       | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Agent runtime |
@@ -476,6 +480,183 @@ runtime that meets one falls back to the live workflow.
 An app with nothing published answers `200` with a body of `null`; an app you do
 not own is a `404`. Publishing itself is a tRPC call (`applications.publish`),
 not a REST route.
+
+### Listing Models an SDK Client Can Use
+
+`GET /api/sdk/v1/models` is the model catalog behind the SDK's discovery
+profile: every model the server knows about, what state it is in, and the exact
+value to put in a node's model property. Reach for it when a client has to offer
+a model picker without hard-coding ids.
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/models?availability=downloadable&limit=1" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "version": "1",
+  "catalog_revision": "7db91c5aa30bc13588a9e4437d7ff7cabe88d82fbfc8049c8d507825326a10b6",
+  "scope": "local",
+  "entries": [
+    {
+      "key": "llama_cpp_model||ggml-org/gemma-3-12b-it-GGUF|gemma-3-12b-it-Q4_K_M.gguf",
+      "display_name": "Gemma 3 12B IT (GGUF)",
+      "compatibility": "llama_cpp_model",
+      "availability": "downloadable",
+      "recommended": true,
+      "scope": "local",
+      "provider": null,
+      "id": "ggml-org/gemma-3-12b-it-GGUF:gemma-3-12b-it-Q4_K_M.gguf",
+      "repo_id": "ggml-org/gemma-3-12b-it-GGUF",
+      "path": "gemma-3-12b-it-Q4_K_M.gguf",
+      "supported_tasks": [],
+      "size_on_disk": 7838315315,
+      "wire_value": {
+        "type": "llama_cpp_model",
+        "repo_id": "ggml-org/gemma-3-12b-it-GGUF",
+        "path": "gemma-3-12b-it-Q4_K_M.gguf"
+      }
+    }
+  ],
+  "next_cursor": "llama_cpp_model||ggml-org/gemma-3-12b-it-GGUF|gemma-3-12b-it-Q4_K_M.gguf"
+}
+```
+
+`wire_value` is the whole point of an entry: assign it to a node's model
+property and the graph runs. `availability` is one of five values, decided in
+this order: a download in flight is `downloading`, a model already in the local
+cache is `ready_local`, a remote provider's model is `ready_remote` once that
+provider is configured, and a recommended repository model (Hugging Face or
+GGUF) you have not fetched yet is `downloadable`. Everything else — including a
+remote model whose provider has no API key — is `unavailable`.
+
+Query parameters, all optional:
+
+| Parameter | Meaning |
+|-----------|---------|
+| `compatibility` | Keep only entries of one node-property type, e.g. `llama_cpp_model` |
+| `availability` | One of the five availability values |
+| `provider` | Keep only one provider's models, e.g. `ollama` |
+| `scope` | `local` (default) or `worker` |
+| `cursor` | The previous page's `next_cursor` |
+| `limit` | 1–500, default `200` |
+
+Page by passing `next_cursor` back as `cursor`; it is `null` on the last page.
+`catalog_revision` hashes the entries a query produced, so a client can tell
+whether anything moved without diffing the list. A value outside the allowed set
+is a `400` (`{"code": "INVALID_INPUT", …}`), not a silently ignored filter.
+
+`scope=worker` reads the models cached on the attached Python worker instead of
+the server's own. With no worker attached that is a `501`:
+
+```json
+{
+  "code": "MODEL_SCOPE_UNAVAILABLE",
+  "message": "No worker is attached to this server.",
+  "detail": "No worker is attached to this server.",
+  "retryable": true
+}
+```
+
+### Downloading a Model over the SDK Routes
+
+Three routes cover the download lifecycle without a WebSocket: start one, poll
+the snapshot, cancel it. They drive the same download manager the `/ws/download`
+WebSocket does, so a headless client fetches a model exactly as the editor's
+model manager would — it just polls instead of subscribing.
+
+`POST /api/sdk/v1/model-downloads` starts a download and answers `202` with the
+operation's first state:
+
+```bash
+curl -X POST "http://localhost:7777/api/sdk/v1/model-downloads" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"repo_id": "hf-internal-testing/tiny-random-gpt2", "model_type": "hf.text_generation"}'
+```
+
+```json
+{
+  "version": "1",
+  "operation_id": "mdl_nY06SIV5ikFSqVqIvWOHQqIKQjJtkikk0VpLuRZszTc",
+  "scope": "local",
+  "repo_id": "hf-internal-testing/tiny-random-gpt2",
+  "path": null,
+  "model_type": "hf.text_generation",
+  "status": "start",
+  "downloaded_bytes": 0,
+  "total_bytes": 0,
+  "downloaded_files": 0,
+  "current_files": [],
+  "total_files": 0,
+  "error": null,
+  "started_at": "2026-08-06T08:16:40.600Z",
+  "updated_at": "2026-08-06T08:16:40.600Z"
+}
+```
+
+`repo_id` and `model_type` are required. `path` fetches a single file from the
+repo — a `.gguf` weight, say — and cannot be combined with `allow_patterns` or
+`ignore_patterns`, which otherwise take glob lists to narrow a whole-repo fetch.
+`scope` defaults to `local`; `worker` hands the download to the attached Python
+worker.
+
+The `operation_id` is derived from the request, so starting the same download
+twice returns the state already in flight rather than a second run.
+
+`GET /api/sdk/v1/model-downloads` is the snapshot, newest update first. It takes
+an optional `scope` (default `local`) and `operation_id` to narrow to one:
+
+```bash
+curl "http://localhost:7777/api/sdk/v1/model-downloads" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```json
+{
+  "version": "1",
+  "downloads": [
+    {
+      "version": "1",
+      "operation_id": "mdl_nY06SIV5ikFSqVqIvWOHQqIKQjJtkikk0VpLuRZszTc",
+      "scope": "local",
+      "repo_id": "hf-internal-testing/tiny-random-gpt2",
+      "path": null,
+      "model_type": "hf.text_generation",
+      "status": "cancelled",
+      "downloaded_bytes": 0,
+      "total_bytes": 488544,
+      "downloaded_files": 0,
+      "current_files": [],
+      "total_files": 8,
+      "error": null,
+      "started_at": "2026-08-06T08:16:40.600Z",
+      "updated_at": "2026-08-06T08:16:48.638Z"
+    }
+  ]
+}
+```
+
+`status` walks `start` → `progress` → `completed`, or ends at `error` or
+`cancelled`; `error` carries the message when it does. Finished operations stay
+in the snapshot so a client that reconnects can see how a download ended — the
+oldest terminal ones are dropped past 200 retained operations.
+
+`POST /api/sdk/v1/model-downloads/cancel` stops one and returns its final state:
+
+```bash
+curl -X POST "http://localhost:7777/api/sdk/v1/model-downloads/cancel" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"operation_id": "mdl_nY06SIV5ikFSqVqIvWOHQqIKQjJtkikk0VpLuRZszTc"}'
+```
+
+Cancelling an operation that already finished returns the state it settled in.
+An id this caller never started is a `404`
+(`{"code": "MODEL_DOWNLOAD_NOT_FOUND", …}`). Ollama models are pulled by Ollama
+itself, so `"model_type": "llama_model"` is a `501`
+(`{"code": "MODEL_DOWNLOAD_UNAVAILABLE", …}`).
 
 ### Downloading the Chrome Extension
 

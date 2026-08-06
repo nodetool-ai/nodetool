@@ -170,24 +170,27 @@ Primitive globals pass by value (no sync).
 
 ### Interactive Chat
 
+Every session runs the unified agent loop; `-a, --agent` and `--no-agent` are
+accepted for backwards compatibility and do nothing.
+
 ```bash
-# Start in agent mode
-nodetool-chat --agent
+# Start a session
+nodetool-chat
 
 # With specific provider and model
-nodetool-chat --agent --provider anthropic --model claude-sonnet-5
+nodetool-chat --provider anthropic --model claude-sonnet-5
 
 # With workspace directory
-nodetool-chat --agent --workspace /path/to/project
+nodetool-chat --workspace /path/to/project
 
 # Connect to WebSocket server
-nodetool-chat --agent --url ws://localhost:7777/ws
+nodetool-chat --url ws://localhost:7777/ws
 ```
 
 ### Piped Input
 
 ```bash
-echo "Summarize this codebase" | nodetool-chat --agent --provider anthropic
+echo "Summarize this codebase" | nodetool-chat --provider anthropic
 ```
 
 ### Interactive Commands
@@ -1086,8 +1089,8 @@ export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 CLI flags pass these through:
 
 ```bash
-nodetool-chat --agent --trace-file trace.jsonl
-nodetool-chat --agent --trace-stdout pretty
+nodetool-chat --trace-file trace.jsonl
+nodetool-chat --trace-stdout pretty
 nodetool --trace-file trace.jsonl run workflow.ts
 ```
 

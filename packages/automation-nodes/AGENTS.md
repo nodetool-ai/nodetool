@@ -7,9 +7,9 @@
 ## Output-slot contract (the headline bug)
 
 - **Every key a node returns must be a declared `metadataOutputTypes` slot.**
-  `Insert`/`Update`/`Delete`/`ExecuteSQL`/`SplitPath`/`SplitExtension` declared a
-  single `output` slot but returned `row_id`/`rows_affected`/`dirname`/… — keys
-  the editor never exposed as handles, so the data was unreachable downstream. The
+  `Insert`/`Update`/`Delete`/`ExecuteSQL` declared a single `output` slot but
+  returned `row_id`/`rows_affected`/… — keys the editor never exposed as handles,
+  so the data was unreachable downstream. The
   `assertKeysDeclared` invariant in `tests/output-slots-and-fixes.test.ts` pins
   this; **never test a node only as a terminal sink** (sinks hide the mismatch).
 - **`SaveImageFile`/`SaveVideoFile` outputs need the `type` discriminator**

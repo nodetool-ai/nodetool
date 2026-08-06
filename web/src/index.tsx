@@ -29,9 +29,6 @@ import {
 
 import ErrorBoundary from "./ErrorBoundary";
 
-// Lazy-load panel components to reduce initial bundle size
-const PanelLeft = React.lazy(() => import("./components/panels/PanelLeft"));
-const PanelBottom = React.lazy(() => import("./components/panels/PanelBottom"));
 import { LoadingSpinner } from "./components/ui_primitives";
 import { ThemeProvider } from "@mui/material/styles";
 import InitColorSchemeScript from "@mui/system/InitColorSchemeScript";
@@ -138,6 +135,15 @@ const SketchEditorPage = React.lazy(
 );
 const WorkspaceShell = React.lazy(
   () => import("./components/workspace/WorkspaceShell")
+);
+// Studio — the beginner-facing agentic-video shell (see docs/agentic-video-product.md)
+const StudioHome = React.lazy(() => import("./studio/StudioHome"));
+const StudioStoryboardPage = React.lazy(
+  () => import("./studio/StudioStoryboardPage")
+);
+const StudioScriptPage = React.lazy(() => import("./studio/StudioScriptPage"));
+const StudioTimelinePage = React.lazy(
+  () => import("./studio/StudioTimelinePage")
 );
 import {
   ChatThreadRedirect,
@@ -428,6 +434,33 @@ function getRoutes() {
         </ProtectedRoute>
       )
     },
+    // Studio: the beginner shell for agentic video creation. Two creation
+    // paths (storyboard, script) that both finish in the timeline editor.
+    ...(
+      [
+        { path: "/studio", el: <StudioHome /> },
+        { path: "/studio/storyboard/:boardId", el: <StudioStoryboardPage /> },
+        { path: "/studio/script/:scriptId", el: <StudioScriptPage /> },
+        { path: "/studio/timeline/:sequenceId", el: <StudioTimelinePage /> }
+      ] as const
+    ).map(({ path, el }) => ({
+      path,
+      element: (
+        <ProtectedRoute>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              width: "100%",
+              height: "100%"
+            }}
+          >
+            <SkipLinks />
+            <React.Suspense fallback={<LoadingSpinner />}>{el}</React.Suspense>
+          </div>
+        </ProtectedRoute>
+      )
+    })),
     {
       // New tabbed-document workspace (in progress). Lives alongside the
       // existing routes; will become the default once all document types

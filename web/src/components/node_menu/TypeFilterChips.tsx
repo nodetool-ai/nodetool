@@ -476,6 +476,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   {...params}
                   size="small"
                   placeholder="Search input type..."
+                  inputProps={{
+                    ...params.inputProps,
+                    "aria-label": "Search input type"
+                  }}
                 />
               )}
               slotProps={{
@@ -523,6 +527,10 @@ const TypeFilterChips: React.FC<TypeFilterChipsProps> = memo(
                   {...params}
                   size="small"
                   placeholder="Search output type..."
+                  inputProps={{
+                    ...params.inputProps,
+                    "aria-label": "Search output type"
+                  }}
                 />
               )}
               slotProps={{

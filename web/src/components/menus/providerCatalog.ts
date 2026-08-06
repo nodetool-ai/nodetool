@@ -468,12 +468,5 @@ export const AI_PROVIDER_SECRET_KEYS: ReadonlySet<string> = new Set(
   ).map((meta) => meta.key)
 );
 
-/** OAuth flows that connect an AI provider without storing an API key. */
-export const AI_PROVIDER_OAUTH: ReadonlyArray<"openai" | "hf" | "claude"> = [
-  "openai",
-  "hf",
-  "claude"
-];
-
 export const getProviderMeta = (key: string): ProviderMeta | undefined =>
   PROVIDER_META.find((p) => p.key === key);

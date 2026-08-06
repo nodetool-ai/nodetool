@@ -1282,15 +1282,15 @@ export const imageConfig: ModuleConfig = {
           "required": false,
           "values": [
             "1:1",
-            "1:4",
-            "1:8",
             "2:3",
             "3:2",
-            "3:4",
+            "1:4",
             "4:1",
+            "3:4",
             "4:3",
             "4:5",
             "5:4",
+            "1:8",
             "8:1",
             "9:16",
             "16:9",
@@ -2146,8 +2146,7 @@ export const imageConfig: ModuleConfig = {
           "values": [
             "1",
             "2",
-            "4",
-            "8"
+            "4"
           ]
         }
       ],
@@ -3359,6 +3358,14 @@ export const imageConfig: ModuleConfig = {
           "description": "The negative prompt for the generation Default value: \" \" (Max length: 500 characters)",
           "required": false,
           "max": 500
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "uploads": [
@@ -3443,6 +3450,14 @@ export const imageConfig: ModuleConfig = {
             "jpeg",
             "png"
           ]
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
+          "required": false
         }
       ],
       "uploads": [
@@ -3518,6 +3533,458 @@ export const imageConfig: ModuleConfig = {
           "title": "Nsfw Checker",
           "description": "Defaults to false. You can set it to false based on your needs. If set to false, our content filtering will be disabled, and all results will be returned directly by the model itself. Note: There is no guarantee that everything can be filtered out; if you are not satisfied with the results, you will need to make your own arrangements.",
           "required": false
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen3ProTextToImage",
+      "modelId": "qwen3/pro-text-to-image",
+      "title": "Qwen3 Pro Text to Image",
+      "description": "Qwen3 Pro Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
+          "required": true,
+          "min": 0,
+          "max": 800
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "The output image resolution.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The output image size.",
+          "required": false,
+          "values": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The generated image format.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default: true (recommended). When enabled, the model optimizes the positive prompt, which significantly improves results for simple descriptions.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Whether to enable content filtering. Optional. Defaults to false. When set to false, content filtering is disabled and all results are returned directly by the model. Note: Content filtering cannot guarantee that all inappropriate content will be detected. If the filtering results do not meet your requirements, you must implement additional content moderation measures.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt that describes content you do not want to appear in the image.",
+          "required": false,
+          "min": 0,
+          "max": 5000
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 1,
+          "title": "Seed",
+          "description": "The random seed. Value range: [0, 2147483647]. A fixed seed helps maintain relatively stable results.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen3TextToImage",
+      "modelId": "qwen3/text-to-image",
+      "title": "Qwen3 Text to Image",
+      "description": "Qwen3 Text to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
+          "required": true,
+          "min": 0,
+          "max": 800
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "",
+          "title": "Resolution",
+          "description": "The output image resolution.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The output image size.",
+          "required": false,
+          "values": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The generated image format.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default: true (recommended). When enabled, the model optimizes the positive prompt, which significantly improves results for simple descriptions.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Whether to enable content filtering. Optional. Defaults to false. When set to false, content filtering is disabled and all results are returned directly by the model. Note: Content filtering cannot guarantee that all inappropriate content will be detected. If the filtering results do not meet your requirements, you must implement additional content moderation measures.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt that describes content you do not want to appear in the image.",
+          "required": false,
+          "min": 0,
+          "max": 5000
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 1,
+          "title": "Seed",
+          "description": "The random seed. Value range: [0, 2147483647]. A fixed seed helps maintain relatively stable results.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen3ProImageToImage",
+      "modelId": "qwen3/pro-image-to-image",
+      "title": "Qwen3 Pro Image to Image",
+      "description": "Qwen3 Pro Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Input image URL array. Upload images and provide their URLs rather than the file content. Supports up to 3 images. Supported file types: `image/jpeg`, `image/png`, `image/webp`, `image/bmp`, and `image/gif`,`image/tiff`. Maximum file size: 10 MB per image.",
+          "required": true,
+          "min": 1,
+          "max": 3
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
+          "required": true,
+          "min": 0,
+          "max": 800
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "The output image resolution.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The output image size.",
+          "required": false,
+          "values": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The generated image format.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default: true (recommended). When enabled, the model optimizes the positive prompt, which significantly improves results for simple descriptions.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Whether to enable content filtering. Optional. Defaults to false. When set to false, content filtering is disabled and all results are returned directly by the model. Note: Content filtering cannot guarantee that all inappropriate content will be detected. If the filtering results do not meet your requirements, you must implement additional content moderation measures.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt that describes content you do not want to appear in the image.",
+          "required": false,
+          "min": 0,
+          "max": 5000
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 1,
+          "title": "Seed",
+          "description": "The random seed. Value range: [0, 2147483647]. A fixed seed helps maintain relatively stable results.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
+        }
+      ],
+      "validation": [
+        {
+          "field": "prompt",
+          "rule": "not_empty",
+          "message": "Prompt is required"
+        }
+      ]
+    },
+    {
+      "className": "Qwen3ImageToImage",
+      "modelId": "qwen3/image-to-image",
+      "title": "Qwen3 Image to Image",
+      "description": "Qwen3 Image to Image via Kie.ai.\n\n    kie, image, ai\n\n    ## Create Task",
+      "outputType": "image",
+      "fields": [
+        {
+          "name": "images",
+          "type": "list[image]",
+          "default": [],
+          "title": "Images",
+          "description": "Input image URL array. Upload images and provide their URLs rather than the file content. Supports up to 3 images. Supported file types: `image/jpeg`, `image/png`, `image/webp`, `image/bmp`, and `image/gif`,`image/tiff`. Maximum file size: 10 MB per image.",
+          "required": true,
+          "min": 1,
+          "max": 3
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "default": "",
+          "title": "Prompt",
+          "description": "The positive prompt that describes the image content, style, and composition you want to generate or edit. Both Chinese and English are supported.",
+          "required": true,
+          "min": 0,
+          "max": 800
+        },
+        {
+          "name": "resolution",
+          "type": "enum",
+          "default": "1K",
+          "title": "Resolution",
+          "description": "The output image resolution.",
+          "required": false,
+          "values": [
+            "1K",
+            "2K"
+          ]
+        },
+        {
+          "name": "image_size",
+          "type": "enum",
+          "default": "16:9",
+          "title": "Image Size",
+          "description": "The output image size.",
+          "required": false,
+          "values": [
+            "1:1",
+            "3:2",
+            "2:3",
+            "4:3",
+            "3:4",
+            "16:9",
+            "9:16",
+            "21:9"
+          ]
+        },
+        {
+          "name": "output_format",
+          "type": "enum",
+          "default": "png",
+          "title": "Output Format",
+          "description": "The generated image format.",
+          "required": false,
+          "values": [
+            "png",
+            "jpeg"
+          ]
+        },
+        {
+          "name": "prompt_extend",
+          "type": "bool",
+          "default": true,
+          "title": "Prompt Extend",
+          "description": "Whether to enable intelligent prompt rewriting. Default: true (recommended). When enabled, the model optimizes the positive prompt, which significantly improves results for simple descriptions.",
+          "required": false
+        },
+        {
+          "name": "nsfw_checker",
+          "type": "bool",
+          "default": false,
+          "title": "Nsfw Checker",
+          "description": "Whether to enable content filtering. Optional. Defaults to false. When set to false, content filtering is disabled and all results are returned directly by the model. Note: Content filtering cannot guarantee that all inappropriate content will be detected. If the filtering results do not meet your requirements, you must implement additional content moderation measures.",
+          "required": false
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "default": "",
+          "title": "Negative Prompt",
+          "description": "The negative prompt that describes content you do not want to appear in the image.",
+          "required": false,
+          "min": 0,
+          "max": 5000
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "default": 1,
+          "title": "Seed",
+          "description": "The random seed. Value range: [0, 2147483647]. A fixed seed helps maintain relatively stable results.",
+          "required": false,
+          "min": 0,
+          "max": 2147483647
+        }
+      ],
+      "uploads": [
+        {
+          "field": "images",
+          "kind": "image",
+          "isList": true,
+          "paramName": "image_urls"
         }
       ],
       "validation": [

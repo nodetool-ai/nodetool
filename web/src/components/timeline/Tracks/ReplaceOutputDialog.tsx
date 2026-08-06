@@ -46,8 +46,17 @@ export const ReplaceOutputDialog: React.FC<ReplaceOutputDialogProps> = memo(
         <TextInput
           value={assetId}
           onChange={(e) => setAssetId(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              handleConfirm();
+            }
+          }}
           placeholder="Asset ID"
           inputProps={{ "aria-label": "Asset ID" }}
+          // The dialog's only field, prefilled — focus it and select the old id
+          // so typing a replacement does not mean clearing it first.
+          autoFocus
+          onFocus={(e) => e.target.select()}
           fullWidth
           size="small"
         />

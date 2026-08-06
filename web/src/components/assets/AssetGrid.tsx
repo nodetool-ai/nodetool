@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useEffect, useMemo, useRef, memo } from "react";
+import React, { useCallback, useEffect, useMemo, memo } from "react";
 import CloseIcon from "@mui/icons-material/Close";
 import {
   Text,

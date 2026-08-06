@@ -26,6 +26,6 @@ export REPLICATE_API_TOKEN="YOUR_REPLICATE_API_KEY"
 npm.cmd run generate:replicate
 ```
 
-To inspect generated TypeScript classes for debugging, run the package command
-directly without `--manifest`. Files under `replicate-nodes/src/generated/` are
-intermediate codegen output and are gitignored.
+The generator's own flags are `--all | --module <name> | --from-metadata <path>`,
+plus `--strict` and `--no-cache`. Every mode writes the manifest to
+`packages/replicate-nodes/src/replicate-manifest.json`.

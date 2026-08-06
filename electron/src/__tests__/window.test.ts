@@ -1,8 +1,6 @@
 import { BrowserWindow, dialog, session } from 'electron';
-import path from 'path';
 import { createWindow, handleActivation, forceQuit, _resetPermissionHandlersForTesting } from '../window';
 import { setMainWindow, getMainWindow } from '../state';
-import { isAppQuitting } from '../main';
 import { logMessage } from '../logger';
 
 // Mocking dependencies

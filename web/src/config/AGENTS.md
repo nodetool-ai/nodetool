@@ -33,13 +33,12 @@ export const API_URL = 'http://localhost:7777';
 
 - `constants.ts` — Application-wide constants (zoom levels, file limits, cache times)
 - `shortcuts.ts` — Keyboard shortcut definitions
-- `models.ts` — Pre-configured AI model definitions
-- `data_types.tsx` — Node data type definitions and colors
-- `defaultLayouts.ts` — Default Dockview panel layouts
+- `data_types.ts` — Node data type definitions and colors
+- `optionalNodePacks.ts` — Node packs offered as optional installs
+- `quickActionNodeTypes.ts` / `quickAccessCategories.tsx` — Node menu quick-access entries
 
 ## Adding Configuration
 
-- **New shortcut**: Add a `ShortcutDefinition` to `shortcuts.ts`.
-- **New model**: Add a `UnifiedModel` entry to the appropriate array in `models.ts`.
-- **New data type**: Add to `DATA_TYPES` in `data_types.tsx`.
+- **New shortcut**: Add a `Shortcut` to `shortcuts.ts`.
+- **New data type**: Add to `DATA_TYPES` in `data_types.ts`.
 - **New constant**: Add to `constants.ts` with proper typing.

@@ -18,6 +18,10 @@ describe("resident toolbelt", () => {
     }
   });
 
+  it("keeps opening a document resident, so a closed document is never a dead end", () => {
+    expect(RESIDENT_TOOL_NAMES.has("ui_open_document")).toBe(true);
+  });
+
   it("teaches debug_app in the chat system prompt", () => {
     expect(CHAT_AGENT_SYSTEM_PROMPT).toContain("debug_app");
     // The draft, not the saved row, is what the App Builder must grade.

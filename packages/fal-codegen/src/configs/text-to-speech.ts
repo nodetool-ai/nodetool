@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "alibaba/qwen-audio-3-tts": {
+      className: "QwenAudio3Tts",
+      docstring:
+        "Qwen Audio 3.0 TTS (Flash) synthesizes natural speech from text with low latency.",
+      tags: ["audio", "tts", "text-to-speech", "qwen", "alibaba"],
+      useCases: [
+        "Narrate scripts and articles",
+        "Voice assistants and chatbots",
+        "Generate multilingual voiceovers",
+        "Produce audiobook drafts",
+        "Add speech to videos"
+      ]
+    },
+
     "fal-ai/qwen-3-tts/text-to-speech/1.7b": {
       className: "Qwen3TtsTextToSpeech17B",
       docstring:

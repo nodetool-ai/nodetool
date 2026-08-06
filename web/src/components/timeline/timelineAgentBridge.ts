@@ -359,8 +359,9 @@ export function getTimelineAgentHandler(
     throw new Error(
       `No timeline sequence "${sequenceId}" is open. ` +
         (open.length > 0
-          ? `Open sequences: ${open.join(", ")}.`
-          : "No timeline sequences are currently open.")
+          ? `Open sequences: ${open.join(", ")}. `
+          : "No timeline sequences are currently open. ") +
+        'Call ui_open_document with type "timeline" to open it.'
     );
   }
   return handler;
