@@ -28,7 +28,7 @@ The only time you touch code is when you are changing provider behavior (URL res
 | llama.cpp provider | `packages/runtime/src/providers/llama-provider.ts` |
 | vLLM provider | `packages/runtime/src/providers/vllm-provider.ts` |
 | Default base URLs | `packages/runtime/src/providers/defaults.ts` |
-| Provider registration block | `packages/runtime/src/providers/index.ts` lines 241–282 |
+| Provider registration block | `packages/runtime/src/providers/index.ts`, the local-only `if (!_cloudProfile)` block |
 
 ---
 
@@ -62,10 +62,10 @@ Trailing slashes are stripped before `/v1` is appended.
 
 ## Registration
 
-All three are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips production:
+All three are registered in `packages/runtime/src/providers/index.ts` inside a guard that skips the cloud profile — `isCloudProfileActive()` reads `NODETOOL_NODE_PROFILE` and `NODETOOL_ENV`, so a self-hosted deployment setting `NODETOOL_NODE_PROFILE=full` keeps them registered while the commercial cloud does not:
 
 ```typescript
-if (_envProcess.env["NODETOOL_ENV"] !== "production") {
+if (!_cloudProfile) {
   registerBuiltinProvider(
     PROVIDER_IDS.LMSTUDIO,
     LMStudioProvider,
@@ -130,9 +130,9 @@ Then set the URL:
 export LLAMA_CPP_URL=http://127.0.0.1:8080
 ```
 
-llama.cpp does not reliably support the OpenAI tool-call wire format. `LlamaProvider` sets `hasToolSupport` to `false` and falls back to text-emulated tool calls: after a `stop` finish reason, the provider scans the accumulated text for lines matching `FunctionName(arg=value, ...)` patterns and converts them to `ToolCall` objects. This parsing is in `parseEmulatedToolCalls()` / `parseKeywordArgs()` in `llama-provider.ts`.
+`llama-server` constrains generation with a grammar built from the tool schemas, so tool calling is native for any model it serves. `LlamaProvider` returns `true` from `hasToolSupport` and does no prompt-level emulation.
 
-Message normalization is also heavier here: system messages are collected and prepended, `tool` role messages are rewritten as `user` messages, and strict user/assistant alternation is enforced by inserting empty filler turns.
+`LlamaProvider` extends `OpenAICompatProvider`, which supplies the chat path, sampling parameters, usage tracking, and message normalization — the same code LM Studio and vLLM ride. The provider itself only handles URL resolution, model listing, and context-length error detection.
 
 ### vLLM
 
@@ -157,7 +157,7 @@ If your vLLM deployment requires an API key:
 export VLLM_API_KEY=your-key
 ```
 
-`VLLMProvider` extends `OpenAIProvider` and reports tool support as `true`.
+`VLLMProvider` extends `OpenAICompatProvider` and reports tool support as `true`.
 
 ---
 
@@ -169,7 +169,7 @@ You need to edit source only when changing how a provider works, not when adding
 |---|---|
 | URL resolution or default port | `packages/runtime/src/providers/defaults.ts` and the constructor in the provider file |
 | Tool-call handling | `lmstudio-provider.ts` / `llama-provider.ts` / `vllm-provider.ts` |
-| Message normalization (llama.cpp) | `normalizeMessagesForLlama()` in `llama-provider.ts` |
+| Message normalization (all three) | `packages/runtime/src/providers/openai-compat-provider.ts` |
 | Registration kwargs (env var name, default value) | `packages/runtime/src/providers/index.ts` registration block |
 | Container env propagation | `getContainerEnv()` in the provider class |
 

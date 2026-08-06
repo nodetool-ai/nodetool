@@ -19,7 +19,7 @@ npm install @nodetool-ai/deploy
 | `StateManager` | class | Persists and reads deployment state |
 | Progress helpers | function | Progress tracking for long-running deploys |
 | SSH / Docker utilities | function | SSH sessions, image builds, `docker run`, image specs |
-| `SelfHostedDeployer` | class | Deploys to a self-hosted server over SSH + Compose |
+| `DockerDeployer` | class | Deploys to a self-hosted server over SSH + Compose (`self-hosted.ts`) |
 | Compose generation | function | Generates `docker-compose` files for a deployment |
 | Auth / user helpers | function | Remote user management and API user manager |
 | Admin client / operations / routes | function | Admin API client, operations, and route handlers |

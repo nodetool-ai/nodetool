@@ -45,7 +45,7 @@ reference lives in [CLAUDE.md](CLAUDE.md) and [docs/cli.md](docs/cli.md).
 | Map changed files → minimal workspaces to rebuild/test | `nodetool affected [--base main]` | — | instant |
 | Author/inspect a graph against the live registry | — | `create_workflow`, `search_nodes`, `list_nodes`, `get_node_info`, `get_example_workflow`, `export_workflow_digraph` | — |
 | Jobs & assets | `nodetool jobs …` / `nodetool assets …` | `list_jobs`, `get_job`, `get_job_logs`, `list_assets`, `get_asset` | — |
-| Agent/chat REPL (loop \| plan \| graph \| multi-agent) | `nodetool-chat --agent` (`npm run dev:chat`) | — | — |
+| Agent/chat REPL (one unified agent loop, no mode to select) | `nodetool-chat` (`npm run dev:chat`) | — | — |
 | Deploy + remote ops (Docker/SSH/RunPod/GCP/Supabase) | `nodetool deploy <init\|plan\|apply\|status\|logs\|destroy>`; `deploy workflows <sync\|run>`, `deploy database`, `deploy collections` | — | — |
 | Trace tokens/cost/timing (OTel span tree) | `--trace-file <f.jsonl>` / `--trace-stdout pretty\|json` on any CLI run | — | — |
 
