@@ -473,8 +473,9 @@ Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   and failure semantics — consumers work unchanged. Bridged tool calls surface
   as `tool_call_update` events (ids `codeact_<n>`).
 - Progressive disclosure: resident tools (`CODEACT_RESIDENT_TOOL_NAMES` —
-  web search, browser, HTTP, files, memory, `run_subtask`) are documented in
-  full; past `CODEACT_DEFER_THRESHOLD` tools, the rest is name-only in the
+  the search family incl. `web_search`/`search_nodes`/`run_search`/
+  `asset_search`/`grep`/`glob`, plus browser, HTTP, files, memory,
+  `run_subtask`) are documented in full; past `CODEACT_DEFER_THRESHOLD` tools, the rest is name-only in the
   prompt and discovered in-sandbox with `await searchTools("query")`
   (ToolSearch grammar). All tools stay callable either way.
 - The mode threads through `TaskExecutor`, `ParallelTaskExecutor`, and

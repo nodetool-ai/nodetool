@@ -123,10 +123,11 @@ provider transcript only carries `execute_code`.
 2. The tool catalog as **typed signatures**, generated from each tool's JSON
    schema (`await tools.browse({url: string, timeout?: number})` + first
    sentence of the description) — and only for the **resident** set. The
-   high-traffic tools nearly every step reaches for (web search, browser,
-   HTTP, workspace files, memory, `run_subtask` —
-   `CODEACT_RESIDENT_TOOL_NAMES`, overridable per executor) stay fully
-   documented; once the belt exceeds `CODEACT_DEFER_THRESHOLD` (16),
+   high-traffic tools nearly every step reaches for (the whole search family
+   — `web_search`, `search_nodes`, `run_search`, `google_news`,
+   `google_images`, `asset_search`, `grep`, `glob` — plus browser, HTTP,
+   workspace files, memory, `run_subtask` — `CODEACT_RESIDENT_TOOL_NAMES`,
+   overridable per executor) stay fully documented; once the belt exceeds `CODEACT_DEFER_THRESHOLD` (16),
    everything else is listed by name only and discovered in-sandbox via
    `await searchTools("query")`, which reuses the ToolSearch query grammar
    (`select:`, keywords, `+substr`) and returns each match's signature and

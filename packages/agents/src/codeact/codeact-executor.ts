@@ -75,8 +75,16 @@ export const EXECUTE_CODE_TOOL_NAME = "execute_code";
  * does not cost 70 signatures of prompt.
  */
 export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
-  // Web + retrieval.
+  // Search family — every discovery entry point stays top level.
   "web_search",
+  "search_nodes",
+  "run_search",
+  "google_news",
+  "google_images",
+  "asset_search",
+  "grep",
+  "glob",
+  // Web + retrieval.
   "browser",
   "http_request",
   "download_file",
