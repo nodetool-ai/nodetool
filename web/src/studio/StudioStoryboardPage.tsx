@@ -20,6 +20,7 @@ import StoryboardQueueOverlay from "../components/storyboard/StoryboardQueueOver
 import { useStoryboardStore } from "../stores/storyboard/StoryboardStore";
 import { useStoryboardGenerationSubscriptions } from "../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardServerSync } from "../hooks/storyboard/useStoryboardServerSync";
+import { useDocumentUndoShortcuts } from "../hooks/useDocumentUndoShortcuts";
 import { useStoryboardAgentBridge } from "../hooks/storyboard/useStoryboardAgentBridge";
 import { useDirectScreenplay } from "../hooks/storyboard/useDirectScreenplay";
 import { useAssembleTimeline } from "../hooks/storyboard/useAssembleTimeline";
@@ -65,6 +66,17 @@ const StudioStoryboardPage = () => {
   useStoryboardAgentBridge(boardId);
   useStoryboardGenerationSubscriptions();
   useStudioModelPolicy(boardId);
+
+  // The board's undo buttons advertise ⌘Z; the page is the only surface, so
+  // it is always the active one.
+  const undo = useStoryboardStore((state) => state.undo);
+  const redo = useStoryboardStore((state) => state.redo);
+  useDocumentUndoShortcuts({
+    active: true,
+    enabled: true,
+    onUndo: useCallback(() => undo(boardId), [undo, boardId]),
+    onRedo: useCallback(() => redo(boardId), [redo, boardId])
+  });
 
   const { direct, directing, error: directError } = useDirectScreenplay();
   const handleDirect = useCallback(

@@ -28,7 +28,7 @@ const TOPUP_CREDITS = 1_000;
 
 const StudioAccountPage = () => {
   const theme = useTheme();
-  const { status, loading } = useStudioCredits();
+  const { status, loading, unavailable, refetch } = useStudioCredits();
   const utils = trpc.useUtils();
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +50,14 @@ const StudioAccountPage = () => {
         sx={{ flex: 1, minHeight: 0, overflowY: "auto", p: SPACING.xl }}
       >
         {loading && <LoadingSpinner />}
+        {unavailable && (
+          <AlertBanner severity="warning">
+            Couldn&apos;t load the credit balance — it is unknown, not empty.{" "}
+            <EditorButton size="small" onClick={refetch}>
+              Retry
+            </EditorButton>
+          </AlertBanner>
+        )}
         {error && (
           <AlertBanner severity="error" onClose={() => setError(null)}>
             {error}

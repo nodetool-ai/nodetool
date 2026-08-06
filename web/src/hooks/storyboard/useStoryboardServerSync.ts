@@ -70,6 +70,9 @@ export const useStoryboardServerSync = (boardId: string): void => {
   // other reference in the store means unsaved local edits.
   const syncedRef = useRef<StoryboardBoard | null>(null);
   const inFlightRef = useRef(false);
+  // Set when unmount catches a save mid-flight: the finally block runs one
+  // more flush save so the pending edit isn't lost with the timer.
+  const flushAfterSaveRef = useRef(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const utilsRef = useRef(utils);
   utilsRef.current = utils;
@@ -112,13 +115,18 @@ export const useStoryboardServerSync = (boardId: string): void => {
       }
     };
 
-    const save = async (): Promise<void> => {
-      if (disposed || inFlightRef.current) return;
+    const save = async (flush = false): Promise<void> => {
+      if (inFlightRef.current) {
+        if (flush) flushAfterSaveRef.current = true;
+        return;
+      }
+      if (disposed && !flush) return;
       const board = store.getState().boards[boardId];
       const revision = store.getState().serverRevisions[boardId];
       if (!board || !revision || board === syncedRef.current) return;
 
       inFlightRef.current = true;
+      let saved = false;
       try {
         const updated = await trpcClient.storyboards.update.mutate({
           id: boardId,
@@ -127,17 +135,24 @@ export const useStoryboardServerSync = (boardId: string): void => {
           document: boardToDocument(board),
           timelineId: board.timelineId
         });
-        if (disposed) return;
         store.getState().setServerRevision(boardId, updated.updatedAt);
         syncedRef.current = board;
+        saved = true;
         void utilsRef.current.storyboards.list.invalidate();
-        // Edits landed while the save was in flight — go again.
+        // Edits landed while the save was in flight — go again (via the
+        // flush chain when the hook is already unmounted).
         if (store.getState().boards[boardId] !== syncedRef.current) {
-          schedule();
+          if (disposed || flushAfterSaveRef.current) {
+            flushAfterSaveRef.current = true;
+          } else {
+            schedule();
+          }
         }
       } catch (error) {
-        if (disposed) return;
         console.error("Storyboard autosave failed", error);
+        // Unmounted mid-flush: no live hook remains to retry or reload; the
+        // next mount reconciles against the server copy.
+        if (disposed) return;
         if (/modified since last read/i.test(getErrorMessage(error))) {
           // CAS conflict: the server copy wins.
           await load();
@@ -147,6 +162,10 @@ export const useStoryboardServerSync = (boardId: string): void => {
         }
       } finally {
         inFlightRef.current = false;
+        if (saved && flushAfterSaveRef.current) {
+          flushAfterSaveRef.current = false;
+          void save(true);
+        }
       }
     };
 
@@ -171,6 +190,10 @@ export const useStoryboardServerSync = (boardId: string): void => {
       disposed = true;
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
+      // Flush any pending debounced edit instead of dropping it with the
+      // timer — leaving the page must not lose the last keystrokes.
+      if (inFlightRef.current) flushAfterSaveRef.current = true;
+      else void save(true);
     };
   }, [boardId]);
 };

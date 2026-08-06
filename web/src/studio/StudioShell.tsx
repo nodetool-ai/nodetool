@@ -21,13 +21,21 @@ import {
   Tooltip
 } from "../components/ui_primitives";
 import { useStudioCredits } from "./useStudioCredits";
+import { useStudioAssistantModel } from "./useStudioAssistantModel";
 
 const CreditsChip = () => {
   const navigate = useNavigate();
-  const { status, remaining, loading } = useStudioCredits();
-  const title = status
-    ? `${status.plan.name} plan — ${status.spentCredits} of ${status.grantedCredits} credits used. 1 credit = 1¢ of generation. Click to manage.`
-    : "Plan & credits";
+  const { status, remaining, loading, unavailable } = useStudioCredits();
+  const title = unavailable
+    ? "Couldn't load the credit balance. Click to retry from the account page."
+    : status
+      ? `${status.plan.name} plan — ${status.spentCredits} of ${status.grantedCredits} credits used. 1 credit = 1¢ of generation. Click to manage.`
+      : "Plan & credits";
+  const label = loading
+    ? "credits…"
+    : unavailable
+      ? "credits unavailable"
+      : `${remaining} credits`;
   return (
     <Tooltip title={title}>
       <span>
@@ -35,9 +43,11 @@ const CreditsChip = () => {
           compact
           clickable
           onClick={() => navigate("/studio/account")}
-          color={remaining > 0 ? "primary" : "error"}
+          color={
+            unavailable ? "default" : remaining > 0 ? "primary" : "error"
+          }
           icon={<BoltRoundedIcon />}
-          label={loading ? "credits…" : `${remaining} credits`}
+          label={label}
         />
       </span>
     </Tooltip>
@@ -62,6 +72,7 @@ const StudioShell = ({
 }: StudioShellProps) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  useStudioAssistantModel();
   return (
     <FlexColumn fullHeight sx={{ width: "100%", minHeight: 0 }}>
       <FlexRow
