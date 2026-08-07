@@ -213,8 +213,6 @@ describe("providerDisplay", () => {
       expect(getProviderUrl("google")).toBe("https://ai.google.dev");
       expect(getProviderUrl("replicate")).toBe("https://replicate.com");
       expect(getProviderUrl("Replicate")).toBe("https://replicate.com");
-      expect(getProviderUrl("aime")).toBe("https://www.aime.info/en/");
-      expect(getProviderUrl("AIME")).toBe("https://www.aime.info/en/");
       expect(getProviderUrl("meshy")).toBe("https://www.meshy.ai");
       expect(getProviderUrl("rodin")).toBe("https://rodin.ai");
       expect(getProviderUrl("triposr")).toBe("https://triposr.github.io");

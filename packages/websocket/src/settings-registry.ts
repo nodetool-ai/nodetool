@@ -329,7 +329,6 @@ sec(
   "Replicate",
   "Replicate API Token for running models on Replicate's cloud infrastructure. Get yours at https://replicate.com/account/api-tokens"
 );
-sec("AIME_API_KEY", "Aime", "Aime API key for accessing Aime AI services");
 sec(
   "GOOGLE_MAIL_USER",
   "Google",

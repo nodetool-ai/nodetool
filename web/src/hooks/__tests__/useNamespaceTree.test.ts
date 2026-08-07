@@ -235,7 +235,6 @@ describe("useNamespaceTree", () => {
       const getRequiredKey = (namespace: string) => {
         const apiKeyNames: Record<string, string> = {
           openai: "OpenAI API Key",
-          aime: "Aime API Key",
           anthropic: "Anthropic API Key",
           replicate: "Replicate API Token",
           meshy: "Meshy API Key"
@@ -247,7 +246,6 @@ describe("useNamespaceTree", () => {
       expect(getRequiredKey("openai.chat")).toBe("OpenAI API Key");
       expect(getRequiredKey("anthropic.completion")).toBe("Anthropic API Key");
       expect(getRequiredKey("replicate.image")).toBe("Replicate API Token");
-      expect(getRequiredKey("aime.test")).toBe("Aime API Key");
       expect(getRequiredKey("meshy.generate")).toBe("Meshy API Key");
     });
   });

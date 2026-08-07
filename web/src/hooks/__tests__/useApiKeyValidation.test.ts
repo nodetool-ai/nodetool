@@ -173,18 +173,6 @@ describe("useApiKeyValidation", () => {
     });
   });
 
-  describe("AIME namespace", () => {
-    it("returns correct display name for AIME", () => {
-      mockUseSecrets.mockReturnValue(
-        createMockSecrets(() => false)
-      );
-
-      const { result } = renderHook(() => useApiKeyValidation("aime.chat"));
-
-      expect(result.current).toBe("Aime API Key");
-    });
-  });
-
   describe("Calendly namespace", () => {
     it("returns correct display name for Calendly", () => {
       mockUseSecrets.mockReturnValue(

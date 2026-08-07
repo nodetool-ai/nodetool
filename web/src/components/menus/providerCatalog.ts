@@ -330,13 +330,6 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://aki.io/"
   },
   {
-    key: "AIME_API_KEY",
-    name: "Aime",
-    description: "Aime AI services.",
-    section: "gateways",
-    docsUrl: "https://aime.info/"
-  },
-  {
     key: "KIE_API_KEY",
     name: "Kie.ai",
     description: "Kie.ai unified model access.",
