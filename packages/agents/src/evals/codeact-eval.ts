@@ -134,8 +134,9 @@ async function runCase(
   opts: RunCodeActEvalOptions
 ): Promise<CodeActCaseResult> {
   const recorder = createCodeActRecorder();
-  const tools = createCodeActTools(recorder);
-  const maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+  const tools = (evalCase.createTools ?? createCodeActTools)(recorder);
+  const maxIterations =
+    evalCase.maxIterations ?? opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
 
   const context = new ProcessingContext({
     jobId: `codeact-eval-${randomUUID()}`,
