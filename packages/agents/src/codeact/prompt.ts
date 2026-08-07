@@ -74,7 +74,10 @@ raw values you built the result from, fix the extraction, and call \`finish\`
 again in the SAME program — do not spend a fresh action recovering from a
 shape you can see right there. The schema checks types, not truth: a status,
 an id, or a stringified envelope passes where the asked-for content should
-be — log each value and confirm it IS the thing requested before finishing.`;
+be — log each value and confirm it IS the thing requested before finishing.
+Never satisfy a string field by stringifying an envelope: dig out the
+innermost value that was asked for (\`r.result.outputs.name\`, not
+\`JSON.stringify(r.result)\`).`;
 
 const FINISH_FREEFORM = `# Completing the step
 
