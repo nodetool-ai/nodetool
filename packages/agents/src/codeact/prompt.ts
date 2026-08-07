@@ -22,8 +22,14 @@ Rules:
 - Every \`execute_code\` call carries a \`title\`: 3-8 words, user-facing,
   naming what THIS action does ("Rendering product images from CSV") — it is
   the only thing the user sees while your code runs.
-- Chain related work into ONE action: call several tools, loop, branch, and
-  post-process in the same program instead of one action per tool call.
+- Chain the WHOLE pipeline into one action: call several tools, loop over
+  items, branch on intermediate results, retry inside try/catch, and
+  post-process in the same program. An action that makes one tool call and
+  returns to look at it is JSON tool-calling with extra steps — reach for a
+  new action only when you genuinely cannot decide the next call without
+  seeing an observation first (and then finish the rest in that next action).
+- Multi-round protocols (poll a job, answer run escalations, retry a flaky
+  call) are ONE action: write the loop, not one action per round.
 - \`state\` is a plain object that persists across your actions in this step.
   Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
   them next turn — never re-fetch what you already have.
@@ -54,7 +60,9 @@ const FINISH_SCHEMA = `# Completing the step
 
 Call \`await finish(result)\` when the objective is met. The result is validated
 against the output schema below; an invalid result throws with the violations
-so you can correct it. The step ONLY completes through \`finish\`.`;
+so you can correct it. The step ONLY completes through \`finish\`. Call it in
+the SAME action that computes the final value — a separate finish-only turn
+is a wasted round trip.`;
 
 const FINISH_FREEFORM = `# Completing the step
 
@@ -83,7 +91,7 @@ function renderSandboxSummary(
     lines.join("\n"),
     `Built-ins: ${manifest.nativeGlobals.join(", ")}.`,
     `Not available: ${manifest.blockedGlobals.join(", ")}.`,
-    `Each action runs under the sandbox limits (execution timeout, memory, fetch count/size); split long work across actions and carry progress in \`state\`.`
+    `Each action runs under the sandbox limits (execution timeout, memory, fetch count/size). Only work that would actually exceed them gets split across actions (carry progress in \`state\`); everything else belongs in one action.`
   ].join("\n\n");
 }
 
