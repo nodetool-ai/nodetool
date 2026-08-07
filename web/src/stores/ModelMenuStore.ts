@@ -79,7 +79,6 @@ export const requiredSecretForProvider = (
   if (p.includes(PROVIDER_IDS.HUGGINGFACE) || p.includes("hf_")) {return "HF_TOKEN";}
   if (p.includes(PROVIDER_IDS.REPLICATE)) {return "REPLICATE_API_TOKEN";}
   if (p.includes("fal")) {return "FAL_API_KEY";}
-  if (p.includes("aime")) {return "AIME_API_KEY";}
   if (p.includes(PROVIDER_IDS.MOONSHOT) || p.includes("kimi")) {return "KIMI_API_KEY";}
   if (p.includes(PROVIDER_IDS.MINIMAX)) {return "MINIMAX_API_KEY";}
   if (p.includes(PROVIDER_IDS.ALIBABA)) {return "DASHSCOPE_API_KEY";}

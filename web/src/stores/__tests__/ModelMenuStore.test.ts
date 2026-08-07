@@ -39,10 +39,6 @@ describe("ModelMenuStore", () => {
       expect(requiredSecretForProvider("fal")).toBe("FAL_API_KEY");
     });
 
-    it("returns AIME_API_KEY for AIME provider", () => {
-      expect(requiredSecretForProvider("aime")).toBe("AIME_API_KEY");
-    });
-
     it("returns KIMI_API_KEY for Moonshot/Kimi provider", () => {
       expect(requiredSecretForProvider("moonshot")).toBe("KIMI_API_KEY");
       expect(requiredSecretForProvider("Moonshot")).toBe("KIMI_API_KEY");
