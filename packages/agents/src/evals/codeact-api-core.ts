@@ -1275,7 +1275,9 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
     objective:
       'Render the brief "a red fox in deep snow" with a text-to-image model, ' +
       "then have a vision chat model critique the result against that same " +
-      "brief. Finish with {asset_uri, verdict, score} from the critique.",
+      "brief using the critique judge (not the adherence scorer). Finish " +
+      "with {asset_uri, verdict, score} — verdict is the critique's own " +
+      "verdict string, not a serialized report.",
     outputSchema: {
       type: "object",
       properties: {
@@ -1417,7 +1419,8 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       'Save a note asset named "run-notes.txt" whose content is exactly ' +
       '"fox: ok". Then find that asset again by searching for "run-notes" ' +
       "and read its content back. Finish with {asset_id: <the saved " +
-      "asset's id>, content: <what you read back>}.",
+      "asset's id>, content: <the text stored in the asset — the file body " +
+      "you read back, not the asset record>}.",
     outputSchema: {
       type: "object",
       properties: { asset_id: { type: "string" }, content: { type: "string" } },

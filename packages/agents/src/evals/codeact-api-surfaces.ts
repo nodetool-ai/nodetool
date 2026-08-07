@@ -1872,8 +1872,9 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     objective:
       'Remember for this conversation, under the title "preferred image ' +
       'model", that the house image model is fal_ai/flux/schnell. Then the ' +
-      "user corrects you: it is really fal_ai/flux/dev. Fix the note you just " +
-      "saved instead of adding a second one. Finish with {memoryId, content, " +
+      "user corrects you: it is really fal_ai/flux/dev. Update the note you " +
+      "just saved in place — do not delete it or add a second one. Finish " +
+      "with {memoryId, content, " +
       "total} — the id of that note, its content as the memory list now " +
       "reports it, and how many memories the list holds.",
     outputSchema: obj({ memoryId: S, content: S, total: N }, [
