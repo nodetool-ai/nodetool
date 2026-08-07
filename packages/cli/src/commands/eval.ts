@@ -312,17 +312,26 @@ const codeActSuite: EvalSuite = {
   description:
     "Run the CodeAct execution eval suite (steps act by writing sandboxed JavaScript over the toolbelt — docs/codeact-design.md) against a provider/model",
   async listCases() {
-    const { CODEACT_EVAL_CASES } = await import("@nodetool-ai/agents");
-    return CODEACT_EVAL_CASES.map((c) => ({
+    const { CODEACT_EVAL_CASES, CODEACT_API_EVAL_CASES } = await import(
+      "@nodetool-ai/agents"
+    );
+    return [...CODEACT_EVAL_CASES, ...CODEACT_API_EVAL_CASES].map((c) => ({
       id: c.id,
       description: c.description
     }));
   },
   async run(deps) {
-    const { CODEACT_EVAL_CASES, runCodeActEval, formatCodeActReport } =
-      await import("@nodetool-ai/agents");
+    const {
+      CODEACT_EVAL_CASES,
+      CODEACT_API_EVAL_CASES,
+      runCodeActEval,
+      formatCodeActReport
+    } = await import("@nodetool-ai/agents");
 
-    const cases = selectCases(CODEACT_EVAL_CASES, deps.caseIds);
+    const cases = selectCases(
+      [...CODEACT_EVAL_CASES, ...CODEACT_API_EVAL_CASES],
+      deps.caseIds
+    );
     deps.log(
       `Running ${cases.length} codeact case(s) with ${deps.providerId}/${deps.model}`
     );
