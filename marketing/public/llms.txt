@@ -52,6 +52,7 @@
 - [Studio or Cloud — which should I use?](https://nodetool.ai/faq/studio-or-cloud)
 - [Which models are supported?](https://nodetool.ai/faq/which-models-are-supported)
 - [Can I run models locally?](https://nodetool.ai/faq/can-i-run-models-locally)
+- [Do I need a GPU to run NodeTool?](https://nodetool.ai/faq/do-i-need-a-gpu)
 - [How is NodeTool different from ComfyUI?](https://nodetool.ai/faq/how-is-nodetool-different-from-comfyui)
 - [How is NodeTool different from Weavy (now Figma Weave) and other closed canvases?](https://nodetool.ai/faq/how-is-nodetool-different-from-closed-canvases)
 - [How is NodeTool different from n8n or Flowise?](https://nodetool.ai/faq/how-is-nodetool-different-from-n8n-and-flowise)
