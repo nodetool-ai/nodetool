@@ -19,7 +19,7 @@ workflow updates.
 
 ## WebSocket Protocol
 
-For the full protocol reference, see the [WebSocket API](../docs/websocket-api.md)
+For the full protocol reference, see the [WebSocket API](../../docs/websocket-api.md)
 documentation page. The summary below covers the basics used by this runner.
 
 The runner communicates with the NodeTool backend over a single WebSocket
