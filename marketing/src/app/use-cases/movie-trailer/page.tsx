@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import FaqSection from "../../../components/FaqSection";
+import { movieTrailerUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import MovieTrailerGraph from "../../../components/MovieTrailerGraph";
 
@@ -31,32 +33,12 @@ const shots = [
   { src: "/trailer-shot-6.png", caption: "The getaway car breaks loose across the flats" },
 ];
 
-const steps = [
-  {
-    icon: FileText,
-    title: "Start with one line",
-    body: "Type the logline. Two more inputs set the visual style and the shot count, that's the entire brief.",
-    detail: "A getaway driver outruns a collapsing bridge · gritty daylight · 6 shots",
-  },
-  {
-    icon: Clapperboard,
-    title: "Direct the storyboard",
-    body: "One Director node writes the screenplay: a shot for every beat, each with its own camera direction, under one style bible.",
-    detail: "6 shots · framing, lens, angle, movement · one style bible",
-  },
-  {
-    icon: ImageIcon,
-    title: "Render the key art",
-    body: "Screenplay Shots turns each shot into an image prompt — action, camera, style — and a text-to-image model renders it as a cinematic 16:9 frame.",
-    detail: "2K · anamorphic framing · film grain · no on-screen text",
-  },
-  {
-    icon: Film,
-    title: "Animate and cut",
-    body: "An image-to-video model animates every frame, then a Concat node stitches them into one finished trailer.",
-    detail: "Image-to-Video · 720p · auto-concatenated",
-  },
-];
+/** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
+const stepIcons = [FileText, Clapperboard, ImageIcon, Film];
+const steps = movieTrailerUseCase.steps.map((step, i) => ({
+  ...step,
+  icon: stepIcons[i],
+}));
 
 const tweaks = [
   {
@@ -428,6 +410,11 @@ export default function MovieTrailerUseCase() {
             </div>
           </div>
         </section>
+
+        {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
+        <div className="relative py-8">
+          <FaqSection items={movieTrailerUseCase.faq} className="mx-auto max-w-3xl px-6" />
+        </div>
 
         {/* Closing CTA */}
         <section className="relative py-24">

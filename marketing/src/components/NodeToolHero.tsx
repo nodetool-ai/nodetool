@@ -34,10 +34,11 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            Say what you want and the agent builds the workflow on your canvas
-            and runs it — films, posters, product videos, and music, start to
-            finish. Every major model, your own keys, and no credits or markups
-            in between.
+            NodeTool is the open-source, agent-first creative workspace: one
+            canvas for image, video, audio, and text, where every editor is a
+            tool an agent can drive. Say what you want and the agent builds the
+            workflow and runs it — on every major model, with your own keys, at
+            provider prices.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">

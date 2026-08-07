@@ -3,6 +3,8 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { faqForSurface, type FaqEntry, type FaqSurface } from "@/data/faqEntries";
+import JsonLd from "./JsonLd";
+import { faqPageSchema } from "@/lib/jsonld";
 
 /**
  * Inline FAQ block — the single rendering used on the `/faq` hub, on the
@@ -25,6 +27,11 @@ export type FaqBlockProps = {
   linkToStandalone?: boolean;
   /** Extra classes on the wrapping section. */
   className?: string;
+  /**
+   * Emit `FAQPage` JSON-LD for the rows this block renders. Off by default so
+   * a page with several blocks emits one combined FAQPage instead of several.
+   */
+  emitSchema?: boolean;
 };
 
 const markdownComponents = {
@@ -88,6 +95,7 @@ export default function FaqBlock({
   heading = "Frequently asked questions",
   linkToStandalone = false,
   className = "",
+  emitSchema = false,
 }: FaqBlockProps) {
   const rows = items ?? (surface ? faqForSurface(surface) : []);
   if (rows.length === 0) return null;
@@ -97,6 +105,17 @@ export default function FaqBlock({
       aria-label={heading ?? "Frequently asked questions"}
       className={`mx-auto max-w-3xl px-6 ${className}`}
     >
+      {emitSchema && (
+        <JsonLd
+          data={faqPageSchema(
+            rows.map((row) => ({
+              question: row.question,
+              answer: row.answerMd,
+              url: row.route,
+            }))
+          )}
+        />
+      )}
       {heading && (
         <h2 className="text-2xl font-semibold tracking-tight text-white">
           {heading}

@@ -1,4 +1,6 @@
 import JsonLd from "../../../components/JsonLd";
+import { breadcrumbSchema, howToSchema } from "../../../lib/jsonld";
+import { productVideoUseCase } from "../../../data/useCaseEntries";
 import type { Metadata, Viewport } from "next";
 
 const TITLE =
@@ -49,24 +51,24 @@ export default function UseCaseLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const useCase = productVideoUseCase;
+  const breadcrumb = breadcrumbSchema([
+    { name: "Use cases", url: "/#use-cases" },
+    { name: "AI Product Video Generator", url: useCase.route },
+  ]);
+  // The steps below are the ones the page renders under "How it works".
+  const howTo = howToSchema({
+    name: useCase.howToName,
+    description: useCase.howToDescription,
+    url: useCase.route,
+    tools: useCase.tools,
+    steps: useCase.steps.map((step) => ({ name: step.title, text: step.body })),
+  });
+
   return (
     <>
-      <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@type": "BreadcrumbList",
-          itemListElement: [
-            { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
-            { "@type": "ListItem", position: 2, name: "Use cases", item: "https://nodetool.ai/#use-cases" },
-            {
-              "@type": "ListItem",
-              position: 3,
-              name: "AI Product Video Generator",
-              item: "https://nodetool.ai/use-cases/product-video",
-            },
-          ],
-        }}
-      />
+      <JsonLd data={breadcrumb} />
+      <JsonLd data={howTo} />
       {children}
     </>
   );

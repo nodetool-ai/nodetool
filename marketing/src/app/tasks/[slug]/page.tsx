@@ -6,6 +6,7 @@ import { ArrowLeft, Download, Boxes, Cpu, Sparkles } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import WorkflowGraphFromJson from "@/components/WorkflowGraphFromJson";
 import { SmartDownloadButton } from "@/app/SmartDownloadButton";
 import {
@@ -89,15 +90,8 @@ export default async function TaskPage({
       url: taskCanonical(entry),
     },
   };
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: entry.faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  // Mirrors the FAQ rendered below — same rows, same order.
+  const faqLd = faqPageSchema(toQaPairs(entry.faqs));
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#040408] text-white">

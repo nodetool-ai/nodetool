@@ -42,6 +42,13 @@ export type QaPair = {
   url?: string;
 };
 
+/** Adapter for the `{ q, a }` rows in the model, provider, and task data. */
+export function toQaPairs(
+  rows: readonly { q: string; a: string }[]
+): QaPair[] {
+  return rows.map((row) => ({ question: row.q, answer: row.a }));
+}
+
 export type QuestionSchema = {
   "@type": "Question";
   name: string;
