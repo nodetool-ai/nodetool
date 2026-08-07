@@ -38,6 +38,10 @@ export default {
     // (used by useInpaintHere → SelectionActionBar). Mirrors protocol/gpu.
     "^@nodetool-ai/image-editor$":
       "<rootDir>/../packages/image-editor/src/index.ts",
+    // Subpaths carry the ESM `.js` extension (`painting.js`); strip it before
+    // the generic subpath mapping resolves to source. Mirrors protocol.
+    "^@nodetool-ai/image-editor/(.*)\\.js$":
+      "<rootDir>/../packages/image-editor/src/$1",
     "^@nodetool-ai/image-editor/(.*)$":
       "<rootDir>/../packages/image-editor/src/$1",
     // Shared model-price lookup (also used by the server-side run estimate);

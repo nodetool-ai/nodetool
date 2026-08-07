@@ -10,17 +10,14 @@ import type { BlendMode } from "../types";
 
 // ─── Dirty-rect types ────────────────────────────────────────────────────────
 
-export interface DirtyRectBox {
-  minX: number;
-  minY: number;
-  maxX: number;
-  maxY: number;
-}
-
-/** Mutable ref-like object for tracking the dirty rect during a stroke */
-export interface DirtyRectTracker {
-  current: DirtyRectBox | null;
-}
+/**
+ * Defined in the paint core so the headless stroke engine can track dirty
+ * regions without the DOM; re-exported here for the sketch editor.
+ */
+export type {
+  DirtyRectBox,
+  DirtyRectTracker
+} from "@nodetool-ai/image-editor/painting.js";
 
 /** Reusable off-screen canvases for the blur tool */
 export interface BlurTempCanvases {
