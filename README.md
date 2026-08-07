@@ -17,7 +17,7 @@
 
 NodeTool is an open-source creative AI suite that runs on your machine. A node-based canvas, a multi-track video timeline, and a layered sketch editor share one workspace, and every major AI model, cloud or local, wires into all three.
 
-It is agent-first: every editor is exposed to agents as tools — around 120 of them — so an agent can build the workflow, run it, and repair what fails on the same surfaces you use.
+It is agent-first: every action you can take in the UI is also an agent tool, so an agent can wire a graph, paint a layer, cut a clip, or place a widget on the same surfaces you use, then run the result and repair what fails.
 
 * **The Whole App Is the Toolbelt:** Agents drive the canvas, sketch pad, storyboard, timeline, script editor, 3D scene, and app builder.
 * **Pay Provider Prices:** Bring your own API keys and pay providers at cost. No markup.
@@ -61,7 +61,7 @@ Closed platforms lock you in. NodeTool is built for independence.
 
 | | |
 | :--- | :--- |
-| **Agents in every editor** | ~120 tools covering canvas, sketch, storyboard, timeline, script, 3D, and apps |
+| **Agents in every editor** | Anything you can click, an agent can do — canvas, sketch, storyboard, timeline, script, 3D, and apps |
 | **Agents that build** | Describe a pipeline; the agent authors the graph, picks models, and validates before it runs |
 | **Mini apps** | Turn a workflow into a focused interface — built and tested by an agent, or by hand |
 | **Supervised runs** | An agent on the failure path: retry, repair, skip, or stop, on a budget you set |
@@ -83,7 +83,7 @@ Closed platforms lock you in. NodeTool is built for independence.
 
 Most tools bolt a chat panel onto an editor. NodeTool went the other way: the app itself is built as tools an agent can operate, so agents do the work on the same surfaces you use.
 
-*   **The whole app is the toolbelt.** Around 120 tools cover the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder. If you can click it, an agent can drive it.
+*   **The whole app is the toolbelt.** Every editor hands the agent the same actions you have: add a node and wire it, paint on a layer and set its blend mode, cut and retime a clip, revise a shot, voice a script line, place a widget in an app. If you can click it, an agent can drive it — the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder.
 *   **Agents build workflows.** Describe the pipeline and the agent authors the graph — picks the nodes, wires the edges, selects the models — and validates it before anything runs. What it leaves behind is a workflow you can inspect, edit, and rerun.
 *   **Agents build apps, and test them.** Ask for a mini app and the agent plans the workflows, places the widgets, wires them together, then replays every interaction and has a second model judge whether the result does what you asked. No passing verdict, no app.
 *   **An agent on the failure path.** Supervised runs (`--supervise`) put an agent on call: when a step fails mid-run it decides — retry, repair the output, skip the item, or stop — inside a decision and cost budget you set, with every intervention logged.
@@ -234,7 +234,7 @@ nodetool/
 │   ├── kernel/        #   Workflow graph & runner
 │   ├── node-sdk/      #   BaseNode class & node registry
 │   ├── base-nodes/    #   100+ built-in node types
-│   ├── agents/        #   Planning agents, the ~120-tool belt, app build harness
+│   ├── agents/        #   Planning agents, the editor toolbelt, app build harness
 │   ├── runtime/       #   Processing context & model providers
 │   ├── websocket/     #   HTTP + WebSocket server (entry point)
 │   ├── vectorstore/   #   SQLite-vec vector database

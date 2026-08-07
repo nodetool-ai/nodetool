@@ -25,7 +25,7 @@ export default function AgentFeaturesSection({
       icon: Brain,
       title: "The whole app is the toolbelt",
       description:
-        "Around 120 tools cover every editor: the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder. If you can click it, an agent can drive it.",
+        "Every editor hands the agent the same actions you have: add a node and wire it, paint on a layer, cut and retime a clip, revise a shot, place a widget in an app. If you can click it, an agent can drive it — the node canvas, the layered sketch pad, the storyboard, the video timeline, the script editor, the 3D scene, and the app builder.",
       color: "teal",
     },
     {

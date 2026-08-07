@@ -4,7 +4,7 @@
 
 ## What NodeTool is
 
-- An agent-first workspace: every editor is exposed to agents as tools, around 120 in all, and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
+- An agent-first workspace: every action in every editor is also an agent tool — anything you can click, an agent can do — and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, the same app hosted in a browser (currently in alpha).
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.

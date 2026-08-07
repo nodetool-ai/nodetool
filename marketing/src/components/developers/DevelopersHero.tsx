@@ -45,9 +45,9 @@ export default function DevelopersHero() {
           TypeScript-first, async Node.js under the hood, the same open-source
           codebase that ships Studio and Cloud. Write a custom node, drive the
           canvas from a CLI, generate workflows in code — or point Claude Code
-          at the MCP server and let an agent do it: every editor is exposed as
-          tools, around 120 in all, with validators and debug harnesses built
-          for the agent loop.
+          at the MCP server and let an agent do it: every editor action is
+          also a tool, with validators and debug harnesses built for the agent
+          loop.
         </motion.p>
 
         {/* Feature Pills */}
