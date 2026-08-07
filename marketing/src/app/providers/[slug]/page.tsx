@@ -6,6 +6,8 @@ import { Download, ArrowRight, KeyRound, ExternalLink } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import FaqSection from "@/components/FaqSection";
+import { toQaPairs } from "@/lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
   providerBySlug,
@@ -143,21 +145,11 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
       },
     ],
   };
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: entry.faq.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
       <JsonLd data={softwareLd} />
       <JsonLd data={breadcrumbLd} />
-      <JsonLd data={faqLd} />
       <BackgroundGlow accent={entry.accent} />
       <SiteHeader />
 
@@ -375,7 +367,7 @@ function ProviderPage({ entry }: { entry: ProviderEntry }) {
         )}
 
         {/* FAQ */}
-        <FaqSection faq={entry.faq} />
+        <FaqSection items={toQaPairs(entry.faq)} className="mx-auto mt-20 max-w-3xl px-6" />
 
         {/* Related providers */}
         <section
@@ -494,27 +486,6 @@ function ModelGroup({
   );
 }
 
-function FaqSection({ faq }: { faq: { q: string; a: string }[] }) {
-  if (faq.length === 0) return null;
-  return (
-    <section aria-label="FAQ" className="mx-auto mt-20 max-w-3xl px-6">
-      <h2 className="text-2xl font-semibold tracking-tight text-white">
-        Frequently asked
-      </h2>
-      <dl className="mt-6 space-y-4">
-        {faq.map((f) => (
-          <div
-            key={f.q}
-            className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-6"
-          >
-            <dt className="font-semibold text-white">{f.q}</dt>
-            <dd className="mt-2 leading-relaxed text-slate-300">{f.a}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
 
 function DownloadCta({ heading, sub }: { heading: string; sub: string }) {
   return (

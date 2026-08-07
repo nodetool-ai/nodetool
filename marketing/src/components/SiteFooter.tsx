@@ -44,6 +44,7 @@ const COLUMNS: Col[] = [
   {
     title: "Resources",
     links: [
+      { name: "Blog", href: "/blog" },
       { name: "Docs", href: "https://docs.nodetool.ai", external: true, onClick: () => track("Open Docs") },
       { name: "GitHub", href: GITHUB_URL, external: true, onClick: () => track("Star GitHub") },
       { name: "Discord", href: DISCORD_URL, external: true, onClick: () => track("Join Discord") },

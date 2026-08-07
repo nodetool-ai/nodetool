@@ -573,6 +573,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "direct-a-short-film",
+        "name": "Direct a Short Film",
+        "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+        "tags": [
+          "video"
+        ]
+      },
+      {
         "slug": "directed-film-to-timeline",
         "name": "Directed Film to Timeline",
         "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",

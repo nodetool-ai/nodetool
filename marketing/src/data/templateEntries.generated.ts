@@ -6677,6 +6677,198 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/direct-a-short-film",
+    "title": "Direct a Short Film — NodeTool AI Workflow Template",
+    "description": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "direct-a-short-film",
+    "name": "Direct a Short Film",
+    "summary": "Type a brief; get a cut film. A language model directs — it writes the screenplay, the shot list and the narration — then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count — at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+    "tags": [
+      "video",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 3
+      },
+      {
+        "type": "nodetool.timeline.AddClips",
+        "label": "Add Clips",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.Director",
+        "label": "Director",
+        "count": 1
+      },
+      {
+        "type": "nodetool.timeline.RenderTimeline",
+        "label": "Render Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.ShotBatch",
+        "label": "Shot Batch",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.ShotChain",
+        "label": "Shot Chain",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "A lighthouse keeper's last night before the light is automated."
+        },
+        {
+          "id": "dir",
+          "type": "nodetool.creative.Director",
+          "title": "Director",
+          "x": 340,
+          "y": 120,
+          "width": 300,
+          "subtitle": "gpt-5-mini"
+        },
+        {
+          "id": "batch",
+          "type": "nodetool.creative.ShotBatch",
+          "title": "Shot Batch",
+          "x": 680,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "chain",
+          "type": "nodetool.creative.ShotChain",
+          "title": "Shot Chain",
+          "x": 1020,
+          "y": 120,
+          "width": 300,
+          "subtitle": "kling-2.6/text-to-video"
+        },
+        {
+          "id": "cut",
+          "type": "nodetool.timeline.AddClips",
+          "title": "Add Clips",
+          "x": 1360,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "render",
+          "type": "nodetool.timeline.RenderTimeline",
+          "title": "Render Timeline",
+          "x": 1700,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "of",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2040,
+          "y": 60,
+          "width": 300
+        },
+        {
+          "id": "ot",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2040,
+          "y": 240,
+          "width": 300
+        },
+        {
+          "id": "on",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2040,
+          "y": 400,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "dir",
+          "targetHandle": "brief",
+          "color": "any"
+        },
+        {
+          "source": "dir",
+          "sourceHandle": "screenplay",
+          "target": "batch",
+          "targetHandle": "screenplay",
+          "color": "any"
+        },
+        {
+          "source": "batch",
+          "sourceHandle": "shots",
+          "target": "chain",
+          "targetHandle": "shots",
+          "color": "any"
+        },
+        {
+          "source": "chain",
+          "sourceHandle": "videos",
+          "target": "cut",
+          "targetHandle": "clips",
+          "color": "any"
+        },
+        {
+          "source": "cut",
+          "sourceHandle": "output",
+          "target": "render",
+          "targetHandle": "timeline",
+          "color": "any"
+        },
+        {
+          "source": "render",
+          "sourceHandle": "output",
+          "target": "of",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dir",
+          "sourceHandle": "title",
+          "target": "ot",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dir",
+          "sourceHandle": "narration",
+          "target": "on",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/directed-film-to-timeline",
     "title": "Directed Film to Timeline — NodeTool AI Workflow Template",
     "description": "Turn a one-line brief into an editable rough cut. A Director agent writes a screenplay of shots, each shot is fanned out into a keyframe prompt, rendered as a still, animated into a clip, then all clips are collected, appended to a timeline sequence, and rendered to a single video you can keep editing.",

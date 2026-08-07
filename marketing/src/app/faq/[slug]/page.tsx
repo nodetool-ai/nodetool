@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import { breadcrumbSchema, qaPageSchema } from "@/lib/jsonld";
 import {
   faqEntries,
   getFaq,
@@ -38,14 +39,6 @@ export async function generateMetadata({
       type: "article",
     },
   };
-}
-
-function plainText(md: string): string {
-  return md
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
-    .replace(/[*_`#>]/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 const markdownComponents = {
@@ -81,36 +74,17 @@ export default async function FaqStandalonePage({
   const faq = getFaq(slug);
   if (!faq) notFound();
 
-  // QAPage structured data — the standalone-page schema for a single Q&A.
-  const qaPage = {
-    "@context": "https://schema.org",
-    "@type": "QAPage",
-    mainEntity: {
-      "@type": "Question",
-      name: faq.question,
-      answerCount: 1,
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: plainText(faq.answerMd),
-        url: `${BASE_URL}${faq.route}`,
-      },
-    },
-  };
+  // QAPage — the standalone-page schema for a single visible Q&A.
+  const qaPage = qaPageSchema({
+    question: faq.question,
+    answer: faq.answerMd,
+    url: faq.route,
+  });
 
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
-      { "@type": "ListItem", position: 2, name: "FAQ", item: `${BASE_URL}/faq` },
-      {
-        "@type": "ListItem",
-        position: 3,
-        name: faq.question,
-        item: `${BASE_URL}${faq.route}`,
-      },
-    ],
-  };
+  const breadcrumb = breadcrumbSchema([
+    { name: "FAQ", url: "/faq" },
+    { name: faq.question, url: faq.route },
+  ]);
 
   const related = relatedFaqs(faq);
 

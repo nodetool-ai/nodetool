@@ -4,6 +4,7 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
 import FaqBlock from "@/components/FaqBlock";
+import { breadcrumbSchema, faqPageSchema } from "@/lib/jsonld";
 import { faqByCategory, faqEntries } from "@/data/faqEntries";
 
 export const metadata: Metadata = {
@@ -20,28 +21,25 @@ export const metadata: Metadata = {
   },
 };
 
-const BASE_URL = "https://nodetool.ai";
+const breadcrumb = breadcrumbSchema([{ name: "FAQ", url: "/faq" }]);
 
-const breadcrumb = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: BASE_URL },
-    { "@type": "ListItem", position: 2, name: "FAQ", item: `${BASE_URL}/faq` },
-  ],
-};
+// FAQPage for the hub: every row here is rendered below, answer and all.
+const faqPage = faqPageSchema(
+  faqEntries.map((e) => ({
+    question: e.question,
+    answer: e.answerMd,
+    url: e.route,
+  }))
+);
 
-// FAQPage structured data for the hub — the full set of questions and answers.
-const faqPage = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: faqEntries.map((e) => ({
-    "@type": "Question",
-    name: e.question,
-    url: `${BASE_URL}${e.route}`,
-    acceptedAnswer: { "@type": "Answer", text: e.description },
-  })),
-};
+/** Mirrors the "Studio or Cloud" answer, in the shape answer engines quote. */
+const editionRows: { label: string; studio: string; cloud: string }[] = [
+  { label: "Price", studio: "Free, open source", cloud: "Subscription (alpha)" },
+  { label: "Where it runs", studio: "Your machine", cloud: "Your browser" },
+  { label: "Local models", studio: "MLX, Ollama, llama.cpp", cloud: "Cloud providers" },
+  { label: "Your own API keys", studio: "Yes", cloud: "Yes" },
+  { label: "Setup", studio: "Download and install", cloud: "Nothing to install" },
+];
 
 export default function FaqHubPage() {
   return (
@@ -62,9 +60,59 @@ export default function FaqHubPage() {
             Frequently asked questions
           </h1>
           <p className="mt-5 text-lg leading-relaxed text-slate-300">
-            What NodeTool is, how pricing works when you use your own API keys,
-            how Studio and Cloud differ, which models run, and a short glossary.
+            NodeTool is the open-source, agent-first creative workspace: one
+            canvas for image, video, audio, and text, where every editor is a
+            tool an agent can drive. You bring your own API keys and pay each
+            provider directly. Studio runs on your machine; Cloud runs the same
+            code in the browser.
           </p>
+        </section>
+
+        {/* Studio vs Cloud, at a glance */}
+        <section
+          aria-labelledby="editions-title"
+          className="mx-auto mt-14 max-w-3xl px-6"
+        >
+          <h2
+            id="editions-title"
+            className="text-2xl font-semibold tracking-tight text-white"
+          >
+            Studio or Cloud, at a glance
+          </h2>
+          <div className="mt-5 overflow-x-auto rounded-2xl border border-slate-800/70">
+            <table className="w-full min-w-[32rem] border-collapse text-left">
+              <thead>
+                <tr className="bg-slate-900/60 text-sm">
+                  <th scope="col" className="px-5 py-3 font-medium text-slate-400">
+                    &nbsp;
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-semibold text-white">
+                    Studio
+                  </th>
+                  <th scope="col" className="px-5 py-3 font-semibold text-white">
+                    Cloud
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {editionRows.map((row, i) => (
+                  <tr
+                    key={row.label}
+                    className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
+                  >
+                    <th
+                      scope="row"
+                      className="px-5 py-3 text-sm font-medium text-slate-300"
+                    >
+                      {row.label}
+                    </th>
+                    <td className="px-5 py-3 text-sm text-slate-300">{row.studio}</td>
+                    <td className="px-5 py-3 text-sm text-slate-300">{row.cloud}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
 
         <div className="mt-16 space-y-14 pb-8">
