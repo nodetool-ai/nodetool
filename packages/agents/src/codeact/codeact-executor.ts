@@ -116,10 +116,42 @@ export const EXECUTE_CODE_INPUT_SCHEMA = {
 
 /** The display label for a code action: its title, else a generic fallback. */
 /**
+ * A string leaf that is a JSON-serialized tool envelope rather than the value
+ * itself: it parses to an object carrying an envelope key (status/outputs/
+ * result/error) or a key named like the field it sits in. Deliberately
+ * narrow — a legitimate JSON-text output rarely nests its own field name or a
+ * run envelope.
+ */
+function stringifiedEnvelope(value: string, path: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("{")) return false;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(trimmed);
+  } catch {
+    return false;
+  }
+  if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return false;
+  }
+  const keys = Object.keys(parsed);
+  const field = path.split(".").pop()?.replace(/\[\d+\]$/, "") ?? "";
+  return keys.some(
+    (key) =>
+      key === "status" ||
+      key === "outputs" ||
+      key === "result" ||
+      key === "error" ||
+      key === field
+  );
+}
+
+/**
  * Paths in a finish() payload whose string values carry the tell-tale
- * `[object Object]` of an unread object coerced to a string. A schema cannot
- * catch these — the garbage is still a string — so the finish bridge rejects
- * them and the model repairs the extraction inside the same action.
+ * `[object Object]` of an unread object coerced to a string, or a
+ * JSON-serialized envelope standing in for the value it wraps. A schema
+ * cannot catch these — the garbage is still a string — so the finish bridge
+ * rejects them and the model repairs the extraction inside the same action.
  */
 export function coercionArtifactPaths(
   value: unknown,
@@ -128,7 +160,8 @@ export function coercionArtifactPaths(
 ): string[] {
   if (depth > 6) return [];
   if (typeof value === "string") {
-    return value.includes("[object Object]") ? [path] : [];
+    if (value.includes("[object Object]")) return [path];
+    return stringifiedEnvelope(value, path) ? [path] : [];
   }
   if (Array.isArray(value)) {
     return value.flatMap((entry, i) =>
@@ -437,9 +470,11 @@ export class CodeActExecutor {
         return {
           ok: false,
           error:
-            `finish: ${artifacts.join(", ")} contains "[object Object]" — an ` +
-            `object was coerced to a string. Log the raw value ` +
-            `(console.log(JSON.stringify(...))) and extract the actual field.`
+            `finish: ${artifacts.join(", ")} holds a coerced or serialized ` +
+            `object instead of the value itself. Log the raw value ` +
+            `(console.log(JSON.stringify(...))) and extract the actual field ` +
+            `— never String() or JSON.stringify() an envelope into a string ` +
+            `field.`
         };
       }
       finishedResult = { value: payload };
