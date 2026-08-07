@@ -1082,7 +1082,8 @@ interface PromptEntry {
 const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "workflows",
-    doc: `- \`nodetool.workflows\` — \`list()\`, \`get(id)\`, \`run(id, params, {interactive})\`,
+    doc: `- \`nodetool.workflows\` — \`list()\` and \`examples()\` return \`{workflows}\`
+  (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
   \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
   \`create(name, graph, {description, tags})\`, \`open(id?)\` (the editable object
   model — see the graph-editing section). An interactive run returns an
@@ -1127,7 +1128,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "models",
     doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
   (e.g. \`pick("text_to_image")\` → \`{provider, model_id}\`), \`find(capability,
-  {task, provider_hint, prefer_local, limit})\` for the ranked list,
+  {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
+  \`{results}\`),
   \`list({provider, model_type})\` to browse. Never guess a model id — pick one,
   then pass it to \`nodetool.media.*\` or into node properties.`
   },

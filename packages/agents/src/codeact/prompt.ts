@@ -38,9 +38,11 @@ Rules:
   memory — not in the transcript.
 - Extract fields you have verified exist. Coercing an unread object to a
   string yields "[object Object]", and a plausible-looking wrong field passes
-  schema validation — when a return shape is uncertain, stash the value in
-  \`state\` and return its keys plus a sample so the next action extracts from
-  the real shape instead of a guess.
+  schema validation. Return shapes are NOT documented in the catalog, so the
+  first time a pipeline uses an unfamiliar tool's value,
+  \`console.log(JSON.stringify(x))\` it before extracting — the log rides
+  along in the same observation, costs nothing, and turns a wrong guess into
+  something you can fix inside the same program instead of a probe action.
 - For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
   \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
   \`remove\`) — it is in-process, so a read costs nothing a tool call would.
@@ -67,7 +69,10 @@ Call \`await finish(result)\` when the objective is met. The result is validated
 against the output schema below; an invalid result throws with the violations
 so you can correct it. The step ONLY completes through \`finish\`. Call it in
 the SAME action that computes the final value — a separate finish-only turn
-is a wasted round trip.`;
+is a wasted round trip. Wrap it in try/catch: on a validation error, log the
+raw values you built the result from, fix the extraction, and call \`finish\`
+again in the SAME program — do not spend a fresh action recovering from a
+shape you can see right there.`;
 
 const FINISH_FREEFORM = `# Completing the step
 
