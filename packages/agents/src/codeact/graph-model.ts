@@ -56,8 +56,22 @@ async function openWorkflow(workflowId) {
   const __snapEdges = (snap) => (snap && Array.isArray(snap.edges) ? snap.edges : []);
 
   const snap = await tools.ui_get_graph(__wfArgs());
-  const ops = [];
+  const queueRoot =
+    state.__nodetoolGraphQueues && typeof state.__nodetoolGraphQueues === "object"
+      ? state.__nodetoolGraphQueues
+      : (state.__nodetoolGraphQueues = {});
+  const queueKey = String((snap && snap.workflow_id) || workflowId || "__focused__");
+  const storedOps = queueRoot[queueKey];
+  const ops = Array.isArray(storedOps) ? storedOps : [];
+  queueRoot[queueKey] = ops;
   let edgeSeq = 0;
+  for (const op of ops) {
+    const match =
+      op && typeof op.localEdgeId === "string"
+        ? /^pending_edge_(\\d+)$/.exec(op.localEdgeId)
+        : null;
+    if (match) edgeSeq = Math.max(edgeSeq, Number(match[1]));
+  }
 
   const model = {
     workflowId: (snap && snap.workflow_id) || workflowId || null,
@@ -92,8 +106,11 @@ async function openWorkflow(workflowId) {
       });
     },
     connect(sourceId, sourceHandle, targetId, targetHandle) {
+      edgeSeq++;
+      const localEdgeId = "pending_edge_" + edgeSeq;
       ops.push({
         tool: "ui_connect_nodes",
+        localEdgeId,
         args: __wfArgs({
           source_node_id: sourceId,
           source_handle: sourceHandle,
@@ -101,9 +118,8 @@ async function openWorkflow(workflowId) {
           target_handle: targetHandle
         })
       });
-      edgeSeq++;
       const edge = {
-        id: "pending_edge_" + edgeSeq,
+        id: localEdgeId,
         source: sourceId,
         sourceHandle: sourceHandle,
         target: targetId,
@@ -144,10 +160,11 @@ async function openWorkflow(workflowId) {
         const opIndex = ops.findIndex(
           (op) =>
             op.tool === "ui_connect_nodes" &&
-            op.args.source_node_id === edge.source &&
-            op.args.source_handle === edge.sourceHandle &&
-            op.args.target_node_id === edge.target &&
-            op.args.target_handle === edge.targetHandle
+            (op.localEdgeId === edgeId ||
+              (op.args.source_node_id === edge.source &&
+                op.args.source_handle === edge.sourceHandle &&
+                op.args.target_node_id === edge.target &&
+                op.args.target_handle === edge.targetHandle))
         );
         if (opIndex >= 0) ops.splice(opIndex, 1);
       } else {
@@ -163,7 +180,19 @@ async function openWorkflow(workflowId) {
       while (ops.length > 0) {
         const op = ops[0];
         try {
-          await tools[op.tool](op.args);
+          const result = await tools[op.tool](op.args);
+          if (
+            op.tool === "ui_connect_nodes" &&
+            typeof op.localEdgeId === "string" &&
+            result &&
+            typeof result.edge_id === "string"
+          ) {
+            const edge = model.edges.find((item) => item.id === op.localEdgeId);
+            if (edge) {
+              edge.id = result.edge_id;
+              edge.pending = false;
+            }
+          }
         } catch (e) {
           throw new Error(
             "commit() failed on " + op.tool + " " + JSON.stringify(op.args).slice(0, 300) +
@@ -229,7 +258,68 @@ async function openWorkflow(workflowId) {
     for (const raw of rawNodes) __wrapNode(raw);
   }
 
+  function __applyPending(op) {
+    if (!op || typeof op !== "object" || !op.args) return;
+    const args = op.args;
+    if (op.tool === "ui_add_node") {
+      if (!model.nodes.some((node) => node.id === args.id)) {
+        __wrapNode({
+          id: args.id,
+          type: args.type,
+          position: args.position,
+          data: { properties: args.properties || {} }
+        });
+      }
+      return;
+    }
+    if (op.tool === "ui_connect_nodes") {
+      const localEdgeId =
+        typeof op.localEdgeId === "string"
+          ? op.localEdgeId
+          : "pending_edge_" + ++edgeSeq;
+      op.localEdgeId = localEdgeId;
+      model.edges.push({
+        id: localEdgeId,
+        source: args.source_node_id,
+        sourceHandle: args.source_handle,
+        target: args.target_node_id,
+        targetHandle: args.target_handle,
+        pending: true
+      });
+      return;
+    }
+    if (op.tool === "ui_update_node_data") {
+      const node = model.nodes.find((item) => item.id === args.node_id);
+      const properties = args.data && args.data.properties;
+      if (node && properties && typeof properties === "object") {
+        Object.assign(node.properties, properties);
+      }
+      return;
+    }
+    if (op.tool === "ui_set_node_title") {
+      const node = model.nodes.find((item) => item.id === args.node_id);
+      if (node) node.title = args.title;
+      return;
+    }
+    if (op.tool === "ui_move_node") {
+      const node = model.nodes.find((item) => item.id === args.node_id);
+      if (node) node.position = args.position;
+      return;
+    }
+    if (op.tool === "ui_delete_node") {
+      model.nodes = model.nodes.filter((node) => node.id !== args.node_id);
+      model.edges = model.edges.filter(
+        (edge) => edge.source !== args.node_id && edge.target !== args.node_id
+      );
+      return;
+    }
+    if (op.tool === "ui_delete_edge") {
+      model.edges = model.edges.filter((edge) => edge.id !== args.edge_id);
+    }
+  }
+
   __load(snap);
+  for (const op of ops) __applyPending(op);
   return model;
 }
 `;
