@@ -1,6 +1,6 @@
 # Workflow Runner Guidelines
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Workflow Runner**
+**Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Workflow Runner**
 
 ## Overview
 

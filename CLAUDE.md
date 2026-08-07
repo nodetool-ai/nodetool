@@ -615,7 +615,7 @@ pass an inline `graph` ({nodes, edges}) to check a graph being built, or a
 Checks a timeline sequence without rendering it, and replays a scripted edit
 session against it. The target is a timeline JSON file — a bare
 `TimelineDocument` or anything carrying one under `document`, so a
-`GET /api/timeline/:id` response works as-is — or a `timeline_sequences` row
+`timeline.get` tRPC response works as-is — or a `timeline_sequences` row
 id. A path that exists on disk wins over an id.
 
 ```bash

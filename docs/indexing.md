@@ -10,7 +10,7 @@ NodeTool ships a lightweight ingestion pipeline for semantic search and retrieva
 
 ## Overview
 
-- **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) stores ingest configuration, including an optional workflow ID.
+- **Collection metadata** (`CollectionResponse` in `@nodetool-ai/protocol` `packages/protocol/src/api-types.ts`) carries the collection's name, document count, free-form metadata, and `workflow_name` — the resolved name of the workflow id stored under `metadata.workflow`, shown in listings.
 - **Vector store** -- the default backend is SQLite-vec (`@nodetool-ai/vectorstore` `packages/vectorstore/src/sqlite-vec-store.ts`). Embeddings flow through the `VectorProvider` abstraction — see [Vector Storage](vector-storage.md) for swapping backends (Pinecone, Supabase/pgvector).
 - **Indexing route** -- `handleCollectionIndex()` (`@nodetool-ai/deploy` `packages/deploy/src/collection-routes.ts`) validates the upload and delegates the actual ingestion to a caller-supplied `indexFn` callback (typed `IndexFileToCollectionFn`). The route itself does not resolve collections or run workflows; that logic lives in the provided callback.
 
@@ -19,10 +19,6 @@ NodeTool ships a lightweight ingestion pipeline for semantic search and retrieva
 1. The HTTP layer receives an uploaded file and calls `handleCollectionIndex()` with the collection name, file path, MIME type, and an `indexFn`.
 2. The `indexFn` callback performs the ingestion: it resolves the target collection (e.g. via `resolveCollection()` in `@nodetool-ai/vectorstore` `packages/vectorstore/src/index.ts`), splits the document with `splitDocument()`, embeds it, and stores embeddings in SQLite-vec.
 3. `handleCollectionIndex()` returns an `IndexResult` (`{ path, error }`) per file, or throws a `CollectionHttpError` on failure.
-
-### Messages & Progress
-
-While custom workflows run, the service streams `JobUpdate`, `NodeUpdate`, and progress messages (from `@nodetool-ai/protocol` `packages/protocol/src/messages.ts`). Tests under `packages/deploy/tests/collection-routes.test.ts` cover expected message sequences.
 
 ## Configuring the vector store
 
@@ -37,15 +33,6 @@ The default backend is local SQLite-vec. Switch backends with `NODETOOL_VECTOR_P
 
 See [Vector Storage](vector-storage.md) for backend-specific setup.
 
-## Custom Ingestion Workflows
-
-Collections can reference bespoke workflows to process files before embedding. The workflow should expect:
-
-- A `CollectionInput` node receiving `Collection(name=…)`.
-- A `FileInput` node receiving `FilePath(path=…)`.
-
-Return values can include summaries, metadata, or alternate embeddings. Review `packages/deploy/tests/collection-routes.test.ts` for a template.
-
 ## CLI & API Integration
 
 - `POST /api/collections/:name/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP (multipart/form-data file upload).
@@ -54,9 +41,8 @@ Return values can include summaries, metadata, or alternate embeddings. Review `
 
 ## Troubleshooting
 
-- **Missing collection metadata** – ensure the collection exists and includes the required `workflow` entry when using custom workflows.
 - **Remote backend errors** – for `pinecone` or `supabase`, verify credentials and network reachability; fall back to local SQLite-vec by setting `NODETOOL_VECTOR_PROVIDER=sqlite-vec`.
-- **Large files** – ensure `VECTORSTORE_DB_PATH` has disk headroom, or move to a remote backend; the default ingestion workflow streams chunks to reduce memory usage.
+- **Large files** – ensure `VECTORSTORE_DB_PATH` has disk headroom, or move to a remote backend.
 
 ## Related Documentation
 

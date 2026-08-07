@@ -115,14 +115,14 @@ sequenceDiagram
     participant Actor as NodeActor (per node)
     participant Msg as Messaging/WS
 
-    Client->>API: POST /api/workflows/{id}/run (stream=true)
+    Client->>API: POST /api/workflows/{id}/run
     API->>Runner: Validate graph + spawn actors
     Runner->>Actor: Dispatch inputs, run per execution mode
     Actor->>Msg: Emit streaming events (node/edge updates)
     Msg-->>Client: token/output events
     Client-->>API: reconnect with thread/job id
     API-->>Msg: resume stream
-    Client->>API: DELETE /api/workflows/{id}/run (cancel)
+    Client->>API: cancel_job over the WebSocket (or jobs.cancel)
     API->>Runner: cancel run
     Runner-->>Actor: teardown and cleanup
     Runner-->>Msg: end event
