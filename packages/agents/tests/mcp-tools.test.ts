@@ -1,7 +1,13 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { Asset, Job, Workflow, initTestDb } from "@nodetool-ai/models";
+import {
+  debugSessions,
+  InteractiveEscalationHandle
+} from "@nodetool-ai/execution/service";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
   PlanWorkflowGraphTool,
   ListWorkflowsTool,
@@ -17,26 +23,24 @@ import {
   ValidateSketchTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
-  ListNodesTool,
-  SearchNodesTool,
-  GetNodeInfoTool,
   ListJobsTool,
   GetJobTool,
   GetJobLogsTool,
   StartBackgroundJobTool,
   ListAssetsTool,
   GetAssetTool,
-  getAllMcpTools
+  getAllMcpTools,
+  type ExampleWorkflowCatalog
 } from "../src/tools/mcp-tools.js";
 
-const API_URL = "http://test-api:7777";
+const USER = "user-1";
 
 function makeMockContext(): ProcessingContext {
   const variables: Record<string, unknown> = {};
   return {
-    userId: "user-1",
+    userId: USER,
     authToken: "access-token",
-    environment: { NODETOOL_API_URL: API_URL },
+    environment: {},
     get: (key: string) => variables[key],
     set: (key: string, value: unknown) => {
       variables[key] = value;
@@ -45,29 +49,49 @@ function makeMockContext(): ProcessingContext {
 }
 
 let ctx: ProcessingContext;
-let fetchSpy: ReturnType<typeof vi.fn>;
-const origFetch = globalThis.fetch;
 
+/**
+ * The tools run in-process against the real models layer, so every test gets a
+ * fresh in-memory database rather than a stubbed `fetch`. A tool result and the
+ * REST response are the same function's answer now; asserting on request URLs
+ * would test nothing that exists.
+ */
 beforeEach(() => {
+  initTestDb();
   ctx = makeMockContext();
-  fetchSpy = vi.fn().mockResolvedValue({
-    ok: true,
-    json: async () => ({ success: true }),
-    text: async () => ""
-  });
-  globalThis.fetch = fetchSpy as unknown as typeof fetch;
 });
 
-afterEach(() => {
-  globalThis.fetch = origFetch;
-});
+/** A registry that resolves nothing — enough to get past the "no registry" gate. */
+const stubRegistry = {
+  has: () => false,
+  getMetadata: () => undefined,
+  resolve: () => {
+    throw new Error("stub registry resolves nothing");
+  },
+  resolveMetadata: () => undefined,
+  validateNode: () => []
+} as unknown as NodeRegistry;
 
-function lastFetchUrl(): string {
-  return String(fetchSpy.mock.calls[0]?.[0] ?? "");
-}
-
-function lastFetchOpts(): RequestInit {
-  return (fetchSpy.mock.calls[0]?.[1] ?? {}) as RequestInit;
+async function saveWorkflow(
+  fields: Partial<{
+    id: string;
+    name: string;
+    description: string;
+    tags: string[];
+    graph: unknown;
+    run_mode: string;
+  }> = {}
+): Promise<Workflow> {
+  return (await Workflow.create({
+    user_id: USER,
+    name: fields.name ?? "A workflow",
+    description: fields.description ?? "",
+    tags: fields.tags ?? [],
+    access: "private",
+    run_mode: fields.run_mode ?? "workflow",
+    graph: (fields.graph ?? { nodes: [], edges: [] }) as never,
+    ...(fields.id ? { id: fields.id } : {})
+  })) as Workflow;
 }
 
 // ---------------------------------------------------------------------------
@@ -82,15 +106,41 @@ describe("ListWorkflowsTool", () => {
     expect(tool.toProviderTool().inputSchema).toBeDefined();
   });
 
-  it("calls GET /api/workflows/ for user type", async () => {
-    await tool.process(ctx, { workflow_type: "user" });
-    expect(lastFetchUrl()).toContain("/api/workflows/");
-    expect(lastFetchOpts().method).toBeUndefined(); // GET (default)
+  it("lists the user's workflows without their graphs", async () => {
+    await saveWorkflow({ name: "Mine", description: "d", tags: ["t"] });
+    const result = (await tool.process(ctx, { workflow_type: "user" })) as {
+      workflows: Array<Record<string, unknown>>;
+    };
+    expect(result.workflows).toHaveLength(1);
+    expect(result.workflows[0]).toEqual({
+      id: expect.any(String),
+      name: "Mine",
+      description: "d",
+      tags: ["t"]
+    });
   });
 
-  it("calls GET /api/workflows/examples for example type", async () => {
-    await tool.process(ctx, { workflow_type: "example" });
-    expect(lastFetchUrl()).toContain("/api/workflows/examples");
+  it("says so when no example catalog was injected", async () => {
+    const result = (await tool.process(ctx, {
+      workflow_type: "example"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not available in this process");
+  });
+
+  it("reads examples from the injected catalog", async () => {
+    const examples: ExampleWorkflowCatalog = {
+      list: async ({ query }) =>
+        query === "news"
+          ? [{ id: "ex-1", name: "News", description: "", tags: [] }]
+          : [],
+      get: async () => null
+    };
+    const withCatalog = new ListWorkflowsTool(examples);
+    const result = (await withCatalog.process(ctx, {
+      workflow_type: "example",
+      query: "news"
+    })) as { workflows: Array<Record<string, unknown>> };
+    expect(result.workflows[0]?.name).toBe("News");
   });
 
   it("userMessage reflects query", () => {
@@ -102,9 +152,24 @@ describe("ListWorkflowsTool", () => {
 describe("GetWorkflowTool", () => {
   const tool = new GetWorkflowTool();
 
-  it("calls GET /api/workflows/:id", async () => {
-    await tool.process(ctx, { workflow_id: "wf-123" });
-    expect(lastFetchUrl()).toContain("/api/workflows/wf-123");
+  it("returns the stored workflow, graph included", async () => {
+    const saved = await saveWorkflow({
+      name: "WF",
+      graph: { nodes: [{ id: "n1", type: "ns.A" }], edges: [] }
+    });
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(result.id).toBe(saved.id);
+    expect(result.name).toBe("WF");
+    expect(result.graph).toBeDefined();
+  });
+
+  it("reports a workflow that does not exist", async () => {
+    const result = (await tool.process(ctx, {
+      workflow_id: "nope"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("nope");
   });
 
   it("userMessage includes workflow_id", () => {
@@ -114,6 +179,15 @@ describe("GetWorkflowTool", () => {
 
 describe("CreateWorkflowTool", () => {
   const tool = new CreateWorkflowTool();
+
+  /** The graph as it was actually persisted. */
+  async function createdGraph(
+    result: unknown
+  ): Promise<Record<string, unknown>> {
+    const id = String((result as Record<string, unknown>)["id"]);
+    const stored = await Workflow.find(USER, id);
+    return stored!.graph as unknown as Record<string, unknown>;
+  }
 
   // A workflow saved with a provider nothing can construct is a run that
   // fails after the upstream nodes have already executed. The ids are in the
@@ -140,9 +214,10 @@ describe("CreateWorkflowTool", () => {
         graph: graphWith({ type: "video_model", provider: "nope", id: "x" })
       })) as { error: string; issues: Array<{ code: string }> };
 
-      expect(fetchSpy).not.toHaveBeenCalled();
       expect(result.error).toContain("providers or models");
       expect(result.issues[0]?.code).toBe("unknown_provider");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
     });
 
     it("refuses a model id the provider does not offer", async () => {
@@ -151,38 +226,39 @@ describe("CreateWorkflowTool", () => {
         graph: graphWith({ type: "video_model", provider: "kie", id: "wan/2" })
       })) as { issues: Array<{ code: string; node_id: string }> };
 
-      expect(fetchSpy).not.toHaveBeenCalled();
       expect(result.issues[0]?.code).toBe("unknown_model");
       expect(result.issues[0]?.node_id).toBe("n1");
+      const [saved] = await Workflow.paginate(USER, {});
+      expect(saved).toHaveLength(0);
     });
 
     it("creates the workflow when every selection resolves", async () => {
-      await checked.process(ctx, {
+      const result = (await checked.process(ctx, {
         name: "WF",
         graph: graphWith({
           type: "video_model",
           provider: "kie",
           id: "wan/2-7-image-to-video"
         })
-      });
-      expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
+      })) as Record<string, unknown>;
+      expect(result.id).toEqual(expect.any(String));
+      expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
     });
   });
 
-  it("calls POST /api/workflows with body", async () => {
-    await tool.process(ctx, {
+  it("persists the workflow under the calling user", async () => {
+    const result = (await tool.process(ctx, {
       name: "Test WF",
       graph: { nodes: [], edges: [] }
-    });
-    expect(lastFetchUrl()).toBe(`${API_URL}/api/workflows`);
-    expect(lastFetchOpts().method).toBe("POST");
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.name).toBe("Test WF");
-    expect(body.graph).toEqual({ nodes: [], edges: [] });
+    })) as Record<string, unknown>;
+    expect(result.name).toBe("Test WF");
+    const stored = await Workflow.find(USER, String(result.id));
+    expect(stored?.user_id).toBe(USER);
+    expect(stored?.access).toBe("private");
   });
 
   it("normalizes an agent-friendly keyed graph", async () => {
-    await tool.process(ctx, {
+    const result = await tool.process(ctx, {
       name: "Daily News",
       graph: {
         nodes: {
@@ -201,10 +277,9 @@ describe("CreateWorkflowTool", () => {
       }
     });
 
-    const body = JSON.parse(lastFetchOpts().body as string);
     // Stored shape: the property bag lives flat under `data`, not
     // `properties` — the editor reads `node.data`.
-    expect(body.graph).toEqual({
+    expect(await createdGraph(result)).toEqual({
       nodes: [
         {
           id: "search",
@@ -243,7 +318,7 @@ describe("CreateWorkflowTool", () => {
   });
 
   it("normalizes node_type in an array graph", async () => {
-    await tool.process(ctx, {
+    const result = await tool.process(ctx, {
       name: "News Summarizer",
       graph: {
         nodes: [
@@ -269,8 +344,7 @@ describe("CreateWorkflowTool", () => {
       }
     });
 
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.graph.nodes).toEqual([
+    expect((await createdGraph(result))["nodes"]).toEqual([
       {
         id: "search_node",
         type: "xai.text.WebSearch",
@@ -297,7 +371,7 @@ describe("CreateWorkflowTool", () => {
   });
 
   it("always auto-lays-out, overriding caller positions but keeping other ui_properties", async () => {
-    await tool.process(ctx, {
+    const result = await tool.process(ctx, {
       name: "Already stored shape",
       graph: {
         nodes: [
@@ -316,8 +390,7 @@ describe("CreateWorkflowTool", () => {
       }
     });
 
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.graph.nodes).toEqual([
+    expect((await createdGraph(result))["nodes"]).toEqual([
       {
         id: "n1",
         type: "nodetool.input.StringInput",
@@ -335,7 +408,7 @@ describe("CreateWorkflowTool", () => {
   });
 
   it("lays out a chain left-to-right and stacks parallel roots", async () => {
-    await tool.process(ctx, {
+    const result = await tool.process(ctx, {
       name: "Diamond",
       graph: {
         nodes: [
@@ -351,15 +424,13 @@ describe("CreateWorkflowTool", () => {
       }
     });
 
-    const positions = Object.fromEntries(
-      JSON.parse(lastFetchOpts().body as string).graph.nodes.map(
-        (n: { id: string; ui_properties: { position: unknown } }) => [
-          n.id,
-          n.ui_properties.position
-        ]
-      )
-    );
-    expect(positions).toEqual({
+    const nodes = (await createdGraph(result))["nodes"] as Array<{
+      id: string;
+      ui_properties: { position: unknown };
+    }>;
+    expect(
+      Object.fromEntries(nodes.map((n) => [n.id, n.ui_properties.position]))
+    ).toEqual({
       a: { x: 0, y: 0 },
       b: { x: 0, y: 220 },
       c: { x: 320, y: 0 }
@@ -367,7 +438,7 @@ describe("CreateWorkflowTool", () => {
   });
 
   it("never stores a node carrying both `properties` and `data`", async () => {
-    await tool.process(ctx, {
+    const result = await tool.process(ctx, {
       name: "Planner output",
       graph: {
         nodes: [
@@ -381,9 +452,11 @@ describe("CreateWorkflowTool", () => {
       }
     });
 
-    const node = JSON.parse(lastFetchOpts().body as string).graph.nodes[0];
-    expect(node.properties).toBeUndefined();
-    expect(node.data).toEqual({ name: "prompt" });
+    const node = (
+      (await createdGraph(result))["nodes"] as Array<Record<string, unknown>>
+    )[0];
+    expect(node["properties"]).toBeUndefined();
+    expect(node["data"]).toEqual({ name: "prompt" });
   });
 
   it("userMessage includes name", () => {
@@ -392,226 +465,232 @@ describe("CreateWorkflowTool", () => {
 });
 
 describe("RunWorkflowTool", () => {
-  const tool = new RunWorkflowTool();
-
-  it("calls POST /api/workflows/:id/run", async () => {
-    await tool.process(ctx, { workflow_id: "wf-456" });
-    expect(lastFetchUrl()).toContain("/api/workflows/wf-456/run");
-    expect(lastFetchOpts().method).toBe("POST");
+  it("refuses without a node registry instead of reaching for a server", async () => {
+    const result = (await new RunWorkflowTool().process(ctx, {
+      workflow_id: "wf-456"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no node registry");
+    expect(result.ran).toBe(false);
   });
 
-  it("forwards interactive and annotates an escalated response", async () => {
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "escalated",
-        session_id: "sess-1",
-        escalation_id: "esc-1",
-        escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
-      }),
-      text: async () => ""
-    });
-
+  it("reports the service's refusal for a workflow that is not there", async () => {
+    const tool = new RunWorkflowTool(stubRegistry);
     const result = (await tool.process(ctx, {
-      workflow_id: "wf-456",
-      interactive: true
+      workflow_id: "missing"
     })) as Record<string, unknown>;
+    expect(result.status).toBe(404);
+    expect(String(result.error)).toContain("not found");
+  });
 
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.interactive).toBe(true);
-    expect(result.status).toBe("escalated");
-    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+  it("prefers the injected workflow environment over the bare registry", async () => {
+    // The server injects its Python-aware runtime lazily; the tool must
+    // resolve it per call so an agent-run workflow executes exactly like an
+    // HTTP-run one.
+    const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
+    let resolved = 0;
+    const tool = new RunWorkflowTool(undefined, async () => {
+      resolved += 1;
+      return { registry: stubRegistry };
+    });
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(resolved).toBe(1);
+    expect(result.error ?? null).toBeNull();
+  });
+
+  it("refuses a workflow whose run mode the backend does not run", async () => {
+    const saved = await saveWorkflow({ run_mode: "app" });
+    const tool = new RunWorkflowTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(result.status).toBe(400);
+    expect(String(result.error)).toContain("run mode");
+  });
+
+  it("runs the workflow and reports the job", async () => {
+    const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
+    const tool = new RunWorkflowTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(result.workflow_id).toBe(saved.id);
+    expect(result.job_id).toEqual(expect.any(String));
+    expect(await Job.find(USER, String(result.job_id))).not.toBeNull();
   });
 });
 
 describe("DebugWorkflowTool", () => {
-  const tool = new DebugWorkflowTool();
-
-  function respondTo(routes: Record<string, { ok?: boolean; status?: number; body: unknown }>) {
-    fetchSpy.mockImplementation(async (url: string) => {
-      const match = Object.keys(routes).find((k) => String(url).includes(k));
-      const route = match ? routes[match] : { ok: true, body: {} };
-      return {
-        ok: route.ok ?? true,
-        status: route.status ?? 200,
-        json: async () => route.body,
-        text: async () => JSON.stringify(route.body)
-      };
-    });
-  }
-
-  it("keeps the debug report when the run itself failed", async () => {
-    // A failed run reports its own `error` next to the summary and verdict.
-    // That is the report worth having — it must not be mistaken for a missing
-    // endpoint and thrown away for a plain /run.
-    const debugBody = {
-      job_id: "job-1",
-      status: "failed",
-      error: "node blew up",
-      summary: { status: "failed" },
-      verdict: { ok: false, headline: "Workflow has issues", issues: ["x"] }
-    };
-    respondTo({ "/debug": { body: debugBody }, "/api/jobs/": { body: {} } });
-
-    const report = (await tool.process(ctx, {
-      workflow_id: "wf-1",
-      include_graph: false
+  it("refuses without a node registry", async () => {
+    const result = (await new DebugWorkflowTool().process(ctx, {
+      workflow_id: "wf-1"
     })) as Record<string, unknown>;
-
-    expect(report.run).toEqual(debugBody);
-    expect(report.note).toBeUndefined();
-    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
-    expect(urls.some((u) => u.endsWith("/run"))).toBe(false);
+    expect(String(result.error)).toContain("no node registry");
   });
 
-  it("falls back to /run only when the server has no /debug endpoint", async () => {
-    respondTo({
-      "/debug": { ok: false, status: 404, body: { error: "not found" } },
-      "/run": { body: { job_id: "job-2", status: "completed" } },
-      "/api/jobs/": { body: {} }
+  it("returns the verdict, the job row, and the graph overview", async () => {
+    const saved = await saveWorkflow({
+      name: "Debuggable",
+      graph: { nodes: [], edges: [] }
     });
-
+    const tool = new DebugWorkflowTool(stubRegistry);
     const report = (await tool.process(ctx, {
-      workflow_id: "wf-1",
-      include_graph: false
+      workflow_id: saved.id
     })) as Record<string, unknown>;
 
-    expect(report.note).toContain("no /debug endpoint");
-    const urls = fetchSpy.mock.calls.map((c) => String(c[0]));
-    expect(urls.some((u) => u.endsWith("/run"))).toBe(true);
-  });
-
-  it("returns the escalation directly when the interactive run parks", async () => {
-    respondTo({
-      "/debug": {
-        body: {
-          status: "escalated",
-          session_id: "sess-9",
-          escalation_id: "esc-1",
-          escalation: { nodeId: "n1", allowedActions: ["skip", "fail"] }
-        }
-      }
-    });
-
-    const report = (await tool.process(ctx, {
-      workflow_id: "wf-1",
-      interactive: true
-    })) as Record<string, unknown>;
-
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.interactive).toBe(true);
     const run = report.run as Record<string, unknown>;
-    expect(run.status).toBe("escalated");
-    expect(String(run.next_tool)).toContain("resolve_workflow_escalation");
-    // No report exists yet, so neither the job nor the graph is fetched.
-    expect(fetchSpy.mock.calls).toHaveLength(1);
+    expect(run.verdict).toBeDefined();
+    expect(run.summary).toBeDefined();
+    expect((report.job as Record<string, unknown>)?.["id"]).toBe(run.job_id);
+    expect((report.workflow as Record<string, unknown>)?.["name"]).toBe(
+      "Debuggable"
+    );
+  });
+
+  it("omits the graph overview when the caller says so", async () => {
+    const saved = await saveWorkflow();
+    const tool = new DebugWorkflowTool(stubRegistry);
+    const report = (await tool.process(ctx, {
+      workflow_id: saved.id,
+      include_graph: false
+    })) as Record<string, unknown>;
+    expect(report.workflow).toBeUndefined();
   });
 });
 
 describe("ResolveWorkflowEscalationTool", () => {
   const tool = new ResolveWorkflowEscalationTool();
 
-  it("posts the verdict to the session endpoint", async () => {
-    await tool.process(ctx, {
-      session_id: "sess-9",
-      escalation_id: "esc-1",
-      action: "skip",
-      apply_to: "signature"
-    });
-
-    expect(lastFetchUrl()).toContain("/api/debug/sessions/sess-9/verdict");
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.escalation_id).toBe("esc-1");
-    expect(body.verdict).toEqual({ action: "skip", applyTo: "signature" });
-  });
-
-  it("carries substitute outputs and fail reasons, nothing else", async () => {
-    await tool.process(ctx, {
-      session_id: "s",
-      escalation_id: "e",
-      action: "substitute",
-      outputs: { value: "repaired" },
-      reason: "ignored for substitute"
-    });
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.verdict).toEqual({
-      action: "substitute",
-      outputs: { value: "repaired" }
-    });
-
-    fetchSpy.mockClear();
-    await tool.process(ctx, {
-      session_id: "s",
-      escalation_id: "e",
-      action: "fail",
-      reason: "upstream data is unusable"
-    });
-    const failBody = JSON.parse(lastFetchOpts().body as string);
-    expect(failBody.verdict).toEqual({
-      action: "fail",
-      reason: "upstream data is unusable"
-    });
-  });
-
-  it("annotates a follow-up escalation so the loop continues", async () => {
-    fetchSpy.mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        status: "escalated",
-        session_id: "sess-9",
-        escalation_id: "esc-2",
-        escalation: { nodeId: "n2", allowedActions: ["skip", "fail"] }
-      }),
-      text: async () => ""
-    });
-
+  it("reports a session that is not the caller's", async () => {
     const result = (await tool.process(ctx, {
       session_id: "sess-9",
       escalation_id: "esc-1",
       action: "skip"
     })) as Record<string, unknown>;
-    expect(String(result.next_tool)).toContain("resolve_workflow_escalation");
+    expect(result.status).toBe(404);
+    expect(String(result.error)).toContain("not found");
+  });
+
+  /** A live session parked on one escalation, as an interactive run leaves it. */
+  async function parkedSession(allowedActions: string[]) {
+    const handle = new InteractiveEscalationHandle();
+    let settle: (report: Record<string, unknown>) => void = () => {};
+    const done = new Promise<Record<string, unknown>>((resolve) => {
+      settle = resolve;
+    });
+    const session = debugSessions.create({
+      userId: USER,
+      workflowId: "wf-1",
+      jobId: "job-1",
+      handle,
+      done,
+      cancel: () => settle({ status: "cancelled" })
+    });
+    const decided = handle.decide(
+      {
+        nodeId: "n1",
+        allowedActions,
+        declaredOutputs: { value: "str" }
+      } as never,
+      new AbortController().signal
+    );
+    const event = await session.waitForEvent();
+    if (event.kind !== "escalated") throw new Error("expected an escalation");
+    return { session, escalationId: event.escalationId, decided, settle };
+  }
+
+  it("carries the applyTo scope on a skip", async () => {
+    const parked = await parkedSession(["skip", "fail"]);
+    const result = tool.process(ctx, {
+      session_id: parked.session.id,
+      escalation_id: parked.escalationId,
+      action: "skip",
+      apply_to: "signature"
+    });
+    const outcome = await parked.decided;
+    expect(outcome.verdict).toEqual({ action: "skip", applyTo: "signature" });
+    parked.settle({ status: "completed" });
+    await result;
+  });
+
+  it("carries substitute outputs, and a fail reason, and nothing else", async () => {
+    const substitute = await parkedSession(["substitute"]);
+    const pending = tool.process(ctx, {
+      session_id: substitute.session.id,
+      escalation_id: substitute.escalationId,
+      action: "substitute",
+      outputs: { value: "repaired" },
+      reason: "ignored for substitute"
+    });
+    expect((await substitute.decided).verdict).toEqual({
+      action: "substitute",
+      outputs: { value: "repaired" }
+    });
+    substitute.settle({ status: "completed" });
+    await pending;
+
+    const failing = await parkedSession(["fail"]);
+    const failPending = tool.process(ctx, {
+      session_id: failing.session.id,
+      escalation_id: failing.escalationId,
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+    expect((await failing.decided).verdict).toEqual({
+      action: "fail",
+      reason: "upstream data is unusable"
+    });
+    failing.settle({ status: "failed" });
+    await failPending;
+  });
+
+  it("rejects a verdict the escalation does not allow", async () => {
+    const parked = await parkedSession(["fail"]);
+    const result = (await tool.process(ctx, {
+      session_id: parked.session.id,
+      escalation_id: parked.escalationId,
+      action: "skip"
+    })) as Record<string, unknown>;
+    expect(result.status).toBe(400);
+    expect(String(result.error)).toContain("not allowed");
+    parked.session.forceSettle("test over");
+    await parked.decided;
   });
 });
 
 describe("BuildAppTool", () => {
-  const tool = new BuildAppTool();
+  it("refuses without a node registry", async () => {
+    const result = (await new BuildAppTool().process(ctx, {
+      prompt: "an app"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no node registry");
+  });
+
+  it("asks for a provider and model when nothing is stamped", async () => {
+    const tool = new BuildAppTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      prompt: "a note-drafting app"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("needs a provider and a model");
+  });
 
   it("inherits the calling agent's provider/model when the call omits them", async () => {
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
       provider: "anthropic",
       model: "claude-sonnet-5"
     });
-    await tool.process(ctx, { prompt: "a note-drafting app" });
-    expect(lastFetchUrl()).toContain("/api/applications/build");
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.provider).toBe("anthropic");
-    expect(body.model).toBe("claude-sonnet-5");
-  });
-
-  it("keeps an explicit provider/model over the inherited one", async () => {
-    ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
-      provider: "anthropic",
-      model: "claude-sonnet-5"
-    });
-    await tool.process(ctx, {
-      prompt: "a note-drafting app",
-      provider: "openai",
-      model: "gpt-5.4-mini"
-    });
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.provider).toBe("openai");
-    expect(body.model).toBe("gpt-5.4-mini");
-  });
-
-  it("passes the params through unchanged when nothing is stamped", async () => {
-    await tool.process(ctx, { prompt: "a note-drafting app" });
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.provider).toBeUndefined();
-    expect(body.model).toBeUndefined();
+    const tool = new BuildAppTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      prompt: "a note-drafting app"
+    })) as Record<string, unknown>;
+    // The inherited selection got past the "needs a provider" gate; what stops
+    // the build now is the unconfigured provider, not a missing choice.
+    expect(String(result.error)).not.toContain("needs a provider and a model");
   });
 
   it("documents the inheritance in the tool and parameter descriptions", () => {
+    const tool = new BuildAppTool();
     expect(tool.description).toContain("default to the provider and model");
     const props = tool.jsonSchema.properties;
     expect(props.provider.description).toContain("agent making this call");
@@ -620,32 +699,49 @@ describe("BuildAppTool", () => {
 });
 
 describe("DebugAppTool", () => {
-  const tool = new DebugAppTool();
-
-  it("posts the params straight to /api/applications/debug", async () => {
-    await tool.process(ctx, { application_id: "app-1", run: false });
-    expect(lastFetchUrl()).toContain("/api/applications/debug");
-    expect(lastFetchOpts().method).toBe("POST");
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.application_id).toBe("app-1");
-    expect(body.run).toBe(false);
+  it("refuses without a node registry", async () => {
+    const result = (await new DebugAppTool().process(ctx, {
+      application_id: "app-1"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no node registry");
   });
 
-  it("carries an inline document and an interaction script", async () => {
-    const interact = [{ set: { key: "prompt", value: "hi" } }, { click: "Run" }];
-    await tool.process(ctx, { document: { root: {} }, interact });
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.document).toEqual({ root: {} });
-    expect(body.interact).toEqual(interact);
+  it("insists on exactly one target", async () => {
+    const tool = new DebugAppTool(stubRegistry);
+    expect(
+      String(
+        ((await tool.process(ctx, {})) as Record<string, unknown>).error
+      )
+    ).toContain("either an application_id or a document");
+    expect(
+      String(
+        (
+          (await tool.process(ctx, {
+            application_id: "app-1",
+            document: { root: {} }
+          })) as Record<string, unknown>
+        ).error
+      )
+    ).toContain("not both");
   });
 
-  it("requires neither target in the schema — the server enforces exactly one", () => {
+  it("reports an application the user does not own", async () => {
+    const tool = new DebugAppTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      application_id: "app-1"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("No application found");
+  });
+
+  it("requires neither target in the schema — the service enforces exactly one", () => {
+    const tool = new DebugAppTool();
     expect(tool.jsonSchema.required).toEqual([]);
     expect(Object.keys(tool.jsonSchema.properties)).toContain("application_id");
     expect(Object.keys(tool.jsonSchema.properties)).toContain("document");
   });
 
   it("userMessage distinguishes the free wiring check from a run", () => {
+    const tool = new DebugAppTool();
     expect(tool.userMessage({ application_id: "app-1", run: false })).toContain(
       "Checking"
     );
@@ -656,9 +752,11 @@ describe("DebugAppTool", () => {
 describe("ValidateWorkflowTool", () => {
   const tool = new ValidateWorkflowTool();
 
-  it("calls GET /api/workflows/:id", async () => {
-    await tool.process(ctx, { workflow_id: "wf-789" });
-    expect(lastFetchUrl()).toContain("/api/workflows/wf-789");
+  it("reports a saved workflow it cannot find", async () => {
+    const result = (await tool.process(ctx, {
+      workflow_id: "wf-789"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("wf-789");
   });
 
   it("reports an error, not the graph, when it has no registry", async () => {
@@ -671,6 +769,22 @@ describe("ValidateWorkflowTool", () => {
     expect(result.error).toContain("no node registry");
     expect(result.validated).toBe(false);
     expect(result.graph).toBeUndefined();
+  });
+
+  it("validates the graph of a saved workflow", async () => {
+    const saved = await saveWorkflow({
+      graph: { nodes: [{ id: "n1", type: "ns.A", data: {} }], edges: [] }
+    });
+    const registry = {
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    };
+    const withRegistry = new ValidateWorkflowTool(registry as never);
+    const result = (await withRegistry.process(ctx, {
+      workflow_id: saved.id
+    })) as { ok: boolean };
+    expect(result.ok).toBe(true);
   });
 
   // The model catalog is the half that was never wired: a graph naming a real
@@ -711,6 +825,10 @@ describe("ValidateWorkflowTool", () => {
     expect(issue?.message).toContain("wan/2-7-image-to-video");
   });
 });
+
+// ---------------------------------------------------------------------------
+// Timeline / Sketch validation
+// ---------------------------------------------------------------------------
 
 describe("ValidateTimelineTool", () => {
   const track = {
@@ -913,59 +1031,74 @@ describe("ValidateSketchTool", () => {
 });
 
 describe("GetExampleWorkflowTool", () => {
-  const tool = new GetExampleWorkflowTool();
+  it("says so when no example catalog was injected", async () => {
+    const result = (await new GetExampleWorkflowTool().process(ctx, {
+      package_name: "nodetool-base",
+      example_name: "Hello"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not available in this process");
+  });
 
-  it("calls GET /api/workflows/examples/:pkg/:name", async () => {
-    await tool.process(ctx, {
-      package_name: "base",
-      example_name: "hello"
+  it("loads the example from the injected catalog", async () => {
+    const examples: ExampleWorkflowCatalog = {
+      list: async () => [],
+      get: async (pkg, name) =>
+        pkg === "nodetool-base" && name === "Hello"
+          ? { name: "Hello", graph: { nodes: [], edges: [] } }
+          : null
+    };
+    const tool = new GetExampleWorkflowTool(examples);
+    expect(
+      await tool.process(ctx, {
+        package_name: "nodetool-base",
+        example_name: "Hello"
+      })
+    ).toMatchObject({ name: "Hello" });
+  });
+
+  it("reports an example the catalog does not have", async () => {
+    const tool = new GetExampleWorkflowTool({
+      list: async () => [],
+      get: async () => null
     });
-    expect(lastFetchUrl()).toContain("/api/workflows/examples/base/hello");
+    const result = (await tool.process(ctx, {
+      package_name: "nodetool-base",
+      example_name: "Nope"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("Nope");
   });
 });
 
 describe("ExportWorkflowDigraphTool", () => {
-  const tool = new ExportWorkflowDigraphTool();
-
-  it("calls GET /api/workflows/:id/dsl-export", async () => {
-    await tool.process(ctx, { workflow_id: "wf-export" });
-    expect(lastFetchUrl()).toContain("/api/workflows/wf-export/dsl-export");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// Node Tools
-// ---------------------------------------------------------------------------
-
-describe("ListNodesTool", () => {
-  const tool = new ListNodesTool();
-
-  it("calls GET /api/nodes/metadata", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/nodes/metadata");
+  it("says so when no DSL exporter was injected", async () => {
+    const result = (await new ExportWorkflowDigraphTool().process(ctx, {
+      workflow_id: "wf-1"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no DSL exporter");
   });
 
-  it("passes namespace filter", async () => {
-    await tool.process(ctx, { namespace: "nodetool.text" });
-    expect(lastFetchUrl()).toContain("namespace=nodetool.text");
+  it("renders the stored graph through the injected exporter", async () => {
+    const saved = await saveWorkflow({
+      name: "Exportable",
+      graph: { nodes: [], edges: [] }
+    });
+    const exportDsl = vi.fn(() => "const g = graph();");
+    const tool = new ExportWorkflowDigraphTool(exportDsl);
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(result.source).toBe("const g = graph();");
+    expect(exportDsl).toHaveBeenCalledWith(expect.anything(), {
+      workflowName: "Exportable"
+    });
   });
-});
 
-describe("SearchNodesTool", () => {
-  const tool = new SearchNodesTool();
-
-  it("sends query as comma-separated string", async () => {
-    await tool.process(ctx, { query: ["image", "resize"] });
-    expect(lastFetchUrl()).toContain("query=image%2Cresize");
-  });
-});
-
-describe("GetNodeInfoTool", () => {
-  const tool = new GetNodeInfoTool();
-
-  it("passes node_type as query param", async () => {
-    await tool.process(ctx, { node_type: "nodetool.text.Concat" });
-    expect(lastFetchUrl()).toContain("node_type=nodetool.text.Concat");
+  it("reports a workflow it cannot find", async () => {
+    const tool = new ExportWorkflowDigraphTool(() => "");
+    const result = (await tool.process(ctx, {
+      workflow_id: "gone"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("gone");
   });
 });
 
@@ -973,26 +1106,56 @@ describe("GetNodeInfoTool", () => {
 // Job Tools
 // ---------------------------------------------------------------------------
 
+async function saveJob(fields: { workflowId?: string } = {}): Promise<Job> {
+  return (await Job.create({
+    workflow_id: fields.workflowId ?? "wf-1",
+    user_id: USER,
+    status: "completed",
+    params: {},
+    graph: { nodes: [], edges: [] }
+  })) as Job;
+}
+
 describe("ListJobsTool", () => {
   const tool = new ListJobsTool();
 
-  it("calls GET /api/jobs/", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/jobs/");
+  it("lists the user's jobs", async () => {
+    await saveJob();
+    const result = (await tool.process(ctx, {})) as {
+      jobs: Array<Record<string, unknown>>;
+    };
+    expect(result.jobs).toHaveLength(1);
+    expect(result.jobs[0]?.["job_type"]).toBe("workflow");
   });
 
-  it("passes workflow_id filter", async () => {
-    await tool.process(ctx, { workflow_id: "wf-abc" });
-    expect(lastFetchUrl()).toContain("workflow_id=wf-abc");
+  it("filters by workflow", async () => {
+    await saveJob({ workflowId: "wf-abc" });
+    await saveJob({ workflowId: "wf-other" });
+    const result = (await tool.process(ctx, { workflow_id: "wf-abc" })) as {
+      jobs: Array<Record<string, unknown>>;
+    };
+    expect(result.jobs.map((j) => j["workflow_id"])).toEqual(["wf-abc"]);
   });
 });
 
 describe("GetJobTool", () => {
   const tool = new GetJobTool();
 
-  it("calls GET /api/jobs/:id", async () => {
-    await tool.process(ctx, { job_id: "job-123" });
-    expect(lastFetchUrl()).toContain("/api/jobs/job-123");
+  it("returns the job row", async () => {
+    const job = await saveJob();
+    const result = (await tool.process(ctx, { job_id: job.id })) as Record<
+      string,
+      unknown
+    >;
+    expect(result.id).toBe(job.id);
+    expect(result.status).toBe("completed");
+  });
+
+  it("reports a job that is not the caller's", async () => {
+    const result = (await tool.process(ctx, {
+      job_id: "job-123"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("job-123");
   });
 
   it("userMessage includes job_id", () => {
@@ -1003,9 +1166,21 @@ describe("GetJobTool", () => {
 describe("GetJobLogsTool", () => {
   const tool = new GetJobLogsTool();
 
-  it("calls GET /api/jobs/:id", async () => {
-    await tool.process(ctx, { job_id: "job-456" });
-    expect(lastFetchUrl()).toContain("/api/jobs/job-456");
+  it("returns the most recent log entries up to the limit", async () => {
+    const job = (await Job.create({
+      workflow_id: "wf-1",
+      user_id: USER,
+      status: "failed",
+      logs: [{ message: "one" }, { message: "two" }, { message: "three" }]
+    })) as Job;
+
+    expect(await tool.process(ctx, { job_id: job.id, limit: 2 })).toMatchObject(
+      {
+        job_id: job.id,
+        total_logs: 3,
+        logs: [{ message: "two" }, { message: "three" }]
+      }
+    );
   });
 
   it("userMessage includes job_id", () => {
@@ -1014,18 +1189,27 @@ describe("GetJobLogsTool", () => {
 });
 
 describe("StartBackgroundJobTool", () => {
-  const tool = new StartBackgroundJobTool();
+  it("refuses without a node registry", async () => {
+    const result = (await new StartBackgroundJobTool().process(ctx, {
+      workflow_id: "wf-bg"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("no node registry");
+  });
 
-  it("calls POST /api/workflows/:id/run with background flag", async () => {
-    await tool.process(ctx, { workflow_id: "wf-bg" });
-    expect(lastFetchUrl()).toContain("/api/workflows/wf-bg/run");
-    expect(lastFetchOpts().method).toBe("POST");
-    const body = JSON.parse(lastFetchOpts().body as string);
-    expect(body.background).toBe(true);
+  it("marks the run as backgrounded", async () => {
+    const saved = await saveWorkflow();
+    const tool = new StartBackgroundJobTool(stubRegistry);
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(result.background).toBe(true);
+    expect(result.job_id).toEqual(expect.any(String));
   });
 
   it("userMessage includes workflow_id", () => {
-    expect(tool.userMessage({ workflow_id: "wf-123" })).toContain("wf-123");
+    expect(
+      new StartBackgroundJobTool().userMessage({ workflow_id: "wf-123" })
+    ).toContain("wf-123");
   });
 });
 
@@ -1033,23 +1217,48 @@ describe("StartBackgroundJobTool", () => {
 // Asset Tools
 // ---------------------------------------------------------------------------
 
+async function saveAsset(name: string, contentType = "image/png") {
+  return Asset.create({
+    user_id: USER,
+    name,
+    content_type: contentType,
+    parent_id: null
+  });
+}
+
 describe("ListAssetsTool", () => {
   const tool = new ListAssetsTool();
 
-  it("calls GET /api/assets/ for user source", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/assets/");
+  it("lists the user's assets", async () => {
+    await saveAsset("logo.png");
+    const result = (await tool.process(ctx, {})) as {
+      assets: Array<Record<string, unknown>>;
+    };
+    expect(result.assets.map((a) => a["name"])).toContain("logo.png");
   });
 
-  it("calls GET /api/assets/packages for package source", async () => {
-    await tool.process(ctx, { source: "package" });
-    expect(lastFetchUrl()).toContain("/api/assets/packages");
+  it("searches by name", async () => {
+    await saveAsset("logo.png");
+    await saveAsset("photo.png");
+    const result = (await tool.process(ctx, { query: "logo" })) as {
+      assets: Array<Record<string, unknown>>;
+    };
+    expect(result.assets.map((a) => a["name"])).toEqual(["logo.png"]);
   });
 
-  it("calls GET /api/assets/search when query provided", async () => {
-    await tool.process(ctx, { query: "logo" });
-    expect(lastFetchUrl()).toContain("/api/assets/search");
-    expect(lastFetchUrl()).toContain("query=logo");
+  it("says so when no package-asset lister was injected", async () => {
+    const result = (await tool.process(ctx, {
+      source: "package"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not available in this process");
+  });
+
+  it("reads package assets from the injected lister", async () => {
+    const withLister = new ListAssetsTool(async () => [{ name: "bundled.png" }]);
+    const result = (await withLister.process(ctx, { source: "package" })) as {
+      assets: Array<Record<string, unknown>>;
+    };
+    expect(result.assets[0]?.["name"]).toBe("bundled.png");
   });
 
   it("userMessage includes query when given", () => {
@@ -1064,9 +1273,19 @@ describe("ListAssetsTool", () => {
 describe("GetAssetTool", () => {
   const tool = new GetAssetTool();
 
-  it("calls GET /api/assets/:id", async () => {
-    await tool.process(ctx, { asset_id: "asset-789" });
-    expect(lastFetchUrl()).toContain("/api/assets/asset-789");
+  it("returns the asset row", async () => {
+    const asset = await saveAsset("one.png");
+    const result = (await tool.process(ctx, {
+      asset_id: asset.id
+    })) as Record<string, unknown>;
+    expect(result.name).toBe("one.png");
+  });
+
+  it("reports an asset that is not the caller's", async () => {
+    const result = (await tool.process(ctx, {
+      asset_id: "asset-789"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("asset-789");
   });
 
   it("userMessage includes asset id", () => {
@@ -1075,34 +1294,12 @@ describe("GetAssetTool", () => {
 });
 
 // ---------------------------------------------------------------------------
-// Error handling
-// ---------------------------------------------------------------------------
-
-describe("API error handling", () => {
-  it("returns error object on non-ok response", async () => {
-    fetchSpy.mockResolvedValueOnce({
-      ok: false,
-      status: 404,
-      text: async () => "Not Found"
-    });
-
-    const tool = new GetWorkflowTool();
-    const result = (await tool.process(ctx, {
-      workflow_id: "nope"
-    })) as Record<string, unknown>;
-    expect(result.error).toContain("404");
-    expect(result.error).toContain("Not Found");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // getAllMcpTools
 // ---------------------------------------------------------------------------
 
 describe("getAllMcpTools", () => {
-  it("returns the default tool set (REST node tools + asset tools)", () => {
-    const tools = getAllMcpTools();
-    const names = tools.map((t) => t.name);
+  it("returns the default tool set", () => {
+    const names = getAllMcpTools().map((t) => t.name);
     expect(names).toContain("list_workflows");
     expect(names).toContain("get_workflow");
     expect(names).toContain("create_workflow");
@@ -1112,9 +1309,6 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("debug_app");
     expect(names).toContain("get_example_workflow");
     expect(names).toContain("export_workflow_digraph");
-    expect(names).toContain("list_nodes");
-    expect(names).toContain("search_nodes");
-    expect(names).toContain("get_node_info");
     expect(names).toContain("list_jobs");
     expect(names).toContain("get_job");
     expect(names).toContain("get_job_logs");
@@ -1127,14 +1321,22 @@ describe("getAllMcpTools", () => {
     expect(names).toContain("read_asset");
   });
 
-  it("swaps in local biased node tools when a registry is provided", () => {
+  // Node discovery reads the registry directly. There is no registry-free
+  // variant any more: the only other way to answer was an HTTP call to a
+  // server that may not be running.
+  it("offers node discovery only with a registry", () => {
+    const names = getAllMcpTools().map((t) => t.name);
+    expect(names).not.toContain("list_nodes");
+    expect(names).not.toContain("search_nodes");
+    expect(names).not.toContain("get_node_info");
+  });
+
+  it("adds the local node tools when a registry is provided", () => {
     const registry = {
       listMetadata: () => [],
       getMetadata: () => undefined
     } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
-    const tools = getAllMcpTools({ registry });
-    const names = tools.map((t) => t.name);
-    // Local versions still expose the same agent-facing names.
+    const names = getAllMcpTools({ registry }).map((t) => t.name);
     expect(names.filter((n) => n === "list_nodes").length).toBe(1);
     expect(names.filter((n) => n === "search_nodes").length).toBe(1);
     expect(names.filter((n) => n === "get_node_info").length).toBe(1);
@@ -1149,7 +1351,7 @@ describe("getAllMcpTools", () => {
     } as unknown as Parameters<typeof getAllMcpTools>[0]["registry"];
     const names = getAllMcpTools({
       registry,
-      providers: { fake: {} as any }
+      providers: { fake: {} as unknown as BaseProvider }
     }).map((t) => t.name);
     expect(names).toContain("find_model");
     expect(names).toContain("list_models");
@@ -1163,13 +1365,9 @@ describe("getAllMcpTools", () => {
   });
 
   it("adds find_model + media tools when providers supplied WITHOUT a registry (multi-task path)", () => {
-    const names = getAllMcpTools({ providers: { fake: {} as any } }).map(
-      (t) => t.name
-    );
-    // REST node tools are still used (no registry to swap them in for).
-    expect(names).toContain("list_nodes");
-    expect(names).toContain("search_nodes");
-    // The provider-backed tools must still appear.
+    const names = getAllMcpTools({
+      providers: { fake: {} as unknown as BaseProvider }
+    }).map((t) => t.name);
     expect(names).toContain("find_model");
     expect(names).toContain("generate_image");
     expect(names).toContain("generate_speech");
@@ -1194,20 +1392,6 @@ describe("getAllMcpTools", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Headers
-// ---------------------------------------------------------------------------
-
-describe("request headers", () => {
-  it("includes X-User-Id from context", async () => {
-    const tool = new ListWorkflowsTool();
-    await tool.process(ctx, {});
-    const headers = lastFetchOpts().headers as Record<string, string>;
-    expect(headers["X-User-Id"]).toBe("user-1");
-    expect(headers["Authorization"]).toBe("Bearer access-token");
-    expect(headers["Content-Type"]).toBe("application/json");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // PlanWorkflowGraphTool

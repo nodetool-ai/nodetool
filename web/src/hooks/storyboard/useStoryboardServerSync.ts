@@ -17,6 +17,7 @@ import {
 } from "../../stores/storyboard/StoryboardStore";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { getErrorMessage } from "../../utils/errorHandling";
+import { registerDocumentSync } from "../../stores/documentSync";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -184,10 +185,25 @@ export const useStoryboardServerSync = (boardId: string): void => {
       schedule();
     });
 
+    // Writes from outside this browser (agent doc-ops, CLI, another tab) come
+    // in as `resource_change`. A clean tab takes the server copy; a dirty one
+    // is told rather than overwritten — its next save hits the CAS conflict
+    // and reloads through the same path.
+    const unwatch = registerDocumentSync("storyboard", boardId, {
+      localRevision: () => store.getState().serverRevisions[boardId] ?? null,
+      isDirty: () =>
+        inFlightRef.current ||
+        (store.getState().boards[boardId] ?? null) !== syncedRef.current,
+      reload: () => {
+        void load();
+      }
+    });
+
     void load();
 
     return () => {
       disposed = true;
+      unwatch();
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
       // Flush any pending debounced edit instead of dropping it with the

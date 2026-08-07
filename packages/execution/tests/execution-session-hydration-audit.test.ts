@@ -84,7 +84,7 @@ const KNOWN_UNHYDRATED: Record<string, string> = {
   // `app-debug-route.test.ts` and `app-build-route.test.ts` fail on exactly
   // that. Which key an app document should bind is a question about the
   // binding contract, not something to change underneath it.
-  "packages/websocket/src/lib/app-run-server.ts":
+  "packages/execution/src/service/app-run-server.ts":
     "app bindings resolve outputs by the un-hydrated key"
 };
 

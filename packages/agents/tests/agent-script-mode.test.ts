@@ -13,6 +13,7 @@ import type {
   ToolCall
 } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
 
 const ECHO_SCHEMA = {
   type: "object",
@@ -22,8 +23,8 @@ const ECHO_SCHEMA = {
 
 /**
  * Provider serving both roles: `submit_script` calls (planner) are answered
- * with `plannerScript`; execution loops finish via `finish_step`, echoing the
- * step objective.
+ * with `plannerScript`; execution loops finish with one code action, echoing
+ * the step objective.
  */
 function createDualProvider(plannerScript: string | null): BaseProvider {
   let calls = 0;
@@ -63,16 +64,21 @@ function createDualProvider(plannerScript: string | null): BaseProvider {
         return;
       }
 
-      const system = String(args.messages[0]?.content ?? "");
-      const objective = /# Objective\n(.*)/.exec(system)?.[1] ?? "?";
-      const finish = args.tools?.find((t) => t.name === "finish_step");
+      const user = String(args.messages[1]?.content ?? "");
+      const objective = user.split("\n\n")[0] || "?";
+      const execute = args.tools?.find(
+        (t) => t.name === EXECUTE_CODE_TOOL_NAME
+      );
       const tc: ToolCall = {
         id: `exec_${calls}`,
-        name: "finish_step",
-        args: { result: { echo: objective } }
+        name: EXECUTE_CODE_TOOL_NAME,
+        args: {
+          title: "Echoing the objective",
+          code: `await finish(${JSON.stringify({ echo: objective })});`
+        }
       };
       yield tc;
-      const content = await finish?.execute?.(tc.args as never);
+      const content = await execute?.execute?.(tc.args as never);
       yield {
         type: "message",
         message: {

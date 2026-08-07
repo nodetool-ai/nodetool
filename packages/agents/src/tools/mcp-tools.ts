@@ -1,10 +1,18 @@
 /**
  * MCP Tool wrappers for the Agent system.
  *
- * These tools give the agent "omnipotent" control over nodetool:
- * workflows, nodes, jobs, assets, and models via REST API calls.
+ * These tools give the agent control over nodetool: workflows, nodes, jobs,
+ * assets and models — all **in-process**. Nothing here speaks HTTP. Reads and
+ * writes go through `@nodetool-ai/models`, and running/debugging a workflow or
+ * an app goes through `@nodetool-ai/execution/service`, the same service layer
+ * the REST routes call. An agent therefore needs no server listening on
+ * localhost, and a tool's answer cannot differ from the endpoint's because
+ * both are one function.
  *
- * Port of src/nodetool/agents/tools/mcp_tools.py
+ * The pieces a package below `websocket` cannot construct — the node registry,
+ * the example-workflow catalog, the DSL exporter — arrive through
+ * {@link GetAllMcpToolsOptions}. A tool handed none of them says so instead of
+ * reaching for a network fallback.
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
@@ -25,6 +33,19 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
+import {
+  runApplicationDebug,
+  runWorkflow,
+  submitEscalationVerdict,
+  type RunWorkflowOutcome,
+  type WorkflowRunEnvironment
+} from "@nodetool-ai/execution/service";
+import type { AppDebugRequest } from "@nodetool-ai/execution/service";
+import { Asset, Job, Workflow } from "@nodetool-ai/models";
+import {
+  runApplicationBuild,
+  type AppBuildRequest
+} from "../app-build/build-service.js";
 import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
@@ -51,25 +72,114 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { z } from "zod";
 import { GraphPlanner } from "../graph-planner.js";
+import { evaluateGraphDsl } from "../graph-dsl.js";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
-const DEFAULT_API_URL = "http://localhost:7777";
-
-function getApiUrl(context: ProcessingContext): string {
-  return context.environment?.["NODETOOL_API_URL"] ?? DEFAULT_API_URL;
+/** The user every read and write is scoped to. */
+function userIdOf(context: ProcessingContext): string {
+  return context.userId ?? "1";
 }
 
-function getHeaders(context: ProcessingContext): Record<string, string> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json"
+/**
+ * Resolves the environment a workflow run executes in. The server injects its
+ * full Python-aware runtime (bridge, executor resolution) lazily; a host that
+ * has only a registry gets registry-only resolution, and Python nodes report
+ * they cannot execute instead of silently doing nothing.
+ */
+export type WorkflowEnvironmentProvider = () => Promise<WorkflowRunEnvironment>;
+
+/** The run environment a tool was constructed with, or null when it has none. */
+async function resolveRunEnvironment(
+  environment: WorkflowEnvironmentProvider | undefined,
+  registry: NodeRegistry | undefined
+): Promise<WorkflowRunEnvironment | null> {
+  if (environment) return environment();
+  return registry ? { registry } : null;
+}
+
+/**
+ * The refusal a tool returns when it needs the node registry and was
+ * constructed without one — a registry-free context (the multi-task planner,
+ * a unit test) cannot resolve a node type, so a run would fail late and
+ * cryptically instead of here.
+ */
+function noRegistryError(what: string): Record<string, unknown> {
+  return {
+    error:
+      `Cannot ${what}: no node registry is available in this process. Call ` +
+      "this tool from a server-side context, or use the CLI.",
+    ran: false
   };
-  if (context.userId) {
-    headers["X-User-Id"] = context.userId;
-  }
-  if (context.authToken) {
-    headers["Authorization"] = `Bearer ${context.authToken}`;
-  }
-  return headers;
+}
+
+/** A run/debug service outcome as a tool result. */
+function outcomeResult(outcome: RunWorkflowOutcome): unknown {
+  return outcome.kind === "payload"
+    ? outcome.payload
+    : { error: outcome.detail, status: outcome.status };
+}
+
+/** A stored workflow as the tools report it — the same fields the API returns. */
+function workflowRecord(workflow: Workflow): Record<string, unknown> {
+  return {
+    id: workflow.id,
+    access: workflow.access,
+    created_at: workflow.created_at,
+    updated_at: workflow.updated_at,
+    name: workflow.name,
+    tool_name: workflow.tool_name,
+    description: workflow.description,
+    tags: workflow.tags,
+    thumbnail: workflow.thumbnail,
+    thumbnail_url: workflow.thumbnail_url,
+    graph: workflow.graph,
+    settings: workflow.settings,
+    package_name: workflow.package_name,
+    path: workflow.path,
+    run_mode: workflow.run_mode,
+    workspace_id: workflow.workspace_id,
+    html_app: workflow.html_app,
+    app_doc: workflow.app_doc ?? null
+  };
+}
+
+/** A job row as the tools report it — the same fields `/api/jobs` returns. */
+function jobRecord(job: Job): Record<string, unknown> {
+  return {
+    id: job.id,
+    user_id: job.user_id,
+    job_type: "workflow",
+    status: job.status,
+    workflow_id: job.workflow_id,
+    started_at: job.started_at ?? null,
+    finished_at: job.finished_at ?? null,
+    error: job.error_message ?? job.error ?? null,
+    cost: job.cost ?? null
+  };
+}
+
+/**
+ * An asset row as the tools report it. Deliberately metadata only: the signed
+ * download URLs on the HTTP response come from the server's storage adapter,
+ * and an agent that wants the bytes calls `read_asset`.
+ */
+function assetRecord(asset: Asset): Record<string, unknown> {
+  const ext = asset.fileExtension;
+  return {
+    id: asset.id,
+    user_id: asset.user_id,
+    workflow_id: asset.workflow_id ?? null,
+    parent_id: asset.parent_id ?? null,
+    name: asset.name,
+    content_type: asset.content_type,
+    // The canonical reference an agent can paste into a workflow property or
+    // pass to media tools.
+    uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
+    size: asset.size ?? null,
+    duration: asset.duration ?? null,
+    created_at: asset.created_at,
+    metadata: asset.metadata ?? null
+  };
 }
 
 // Column/row spacing for the auto-layout. 280 is NodeTool's default node
@@ -233,91 +343,6 @@ function normalizeWorkflowGraph(graph: unknown): unknown {
   return { ...record, nodes: withAutoLayout(nodes, edges), edges };
 }
 
-async function apiGet(
-  context: ProcessingContext,
-  path: string,
-  query?: Record<string, string | number | boolean | undefined>
-): Promise<unknown> {
-  const base = getApiUrl(context);
-  const url = new URL(path, base);
-  if (query) {
-    for (const [k, v] of Object.entries(query)) {
-      if (v !== undefined) url.searchParams.set(k, String(v));
-    }
-  }
-  const res = await fetch(url.toString(), { headers: getHeaders(context) });
-  if (!res.ok) {
-    const text = await res.text();
-    return { error: `API error ${res.status}: ${text}` };
-  }
-  return res.json();
-}
-
-async function apiPost(
-  context: ProcessingContext,
-  path: string,
-  body?: unknown
-): Promise<unknown> {
-  const base = getApiUrl(context);
-  const url = new URL(path, base);
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: getHeaders(context),
-    body: body !== undefined ? JSON.stringify(body) : undefined
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { error: `API error ${res.status}: ${text}` };
-  }
-  return res.json();
-}
-
-/**
- * POST that reports the HTTP status instead of collapsing a failure into an
- * `{ error }` body. A caller that needs to tell "this server has no such
- * endpoint" from "the endpoint ran and reported a failure" cannot do it from
- * the body: a failed run legitimately carries an `error` field of its own.
- */
-async function apiPostWithStatus(
-  context: ProcessingContext,
-  path: string,
-  body?: unknown
-): Promise<{ ok: boolean; status: number; data: unknown }> {
-  const url = new URL(path, getApiUrl(context));
-  const res = await fetch(url.toString(), {
-    method: "POST",
-    headers: getHeaders(context),
-    body: body !== undefined ? JSON.stringify(body) : undefined
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return {
-      ok: false,
-      status: res.status,
-      data: { error: `API error ${res.status}: ${text}` }
-    };
-  }
-  return { ok: true, status: res.status, data: await res.json() };
-}
-
-async function apiPut(
-  context: ProcessingContext,
-  path: string,
-  body: unknown
-): Promise<unknown> {
-  const url = new URL(path, getApiUrl(context));
-  const res = await fetch(url.toString(), {
-    method: "PUT",
-    headers: getHeaders(context),
-    body: JSON.stringify(body)
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { error: `API error ${res.status}: ${text}` };
-  }
-  return res.json();
-}
-
 // ============================================================================
 // Workflow Tools
 // ============================================================================
@@ -330,12 +355,15 @@ function lightWorkflow(w: unknown): unknown {
     id: r["id"],
     name: r["name"],
     description: r["description"] ?? null,
-    tags: r["tags"] ?? null
+    tags: r["tags"] ?? null,
+    // Example records carry their package — get_example_workflow needs it.
+    ...(typeof r["package_name"] === "string" && r["package_name"]
+      ? { package_name: r["package_name"] }
+      : {})
   };
 }
 
-/** Strip embedded graphs from a `/api/workflows` list response (array or
- *  `{ workflows: [...] }`), keeping pagination fields intact. */
+/** Strip embedded graphs from a workflow list, keeping pagination intact. */
 function lightWorkflowList(resp: unknown): unknown {
   if (Array.isArray(resp)) return resp.map(lightWorkflow);
   if (resp && typeof resp === "object") {
@@ -346,6 +374,24 @@ function lightWorkflowList(resp: unknown): unknown {
   }
   return resp;
 }
+
+/**
+ * The shipped example workflows. They are JSON files inside the installed node
+ * packages, and finding them is the server's job (`example-workflows.ts` walks
+ * the package metadata roots), so a host that has them injects this.
+ */
+export interface ExampleWorkflowCatalog {
+  /** Every example, optionally filtered by a free-text query. */
+  list: (opts: { query?: string; limit?: number }) => Promise<unknown[]>;
+  /** One example by package and name, graph included. */
+  get: (packageName: string, exampleName: string) => Promise<unknown | null>;
+}
+
+const NO_EXAMPLES = {
+  error:
+    "Example workflows are not available in this process — the catalog is " +
+    "read from the installed node packages by the server."
+};
 
 export class ListWorkflowsTool extends Tool {
   readonly name = "list_workflows";
@@ -373,6 +419,37 @@ export class ListWorkflowsTool extends Tool {
     required: [] as string[]
   };
 
+  constructor(private readonly examples?: ExampleWorkflowCatalog) {
+    super();
+  }
+
+  private async listUser(
+    context: ProcessingContext,
+    limit: number
+  ): Promise<unknown> {
+    const [workflows, next] = await Workflow.paginate(userIdOf(context), {
+      limit
+    });
+    return lightWorkflowList({
+      workflows: workflows.map((w) => workflowRecord(w)),
+      next: next || null
+    });
+  }
+
+  private async listExamples(
+    query: string | undefined,
+    limit: number
+  ): Promise<unknown> {
+    if (!this.examples) return NO_EXAMPLES;
+    return lightWorkflowList({
+      workflows: await this.examples.list({
+        ...(query ? { query } : {}),
+        limit
+      }),
+      next: null
+    });
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
@@ -381,19 +458,16 @@ export class ListWorkflowsTool extends Tool {
     const query = params["query"] as string | undefined;
     const limit = Number(params["limit"] ?? 100);
 
-    if (workflowType === "example" || workflowType === "all") {
-      const examples = lightWorkflowList(
-        await apiGet(context, "/api/workflows/examples", { limit, query })
-      );
-      if (workflowType === "example") return examples;
-      const user = lightWorkflowList(
-        await apiGet(context, "/api/workflows/", { limit })
-      );
-      return { examples, user };
+    if (workflowType === "example") {
+      return this.listExamples(query, limit);
     }
-    return lightWorkflowList(
-      await apiGet(context, "/api/workflows/", { limit })
-    );
+    if (workflowType === "all") {
+      return {
+        examples: await this.listExamples(query, limit),
+        user: await this.listUser(context, limit)
+      };
+    }
+    return this.listUser(context, limit);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -423,7 +497,10 @@ export class GetWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/workflows/${params["workflow_id"]}`);
+    const workflowId = String(params["workflow_id"]);
+    const workflow = await Workflow.find(userIdOf(context), workflowId);
+    if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
+    return workflowRecord(workflow);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -461,12 +538,10 @@ export class WorkflowDocumentTool extends Tool {
       };
     }
 
-    const response = await apiGet(context, `/api/workflows/${workflowId}`);
-    if (!response || typeof response !== "object" || Array.isArray(response)) {
-      return { error: "Invalid workflow response" };
-    }
-    const workflow = response as Record<string, unknown>;
-    if ("error" in workflow) return workflow;
+    const userId = userIdOf(context);
+    const stored = await Workflow.find(userId, workflowId);
+    if (!stored) return { error: `Workflow ${workflowId} was not found.` };
+    const workflow = workflowRecord(stored);
     const parsedGraph = workflowGraphSchema.safeParse(workflow["graph"]);
     if (!parsedGraph.success) {
       return { error: "Workflow has an invalid graph" };
@@ -475,21 +550,7 @@ export class WorkflowDocumentTool extends Tool {
     const metadataByType = new Map<string, NodeMetadata>();
     const loadMetadata = async (nodeType: string): Promise<void> => {
       const local = this.registry?.resolveMetadata(nodeType);
-      if (local) {
-        metadataByType.set(nodeType, local);
-        return;
-      }
-      const remote = await apiGet(context, "/api/nodes/metadata", {
-        node_type: nodeType
-      });
-      if (
-        remote &&
-        typeof remote === "object" &&
-        !Array.isArray(remote) &&
-        !("error" in remote)
-      ) {
-        metadataByType.set(nodeType, remote as NodeMetadata);
-      }
+      if (local) metadataByType.set(nodeType, local);
     };
 
     if (this.name === "ui_add_node" && typeof params["type"] === "string") {
@@ -521,32 +582,25 @@ export class WorkflowDocumentTool extends Tool {
     );
     if (!applied.changed) return applied.result;
 
-    const updated = await apiPut(context, `/api/workflows/${workflowId}`, {
-      name: workflow["name"],
-      access: workflow["access"] ?? "private",
-      graph: applied.graph,
-      tool_name: workflow["tool_name"],
-      description: workflow["description"],
-      tags: workflow["tags"],
-      package_name: workflow["package_name"],
-      thumbnail: workflow["thumbnail"],
-      thumbnail_url: workflow["thumbnail_url"],
-      settings: workflow["settings"],
-      run_mode: workflow["run_mode"],
-      workspace_id: workflow["workspace_id"],
-      html_app: workflow["html_app"],
-      app_doc: workflow["app_doc"],
-      expected_updated_at: workflow["updated_at"]
-    });
-    if (!updated || typeof updated !== "object" || Array.isArray(updated)) {
-      return { error: "Invalid workflow update response" };
+    // The same optimistic-concurrency write the PUT route performs: the read
+    // above pinned `updated_at`, so a concurrent editor's save is a conflict
+    // rather than a silent clobber.
+    const persisted = await Workflow.updateFieldsIfUnchanged(
+      workflowId,
+      stored.updated_at,
+      { graph: applied.graph as unknown as Workflow["graph"] }
+    );
+    if (!persisted) {
+      return {
+        error:
+          "Workflow was modified since last read (optimistic concurrency " +
+          "conflict) — re-read it and retry."
+      };
     }
-    const persisted = updated as Record<string, unknown>;
-    if ("error" in persisted) return persisted;
     return {
       ...applied.result,
-      updated_at: persisted["updated_at"],
-      etag: persisted["etag"]
+      updated_at: persisted.updated_at,
+      etag: persisted.getEtag()
     };
   }
 }
@@ -660,13 +714,17 @@ export class CreateWorkflowTool extends Tool {
     const badModels = modelSelectionError(graph, this.catalogs);
     if (badModels) return badModels;
 
-    return apiPost(context, "/api/workflows", {
-      name: params["name"],
-      graph,
-      description: params["description"],
-      tags: params["tags"],
-      access: params["access"] ?? "private"
-    });
+    const created = (await Workflow.create({
+      user_id: userIdOf(context),
+      name: String(params["name"]),
+      description:
+        typeof params["description"] === "string" ? params["description"] : "",
+      tags: Array.isArray(params["tags"]) ? (params["tags"] as string[]) : [],
+      access: params["access"] === "public" ? "public" : "private",
+      graph: graph as Workflow["graph"],
+      run_mode: "workflow"
+    })) as Workflow;
+    return workflowRecord(created);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -720,19 +778,27 @@ export class RunWorkflowTool extends Tool {
     required: ["workflow_id"]
   };
 
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const run = await apiPost(
-      context,
-      `/api/workflows/${params["workflow_id"]}/run`,
-      {
-        params: params["params"] ?? {},
-        ...(params["interactive"] === true ? { interactive: true } : {})
-      }
-    );
-    return annotateEscalatedRun(run);
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("run a workflow");
+    const outcome = await runWorkflow({
+      workflowId: String(params["workflow_id"]),
+      userId: userIdOf(context),
+      environment: env,
+      params: (params["params"] as Record<string, unknown>) ?? {},
+      interactive: params["interactive"] === true
+    });
+    return annotateEscalatedRun(outcomeResult(outcome));
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -802,38 +868,32 @@ export class DebugWorkflowTool extends Tool {
     required: ["workflow_id"]
   };
 
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("debug a workflow");
     const workflowId = String(params["workflow_id"]);
+    const userId = userIdOf(context);
     const includeGraph = params["include_graph"] !== false;
-    const logLimit = Number(params["log_limit"] ?? 200);
 
-    // `/debug` runs the workflow and returns the same execution summary and
-    // verdict the CLI harness computes. Older servers only expose `/run`,
-    // which starts the job and reports a status string — fall back to it so
-    // the tool still works, and say so in the report.
-    //
-    // The fallback triggers on the endpoint being absent (404/405), never on
-    // the body: a run that failed reports its own `error` alongside the
-    // summary and verdict, which is precisely the report worth keeping.
-    const debugRun = await apiPostWithStatus(
-      context,
-      `/api/workflows/${workflowId}/debug`,
-      {
-        params: params["params"] ?? {},
-        ...(params["interactive"] === true ? { interactive: true } : {})
-      }
-    );
-    const endpointMissing =
-      !debugRun.ok && (debugRun.status === 404 || debugRun.status === 405);
-    let run = debugRun.data;
-    if (endpointMissing) {
-      run = await apiPost(context, `/api/workflows/${workflowId}/run`, {
-        params: params["params"] ?? {}
-      });
-    }
+    const outcome = await runWorkflow({
+      workflowId,
+      userId,
+      debug: true,
+      environment: env,
+      params: (params["params"] as Record<string, unknown>) ?? {},
+      interactive: params["interactive"] === true
+    });
+    const run = outcomeResult(outcome);
 
     // An escalated run has produced no report yet — the job is parked on the
     // failing node. Hand the escalation back for a verdict; the final report
@@ -847,20 +907,24 @@ export class DebugWorkflowTool extends Tool {
     }
 
     const report: Record<string, unknown> = { workflow_id: workflowId, run };
-    if (endpointMissing) {
-      report["note"] =
-        "Server has no /debug endpoint; reporting the plain run result without an execution summary or verdict.";
-    }
 
     const jobId = (run as Record<string, unknown>)?.["job_id"];
     if (typeof jobId === "string") {
-      report["job"] = await apiGet(context, `/api/jobs/${jobId}`, {
-        limit: logLimit
-      });
+      const job = await Job.find(userId, jobId);
+      if (job) {
+        const logLimit = Number(params["log_limit"] ?? 200);
+        const logs = job.logs ?? [];
+        report["job"] = {
+          ...jobRecord(job),
+          logs: logs.slice(Math.max(0, logs.length - logLimit))
+        };
+      }
     }
     if (includeGraph) {
-      const wf = await apiGet(context, `/api/workflows/${workflowId}`);
-      report["workflow"] = summarizeWorkflowGraph(wf);
+      const workflow = await Workflow.find(userId, workflowId);
+      if (workflow) {
+        report["workflow"] = summarizeWorkflowGraph(workflowRecord(workflow));
+      }
     }
     return report;
   }
@@ -936,12 +1000,13 @@ export class ResolveWorkflowEscalationTool extends Tool {
     ) {
       verdict["applyTo"] = params["apply_to"];
     }
-    const result = await apiPost(
-      context,
-      `/api/debug/sessions/${params["session_id"]}/verdict`,
-      { escalation_id: params["escalation_id"], verdict }
+    const outcome = await submitEscalationVerdict(
+      String(params["session_id"]),
+      userIdOf(context),
+      String(params["escalation_id"]),
+      verdict as Parameters<typeof submitEscalationVerdict>[3]
     );
-    return annotateEscalatedRun(result);
+    return annotateEscalatedRun(outcomeResult(outcome));
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1017,19 +1082,30 @@ export class BuildAppTool extends Tool {
     required: []
   };
 
+  constructor(private readonly registry?: NodeRegistry) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
+    if (!this.registry) return noRegistryError("build an app");
     const inherited = context.get<ActiveModelSelection | undefined>(
       ACTIVE_MODEL_CONTEXT_KEY
     );
-    const body = { ...params };
+    const body = { ...params } as AppBuildRequest;
     if (inherited) {
-      body["provider"] ??= inherited.provider;
-      body["model"] ??= inherited.model;
+      body.provider ??= inherited.provider;
+      body.model ??= inherited.model;
     }
-    return apiPost(context, "/api/applications/build", body);
+    try {
+      return await runApplicationBuild(userIdOf(context), body, this.registry);
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1105,11 +1181,26 @@ export class DebugAppTool extends Tool {
     required: []
   };
 
+  constructor(private readonly registry?: NodeRegistry) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, "/api/applications/debug", params);
+    if (!this.registry) return noRegistryError("debug an app");
+    try {
+      return await runApplicationDebug(
+        userIdOf(context),
+        params as AppDebugRequest,
+        this.registry
+      );
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1128,7 +1219,8 @@ export class ValidateWorkflowTool extends Tool {
     "Statically validate a workflow against the node registry WITHOUT running " +
     "it: unknown node types, missing required properties, unselected models, " +
     "model properties naming an unregistered provider or a model id that " +
-    "provider does not offer, and dangling or mis-typed edges. Pass an inline " +
+    "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
+    "check the same graph program you would hand to submit_graph, an inline " +
     "`graph` to check a graph you are building, or `workflow_id` to validate " +
     "a saved one. Run this before saving or running to catch breakage in " +
     "milliseconds.";
@@ -1144,6 +1236,13 @@ export class ValidateWorkflowTool extends Tool {
         type: "object" as const,
         description:
           "Inline graph to validate ({ nodes, edges }). Takes precedence over workflow_id."
+      },
+      code: {
+        type: "string" as const,
+        description:
+          "A graph program in the same DSL submit_graph takes — node(type, " +
+          "properties) and ref.output(slot?), ending with `return graph();`. " +
+          "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
       }
     }
   };
@@ -1181,19 +1280,33 @@ export class ValidateWorkflowTool extends Tool {
       | { nodes?: unknown[]; edges?: unknown[] }
       | undefined;
     const workflowId = params["workflow_id"] as string | undefined;
+    const code = typeof params["code"] === "string" ? params["code"] : "";
+
+    // A graph program is what the planner actually authors, so let it be
+    // checked in the form it will be submitted in rather than hand-translated
+    // to JSON first. Same evaluation submit_graph uses.
+    if (code.trim()) {
+      const evaluated = await evaluateGraphDsl(code);
+      if (!evaluated.graph) {
+        return {
+          status: "code_error",
+          error: evaluated.error ?? "Program produced no graph.",
+          ...(evaluated.logs?.length ? { logs: evaluated.logs } : {})
+        };
+      }
+      graph = evaluated.graph;
+    }
 
     if (!graph && workflowId) {
-      const wf = (await apiGet(context, `/api/workflows/${workflowId}`)) as
-        | Record<string, unknown>
-        | undefined;
-      if (wf && "error" in wf) return wf;
-      graph = (wf?.["graph"] ?? wf) as typeof graph;
+      const workflow = await Workflow.find(userIdOf(context), workflowId);
+      if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
+      graph = workflow.getGraph() as unknown as typeof graph;
     }
 
     if (!graph || !Array.isArray(graph.nodes)) {
       return {
         error:
-          "No graph to validate — pass an inline `graph` ({nodes, edges}) or a valid `workflow_id`."
+          "No graph to validate — pass a graph program as `code`, an inline `graph` ({nodes, edges}), or a valid `workflow_id`."
       };
     }
 
@@ -1233,6 +1346,7 @@ export class ValidateWorkflowTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
+    if (params["code"]) return "Validating graph program";
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
@@ -1688,13 +1802,22 @@ export class GetExampleWorkflowTool extends Tool {
     required: ["package_name", "example_name"]
   };
 
+  constructor(private readonly examples?: ExampleWorkflowCatalog) {
+    super();
+  }
+
   async process(
-    context: ProcessingContext,
+    _context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(
-      context,
-      `/api/workflows/examples/${params["package_name"]}/${params["example_name"]}`
+    if (!this.examples) return NO_EXAMPLES;
+    const packageName = String(params["package_name"]);
+    const exampleName = String(params["example_name"]);
+    const example = await this.examples.get(packageName, exampleName);
+    return (
+      example ?? {
+        error: `No example named "${exampleName}" in package "${packageName}".`
+      }
     );
   }
 
@@ -1723,132 +1846,42 @@ export class ExportWorkflowDigraphTool extends Tool {
     required: ["workflow_id"]
   };
 
+  // `workflowToDsl` lives in `@nodetool-ai/dsl`, which sits above this package
+  // in the dependency order, so the exporter is injected by whichever host has
+  // it (the server, the CLI) rather than imported.
+  constructor(private readonly exportDsl?: WorkflowDslExporter) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(
-      context,
-      `/api/workflows/${params["workflow_id"]}/dsl-export`
-    );
+    if (!this.exportDsl) {
+      return {
+        error:
+          "Cannot export: no DSL exporter is available in this process. Run " +
+          "`nodetool workflows export-dsl` from the CLI instead."
+      };
+    }
+    const workflowId = String(params["workflow_id"]);
+    const workflow = await Workflow.find(userIdOf(context), workflowId);
+    if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
+    if (!workflow.graph) return { error: "Workflow has no graph to export." };
+    try {
+      return {
+        workflow_id: workflowId,
+        source: this.exportDsl(workflow.graph, { workflowName: workflow.name })
+      };
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
   }
 
   userMessage(params: Record<string, unknown>): string {
     return `Exporting workflow ${params["workflow_id"]} as digraph`;
-  }
-}
-
-// ============================================================================
-// Node Tools
-// ============================================================================
-
-export class ListNodesTool extends Tool {
-  readonly name = "list_nodes";
-  readonly description =
-    "List available nodes from installed packages. Use this to discover nodes for building workflows.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      namespace: {
-        type: "string" as const,
-        description: "Optional namespace prefix filter (e.g. 'nodetool.text')"
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of nodes to return",
-        default: 200
-      }
-    },
-    required: [] as string[]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    return apiGet(context, "/api/nodes/metadata", {
-      namespace: params["namespace"] as string | undefined,
-      limit: Number(params["limit"] ?? 200)
-    });
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const ns = params["namespace"];
-    return ns ? `Listing nodes in namespace ${ns}` : "Listing available nodes";
-  }
-}
-
-export class SearchNodesTool extends Tool {
-  readonly name = "search_nodes";
-  readonly description = "Search for nodes by name, description, or tags.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      query: {
-        type: "array" as const,
-        items: { type: "string" as const },
-        description: "Search query strings"
-      },
-      n_results: {
-        type: "number" as const,
-        description: "Maximum number of results to return",
-        default: 10
-      },
-      input_type: {
-        type: "string" as const,
-        description: "Optional filter by input type"
-      },
-      output_type: {
-        type: "string" as const,
-        description: "Optional filter by output type"
-      }
-    },
-    required: ["query"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const queryArr = params["query"] as string[];
-    return apiGet(context, "/api/nodes/metadata", {
-      query: queryArr.join(","),
-      limit: Number(params["n_results"] ?? 10)
-    });
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const query = (params["query"] as string[]) ?? [];
-    return `Searching for nodes: ${query.join(", ")}`;
-  }
-}
-
-export class GetNodeInfoTool extends Tool {
-  readonly name = "get_node_info";
-  readonly description =
-    "Get detailed metadata for a node type including its properties, inputs, and outputs.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      node_type: {
-        type: "string" as const,
-        description: "Fully-qualified node type (e.g. 'nodetool.text.Concat')"
-      }
-    },
-    required: ["node_type"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    return apiGet(context, "/api/nodes/metadata", {
-      node_type: params["node_type"] as string
-    });
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Getting info for node type ${params["node_type"]}`;
   }
 }
 
@@ -1880,10 +1913,12 @@ export class ListJobsTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, "/api/jobs/", {
-      workflow_id: params["workflow_id"] as string | undefined,
-      limit: Number(params["limit"] ?? 100)
+    const workflowId = params["workflow_id"];
+    const [jobs, next] = await Job.paginate(userIdOf(context), {
+      limit: Number(params["limit"] ?? 100),
+      ...(typeof workflowId === "string" && workflowId ? { workflowId } : {})
     });
+    return { jobs: jobs.map(jobRecord), next: next || null };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1911,7 +1946,10 @@ export class GetJobTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/jobs/${params["job_id"]}`);
+    const jobId = String(params["job_id"]);
+    const job = await Job.find(userIdOf(context), jobId);
+    if (!job) return { error: `Job ${jobId} was not found.` };
+    return { ...jobRecord(job), params: job.params ?? null };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1942,9 +1980,20 @@ export class GetJobLogsTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/jobs/${params["job_id"]}`, {
-      limit: Number(params["limit"] ?? 200)
-    });
+    const jobId = String(params["job_id"]);
+    const job = await Job.find(userIdOf(context), jobId);
+    if (!job) return { error: `Job ${jobId} was not found.` };
+    // `limit` keeps the most recent entries — the tail is what explains a
+    // failure. Previously it was forwarded to an endpoint that ignored it.
+    const limit = Number(params["limit"] ?? 200);
+    const logs = job.logs ?? [];
+    return {
+      job_id: job.id,
+      status: job.status,
+      error: job.error_message ?? job.error ?? null,
+      total_logs: logs.length,
+      logs: logs.slice(Math.max(0, logs.length - limit))
+    };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1971,14 +2020,27 @@ export class StartBackgroundJobTool extends Tool {
     required: ["workflow_id"]
   };
 
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiPost(context, `/api/workflows/${params["workflow_id"]}/run`, {
-      params: params["params"] ?? {},
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("start a background job");
+    const outcome = await runWorkflow({
+      workflowId: String(params["workflow_id"]),
+      userId: userIdOf(context),
+      environment: env,
+      params: (params["params"] as Record<string, unknown>) ?? {},
       background: true
     });
+    return outcomeResult(outcome);
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -2020,31 +2082,47 @@ export class ListAssetsTool extends Tool {
     required: [] as string[]
   };
 
+  constructor(private readonly listPackageAssets?: PackageAssetLister) {
+    super();
+  }
+
   async process(
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
     const source = String(params["source"] ?? "user");
     const query = params["query"] as string | undefined;
+    const contentType = params["content_type"] as string | undefined;
+    const limit = Number(params["limit"] ?? 100);
+    const userId = userIdOf(context);
 
+    // Package assets are files shipped with a node package, not database rows;
+    // they stay on the REST route that serves them.
     if (source === "package") {
-      return apiGet(context, "/api/assets/packages", {
-        limit: Number(params["limit"] ?? 100)
-      });
+      // Package assets are files inside the installed node packages, served
+      // by the server from its own install — there is no row to read.
+      return this.listPackageAssets
+        ? { assets: await this.listPackageAssets({ limit }), next: null }
+        : {
+            error:
+              "Package assets are not available in this process — they are " +
+              "read from the installed node packages by the server."
+          };
     }
 
     if (query) {
-      return apiGet(context, "/api/assets/search", {
-        query,
-        content_type: params["content_type"] as string | undefined,
-        limit: Number(params["limit"] ?? 100)
+      const [assets, next] = await Asset.searchAssetsGlobal(userId, query, {
+        ...(contentType ? { contentType } : {}),
+        limit
       });
+      return { assets: assets.map(assetRecord), next: next || null };
     }
 
-    return apiGet(context, "/api/assets/", {
-      content_type: params["content_type"] as string | undefined,
-      limit: Number(params["limit"] ?? 100)
+    const [assets, next] = await Asset.paginate(userId, {
+      ...(contentType ? { contentType } : {}),
+      limit
     });
+    return { assets: assets.map(assetRecord), next: next || null };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -2071,7 +2149,11 @@ export class GetAssetTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/assets/${params["asset_id"]}`);
+    const assetId = String(params["asset_id"]);
+    const asset = await Asset.find(userIdOf(context), assetId);
+    return asset
+      ? assetRecord(asset)
+      : { error: `Asset ${assetId} was not found.` };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -2083,14 +2165,46 @@ export class GetAssetTool extends Tool {
 // Helper
 // ============================================================================
 
+/** Renders a stored graph as a TypeScript DSL program. */
+export type WorkflowDslExporter = (
+  graph: unknown,
+  options: { workflowName?: string }
+) => string;
+
+/** Lists the assets shipped inside the installed node packages. */
+export type PackageAssetLister = (opts: {
+  limit?: number;
+}) => Promise<unknown[]>;
+
 export interface GetAllMcpToolsOptions {
   /**
-   * In-process NodeRegistry. When supplied, the REST-based
-   * ListNodesTool / SearchNodesTool / GetNodeInfoTool are replaced with the
-   * local biased counterparts so any agent reaching for `search_nodes`
-   * gets the same namespace-aware ranking as the GraphPlanner.
+   * In-process NodeRegistry. Node discovery (`list_nodes`, `search_nodes`,
+   * `get_node_info`) needs it, and so does anything that executes: running or
+   * debugging a workflow, building or debugging an app. Without it those tools
+   * are still offered but answer with a "no registry in this process" error
+   * rather than reaching for a network fallback.
    */
   registry?: NodeRegistry;
+  /**
+   * The shipped example workflows. They live as JSON inside the installed node
+   * packages, which only the server walks, so a host that has them injects the
+   * catalog; without it the example paths say so.
+   */
+  examples?: ExampleWorkflowCatalog;
+  /**
+   * `workflowToDsl`. `@nodetool-ai/dsl` sits above this package in the
+   * dependency order, so `export_workflow_digraph` takes it by injection.
+   */
+  exportDsl?: WorkflowDslExporter;
+  /** Package assets for `list_assets` with `source: "package"`. */
+  listPackageAssets?: PackageAssetLister;
+  /**
+   * The full workflow-run environment (Python bridge, executor resolution),
+   * resolved lazily. The server injects this so an agent-run workflow executes
+   * exactly like an HTTP-run one; without it the run tools fall back to
+   * registry-only resolution and Python nodes report they cannot execute.
+   */
+  workflowEnvironment?: WorkflowEnvironmentProvider;
   /**
    * Configured BaseProvider instances by id. When supplied, the agent gets:
    * - `find_model` — pick a `{provider, model_id}` for any capability.
@@ -2107,22 +2221,22 @@ export interface GetAllMcpToolsOptions {
 
 export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   const tools: Tool[] = [
-    new ListWorkflowsTool(),
+    new ListWorkflowsTool(options.examples),
     new GetWorkflowTool(),
     new CreateWorkflowTool(),
-    new RunWorkflowTool(),
-    new DebugWorkflowTool(),
+    new RunWorkflowTool(options.registry, options.workflowEnvironment),
+    new DebugWorkflowTool(options.registry, options.workflowEnvironment),
     new ResolveWorkflowEscalationTool(),
-    new BuildAppTool(),
-    new DebugAppTool(),
+    new BuildAppTool(options.registry),
+    new DebugAppTool(options.registry),
     new ValidateWorkflowTool(options.registry),
-    new GetExampleWorkflowTool(),
-    new ExportWorkflowDigraphTool(),
+    new GetExampleWorkflowTool(options.examples),
+    new ExportWorkflowDigraphTool(options.exportDsl),
     new ListJobsTool(),
     new GetJobTool(),
     new GetJobLogsTool(),
-    new StartBackgroundJobTool(),
-    new ListAssetsTool(),
+    new StartBackgroundJobTool(options.registry, options.workflowEnvironment),
+    new ListAssetsTool(options.listPackageAssets),
     new GetAssetTool(),
     // Asset persistence — used by the agent to surface artifacts (text
     // reports, images, audio) into the chat. Media-generation tools save
@@ -2132,17 +2246,14 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new ReadAssetTool()
   ];
 
+  // Node discovery reads the registry directly; there is no registry-free
+  // variant, because the only other way to answer was an HTTP call to a server
+  // that may not be running.
   if (options.registry) {
     tools.push(
       new LocalListNodesTool(options.registry),
       new LocalSearchNodesTool(options.registry),
       new LocalGetNodeInfoTool(options.registry)
-    );
-  } else {
-    tools.push(
-      new ListNodesTool(),
-      new SearchNodesTool(),
-      new GetNodeInfoTool()
     );
   }
   tools.push(...createWorkflowDocumentTools(options.registry));

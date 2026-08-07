@@ -68,7 +68,7 @@ export function ChatDemoPlayer({
               runningToolCallId={state.runningToolCallId}
               runningToolMessage={state.runningToolMessage}
               model={cast.model}
-              showConversationHeader={false}
+              showNewChatButton={false}
             />
           </div>
         </ThemeProvider>

@@ -21,6 +21,7 @@ import {
   ScriptedProvider,
   planScript,
   stepScript,
+  codeStepScript,
   textScript,
   autoScript,
   toolThenFinishScript
@@ -258,8 +259,8 @@ describe("StepExecutor E2E", () => {
 describe("TaskExecutor E2E", () => {
   it("executes a 2-step sequential task", async () => {
     const provider = new ScriptedProvider([
-      stepScript({ value: 10 }), // step_1
-      stepScript({ result: 20 }) // step_2
+      codeStepScript({ value: 10 }), // step_1
+      codeStepScript({ result: 20 }) // step_2
     ]);
     const context = makeContext();
     const task: Task = {
@@ -315,8 +316,8 @@ describe("TaskExecutor E2E", () => {
 
   it("executes independent steps (no deps) both to completion", async () => {
     const provider = new ScriptedProvider([
-      stepScript({ a: 1 }),
-      stepScript({ b: 2 })
+      codeStepScript({ a: 1 }),
+      codeStepScript({ b: 2 })
     ]);
     const context = makeContext();
     const task: Task = {
@@ -553,7 +554,7 @@ describe("Agent E2E (full pipeline)", () => {
 
   it("skips planning when task is pre-provided", async () => {
     const provider = new ScriptedProvider([
-      stepScript({ output: "hello world" })
+      codeStepScript({ output: "hello world" })
     ]);
     const context = makeContext();
 
@@ -592,8 +593,8 @@ describe("Agent E2E (full pipeline)", () => {
 
   it("captures final result from the last task step", async () => {
     const provider = new ScriptedProvider([
-      stepScript({ step1: "done" }),
-      stepScript({ final: "answer" })
+      codeStepScript({ step1: "done" }),
+      codeStepScript({ final: "answer" })
     ]);
     const context = makeContext();
 

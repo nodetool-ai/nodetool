@@ -24,6 +24,7 @@ import type {
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { TaskPlan } from "../src/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { finishAction } from "./_helpers/codeact-provider.js";
 
 const OBJECTIVE = "Research and write outreach";
 
@@ -125,11 +126,7 @@ function createStepProvider(): BaseProviderType {
     provider: "mock",
     hasToolSupport: async () => true,
     generateMessages: async function* () {
-      yield {
-        id: "tc_1",
-        name: "finish_step",
-        args: { result: { done: true } }
-      };
+      yield finishAction({ done: true });
     },
     async *generateMessagesTraced(...args: unknown[]) {
       yield* (this as { generateMessages: (...a: unknown[]) => AsyncGenerator<ProviderStreamItem> }).generateMessages(

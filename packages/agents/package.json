@@ -33,15 +33,24 @@
     "@types/mailparser": "^3.4.6",
     "acorn": "^8.16.0",
     "cheerio": "^1.2.0",
+    "diff": "^5.2.0",
+    "exceljs": "^4.4.0",
+    "fast-xml-parser": "^5.7.3",
+    "fflate": "^0.8.2",
     "imapflow": "^1.2.12",
     "js-tiktoken": "^1.0.18",
+    "js-yaml": "^4.3.1",
     "mailparser": "^3.9.3",
-    "papaparse": "^5.5.3"
+    "papaparse": "^5.5.3",
+    "turndown": "^7.2.2"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/diff": "^5.2.3",
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
+    "@types/turndown": "^5.0.5",
     "typescript": "^5.7.2",
     "vitest": "^4.1.2"
   },

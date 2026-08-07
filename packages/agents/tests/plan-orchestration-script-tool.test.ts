@@ -3,6 +3,7 @@
  * tool. It must stream planner and sub-agent events upward tagged with the
  * parent tool call id, run the planned script, and end promptly on Stop.
  */
+import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
 import { describe, it, expect } from "vitest";
 import { PlanOrchestrationScriptTool } from "../src/tools/plan-orchestration-script-tool.js";
 import { TOOL_CALL_ID_FIELD } from "../src/tools/subtask-fields.js";
@@ -28,7 +29,7 @@ return a.echo;`;
 
 /**
  * Provider serving both roles: `submit_script` calls (planner) get
- * `plannerScript`; sub-agent loops finish via `finish_step`, echoing the
+ * `plannerScript`; sub-agent loops finish with one code action, echoing the
  * step objective.
  */
 function createProvider(
@@ -73,16 +74,21 @@ function createProvider(
         return;
       }
 
-      const system = String(args.messages[0]?.content ?? "");
-      const objective = /# Objective\n(.*)/.exec(system)?.[1] ?? "?";
-      const finish = args.tools?.find((t) => t.name === "finish_step");
+      const user = String(args.messages[1]?.content ?? "");
+      const objective = user.split("\n\n")[0] || "?";
+      const execute = args.tools?.find(
+        (t) => t.name === EXECUTE_CODE_TOOL_NAME
+      );
       const tc: ToolCall = {
         id: `exec_${calls}`,
-        name: "finish_step",
-        args: { result: { echo: objective } }
+        name: EXECUTE_CODE_TOOL_NAME,
+        args: {
+          title: "Echoing the objective",
+          code: `await finish(${JSON.stringify({ echo: objective })});`
+        }
       };
       yield tc;
-      const content = await finish?.execute?.(tc.args as never);
+      const content = await execute?.execute?.(tc.args as never);
       yield {
         type: "message",
         message: {

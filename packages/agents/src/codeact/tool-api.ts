@@ -11,8 +11,12 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { JsonSchema } from "@nodetool-ai/runtime";
+import type { JsonSchema, MessageImageContent } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
+import {
+  extractInjectableImages,
+  stripImagePayload
+} from "../tools/image-injection.js";
 
 /** Tool-call ceiling per code action; a runaway guest loop stops here. */
 export const DEFAULT_MAX_TOOL_CALLS_PER_ACTION = 50;
@@ -23,6 +27,8 @@ type BridgeResult = { ok: true; result: unknown } | { ok: false; error: string }
 export interface ToolCallRecord {
   name: string;
   args: Record<string, unknown>;
+  /** Synthetic id (`codeact_<n>`) this call runs under. */
+  toolCallId: string;
 }
 
 export interface ToolBridgeOptions {
@@ -39,6 +45,12 @@ export interface ToolBridge {
   /** Calls consumed so far in the current action. Reset per action. */
   callCount: () => number;
   resetActionBudget: () => void;
+  /**
+   * Pixels a tool returned during this action, removed from the observation
+   * and waiting to ride the tool result as a provider image message. Draining
+   * clears them.
+   */
+  drainImages: () => MessageImageContent[];
 }
 
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
@@ -79,6 +91,9 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
   const maxCalls =
     options.maxToolCallsPerAction ?? DEFAULT_MAX_TOOL_CALLS_PER_ACTION;
   let calls = 0;
+  // Lifetime count across actions — the id a tool sees must stay unique.
+  let totalCalls = 0;
+  let pendingImages: MessageImageContent[] = [];
 
   const callTool = async (
     name: unknown,
@@ -117,9 +132,22 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       }
 
       const tool = byName.get(name) as Tool;
-      options.onToolCall?.({ name, args });
+      totalCalls++;
+      const toolCallId = `codeact_${totalCalls}`;
+      options.onToolCall?.({ name, args, toolCallId });
 
-      const result = await Tool.executeTool(tool, options.context, args);
+      let result = await Tool.executeTool(tool, options.context, args, {
+        toolCallId
+      });
+      // A view-image-style result carries pixels the model asked for. They
+      // cannot ride the JSON observation (base64 would burn the context for
+      // nothing), so strip them here and let the caller forward them as a
+      // provider image message alongside the observation.
+      const injected = extractInjectableImages(result);
+      if (injected) {
+        pendingImages.push(...injected.images);
+        result = stripImagePayload(result);
+      }
       const errorPayload = extractErrorPayload(result);
       if (errorPayload !== null) {
         return { ok: false, error: `tools.${name}: ${errorPayload}` };
@@ -141,6 +169,11 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
     callCount: () => calls,
     resetActionBudget: () => {
       calls = 0;
+    },
+    drainImages: () => {
+      const images = pendingImages;
+      pendingImages = [];
+      return images;
     }
   };
 }

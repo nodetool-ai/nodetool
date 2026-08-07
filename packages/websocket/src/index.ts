@@ -76,3 +76,4 @@ export {
   type ImportBundleResult,
   type StoreAssetInput
 } from "./lib/workflow-bundle.js";
+export { mcpToolHostDeps, createExampleWorkflowCatalog } from "./mcp-tool-deps.js";

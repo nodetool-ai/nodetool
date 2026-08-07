@@ -20,9 +20,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import {
-  AGENT_EXECUTION_MODE_ENV,
   getRegisteredSettings,
-  setAgentExecutionModeEnv,
   type SettingWithValue
 } from "../../settings-registry.js";
 import {
@@ -253,14 +251,6 @@ export const settingsRouter = router({
             key,
             value: String(value ?? "")
           });
-        }
-        // The agents package reads the execution mode off the environment, so
-        // mirror a write immediately — otherwise the switch only takes effect
-        // after a restart.
-        if (AGENT_EXECUTION_MODE_ENV in input.settings) {
-          setAgentExecutionModeEnv(
-            String(input.settings[AGENT_EXECUTION_MODE_ENV] ?? "")
-          );
         }
       }
 

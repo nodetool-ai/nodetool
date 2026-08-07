@@ -18,6 +18,7 @@ import {
   type ScriptSaveStatus
 } from "../../stores/script/ScriptStore";
 import { getErrorMessage } from "../../utils/errorHandling";
+import { registerDocumentSync } from "../../stores/documentSync";
 
 const AUTOSAVE_DEBOUNCE_MS = 750;
 const RETRY_DELAY_MS = 5_000;
@@ -195,10 +196,25 @@ export const useScriptServerSync = (scriptId: string): void => {
       schedule();
     });
 
+    // Writes from outside this browser (agent doc-ops, CLI, another tab) come
+    // in as `resource_change`. A clean tab takes the server copy; a dirty one
+    // is told rather than overwritten — its next save reports the conflict and
+    // reloads through the same path.
+    const unwatch = registerDocumentSync("script", scriptId, {
+      localRevision: () => store.getState().serverRevisions[scriptId] ?? null,
+      isDirty: () =>
+        inFlightRef.current ||
+        (store.getState().scripts[scriptId] ?? null) !== syncedRef.current,
+      reload: () => {
+        void load("reloaded");
+      }
+    });
+
     void load();
 
     return () => {
       disposed = true;
+      unwatch();
       unsubscribe();
       if (timerRef.current) clearTimeout(timerRef.current);
       if (inFlightRef.current) flushAfterSaveRef.current = true;

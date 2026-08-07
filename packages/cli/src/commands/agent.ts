@@ -43,13 +43,9 @@ import {
   BrowserTool,
   ScreenshotTool,
   RunCodeTool,
-  CalculatorTool,
   ExtractPDFTextTool,
   ConvertPDFToMarkdownTool,
   ConvertDocumentTool,
-  StatisticsTool,
-  GeometryTool,
-  ConversionTool,
   OpenAIWebSearchTool,
   OpenAIImageGenerationTool,
   OpenAITextToSpeechTool,
@@ -63,6 +59,8 @@ import {
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
+import { buildFullRegistry } from "../node-registry.js";
+import { mcpToolHostDeps } from "@nodetool-ai/websocket";
 import {
   diagnoseRun,
   renderDiagnosis,
@@ -88,8 +86,6 @@ interface AgentYaml {
   objective?: string; // optional default
   model?: ModelBlock;
   planning_agent?: { enabled?: boolean; model?: ModelBlock };
-  /** Step action space: "tools" (default) or "codeact" (docs/codeact-design.md). */
-  execution_mode?: "tools" | "codeact";
   tools?: string[];
   max_iterations?: number;
   max_steps?: number;
@@ -201,10 +197,6 @@ function buildToolMap(
     browser: new BrowserTool(),
     screenshot: new ScreenshotTool(),
     run_code: new RunCodeTool(),
-    calculator: new CalculatorTool(),
-    statistics: new StatisticsTool(),
-    geometry: new GeometryTool(),
-    conversion: new ConversionTool(),
     extract_pdf_text: new ExtractPDFTextTool(),
     convert_pdf_to_markdown: new ConvertPDFToMarkdownTool(),
     convert_document: new ConvertDocumentTool(),
@@ -216,7 +208,15 @@ function buildToolMap(
     search_email: new SearchEmailTool(),
     archive_email: new ArchiveEmailTool()
   };
-  for (const tool of getAllMcpTools({ providers })) {
+  // The platform tools run in-process now (no HTTP fallback), so this host
+  // must inject what they need: the full TS node registry, and the server's
+  // host deps (example catalog, DSL exporter, package assets, and the lazy
+  // Python-aware run environment — the bridge starts only when a run needs it).
+  for (const tool of getAllMcpTools({
+    providers,
+    registry: buildFullRegistry(),
+    ...mcpToolHostDeps()
+  })) {
     m[tool.name] = tool;
   }
   return m;
@@ -363,7 +363,6 @@ interface RunOptions {
   workspace?: string;
   provider?: string;
   model?: string;
-  codeact?: boolean;
 }
 
 async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
@@ -481,10 +480,7 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     tools,
     systemPrompt: effectiveSystemPrompt,
     maxSteps: cfg.max_steps,
-    planningModel,
-    // Precedence: --codeact flag > YAML execution_mode > the
-    // NODETOOL_AGENT_EXECUTION_MODE setting (resolved inside Agent) > tools.
-    executionMode: opts.codeact ? "codeact" : cfg.execution_mode
+    planningModel
   });
 
   const ctx = new ProcessingContext({
@@ -787,10 +783,6 @@ export function registerAgentCommands(program: Command): void {
     .option("-w, --workspace <path>", "Override workspace dir")
     .option("--json", "Emit each event as a JSON line on stderr")
     .option("-v, --verbose", "Include chunk/other low-level events in trace")
-    .option(
-      "--codeact",
-      "Execute steps as sandboxed JavaScript actions instead of JSON tool calls"
-    )
     .action(async (file: string, opts: RunOptions) => {
       try {
         await runAgentCommand(file, opts);

@@ -41,6 +41,7 @@ import {
   formatToolDiff,
 } from "./tool-format.js";
 import { saveSettings } from "./settings.js";
+import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { getSecret } from "@nodetool-ai/models";
 
 // ---------------------------------------------------------------------------
@@ -871,7 +872,21 @@ export function App({
           ...tools
         ];
 
+        // The turn runs in CodeAct, like a server session: the provider sees
+        // `execute_code` (+ `view_image`) and the toolbelt lives in the
+        // sandbox. Bridged calls have no provider tool-call id, so they show
+        // up as the live status label rather than as tool cards.
+        const turn = createCliCodeActTurn({
+          tools: toolsWithSubtask,
+          context: ctx,
+          signal: abortController.signal,
+          onToolCall: ({ name }) => {
+            setStreamLabel(`${friendlyToolName(name)}…`);
+          }
+        });
+
         const updatedHistory = [...chatHistoryRef.current];
+        applySystemPrompt(updatedHistory, turn.systemPrompt);
 
         await processChat({
           userInput: trimmed,
@@ -879,7 +894,7 @@ export function App({
           model: modelRef.current,
           provider: prov,
           context: ctx,
-          tools: toolsWithSubtask,
+          tools: turn.tools,
           signal: abortController.signal,
           callbacks: {
             onChunk: (text) => {

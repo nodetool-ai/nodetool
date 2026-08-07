@@ -8,11 +8,6 @@ describe("agents index exports", () => {
     // Tools
     expect(mod.Tool).toBeDefined();
     expect(mod.FinishStepTool).toBeDefined();
-    expect(mod.CalculatorTool).toBeDefined();
-    expect(mod.StatisticsTool).toBeDefined();
-    expect(mod.GeometryTool).toBeDefined();
-    expect(mod.TrigonometryTool).toBeDefined();
-    expect(mod.ConversionTool).toBeDefined();
     expect(mod.OpenAIWebSearchTool).toBeDefined();
     expect(mod.OpenAIImageGenerationTool).toBeDefined();
     expect(mod.OpenAITextToSpeechTool).toBeDefined();
@@ -39,7 +34,7 @@ describe("agents index exports", () => {
     expect(mod.extractJSON).toBeDefined();
 
     // Core execution
-    expect(mod.StepExecutor).toBeDefined();
+    expect(mod.CodeActExecutor).toBeDefined();
 
     // Read-only fan-out search primitive
     expect(mod.RunSearchTool).toBeDefined();

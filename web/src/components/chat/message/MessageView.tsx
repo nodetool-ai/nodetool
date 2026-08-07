@@ -131,12 +131,14 @@ const ToolCallCard: React.FC<{
     ? (pickString("prompt") ?? pickString("instructions"))
     : null;
   const actionCode = isCodeAction ? pickString("code") : null;
+  const actionTitle = isCodeAction ? pickString("title") : null;
   const displayArgs = useMemo(() => {
     const base = visibleArgs(rawArgs);
     if (!base) return base;
     if (isCodeAction) {
       const stripped: Record<string, unknown> = { ...base };
       delete stripped["code"];
+      delete stripped["title"];
       return Object.keys(stripped).length > 0 ? stripped : null;
     }
     if (!isSubtask) return base;
@@ -179,7 +181,9 @@ const ToolCallCard: React.FC<{
   const fallbackName = formatToolName(tc.name);
   const headline = isSubtask
     ? subtaskTitle || fallbackName
-    : liveMessage || fallbackName;
+    : isCodeAction
+      ? actionTitle || liveMessage || fallbackName
+      : liveMessage || fallbackName;
   const showSeparateMessage = isSubtask && !!liveMessage;
   const headlineLabel = isSubtask ? "Subtask" : null;
   const { Icon: ToolIcon, accent } = getToolVisual(tc.name);

@@ -144,19 +144,14 @@ import {
   PlanOrchestrationScriptTool
 } from "@nodetool-ai/agents";
 import {
-  ToolSearchTool,
-  formatDeferredToolsReminder,
-  type ToolSearchEntry
-} from "@nodetool-ai/agents";
-import {
   createChatCodeActSession,
-  resolveExecutionMode,
+  CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
   type ChatCodeActSession,
   type ChatCodeActToolCall
 } from "@nodetool-ai/agents";
 import {
-  getBuiltinTools,
+  getAgentToolbelt,
   getAllMcpTools,
   registerBuiltinTools,
   getGoogleWorkspaceTools,
@@ -173,6 +168,7 @@ import {
   type RequestPlanApproval,
   type TaskPlan
 } from "@nodetool-ai/agents";
+import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import {
   createDefaultLongTermMemory,
   formatMemoryForPrompt,
@@ -180,6 +176,7 @@ import {
   type LongTermMemory
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
+import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
@@ -1032,51 +1029,10 @@ function createRuntimeContext(opts: {
     }
   });
 
-  const MIME_TO_EXT: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-    "image/bmp": "bmp",
-    "image/svg+xml": "svg",
-    "audio/mpeg": "mp3",
-    "audio/mp3": "mp3",
-    "audio/wav": "wav",
-    "audio/ogg": "ogg",
-    "video/mp4": "mp4",
-    "video/webm": "webm",
-    "application/pdf": "pdf",
-    "text/plain": "txt",
-    "text/html": "html",
-    "model/gltf-binary": "glb"
-  };
-
   ctx.setModelInterfaces({
-    createAsset: async (args) => {
-      const asset = new Asset({
-        user_id: args.userId,
-        workflow_id: args.workflowId ?? null,
-        node_id: args.nodeId ?? null,
-        job_id: args.jobId ?? null,
-        name: args.name,
-        content_type: args.contentType,
-        parent_id: args.parentId ?? null
-      });
-      if (args.content) {
-        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-        const key = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          key,
-          args.content,
-          args.contentType
-        );
-        asset.size = args.content.length;
-      }
-      await asset.save();
-      return asset;
-    },
+    // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
+    // one persistence path, one home-folder default.
+    createAsset: createAssetModelInterface,
     createMessage: async ({ userId, req }) => {
       // Persist an AgentNode thread message. `content` / `tool_calls` are stored
       // raw — the `content` column is a jsonText type that serializes them, so
@@ -1447,11 +1403,12 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
 };
 
 /**
- * The resident toolbelt on stateless providers: the delegation primitives plus
- * the high-traffic discovery/execution tools nearly every task reaches for, so
- * the common path needs no `ToolSearch` round-trip. `ToolSearch` is added
- * alongside; the long tail (collections, files, web, media, other MCP tools,
- * and all client `ui_*` tools) is deferred and loaded on demand.
+ * The chat turn's resident toolbelt: the delegation primitives plus the
+ * high-traffic discovery/execution tools nearly every task reaches for. These
+ * are documented in full in the CodeAct prompt, on top of
+ * `CODEACT_RESIDENT_TOOL_NAMES`; the long tail (collections, files, web,
+ * media, other MCP tools, and all client `ui_*` tools) is name-only and found
+ * in-sandbox with `searchTools()`.
  */
 export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives.
@@ -5198,12 +5155,10 @@ export class UnifiedWebSocketRunner {
     // (resume failed / system prompt changed). Otherwise we load the full
     // history and use the standard slice-based resume. The DB column is the
     // source of truth; the provider also keeps an in-process cache.
-    // Generic-provider tool search appends a `<system-reminder>` listing the
-    // deferred tools. Assigned during tool resolution below; read lazily here
-    // because the resume `loadFullHistory` thunk and the prepend both run after.
-    let toolSearchReminder = "";
-    // In codeact mode: the action contract + tool catalog section, assigned
-    // once the session exists (before the system message is materialized).
+    // The action contract + tool catalog section, assigned once the codeact
+    // session exists (before the system message is materialized). Read lazily
+    // here because the resume `loadFullHistory` thunk and the prepend both run
+    // after tool resolution.
     let codeactPromptSection = "";
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
@@ -5211,10 +5166,9 @@ export class UnifiedWebSocketRunner {
         extraSystemPrompt,
         uiContext
       );
-      const suffix = [toolSearchReminder, codeactPromptSection]
-        .filter((s) => s.length > 0)
-        .join("\n\n");
-      return suffix ? `${base}\n\n${suffix}` : base;
+      return codeactPromptSection
+        ? `${base}\n\n${codeactPromptSection}`
+        : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5312,11 +5266,12 @@ export class UnifiedWebSocketRunner {
     if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.getConfiguredProviders(userId);
     const rawToolbelt: Tool[] = [
-      ...getBuiltinTools(),
+      ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
-        providers: chatProviders
+        providers: chatProviders,
+        ...mcpToolHostDeps()
       }),
       new ListCollectionsTool(),
       new QueryCollectionTool(),
@@ -5350,18 +5305,11 @@ export class UnifiedWebSocketRunner {
         })
       );
     }
-    // When the active provider generates images natively (OpenAI Responses
-    // `image_generation` tool), drop the redundant provider-specific
-    // `openai_image_generation` tool — the native `image_generation` covers it
-    // and avoids offering two overlapping image tools.
-    const dropOpenAIImageTool = provider.supportsNativeImageGeneration;
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
     for (const tool of rawToolbelt) {
       if (seenToolNames.has(tool.name)) continue;
-      if (dropOpenAIImageTool && tool.name === "openai_image_generation")
-        continue;
       seenToolNames.add(tool.name);
       dedupedToolbelt.push(tool);
     }
@@ -5489,67 +5437,20 @@ export class UnifiedWebSocketRunner {
     }
     const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
 
-    // Execution mode for this turn. When the stored setting (or
-    // NODETOOL_AGENT_EXECUTION_MODE) says "codeact", the chat turn presents a
-    // single `execute_code` tool and the model acts by writing sandboxed
-    // JavaScript over the same toolbelt (docs/codeact-design.md). The session
+    // A chat turn with tools always runs in CodeAct: the model acts by writing
+    // sandboxed JavaScript over the toolbelt (docs/codeact-design.md), and the
+    // session's in-sandbox `searchTools()` is the discovery path. The session
     // is created below, once the tool router and processing context exist.
-    const useCodeAct =
-      resolveExecutionMode() === "codeact" && allSchemas.length > 0;
+    const useCodeAct = allSchemas.length > 0;
 
-    // The live tool list handed to the provider. On the generic path it starts
-    // with the minimal resident set + ToolSearch and GROWS in place as
-    // ToolSearch reveals deferred tools — base-provider's loop re-reads this
-    // array each iteration, so pushes become callable on the next turn.
+    // The tool list handed to the provider: `execute_code` (+ `view_image`),
+    // pushed once the session exists.
     const providerToolSchemas: ProviderTool[] = [];
-    let deferredToolCount = 0;
-    if (useCodeAct) {
-      // Codeact replaces the ToolSearch deferral machinery: the session's
-      // in-sandbox `searchTools()` covers discovery, and the only provider
-      // tools are `execute_code` (+ `view_image`, pushed below).
-    } else if (provider.usesNativeToolSearch) {
-      // Native tool search (Claude Agent SDK): pass everything; the SDK defers.
-      providerToolSchemas.push(...allSchemas);
-    } else {
-      // Resident = the minimal delegation primitives; everything else deferred.
-      const resident = allSchemas.filter((s) =>
-        RESIDENT_TOOL_NAMES.has(s.name)
-      );
-      const deferred = allSchemas.filter(
-        (s) => !RESIDENT_TOOL_NAMES.has(s.name)
-      );
-      providerToolSchemas.push(...resident);
-      deferredToolCount = deferred.length;
-      if (deferred.length > 0) {
-        const catalog: ToolSearchEntry[] = deferred.map((s) => ({
-          name: s.name,
-          description: s.description,
-          parameters: s.inputSchema
-        }));
-        const deferredByName = new Map(deferred.map((s) => [s.name, s]));
-        const revealed = new Set<string>();
-        const toolSearch = new ToolSearchTool(catalog, (entries) => {
-          for (const e of entries) {
-            if (revealed.has(e.name)) continue;
-            const schema = deferredByName.get(e.name);
-            if (!schema) continue;
-            revealed.add(e.name);
-            providerToolSchemas.push(schema);
-          }
-        });
-        serverToolMap.set(toolSearch.name, toolSearch);
-        providerToolSchemas.push(toolSearch.toProviderTool());
-        toolSearchReminder = formatDeferredToolsReminder(catalog);
-      }
-    }
     log.info("Provider tool schemas", {
       permissionMode,
-      nativeToolSearch: provider.usesNativeToolSearch,
       serverToolCount: serverTools.length,
       clientToolCount: clientToolNames.length,
-      deferredToolCount,
-      residentSchemas: providerToolSchemas.length,
-      schemaNames: providerToolSchemas.map((t) => t.name)
+      codeact: useCodeAct
     });
 
     // Create a processing context for tool execution
@@ -5602,6 +5503,10 @@ export class UnifiedWebSocketRunner {
             args: call.args
           });
         },
+        residentToolNames: [
+          ...CODEACT_RESIDENT_TOOL_NAMES,
+          ...RESIDENT_TOOL_NAMES
+        ],
         context: ctx,
         signal
       });
@@ -8777,9 +8682,17 @@ export class UnifiedWebSocketRunner {
     };
     // Include scope fields for resource types whose cache is keyed on a
     // parent id (Message → thread_id, WorkflowVersion → workflow_id, etc.).
-    // Frontend handlers use these to narrow invalidation.
+    // Frontend handlers use these to narrow invalidation. `updated_at` rides
+    // along as the row's concurrency token: an open editor compares it against
+    // the token it last saved with to tell its own write apart from one made
+    // outside the browser (agent, CLI, another tab).
     const data = instance as Record<string, unknown>;
-    for (const field of ["workflow_id", "thread_id", "parent_id"] as const) {
+    for (const field of [
+      "workflow_id",
+      "thread_id",
+      "parent_id",
+      "updated_at"
+    ] as const) {
       const value = data[field];
       if (typeof value === "string" && value.length > 0) {
         resource[field] = value;

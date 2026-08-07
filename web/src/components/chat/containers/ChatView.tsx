@@ -15,9 +15,14 @@ import {
   LanguageModel,
   TodoItem
 } from "../../../stores/ApiTypes";
-import { SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import AddIcon from "@mui/icons-material/Add";
+import {
+  SPACING,
+  ToolbarIconButton,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
-import { ConversationHeader } from "./ConversationHeader";
 import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
@@ -45,12 +50,20 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(0, 0, 6, 6)
     },
     ".chat-main": {
+      position: "relative",
       flex: 1,
       minWidth: 0,
       display: "flex",
       flexDirection: "column",
       overflow: "hidden",
       paddingRight: 8
+    },
+    // Floats over the thread rather than reserving a row of its own.
+    ".new-chat-overlay": {
+      position: "absolute",
+      top: getSpacingPx(SPACING.md),
+      right: getSpacingPx(SPACING.lg),
+      zIndex: Z_INDEX.dropdown
     },
     "&::before": {
       content: '""',
@@ -156,13 +169,11 @@ type ChatViewProps = {
   /** Pure chat panel: hide the media mode picker and force chat mode. */
   hideModePicker?: boolean;
   /**
-   * Show the per-conversation header strip (title + model/provider/runtime/
-   * last-run) above the thread. Only meaningful where `GlobalChatStore`'s
-   * `currentThreadId` is the authoritative open thread (i.e. the focused chat
-   * tab) — other surfaces (agent panel, editor modal) drive their own thread
-   * state, so the title would not match. Defaults to off.
+   * Show a "New chat" button above the thread. For surfaces with no chrome of
+   * their own (the workspace chat tab); panels that already carry a header
+   * with its own new-chat button leave it off. Defaults to off.
    */
-  showConversationHeader?: boolean;
+  showNewChatButton?: boolean;
   /**
    * Bind thread-scoped store reads (todos) to this thread instead of the
    * store's current one. Pass it when the surface renders a specific thread
@@ -207,7 +218,7 @@ const ChatView = ({
   composerToolbar,
   composerPlaceholder,
   hideModePicker,
-  showConversationHeader = false,
+  showNewChatButton = false,
   threadId
 }: ChatViewProps) => {
   const theme = useTheme();
@@ -267,10 +278,16 @@ const ChatView = ({
   return (
     <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
+        {showNewChatButton && onNewChat && (
+          <div className="new-chat-overlay">
+            <ToolbarIconButton
+              onClick={onNewChat}
+              tooltip="New chat"
+              icon={<AddIcon fontSize="small" />}
+            />
+          </div>
+        )}
         <div className="chat-thread-container">
-          {showConversationHeader && (
-            <ConversationHeader messages={messages} />
-          )}
           {messages.length > 0 ? (
             <ChatThreadView
               messages={messages}

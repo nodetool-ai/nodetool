@@ -1,7 +1,7 @@
 /**
  * Sub-agent execution evaluation harness — provider-agnostic.
  *
- * Drives a real parent agent ({@link StepExecutor}) equipped with the
+ * Drives a real parent agent ({@link CodeActExecutor}) equipped with the
  * {@link RunSubtaskTool} plus a library of {@link createInstrumentedTools
  * instrumented tools}. Each case's objective is written so the parent must
  * delegate to a child sub-agent; the harness then scores whether the *child*
@@ -11,7 +11,7 @@
  *
  * Unlike the tool-loop suites (headless bridges over a flat `ui_*` surface),
  * this exercises the genuine recursion machinery: `RunSubtaskTool` spins up a
- * fresh `StepExecutor` with a copied, depth-bumped context and the parent's
+ * fresh executor with a copied, depth-bumped context and the parent's
  * toolset. The instrumented tools are the same instances at both levels, so the
  * `SUBTASK_DEPTH_KEY` each call reads from its context is the ground truth for
  * "who ran this".
@@ -27,7 +27,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import type { EvalCheck } from "./graph-planner-eval.js";
-import { StepExecutor } from "../step-executor.js";
+import { CodeActExecutor } from "../codeact/codeact-executor.js";
 import { RunSubtaskTool } from "../tools/run-subtask-tool.js";
 import type { Tool } from "../tools/base-tool.js";
 import type { Step, Task } from "../types.js";
@@ -315,7 +315,7 @@ async function runCase(
     steps: [step]
   };
 
-  const executor = new StepExecutor({
+  const executor = new CodeActExecutor({
     task,
     step,
     context,

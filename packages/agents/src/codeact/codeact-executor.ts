@@ -47,6 +47,7 @@ import {
   validateAgainstSchema
 } from "../utils/json-schema-validate.js";
 import { linkAbort } from "../utils/link-abort.js";
+import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
   toolSignature,
@@ -56,6 +57,18 @@ import {
 } from "./tool-api.js";
 import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
+import {
+  GRAPH_MODEL_PRELUDE,
+  GRAPH_MODEL_PROMPT_SECTION,
+  GRAPH_MODEL_TOOL_NAMES,
+  hasGraphModelTools
+} from "./graph-model.js";
+import {
+  NODETOOL_API_PRELUDE_FULL,
+  buildNodetoolApiPromptSection,
+  hasNodetoolApiTools,
+  nodetoolApiCoveredToolNames
+} from "./nodetool-api.js";
 
 const log = createLogger("nodetool.agents.codeact");
 
@@ -64,6 +77,48 @@ const log = createLogger("nodetool.agents.codeact");
  * deliberately lower than tool mode's 30.
  */
 export const DEFAULT_CODEACT_MAX_ITERATIONS = 20;
+
+/**
+ * Wall-clock limit per code action. Codeact actions await real tools —
+ * sub-agents, media generation, background-job waits — so the sandbox's 30 s
+ * default kills legitimate work mid-flight (`run_subtask` alone routinely
+ * takes a minute). The same value feeds QuickJS's interrupt deadline, so a
+ * pure CPU spin can now also run this long — acceptable here because every
+ * action is abortable via the run's signal, and tool-awaiting actions are the
+ * codeact norm.
+ */
+export const DEFAULT_CODEACT_ACTION_TIMEOUT_MS = 600_000;
+
+/**
+ * Input schema for the one provider tool codeact mode exposes. `title` is the
+ * user-facing label the UI shows for the action card while the code runs —
+ * the code itself is a detail view, so without a title the user sees only
+ * "Execute Code". Required: a strict schema (additionalProperties: false)
+ * must list every property under `required` for OpenAI structured outputs.
+ */
+export const EXECUTE_CODE_INPUT_SCHEMA = {
+  type: "object",
+  properties: {
+    title: {
+      type: "string",
+      description:
+        "3-8 word user-facing summary of what this action does, shown in " +
+        'the UI while it runs (e.g. "Rendering product images from CSV").'
+    },
+    code: {
+      type: "string",
+      description: "The JavaScript program to run."
+    }
+  },
+  required: ["title", "code"],
+  additionalProperties: false
+} as const;
+
+/** The display label for a code action: its title, else a generic fallback. */
+export function executeCodeMessage(args: Record<string, unknown>): string {
+  const title = typeof args?.["title"] === "string" ? args["title"].trim() : "";
+  return title || "Executing code action";
+}
 
 export const EXECUTE_CODE_TOOL_NAME = "execute_code";
 
@@ -123,7 +178,7 @@ export interface CodeActExecutorOptions {
   threadId?: string;
   upstreamMemoryKeys?: string[];
   signal?: AbortSignal;
-  /** Wall-clock limit per code action. Defaults to the sandbox's 30 s. */
+  /** Wall-clock limit per code action. Defaults to {@link DEFAULT_CODEACT_ACTION_TIMEOUT_MS}. */
   actionTimeoutMs?: number;
   /** Tool calls one action may consume. Default 50. */
   maxToolCallsPerAction?: number;
@@ -166,6 +221,8 @@ export class CodeActExecutor {
   private readonly resultSchema: Record<string, unknown> | null;
   private readonly residentTools: Tool[];
   private readonly deferredTools: Tool[];
+  /** Guest prelude for each action: tool wrappers + the object models. */
+  private readonly prelude: string;
   /** Persists across actions within the step (CaveAgent-style runtime state). */
   private readonly state: Record<string, unknown> = {};
   private result: unknown = null;
@@ -193,6 +250,24 @@ export class CodeActExecutor {
       if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
     }
 
+    const toolNames = this.tools.map((t) => t.name);
+    const withGraphModel = hasGraphModelTools(toolNames);
+    const withNodetoolApi = hasNodetoolApiTools(toolNames);
+
+    // Tools an object model wraps are documented once, as `nodetool.*` /
+    // `openWorkflow()` — not again as raw signatures in the catalog. They
+    // stay callable through the bridge (and findable via searchTools).
+    const covered = new Set<string>();
+    if (withNodetoolApi) {
+      for (const name of nodetoolApiCoveredToolNames(toolNames)) {
+        covered.add(name);
+      }
+    }
+    if (withGraphModel) {
+      for (const name of GRAPH_MODEL_TOOL_NAMES) covered.add(name);
+    }
+    const catalogTools = this.tools.filter((t) => !covered.has(t.name));
+
     // Progressive disclosure: resident tools are documented in full; the
     // long tail is name-only in the prompt and discovered via searchTools().
     // Every tool stays callable either way — the split spends prompt tokens,
@@ -200,20 +275,36 @@ export class CodeActExecutor {
     const residentNames = new Set(
       opts.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
     );
-    if (this.tools.length <= CODEACT_DEFER_THRESHOLD) {
-      this.residentTools = [...this.tools];
+    if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
+      this.residentTools = [...catalogTools];
       this.deferredTools = [];
     } else {
-      this.residentTools = this.tools.filter((t) => residentNames.has(t.name));
-      this.deferredTools = this.tools.filter((t) => !residentNames.has(t.name));
+      this.residentTools = catalogTools.filter((t) =>
+        residentNames.has(t.name)
+      );
+      this.deferredTools = catalogTools.filter(
+        (t) => !residentNames.has(t.name)
+      );
     }
+
+    const nodetoolApiSection = withNodetoolApi
+      ? buildNodetoolApiPromptSection(toolNames)
+      : "";
+    const extraSections: string[] = [];
+    if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
+    if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
+    const preludeParts = [CODEACT_PRELUDE];
+    if (withGraphModel) preludeParts.push(GRAPH_MODEL_PRELUDE);
+    if (withNodetoolApi) preludeParts.push(NODETOOL_API_PRELUDE_FULL);
+    this.prelude = preludeParts.join("\n");
 
     this.resultSchema = this.loadResultSchema();
     this.systemPrompt = buildCodeActSystemPrompt({
       tools: this.residentTools,
       deferredTools: this.deferredTools,
       resultSchema: this.resultSchema,
-      preamble: opts.systemPrompt
+      preamble: opts.systemPrompt,
+      extraSections
     });
   }
 
@@ -264,16 +355,14 @@ export class CodeActExecutor {
     let lastAssistant: Message | null = null;
     let generationError: Error | null = null;
     let finishedResult: { value: unknown } | null = null;
-    let bridgedCallSeq = 0;
 
     const toolsByName = new Map(this.tools.map((t) => [t.name, t]));
     const onToolCall = (record: ToolCallRecord): void => {
-      bridgedCallSeq++;
       const tool = toolsByName.get(record.name);
       uiEvents.push({
         type: "tool_call_update",
         node_id: this.step.id,
-        tool_call_id: `codeact_${bridgedCallSeq}`,
+        tool_call_id: record.toolCallId,
         name: record.name,
         args: record.args,
         message: tool
@@ -365,9 +454,9 @@ export class CodeActExecutor {
       bridge.resetActionBudget();
 
       const outcome = await runInSandbox({
-        code: `${CODEACT_PRELUDE}\n${code}`,
+        code: `${this.prelude}\n${code}`,
         context: this.context,
-        timeoutMs: this.actionTimeoutMs,
+        timeoutMs: this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
         signal: this.signal,
         globals: {
           ...bridge.globals,
@@ -401,7 +490,13 @@ export class CodeActExecutor {
         abort.abort();
       }
 
-      return truncateToolResult(JSON.stringify(observation));
+      const text = truncateToolResult(JSON.stringify(observation));
+      // Pixels a tool returned during the action ride beside the observation
+      // as a provider image message; the observation itself stays light.
+      const images = bridge.drainImages();
+      return images.length > 0
+        ? [{ type: "text", text } as MessageContent, ...images]
+        : text;
     };
 
     const providerTools = [
@@ -410,17 +505,7 @@ export class CodeActExecutor {
         description:
           "Execute a JavaScript action in the sandbox. The observation " +
           "(return value, logs, error) is the tool result.",
-        inputSchema: {
-          type: "object",
-          properties: {
-            code: {
-              type: "string",
-              description: "The JavaScript program to run."
-            }
-          },
-          required: ["code"],
-          additionalProperties: false
-        },
+        inputSchema: EXECUTE_CODE_INPUT_SCHEMA,
         execute: (args: Record<string, unknown>) => executeAction(args)
       }
     ];
@@ -449,7 +534,7 @@ export class CodeActExecutor {
             tool_call_id: item.id,
             name: item.name,
             args: item.args,
-            message: "Executing code action"
+            message: executeCodeMessage(item.args)
           } satisfies ToolCallUpdate;
           yield* drainUi();
           continue;
@@ -468,7 +553,12 @@ export class CodeActExecutor {
         }
         if ("type" in item && (item as { type?: string }).type === "message") {
           const m = (item as { message?: Message }).message;
-          if (m && m.role === "assistant") lastAssistant = m;
+          if (m && m.role === "assistant") {
+            lastAssistant =
+              typeof m.content === "string"
+                ? { ...m, content: removeThinkTags(m.content) }
+                : m;
+          }
         }
         yield* drainUi();
       }

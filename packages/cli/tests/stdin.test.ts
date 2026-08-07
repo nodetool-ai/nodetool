@@ -56,6 +56,33 @@ vi.mock("@nodetool-ai/chat", () => ({
 }));
 
 vi.mock("@nodetool-ai/agents", () => ({
+  Tool: class {
+    name = "";
+    description = "";
+    get inputSchema() {
+      return { type: "object", properties: {} };
+    }
+    async process() {
+      return null;
+    }
+    static async executeTool(
+      tool: { process: (c: unknown, p: unknown) => Promise<unknown> },
+      context: unknown,
+      params: unknown
+    ) {
+      return tool.process(context, params);
+    }
+  },
+  createChatCodeActSession: (_options: unknown) => ({
+    providerTool: {
+      name: "execute_code",
+      description: "Execute a JavaScript action in the sandbox.",
+      inputSchema: { type: "object", properties: { code: { type: "string" } } }
+    },
+    systemPromptSection: "CODEACT CONTRACT",
+    executeAction: async () => JSON.stringify({ ok: true }),
+    toolCallCount: () => 0
+  }),
   Agent: class {
     constructor(public opts: unknown) {}
     // eslint-disable-next-line @typescript-eslint/require-await
@@ -384,6 +411,26 @@ describe("runStdinMode — direct provider chat", () => {
       workspaceDir: "/tmp"
     });
     expect(processChat).toHaveBeenCalled();
+  });
+
+  it("runs the turn in CodeAct — the provider sees execute_code, not the belt", async () => {
+    const { processChat } = await import("@nodetool-ai/chat");
+    (processChat as ReturnType<typeof vi.fn>).mockClear();
+    _nextLines = ["Hello AI"];
+    await runStdinMode({
+      provider: "openai",
+      model: "gpt-4o",
+      workspaceDir: "/tmp"
+    });
+    const call = (processChat as ReturnType<typeof vi.fn>).mock.calls[0][0] as {
+      tools: Array<{ name: string }>;
+      messages: Array<{ role: string; content: string }>;
+    };
+    expect(call.tools.map((t) => t.name)).toEqual(["execute_code"]);
+    expect(call.messages[0]).toEqual({
+      role: "system",
+      content: "CODEACT CONTRACT"
+    });
   });
 });
 

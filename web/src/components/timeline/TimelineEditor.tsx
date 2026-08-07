@@ -79,6 +79,7 @@ import { useWorkflowFreshnessCheck } from "../../hooks/timeline/useWorkflowFresh
 import { useTimelineGenerationSubscriptions } from "../../hooks/timeline/useGenerateClip";
 import { useLoadTimelineIntoStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import { useTimelineAutosave } from "../../hooks/timeline/useTimelineAutosave";
+import { useTimelineExternalSync } from "../../hooks/timeline/useTimelineExternalSync";
 import { useTimelineSave } from "../../hooks/timeline/useTimelineSave";
 import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
@@ -492,6 +493,9 @@ const TimelineEditorBody: React.FC<
 
   // Persist subsequent edits back via trpc.timeline.update (debounced).
   useTimelineAutosave();
+
+  // Take in writes made outside this browser (agent doc-ops, CLI, another tab).
+  useTimelineExternalSync(sequenceId ?? null);
 
   // Imperative save for the Save button (forces an immediate PATCH).
   const { save: handleSave, isSaving } = useTimelineSave();

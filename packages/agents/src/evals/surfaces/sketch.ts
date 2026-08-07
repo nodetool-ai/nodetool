@@ -44,7 +44,8 @@ export type SketchBlendMode =
   | "exclusion"
   | "add";
 
-const BLEND_MODES = [
+/** The blend modes NodeTool's compositor ships, in menu order. */
+export const SKETCH_BLEND_MODES = [
   "normal",
   "multiply",
   "screen",
@@ -59,6 +60,8 @@ const BLEND_MODES = [
   "exclusion",
   "add"
 ] as const;
+
+const BLEND_MODES = SKETCH_BLEND_MODES;
 
 const TOOLS = [
   "move",

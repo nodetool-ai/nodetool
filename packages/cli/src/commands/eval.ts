@@ -306,7 +306,7 @@ const subtaskSuite: EvalSuite = {
   }
 };
 
-/** CodeAct execution suite (code actions vs JSON tool calls). */
+/** CodeAct execution suite. */
 const codeActSuite: EvalSuite = {
   id: "codeact",
   description:

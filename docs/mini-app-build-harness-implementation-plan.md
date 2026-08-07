@@ -201,7 +201,7 @@ The core PR. `packages/agents/src/app-build/build.ts` + the CLI command.
 
 - Register `build_app` next to `debug_workflow`;
   `POST /api/applications/build` running `buildApp()`; long-build polling and
-  cancel through `packages/websocket/src/debug-sessions.ts`. Auth and
+  cancel through `packages/execution/src/service/debug-sessions.ts`. Auth and
   cost-cap defaults match `debug_workflow`'s posture.
 - The tool result is the `BuildReport`; the bundle imports through the
   existing bundle-import endpoint, never auto-installs.

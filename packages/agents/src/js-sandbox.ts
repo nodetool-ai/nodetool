@@ -70,6 +70,12 @@ export const PROGRESS_MIN_INTERVAL_MS = 100;
 export const MAX_PROGRESS_MESSAGE_CHARS = 500;
 /** Largest CSV/HTML payload the `data` bridges accept, in characters. */
 export const MAX_DATA_INPUT_CHARS = 5 * 1024 * 1024;
+
+/** Byte ceiling for binary `data.*` inputs (xlsx workbooks, zip archives). */
+export const MAX_DATA_INPUT_BYTES = 10 * 1024 * 1024;
+
+/** Total uncompressed size `data.unzip` will inflate before refusing. */
+export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
 /** Default number of `data.selectHtml` matches returned. */
 export const DEFAULT_SELECT_HTML_LIMIT = 100;
 /** Ceiling for `data.selectHtml`'s `limit` option. */
@@ -478,6 +484,136 @@ async function loadCheerio(): Promise<CheerioLike> {
     "data.selectHtml",
     "cheerio",
     (v) => typeof (v as CheerioLike | undefined)?.load === "function"
+  );
+}
+
+interface PapaUnparseLike {
+  unparse: (input: unknown, config?: Record<string, unknown>) => string;
+}
+
+async function loadPapaUnparse(): Promise<PapaUnparseLike> {
+  const mod: unknown = await import("papaparse");
+  return unwrapLibrary<PapaUnparseLike>(
+    mod,
+    "data.toCsv",
+    "papaparse",
+    (v) => typeof (v as PapaUnparseLike | undefined)?.unparse === "function"
+  );
+}
+
+interface ExcelCellLike {
+  value: unknown;
+}
+interface ExcelRowLike {
+  eachCell: (
+    opts: { includeEmpty: boolean },
+    cb: (cell: ExcelCellLike, col: number) => void
+  ) => void;
+}
+interface ExcelWorksheetLike {
+  name: string;
+  eachRow: (
+    opts: { includeEmpty: boolean },
+    cb: (row: ExcelRowLike, rowNumber: number) => void
+  ) => void;
+}
+interface ExcelWorkbookLike {
+  xlsx: { load: (buffer: ArrayBuffer) => Promise<unknown> };
+  eachSheet: (cb: (sheet: ExcelWorksheetLike, id: number) => void) => void;
+}
+interface ExcelJsLike {
+  Workbook: new () => ExcelWorkbookLike;
+}
+
+async function loadExcelJs(): Promise<ExcelJsLike> {
+  const mod: unknown = await import("exceljs");
+  return unwrapLibrary<ExcelJsLike>(
+    mod,
+    "data.parseXlsx",
+    "exceljs",
+    (v) => typeof (v as ExcelJsLike | undefined)?.Workbook === "function"
+  );
+}
+
+interface JsYamlLike {
+  load: (text: string) => unknown;
+  dump: (value: unknown, opts?: Record<string, unknown>) => string;
+}
+
+async function loadJsYaml(): Promise<JsYamlLike> {
+  const mod: unknown = await import("js-yaml");
+  return unwrapLibrary<JsYamlLike>(
+    mod,
+    "data.parseYaml",
+    "js-yaml",
+    (v) => typeof (v as JsYamlLike | undefined)?.load === "function"
+  );
+}
+
+interface FxpLike {
+  XMLParser: new (opts?: Record<string, unknown>) => { parse: (xml: string) => unknown };
+  XMLValidator: { validate: (xml: string) => true | { err: { msg: string } } };
+}
+
+async function loadFastXmlParser(): Promise<FxpLike> {
+  const mod: unknown = await import("fast-xml-parser");
+  return unwrapLibrary<FxpLike>(
+    mod,
+    "data.parseXml",
+    "fast-xml-parser",
+    (v) => typeof (v as FxpLike | undefined)?.XMLParser === "function"
+  );
+}
+
+interface TurndownLike {
+  new (opts?: Record<string, unknown>): { turndown: (html: string) => string };
+}
+
+async function loadTurndown(): Promise<TurndownLike> {
+  const mod: unknown = await import("turndown");
+  return unwrapLibrary<TurndownLike>(
+    mod,
+    "data.htmlToMarkdown",
+    "turndown",
+    (v) => typeof v === "function"
+  );
+}
+
+interface FflateLike {
+  unzipSync: (data: Uint8Array) => Record<string, Uint8Array>;
+  zipSync: (data: Record<string, Uint8Array>) => Uint8Array;
+}
+
+async function loadFflate(): Promise<FflateLike> {
+  const mod: unknown = await import("fflate");
+  return unwrapLibrary<FflateLike>(
+    mod,
+    "data.unzip",
+    "fflate",
+    (v) => typeof (v as FflateLike | undefined)?.unzipSync === "function"
+  );
+}
+
+interface DiffLike {
+  createTwoFilesPatch: (
+    oldName: string,
+    newName: string,
+    oldStr: string,
+    newStr: string,
+    oldHeader?: string,
+    newHeader?: string,
+    options?: { context?: number }
+  ) => string;
+}
+
+async function loadDiff(): Promise<DiffLike> {
+  const mod: unknown = await import("diff");
+  return unwrapLibrary<DiffLike>(
+    mod,
+    "data.diff",
+    "diff",
+    (v) =>
+      typeof (v as DiffLike | undefined)?.createTwoFilesPatch === "function"
   );
 }
 
@@ -1438,6 +1574,268 @@ export function buildSandbox(
         }
       }
       return out;
+    },
+    toCsv: async (
+      rows: unknown,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      if (!Array.isArray(rows)) {
+        throw new Error(
+          "data.toCsv: rows must be an array of records or arrays"
+        );
+      }
+      const opts = options ?? {};
+      const delimiter =
+        opts.delimiter === undefined || opts.delimiter === null
+          ? ","
+          : String(opts.delimiter);
+      if (delimiter.length !== 1) {
+        throw new Error("data.toCsv: delimiter must be a single character");
+      }
+      const papa = await loadPapaUnparse();
+      return papa.unparse(rows, {
+        delimiter,
+        header: opts.header === undefined ? true : Boolean(opts.header),
+        newline: "\n"
+      });
+    },
+    parseXlsx: async (
+      bytes: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      if (!(bytes instanceof Uint8Array)) {
+        throw new Error(
+          "data.parseXlsx: bytes must be a Uint8Array (e.g. from workspace.readBytes or response.bytes())"
+        );
+      }
+      if (bytes.length > MAX_DATA_INPUT_BYTES) {
+        throw new Error(
+          `data.parseXlsx: input exceeds the ${MAX_DATA_INPUT_BYTES} byte limit`
+        );
+      }
+      const opts = options ?? {};
+      const header = opts.header === undefined ? true : Boolean(opts.header);
+      const wantedSheet =
+        opts.sheet === undefined || opts.sheet === null
+          ? undefined
+          : String(opts.sheet);
+      const excel = await loadExcelJs();
+      const workbook = new excel.Workbook();
+      const copy = new Uint8Array(bytes);
+      await workbook.xlsx.load(copy.buffer);
+
+      const cellValue = (cell: ExcelCellLike): unknown => {
+        const v = cell.value;
+        if (v === null || v === undefined) return null;
+        if (v instanceof Date) return v.toISOString();
+        if (typeof v === "object") {
+          const rec = v as Record<string, unknown>;
+          // exceljs rich values: formulas carry `result`, rich text `richText`,
+          // hyperlinks `text`.
+          if (rec.result !== undefined) return rec.result;
+          if (typeof rec.text === "string") return rec.text;
+          if (Array.isArray(rec.richText)) {
+            return (rec.richText as Array<{ text?: unknown }>)
+              .map((part) => String(part.text ?? ""))
+              .join("");
+          }
+          return String(v);
+        }
+        return v;
+      };
+
+      const sheetRows = (sheet: ExcelWorksheetLike): unknown[] => {
+        const raw: unknown[][] = [];
+        sheet.eachRow({ includeEmpty: false }, (row) => {
+          const cells: unknown[] = [];
+          row.eachCell({ includeEmpty: true }, (cell, col) => {
+            cells[col - 1] = cellValue(cell);
+          });
+          raw.push(cells);
+        });
+        if (!header) return raw;
+        const [head, ...rest] = raw;
+        if (!head) return [];
+        const keys = head.map((h, i) => (h === null ? `col_${i + 1}` : String(h)));
+        return rest.map((cells) => {
+          const record: Record<string, unknown> = {};
+          keys.forEach((key, i) => {
+            record[key] = cells[i] ?? null;
+          });
+          return record;
+        });
+      };
+
+      const sheets: Record<string, unknown[]> = {};
+      workbook.eachSheet((sheet) => {
+        sheets[sheet.name] = sheetRows(sheet);
+      });
+      if (wantedSheet !== undefined) {
+        const match = sheets[wantedSheet];
+        if (match === undefined) {
+          throw new Error(
+            `data.parseXlsx: no sheet named "${wantedSheet}". Sheets: ${Object.keys(sheets).join(", ")}`
+          );
+        }
+        return match;
+      }
+      return sheets;
+    },
+    parseYaml: async (text: unknown): Promise<unknown> => {
+      if (typeof text !== "string") {
+        throw new Error("data.parseYaml: text must be a string");
+      }
+      if (text.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.parseYaml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      const yaml = await loadJsYaml();
+      return yaml.load(text) ?? null;
+    },
+    toYaml: async (value: unknown): Promise<string> => {
+      const yaml = await loadJsYaml();
+      return yaml.dump(value ?? null, { noRefs: true, lineWidth: 120 });
+    },
+    parseXml: async (
+      text: unknown,
+      options?: Record<string, unknown>
+    ): Promise<unknown> => {
+      if (typeof text !== "string") {
+        throw new Error("data.parseXml: text must be a string");
+      }
+      if (text.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.parseXml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      const opts = options ?? {};
+      const fxp = await loadFastXmlParser();
+      const valid = fxp.XMLValidator.validate(text);
+      if (valid !== true) {
+        throw new Error(`data.parseXml: invalid XML (${valid.err.msg})`);
+      }
+      const parser = new fxp.XMLParser({
+        // Attributes matter in feeds/sitemaps; keep them, prefixed so they
+        // never collide with child-element keys.
+        ignoreAttributes: opts.attributes === false,
+        attributeNamePrefix: "@_",
+        // Text stays text — a numeric-looking id must not change shape.
+        parseTagValue: false,
+        parseAttributeValue: false,
+        trimValues: true
+      });
+      return parser.parse(text);
+    },
+    htmlToMarkdown: async (
+      html: unknown,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      if (typeof html !== "string") {
+        throw new Error("data.htmlToMarkdown: html must be a string");
+      }
+      if (html.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.htmlToMarkdown: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      const opts = options ?? {};
+      const Turndown = await loadTurndown();
+      const service = new Turndown({
+        headingStyle: "atx",
+        codeBlockStyle: "fenced",
+        bulletListMarker: "-",
+        ...(typeof opts.turndown === "object" && opts.turndown !== null
+          ? (opts.turndown as Record<string, unknown>)
+          : {})
+      });
+      return service.turndown(html);
+    },
+    unzip: async (bytes: unknown): Promise<Record<string, unknown>> => {
+      if (!(bytes instanceof Uint8Array)) {
+        throw new Error("data.unzip: bytes must be a Uint8Array");
+      }
+      if (bytes.length > MAX_DATA_INPUT_BYTES) {
+        throw new Error(
+          `data.unzip: input exceeds the ${MAX_DATA_INPUT_BYTES} byte limit`
+        );
+      }
+      const fflate = await loadFflate();
+      const entries = fflate.unzipSync(bytes);
+      let total = 0;
+      const out: Record<string, unknown> = {};
+      for (const [name, content] of Object.entries(entries)) {
+        total += content.length;
+        if (total > MAX_UNZIP_TOTAL_BYTES) {
+          throw new Error(
+            `data.unzip: archive inflates past the ${MAX_UNZIP_TOTAL_BYTES} byte limit`
+          );
+        }
+        out[name] = toGuestBytes(content);
+      }
+      return out;
+    },
+    zip: async (
+      files: unknown
+    ): Promise<Record<string, string>> => {
+      if (files === null || typeof files !== "object" || Array.isArray(files)) {
+        throw new Error(
+          "data.zip: files must be an object mapping names to Uint8Array or string content"
+        );
+      }
+      const fflate = await loadFflate();
+      const input: Record<string, Uint8Array> = {};
+      let total = 0;
+      for (const [name, content] of Object.entries(files)) {
+        const bytes =
+          content instanceof Uint8Array
+            ? content
+            : typeof content === "string"
+              ? new TextEncoder().encode(content)
+              : null;
+        if (bytes === null) {
+          throw new Error(
+            `data.zip: entry "${name}" must be a Uint8Array or string`
+          );
+        }
+        total += bytes.length;
+        if (total > MAX_UNZIP_TOTAL_BYTES) {
+          throw new Error(
+            `data.zip: entries exceed the ${MAX_UNZIP_TOTAL_BYTES} byte limit`
+          );
+        }
+        input[name] = bytes;
+      }
+      return toGuestBytes(fflate.zipSync(input));
+    },
+    diff: async (
+      a: unknown,
+      b: unknown,
+      options?: Record<string, unknown>
+    ): Promise<string> => {
+      if (typeof a !== "string" || typeof b !== "string") {
+        throw new Error("data.diff: both inputs must be strings");
+      }
+      if (a.length > MAX_DATA_INPUT_CHARS || b.length > MAX_DATA_INPUT_CHARS) {
+        throw new Error(
+          `data.diff: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
+        );
+      }
+      const opts = options ?? {};
+      const rawContext = Number(opts.context ?? 3);
+      const context = Number.isFinite(rawContext)
+        ? Math.min(Math.max(Math.floor(rawContext), 0), 100)
+        : 3;
+      const diffLib = await loadDiff();
+      return diffLib.createTwoFilesPatch(
+        String(opts.oldName ?? "a"),
+        String(opts.newName ?? "b"),
+        a,
+        b,
+        undefined,
+        undefined,
+        { context }
+      );
     }
   };
 
@@ -1861,10 +2259,36 @@ globalThis.format = {
   relativeTime: __wrap(__fmt.relativeTime),
   list: __wrap(__fmt.list)
 };
+const __reviveDeep = (v) => {
+  const r = __revive(v);
+  if (r !== v) return r;
+  if (Array.isArray(v)) {
+    for (let i = 0; i < v.length; i++) v[i] = __reviveDeep(v[i]);
+    return v;
+  }
+  if (v && typeof v === "object") {
+    for (const k of Object.keys(v)) v[k] = __reviveDeep(v[k]);
+    return v;
+  }
+  return v;
+};
+const __wrapDeep = (fn) => {
+  const wrapped = __wrap(fn);
+  return async (...args) => __reviveDeep(await wrapped(...args));
+};
 const __data = globalThis.data;
 globalThis.data = {
   parseCsv: __wrap(__data.parseCsv),
-  selectHtml: __wrap(__data.selectHtml)
+  toCsv: __wrap(__data.toCsv),
+  selectHtml: __wrap(__data.selectHtml),
+  parseXlsx: __wrap(__data.parseXlsx),
+  parseYaml: __wrap(__data.parseYaml),
+  toYaml: __wrap(__data.toYaml),
+  parseXml: __wrap(__data.parseXml),
+  htmlToMarkdown: __wrap(__data.htmlToMarkdown),
+  unzip: __wrapDeep(__data.unzip),
+  zip: __wrap(__data.zip),
+  diff: __wrap(__data.diff)
 };
 const __crypto = globalThis.crypto;
 globalThis.crypto = {
