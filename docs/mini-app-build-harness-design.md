@@ -311,7 +311,7 @@ Bundle layout extends the app-debug convention:
 `build_app` registers next to `debug_workflow`:
 `POST /api/applications/build {prompt | spec, options}` running the same
 `buildApp()` from `@nodetool-ai/agents`. Long builds use the existing
-debug-session machinery (`packages/websocket/src/debug-sessions.ts`) for
+debug-session machinery (`packages/execution/src/service/debug-sessions.ts`) for
 polling and cancel; the editor chat tool returns the `BuildReport` and offers
 the bundle for import through the normal bundle-import path.
 

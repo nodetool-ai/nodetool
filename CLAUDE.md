@@ -368,7 +368,7 @@ fail, kernel-enforced against the allowed set — and gets back either the next
 escalation or the run's final report. HTTP surface:
 `POST /api/workflows/:id/run|debug {interactive: true}` plus
 `GET/POST /api/debug/sessions/:id[/verdict|/cancel]`
-(`packages/websocket/src/debug-sessions.ts`). Escalations the agent leaves
+(`packages/execution/src/service/debug-sessions.ts`). Escalations the agent leaves
 unanswered fail closed on the decision timeout (default 10 min). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
@@ -561,12 +561,12 @@ defaults to the harness's own $2.
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
 `POST /api/debug/sessions/:id/cancel` — the same session machinery an
-interactive `debug_workflow` run uses (`packages/websocket/src/debug-sessions.ts`).
+interactive `debug_workflow` run uses (`packages/execution/src/service/debug-sessions.ts`).
 A cancelled build settles as `failed` with `reason: "cancelled"`.
 
 The bundle behind a green verdict is offered, never installed: it becomes an
 application through the normal `POST /api/applications/import-bundle`. Server
-code: `packages/websocket/src/lib/app-build-service.ts`.
+code: `packages/agents/src/app-build/build-service.ts`.
 
 ### nodetool validate (Static Workflow Check)
 

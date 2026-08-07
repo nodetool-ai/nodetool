@@ -168,6 +168,7 @@ import {
   type RequestPlanApproval,
   type TaskPlan
 } from "@nodetool-ai/agents";
+import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import {
   createDefaultLongTermMemory,
   formatMemoryForPrompt,
@@ -5309,7 +5310,8 @@ export class UnifiedWebSocketRunner {
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
-        providers: chatProviders
+        providers: chatProviders,
+        ...mcpToolHostDeps()
       }),
       new ListCollectionsTool(),
       new QueryCollectionTool(),

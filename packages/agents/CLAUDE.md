@@ -238,6 +238,37 @@ for await (const msg of agent.execute(ctx)) {
 const result = agent.getResults();
 ```
 
+## The core API is in-process (`src/tools/mcp-tools.ts`)
+
+The workflow/node/job/asset tools call NodeTool's own code, never HTTP. There
+is no `NODETOOL_API_URL`, no `fetch`, and no server that has to be listening:
+
+| Concern | Where it comes from |
+|---|---|
+| Workflows, jobs, assets | `@nodetool-ai/models` (`Workflow`, `Job`, `Asset`) |
+| Running / debugging a workflow | `runWorkflow` in `@nodetool-ai/execution/service` |
+| Interactive escalations | `submitEscalationVerdict` + the `debugSessions` registry, same module |
+| Debugging an app | `runApplicationDebug`, same module |
+| Building an app | `runApplicationBuild` (`src/app-build/build-service.ts`) |
+
+`@nodetool-ai/execution/service` is the layer the REST routes call too, so a
+tool result and the endpoint's response are one function's answer and cannot
+drift. `packages/websocket` keeps the Fastify routes, auth and WS transport as
+thin adapters over it.
+
+Three things live above this package in the dependency order and arrive by
+injection through `getAllMcpTools(options)`:
+
+- `registry` — a `NodeRegistry`. Node discovery needs it, and so does anything
+  that executes. Without one those tools answer with a "no node registry in
+  this process" error instead of reaching for a network fallback.
+- `examples` — the shipped example-workflow catalog (JSON inside the installed
+  node packages; only the server walks the metadata roots).
+- `exportDsl` — `workflowToDsl` from `@nodetool-ai/dsl`.
+
+The server builds all three in `packages/websocket/src/mcp-tool-deps.ts` and
+spreads `mcpToolHostDeps()` into every `getAllMcpTools` call site.
+
 ## Script Voicing Tools (`src/tools/script-voice-tools.ts`)
 
 The headless path from a written script to voiced takes and an assembled

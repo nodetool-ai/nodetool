@@ -147,9 +147,24 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("GET /api/workflows advances past the supplied cursor", async () => {
-    await makeWorkflow({ user_id: "user-1", name: "Oldest" });
-    await makeWorkflow({ user_id: "user-1", name: "Middle" });
-    await makeWorkflow({ user_id: "user-1", name: "Newest" });
+    // Distinct updated_at values: the cursor is a strict `lt` on updated_at,
+    // so three back-to-back creates landing in the same millisecond would
+    // make page 2 empty and the test flaky.
+    await makeWorkflow({
+      user_id: "user-1",
+      name: "Oldest",
+      updated_at: "2026-01-01T00:00:00.000Z"
+    });
+    await makeWorkflow({
+      user_id: "user-1",
+      name: "Middle",
+      updated_at: "2026-01-01T00:00:01.000Z"
+    });
+    await makeWorkflow({
+      user_id: "user-1",
+      name: "Newest",
+      updated_at: "2026-01-01T00:00:02.000Z"
+    });
 
     const first = await app.inject({
       method: "GET",

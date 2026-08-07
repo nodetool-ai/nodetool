@@ -19,6 +19,7 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/gpu": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/models": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
@@ -53,6 +54,12 @@
       "types": "./dist/timeline-debug/index.d.ts",
       "import": "./dist/timeline-debug/index.js",
       "default": "./dist/timeline-debug/index.js"
+    },
+    "./service": {
+      "nodetool-dev": "./src/service/index.ts",
+      "types": "./dist/service/index.d.ts",
+      "import": "./dist/service/index.js",
+      "default": "./dist/service/index.js"
     },
     "./sketch-debug": {
       "nodetool-dev": "./src/sketch-debug/index.ts",

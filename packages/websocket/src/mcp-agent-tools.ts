@@ -41,6 +41,7 @@ import {
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
 import {
   getSecret,
@@ -344,7 +345,10 @@ function collectBridgedTools(
     // Workflow / node / job / asset / app tools, plus the ui_* workflow
     // document tools. The read tools among them (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.
-    ...getAllMcpTools({ registry: options?.registry }),
+    ...getAllMcpTools({
+      registry: options?.registry,
+      ...mcpToolHostDeps()
+    }),
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.
     ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
