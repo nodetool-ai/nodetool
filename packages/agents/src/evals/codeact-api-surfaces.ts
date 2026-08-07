@@ -1858,7 +1858,7 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
     outputSchema: obj({ sourceId: S, days: N }, ["sourceId", "days"]),
     expect: {
       requiredTools: ["query_collection", "vector_text_search"],
-      maxActions: 4,
+      maxActions: 5,
       resultCheck: (r: unknown) =>
         asString(field(r, "sourceId")) === "policy-refunds" &&
         asNumber(field(r, "days")) === 30,
@@ -1876,7 +1876,8 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
       "just saved in place — do not delete it or add a second one. Finish " +
       "with {memoryId, content, " +
       "total} — the id of that note, its content as the memory list now " +
-      "reports it, and how many memories the list holds.",
+      "reports it, and the FULL count of memories the list holds, unrelated " +
+      "notes included.",
     outputSchema: obj({ memoryId: S, content: S, total: N }, [
       "memoryId",
       "content",
@@ -2115,9 +2116,10 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
       "request has to carry the user's recorded style, not your own taste — " +
       "read it first and put it in. Then run the free wiring check (no run) " +
       "on the app the build produced, and record that the user liked the " +
-      "dark, high-contrast variant. Finish with {styleApplied, verdictOk, " +
-      "debugOk, preferences} — the build's style flag, both verdicts, and " +
-      "how many preferences are on file after yours.",
+      "dark, high-contrast variant with the style recorder. Finish with " +
+      "{styleApplied, verdictOk, debugOk, preferences} — the build's style " +
+      "flag, both verdicts, and the preference count the style profile's " +
+      "details report after your recording.",
     outputSchema: obj(
       { styleApplied: B, verdictOk: B, debugOk: B, preferences: N },
       ["styleApplied", "verdictOk", "debugOk", "preferences"]

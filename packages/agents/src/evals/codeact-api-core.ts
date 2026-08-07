@@ -1311,7 +1311,8 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       'Find the saved workflow called "Shout Line", start it as a background ' +
       'job with line = "ship it", and wait for the job to settle rather than ' +
       "polling by hand. Finish with {status: <the settled job's status>, " +
-      "shout: <the shout output the job produced>}.",
+      "shout: <the shout output's plain string value — the uppercased line " +
+      "itself, not JSON and not a status>}.",
     outputSchema: {
       type: "object",
       properties: { status: { type: "string" }, shout: { type: "string" } },
@@ -1336,7 +1337,8 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       'Find the saved workflow called "Shout Line" and run it once per line ' +
       'for "alpha", "beta" and "gamma", with bounded concurrency rather than ' +
       "one action per line. Finish with {shouts: [...]} holding each run's " +
-      "shout output, in the order the lines were listed.",
+      "shout output value — the uppercased lines themselves, not run " +
+      "statuses — in the order the lines were listed.",
     outputSchema: {
       type: "object",
       properties: { shouts: { type: "array", items: { type: "string" } } },
