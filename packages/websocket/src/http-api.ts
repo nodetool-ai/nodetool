@@ -343,7 +343,7 @@ type WorkflowRuntimeEnvironment = {
   }) => NodeExecutor;
 };
 
-async function getWorkflowRuntimeEnvironment(
+export async function getWorkflowRuntimeEnvironment(
   options: HttpApiOptions = {}
 ): Promise<WorkflowRuntimeEnvironment> {
   if (!workflowRuntimePromise) {

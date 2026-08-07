@@ -125,6 +125,7 @@ export type {
   ExampleWorkflowCatalog,
   WorkflowDslExporter,
   PackageAssetLister,
+  WorkflowEnvironmentProvider,
   TimelineLoader,
   TimelineToolRecord,
   SketchLoader,

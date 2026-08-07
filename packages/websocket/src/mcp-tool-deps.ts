@@ -16,7 +16,11 @@ import type {
   GetAllMcpToolsOptions
 } from "@nodetool-ai/agents";
 import { loadExampleGraph, defaultExamplePackageName } from "./example-workflows.js";
-import { buildExampleWorkflows, type HttpApiOptions } from "./http-api.js";
+import {
+  buildExampleWorkflows,
+  getWorkflowRuntimeEnvironment,
+  type HttpApiOptions
+} from "./http-api.js";
 import { listPackageAssets } from "./lib/package-assets.js";
 
 /** Match the free-text filter `/api/workflows/examples/search` applies. */
@@ -61,7 +65,7 @@ export function mcpToolHostDeps(
   options: HttpApiOptions = {}
 ): Pick<
   GetAllMcpToolsOptions,
-  "examples" | "exportDsl" | "listPackageAssets"
+  "examples" | "exportDsl" | "listPackageAssets" | "workflowEnvironment"
 > {
   return {
     examples: createExampleWorkflowCatalog(options),
@@ -71,6 +75,9 @@ export function mcpToolHostDeps(
         opts as Parameters<typeof workflowToDsl>[1]
       ),
     listPackageAssets: async ({ limit }) =>
-      listPackageAssets(options, ...(limit === undefined ? [] : [{ limit }]))
+      listPackageAssets(options, ...(limit === undefined ? [] : [{ limit }])),
+    // The same lazy Python-aware runtime the HTTP run route uses — an
+    // agent-run workflow must execute exactly like an HTTP-run one.
+    workflowEnvironment: () => getWorkflowRuntimeEnvironment(options)
   };
 }

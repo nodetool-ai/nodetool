@@ -37,7 +37,8 @@ import {
   runApplicationDebug,
   runWorkflow,
   submitEscalationVerdict,
-  type RunWorkflowOutcome
+  type RunWorkflowOutcome,
+  type WorkflowRunEnvironment
 } from "@nodetool-ai/execution/service";
 import type { AppDebugRequest } from "@nodetool-ai/execution/service";
 import { Asset, Job, Workflow } from "@nodetool-ai/models";
@@ -77,6 +78,23 @@ import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 /** The user every read and write is scoped to. */
 function userIdOf(context: ProcessingContext): string {
   return context.userId ?? "1";
+}
+
+/**
+ * Resolves the environment a workflow run executes in. The server injects its
+ * full Python-aware runtime (bridge, executor resolution) lazily; a host that
+ * has only a registry gets registry-only resolution, and Python nodes report
+ * they cannot execute instead of silently doing nothing.
+ */
+export type WorkflowEnvironmentProvider = () => Promise<WorkflowRunEnvironment>;
+
+/** The run environment a tool was constructed with, or null when it has none. */
+async function resolveRunEnvironment(
+  environment: WorkflowEnvironmentProvider | undefined,
+  registry: NodeRegistry | undefined
+): Promise<WorkflowRunEnvironment | null> {
+  if (environment) return environment();
+  return registry ? { registry } : null;
 }
 
 /**
@@ -760,7 +778,10 @@ export class RunWorkflowTool extends Tool {
     required: ["workflow_id"]
   };
 
-  constructor(private readonly registry?: NodeRegistry) {
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
     super();
   }
 
@@ -768,11 +789,12 @@ export class RunWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    if (!this.registry) return noRegistryError("run a workflow");
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("run a workflow");
     const outcome = await runWorkflow({
       workflowId: String(params["workflow_id"]),
       userId: userIdOf(context),
-      environment: { registry: this.registry },
+      environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
       interactive: params["interactive"] === true
     });
@@ -846,7 +868,10 @@ export class DebugWorkflowTool extends Tool {
     required: ["workflow_id"]
   };
 
-  constructor(private readonly registry?: NodeRegistry) {
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
     super();
   }
 
@@ -854,7 +879,8 @@ export class DebugWorkflowTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    if (!this.registry) return noRegistryError("debug a workflow");
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("debug a workflow");
     const workflowId = String(params["workflow_id"]);
     const userId = userIdOf(context);
     const includeGraph = params["include_graph"] !== false;
@@ -863,7 +889,7 @@ export class DebugWorkflowTool extends Tool {
       workflowId,
       userId,
       debug: true,
-      environment: { registry: this.registry },
+      environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
       interactive: params["interactive"] === true
     });
@@ -1994,7 +2020,10 @@ export class StartBackgroundJobTool extends Tool {
     required: ["workflow_id"]
   };
 
-  constructor(private readonly registry?: NodeRegistry) {
+  constructor(
+    private readonly registry?: NodeRegistry,
+    private readonly environment?: WorkflowEnvironmentProvider
+  ) {
     super();
   }
 
@@ -2002,11 +2031,12 @@ export class StartBackgroundJobTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    if (!this.registry) return noRegistryError("start a background job");
+    const env = await resolveRunEnvironment(this.environment, this.registry);
+    if (!env) return noRegistryError("start a background job");
     const outcome = await runWorkflow({
       workflowId: String(params["workflow_id"]),
       userId: userIdOf(context),
-      environment: { registry: this.registry },
+      environment: env,
       params: (params["params"] as Record<string, unknown>) ?? {},
       background: true
     });
@@ -2169,6 +2199,13 @@ export interface GetAllMcpToolsOptions {
   /** Package assets for `list_assets` with `source: "package"`. */
   listPackageAssets?: PackageAssetLister;
   /**
+   * The full workflow-run environment (Python bridge, executor resolution),
+   * resolved lazily. The server injects this so an agent-run workflow executes
+   * exactly like an HTTP-run one; without it the run tools fall back to
+   * registry-only resolution and Python nodes report they cannot execute.
+   */
+  workflowEnvironment?: WorkflowEnvironmentProvider;
+  /**
    * Configured BaseProvider instances by id. When supplied, the agent gets:
    * - `find_model` — pick a `{provider, model_id}` for any capability.
    * - `list_models` — browse everything the configured providers offer.
@@ -2187,8 +2224,8 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new ListWorkflowsTool(options.examples),
     new GetWorkflowTool(),
     new CreateWorkflowTool(),
-    new RunWorkflowTool(options.registry),
-    new DebugWorkflowTool(options.registry),
+    new RunWorkflowTool(options.registry, options.workflowEnvironment),
+    new DebugWorkflowTool(options.registry, options.workflowEnvironment),
     new ResolveWorkflowEscalationTool(),
     new BuildAppTool(options.registry),
     new DebugAppTool(options.registry),
@@ -2198,7 +2235,7 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     new ListJobsTool(),
     new GetJobTool(),
     new GetJobLogsTool(),
-    new StartBackgroundJobTool(options.registry),
+    new StartBackgroundJobTool(options.registry, options.workflowEnvironment),
     new ListAssetsTool(options.listPackageAssets),
     new GetAssetTool(),
     // Asset persistence — used by the agent to surface artifacts (text

@@ -482,6 +482,23 @@ describe("RunWorkflowTool", () => {
     expect(String(result.error)).toContain("not found");
   });
 
+  it("prefers the injected workflow environment over the bare registry", async () => {
+    // The server injects its Python-aware runtime lazily; the tool must
+    // resolve it per call so an agent-run workflow executes exactly like an
+    // HTTP-run one.
+    const saved = await saveWorkflow({ graph: { nodes: [], edges: [] } });
+    let resolved = 0;
+    const tool = new RunWorkflowTool(undefined, async () => {
+      resolved += 1;
+      return { registry: stubRegistry };
+    });
+    const result = (await tool.process(ctx, {
+      workflow_id: saved.id
+    })) as Record<string, unknown>;
+    expect(resolved).toBe(1);
+    expect(result.error ?? null).toBeNull();
+  });
+
   it("refuses a workflow whose run mode the backend does not run", async () => {
     const saved = await saveWorkflow({ run_mode: "app" });
     const tool = new RunWorkflowTool(stubRegistry);
