@@ -74,6 +74,7 @@ import { z } from "zod";
 import { GraphPlanner } from "../graph-planner.js";
 import { evaluateGraphDsl } from "../graph-dsl.js";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
+import { forwardSubAgentStream } from "../subagent.js";
 
 /** The user every read and write is scoped to. */
 function userIdOf(context: ProcessingContext): string {
@@ -1729,36 +1730,25 @@ export class PlanWorkflowGraphTool extends Tool {
       signal
     });
 
-    const gen = planner.plan(objective, context);
-    let next = await gen.next();
-    while (!next.done) {
-      // The planner's own abort stops its LLM loop, but a tool call already
-      // in flight still resolves — stop driving the generator so a Stop ends
-      // the turn promptly instead of after the current round.
-      if (signal?.aborted) {
-        await gen.return(null);
-        return { error: "Graph planning was cancelled." };
+    // The planner is not a CodeAct loop, but it IS a sub-agent in the core's
+    // sense — an async generator of ProcessingMessages with a settled return
+    // value — so the shared stream pipe drives it: tagging for UI nesting,
+    // forward-failure tolerance, and the between-rounds abort check (the
+    // planner's own abort stops its LLM loop, but a tool call already in
+    // flight still resolves — stop driving the generator so a Stop ends the
+    // turn promptly instead of after the current round).
+    const { aborted, value: graph } = await forwardSubAgentStream(
+      planner.plan(objective, context),
+      {
+        forward: this.opts.forwardMessage,
+        parentToolCallId,
+        signal,
+        label: this.name
       }
-      if (this.opts.forwardMessage) {
-        const tagged = {
-          ...(next.value as unknown as Record<string, unknown>),
-          parent_tool_call_id: parentToolCallId
-        } as unknown as ProcessingMessage;
-        try {
-          await this.opts.forwardMessage(tagged);
-        } catch {
-          // A broken forwarder must not kill planning — the model still gets
-          // the graph via the tool return below.
-        }
-      }
-      next = await gen.next();
-    }
-
-    if (signal?.aborted) {
+    );
+    if (aborted) {
       return { error: "Graph planning was cancelled." };
     }
-
-    const graph = next.value;
     if (!graph) {
       return {
         error:

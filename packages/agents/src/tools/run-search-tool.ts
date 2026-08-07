@@ -2,9 +2,10 @@
  * `run_search` — a read-only fan-out search primitive.
  *
  * The agent calls this tool when answering a question requires fanning out
- * across many files or directories to locate where something lives. It spins
- * up a child agent loop, exactly like {@link import("./run-subtask-tool.js").RunSubtaskTool},
- * but with two deliberate differences:
+ * across many files or directories to locate where something lives. Built on
+ * the sub-agent core (`../subagent.ts`) — the same spawn/stream/settle
+ * machinery as {@link import("./run-subtask-tool.js").RunSubtaskTool} — with
+ * two deliberate differences:
  *
  * 1. The child toolset is FILTERED to a strictly read-only allowlist by tool
  *    name (read_file, glob, grep, list_directory, memory_read). It does NOT
@@ -17,28 +18,23 @@
  * output schema, the executor ends the loop on a no-tool-call assistant
  * message, whose text becomes the result (the search report).
  *
- * Recursion is bounded by {@link RunSearchToolOptions.maxDepth} (default 3) via
- * the shared {@link SUBTASK_DEPTH_KEY} on `ProcessingContext`; each search
- * copies the parent context and increments the counter — identical machinery
- * to `run_subtask`.
+ * Recursion is bounded by {@link SubAgentToolRuntime.maxDepth} (default 3) via
+ * the shared {@link SUBTASK_DEPTH_KEY} on `ProcessingContext` — identical
+ * machinery to `run_subtask`.
  */
 
-import { randomUUID } from "node:crypto";
-import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { CodeActExecutor } from "../codeact/codeact-executor.js";
-import { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
-import type { ForwardMessage } from "./run-subtask-tool.js";
-import type { Step, Task } from "../types.js";
+import {
+  SubAgentTool,
+  type SubAgentToolRun,
+  type SubAgentToolRuntime
+} from "../subagent.js";
 import {
   buildReadOnlySearchPrompt,
   READ_ONLY_SEARCH_DESCRIPTION,
   type SearchBreadth
 } from "../prompts/read-only-search-prompt.js";
 
-const DEFAULT_MAX_DEPTH = 3;
 const DEFAULT_MAX_ITERATIONS = 20;
 
 /**
@@ -69,23 +65,7 @@ export const READ_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
 
 const VALID_BREADTHS: readonly SearchBreadth[] = ["medium", "very thorough"];
 
-export interface RunSearchToolOptions {
-  provider: BaseProvider;
-  model: string;
-  /**
-   * Snapshot of the parent's toolset. Called lazily on each invocation so a
-   * dynamically-mutated toolbelt is observed. The tool filters this snapshot
-   * down to {@link READ_ONLY_TOOL_NAMES} before handing it to the child loop.
-   */
-  parentTools: () => Tool[];
-  /**
-   * Forwards child agent events upward to the websocket sender. Events are
-   * tagged with `parent_tool_call_id` (and `subtask_depth`) before being
-   * passed in.
-   */
-  forwardMessage: ForwardMessage;
-  /** Maximum recursion depth. Defaults to 3. */
-  maxDepth?: number;
+export interface RunSearchToolOptions extends SubAgentToolRuntime {
   /**
    * Max LLM iterations for a "medium" child loop. Defaults to 20. A
    * "very thorough" search scales this to ~2x.
@@ -93,10 +73,10 @@ export interface RunSearchToolOptions {
   maxIterations?: number;
 }
 
-export class RunSearchTool extends Tool {
+export class RunSearchTool extends SubAgentTool {
   readonly name = "run_search";
   readonly description = READ_ONLY_SEARCH_DESCRIPTION;
-  readonly needsToolCallId = true;
+  protected readonly depthNoun = "search";
   readonly jsonSchema = {
     type: "object",
     properties: {
@@ -117,185 +97,56 @@ export class RunSearchTool extends Tool {
     additionalProperties: false
   };
 
-  private readonly provider: BaseProvider;
-  private readonly model: string;
-  private readonly parentToolsFn: () => Tool[];
-  private readonly forward: ForwardMessage;
-  private readonly maxDepth: number;
-  private readonly maxIterations: number;
+  private readonly baseIterations: number;
 
   constructor(opts: RunSearchToolOptions) {
-    super();
-    this.provider = opts.provider;
-    this.model = opts.model;
-    this.parentToolsFn = opts.parentTools;
-    this.forward = opts.forwardMessage;
-    this.maxDepth = opts.maxDepth ?? DEFAULT_MAX_DEPTH;
-    this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    super(opts);
+    this.baseIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
   }
 
   userMessage(params: Record<string, unknown>): string {
-    const query =
-      typeof params.query === "string" ? params.query.trim() : "";
+    const query = typeof params.query === "string" ? params.query.trim() : "";
     return query ? `Searching: ${query}` : "Searching workspace";
   }
 
-  async process(
-    context: ProcessingContext,
+  protected buildRun(
     params: Record<string, unknown>
-  ): Promise<unknown> {
-    const currentDepth = context.get<number>(SUBTASK_DEPTH_KEY) ?? 0;
-    if (currentDepth >= this.maxDepth) {
-      return {
-        error: "max_recursion_depth_reached",
-        depth: currentDepth,
-        max_depth: this.maxDepth,
-        message:
-          "Cannot spawn another search — recursion depth limit reached. Answer directly using the tools already available at this level."
-      };
-    }
-
-    const query =
-      typeof params.query === "string" ? params.query.trim() : "";
+  ): SubAgentToolRun | { error: string; message: string } {
+    const query = typeof params.query === "string" ? params.query.trim() : "";
     if (!query) {
       return {
         error: "missing_query",
         message: "`query` is required and must be a non-empty string."
       };
     }
-
     const breadth = this.resolveBreadth(params.breadth);
-
-    const parentToolCallId =
-      typeof params[TOOL_CALL_ID_FIELD] === "string"
-        ? (params[TOOL_CALL_ID_FIELD] as string)
-        : null;
-    const childDepth = currentDepth + 1;
-
-    const childTools = this.buildChildToolset();
-
-    // Child context with bumped depth. Copy preserves _onMessage (telemetry
-    // listener) and clones variables so depth mutations stay local.
-    const childCtx = context.copy();
-    childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
-
-    // Search runs as a single unstructured Step — no schema, no planning.
-    // The executor's no-tool-call path captures the final assistant text as the
-    // search report. The adapted exploration prompt lands in the step
-    // instructions (the prose template's objective slot).
-    const step: Step = {
-      id: randomUUID(),
+    return {
+      // The adapted exploration prompt lands in the step instructions (the
+      // prose template's objective slot).
       instructions: buildReadOnlySearchPrompt(query, breadth),
-      completed: false,
-      dependsOn: [],
-      logs: []
-    };
-    const task: Task = {
-      id: randomUUID(),
       title: "search",
-      steps: [step]
+      // "very thorough" gets a larger iteration budget so a systematic sweep
+      // has room to fan out; depth is still bounded by the shared gate.
+      maxIterations:
+        breadth === "very thorough"
+          ? this.baseIterations * 2
+          : this.baseIterations,
+      errorCode: "search_failed",
+      noResultCode: "search_no_result",
+      noResultMessage: "Search ended without producing a final report message.",
+      errorExtras: { query }
     };
+  }
 
-    // "very thorough" gets a larger iteration budget so a systematic sweep has
-    // room to fan out; depth is still bounded by SUBTASK_DEPTH_KEY/maxDepth.
-    const maxIterations =
-      breadth === "very thorough"
-        ? this.maxIterations * 2
-        : this.maxIterations;
-
-    const executor = new CodeActExecutor({
-      task,
-      step,
-      context: childCtx,
-      provider: this.provider,
-      model: this.model,
-      tools: childTools,
-      maxIterations,
-      // Without the run's signal a cancelled parent leaves its children driving
-      // provider calls to completion in the background.
-      signal: context.signal
-    });
-
-    let finalResult: unknown = null;
-    let errorMessage: string | null = null;
-
-    try {
-      for await (const item of executor.execute()) {
-        // Tag every child event so the renderer can nest cards. We mutate a
-        // shallow clone — the original event object is shared with whoever
-        // emitted it inside the child agent.
-        const tagged = {
-          ...(item as Record<string, unknown>),
-          parent_tool_call_id: parentToolCallId,
-          subtask_depth: childDepth
-        } as unknown as ProcessingMessage;
-
-        try {
-          await this.forward(tagged);
-        } catch (forwardErr) {
-          // A broken forwarder must not kill the search — log and continue.
-          // The model still gets the result via the tool return below.
-          // eslint-disable-next-line no-console
-          console.warn(
-            "run_search: failed to forward child event",
-            forwardErr
-          );
-        }
-
-        if (item.type === "step_result") {
-          const sr = item as StepResult;
-          // The executor reports failure as `result: { error: "Step failed…" }`
-          // and never sets the top-level `sr.error`; detect the nested error
-          // shape so a failed search isn't returned as a successful report.
-          const nestedError =
-            sr.result &&
-            typeof sr.result === "object" &&
-            !Array.isArray(sr.result) &&
-            "error" in sr.result
-              ? (sr.result as { error?: unknown }).error
-              : undefined;
-          if (sr.error) {
-            errorMessage = sr.error;
-          } else if (typeof nestedError === "string") {
-            errorMessage = nestedError;
-          } else if (sr.result !== null && sr.result !== undefined) {
-            finalResult = sr.result;
-          }
-        }
-      }
-    } catch (e) {
-      errorMessage = e instanceof Error ? e.message : String(e);
-    }
-
-    if (errorMessage) {
-      return {
-        error: "search_failed",
-        query,
-        message: errorMessage
-      };
-    }
-
-    if (finalResult === null || finalResult === undefined) {
-      return {
-        error: "search_no_result",
-        query,
-        message: "Search ended without producing a final report message."
-      };
-    }
-
-    return finalResult;
+  protected buildChildToolset(parentTools: Tool[]): Tool[] {
+    // Positive allowlist: a parent tool reaches the child only if its name is
+    // a read-only one. Deliberately does NOT stitch in run_subtask/run_search,
+    // so a search loop can never reach a write-capable or recursive tool.
+    return parentTools.filter((t) => READ_ONLY_TOOL_NAMES.has(t.name));
   }
 
   private resolveBreadth(value: unknown): SearchBreadth {
     return value === "very thorough" || value === "medium" ? value : "medium";
-  }
-
-  private buildChildToolset(): Tool[] {
-    const inherited = this.parentToolsFn();
-    // Positive allowlist: a parent tool reaches the child only if its name is
-    // a read-only one. Deliberately does NOT stitch in run_subtask/run_search,
-    // so a search loop can never reach a write-capable or recursive tool.
-    return inherited.filter((t) => READ_ONLY_TOOL_NAMES.has(t.name));
   }
 }
 

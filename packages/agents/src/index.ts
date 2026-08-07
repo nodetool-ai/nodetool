@@ -252,6 +252,24 @@ export type { ControlNodeInfo } from "./tools/control-tool.js";
 export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
+  runSubAgent,
+  forwardSubAgentStream,
+  tagSubAgentMessage,
+  settleStepResult,
+  enterSubAgentDepth,
+  SubAgentTool,
+  DEFAULT_SUBAGENT_MAX_DEPTH
+} from "./subagent.js";
+export type {
+  SubAgentOutcome,
+  SubAgentRunOptions,
+  SubAgentStreamTag,
+  ForwardSubAgentStreamOptions,
+  SubAgentDepthGate,
+  SubAgentToolRuntime,
+  SubAgentToolRun
+} from "./subagent.js";
+export {
   RunSubtaskTool,
   SUBTASK_DEPTH_KEY,
   TOOL_CALL_ID_FIELD

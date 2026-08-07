@@ -604,6 +604,34 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
   `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
 
+## Sub-Agent Core (`src/subagent.ts`)
+
+The one place that knows how to spawn, stream, and settle a child agent. A
+sub-agent is an async generator of `ProcessingMessage` events whose return
+value is how the run settled — CodeAct is the default producer, but anything
+with that shape (a `GraphPlanner.plan()`, a future reviewer) streams through
+the same pipe and nests in the UI the same way.
+
+| Primitive | Does |
+|---|---|
+| `runSubAgent(opts)` | One CodeAct child loop: single-step task, optional `outputSchema` (structured via `finish()`, prose otherwise), yields events, returns `SubAgentOutcome` — never throws for run failures |
+| `settleStepResult(sr, {hasOutputSchema})` | The unified failure detection: top-level `step_result.error`, the sole-key `{error}` payload a dying step reports, and (schemaless only) any string `error` property |
+| `forwardSubAgentStream(gen, opts)` | Drives any sub-agent generator: tags events (`parent_tool_call_id`, `subtask_depth`), forwards without letting a broken forwarder kill the child, honors an abort signal between events |
+| `enterSubAgentDepth(ctx, maxDepth)` | The shared recursion gate over `SUBTASK_DEPTH_KEY`: refuses past the cap, else returns a copied context with the depth bumped |
+| `SubAgentTool` | Base class for tools that expose a sub-agent to a parent model — subclasses declare the tool surface, translate params into a `SubAgentToolRun`, and pick the child toolset; the base owns depth gate, streaming, tagging, settlement |
+
+Every spawn site goes through it: `RunSubtaskTool` (inherits the full parent
+belt, stitches itself in for recursion) and `RunSearchTool` (read-only
+allowlist, breadth-scaled iteration budget) are thin `SubAgentTool`
+subclasses; `ScriptRunner`'s `agent()` bridge calls `runSubAgent` directly and
+pushes events onto the script channel; `plan_workflow_graph` drives the
+GraphPlanner generator through `forwardSubAgentStream`. A new delegation tool
+should be another subclass, not another copy of the machinery.
+
+Tests: `tests/subagent.test.ts` (pure-function coverage), plus the spawn-site
+suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`,
+`tests/script-runner.test.ts`) which exercise the core end-to-end.
+
 ## Script Mode (code-shaped orchestration)
 
 The third planning mode next to `TaskPlan` and the graph planner: the LLM

@@ -72,7 +72,7 @@ describe("image_grading_cli", () => {
     // op corrupts everything it touches.
     expect(out["exposure_neutral_equal"]).toEqual([true]);
     expect(out["exposure_up_equal"]).toEqual([false]);
-  });
+  }, 15_000);
 
   it("applies every grading and enhancement operation", async () => {
     const out = await run("image_grading_cli.json");

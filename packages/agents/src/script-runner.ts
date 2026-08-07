@@ -35,17 +35,9 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
-import type {
-  LogUpdate,
-  ProcessingMessage,
-  StepResult
-} from "@nodetool-ai/protocol";
-import {
-  CodeActExecutor,
-  type CodeActExecutorOptions
-} from "./codeact/codeact-executor.js";
+import type { LogUpdate, ProcessingMessage } from "@nodetool-ai/protocol";
+import { runSubAgent as runSubAgentCore } from "./subagent.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { Step, Task } from "./types.js";
 import { runInSandbox } from "./js-sandbox.js";
 
 const log = createLogger("nodetool.agents.script-runner");
@@ -381,69 +373,43 @@ export class ScriptRunner {
     callIndex: number
   ): Promise<BridgeResult> {
     const label = opts.label?.trim() || `agent ${callIndex}`;
-    const step: Step = {
-      id: `script_agent_${callIndex}`,
-      instructions: prompt,
-      completed: false,
-      dependsOn: [],
-      logs: [],
-      outputSchema: opts.schema ? JSON.stringify(opts.schema) : undefined
-    };
-    const task: Task = {
-      id: `script_task_${callIndex}`,
-      title: label,
-      steps: [step]
-    };
-
     const tools = Array.isArray(opts.tools)
       ? this.tools.filter((t) => opts.tools!.includes(t.name))
       : [...this.tools];
 
-    const executorOpts: CodeActExecutorOptions = {
-      task,
-      step,
+    // Events go straight onto the script's channel (already serialized by the
+    // outer drain loop); settlement — including the `{error}` result payload
+    // a step that dies on the iteration cap reports — is the core's job.
+    const gen = runSubAgentCore({
       context: this.context,
       provider: this.provider,
       model: this.model,
       tools,
+      instructions: prompt,
+      title: label,
+      id: `script_agent_${callIndex}`,
+      outputSchema: opts.schema,
       systemPrompt: this.systemPrompt,
       maxIterations: this.maxStepIterations,
       maxTokens: this.maxTokens,
       signal: this.signal
-    };
-    const executor = new CodeActExecutor(executorOpts);
+    });
 
-    let result: unknown = null;
-    let error: string | null = null;
-    for await (const msg of executor.execute()) {
-      this.channel.push(msg);
-      if (msg.type === "step_result") {
-        const sr = msg as StepResult;
-        if (sr.error) error = sr.error;
-        else if (sr.result !== null && sr.result !== undefined) {
-          result = sr.result;
-        }
-      }
+    let next = await gen.next();
+    while (!next.done) {
+      this.channel.push(next.value);
+      next = await gen.next();
     }
+    const outcome = next.value;
 
-    if (error) return { ok: false, error };
-    // A step that dies (iteration cap, provider error) reports the failure as
-    // a `{error}` result payload rather than a step_result error field.
-    if (
-      result !== null &&
-      typeof result === "object" &&
-      Object.keys(result).length === 1 &&
-      "error" in result
-    ) {
-      return { ok: false, error: String((result as { error: unknown }).error) };
-    }
-    if (result === null || result === undefined) {
+    if (!outcome.ok) return { ok: false, error: outcome.error };
+    if (outcome.result === null || outcome.result === undefined) {
       return {
         ok: false,
         error: `agent "${label}" ended without producing a result`
       };
     }
-    return { ok: true, result: toTransferable(result) };
+    return { ok: true, result: toTransferable(outcome.result) };
   }
 
   private logBridge(message: unknown): void {
