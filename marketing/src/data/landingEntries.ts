@@ -270,6 +270,80 @@ export const landingEntries: LandingEntry[] = [
     ],
     accent: "blue",
   },
+  {
+    route: "/solutions/privacy-first",
+    title: title("Privacy-First AI Workflow Builder"),
+    description:
+      "Keep your data on your own machine. NodeTool Studio runs image, video, audio, and text workflows on local models with no account and nothing sent to a third-party server unless you choose to.",
+    priority: 0.7,
+    changeFrequency: "monthly",
+    indexable: true,
+    slug: "privacy-first",
+    kind: "persona",
+    eyebrow: "For privacy-first teams",
+    headline: "Privacy-First AI Workflow Builder",
+    subhead:
+      "Cloud AI tools send your prompts, files, and outputs through someone else's server by default. NodeTool Studio runs entirely on your own hardware with open-weight models — nothing leaves your machine unless you explicitly wire in a cloud provider.",
+    featuredTemplate: "image-enhance",
+    highlights: [
+      "Local models by default — no data ever leaves your machine",
+      "No account, no telemetry, no server NodeTool controls",
+      "Cloud providers are opt-in per node, on your own keys",
+    ],
+    sections: ["features", "use-cases"],
+    faqs: [
+      {
+        q: "Does any of my data leave my machine?",
+        a: "Not with local models. NodeTool Studio runs open-weight models on your own hardware, and assets, workflows, and keys stay on disk. Data only leaves when you deliberately wire a node to a cloud provider.",
+      },
+      {
+        q: "How is this different from cloud-only AI tools?",
+        a: "Most AI canvases route every prompt and file through their own servers before you see a result. NodeTool has no server in that path by default — the graph executes locally, and a cloud call happens only where you add one.",
+      },
+      {
+        q: "Can I mix local and cloud models in one workflow?",
+        a: "Yes. Run the sensitive steps on local models and send only the parts you choose to a cloud provider, node by node, in the same graph.",
+      },
+    ],
+    accent: "emerald",
+  },
+  {
+    route: "/solutions/self-hosted",
+    title: title("Self-Hosted AI Workflows"),
+    description:
+      "Run NodeTool on your own server with Docker. Full control over data, uptime, and cost — no vendor lock-in and no per-seat SaaS bill.",
+    priority: 0.7,
+    changeFrequency: "monthly",
+    indexable: true,
+    slug: "self-hosted",
+    kind: "persona",
+    eyebrow: "For self-hosters",
+    headline: "Self-Hosted AI Workflows",
+    subhead:
+      "Deploy NodeTool on infrastructure you own. The same open-source app that runs on your laptop starts from one `docker-compose.yml`, so a team can run workflows, models, and data behind its own firewall instead of a SaaS vendor's.",
+    featuredTemplate: "chat-with-your-documents",
+    highlights: [
+      "One Docker Compose file to stand up your own server",
+      "Your database, your storage, your uptime — no vendor lock-in",
+      "AGPL-3.0 open source, so nothing is held back for a paid tier",
+    ],
+    sections: ["features", "use-cases"],
+    faqs: [
+      {
+        q: "How do I self-host NodeTool?",
+        a: "Run it with the reference `docker-compose.yml` in the repository, or the `packages/deploy` tooling for more control. It's the same open-source app you'd run on the desktop, pointed at your own storage and database.",
+      },
+      {
+        q: "Do I still bring my own model keys when self-hosting?",
+        a: "Yes. Self-hosting NodeTool controls where the app and your data live; you still connect your own provider keys, or run local/open-weight models on the host's own hardware.",
+      },
+      {
+        q: "Why self-host instead of using a SaaS workflow tool?",
+        a: "You own the data, the uptime, and the deployment. There is no per-seat bill, no vendor deciding what changes next, and the same AGPL-3.0 source runs whether it's on your laptop or your server.",
+      },
+    ],
+    accent: "blue",
+  },
 ];
 
 /** Hub entry for the `/solutions` index — kept in the registry too. */
