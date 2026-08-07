@@ -29,6 +29,7 @@ import {
   Job,
   Asset,
   Secret,
+  TimelineSequence,
   getSecret
 } from "@nodetool-ai/models";
 import { readCachedHfModels, searchCachedHfModels } from "@nodetool-ai/huggingface";
@@ -778,6 +779,40 @@ addSupervisorOptions(
           "model/gltf-binary": "glb"
         };
         context.setModelInterfaces({
+          // Timeline nodes persist their sequence rather than passing it down
+          // the graph, so `AddClips` and everything after it threw
+          // "model interface 'createTimelineSequence' is not configured" and
+          // no timeline workflow could run outside the server. These mirror
+          // `unified-websocket-runner.ts` against the same models the CLI
+          // already opens with `setupDb()`.
+          getTimelineSequence: async ({ userId, id }) => {
+            const seq = await TimelineSequence.findById(id);
+            if (!seq || seq.user_id !== userId) return null;
+            return seq.toTimelineSequence();
+          },
+          createTimelineSequence: async ({ userId, sequence }) => {
+            const seq = TimelineSequence.fromTimelineSequence(
+              userId,
+              sequence as Parameters<
+                typeof TimelineSequence.fromTimelineSequence
+              >[1]
+            );
+            await seq.save();
+            return seq.toTimelineSequence();
+          },
+          updateTimelineSequence: async ({ userId, id, sequence }) => {
+            const existing = await TimelineSequence.findById(id);
+            if (!existing || existing.user_id !== userId) return null;
+            const next = TimelineSequence.fromTimelineSequence(
+              userId,
+              sequence as Parameters<
+                typeof TimelineSequence.fromTimelineSequence
+              >[1]
+            );
+            next.id = id;
+            await next.save();
+            return next.toTimelineSequence();
+          },
           createAsset: async (args) => {
             const asset = new Asset({
               user_id: args.userId,

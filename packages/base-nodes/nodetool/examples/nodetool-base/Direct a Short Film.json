@@ -1,0 +1,286 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-08-03T10:00:00.000Z",
+  "updated_at": "2026-08-03T10:00:00.000Z",
+  "name": "Direct a Short Film",
+  "tool_name": null,
+  "description": "Type a brief; get a cut film. A language model directs \u2014 it writes the screenplay, the shot list and the narration \u2014 then each shot is filmed and the clips are assembled into a timeline and rendered.\n\nTwo video models, not one, and that is deliberate: shot 1 has nothing to seed from so it is text-to-video, while every later shot is seeded from the previous clip's last frame for continuity, which is image-to-video. Kie publishes those as separate model ids, so Continuation Model carries the second. On a provider where one id does both (Gemini/Veo) you can leave it empty.\n\nCost scales with shot count \u2014 at three shots on Kling 2.6 this is roughly a dollar of video plus pennies of text.",
+  "tags": [
+    "video",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "brief",
+          "value": "A lighthouse keeper's last night before the light is automated.",
+          "description": "What the film is about. One or two sentences is enough \u2014 the director writes the shots.",
+          "line_mode": "multi"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Your brief"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dir",
+        "type": "nodetool.creative.Director",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "openai",
+            "id": "gpt-5-mini",
+            "name": "GPT-5 mini",
+            "path": null,
+            "supported_tasks": []
+          },
+          "style": "Muted coastal palette, handheld, available light, no dialogue.",
+          "shot_count": 3,
+          "aspect_ratio": "16:9"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Creative director"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "batch",
+        "type": "nodetool.creative.ShotBatch",
+        "data": {
+          "aspect_ratio": "16:9",
+          "default_duration": 5
+        },
+        "ui_properties": {
+          "position": {
+            "x": 680,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Shot list"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "chain",
+        "type": "nodetool.creative.ShotChain",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "kie",
+            "id": "kling-2.6/text-to-video",
+            "name": "Kling 2.6 Text to Video",
+            "path": null,
+            "supported_tasks": []
+          },
+          "continuation_model": {
+            "type": "video_model",
+            "provider": "kie",
+            "id": "kling-2.6/image-to-video",
+            "name": "Kling 2.6 Image to Video",
+            "path": null,
+            "supported_tasks": []
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "720p"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1020,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Film the shots"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cut",
+        "type": "nodetool.timeline.AddClips",
+        "data": {
+          "name": "Rough cut",
+          "image_duration_ms": 3000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1360,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Assemble"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "render",
+        "type": "nodetool.timeline.RenderTimeline",
+        "data": {
+          "include_audio": true
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1700,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "6  Render"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "of",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "film"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 60
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "film"
+      },
+      {
+        "id": "ot",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "title"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 240
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "title"
+      },
+      {
+        "id": "on",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "narration"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2040,
+            "y": 400
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {},
+        "name": "narration"
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "dir",
+        "targetHandle": "brief"
+      },
+      {
+        "id": "e2",
+        "source": "dir",
+        "sourceHandle": "screenplay",
+        "target": "batch",
+        "targetHandle": "screenplay"
+      },
+      {
+        "id": "e3",
+        "source": "batch",
+        "sourceHandle": "shots",
+        "target": "chain",
+        "targetHandle": "shots"
+      },
+      {
+        "id": "e4",
+        "source": "chain",
+        "sourceHandle": "videos",
+        "target": "cut",
+        "targetHandle": "clips"
+      },
+      {
+        "id": "e5",
+        "source": "cut",
+        "sourceHandle": "output",
+        "target": "render",
+        "targetHandle": "timeline"
+      },
+      {
+        "id": "e6",
+        "source": "render",
+        "sourceHandle": "output",
+        "target": "of",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "dir",
+        "sourceHandle": "title",
+        "target": "ot",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e8",
+        "source": "dir",
+        "sourceHandle": "narration",
+        "target": "on",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -140,3 +140,121 @@ describe("planShotChain", () => {
     expect(planShotChain([])).toEqual([]);
   });
 });
+
+/**
+ * The capability ShotChain asks for has to match the plan it just made.
+ *
+ * `planShotChain` marks the first shot `seedFrom: "none"` when the screenplay
+ * carries no keyframe — a Director-authored screenplay never does, because it
+ * is written from a brief before any image exists. The generate call ignored
+ * that and always asked for `image_to_video`, handing the provider an empty
+ * image list.
+ *
+ * That is not a soft no-op. The kie provider throws "The input image is empty."
+ * (`kie-provider.ts`), so `Director -> ShotBatch -> ShotChain` could not run on
+ * kie at all. Gemini/Veo accepted it and produced an unseeded clip, which is
+ * how the mismatch survived: on the default model it looked like it worked.
+ *
+ * These assert the capability per shot, not that a clip came back — a test
+ * that only checked for output would pass against the bug on any provider
+ * tolerant of the empty list.
+ */
+describe("ShotChain capability routing", () => {
+  function chainWith(specs: ShotSpec[]) {
+    const calls: { capability: string; modelId: string; imageCount: number }[] = [];
+    const node = new ShotChainNode();
+    Object.assign(node, {
+      model: { type: "video_model", provider: "kie", id: "kling-2.6/image-to-video" },
+      shots: specs,
+      aspect_ratio: "16:9",
+      resolution: "720p"
+    });
+    const context = {
+      runProviderPrediction: async (req: {
+        capability: string;
+        model: string;
+        params: { images?: Uint8Array[] };
+      }) => {
+        calls.push({
+          capability: req.capability,
+          modelId: req.model,
+          imageCount: req.params.images?.length ?? 0
+        });
+        // A 1x1 mp4 stand-in; ShotChain only needs bytes back.
+        return new Uint8Array([0, 0, 0, 1]);
+      }
+    };
+    return { node, context, calls };
+  }
+
+  const spec = (index: number): ShotSpec =>
+    ({
+      index,
+      prompt: `shot ${index}`,
+      duration_seconds: 3,
+      aspect_ratio: "16:9",
+      keyframe: null
+    }) as ShotSpec;
+
+  it("asks for text_to_video on an unseeded first shot", async () => {
+    const { node, context, calls } = chainWith([spec(0)]);
+    // extractLastFrame shells out to ffmpeg; one shot never reaches it.
+    await (node as unknown as { process: (c: unknown) => Promise<unknown> }).process(
+      context
+    );
+    expect(calls).toHaveLength(1);
+    // Was "image_to_video" with images: [] — the call kie rejects outright.
+    expect(calls[0].capability).toBe("text_to_video");
+    expect(calls[0].imageCount).toBe(0);
+  });
+  it("uses the continuation model for a seeded shot, and Model when it is unset", async () => {
+    // Seeded via an explicit keyframe rather than a previous clip:
+    // extractLastFrame shells out to ffmpeg and returns null on failure, so a
+    // fake clip can never seed shot 2. A keyframe reaches the same branch.
+    const seededSpec = {
+      index: 0,
+      prompt: "shot 0",
+      duration_seconds: 3,
+      aspect_ratio: "16:9",
+      // 1x1 transparent PNG — real bytes, so loadMediaRefBytes returns them.
+      keyframe: {
+        type: "image",
+        data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+      }
+    } as unknown as ShotSpec;
+
+    const withCont = chainWith([seededSpec]);
+    Object.assign(withCont.node, {
+      continuation_model: {
+        type: "video_model",
+        provider: "kie",
+        id: "kling-2.6/image-to-video"
+      },
+      model: {
+        type: "video_model",
+        provider: "kie",
+        id: "kling-2.6/text-to-video"
+      }
+    });
+    await (
+      withCont.node as unknown as { process: (c: unknown) => Promise<unknown> }
+    ).process(withCont.context);
+    expect(withCont.calls[0].capability).toBe("image_to_video");
+    expect(withCont.calls[0].modelId).toBe("kling-2.6/image-to-video");
+
+    // Unset continuation model: the seeded shot falls back to Model, which is
+    // what every graph authored before this prop existed relies on.
+    const noCont = chainWith([seededSpec]);
+    Object.assign(noCont.node, {
+      model: {
+        type: "video_model",
+        provider: "kie",
+        id: "kling-2.6/image-to-video"
+      }
+    });
+    await (
+      noCont.node as unknown as { process: (c: unknown) => Promise<unknown> }
+    ).process(noCont.context);
+    expect(noCont.calls[0].modelId).toBe("kling-2.6/image-to-video");
+  });
+});

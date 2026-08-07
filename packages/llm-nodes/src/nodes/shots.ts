@@ -247,6 +247,15 @@ export class ShotChainNode extends BaseNode {
   declare model: VideoModelRef;
 
   @prop({
+    type: "video_model",
+    default: { type: "video_model" },
+    title: "Continuation Model",
+    description:
+      "Model for shots seeded from the previous clip's last frame. Leave empty to reuse Model. Needed only where a provider splits text-to-video and image-to-video across different model ids — kie does (kling-2.6/text-to-video vs kling-2.6/image-to-video), Gemini/Veo does not."
+  })
+  declare continuation_model: VideoModelRef;
+
+  @prop({
     type: "list[dict]",
     default: [],
     title: "Shots",
@@ -309,8 +318,25 @@ export class ShotChainNode extends BaseNode {
     spec: ShotSpec,
     startImage: ImageRef | null
   ): Promise<VideoRef> {
-    const providerId = str(this.model?.provider);
-    const modelId = str(this.model?.id);
+    const images: Uint8Array[] = [];
+    if (startImage) {
+      const bytes = await loadMediaRefBytes(startImage, context);
+      if (bytes && bytes.length > 0) images.push(bytes);
+    }
+
+    // A seeded shot may need a different model id from an unseeded one. One
+    // `video_model` prop is enough for Gemini/Veo, where a single id serves
+    // both capabilities; kie publishes `kling-2.6/text-to-video` and
+    // `kling-2.6/image-to-video` as separate endpoints and submits whichever
+    // id it is handed, so chaining there needs both. Falls back to `model`,
+    // which keeps every existing graph behaving exactly as before.
+    const seeded = images.length > 0;
+    const chosen =
+      seeded && str(this.continuation_model?.id)
+        ? this.continuation_model
+        : this.model;
+    const providerId = str(chosen?.provider);
+    const modelId = str(chosen?.id);
     if (
       !context ||
       typeof context.runProviderPrediction !== "function" ||
@@ -320,18 +346,19 @@ export class ShotChainNode extends BaseNode {
       throw new Error("No provider available for shot chain generation.");
     }
 
-    const images: Uint8Array[] = [];
-    if (startImage) {
-      const bytes = await loadMediaRefBytes(startImage, context);
-      if (bytes && bytes.length > 0) images.push(bytes);
-    }
-
+    // `planShotChain` already says the first shot has nothing to seed from
+    // ("none" when the screenplay carries no keyframe), and this call has to
+    // agree with it. Asking for `image_to_video` with an empty image list is
+    // not a soft no-op: the kie provider throws "The input image is empty."
+    // and gemini/veo silently produced an unseeded clip, which is why the
+    // mismatch survived. Route the unseeded shot to `text_to_video` — the
+    // capability it actually is — and keep continuity on every later shot.
     const output = await context.runProviderPrediction({
       provider: providerId,
-      capability: "image_to_video",
+      capability: seeded ? "image_to_video" : "text_to_video",
       model: modelId,
       params: {
-        images,
+        ...(seeded ? { images } : {}),
         prompt: spec.prompt,
         aspect_ratio: str(this.aspect_ratio ?? "").trim() || spec.aspect_ratio,
         resolution: str(this.resolution ?? "").trim() || "720p",
