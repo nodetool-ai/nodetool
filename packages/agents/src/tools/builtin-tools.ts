@@ -88,7 +88,8 @@ import {
   ListScriptsTool,
   GetScriptTool,
   VoiceScriptLinesTool,
-  AssembleScriptTimelineTool
+  AssembleScriptTimelineTool,
+  EditScriptTool
 } from "./script-voice-tools.js";
 import {
   ListStoryboardsTool,
@@ -96,7 +97,8 @@ import {
   RenderStoryboardStillsTool,
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool
+  AssembleStoryboardTimelineTool,
+  EditStoryboardTool
 } from "./storyboard-render-tools.js";
 import {
   ListSketchesTool,
@@ -105,6 +107,7 @@ import {
   CreateSketchVersionTool,
   RestoreSketchVersionTool
 } from "./sketch-version-tools.js";
+import { EditSketchTool } from "./sketch-edit-tools.js";
 import {
   ListTimelinesTool,
   ListTimelineVersionsTool,
@@ -112,6 +115,7 @@ import {
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool
 } from "./timeline-version-tools.js";
+import { EditTimelineTool } from "./timeline-edit-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -140,6 +144,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetScriptTool,
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool,
+  EditScriptTool,
 
   // Storyboard → rendered media → timeline, without authoring a workflow
   ListStoryboardsTool,
@@ -148,6 +153,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool,
+  EditStoryboardTool,
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   ListSketchesTool,
@@ -155,6 +161,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool,
+  EditSketchTool,
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   ListTimelinesTool,
@@ -162,6 +169,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool,
+  EditTimelineTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

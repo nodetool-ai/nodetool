@@ -8722,9 +8722,17 @@ export class UnifiedWebSocketRunner {
     };
     // Include scope fields for resource types whose cache is keyed on a
     // parent id (Message → thread_id, WorkflowVersion → workflow_id, etc.).
-    // Frontend handlers use these to narrow invalidation.
+    // Frontend handlers use these to narrow invalidation. `updated_at` rides
+    // along as the row's concurrency token: an open editor compares it against
+    // the token it last saved with to tell its own write apart from one made
+    // outside the browser (agent, CLI, another tab).
     const data = instance as Record<string, unknown>;
-    for (const field of ["workflow_id", "thread_id", "parent_id"] as const) {
+    for (const field of [
+      "workflow_id",
+      "thread_id",
+      "parent_id",
+      "updated_at"
+    ] as const) {
       const value = data[field];
       if (typeof value === "string" && value.length > 0) {
         resource[field] = value;

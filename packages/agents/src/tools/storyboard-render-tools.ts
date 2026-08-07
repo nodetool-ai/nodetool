@@ -944,5 +944,278 @@ export const STORYBOARD_RENDER_TOOL_NAMES = [
   "render_storyboard_stills",
   "render_storyboard_clips",
   "revise_storyboard_clip",
-  "assemble_storyboard_timeline"
+  "assemble_storyboard_timeline",
+  "edit_storyboard"
 ] as const;
+
+// ── Board structure editing ────────────────────────────────────────────────
+//
+// The render tools above fill a board in; this one shapes it. Adding,
+// rewriting and reordering shots was browser-only — the `ui_storyboard_*`
+// tools round-trip into the open editor's Zustand store — so an agent working
+// headlessly could render a board it could not author.
+
+/** Operations one call may apply, so a runaway script cannot rewrite a board. */
+const MAX_BOARD_OPS = 60;
+
+const BOARD_OPS = [
+  "add_shot",
+  "update_shot",
+  "remove_shot",
+  "reorder_shot",
+  "set_board"
+] as const;
+
+type BoardOpName = (typeof BOARD_OPS)[number];
+
+const isBoardOpName = (value: string): value is BoardOpName =>
+  (BOARD_OPS as readonly string[]).includes(value);
+
+interface ParsedBoardOp {
+  op: BoardOpName;
+  args: Record<string, unknown>;
+}
+
+function parseBoardOps(raw: unknown): ParsedBoardOp[] | ToolError {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return {
+      error:
+        'ops must be a non-empty array, e.g. [{"op": "add_shot", "action": "Wide of the lighthouse at dusk"}].'
+    };
+  }
+  if (raw.length > MAX_BOARD_OPS) {
+    return {
+      error: `ops holds ${raw.length} entries; at most ${MAX_BOARD_OPS} per call.`
+    };
+  }
+  const parsed: ParsedBoardOp[] = [];
+  for (const [index, entry] of raw.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return { error: `ops[${index}] must be an object.` };
+    }
+    const { op, ...args } = entry as Record<string, unknown>;
+    if (typeof op !== "string" || !isBoardOpName(op.trim())) {
+      return {
+        error: `ops[${index}] names "${String(op)}"; expected one of ${BOARD_OPS.join(", ")}.`
+      };
+    }
+    parsed.push({ op: op.trim() as BoardOpName, args });
+  }
+  return parsed;
+}
+
+/** Renumber `index` to the array order — the field the editor sorts on. */
+function renumberShots(shots: Shot[]): Shot[] {
+  return shots.map((shot, index) => (shot.index === index ? shot : { ...shot, index }));
+}
+
+const optionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+/** The shot fields an edit may set. Media and status stay the render tools'. */
+function applyShotFields(shot: Shot, args: Record<string, unknown>): Shot {
+  const next: Shot = { ...shot };
+  if (args["action"] !== undefined) next.action = String(args["action"]);
+  if (args["slug"] !== undefined) next.slug = String(args["slug"]);
+  if (args["camera"] !== undefined) next.camera = args["camera"] as Shot["camera"];
+  if (args["motion"] !== undefined) next.motion = String(args["motion"]);
+  if (args["dialogue"] !== undefined) next.dialogue = String(args["dialogue"]);
+  if (args["narration"] !== undefined) next.narration = String(args["narration"]);
+  if (args["notes"] !== undefined) next.notes = String(args["notes"]);
+  if (args["duration_seconds"] !== undefined) {
+    const seconds = Number(args["duration_seconds"]);
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      throw new Error("duration_seconds must be a positive number.");
+    }
+    next.duration_seconds = seconds;
+  }
+  if (Array.isArray(args["entity_ids"])) {
+    next.entity_ids = args["entity_ids"].map(String);
+  }
+  if (args["location_id"] !== undefined) {
+    next.location_id = optionalString(args["location_id"]) ?? null;
+  }
+  return next;
+}
+
+interface BoardOpRecord {
+  op: string;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+/** Apply one board operation. Returns its summary, or throws with the reason. */
+function applyBoardOp(
+  doc: StoryboardDocument,
+  { op, args }: ParsedBoardOp
+): unknown {
+  switch (op) {
+    case "add_shot": {
+      if (typeof args["action"] !== "string" || args["action"].trim() === "") {
+        throw new Error("add_shot needs a non-empty `action` describing the shot.");
+      }
+      const shot = applyShotFields(
+        {
+          type: "shot",
+          id: `shot_${doc.shots.length + 1}_${Date.now().toString(36)}`,
+          index: doc.shots.length,
+          action: "",
+          status: "planned"
+        },
+        args
+      );
+      const at =
+        typeof args["index"] === "number"
+          ? Math.max(0, Math.min(Math.trunc(args["index"]), doc.shots.length))
+          : doc.shots.length;
+      const shots = [...doc.shots];
+      shots.splice(at, 0, shot);
+      doc.shots = renumberShots(shots);
+      return { id: shot.id, index: at };
+    }
+
+    case "update_shot": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const updated = applyShotFields(shot, args);
+      doc.shots = doc.shots.map((s) => (s.id === shot.id ? updated : s));
+      return { id: updated.id, action: updated.action };
+    }
+
+    case "remove_shot": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      doc.shots = renumberShots(doc.shots.filter((s) => s.id !== shot.id));
+      return { removed: shot.id };
+    }
+
+    case "reorder_shot": {
+      const target = String(args["target"] ?? "");
+      const shot = findShot(doc.shots, target);
+      if (!shot) throw new Error(`No shot matches "${target}".`);
+      const to = Number(args["index"]);
+      if (!Number.isInteger(to) || to < 0 || to >= doc.shots.length) {
+        throw new Error(
+          `reorder_shot needs an \`index\` in [0, ${doc.shots.length - 1}].`
+        );
+      }
+      const ordered = [...doc.shots].sort((a, b) => a.index - b.index);
+      const from = ordered.findIndex((s) => s.id === shot.id);
+      const [moved] = ordered.splice(from, 1);
+      ordered.splice(to, 0, moved);
+      doc.shots = renumberShots(ordered);
+      return { id: shot.id, index: to };
+    }
+
+    case "set_board": {
+      if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
+      if (args["style"] !== undefined) doc.style = String(args["style"]);
+      if (args["aspect_ratio"] !== undefined) {
+        doc.aspectRatio = String(args["aspect_ratio"]);
+      }
+      if (Array.isArray(args["entity_ids"])) {
+        doc.entityIds = args["entity_ids"].map(String);
+      }
+      return {
+        brief: doc.brief,
+        style: doc.style,
+        aspect_ratio: doc.aspectRatio,
+        entity_ids: doc.entityIds
+      };
+    }
+  }
+}
+
+export class EditStoryboardTool extends Tool {
+  readonly name = "edit_storyboard";
+  readonly description =
+    "Edit a saved storyboard's shot list headlessly: add, rewrite, remove and " +
+    "reorder shots, and set the board's brief, style, aspect ratio and " +
+    "entities. Operations run in order against the stored document and the " +
+    "result is saved; an open board picks the change up live. Rendering stays " +
+    "with render_storyboard_stills / render_storyboard_clips — this tool " +
+    "directs, it does not spend. Call get_storyboard first for shot ids.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      storyboard_id: { type: "string" as const, description: "Storyboard id." },
+      ops: {
+        type: "array" as const,
+        description:
+          'Operations in order. Each is {"op": <name>, ...arguments}: ' +
+          "add_shot {action, slug?, camera?, motion?, dialogue?, narration?, " +
+          "duration_seconds?, entity_ids?, location_id?, notes?, index?}, " +
+          "update_shot {target, ...same fields}, remove_shot {target}, " +
+          "reorder_shot {target, index}, set_board {brief?, style?, " +
+          "aspect_ratio?, entity_ids?}. `target` is a shot id, its 0-based " +
+          "index, or its slug.",
+        items: { type: "object" as const }
+      }
+    },
+    required: ["storyboard_id", "ops"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const ops = parseBoardOps(params["ops"]);
+    if (isError(ops)) return ops;
+
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const board = await loadBoard(context, params["storyboard_id"]);
+      if (isError(board)) return board;
+      const { row, doc } = board;
+
+      // A failing op is recorded and the script continues: stopping at the
+      // first error hides every problem behind it.
+      const records: BoardOpRecord[] = [];
+      for (const parsed of ops) {
+        try {
+          records.push({ op: parsed.op, ok: true, result: applyBoardOp(doc, parsed) });
+        } catch (e) {
+          records.push({
+            op: parsed.op,
+            ok: false,
+            error: e instanceof Error ? e.message : String(e)
+          });
+        }
+      }
+
+      const saved = await Storyboard.updateFieldsIfUnchanged(row.id, row.updated_at, {
+        document: JSON.stringify(doc)
+      });
+      if (!saved) continue;
+
+      const failed = records.filter((record) => !record.ok);
+      return {
+        storyboard_id: row.id,
+        updated_at: saved.updated_at,
+        applied: records.length - failed.length,
+        failed: failed.length,
+        ops: records,
+        shots: [...doc.shots]
+          .sort((a, b) => a.index - b.index)
+          .map((shot) => ({
+            id: shot.id,
+            index: shot.index,
+            slug: shot.slug,
+            action: shot.action,
+            status: shot.status
+          }))
+      };
+    }
+
+    return {
+      error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
+    return `Editing storyboard ${String(params["storyboard_id"])} (${count} ops)`;
+  }
+}

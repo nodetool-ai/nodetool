@@ -438,6 +438,7 @@ export {
   GetScriptTool,
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool,
+  EditScriptTool,
   SCRIPT_VOICE_TOOL_NAMES
 } from "./tools/script-voice-tools.js";
 export {
@@ -447,6 +448,7 @@ export {
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool,
+  EditStoryboardTool,
   STORYBOARD_RENDER_TOOL_NAMES
 } from "./tools/storyboard-render-tools.js";
 export {
@@ -465,6 +467,8 @@ export {
   RestoreTimelineVersionTool,
   TIMELINE_VERSION_TOOL_NAMES
 } from "./tools/timeline-version-tools.js";
+export { EditTimelineTool } from "./tools/timeline-edit-tools.js";
+export { EditSketchTool } from "./tools/sketch-edit-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {

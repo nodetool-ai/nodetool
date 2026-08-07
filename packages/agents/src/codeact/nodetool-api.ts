@@ -97,7 +97,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_timeline_version",
     "create_timeline_version",
     "restore_timeline_version",
-    "validate_timeline"
+    "validate_timeline",
+    "edit_timeline"
   ],
   sketches: [
     "list_sketches",
@@ -105,13 +106,15 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "get_sketch_version",
     "create_sketch_version",
     "restore_sketch_version",
-    "validate_sketch"
+    "validate_sketch",
+    "edit_sketch"
   ],
   scripts: [
     "list_scripts",
     "get_script",
     "voice_script_lines",
-    "assemble_script_timeline"
+    "assemble_script_timeline",
+    "edit_script"
   ],
   storyboards: [
     "list_storyboards",
@@ -119,7 +122,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "render_storyboard_stills",
     "render_storyboard_clips",
     "revise_storyboard_clip",
-    "assemble_storyboard_timeline"
+    "assemble_storyboard_timeline",
+    "edit_storyboard"
   ]
 };
 
@@ -936,7 +940,9 @@ const nodetool = (() => {
       validate: (target) =>
         typeof target === "string"
           ? __need("validate_timeline")({ timeline_id: target })
-          : __need("validate_timeline")({ document: target })
+          : __need("validate_timeline")({ document: target }),
+      /** Apply document edits to a saved sequence, server-side. */
+      edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops })
     },
 
     sketches: {
@@ -962,7 +968,10 @@ const nodetool = (() => {
       validate: (target) =>
         typeof target === "string"
           ? __need("validate_sketch")({ image_document_id: target })
-          : __need("validate_sketch")({ document: target })
+          : __need("validate_sketch")({ document: target }),
+      /** Apply layer-structure edits to a saved sketch, server-side. */
+      edit: (id, ops) =>
+        __need("edit_sketch")({ image_document_id: id, ops: ops })
     },
 
     scripts: {
@@ -971,7 +980,9 @@ const nodetool = (() => {
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),
       assembleTimeline: (id, opts) =>
-        __need("assemble_script_timeline")(__merge(opts, { script_id: id }))
+        __need("assemble_script_timeline")(__merge(opts, { script_id: id })),
+      /** Apply cast/line edits to a saved script, server-side. */
+      edit: (id, ops) => __need("edit_script")({ script_id: id, ops: ops })
     },
 
     storyboards: {
@@ -994,7 +1005,9 @@ const nodetool = (() => {
       assembleTimeline: (id, opts) =>
         __need("assemble_storyboard_timeline")(
           __merge(opts, { storyboard_id: id })
-        )
+        ),
+      /** Apply shot-list edits to a saved board, server-side. */
+      edit: (id, ops) => __need("edit_storyboard")({ storyboard_id: id, ops: ops })
     }
   };
   return api;
@@ -1163,23 +1176,36 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "timelines",
     doc: `- \`nodetool.timelines\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`.`
+  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
+  \`edit(id, ops)\` — the cut itself, server-side: \`[{op: "add_track", type:
+  "audio"}, {op: "add_text_clip", text: "Hi"}, {op: "split_clip", target:
+  "shot", atMs: 3000}, {op: "animate_clip", target: "Hi", animations:
+  [{role: "in", preset: "fade"}]}]\`. Start with \`{op: "get_state"}\` for ids.`
   },
   {
     namespace: "sketches",
     doc: `- \`nodetool.sketches\` — \`list()\`, \`validate(idOrDocument)\`, \`versions(id)\`,
-  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`.`
+  \`getVersion(id, n)\`, \`snapshot(id, {name})\`, \`restore(id, n)\`, and
+  \`edit(id, ops)\` for layer structure server-side: \`[{op: "add_layer", name:
+  "Shadow"}, {op: "set_layer_props", target: "Shadow", opacity: 0.4,
+  blendMode: "multiply"}]\`. Pixels are never touched — painting and
+  generation stay with an open editor or a workflow run.`
   },
   {
     namespace: "scripts",
     doc: `- \`nodetool.scripts\` — \`list()\`, \`get(id)\`, \`voice(id, {targets, provider,
-  model, voice})\`, \`assembleTimeline(id)\`.`
+  model, voice})\`, \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the words
+  themselves: \`[{op: "add_speaker", name: "Narrator"}, {op: "add_line", text:
+  "Once upon a time.", speaker: "Narrator"}]\`. Rewriting a line leaves its
+  takes stale, so \`voice()\` re-records exactly those.`
   },
   {
     namespace: "storyboards",
     doc: `- \`nodetool.storyboards\` — \`list()\`, \`get(id)\`, \`renderStills(id, {targets})\`,
   \`renderClips(id, {targets})\`, \`reviseClip(id, target, instruction)\`,
-  \`assembleTimeline(id)\`.`
+  \`assembleTimeline(id)\`, and \`edit(id, ops)\` for the shot list:
+  \`[{op: "add_shot", action: "Wide of the lighthouse at dusk",
+  duration_seconds: 4}, {op: "reorder_shot", target: "shot_2", index: 0}]\`.`
   }
 ];
 
@@ -1227,6 +1253,35 @@ const { workflow, result } = await g.run({ prompt: "a red fox in snow" });
  * The `nodetool` API section for codeact system prompts, documenting only the
  * namespaces this belt can actually serve. Empty string when none can.
  */
+/** Client tool families that address a document open in the user's browser. */
+const DOCUMENT_UI_TOOL_PREFIXES = [
+  "ui_timeline_",
+  "ui_sketch_",
+  "ui_script_",
+  "ui_storyboard_"
+] as const;
+
+const DOCUMENT_SURFACE_GUIDANCE = `# Editing documents: server-side first
+
+A timeline, sketch, script, or storyboard that has an id is editable
+server-side through \`nodetool.<surface>.edit(id, ops)\`. Prefer it. The edit
+lands on the stored document under a compare-and-swap, works whether or not the
+user has that document open, and an open editor picks the change up live — so
+one path covers both cases.
+
+Reach for a \`ui_*\` tool only for what a server-side edit cannot do:
+
+- \`ui_sketch_get_layer_image\`, \`ui_sketch_render_to_asset\` — real pixels off
+  the canvas.
+- \`ui_timeline_get_clip_frames\` — rendered video frames.
+- \`ui_sketch_generate\`, \`ui_timeline_generate_clip\`,
+  \`ui_storyboard_generate_*\`, \`ui_script_voice_*\` — generation the browser
+  drives. Headlessly these are \`nodetool.storyboards.renderStills/renderClips\`,
+  \`nodetool.scripts.voice\`, \`nodetool.media.*\`, or a workflow run.
+- Moving the user's view: selection, playhead, active tool.
+
+If you do not know the document's id, find it with \`list()\` on the namespace.`;
+
 export function buildNodetoolApiPromptSection(
   toolNames: Iterable<string>
 ): string {
@@ -1255,5 +1310,8 @@ available. A method whose backing tool is missing throws and names the tool.`,
     sections.push(MEDIA_EXAMPLE);
   }
   if (names.has("run_workflow")) sections.push(BATCH_EXAMPLE);
+  if ([...names].some((name) => DOCUMENT_UI_TOOL_PREFIXES.some((p) => name.startsWith(p)))) {
+    sections.push(DOCUMENT_SURFACE_GUIDANCE);
+  }
   return sections.join("\n\n");
 }

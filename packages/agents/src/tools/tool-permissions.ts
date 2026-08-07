@@ -182,6 +182,11 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // snapshotting the state it replaces.
   create_timeline_version: "write",
   restore_timeline_version: "write",
+  // Document edits: each rewrites a stored document under a CAS.
+  edit_timeline: "write",
+  edit_sketch: "write",
+  edit_script: "write",
+  edit_storyboard: "write",
   transcribe_audio: "write",
   embed_text: "write",
   openai_image_generation: "write",

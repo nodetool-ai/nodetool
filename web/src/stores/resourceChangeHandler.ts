@@ -10,6 +10,10 @@
 import { queryClient } from "../queryClient";
 import { ResourceChangeUpdate } from "./ApiTypes";
 import { loadMetadata } from "../serverState/useMetadata";
+import {
+  handleDocumentResourceChange,
+  type SyncedDocumentType
+} from "./documentSync";
 
 type WorkflowResourceReloader = (workflowId: string, etag?: string) => void;
 
@@ -46,9 +50,26 @@ const RESOURCE_TYPE_TO_QUERY_KEYS: Record<string, string[]> = {
   workspace: ["workspaces"],
   secret: ["secrets"],
   setting: ["settings"],
-  metadata: ["metadata"],
-  timelinesequence: []
+  metadata: ["metadata"]
 };
+
+/**
+ * Document tables an open editor holds one row of. The list query behind the
+ * surface's browser is refetched; the open document is handed to
+ * `documentSync`, which knows whether the editor can safely take the server
+ * copy. Blanket-invalidating the `get` query instead would refetch under a
+ * live editor and clobber unsaved edits.
+ */
+const DOCUMENT_TRPC_ROUTER: Record<SyncedDocumentType, string> = {
+  timelinesequence: "timeline",
+  imagedocument: "sketch",
+  storyboard: "storyboards",
+  script: "scripts",
+  application: "applications"
+};
+
+const isSyncedDocumentType = (value: string): value is SyncedDocumentType =>
+  value in DOCUMENT_TRPC_ROUTER;
 
 export const PROVIDER_QUERY_KEYS = ["providers"] as const;
 export const MODEL_QUERY_KEYS = [
@@ -69,16 +90,12 @@ function invalidateQueryKeys(keys: readonly string[]): void {
   });
 }
 
-/**
- * Invalidate every query whose key starts with `[router]` — used for tRPC
- * react-query keys, which are stored as `[[router, procedure], input, ...]`.
- */
-function invalidateTrpcRouter(router: string): void {
-  console.debug(`[ResourceChange] Invalidating tRPC router: ${router}`);
+/** Invalidate one tRPC procedure's queries — key head is `[router, procedure]`. */
+function invalidateTrpcProcedure(router: string, procedure: string): void {
   queryClient.invalidateQueries({
     predicate: (query) => {
       const head = query.queryKey[0];
-      return Array.isArray(head) && head[0] === router;
+      return Array.isArray(head) && head[0] === router && head[1] === procedure;
     }
   });
 }
@@ -137,6 +154,17 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
           query.queryKey[0] === "workflow" && query.queryKey[2] === "versions"
       });
     }
+    return;
+  }
+
+  if (isSyncedDocumentType(resource_type)) {
+    invalidateTrpcProcedure(DOCUMENT_TRPC_ROUTER[resource_type], "list");
+    handleDocumentResourceChange(resource_type, {
+      event,
+      id: resource.id,
+      updatedAt:
+        typeof resource.updated_at === "string" ? resource.updated_at : null
+    });
     return;
   }
 
@@ -209,11 +237,6 @@ export function handleResourceChange(update: ResourceChangeUpdate): void {
         queryKey: ["job", resource.id]
       });
     }
-  }
-
-  // tRPC react-query keys are nested arrays — handle routers separately.
-  if (resource_type === "timelinesequence") {
-    invalidateTrpcRouter("timeline");
   }
 
   console.debug(
