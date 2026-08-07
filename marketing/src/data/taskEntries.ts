@@ -279,6 +279,81 @@ export const taskEntries: TaskEntry[] = [
     ],
     accent: "emerald",
   },
+  {
+    route: "/tasks/text-to-video",
+    title: title("Text to Video"),
+    description:
+      "Generate video from a text prompt with AI. Compare text-to-video models, run ready-made NodeTool workflows, and build them into a bigger pipeline.",
+    priority: 0.6,
+    changeFrequency: "weekly",
+    indexable: true,
+    slug: "text-to-video",
+    task: "Text to Video",
+    modality: "video",
+    headline: "Text-to-Video AI Models & Workflows",
+    subhead:
+      "Describe a shot and get motion. Choose a text-to-video model, drop it into a NodeTool workflow, and generate clips from a prompt alone — on one canvas with your own keys.",
+    nodeTypeMatch: ["video.TextToVideo"],
+    tagMatch: ["video"],
+    models: [
+      { name: "Veo 3.1", provider: "Google", modality: "video", blurb: "Cinematic text-to-video with native synchronized audio." },
+      { name: "Sora 2", provider: "OpenAI", modality: "video", blurb: "Prompt-to-video with strong physical realism and sound." },
+      { name: "Kling 2.6", provider: "Kling", modality: "video", blurb: "High-motion generation with strong subject consistency." },
+      { name: "Wan 2.6", provider: "Alibaba", modality: "video", blurb: "Open-weight text-to-video with fine motion control." },
+    ],
+    faqs: [
+      {
+        q: "What is text-to-video generation?",
+        a: "A model turns a written prompt into a short video clip, inferring subject, motion, and camera work from the text alone — no starting image required.",
+      },
+      {
+        q: "Which text-to-video model is best?",
+        a: "It depends on the look you want: Veo and Sora lead on cinematic realism and native audio, while open-weight models like Wan let you run locally and tune control.",
+      },
+      {
+        q: "How do I run it in NodeTool?",
+        a: "Open one of the text-to-video templates below in Studio, connect the provider key, write a prompt, and run the graph.",
+      },
+    ],
+    accent: "violet",
+  },
+  {
+    route: "/tasks/rag",
+    title: title("RAG"),
+    description:
+      "Build retrieval-augmented generation with AI. Index your own documents into a vector collection, run ready-made NodeTool workflows, and get answers that cite their sources.",
+    priority: 0.6,
+    changeFrequency: "weekly",
+    indexable: true,
+    slug: "rag",
+    task: "RAG",
+    modality: "text",
+    headline: "Local RAG: Models & Workflows",
+    subhead:
+      "Chat with your own documents. Index files into a vector collection, retrieve the passages that match a question, and have an agent answer from them — on one canvas, on your own keys or fully local.",
+    nodeTypeMatch: ["vector.IndexTextChunk", "vector.Collection", "vector.QueryText"],
+    tagMatch: ["rag", "vectorstore", "retrieval"],
+    models: [
+      { name: "nomic-embed-text", provider: "Ollama (local)", modality: "text", blurb: "Open-weight embedding model for local vector indexing." },
+      { name: "gpt-5-mini", provider: "OpenAI", modality: "text", blurb: "Fast, low-cost answer generation over retrieved passages." },
+      { name: "Claude Sonnet", provider: "Anthropic", modality: "text", blurb: "Strong grounded answers with citations from long context." },
+    ],
+    faqs: [
+      {
+        q: "What is RAG?",
+        a: "Retrieval-augmented generation searches your own documents for the passages relevant to a question, then passes those passages to a model so it answers from your material instead of guessing from training data.",
+      },
+      {
+        q: "Where does my document index live?",
+        a: "In NodeTool's own vector store (sqlite-vec), on your machine by default. Nothing has to leave your computer — embeddings and retrieval can run entirely on local models.",
+      },
+      {
+        q: "How do I run RAG in NodeTool?",
+        a: "Open the Chat With Your Documents template below, index a folder of files into a collection, and connect the query and agent nodes — no separate vector database to stand up.",
+      },
+    ],
+    accent: "cyan",
+  },
 ];
 
 /** Hub entry for the `/tasks` index — kept in the registry too. */

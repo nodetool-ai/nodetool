@@ -245,6 +245,15 @@ const seeds: FaqSeed[] = [
     relatedRoute: "/agents",
     surfaces: ["agents"],
   },
+  {
+    slug: "do-i-need-a-gpu",
+    question: "Do I need a GPU to run NodeTool?",
+    answerMd:
+      "No. NodeTool works entirely with cloud providers — bring your own API key, and the model runs on the provider's hardware with nothing to install locally. A GPU only matters if you choose to run open-weight models yourself through Ollama, MLX, or llama.cpp: it speeds those up, but many smaller local models run fine on CPU too, just slower.",
+    category: "models",
+    relatedRoute: "/solutions/local-first",
+    surfaces: ["landing", "models"],
+  },
 ];
 
 const FAQ_BASE = "/faq";

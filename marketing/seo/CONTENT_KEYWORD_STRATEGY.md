@@ -208,14 +208,14 @@ Impact is judged on differentiation × reachable demand, not raw volume.
 
 | # | Title | Slug | Effort | Impact | Notes |
 |---|---|---|---|---|---|
-| 21 | Privacy-First AI Workflow Builder | `/solutions/privacy-first` | S | High | Seed keyword. Distinct from the legal `/privacy` page |
+| 21 | ~~Privacy-First AI Workflow Builder~~ | `/solutions/privacy-first` | S | High | ~~Seed keyword. Distinct from the legal `/privacy` page~~ **Shipped 2026-08-07.** |
 | 22 | Offline AI Generation | `/solutions/offline` | S | Mid | Splits "offline" intent off the local-first landing |
-| 23 | Self-Hosted AI Workflows | `/solutions/self-hosted` | S | High | Owns the deploy/ownership query set |
+| 23 | ~~Self-Hosted AI Workflows~~ | `/solutions/self-hosted` | S | High | ~~Owns the deploy/ownership query set~~ **Shipped 2026-08-07.** |
 | 24 | AI Workflows for Agencies | `/solutions/agencies` | S | Mid | Client-work framing; per-client key isolation |
 | 25 | AI Workflows for Game Art | `/solutions/game-art` | S | Mid | Asset batches, style consistency |
 | 26 | AI Workflows for E-commerce Product Shots | `/solutions/product-shots` | S | High | Existing showcase prompts already cover this |
-| 27 | Text to Video | `/tasks/text-to-video` | S | High | Missing from a 6-task hub set; high demand |
-| 28 | Local RAG | `/tasks/rag` | S | High | Seed keyword; the hub the RAG guides point at |
+| 27 | ~~Text to Video~~ | `/tasks/text-to-video` | S | High | ~~Missing from a 6-task hub set; high demand~~ **Shipped 2026-08-07.** |
+| 28 | ~~Local RAG~~ | `/tasks/rag` | S | High | ~~Seed keyword; the hub the RAG guides point at~~ **Shipped 2026-08-07.** |
 | 29 | Batch Generation | `/tasks/batch-generation` | S | Mid | Cross-links templates, apps, showcase |
 | 30 | Speech to Text | `/tasks/speech-to-text` | S | Mid | Completes the audio task set with text-to-speech |
 | 31 | Image Editing & Inpainting | `/tasks/image-editing` | S | Mid | Big shipped node coverage, no hub |
@@ -240,7 +240,7 @@ on docs.nodetool.ai and must not be duplicated here.
 | 36 | What does local-first mean for AI tools? | `/faq/what-is-local-first-ai` | S | Mid |
 | 37 | What is a workflow template? | `/faq/what-is-a-workflow-template` | S | Low |
 | 38 | What is a mini app? | `/faq/what-is-a-mini-app` | S | Mid |
-| 39 | Do I need a GPU to run NodeTool? | `/faq/do-i-need-a-gpu` | S | High |
+| 39 | ~~Do I need a GPU to run NodeTool?~~ | `/faq/do-i-need-a-gpu` | S | High — **Shipped 2026-08-07.** |
 | 40 | Can I use NodeTool commercially? | `/faq/commercial-use` | S | Mid |
 
 ### Build order
@@ -250,7 +250,7 @@ traffic the S-effort rows already prove out.
 
 | Wave | Items | Why |
 |---|---|---|
-| 1 | 2, 3, 4, 21, 23, 27, 28, 39 | All S-effort rows in existing modules. No new routes |
+| 1 | 2, 3, 4, 21, 23, 27, 28, 39 | All S-effort rows in existing modules. No new routes. **21, 23, 27, 28, 39 shipped 2026-08-07**; 2–4 (qualified alternatives) remain — they need route changes beyond a data row |
 | 2 | 1, 32, 33, 34 | Four hub/pillar pages; each needs a route folder but no new engine |
 | 3 | 11–20 | The `/guides` engine: one `guideEntries.ts` module plus `app/guides/[slug]`, registered in `registry.ts` like every other engine |
 
