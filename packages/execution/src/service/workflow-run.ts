@@ -83,7 +83,13 @@ const RUNTIME_CATALOGS: RunModelCatalogs = {
 export interface RunWorkflowOptions {
   workflowId: string;
   userId: string;
-  environment: WorkflowRunEnvironment;
+  /**
+   * The run environment, or a lazy resolver for it. Pass the resolver form
+   * when constructing the environment is expensive (registry bootstrap,
+   * Python bridge): it is awaited only after the cheap not-found and
+   * model-selection checks have passed.
+   */
+  environment: WorkflowRunEnvironment | (() => Promise<WorkflowRunEnvironment>);
   params?: Record<string, unknown>;
   /** Return the full debug report (summary + verdict) instead of the run row. */
   debug?: boolean;
@@ -277,7 +283,7 @@ export function debugSessionEventPayload(
 export async function runWorkflow(
   options: RunWorkflowOptions
 ): Promise<RunWorkflowOutcome> {
-  const { workflowId, userId, environment } = options;
+  const { workflowId, userId } = options;
   const params = options.params ?? {};
   const debug = options.debug === true;
   const interactive = options.interactive === true;
@@ -309,6 +315,14 @@ export async function runWorkflow(
       detail: `Workflow selects providers or models this runtime cannot honour:\n${badModels.join("\n")}`
     };
   }
+
+  // Resolve the environment only after the cheap checks: a 404 on a missing
+  // workflow or a 400 on a bad model selection must not depend on (or be
+  // masked by) a cold runtime bootstrap.
+  const environment =
+    typeof options.environment === "function"
+      ? await options.environment()
+      : options.environment;
 
   const registry = environment.registry;
   const hasPythonNode = runnableGraph.nodes.some((node) => {

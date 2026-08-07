@@ -345,9 +345,17 @@ function collectBridgedTools(
     // Workflow / node / job / asset / app tools, plus the ui_* workflow
     // document tools. The read tools among them (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.
+    // Thread this mount's own configuration into the host deps — a server
+    // configured with a non-default examples dir or metadata roots must not
+    // silently fall back to the defaults.
     ...getAllMcpTools({
       registry: options?.registry,
-      ...mcpToolHostDeps()
+      ...mcpToolHostDeps({
+        registry: options?.registry,
+        metadataRoots: options?.metadataRoots,
+        metadataMaxDepth: options?.metadataMaxDepth,
+        examplesDir: options?.examplesDir
+      })
     }),
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.

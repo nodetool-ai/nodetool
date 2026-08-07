@@ -62,6 +62,7 @@ import {
 import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
+  debugSessions,
   peekDebugSession,
   runWorkflow,
   submitEscalationVerdict,
@@ -873,16 +874,13 @@ export async function handleWorkflowRun(
     decision_timeout_ms?: number;
   }>(request);
 
-  const runtime = await getWorkflowRuntimeEnvironment(options);
   const outcome = await runWorkflow({
     workflowId,
     userId,
     debug,
-    environment: {
-      registry: runtime.registry,
-      resolveExecutor: runtime.resolveExecutor,
-      ensurePythonBridge: runtime.ensurePythonBridge
-    },
+    // Lazy: a nonexistent workflow 404s before the runtime bootstraps — a
+    // cold-start bootstrap failure must not turn that into a 500.
+    environment: () => getWorkflowRuntimeEnvironment(options),
     params: body?.params ?? {},
     background: body?.background ?? false,
     interactive: body?.interactive === true,
@@ -918,6 +916,13 @@ export async function handleDebugSessionRequest(
   options: HttpApiOptions = {}
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
+
+  // Session existence (scoped to the caller) is checked before anything else —
+  // a malformed verdict against a foreign or expired session answers 404, not
+  // 400, exactly as it did when this handler owned the registry.
+  if (!debugSessions.get(sessionId, userId)) {
+    return errorResponse(404, "Debug session not found");
+  }
 
   const answer = (outcome: RunWorkflowOutcome): Response =>
     outcome.kind === "error"

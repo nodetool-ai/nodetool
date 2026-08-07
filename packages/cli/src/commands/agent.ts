@@ -59,6 +59,8 @@ import {
 import { initDb, getSecret } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { createProvider, buildConfiguredProviders } from "../providers.js";
+import { buildFullRegistry } from "../node-registry.js";
+import { mcpToolHostDeps } from "@nodetool-ai/websocket";
 import {
   diagnoseRun,
   renderDiagnosis,
@@ -206,7 +208,15 @@ function buildToolMap(
     search_email: new SearchEmailTool(),
     archive_email: new ArchiveEmailTool()
   };
-  for (const tool of getAllMcpTools({ providers })) {
+  // The platform tools run in-process now (no HTTP fallback), so this host
+  // must inject what they need: the full TS node registry, and the server's
+  // host deps (example catalog, DSL exporter, package assets, and the lazy
+  // Python-aware run environment — the bridge starts only when a run needs it).
+  for (const tool of getAllMcpTools({
+    providers,
+    registry: buildFullRegistry(),
+    ...mcpToolHostDeps()
+  })) {
     m[tool.name] = tool;
   }
   return m;
