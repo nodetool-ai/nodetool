@@ -1,6 +1,6 @@
 import { Edge, Node } from "@xyflow/react";
 import { NodeData } from "../stores/NodeData";
-import ELK, { ElkNode } from "elkjs/lib/elk.bundled.js";
+import type { ElkNode } from "elkjs/lib/elk.bundled.js";
 import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
 
 /**
@@ -12,6 +12,9 @@ import { COMMENT_NODE_TYPE } from "../constants/nodeTypes";
  *   returns all edges whose endpoints are in that reachable set.
  * - `autoLayout` runs ELK layered layout, filtering out comment nodes, grouping
  *   by parentId, and resizing group nodes to fit children with padding.
+ *
+ * ELK loads dynamically: NodeStore reaches this module, so a static import put
+ * all 1.4 MB of `elk.bundled.js` on the boot path. Keep it inside `autoLayout`.
  */
 export function topologicalSort(
   edges: Edge[],
@@ -183,6 +186,7 @@ export const autoLayout = async (
   edges: Edge[],
   nodes: Node<NodeData>[]
 ): Promise<Node<NodeData>[]> => {
+  const { default: ELK } = await import("elkjs/lib/elk.bundled.js");
   const elk = new ELK({
     defaultLayoutOptions: {
       "elk.layered.spacing.nodeNodeBetweenLayers": "30",

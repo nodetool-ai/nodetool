@@ -125,23 +125,21 @@ export const loadMetadata = async (): Promise<"success" | "error"> => {
     metadataByType[md.node_type] = md;
   });
 
-  const recommendedModels = data.reduce<UnifiedModel[]>(
-    (result, md) => [...result, ...(md.recommended_models ?? [])],
-    []
-  );
-
-  // deduplicate by type, repo_id, path
-  const uniqueRecommendedModels = Array.from(
-    recommendedModels.reduce((acc, model) => {
+  // Collect + dedupe by type, repo_id, path in one pass. Spreading into an
+  // accumulator here re-copied the whole list once per node type — quadratic
+  // over the thousands of types the registry ships.
+  const byKey = new Map<string, UnifiedModel>();
+  for (const md of data) {
+    for (const model of md.recommended_models ?? []) {
       const key = `${model.type ?? ""}:${model.repo_id ?? ""}:${
         model.path ?? ""
       }`;
-      if (!acc.has(key)) {
-        acc.set(key, model);
+      if (!byKey.has(key)) {
+        byKey.set(key, model);
       }
-      return acc;
-    }, new Map<string, UnifiedModel>()).values()
-  );
+    }
+  }
+  const uniqueRecommendedModels = Array.from(byKey.values());
 
   const snippetMetadata = generateSnippetMetadata();
   Object.assign(metadataByType, snippetMetadata);

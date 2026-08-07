@@ -418,8 +418,10 @@ export default defineConfig(async ({ mode }) => {
                     )
                   )
                     return "vendor-mui";
-                  // Workflow graph engine + layout
-                  if (/[\\/]node_modules[\\/](@xyflow|elkjs)[\\/]/.test(id))
+                  // Workflow graph engine. Keep elkjs out: it is reached only
+                  // through `autoLayout`'s dynamic import, and naming it into
+                  // this boot-path bucket puts all 1.4 MB back on the entry.
+                  if (/[\\/]node_modules[\\/]@xyflow[\\/]/.test(id))
                     return "vendor-flow";
                   // Server state + RPC stack (must stay together — shared runtime)
                   if (
