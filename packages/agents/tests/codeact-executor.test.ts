@@ -394,3 +394,20 @@ describe("CodeAct progressive tool disclosure", () => {
     expect(executor.getResult()).toEqual({ answer: 1 });
   });
 });
+
+describe("coercionArtifactPaths", () => {
+  it("names the paths carrying [object Object]", async () => {
+    const { coercionArtifactPaths } = await import(
+      "../src/codeact/codeact-executor.js"
+    );
+    expect(
+      coercionArtifactPaths({
+        shout: "[object Object]",
+        nested: { list: ["fine", "x [object Object] y"] },
+        ok: "SHIP IT",
+        n: 3
+      })
+    ).toEqual(["result.shout", "result.nested.list[1]"]);
+    expect(coercionArtifactPaths({ ok: "clean" })).toEqual([]);
+  });
+});

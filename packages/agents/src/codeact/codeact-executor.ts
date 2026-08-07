@@ -115,6 +115,34 @@ export const EXECUTE_CODE_INPUT_SCHEMA = {
 } as const;
 
 /** The display label for a code action: its title, else a generic fallback. */
+/**
+ * Paths in a finish() payload whose string values carry the tell-tale
+ * `[object Object]` of an unread object coerced to a string. A schema cannot
+ * catch these — the garbage is still a string — so the finish bridge rejects
+ * them and the model repairs the extraction inside the same action.
+ */
+export function coercionArtifactPaths(
+  value: unknown,
+  path = "result",
+  depth = 0
+): string[] {
+  if (depth > 6) return [];
+  if (typeof value === "string") {
+    return value.includes("[object Object]") ? [path] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((entry, i) =>
+      coercionArtifactPaths(entry, `${path}[${i}]`, depth + 1)
+    );
+  }
+  if (value !== null && typeof value === "object") {
+    return Object.entries(value).flatMap(([key, entry]) =>
+      coercionArtifactPaths(entry, `${path}.${key}`, depth + 1)
+    );
+  }
+  return [];
+}
+
 export function executeCodeMessage(args: Record<string, unknown>): string {
   const title = typeof args?.["title"] === "string" ? args["title"].trim() : "";
   return title || "Executing code action";
@@ -400,6 +428,19 @@ export class CodeActExecutor {
             error: `Result validation failed: ${formatViolations(violations)}`
           };
         }
+      }
+      // A schema checks types, not truth — but "[object Object]" is always an
+      // unread object coerced to a string. Reject it here so the catch-around-
+      // finish repair loop fixes the extraction inside the same action.
+      const artifacts = coercionArtifactPaths(payload);
+      if (artifacts.length > 0) {
+        return {
+          ok: false,
+          error:
+            `finish: ${artifacts.join(", ")} contains "[object Object]" — an ` +
+            `object was coerced to a string. Log the raw value ` +
+            `(console.log(JSON.stringify(...))) and extract the actual field.`
+        };
       }
       finishedResult = { value: payload };
       return { ok: true };

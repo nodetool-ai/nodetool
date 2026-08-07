@@ -72,7 +72,9 @@ the SAME action that computes the final value — a separate finish-only turn
 is a wasted round trip. Wrap it in try/catch: on a validation error, log the
 raw values you built the result from, fix the extraction, and call \`finish\`
 again in the SAME program — do not spend a fresh action recovering from a
-shape you can see right there.`;
+shape you can see right there. The schema checks types, not truth: a status,
+an id, or a stringified envelope passes where the asked-for content should
+be — log each value and confirm it IS the thing requested before finishing.`;
 
 const FINISH_FREEFORM = `# Completing the step
 
