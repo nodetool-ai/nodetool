@@ -1,7 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import { Command, CommandInput } from "cmdk";
-import { Workflow, WorkflowList } from "../../stores/ApiTypes";
+import {
+  Workflow,
+  WorkflowGraph,
+  WorkflowList,
+  WorkflowRequest
+} from "../../stores/ApiTypes";
 import { useCallback, useEffect, useState, useRef, memo } from "react";
 import { Dialog } from "../ui_primitives";
 import { getMousePosition } from "../../utils/MousePosition";
@@ -114,6 +119,56 @@ const styles = () =>
     }
   });
 
+type WorkflowSettings = NonNullable<WorkflowRequest["settings"]>;
+
+const isSettingsRecord = (value: unknown): value is WorkflowSettings =>
+  typeof value === "object" &&
+  value !== null &&
+  !Array.isArray(value) &&
+  Object.values(value).every(
+    (entry) =>
+      entry === null ||
+      typeof entry === "string" ||
+      typeof entry === "number" ||
+      typeof entry === "boolean"
+  );
+
+// The file is whatever the user picked, so a field that isn't the shape it
+// claims is dropped rather than handed to the server.
+const readImportedWorkflow = (
+  text: string
+): Pick<
+  WorkflowRequest,
+  "name" | "description" | "graph" | "tags" | "settings" | "run_mode" | "html_app"
+> => {
+  const parsed: unknown = JSON.parse(text);
+  if (typeof parsed !== "object" || parsed === null) {
+    throw new Error("Workflow file must contain a JSON object");
+  }
+  const source = parsed as Record<string, unknown>;
+  const graph = source.graph;
+  const isGraph =
+    typeof graph === "object" &&
+    graph !== null &&
+    Array.isArray((graph as WorkflowGraph).nodes) &&
+    Array.isArray((graph as WorkflowGraph).edges);
+
+  const asString = (value: unknown): string | undefined =>
+    typeof value === "string" ? value : undefined;
+
+  return {
+    name: asString(source.name) ?? "",
+    description: asString(source.description),
+    graph: isGraph ? (graph as WorkflowGraph) : undefined,
+    tags: Array.isArray(source.tags)
+      ? source.tags.filter((tag): tag is string => typeof tag === "string")
+      : undefined,
+    settings: isSettingsRecord(source.settings) ? source.settings : undefined,
+    run_mode: asString(source.run_mode),
+    html_app: asString(source.html_app)
+  };
+};
+
 const WorkflowCommands = memo(function WorkflowCommands() {
   const executeAndClose = useCommandMenu((state) => state.executeAndClose);
   // Optimization: use shallow equality to prevent the CommandMenu from
@@ -223,16 +278,12 @@ const WorkflowCommands = memo(function WorkflowCommands() {
       if (!file) return;
       try {
         const text = await file.text();
-        const parsed = JSON.parse(text) as Workflow;
+        const parsed = readImportedWorkflow(text);
         const imported = await createWorkflow({
-          name: parsed.name ?? file.name.replace(/\.json$/, ""),
+          ...parsed,
+          name: parsed.name || file.name.replace(/\.json$/, ""),
           description: parsed.description ?? "",
-          access: "private",
-          graph: parsed.graph,
-          tags: parsed.tags,
-          settings: parsed.settings as Record<string, string | number | boolean | null> | null | undefined,
-          run_mode: parsed.run_mode,
-          html_app: parsed.html_app
+          access: "private"
         });
         navigate(`/editor/${imported.id}`);
         addNotification({

@@ -40,7 +40,7 @@ function createBaseWorkflow(runMode: 'headless' | 'normal', outputType: string, 
     description: '',
     created_at: '',
     updated_at: '',
-    tags: '',
+    tags: [],
     thumbnail: '',
     thumbnail_url: '',
     graph: {

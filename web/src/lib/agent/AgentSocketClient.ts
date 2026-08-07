@@ -57,6 +57,26 @@ interface PendingRequest {
   timer: ReturnType<typeof setTimeout>;
 }
 
+const SERVER_MESSAGE_TYPES: ReadonlySet<AgentServerMessage["type"]> = new Set([
+  "response",
+  "agent_stream_message",
+  "tools_manifest_request",
+  "tool_call_request",
+  "tool_call_abort",
+]);
+
+// The handler below dispatches on `type`, so that discriminant is checked
+// rather than asserted — an unknown one is dropped, not fed to the switch.
+const parseAgentServerMessage = (raw: string): AgentServerMessage | null => {
+  const value: unknown = JSON.parse(raw);
+  if (typeof value !== "object" || value === null) return null;
+  const { type } = value as { type?: unknown };
+  return typeof type === "string" &&
+    SERVER_MESSAGE_TYPES.has(type as AgentServerMessage["type"])
+    ? (value as AgentServerMessage)
+    : null;
+};
+
 export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
   private readonly url: string;
   private socket: WebSocket | null = null;
@@ -275,11 +295,10 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
         timer,
       });
 
-      const envelope = {
-        command,
-        request_id: requestId,
-        ...(payload as Record<string, unknown>)
-      } as unknown as AgentClientMessage;
+      const envelope: AgentClientPayload<C> & {
+        command: C;
+        request_id: string;
+      } = { command, request_id: requestId, ...payload };
 
       try {
         this.socket!.send(JSON.stringify(envelope));
@@ -306,13 +325,14 @@ export class AgentSocketClient extends EventEmitter<AgentSocketEvents> {
 
   private handleMessage(raw: unknown): void {
     if (typeof raw !== "string") return;
-    let parsed: AgentServerMessage;
+    let parsed: AgentServerMessage | null;
     try {
-      parsed = JSON.parse(raw) as AgentServerMessage;
+      parsed = parseAgentServerMessage(raw);
     } catch (error) {
       console.warn("[agent-ws] failed to parse message", error);
       return;
     }
+    if (!parsed) return;
 
     switch (parsed.type) {
       case "response": {

@@ -369,25 +369,26 @@ export interface Edge {
   targetHandle: string;
 }
 
+// Mirrors `workflowResponse` in `@nodetool-ai/protocol/api-schemas/workflows`:
+// claiming more than the wire guarantees is what left `tags` typed `string`
+// while the server sends an array.
 export interface Workflow {
   id: string;
   name: string;
-  description: string;
+  description?: string | null;
   created_at: string;
   updated_at: string;
-  tags: string;
-  thumbnail: string;
-  thumbnail_url: string;
+  tags?: string[] | null;
+  thumbnail?: string | null;
+  thumbnail_url?: string | null;
   graph: {
     nodes: Node[];
     edges: Edge[];
   };
-  input_schema: JSONSchema;
-  output_schema: JSONSchema;
-  settings?: {
-    shortcut: string;
-    run_mode: "normal" | "app" | "chat" | "headless";
-  };
+  input_schema?: JSONSchema | null;
+  output_schema?: JSONSchema | null;
+  /** `z.record(z.unknown())` server-side — no key here is schema-enforced. */
+  settings?: Record<string, unknown> | null;
 }
 
 export interface MenuEventData {
