@@ -26,6 +26,7 @@ import { getCollectionsAppHtml } from "./mcp-apps/collections-app.js";
 import { createLogger } from "@nodetool-ai/config";
 import { Workflow, Job, Asset } from "@nodetool-ai/models";
 import {
+  buildExampleWorkflows,
   toAssetResponse,
   toJobResponse,
   toWorkflowResponse
@@ -61,6 +62,8 @@ export interface McpServerOptions {
   metadataRoots?: string[];
   metadataMaxDepth?: number;
   registry?: NodeRegistry;
+  /** Static example workflows directory — same as HttpApiOptions.examplesDir. */
+  examplesDir?: string;
   /**
    * User scope for the bridged agent tools (media generation, assets,
    * provider secrets). Without a scope those tools are NOT registered — they
@@ -1170,12 +1173,42 @@ function registerListWorkflowsApp(
           .describe(
             "Pagination cursor — pass the `next` value from the previous response to fetch the next page"
           ),
+        workflow_type: z
+          .enum(["user", "example"])
+          .optional()
+          .default("user")
+          .describe(
+            "\"user\" lists saved workflows; \"example\" lists the shipped example workflows (id, name, description, tags, package_name — fetch one with get_example_workflow)"
+          ),
         user_id: z.string().optional().default("1").describe("User ID")
       },
       _meta: { ui: { resourceUri: UI_URI.listWorkflows } }
     },
-    async ({ limit, start_key, user_id }) => {
+    async ({ limit, start_key, workflow_type, user_id }) => {
       try {
+        if (workflow_type === "example") {
+          const examples = buildExampleWorkflows({
+            examplesDir: options?.examplesDir,
+            metadataRoots: options?.metadataRoots,
+            metadataMaxDepth: options?.metadataMaxDepth
+          }) as Array<Record<string, unknown>>;
+          const payload = {
+            workflows: examples.slice(0, limit).map((w) => ({
+              id: w.id,
+              name: w.name,
+              description: w.description ?? null,
+              tags: w.tags ?? null,
+              package_name: w.package_name ?? null
+            })),
+            next: null
+          };
+          return {
+            content: [
+              { type: "text" as const, text: JSON.stringify(payload) }
+            ],
+            structuredContent: payload as Record<string, unknown>
+          };
+        }
         const opts: { limit: number; startKey?: string } = { limit };
         if (start_key) opts.startKey = start_key;
         const [workflows, next] = await Workflow.paginate(user_id, opts);

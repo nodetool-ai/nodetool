@@ -137,6 +137,22 @@ async function runAction(
 }
 
 describe("createChatCodeActSession", () => {
+  it("requires a user-facing title on every execute_code call", () => {
+    const { executeTool } = createFakeRouter({ nodes: [], edges: [] });
+    const session = makeSession(GENERIC_TOOLS, executeTool);
+    const schema = session.providerTool.inputSchema as {
+      properties: Record<string, unknown>;
+      required: string[];
+    };
+    expect(Object.keys(schema.properties)).toEqual(
+      expect.arrayContaining(["title", "code"])
+    );
+    expect(schema.required).toEqual(
+      expect.arrayContaining(["title", "code"])
+    );
+    expect(session.systemPromptSection).toContain("`title`");
+  });
+
   it("bridges tool calls through the router and reports the call count", async () => {
     const { executeTool, calls } = createFakeRouter({ nodes: [], edges: [] });
     const session = makeSession(GENERIC_TOOLS, executeTool);

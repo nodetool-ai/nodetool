@@ -39,7 +39,7 @@ describe("agents index exports", () => {
     expect(mod.extractJSON).toBeDefined();
 
     // Core execution
-    expect(mod.StepExecutor).toBeDefined();
+    expect(mod.CodeActExecutor).toBeDefined();
 
     // Read-only fan-out search primitive
     expect(mod.RunSearchTool).toBeDefined();

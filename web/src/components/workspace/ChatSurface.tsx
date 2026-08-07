@@ -224,7 +224,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
         noMessagesPlaceholder={welcomePlaceholder}
-        showConversationHeader={currentThreadId === refId}
+        showNewChatButton
       />
     </FlexColumn>
   );

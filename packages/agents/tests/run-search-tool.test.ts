@@ -248,20 +248,16 @@ describe("RunSearchTool", () => {
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       });
 
-      const names = cap.toolNames();
-      // Read-only allowlist (from the parent snapshot) is present.
-      expect(names).toEqual(
-        expect.arrayContaining([
-          "read_file",
-          "glob",
-          "grep",
-          "list_directory"
-        ])
-      );
+      // Code actions reach the toolbelt through the sandbox, so the child's
+      // toolset shows up in the documented catalog, not in the provider tools.
+      const prompt = cap.messagesText();
+      for (const name of ["read_file", "glob", "grep", "list_directory"]) {
+        expect(prompt).toContain(`tools.${name}(`);
+      }
       // Write / external tools are filtered out.
-      expect(names).not.toContain("write_file");
-      expect(names).not.toContain("edit_file");
-      expect(names).not.toContain("browser");
+      expect(prompt).not.toContain("tools.write_file(");
+      expect(prompt).not.toContain("tools.edit_file(");
+      expect(prompt).not.toContain("tools.browser(");
     });
 
     it("does not stitch in run_subtask or run_search — the loop cannot spawn", async () => {
@@ -290,9 +286,9 @@ describe("RunSearchTool", () => {
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       });
 
-      const names = cap.toolNames();
-      expect(names).not.toContain("run_subtask");
-      expect(names).not.toContain("run_search");
+      const prompt = cap.messagesText();
+      expect(prompt).not.toContain("tools.run_subtask(");
+      expect(prompt).not.toContain("tools.run_search(");
     });
   });
 

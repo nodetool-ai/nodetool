@@ -449,9 +449,14 @@ export function registerAgentMcpTools(
       continue;
     }
     taken.add(tool.name);
-    // find_model reads the configured-providers map at call time, so populate
-    // it before the handler runs.
-    register(tool, tool instanceof FindModelTool ? ensureProviders : undefined);
+    // find_model and list_models read the configured-providers map at call
+    // time, so populate it before either handler runs.
+    register(
+      tool,
+      tool instanceof FindModelTool || tool instanceof ListModelsTool
+        ? ensureProviders
+        : undefined
+    );
     registered += 1;
   }
   log.info("Registered agent MCP tools", {

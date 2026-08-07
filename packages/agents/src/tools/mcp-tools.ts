@@ -23,6 +23,7 @@ import {
   collectModelSelectionIssues,
   validateGraph
 } from "@nodetool-ai/node-sdk";
+import { Asset, Job } from "@nodetool-ai/models";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
 import { Tool } from "./base-tool.js";
@@ -51,6 +52,7 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { z } from "zod";
 import { GraphPlanner } from "../graph-planner.js";
+import { evaluateGraphDsl } from "../graph-dsl.js";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 
 const DEFAULT_API_URL = "http://localhost:7777";
@@ -330,7 +332,11 @@ function lightWorkflow(w: unknown): unknown {
     id: r["id"],
     name: r["name"],
     description: r["description"] ?? null,
-    tags: r["tags"] ?? null
+    tags: r["tags"] ?? null,
+    // Example records carry their package — get_example_workflow needs it.
+    ...(typeof r["package_name"] === "string" && r["package_name"]
+      ? { package_name: r["package_name"] }
+      : {})
   };
 }
 
@@ -853,10 +859,15 @@ export class DebugWorkflowTool extends Tool {
     }
 
     const jobId = (run as Record<string, unknown>)?.["job_id"];
-    if (typeof jobId === "string") {
-      report["job"] = await apiGet(context, `/api/jobs/${jobId}`, {
-        limit: logLimit
-      });
+    if (typeof jobId === "string" && context.userId) {
+      const job = await findJob(context.userId, jobId);
+      if (job) {
+        const logs = job.logs ?? [];
+        report["job"] = {
+          ...jobSummary(job),
+          logs: logs.slice(Math.max(0, logs.length - logLimit))
+        };
+      }
     }
     if (includeGraph) {
       const wf = await apiGet(context, `/api/workflows/${workflowId}`);
@@ -1128,7 +1139,8 @@ export class ValidateWorkflowTool extends Tool {
     "Statically validate a workflow against the node registry WITHOUT running " +
     "it: unknown node types, missing required properties, unselected models, " +
     "model properties naming an unregistered provider or a model id that " +
-    "provider does not offer, and dangling or mis-typed edges. Pass an inline " +
+    "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
+    "check the same graph program you would hand to submit_graph, an inline " +
     "`graph` to check a graph you are building, or `workflow_id` to validate " +
     "a saved one. Run this before saving or running to catch breakage in " +
     "milliseconds.";
@@ -1144,6 +1156,13 @@ export class ValidateWorkflowTool extends Tool {
         type: "object" as const,
         description:
           "Inline graph to validate ({ nodes, edges }). Takes precedence over workflow_id."
+      },
+      code: {
+        type: "string" as const,
+        description:
+          "A graph program in the same DSL submit_graph takes — node(type, " +
+          "properties) and ref.output(slot?), ending with `return graph();`. " +
+          "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
       }
     }
   };
@@ -1181,6 +1200,22 @@ export class ValidateWorkflowTool extends Tool {
       | { nodes?: unknown[]; edges?: unknown[] }
       | undefined;
     const workflowId = params["workflow_id"] as string | undefined;
+    const code = typeof params["code"] === "string" ? params["code"] : "";
+
+    // A graph program is what the planner actually authors, so let it be
+    // checked in the form it will be submitted in rather than hand-translated
+    // to JSON first. Same evaluation submit_graph uses.
+    if (code.trim()) {
+      const evaluated = await evaluateGraphDsl(code);
+      if (!evaluated.graph) {
+        return {
+          status: "code_error",
+          error: evaluated.error ?? "Program produced no graph.",
+          ...(evaluated.logs?.length ? { logs: evaluated.logs } : {})
+        };
+      }
+      graph = evaluated.graph;
+    }
 
     if (!graph && workflowId) {
       const wf = (await apiGet(context, `/api/workflows/${workflowId}`)) as
@@ -1193,7 +1228,7 @@ export class ValidateWorkflowTool extends Tool {
     if (!graph || !Array.isArray(graph.nodes)) {
       return {
         error:
-          "No graph to validate — pass an inline `graph` ({nodes, edges}) or a valid `workflow_id`."
+          "No graph to validate — pass a graph program as `code`, an inline `graph` ({nodes, edges}), or a valid `workflow_id`."
       };
     }
 
@@ -1233,6 +1268,7 @@ export class ValidateWorkflowTool extends Tool {
   }
 
   userMessage(params: Record<string, unknown>): string {
+    if (params["code"]) return "Validating graph program";
     return params["workflow_id"]
       ? `Validating workflow ${params["workflow_id"]}`
       : "Validating workflow graph";
@@ -1856,6 +1892,29 @@ export class GetNodeInfoTool extends Tool {
 // Job Tools
 // ============================================================================
 
+/** A job without its graph or logs — the shape a listing should carry. */
+function jobSummary(job: Job): Record<string, unknown> {
+  return {
+    id: job.id,
+    job_type: job.job_type,
+    workflow_id: job.workflow_id,
+    name: job.name,
+    status: job.status,
+    error: job.error_message ?? job.error ?? null,
+    cost: job.cost ?? null,
+    started_at: job.started_at,
+    finished_at: job.finished_at ?? job.completed_at ?? job.failed_at ?? null,
+    created_at: job.created_at,
+    updated_at: job.updated_at
+  };
+}
+
+/** Look one job up, scoped to the caller. */
+async function findJob(userId: string, jobId: string): Promise<Job | null> {
+  const job = await Job.get<Job>(jobId);
+  return job && job.user_id === userId ? job : null;
+}
+
 export class ListJobsTool extends Tool {
   readonly name = "list_jobs";
   readonly description =
@@ -1880,10 +1939,16 @@ export class ListJobsTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, "/api/jobs/", {
-      workflow_id: params["workflow_id"] as string | undefined,
-      limit: Number(params["limit"] ?? 100)
+    const userId = context.userId;
+    if (!userId) return { error: "No user context; cannot list jobs." };
+    const workflowId = params["workflow_id"];
+    const [jobs] = await Job.paginate(userId, {
+      limit: Number(params["limit"] ?? 100),
+      ...(typeof workflowId === "string" && workflowId
+        ? { workflowId }
+        : {})
     });
+    return { count: jobs.length, jobs: jobs.map(jobSummary) };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1911,7 +1976,12 @@ export class GetJobTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/jobs/${params["job_id"]}`);
+    const userId = context.userId;
+    if (!userId) return { error: "No user context; cannot read jobs." };
+    const jobId = String(params["job_id"]);
+    const job = await findJob(userId, jobId);
+    if (!job) return { error: `Job ${jobId} not found` };
+    return { ...jobSummary(job), params: job.params ?? null };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1942,9 +2012,22 @@ export class GetJobLogsTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/jobs/${params["job_id"]}`, {
-      limit: Number(params["limit"] ?? 200)
-    });
+    const userId = context.userId;
+    if (!userId) return { error: "No user context; cannot read jobs." };
+    const jobId = String(params["job_id"]);
+    const job = await findJob(userId, jobId);
+    if (!job) return { error: `Job ${jobId} not found` };
+    // `limit` keeps the most recent entries — the tail is what explains a
+    // failure. Previously it was forwarded to an endpoint that ignored it.
+    const limit = Number(params["limit"] ?? 200);
+    const logs = job.logs ?? [];
+    return {
+      job_id: job.id,
+      status: job.status,
+      error: job.error_message ?? job.error ?? null,
+      total_logs: logs.length,
+      logs: logs.slice(Math.max(0, logs.length - limit))
+    };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -1990,6 +2073,29 @@ export class StartBackgroundJobTool extends Tool {
 // Asset Tools
 // ============================================================================
 
+/**
+ * Assets and jobs are read in-process through the models layer, not over HTTP.
+ * Their REST surface (`/api/assets*`, `/api/jobs*`) moved to tRPC and no longer
+ * exists, so every call 404'd on a live server; going through the model is also
+ * the only shape that works from the CLI and MCP, where no server is running.
+ * Same reasoning as {@link ListModelsTool} and the `asset_search` tool.
+ */
+function assetHandle(asset: Asset): Record<string, unknown> {
+  const ext = asset.fileExtension;
+  return {
+    id: asset.id,
+    name: asset.name,
+    content_type: asset.content_type,
+    uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
+    size: asset.size ?? null,
+    duration: asset.duration ?? null,
+    parent_id: asset.parent_id ?? null,
+    workflow_id: asset.workflow_id ?? null,
+    metadata: asset.metadata ?? null,
+    created_at: asset.created_at
+  };
+}
+
 export class ListAssetsTool extends Tool {
   readonly name = "list_assets";
   readonly description =
@@ -2025,26 +2131,33 @@ export class ListAssetsTool extends Tool {
     params: Record<string, unknown>
   ): Promise<unknown> {
     const source = String(params["source"] ?? "user");
-    const query = params["query"] as string | undefined;
+    const limit = Number(params["limit"] ?? 100);
 
+    // Package assets are files shipped with a node package, not database rows;
+    // they stay on the REST route that serves them.
     if (source === "package") {
-      return apiGet(context, "/api/assets/packages", {
-        limit: Number(params["limit"] ?? 100)
-      });
+      return apiGet(context, "/api/assets/packages", { limit });
     }
 
-    if (query) {
-      return apiGet(context, "/api/assets/search", {
-        query,
-        content_type: params["content_type"] as string | undefined,
-        limit: Number(params["limit"] ?? 100)
-      });
-    }
+    const userId = context.userId;
+    if (!userId) return { error: "No user context; cannot list assets." };
 
-    return apiGet(context, "/api/assets/", {
-      content_type: params["content_type"] as string | undefined,
-      limit: Number(params["limit"] ?? 100)
+    const query = typeof params["query"] === "string" ? params["query"] : "";
+    const contentType =
+      typeof params["content_type"] === "string" && params["content_type"]
+        ? params["content_type"]
+        : undefined;
+
+    // An empty query orders by created_at DESC across the whole library, so one
+    // call covers both "search by name" and "the most recent assets".
+    const [rows] = await Asset.searchAssetsGlobal(userId, query, {
+      ...(contentType ? { contentType } : {}),
+      limit
     });
+    const assets = rows
+      .filter((a) => a.content_type !== "folder")
+      .map(assetHandle);
+    return { count: assets.length, assets };
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -2071,7 +2184,12 @@ export class GetAssetTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    return apiGet(context, `/api/assets/${params["asset_id"]}`);
+    const userId = context.userId;
+    if (!userId) return { error: "No user context; cannot read assets." };
+    const assetId = String(params["asset_id"]);
+    const asset = await Asset.find(userId, assetId);
+    if (!asset) return { error: `Asset ${assetId} not found` };
+    return assetHandle(asset);
   }
 
   userMessage(params: Record<string, unknown>): string {

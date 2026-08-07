@@ -88,8 +88,6 @@ interface AgentYaml {
   objective?: string; // optional default
   model?: ModelBlock;
   planning_agent?: { enabled?: boolean; model?: ModelBlock };
-  /** Step action space: "tools" (default) or "codeact" (docs/codeact-design.md). */
-  execution_mode?: "tools" | "codeact";
   tools?: string[];
   max_iterations?: number;
   max_steps?: number;
@@ -363,7 +361,6 @@ interface RunOptions {
   workspace?: string;
   provider?: string;
   model?: string;
-  codeact?: boolean;
 }
 
 async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
@@ -481,10 +478,7 @@ async function runAgentCommand(file: string, opts: RunOptions): Promise<void> {
     tools,
     systemPrompt: effectiveSystemPrompt,
     maxSteps: cfg.max_steps,
-    planningModel,
-    // Precedence: --codeact flag > YAML execution_mode > the
-    // NODETOOL_AGENT_EXECUTION_MODE setting (resolved inside Agent) > tools.
-    executionMode: opts.codeact ? "codeact" : cfg.execution_mode
+    planningModel
   });
 
   const ctx = new ProcessingContext({
@@ -787,10 +781,6 @@ export function registerAgentCommands(program: Command): void {
     .option("-w, --workspace <path>", "Override workspace dir")
     .option("--json", "Emit each event as a JSON line on stderr")
     .option("-v, --verbose", "Include chunk/other low-level events in trace")
-    .option(
-      "--codeact",
-      "Execute steps as sandboxed JavaScript actions instead of JSON tool calls"
-    )
     .action(async (file: string, opts: RunOptions) => {
       try {
         await runAgentCommand(file, opts);

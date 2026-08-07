@@ -75,7 +75,7 @@ packages/           # 58 npm workspace packages (TypeScript backend)
   node-sdk/         # BaseNode class, NodeRegistry, type system
   runtime/          # ProcessingContext, LLM providers, message queue
   kernel/           # Workflow graph, Actor runtime, WorkflowRunner
-  agents/           # Planning agent system (TaskPlanner → TaskExecutor → StepExecutor)
+  agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
   base-nodes/       # Core workflow nodes (text, image, LLM, agents)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
@@ -115,7 +115,7 @@ protocol → config → security → auth → storage
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
-- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), StepExecutor (tool-calling loop for one step)
+- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), CodeActExecutor (sandboxed-JavaScript action loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
 - **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
@@ -554,7 +554,7 @@ reaches it through the **`build_app`** tool. Provider and model come from the
 body; a `build_app` call that omits them inherits the calling agent's own
 provider/model (stamped on the ProcessingContext under
 `ACTIVE_MODEL_CONTEXT_KEY` by every tool-calling loop — chat turns and
-`StepExecutor` sub-agents alike), and the server falls back to
+`run_subtask` sub-agents alike), and the server falls back to
 `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`. The cost cap
 defaults to the harness's own $2.
 
@@ -1120,7 +1120,7 @@ workflow.run                       (kernel WorkflowRunner)
     agent.execute                  (Agent.execute)
       agent.plan                   (TaskPlanner / GraphPlanner)
         llm.chat / llm.stream      (BaseProvider)
-      agent.step                   (StepExecutor)
+      agent.step                   (CodeActExecutor)
         llm.chat / llm.stream
 ```
 

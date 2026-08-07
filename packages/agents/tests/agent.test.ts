@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { finishAction } from "./_helpers/codeact-provider.js";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -330,7 +331,7 @@ describe("Agent", () => {
       // Execution call for step_1
       [
         { type: "chunk", content: "Executing step 1..." },
-        { id: "tc_1", name: "finish_step", args: { result: { answer: 42 } } }
+        finishAction({ answer: 42 })
       ]
     ]);
 
@@ -414,7 +415,7 @@ describe("Agent", () => {
       ...planCalls(planPayload, [{ type: "chunk", content: "Planning..." }]),
       [
         { type: "chunk", content: "Analyzing..." },
-        { id: "tc_1", name: "finish_step", args: { result: { done: true } } }
+        finishAction({ done: true })
       ],
       // CompilerAgent prose-mode response — text without a tool call ends the loop.
       [{ type: "chunk", content: "Analysis complete." }]
@@ -477,11 +478,11 @@ describe("Agent", () => {
       ...planCalls(planPayload),
       [
         { type: "chunk", content: "A" },
-        { id: "tc_a", name: "finish_step", args: { result: { v: 1 } } }
+        finishAction({ v: 1 })
       ],
       [
         { type: "chunk", content: "B" },
-        { id: "tc_b", name: "finish_step", args: { result: { v: 2 } } }
+        finishAction({ v: 2 })
       ],
       // CompilerAgent: replicate the response so it's served regardless of
       // how many compile rounds it takes (memory_list / memory_read may run
@@ -540,7 +541,7 @@ describe("Agent", () => {
     const provider = createMockProvider([
       [
         { type: "chunk", content: "Executing pre-defined step..." },
-        { id: "tc_1", name: "finish_step", args: { result: { value: 99 } } }
+        finishAction({ value: 99 })
       ]
     ]);
 
@@ -597,9 +598,9 @@ describe("Agent", () => {
     };
     const baseProvider = createMockProvider([
       ...planCalls(modelPlan),
-      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
+      [finishAction({ done: true })]
     ]);
-    // Execution turns always answer with finish_step: the planner's own script
+    // Execution turns always answer with a code action: the planner's own script
     // is consumed by planning, and a step that never finishes now fails the
     // whole run rather than quietly completing.
     const providerSpy = {
@@ -682,7 +683,7 @@ describe("Agent", () => {
     };
     const provider = createMockProvider([
       ...planCalls(planPayload),
-      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }],
+      [finishAction({ ok: true })],
       // Compiler prose-mode response.
       [{ type: "chunk", content: "Done." }]
     ]);
@@ -735,7 +736,7 @@ describe("Agent", () => {
     };
     const provider = createMockProvider([
       ...planCalls(planPayload),
-      [{ id: "tc_1", name: "finish_step", args: { result: { ok: true } } }]
+      [finishAction({ ok: true })]
     ]);
 
     const savedEnv = process.env["NODETOOL_AGENT_SKILL_DIRS"];
@@ -787,7 +788,7 @@ describe("Agent", () => {
     };
     const provider = createMockProvider([
       ...planCalls(autoWsPlan),
-      [{ id: "tc_1", name: "finish_step", args: { result: { v: 1 } } }],
+      [finishAction({ v: 1 })],
       // Compiler prose-mode response.
       [{ type: "chunk", content: "v=1" }]
     ]);
@@ -847,7 +848,7 @@ describe("Agent", () => {
     };
     const baseProvider = createMockProvider([
       ...planCalls(mergePlan),
-      [{ id: "tc_1", name: "finish_step", args: { result: { done: true } } }]
+      [finishAction({ done: true })]
     ]);
     const providerSpy = {
       ...baseProvider,
@@ -905,7 +906,7 @@ describe("Agent", () => {
       ...planCalls(planPayload),
       [
         { type: "chunk", content: "Done" },
-        { id: "tc_1", name: "finish_step", args: { result: { ok: true } } }
+        finishAction({ ok: true })
       ]
     ]);
 
@@ -1018,7 +1019,7 @@ describe("Agent synthesizeRecall wiring", () => {
   function planningProviderCapturingPrompt(capturedPrompts: string[]) {
     const baseProvider = createMockProvider([
       ...planCalls(plan),
-      [{ id: "tc_1", name: "finish_step", args: { ok: true } }]
+      [finishAction({ ok: true })]
     ]);
     return {
       ...baseProvider,
@@ -1208,7 +1209,7 @@ describe("Agent synthesizeRecall wiring", () => {
       const provider = createMockProvider([
         [
           { type: "chunk", content: "working..." },
-          { id: "tc_1", name: "finish_step", args: { result: { value: 1 } } }
+          finishAction({ value: 1 })
         ]
       ]);
       let providerCalls = 0;

@@ -4,6 +4,7 @@ import type { Step, Task } from "../src/types.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { finishAction } from "./_helpers/codeact-provider.js";
 
 /**
  * Creates a mock provider that returns a finish_step tool call for each step.
@@ -18,11 +19,7 @@ function createMockProvider(delayMs = 0) {
         await new Promise((r) => setTimeout(r, delayMs));
       }
       yield { type: "chunk" as const, content: "Working...", done: false };
-      yield {
-        id: "tc_1",
-        name: "finish_step",
-        args: { result: { done: true } }
-      };
+      yield finishAction({ done: true });
     },
     async *generateMessagesTraced(...args: any[]) {
       yield* (this as any).generateMessages(...args);
@@ -102,11 +99,7 @@ describe("TaskExecutor", () => {
       ...createMockProvider(),
       generateMessages: async function* () {
         yield { type: "chunk" as const, content: "Working...", done: false };
-        yield {
-          id: "tc_1",
-          name: "finish_step",
-          args: { result: { done: true } }
-        };
+        yield finishAction({ done: true });
       }
     } as any;
 
@@ -221,11 +214,7 @@ describe("TaskExecutor", () => {
         // from the outside that both started before either finished
         yield { type: "chunk" as const, content: "Working...", done: false };
         await new Promise((r) => setTimeout(r, 20));
-        yield {
-          id: "tc_1",
-          name: "finish_step",
-          args: { result: { done: true } }
-        };
+        yield finishAction({ done: true });
       }
     } as any;
 
@@ -403,11 +392,7 @@ describe("TaskExecutor", () => {
         const item = items.find((x) => text.includes(x)) ?? "unknown";
         const delay = item === "beta" ? 5 : item === "gamma" ? 25 : 45;
         await new Promise((r) => setTimeout(r, delay));
-        yield {
-          id: "tc_1",
-          name: "finish_step",
-          args: { result: { item } }
-        };
+        yield finishAction({ item });
       },
       async *generateMessagesTraced(...args: any[]) {
         yield* (this as any).generateMessages(...args);
@@ -506,7 +491,7 @@ describe("TaskExecutor", () => {
       generateMessages: async function* (args: any) {
         const text = JSON.stringify(args?.messages ?? "");
         const item = text.match(/handle (\w+)/)?.[1] ?? "unknown";
-        yield { id: "tc_1", name: "finish_step", args: { result: { item } } };
+        yield finishAction({ item });
       },
       async *generateMessagesTraced(...args: any[]) {
         yield* (this as any).generateMessages(...args);

@@ -144,13 +144,8 @@ import {
   PlanOrchestrationScriptTool
 } from "@nodetool-ai/agents";
 import {
-  ToolSearchTool,
-  formatDeferredToolsReminder,
-  type ToolSearchEntry
-} from "@nodetool-ai/agents";
-import {
   createChatCodeActSession,
-  resolveExecutionMode,
+  CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
   type ChatCodeActSession,
   type ChatCodeActToolCall
@@ -1447,11 +1442,12 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
 };
 
 /**
- * The resident toolbelt on stateless providers: the delegation primitives plus
- * the high-traffic discovery/execution tools nearly every task reaches for, so
- * the common path needs no `ToolSearch` round-trip. `ToolSearch` is added
- * alongside; the long tail (collections, files, web, media, other MCP tools,
- * and all client `ui_*` tools) is deferred and loaded on demand.
+ * The chat turn's resident toolbelt: the delegation primitives plus the
+ * high-traffic discovery/execution tools nearly every task reaches for. These
+ * are documented in full in the CodeAct prompt, on top of
+ * `CODEACT_RESIDENT_TOOL_NAMES`; the long tail (collections, files, web,
+ * media, other MCP tools, and all client `ui_*` tools) is name-only and found
+ * in-sandbox with `searchTools()`.
  */
 export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives.
@@ -5198,12 +5194,10 @@ export class UnifiedWebSocketRunner {
     // (resume failed / system prompt changed). Otherwise we load the full
     // history and use the standard slice-based resume. The DB column is the
     // source of truth; the provider also keeps an in-process cache.
-    // Generic-provider tool search appends a `<system-reminder>` listing the
-    // deferred tools. Assigned during tool resolution below; read lazily here
-    // because the resume `loadFullHistory` thunk and the prepend both run after.
-    let toolSearchReminder = "";
-    // In codeact mode: the action contract + tool catalog section, assigned
-    // once the session exists (before the system message is materialized).
+    // The action contract + tool catalog section, assigned once the codeact
+    // session exists (before the system message is materialized). Read lazily
+    // here because the resume `loadFullHistory` thunk and the prepend both run
+    // after tool resolution.
     let codeactPromptSection = "";
     const buildSystemContent = (): string => {
       const base = buildChatAgentSystemPrompt(
@@ -5211,10 +5205,9 @@ export class UnifiedWebSocketRunner {
         extraSystemPrompt,
         uiContext
       );
-      const suffix = [toolSearchReminder, codeactPromptSection]
-        .filter((s) => s.length > 0)
-        .join("\n\n");
-      return suffix ? `${base}\n\n${suffix}` : base;
+      return codeactPromptSection
+        ? `${base}\n\n${codeactPromptSection}`
+        : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5489,67 +5482,20 @@ export class UnifiedWebSocketRunner {
     }
     const allSchemas: ProviderTool[] = [...serverSchemas, ...clientSchemas];
 
-    // Execution mode for this turn. When the stored setting (or
-    // NODETOOL_AGENT_EXECUTION_MODE) says "codeact", the chat turn presents a
-    // single `execute_code` tool and the model acts by writing sandboxed
-    // JavaScript over the same toolbelt (docs/codeact-design.md). The session
+    // A chat turn with tools always runs in CodeAct: the model acts by writing
+    // sandboxed JavaScript over the toolbelt (docs/codeact-design.md), and the
+    // session's in-sandbox `searchTools()` is the discovery path. The session
     // is created below, once the tool router and processing context exist.
-    const useCodeAct =
-      resolveExecutionMode() === "codeact" && allSchemas.length > 0;
+    const useCodeAct = allSchemas.length > 0;
 
-    // The live tool list handed to the provider. On the generic path it starts
-    // with the minimal resident set + ToolSearch and GROWS in place as
-    // ToolSearch reveals deferred tools — base-provider's loop re-reads this
-    // array each iteration, so pushes become callable on the next turn.
+    // The tool list handed to the provider: `execute_code` (+ `view_image`),
+    // pushed once the session exists.
     const providerToolSchemas: ProviderTool[] = [];
-    let deferredToolCount = 0;
-    if (useCodeAct) {
-      // Codeact replaces the ToolSearch deferral machinery: the session's
-      // in-sandbox `searchTools()` covers discovery, and the only provider
-      // tools are `execute_code` (+ `view_image`, pushed below).
-    } else if (provider.usesNativeToolSearch) {
-      // Native tool search (Claude Agent SDK): pass everything; the SDK defers.
-      providerToolSchemas.push(...allSchemas);
-    } else {
-      // Resident = the minimal delegation primitives; everything else deferred.
-      const resident = allSchemas.filter((s) =>
-        RESIDENT_TOOL_NAMES.has(s.name)
-      );
-      const deferred = allSchemas.filter(
-        (s) => !RESIDENT_TOOL_NAMES.has(s.name)
-      );
-      providerToolSchemas.push(...resident);
-      deferredToolCount = deferred.length;
-      if (deferred.length > 0) {
-        const catalog: ToolSearchEntry[] = deferred.map((s) => ({
-          name: s.name,
-          description: s.description,
-          parameters: s.inputSchema
-        }));
-        const deferredByName = new Map(deferred.map((s) => [s.name, s]));
-        const revealed = new Set<string>();
-        const toolSearch = new ToolSearchTool(catalog, (entries) => {
-          for (const e of entries) {
-            if (revealed.has(e.name)) continue;
-            const schema = deferredByName.get(e.name);
-            if (!schema) continue;
-            revealed.add(e.name);
-            providerToolSchemas.push(schema);
-          }
-        });
-        serverToolMap.set(toolSearch.name, toolSearch);
-        providerToolSchemas.push(toolSearch.toProviderTool());
-        toolSearchReminder = formatDeferredToolsReminder(catalog);
-      }
-    }
     log.info("Provider tool schemas", {
       permissionMode,
-      nativeToolSearch: provider.usesNativeToolSearch,
       serverToolCount: serverTools.length,
       clientToolCount: clientToolNames.length,
-      deferredToolCount,
-      residentSchemas: providerToolSchemas.length,
-      schemaNames: providerToolSchemas.map((t) => t.name)
+      codeact: useCodeAct
     });
 
     // Create a processing context for tool execution
@@ -5602,6 +5548,10 @@ export class UnifiedWebSocketRunner {
             args: call.args
           });
         },
+        residentToolNames: [
+          ...CODEACT_RESIDENT_TOOL_NAMES,
+          ...RESIDENT_TOOL_NAMES
+        ],
         context: ctx,
         signal
       });

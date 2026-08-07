@@ -1527,7 +1527,15 @@ function buildExamplesFromDir(
   return workflows;
 }
 
-function buildExampleWorkflows(options: HttpApiOptions): unknown[] {
+export function buildExampleWorkflows(
+  options: Pick<
+    HttpApiOptions,
+    | "examplesDir"
+    | "examplesAssetsFallbackDir"
+    | "metadataRoots"
+    | "metadataMaxDepth"
+  >
+): unknown[] {
   // If a static examples directory is configured, use it directly — no Python needed.
   if (options.examplesDir) {
     return buildExamplesFromDir(
@@ -1584,6 +1592,36 @@ export async function handleWorkflowExamples(
   }
   const workflows = buildExampleWorkflows(options);
   return jsonResponse({ workflows, next: null });
+}
+
+/**
+ * GET /api/workflows/examples/:package/:name — one example workflow, graph
+ * included. The `get_example_workflow` agent tool and the `nodetool` object
+ * model (`nodetool.workflows.example`) call this to feed graphs into
+ * `copyFrom`; the create-from-example flow stays on POST /api/workflows.
+ */
+export async function handleWorkflowExampleByName(
+  request: Request,
+  packageName: string,
+  exampleName: string,
+  options: HttpApiOptions
+): Promise<Response> {
+  if (request.method !== "GET") {
+    return errorResponse(405, "Method not allowed");
+  }
+  const example = loadExampleGraph(packageName, exampleName, {
+    examplesDir: options.examplesDir,
+    examplesAssetsFallbackDir: options.examplesAssetsFallbackDir,
+    metadataRoots: options.metadataRoots,
+    metadataMaxDepth: options.metadataMaxDepth
+  });
+  if (!example) {
+    return errorResponse(
+      404,
+      `Example '${exampleName}' not found in package '${packageName}'`
+    );
+  }
+  return jsonResponse(example);
 }
 
 export async function handleWorkflowExamplesSearch(
@@ -2899,8 +2937,19 @@ export async function handleApiRequest(
     return handleWorkflowExamplesThumbnail(request, filename, options);
   }
 
+  // /api/workflows/examples/{package}/{name} — one example with its graph.
   if (pathname.startsWith("/api/workflows/examples/")) {
-    return errorResponse(404, "Examples not available in standalone mode");
+    const rest = pathname.slice("/api/workflows/examples/".length);
+    const slash = rest.indexOf("/");
+    if (slash > 0) {
+      return handleWorkflowExampleByName(
+        request,
+        decodeURIComponent(rest.slice(0, slash)),
+        decodeURIComponent(rest.slice(slash + 1)),
+        options
+      );
+    }
+    return errorResponse(404, "Not found");
   }
 
   if (pathname === "/api/workflows/public") {

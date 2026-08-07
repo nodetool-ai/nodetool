@@ -8,8 +8,7 @@ export type {
   Task,
   TaskPlan,
   PlanApprovalDecision,
-  RequestPlanApproval,
-  AgentExecutionMode
+  RequestPlanApproval
 } from "./types.js";
 export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
@@ -356,8 +355,6 @@ export { removeBase64Images } from "./utils/remove-base64-images.js";
 export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 
 // Core execution
-export { StepExecutor } from "./step-executor.js";
-export type { StepExecutorOptions } from "./step-executor.js";
 export {
   CodeActExecutor,
   DEFAULT_CODEACT_MAX_ITERATIONS,
@@ -367,10 +364,6 @@ export {
 } from "./codeact/codeact-executor.js";
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
-export {
-  resolveExecutionMode,
-  AGENT_EXECUTION_MODE_ENV
-} from "./codeact/execution-mode.js";
 export {
   buildToolBridge,
   renderToolCatalog,
@@ -393,6 +386,12 @@ export {
   GRAPH_MODEL_TOOL_NAMES,
   hasGraphModelTools
 } from "./codeact/graph-model.js";
+export {
+  NODETOOL_API_NAMESPACE_TOOLS,
+  NODETOOL_API_PRELUDE_FULL,
+  buildNodetoolApiPromptSection,
+  hasNodetoolApiTools
+} from "./codeact/nodetool-api.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";

@@ -28,7 +28,7 @@ class NoopTool extends Tool {
  * step ids in `failing`, which never produce one (the model gave up).
  */
 function createProvider(failing: string[] = []) {
-  const seenTools: Record<string, string[]> = {};
+  const seenPrompts: Record<string, string> = {};
   const provider = {
     provider: "mock",
     hasToolSupport: async () => true,
@@ -51,12 +51,8 @@ function createProvider(failing: string[] = []) {
       const text = (opts.messages ?? [])
         .map((m: { content?: string }) => m.content ?? "")
         .join(" ");
-      const match = text.match(/Do (\w+)/);
-      if (match) {
-        seenTools[match[1]] = (opts.tools ?? []).map(
-          (t: { name: string }) => t.name
-        );
-      }
+      const match = text.match(/Do (s\d+)/);
+      if (match) seenPrompts[match[1]] = text;
       yield* (this as any).generateMessages(...args);
     },
     generateLoop(args: any) {
@@ -70,7 +66,7 @@ function createProvider(failing: string[] = []) {
     getContainerEnv: () => ({}),
     isContextLengthError: () => false
   } as any;
-  return { provider, seenTools };
+  return { provider, seenPrompts };
 }
 
 function makeStep(id: string, extra: Partial<Step> = {}): Step {
@@ -149,7 +145,7 @@ describe("TaskExecutor step tool allow-lists", () => {
   it("hands a step only the tools its plan declared", async () => {
     const step = makeStep("s1", { tools: ["allowed"] });
     const task: Task = { id: "t1", title: "T", steps: [step] };
-    const { provider, seenTools } = createProvider();
+    const { provider, seenPrompts } = createProvider();
 
     await run(
       new TaskExecutor({
@@ -161,14 +157,16 @@ describe("TaskExecutor step tool allow-lists", () => {
       })
     );
 
-    expect(seenTools["s1"]).toContain("allowed");
-    expect(seenTools["s1"]).not.toContain("forbidden");
+    // Code actions reach the toolbelt through the sandbox, so what a step may
+    // call shows up in the documented tool catalog, not in the provider tools.
+    expect(seenPrompts["s1"]).toContain("tools.allowed(");
+    expect(seenPrompts["s1"]).not.toContain("tools.forbidden(");
   });
 
   it("hands a step every tool when the plan declared no list", async () => {
     const step = makeStep("s1");
     const task: Task = { id: "t1", title: "T", steps: [step] };
-    const { provider, seenTools } = createProvider();
+    const { provider, seenPrompts } = createProvider();
 
     await run(
       new TaskExecutor({
@@ -180,9 +178,8 @@ describe("TaskExecutor step tool allow-lists", () => {
       })
     );
 
-    expect(seenTools["s1"]).toEqual(
-      expect.arrayContaining(["allowed", "forbidden"])
-    );
+    expect(seenPrompts["s1"]).toContain("tools.allowed(");
+    expect(seenPrompts["s1"]).toContain("tools.forbidden(");
   });
 
   it("grants nothing for an empty allow-list rather than falling back to all", () => {

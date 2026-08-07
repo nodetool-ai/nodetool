@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import { ACTIVE_MODEL_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
+import { Asset, Job, initTestDb } from "@nodetool-ai/models";
 import {
   PlanWorkflowGraphTool,
   ListWorkflowsTool,
@@ -68,6 +69,36 @@ function lastFetchUrl(): string {
 
 function lastFetchOpts(): RequestInit {
   return (fetchSpy.mock.calls[0]?.[1] ?? {}) as RequestInit;
+}
+
+function seedAsset(
+  id: string,
+  name: string,
+  contentType: string,
+  createdAt?: string
+): Promise<Asset> {
+  return Asset.create<Asset>({
+    id,
+    user_id: "user-1",
+    name,
+    content_type: contentType,
+    ...(createdAt ? { created_at: createdAt } : {})
+  });
+}
+
+function seedJob(
+  id: string,
+  workflowId: string,
+  userId = "user-1",
+  logs?: Record<string, unknown>[]
+): Promise<Job> {
+  return Job.create<Job>({
+    id,
+    user_id: userId,
+    workflow_id: workflowId,
+    status: "running",
+    ...(logs ? { logs } : {})
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -426,6 +457,8 @@ describe("RunWorkflowTool", () => {
 
 describe("DebugWorkflowTool", () => {
   const tool = new DebugWorkflowTool();
+  // The report enriches itself with the run's job record, read from the DB.
+  beforeEach(() => initTestDb());
 
   function respondTo(routes: Record<string, { ok?: boolean; status?: number; body: unknown }>) {
     fetchSpy.mockImplementation(async (url: string) => {
@@ -710,6 +743,40 @@ describe("ValidateWorkflowTool", () => {
     const issue = result.issues.find((i) => i.code === "unknown_model");
     expect(issue?.message).toContain("wan/2-7-image-to-video");
   });
+
+  // The planner authors graphs as DSL programs, so it can check the artifact
+  // it is about to submit instead of hand-translating it to JSON first.
+  it("validates a graph program in the DSL submit_graph takes", async () => {
+    const registry = {
+      has: (type: string) => type === "ns.A",
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    };
+    const withRegistry = new ValidateWorkflowTool(registry as never);
+
+    const result = (await withRegistry.process(ctx, {
+      code: `const a = node("ns.A", {});
+const b = node("ns.Missing", { input: a.output() });
+return graph();`
+    })) as { ok: boolean; issues: Array<{ code: string }> };
+
+    expect(result.ok).toBe(false);
+    expect(result.issues.some((i) => i.code === "unknown_node")).toBe(true);
+  });
+
+  it("returns the program's own failure rather than a validation verdict", async () => {
+    const result = (await new ValidateWorkflowTool({
+      has: () => true,
+      getMetadata: () => ({ properties: [], outputs: [] }),
+      validateNode: () => []
+    } as never).process(ctx, { code: "const x = ;" })) as Record<
+      string,
+      unknown
+    >;
+
+    expect(result.status).toBe("code_error");
+    expect(result.error).toBeTruthy();
+  });
 });
 
 describe("ValidateTimelineTool", () => {
@@ -973,26 +1040,57 @@ describe("GetNodeInfoTool", () => {
 // Job Tools
 // ---------------------------------------------------------------------------
 
+// Jobs and assets are read through the models layer — their REST surface moved
+// to tRPC and no longer exists — so these describes run against a real
+// in-memory DB instead of the fetch spy.
+
 describe("ListJobsTool", () => {
   const tool = new ListJobsTool();
+  beforeEach(() => initTestDb());
 
-  it("calls GET /api/jobs/", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/jobs/");
+  it("lists the caller's jobs without touching the REST API", async () => {
+    await seedJob("job-1", "wf-abc");
+    await seedJob("job-2", "wf-other");
+
+    const result = (await tool.process(ctx, {})) as {
+      count: number;
+      jobs: Array<{ id: string }>;
+    };
+
+    expect(result.count).toBe(2);
+    expect(result.jobs.map((j) => j.id).sort()).toEqual(["job-1", "job-2"]);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   it("passes workflow_id filter", async () => {
-    await tool.process(ctx, { workflow_id: "wf-abc" });
-    expect(lastFetchUrl()).toContain("workflow_id=wf-abc");
+    await seedJob("job-1", "wf-abc");
+    await seedJob("job-2", "wf-other");
+
+    const result = (await tool.process(ctx, { workflow_id: "wf-abc" })) as {
+      jobs: Array<{ id: string }>;
+    };
+
+    expect(result.jobs.map((j) => j.id)).toEqual(["job-1"]);
   });
 });
 
 describe("GetJobTool", () => {
   const tool = new GetJobTool();
+  beforeEach(() => initTestDb());
 
-  it("calls GET /api/jobs/:id", async () => {
-    await tool.process(ctx, { job_id: "job-123" });
-    expect(lastFetchUrl()).toContain("/api/jobs/job-123");
+  it("returns the job", async () => {
+    await seedJob("job-123", "wf-abc");
+    expect(await tool.process(ctx, { job_id: "job-123" })).toMatchObject({
+      id: "job-123",
+      workflow_id: "wf-abc"
+    });
+  });
+
+  it("reports a job belonging to someone else as not found", async () => {
+    await seedJob("job-123", "wf-abc", "someone-else");
+    expect(await tool.process(ctx, { job_id: "job-123" })).toEqual({
+      error: "Job job-123 not found"
+    });
   });
 
   it("userMessage includes job_id", () => {
@@ -1002,10 +1100,22 @@ describe("GetJobTool", () => {
 
 describe("GetJobLogsTool", () => {
   const tool = new GetJobLogsTool();
+  beforeEach(() => initTestDb());
 
-  it("calls GET /api/jobs/:id", async () => {
-    await tool.process(ctx, { job_id: "job-456" });
-    expect(lastFetchUrl()).toContain("/api/jobs/job-456");
+  it("returns the most recent log entries up to the limit", async () => {
+    await seedJob("job-456", "wf-abc", "user-1", [
+      { message: "one" },
+      { message: "two" },
+      { message: "three" }
+    ]);
+
+    expect(
+      await tool.process(ctx, { job_id: "job-456", limit: 2 })
+    ).toMatchObject({
+      job_id: "job-456",
+      total_logs: 3,
+      logs: [{ message: "two" }, { message: "three" }]
+    });
   });
 
   it("userMessage includes job_id", () => {
@@ -1035,21 +1145,50 @@ describe("StartBackgroundJobTool", () => {
 
 describe("ListAssetsTool", () => {
   const tool = new ListAssetsTool();
+  beforeEach(() => initTestDb());
 
-  it("calls GET /api/assets/ for user source", async () => {
-    await tool.process(ctx, {});
-    expect(lastFetchUrl()).toContain("/api/assets/");
+  it("lists the caller's assets newest first, without touching the REST API", async () => {
+    await seedAsset("asset-old", "old.png", "image/png", "2026-01-01T00:00:00Z");
+    await seedAsset("asset-new", "new.png", "image/png", "2026-02-01T00:00:00Z");
+
+    const result = (await tool.process(ctx, {})) as {
+      count: number;
+      assets: Array<{ id: string; uri: string }>;
+    };
+
+    expect(result.count).toBe(2);
+    expect(result.assets[0]).toMatchObject({
+      id: "asset-new",
+      uri: "asset://asset-new.png"
+    });
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("filters by content_type prefix", async () => {
+    await seedAsset("asset-img", "a.png", "image/png");
+    await seedAsset("asset-vid", "a.mp4", "video/mp4");
+
+    const result = (await tool.process(ctx, { content_type: "image" })) as {
+      assets: Array<{ id: string }>;
+    };
+
+    expect(result.assets.map((a) => a.id)).toEqual(["asset-img"]);
+  });
+
+  it("narrows by name when a query is given", async () => {
+    await seedAsset("asset-logo", "company-logo.png", "image/png");
+    await seedAsset("asset-cat", "cat.png", "image/png");
+
+    const result = (await tool.process(ctx, { query: "logo" })) as {
+      assets: Array<{ id: string }>;
+    };
+
+    expect(result.assets.map((a) => a.id)).toEqual(["asset-logo"]);
   });
 
   it("calls GET /api/assets/packages for package source", async () => {
     await tool.process(ctx, { source: "package" });
     expect(lastFetchUrl()).toContain("/api/assets/packages");
-  });
-
-  it("calls GET /api/assets/search when query provided", async () => {
-    await tool.process(ctx, { query: "logo" });
-    expect(lastFetchUrl()).toContain("/api/assets/search");
-    expect(lastFetchUrl()).toContain("query=logo");
   });
 
   it("userMessage includes query when given", () => {
@@ -1063,10 +1202,21 @@ describe("ListAssetsTool", () => {
 
 describe("GetAssetTool", () => {
   const tool = new GetAssetTool();
+  beforeEach(() => initTestDb());
 
-  it("calls GET /api/assets/:id", async () => {
-    await tool.process(ctx, { asset_id: "asset-789" });
-    expect(lastFetchUrl()).toContain("/api/assets/asset-789");
+  it("returns the asset with its asset:// uri", async () => {
+    await seedAsset("asset-789", "logo.png", "image/png");
+    expect(await tool.process(ctx, { asset_id: "asset-789" })).toMatchObject({
+      id: "asset-789",
+      name: "logo.png",
+      uri: "asset://asset-789.png"
+    });
+  });
+
+  it("reports a missing asset instead of a 404 body", async () => {
+    expect(await tool.process(ctx, { asset_id: "nope" })).toEqual({
+      error: "Asset nope not found"
+    });
   });
 
   it("userMessage includes asset id", () => {

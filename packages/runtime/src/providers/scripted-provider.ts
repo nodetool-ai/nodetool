@@ -212,6 +212,25 @@ export function stepScript(result: unknown): ScriptFn {
 }
 
 /**
+ * Script that completes a CodeAct step with one code action calling
+ * `finish(result)` — the CodeAct equivalent of {@link stepScript}. The tool
+ * name is hardcoded rather than imported: `@nodetool-ai/agents` depends on
+ * this package, not the other way round.
+ */
+export function codeStepScript(result: unknown): ScriptFn {
+  return (_messages, _tools) => [
+    {
+      type: "tool_call",
+      name: "execute_code",
+      args: {
+        title: "Finishing the step",
+        code: `await finish(${JSON.stringify(result)});`
+      }
+    }
+  ];
+}
+
+/**
  * Script that emits a plain text chunk (no tool call).
  * Useful for unstructured steps or testing fallback behavior.
  */
@@ -234,6 +253,8 @@ export function toolCallScript(
  * - If `create_plan` is available → call it with `opts.multiTaskPlan` or auto-wrap `opts.plan`
  * - If `create_task` is available → call it with `opts.plan`
  * - If `finish_step` is available → call it with `opts.result`
+ * - If `execute_code` is available and a result was scripted → one code
+ *   action finishing with it
  * - Otherwise → emit `opts.text` as a chunk
  *
  * This mimics a "smart" LLM that knows what tools are available.
@@ -353,6 +374,21 @@ export function autoScript(opts: {
           type: "tool_call",
           name: "finish_step",
           args: { result: opts.result ?? {} }
+        }
+      ];
+    }
+    // CodeAct step: one action that finishes with the scripted result. Only
+    // when a result was scripted — a chat turn also carries `execute_code`
+    // and should answer with text.
+    if (toolNames.has("execute_code") && opts.result !== undefined) {
+      return [
+        {
+          type: "tool_call",
+          name: "execute_code",
+          args: {
+            title: "Finishing the step",
+            code: `await finish(${JSON.stringify(opts.result)});`
+          }
         }
       ];
     }
