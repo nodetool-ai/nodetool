@@ -135,6 +135,53 @@ Security notes:
 - Use the service role key only in server environments. Do not expose it to clients.
 - Public buckets make generated URLs directly accessible. For private buckets, add a signing step.
 
+## Python Nodes
+
+Python nodes run in a separate worker process that NodeTool spawns and talks to
+over stdio. The server picks the interpreter in this order:
+
+1. `NODETOOL_PYTHON`, if set — an absolute path to the executable. Nothing else
+   is tried, so a wrong path is a hard failure rather than a silent fallback.
+2. An active `CONDA_PREFIX`, when the environment name looks like a NodeTool one.
+3. NodeTool's own managed environment.
+
+With none of them available the server logs `Python not found — Python nodes
+will not be available` at startup and runs everything else normally.
+
+```bash
+NODETOOL_PYTHON=/opt/conda/envs/nodetool/bin/python nodetool serve
+```
+
+The bridge is a local-only feature: when `NODETOOL_ENV=production` it refuses to
+connect, and a workflow reaching a Python node fails with "Python bridge is
+disabled in production". Set `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1` to
+override that on a host where you do want the worker.
+
+The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
+waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
+12-minute default for nodes that legitimately run longer.
+
+## Chat Turn Replay
+
+A chat or agent turn outlives the WebSocket connection that started it. Every
+frame the turn emits is stamped with an increasing `chat_seq` and appended to a
+bounded buffer; a client that reconnects sends
+`{command: "resume_chat", data: {thread_id, last_seq}}` and gets the missed tail
+replayed. Three variables size that machinery:
+
+- `NODETOOL_CHAT_DETACH_GRACE_MS` — a running turn nobody is attached to is
+  aborted after this long (default 10 minutes).
+- `NODETOOL_CHAT_REPLAY_RETENTION_MS` — a finished turn is kept this long so a
+  client reconnecting just after it ended still gets the tail (default 5
+  minutes).
+- `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` — frames buffered per turn (default
+  2000).
+
+Each is read as a positive integer; a value that is not one is ignored and the
+default used. Assistant and tool messages are persisted independently of the
+buffer, so an expired or truncated replay costs only unpersisted stream chunks —
+the client refetches thread history over REST.
+
 ## Environment Variables Index
 
 ![API Settings](assets/screenshots/settings-api-keys.png)
@@ -175,6 +222,16 @@ Security notes:
 | `NODETOOL_PACKAGE_REGISTRY_URL` | Index the node-pack browser reads available packs from | no | Default `https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json`. Point it at your own index to offer an internal pack list. See [Node Packs](node-packs.md) |
 | `NODETOOL_DISABLE_TRIGGERS` | Skip trigger ingestion on this process (no dispatcher, scheduler, file watcher, or webhook route) | no | Ingestion is **on** by default. Set to `1` when a second server shares one database, or for an embedded server that must not start background work |
 | `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
+| `NODETOOL_PYTHON` | Python interpreter the Python bridge spawns | no | An absolute path to the executable. When unset, an active `CONDA_PREFIX` that looks like a NodeTool env is tried, then NodeTool's own managed env. See [Python Nodes](#python-nodes) |
+| `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION` | Let the Python bridge connect when `NODETOOL_ENV=production` | no | Off unless set to exactly `1`. Otherwise a production server refuses to spawn the worker: Python nodes are a local-only feature |
+| `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` | How long one Python node invocation may run | no | Default `720000` (12 minutes) |
+| `NODETOOL_PYTHON_STATUS_TIMEOUT_MS` | How long a worker status request waits | no | Default `30000` |
+| `NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS` | Silence from a worker-side model download before it is abandoned | no | Default `300000` (5 minutes). Idle time, not total — a slow download that keeps reporting progress is not cut off |
+| `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
+| `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
+| `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |
+| `NODETOOL_CHAT_REPLAY_RETENTION_MS` | How long a finished turn is kept for a late reconnect | no | Default `300000` (5 minutes) |
+| `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` | Frames buffered per turn for replay | no | Default `2000`. A client whose `last_seq` predates the buffer is told the replay is incomplete and refetches thread history over REST |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
 | `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |

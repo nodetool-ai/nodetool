@@ -30,6 +30,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Workflows | `/api/workflows/names`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | `{id: name}` for the caller's workflows (up to 1000) |
 | Workflows | `/api/workflows/tools`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Workflows saved with `run_mode: "tool"`, as `{name, tool_name, description}` |
 | Workflows | `/api/workflows/{id}/dsl-export`  | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Graph as TypeScript DSL source (`text/plain`) |
+| Workflows | `/api/workflows/{id}/export-bundle` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One workflow and its assets as a `.nodetool` zip |
+| Workflows | `/api/workflows/export-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Several workflows in one `.nodetool` zip, by `workflow_ids` |
+| Workflows | `/api/workflows/import-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Import a `.nodetool` zip into the caller's library |
 | Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
 | Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
@@ -38,6 +41,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
+| Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
+| Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
+| Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
 | Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
 | Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
@@ -227,6 +233,90 @@ Response:
 curl "http://localhost:7777/api/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+### Moving Workflows Between Servers
+
+A `.nodetool` bundle is a zip holding one or more workflow graphs plus the bytes
+of every asset they reference, so a workflow travels as a single file instead of
+a graph whose `asset://` refs dangle on the far side. Three routes cover the
+round trip; the CLI's `workflows export-bundle` / `import-bundle` and the
+editor's command menu go through the same packer.
+
+`GET /api/workflows/{id}/export-bundle` returns one workflow:
+
+```bash
+curl "http://localhost:7777/api/workflows/<workflow_id>/export-bundle" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -o my-workflow.nodetool
+```
+
+The response is `application/zip` with
+`content-disposition: attachment; filename="<workflow name>.nodetool"` — the
+name with everything outside `A-Za-z0-9._-` replaced by `_`. Inside, each graph
+is a file under `workflows/`, asset bytes sit under their own entries, and
+`manifest.json` indexes both:
+
+```json
+{
+  "format": "nodetool-workflow-bundle",
+  "version": 2,
+  "created_at": "2026-08-07T07:03:40.352Z",
+  "workflows": [
+    { "file": "workflows/c3b15268a02242e682035e5e4be8a22a.json", "name": "Bundle Demo" }
+  ],
+  "assets": [],
+  "thumbnail": null
+}
+```
+
+`POST /api/workflows/export-bundle` packs several at once. `workflow_ids` must
+be a non-empty array of strings — anything else is a `400`. The download is
+named after the single workflow when there is one, and `<n>-workflows` otherwise:
+
+```bash
+curl -X POST "http://localhost:7777/api/workflows/export-bundle" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"workflow_ids": ["<id_a>", "<id_b>"]}' \
+  -o my-pack.nodetool
+```
+
+`POST /api/workflows/import-bundle` takes the zip back, as a `file` part in a
+multipart form or as the raw request body:
+
+```bash
+curl -X POST "http://localhost:7777/api/workflows/import-bundle" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -F "file=@my-workflow.nodetool"
+```
+
+```json
+{
+  "workflows": [
+    {
+      "id": "bcec888aff5a429dae4dce4ca29fcc4c",
+      "name": "Bundle Demo",
+      "access": "private",
+      "graph": { "nodes": [], "edges": [] }
+    }
+  ],
+  "imported": 0,
+  "missing": [],
+  "checksum_mismatches": []
+}
+```
+
+Every workflow is created fresh under the caller with a new id and
+`access: "private"` — importing never overwrites an existing one. `imported`
+counts the assets stored, `missing` names refs the bundle did not carry, and
+`checksum_mismatches` names asset bytes that did not hash to what the manifest
+recorded. Neither list is fatal — the graphs still import, with those refs
+unresolved.
+
+A bundle that cannot be unpacked, or a graph the workflow API rejects, is a
+`400` (`{"detail": "Invalid bundle: …"}`). The import is not transactional, so a
+bundle that fails partway can leave the workflows created before the failure
+behind.
 
 ### Uploading an Asset
 
@@ -480,6 +570,80 @@ runtime that meets one falls back to the live workflow.
 An app with nothing published answers `200` with a body of `null`; an app you do
 not own is a `404`. Publishing itself is a tRPC call (`applications.publish`),
 not a REST route.
+
+### Installing a Shipped Example App
+
+NodeTool ships a set of curated mini apps. They are `ApplicationBundle` files on
+disk rather than database rows, so listing and reading one needs no user and no
+token; installing one writes into the caller's library.
+
+`GET /api/applications/examples` is the catalog:
+
+```bash
+curl "http://localhost:7777/api/applications/examples"
+```
+
+```json
+[
+  {
+    "slug": "dataset-builder",
+    "name": "Dataset Builder",
+    "description": "The smallest app in the set, and the reference for the Table widget: a dataframe reads better as rows than as a Preview node.",
+    "workflows": ["Data Generator"],
+    "operationCount": 1
+  }
+]
+```
+
+`workflows` names the workflows installing the app would create. To read the
+whole thing first — the app document plus the full graph of every workflow it
+binds — fetch the bundle:
+
+```bash
+curl "http://localhost:7777/api/applications/examples/dataset-builder"
+```
+
+That returns `{schemaVersion, name, description, app, workflows}`. A slug
+nothing ships is a `404`
+(`{"detail": "No example app named \"nope\""}`).
+
+`POST /api/applications/examples/{slug}/install` goes through the normal bundle
+import and answers with the created application. An optional `projectId` in the
+body files it under a project:
+
+```bash
+curl -X POST "http://localhost:7777/api/applications/examples/dataset-builder/install" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{}'
+```
+
+```json
+{
+  "id": "f85f3d79566346df90827c752eab5bcf",
+  "projectId": "default",
+  "name": "Dataset Builder",
+  "description": "…",
+  "document": {
+    "schemaVersion": 3,
+    "ui": { "root": { "props": {} }, "content": [], "zones": {} },
+    "operations": [],
+    "resources": [],
+    "variables": []
+  },
+  "createdAt": "2026-08-07T07:03:52.836Z",
+  "updatedAt": "2026-08-07T07:03:52.836Z"
+}
+```
+
+Omitting `projectId` files the app under `default`.
+
+Installing also creates the workflows the app binds. Workflows carrying a
+`sourceId` are created once per user, so installing two examples that share a
+template leaves one workflow row both apps point at.
+
+To install a bundle of your own instead of a shipped one, post it to
+`POST /api/applications/import-bundle`.
 
 ### Listing Models an SDK Client Can Use
 
