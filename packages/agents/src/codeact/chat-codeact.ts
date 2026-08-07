@@ -1,6 +1,6 @@
 /**
- * CodeAct for chat turns — the adapter the websocket chat runner uses when the
- * execution-mode setting is `"codeact"`.
+ * CodeAct for chat turns — the adapter a chat runner uses to make sandboxed
+ * JavaScript the action space of a turn.
  *
  * A chat toolbelt is not a `Tool[]`: it mixes server tools with client (`ui_*`)
  * tools that exist here only as schemas, and every call must go through the
@@ -19,6 +19,7 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { runInSandbox } from "../js-sandbox.js";
+import { stripImagePayload } from "../tools/image-injection.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
@@ -204,7 +205,11 @@ export function createChatCodeActSession(
         name,
         args
       });
-      const value = normalizeToolResult(raw);
+      // Pixels never fit the observation envelope: base64 in a JSON result
+      // burns the context and the model still cannot see it. `view_image`
+      // stays a direct provider tool for exactly that reason, so any
+      // image payload a sandbox call returns is dropped to its handle here.
+      const value = stripImagePayload(normalizeToolResult(raw));
       const errorPayload = extractErrorPayload(value);
       if (errorPayload !== null) {
         return { ok: false, error: `tools.${name}: ${errorPayload}` };

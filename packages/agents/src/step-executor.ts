@@ -50,6 +50,7 @@ import {
   formatViolations,
   validateAgainstSchema
 } from "./utils/json-schema-validate.js";
+import { removeThinkTags } from "./utils/think-tags.js";
 
 const log = createLogger("nodetool.agents.step-executor");
 
@@ -263,23 +264,6 @@ function normalizeDeclaredSchema(
   const copy = JSON.parse(JSON.stringify(raw)) as Record<string, unknown>;
   if (!("type" in copy) && "properties" in copy) copy["type"] = "object";
   return copy;
-}
-
-// ---------------------------------------------------------------------------
-// Think-tag removal
-// ---------------------------------------------------------------------------
-
-function removeThinkTags(text: string | null | undefined): string {
-  if (!text) return "";
-  // Only strip well-formed PAIRED reasoning blocks (each opener with its own
-  // matching close, non-greedy). The previous open-ended `/<think>[\s\S]*/`
-  // deleted everything after the first literal "<think>", silently truncating
-  // legit answers that merely mention the substring; and it hardcoded <think>
-  // as the opener, so <redacted_thinking> blocks leaked through.
-  return text
-    .replace(/<think>[\s\S]*?<\/think>/g, "")
-    .replace(/<redacted_thinking>[\s\S]*?<\/redacted_thinking>/g, "")
-    .trim();
 }
 
 // ---------------------------------------------------------------------------

@@ -174,6 +174,20 @@ const nodetool = (() => {
   };
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
 
+  /**
+   * \`taste_profile\` is a prompt block (a string). Accept the full record
+   * \`profileDetails()\` returns too, so passing either shape works.
+   */
+  const __taste = (opts) => {
+    const merged = __merge(opts);
+    const profile = merged.taste_profile;
+    if (profile && typeof profile === "object" &&
+        typeof profile.profile === "string") {
+      merged.taste_profile = profile.profile;
+    }
+    return merged;
+  };
+
   /** Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record. */
   const __graphJson = (source) => {
     if (source && typeof source.toJSON === "function") return source.toJSON();
@@ -190,22 +204,47 @@ const nodetool = (() => {
   };
 
   /**
+   * A backend that is registered but unusable — no key, no configuration.
+   * The belt carries the tool, so \`__has\` says yes and only the call finds
+   * out; that is a reason to try the next backend, not to fail the search.
+   */
+  const __unconfigured = (message) =>
+    /api[_ -]?key|not configured|unconfigured|no credential|credentials|missing|unauthorized|forbidden|401|403/i
+      .test(String(message || ""));
+
+  /**
    * Route a web query to one of several interchangeable backing tools.
    * \`choices\` is [providerName, toolName, queryField][] in preference order.
-   * \`opts.provider\` pins one (and then must exist); otherwise the first
-   * provider this belt carries wins. Nothing available throws naming them all.
+   * \`opts.provider\` pins one — it is then the only backend tried, and its
+   * failure is the call's failure. Otherwise backends are tried in order and
+   * an unconfigured one falls through to the next; exhausting them all throws
+   * with every error.
    */
-  const __pickWeb = (method, opts, choices, query) => {
+  const __pickWeb = async (method, opts, choices, query) => {
     const rest = __merge(opts);
     const wanted = rest.provider;
     delete rest.provider;
     const text = String(query === undefined || query === null ? "" : query);
+    const failures = [];
     for (const choice of choices) {
       if (wanted !== undefined && wanted !== choice[0]) continue;
       if (!__has(choice[1])) continue;
       const args = __merge(rest);
       args[choice[2]] = text;
-      return tools[choice[1]](args);
+      try {
+        return await tools[choice[1]](args);
+      } catch (e) {
+        const message = e && e.message ? e.message : String(e);
+        if (wanted !== undefined) throw e;
+        if (!__unconfigured(message)) throw e;
+        failures.push(choice[0] + " (" + choice[1] + "): " + message);
+      }
+    }
+    if (failures.length > 0) {
+      throw new Error(
+        "nodetool.web." + method + ": every available backend is " +
+        "unconfigured — " + failures.join("; ")
+      );
     }
     throw new Error(
       "nodetool.web." + method + ": no backing tool on this belt" +
@@ -708,7 +747,7 @@ const nodetool = (() => {
       critique: (image, brief, model, opts) =>
         __need("critique_image")(
           __merge(
-            opts,
+            __taste(opts),
             __merge(__model(model), { image: image, brief: brief })
           )
         ),
@@ -716,7 +755,7 @@ const nodetool = (() => {
       compare: (images, brief, model, opts) =>
         __need("compare_images")(
           __merge(
-            opts,
+            __taste(opts),
             __merge(__model(model), { images: images, brief: brief })
           )
         ),
@@ -828,8 +867,19 @@ const nodetool = (() => {
     },
 
     style: {
-      /** The user's accumulated taste, as a profile block for prompts. */
-      profile: (opts) => __need("get_style_profile")(__merge(opts)),
+      /**
+       * The user's accumulated taste as a prompt-ready block: a string, which
+       * is what generation prompts and \`taste_profile\` take. Use
+       * \`profileDetails()\` for the individual preference records.
+       */
+      profile: (opts) =>
+        __need("get_style_profile")(__merge(opts)).then((r) =>
+          r && typeof r === "object" && typeof r.profile === "string"
+            ? r.profile
+            : r
+        ),
+      /** The same profile plus the preference items behind it. */
+      profileDetails: (opts) => __need("get_style_profile")(__merge(opts)),
       /** Record one preference learned from a choice or a correction. */
       record: (takeaway, opts) =>
         __need("record_style_preference")(
@@ -1129,10 +1179,11 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "style",
     doc: `- \`nodetool.style\` — the user's accumulated taste. \`profile({query, k})\`
-  returns it as a block to inject into generation prompts and to pass as
-  \`taste_profile\` to \`nodetool.media.critique/compare\`; \`record(takeaway,
-  {chosen, rejected, brief})\` saves one preference whenever the user picks
-  between candidates or corrects a style.`
+  returns a string block to inject into generation prompts and to pass as
+  \`taste_profile\` to \`nodetool.media.critique/compare\`
+  (\`profileDetails()\` returns that block plus the preference records behind
+  it); \`record(takeaway, {chosen, rejected, brief})\` saves one preference
+  whenever the user picks between candidates or corrects a style.`
   },
   {
     namespace: "email",

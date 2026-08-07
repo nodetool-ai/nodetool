@@ -186,9 +186,6 @@ const enabledTools = opts.tools
 
 // Always-on tools (no credentials needed)
 for (const tool of [
-  "statistics",
-  "geometry",
-  "conversion",
   "extract_pdf_text",
   "convert_pdf_to_markdown",
   "convert_document"

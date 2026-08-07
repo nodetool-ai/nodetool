@@ -161,6 +161,70 @@ describe("nodetool.web", () => {
     expect(obs.error).toContain('provider "openai"');
   });
 
+  it("falls through to the next backend when one is unconfigured", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      calls.push(call);
+      if (call.name === "web_search") {
+        return { error: "SERPAPI_API_KEY is not configured" };
+      }
+      return JSON.stringify({ tool: call.name, args: call.args });
+    };
+    const session = makeSession(WEB_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const r = await nodetool.web.search("fox");
+       return r.tool;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe("openai_web_search");
+    expect(calls.map((c) => c.name)).toEqual([
+      "web_search",
+      "openai_web_search"
+    ]);
+  });
+
+  it("reports every backend's error once they are all unconfigured", async () => {
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => ({
+      error: `${call.name}: missing api key`
+    });
+    const session = makeSession(WEB_TOOLS, executeTool);
+    const obs = await runAction(session, `await nodetool.web.search("fox");`);
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("nodetool.web.search");
+    expect(obs.error).toContain("web_search");
+    expect(obs.error).toContain("dataforseo_search");
+  });
+
+  it("does not fall through on an ordinary backend failure", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      calls.push(call);
+      return { error: "upstream returned 500" };
+    };
+    const session = makeSession(WEB_TOOLS, executeTool);
+    const obs = await runAction(session, `await nodetool.web.search("fox");`);
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("upstream returned 500");
+    expect(calls.map((c) => c.name)).toEqual(["web_search"]);
+  });
+
+  it("never falls through when the caller pinned a provider", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      calls.push(call);
+      return { error: "OPENAI_API_KEY is not configured" };
+    };
+    const session = makeSession(WEB_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `await nodetool.web.search("fox", { provider: "openai" });`
+    );
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("OPENAI_API_KEY");
+    expect(calls.map((c) => c.name)).toEqual(["openai_web_search"]);
+  });
+
   it("maps images, fetch, browse, download and screenshot onto their tools", async () => {
     const { executeTool, calls } = createEchoRouter();
     const session = makeSession(WEB_TOOLS, executeTool);
@@ -266,6 +330,79 @@ describe("nodetool.email", () => {
 });
 
 describe("nodetool.style", () => {
+  it("returns the profile as the prompt-ready string block", async () => {
+    const executeTool = async (): Promise<unknown> =>
+      JSON.stringify({
+        profile: "- Prefers muted palettes.",
+        items: [{ id: "p1", text: "Prefers muted palettes.", importance: 1 }]
+      });
+    const session = makeSession(
+      [...STYLE_TOOLS, toolDef("critique_image")],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `const profile = await nodetool.style.profile();
+       const details = await nodetool.style.profileDetails();
+       return { profile: profile, itemCount: details.items.length };`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toEqual({
+      profile: "- Prefers muted palettes.",
+      itemCount: 1
+    });
+  });
+
+  it("passes the profile straight into critique as taste_profile", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      calls.push(call);
+      if (call.name === "get_style_profile") {
+        return JSON.stringify({ profile: "- Muted palettes.", items: [] });
+      }
+      return JSON.stringify({ verdict: "ok" });
+    };
+    const session = makeSession(
+      [...STYLE_TOOLS, toolDef("critique_image")],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `const taste = await nodetool.style.profile();
+       await nodetool.media.critique("asset://a1", "a poster", "openai/gpt-5.4", {
+         taste_profile: taste
+       });
+       return true;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls[1].args["taste_profile"]).toBe("- Muted palettes.");
+  });
+
+  it("accepts the full profile record as taste_profile too", async () => {
+    const calls: ChatCodeActToolCall[] = [];
+    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
+      calls.push(call);
+      if (call.name === "get_style_profile") {
+        return JSON.stringify({ profile: "- Muted palettes.", items: [] });
+      }
+      return JSON.stringify({ verdict: "ok" });
+    };
+    const session = makeSession(
+      [...STYLE_TOOLS, toolDef("critique_image")],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `const details = await nodetool.style.profileDetails();
+       await nodetool.media.critique("asset://a1", "a poster", "openai/gpt-5.4", {
+         taste_profile: details
+       });
+       return true;`
+    );
+    expect(obs.ok).toBe(true);
+    expect(calls[1].args["taste_profile"]).toBe("- Muted palettes.");
+  });
+
   it("maps profile/record onto the style tools", async () => {
     const { executeTool, calls } = createEchoRouter();
     const session = makeSession(STYLE_TOOLS, executeTool);

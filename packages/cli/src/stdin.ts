@@ -24,6 +24,7 @@ import readline from "node:readline";
 import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { FileStorageAdapter, ProcessingContext } from "@nodetool-ai/runtime";
 import { processChat } from "@nodetool-ai/chat";
+import { applySystemPrompt, createCliCodeActTurn } from "./chat-codeact.js";
 import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import type { Tool } from "@nodetool-ai/agents/tool";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
@@ -259,6 +260,48 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     return [subtaskTool, ...baseTools];
   };
 
+  /**
+   * One local turn, in CodeAct: the provider is offered `execute_code`
+   * (+ `view_image`) and the toolbelt lives in the sandbox — the same
+   * contract a server-side chat session runs on.
+   */
+  const runCodeActTurn = async (
+    userInput: string,
+    prov: BaseProvider,
+    tools: Tool[]
+  ): Promise<void> => {
+    const context = new ProcessingContext({
+      jobId: crypto.randomUUID(),
+      userId: "1",
+      workspaceDir: opts.workspaceDir,
+      workspaceStorage: opts.workspaceDir
+        ? new FileStorageAdapter(opts.workspaceDir)
+        : null,
+      secretResolver: getSecret
+    });
+    const turn = createCliCodeActTurn({
+      tools,
+      context,
+      onToolCall: ({ name }) => {
+        process.stderr.write(`[tool] ${name}\n`);
+      }
+    });
+    applySystemPrompt(chatHistory, turn.systemPrompt);
+    await processChat({
+      userInput,
+      messages: chatHistory,
+      model: opts.model,
+      provider: prov,
+      context,
+      tools: turn.tools,
+      callbacks: {
+        onChunk: (text) => {
+          process.stdout.write(text);
+        }
+      }
+    });
+  };
+
   let threadId = crypto.randomUUID();
   let chatHistory: Message[] = [];
 
@@ -330,50 +373,18 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<void> {
     } else if (wsClient && opts.extraTools?.length) {
       // --- Regular chat via WebSocket inference + local sandbox tool execution ---
       const prov = new WebSocketProvider(wsClient, opts.model, opts.provider);
-      await processChat({
-        userInput: trimmed,
-        messages: chatHistory,
-        model: opts.model,
-        provider: prov,
-        context: new ProcessingContext({
-          jobId: crypto.randomUUID(),
-          userId: "1",
-          workspaceDir: opts.workspaceDir,
-          workspaceStorage: opts.workspaceDir
-            ? new FileStorageAdapter(opts.workspaceDir)
-            : null,
-          secretResolver: getSecret
-        }),
-        tools: buildDirectTools(prov, opts.extraTools),
-        callbacks: {
-          onChunk: (text) => {
-            process.stdout.write(text);
-          }
-        }
-      });
+      await runCodeActTurn(
+        trimmed,
+        prov,
+        buildDirectTools(prov, opts.extraTools)
+      );
     } else {
       // --- Regular chat via direct provider ---
-      await processChat({
-        userInput: trimmed,
-        messages: chatHistory,
-        model: opts.model,
-        provider: directProvider!,
-        context: new ProcessingContext({
-          jobId: crypto.randomUUID(),
-          userId: "1",
-          workspaceDir: opts.workspaceDir,
-          workspaceStorage: opts.workspaceDir
-            ? new FileStorageAdapter(opts.workspaceDir)
-            : null,
-          secretResolver: getSecret
-        }),
-        tools: buildDirectTools(directProvider, opts.extraTools ?? []),
-        callbacks: {
-          onChunk: (text) => {
-            process.stdout.write(text);
-          }
-        }
-      });
+      await runCodeActTurn(
+        trimmed,
+        directProvider!,
+        buildDirectTools(directProvider, opts.extraTools ?? [])
+      );
     }
 
     process.stdout.write("\n");

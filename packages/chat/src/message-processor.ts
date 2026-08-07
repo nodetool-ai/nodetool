@@ -7,6 +7,7 @@
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import type {
   Message,
+  MessageContent,
   ToolCall,
   ProviderStreamItem,
   ProviderSession
@@ -19,7 +20,12 @@ import {
 } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { Chunk } from "@nodetool-ai/protocol";
-import { Tool, truncateToolResult } from "@nodetool-ai/agents";
+import {
+  Tool,
+  extractInjectableImages,
+  stripImagePayload,
+  truncateToolResult
+} from "@nodetool-ai/agents";
 // Pull `formatMemoryForPrompt` from the narrow `./memory` subpath so chat
 // consumers don't end up loading the full agents bundle (planners, graph
 // builder, sandbox, every tool class) just to render a memory block.
@@ -199,14 +205,27 @@ export async function processChat(opts: {
   // Run one tool call and return the result text to feed back to the model.
   // Owns tool resolution + the onToolResult callback; the provider's loop
   // orchestrates the rounds and assembles the messages.
-  const executeTool = async (toolCall: ToolCall): Promise<string> => {
+  const executeTool = async (
+    toolCall: ToolCall
+  ): Promise<string | MessageContent[]> => {
     const executed = (await runTool(context, toolCall, tools)) as ToolCall & {
       result: unknown;
     };
     callbacks?.onToolResult?.(toolCall, executed.result);
-    return truncateToolResult(
-      JSON.stringify(executed.result, defaultSerializer) ?? ""
+
+    // A view-image-style result carries pixels the model asked for. Forward
+    // them as image content beside a light textual note; the base64 never
+    // enters the tool-result text.
+    const injected = extractInjectableImages(executed.result);
+    const value = injected
+      ? stripImagePayload(executed.result)
+      : executed.result;
+    const text = truncateToolResult(
+      typeof value === "string"
+        ? value
+        : (JSON.stringify(value, defaultSerializer) ?? "")
     );
+    return injected ? [{ type: "text", text }, ...injected.images] : text;
   };
 
   // The provider owns the agent loop now. `messagesToSend` (which may carry the

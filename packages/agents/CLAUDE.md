@@ -531,6 +531,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   (`src/codeact/graph-model.ts`): `openWorkflow()` returns a model whose
   synchronous mutators queue ops against a local mirror and `commit()` replays
   them through the same `ui_*` contract.
+  The CLI's local (no-server) turn runs the same session — `execute_code`
+  (+ `view_image`) is what `processChat` sees, wired in
+  `packages/cli/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
   `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/

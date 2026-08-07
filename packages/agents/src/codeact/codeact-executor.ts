@@ -47,6 +47,7 @@ import {
   validateAgainstSchema
 } from "../utils/json-schema-validate.js";
 import { linkAbort } from "../utils/link-abort.js";
+import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
   toolSignature,
@@ -354,16 +355,14 @@ export class CodeActExecutor {
     let lastAssistant: Message | null = null;
     let generationError: Error | null = null;
     let finishedResult: { value: unknown } | null = null;
-    let bridgedCallSeq = 0;
 
     const toolsByName = new Map(this.tools.map((t) => [t.name, t]));
     const onToolCall = (record: ToolCallRecord): void => {
-      bridgedCallSeq++;
       const tool = toolsByName.get(record.name);
       uiEvents.push({
         type: "tool_call_update",
         node_id: this.step.id,
-        tool_call_id: `codeact_${bridgedCallSeq}`,
+        tool_call_id: record.toolCallId,
         name: record.name,
         args: record.args,
         message: tool
@@ -491,7 +490,13 @@ export class CodeActExecutor {
         abort.abort();
       }
 
-      return truncateToolResult(JSON.stringify(observation));
+      const text = truncateToolResult(JSON.stringify(observation));
+      // Pixels a tool returned during the action ride beside the observation
+      // as a provider image message; the observation itself stays light.
+      const images = bridge.drainImages();
+      return images.length > 0
+        ? [{ type: "text", text } as MessageContent, ...images]
+        : text;
     };
 
     const providerTools = [
@@ -548,7 +553,12 @@ export class CodeActExecutor {
         }
         if ("type" in item && (item as { type?: string }).type === "message") {
           const m = (item as { message?: Message }).message;
-          if (m && m.role === "assistant") lastAssistant = m;
+          if (m && m.role === "assistant") {
+            lastAssistant =
+              typeof m.content === "string"
+                ? { ...m, content: removeThinkTags(m.content) }
+                : m;
+          }
         }
         yield* drainUi();
       }
