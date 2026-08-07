@@ -2,48 +2,31 @@
  * `run_subtask` — the primitive that lets an agent decompose work recursively.
  *
  * The agent calls this tool when it judges that a piece of work warrants a
- * focused sub-execution. The tool spins up a child agent (in "loop" mode)
- * with a subset of the parent's toolset and runs it to completion. Child
- * events are forwarded upward so the UI can stream them; each forwarded
- * event carries `parent_tool_call_id` so the renderer can nest cards.
+ * focused sub-execution. The spawn/stream/settle machinery lives in the
+ * sub-agent core (`../subagent.ts`); this class declares only what makes a
+ * subtask a subtask: the tool surface, the child inheriting the parent's
+ * full toolset (with itself stitched in so subtasks can recurse), and the
+ * subtask error vocabulary. Child events stream upward tagged with
+ * `parent_tool_call_id` and `subtask_depth` so the renderer can nest cards.
  *
- * Recursion is bounded by {@link RunSubtaskToolOptions.maxDepth} (default 3).
- * Tracking lives on `ProcessingContext` via {@link SUBTASK_DEPTH_KEY}; each
- * subtask copies the parent context and increments the counter.
+ * Recursion is bounded by {@link SubAgentToolRuntime.maxDepth} (default 3)
+ * via the shared {@link SUBTASK_DEPTH_KEY} on `ProcessingContext`.
  */
 
-import { randomUUID } from "node:crypto";
-import type { BaseProvider } from "@nodetool-ai/runtime";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { CodeActExecutor } from "../codeact/codeact-executor.js";
-import { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
-import type { Step, Task } from "../types.js";
+import {
+  SubAgentTool,
+  type ForwardMessage,
+  type SubAgentToolRun,
+  type SubAgentToolRuntime
+} from "../subagent.js";
 
 export { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
+export type { ForwardMessage } from "../subagent.js";
 
-const DEFAULT_MAX_DEPTH = 3;
 const DEFAULT_MAX_ITERATIONS = 20;
 
-export type ForwardMessage = (msg: ProcessingMessage) => Promise<void> | void;
-
-export interface RunSubtaskToolOptions {
-  provider: BaseProvider;
-  model: string;
-  /**
-   * Snapshot of the parent's toolset. Called lazily on each invocation so a
-   * dynamically-mutated toolbelt is observed.
-   */
-  parentTools: () => Tool[];
-  /**
-   * Forwards child agent events upward to the websocket sender. Events are
-   * tagged with `parent_tool_call_id` (and `subtask_depth`) before being
-   * passed in.
-   */
-  forwardMessage: ForwardMessage;
-  /** Maximum recursion depth. Defaults to 3. */
-  maxDepth?: number;
+export interface RunSubtaskToolOptions extends SubAgentToolRuntime {
   /** Max LLM iterations per child loop. Defaults to 20. */
   maxIterations?: number;
 }
@@ -64,10 +47,9 @@ const RUN_SUBTASK_DESCRIPTION = [
   "text verbatim and can quote or parse it."
 ].join("\n");
 
-export class RunSubtaskTool extends Tool {
+export class RunSubtaskTool extends SubAgentTool {
   readonly name = "run_subtask";
   readonly description = RUN_SUBTASK_DESCRIPTION;
-  readonly needsToolCallId = true;
   readonly jsonSchema = {
     type: "object",
     properties: {
@@ -86,21 +68,8 @@ export class RunSubtaskTool extends Tool {
     additionalProperties: false
   };
 
-  private readonly provider: BaseProvider;
-  private readonly model: string;
-  private readonly parentToolsFn: () => Tool[];
-  private readonly forward: ForwardMessage;
-  private readonly maxDepth: number;
-  private readonly maxIterations: number;
-
   constructor(opts: RunSubtaskToolOptions) {
-    super();
-    this.provider = opts.provider;
-    this.model = opts.model;
-    this.parentToolsFn = opts.parentTools;
-    this.forward = opts.forwardMessage;
-    this.maxDepth = opts.maxDepth ?? DEFAULT_MAX_DEPTH;
-    this.maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
+    super({ ...opts, maxIterations: opts.maxIterations ?? DEFAULT_MAX_ITERATIONS });
   }
 
   userMessage(params: Record<string, unknown>): string {
@@ -109,21 +78,9 @@ export class RunSubtaskTool extends Tool {
     return desc ? `Running subtask: ${desc}` : "Running subtask";
   }
 
-  async process(
-    context: ProcessingContext,
+  protected buildRun(
     params: Record<string, unknown>
-  ): Promise<unknown> {
-    const currentDepth = context.get<number>(SUBTASK_DEPTH_KEY) ?? 0;
-    if (currentDepth >= this.maxDepth) {
-      return {
-        error: "max_recursion_depth_reached",
-        depth: currentDepth,
-        max_depth: this.maxDepth,
-        message:
-          "Cannot spawn another subtask — recursion depth limit reached. Answer directly using the tools already available at this level."
-      };
-    }
-
+  ): SubAgentToolRun | { error: string; message: string } {
     const description =
       typeof params.description === "string" ? params.description.trim() : "";
     const prompt =
@@ -134,130 +91,25 @@ export class RunSubtaskTool extends Tool {
         message: "`prompt` is required and must be a non-empty string."
       };
     }
-
-    const parentToolCallId =
-      typeof params[TOOL_CALL_ID_FIELD] === "string"
-        ? (params[TOOL_CALL_ID_FIELD] as string)
-        : null;
-    const childDepth = currentDepth + 1;
-
-    const childTools = this.buildChildToolset();
-
-    // Child context with bumped depth. Copy preserves _onMessage (telemetry
-    // listener) and clones variables so depth mutations stay local.
-    const childCtx = context.copy();
-    childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
-
-    // Subtask runs as a single unstructured Step — no schema, no planning.
-    // CodeActExecutor's no-tool-call path captures the final assistant text.
-    const step: Step = {
-      id: randomUUID(),
+    return {
       instructions: prompt,
-      completed: false,
-      dependsOn: [],
-      logs: []
-    };
-    const task: Task = {
-      id: randomUUID(),
       title: description || "subtask",
-      steps: [step]
+      errorCode: "subtask_failed",
+      noResultCode: "subtask_no_result",
+      noResultMessage:
+        "Subtask ended without producing a final assistant message.",
+      errorExtras: { description: description || null }
     };
-
-    const executor = new CodeActExecutor({
-      task,
-      step,
-      context: childCtx,
-      provider: this.provider,
-      model: this.model,
-      tools: childTools,
-      maxIterations: this.maxIterations,
-      // Without the run's signal a cancelled parent leaves its children driving
-      // provider calls to completion in the background.
-      signal: context.signal
-    });
-
-    let finalResult: unknown = null;
-    let errorMessage: string | null = null;
-
-    try {
-      for await (const item of executor.execute()) {
-        // Tag every child event so the renderer can nest cards. We mutate a
-        // shallow clone — the original event object is shared with whoever
-        // emitted it inside the child agent.
-        const tagged = {
-          ...(item as Record<string, unknown>),
-          parent_tool_call_id: parentToolCallId,
-          subtask_depth: childDepth
-        } as unknown as ProcessingMessage;
-
-        try {
-          await this.forward(tagged);
-        } catch (forwardErr) {
-          // A broken forwarder must not kill the subtask — log and continue.
-          // The model still gets the result via the tool return below.
-          // eslint-disable-next-line no-console
-          console.warn(
-            "run_subtask: failed to forward child event",
-            forwardErr
-          );
-        }
-
-        if (item.type === "step_result") {
-          const sr = item as StepResult;
-          // The executor reports failure as `result: { error: "Step failed…" }`
-          // and never sets the top-level `sr.error`, so a failed subtask would
-          // otherwise be returned to the parent as a normal success value.
-          // Detect the nested error shape too.
-          const nestedError =
-            sr.result &&
-            typeof sr.result === "object" &&
-            !Array.isArray(sr.result) &&
-            "error" in sr.result
-              ? (sr.result as { error?: unknown }).error
-              : undefined;
-          if (sr.error) {
-            errorMessage = sr.error;
-          } else if (typeof nestedError === "string") {
-            errorMessage = nestedError;
-          } else if (sr.result !== null && sr.result !== undefined) {
-            finalResult = sr.result;
-          }
-        }
-      }
-    } catch (e) {
-      errorMessage = e instanceof Error ? e.message : String(e);
-    }
-
-    if (errorMessage) {
-      return {
-        error: "subtask_failed",
-        description: description || null,
-        message: errorMessage
-      };
-    }
-
-    if (finalResult === null || finalResult === undefined) {
-      return {
-        error: "subtask_no_result",
-        description: description || null,
-        message:
-          "Subtask ended without producing a final assistant message."
-      };
-    }
-
-    return finalResult;
   }
 
-  private buildChildToolset(): Tool[] {
-    const inherited = this.parentToolsFn();
-
+  protected buildChildToolset(parentTools: Tool[]): Tool[] {
     // The runner builds the root toolset by snapshotting `serverTools`
-    // BEFORE `unshift`ing the RunSubtaskTool, so `parentToolsFn()` returns
-    // an array that does NOT include `run_subtask`. Make sure the child can
-    // recurse by stitching `this` in if missing — depth refusal still gates
-    // actual recursion at runtime via SUBTASK_DEPTH_KEY.
-    return inherited.some((t) => t.name === "run_subtask")
-      ? inherited
-      : [this, ...inherited];
+    // BEFORE `unshift`ing the RunSubtaskTool, so `parentTools` does NOT
+    // include `run_subtask`. Make sure the child can recurse by stitching
+    // `this` in if missing — depth refusal still gates actual recursion at
+    // runtime via SUBTASK_DEPTH_KEY.
+    return parentTools.some((t) => t.name === "run_subtask")
+      ? parentTools
+      : [this, ...parentTools];
   }
 }
