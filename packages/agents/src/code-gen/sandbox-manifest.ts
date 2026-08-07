@@ -368,7 +368,9 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
     name: "data",
     kind: "namespace",
     description:
-      "Structured parsing. These are the only CSV and HTML facilities; the guest has no module loader, so import and require do not exist.",
+      "Structured data: CSV, XLSX, YAML, XML, HTML, zip archives, and text " +
+      "diffs. These are the only such facilities; the guest has no module " +
+      "loader, so import and require do not exist.",
     members: [
       {
         name: "data.parseCsv",
@@ -379,11 +381,76 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         async: true
       },
       {
+        name: "data.toCsv",
+        signature:
+          "await data.toCsv(rows, options?) -> string // options: delimiter, header (default true)",
+        description:
+          "Records or row arrays back out as CSV text — the inverse of parseCsv.",
+        async: true
+      },
+      {
         name: "data.selectHtml",
         signature:
           "await data.selectHtml(html, selector, options?) -> string[] // options: attr, limit",
         description:
           "CSS selector over HTML returning trimmed text, or the named attribute when attr is set.",
+        async: true
+      },
+      {
+        name: "data.htmlToMarkdown",
+        signature: "await data.htmlToMarkdown(html) -> string",
+        description:
+          "A whole HTML page as clean markdown — the usual first step before summarizing or indexing a fetched page.",
+        async: true
+      },
+      {
+        name: "data.parseXlsx",
+        signature:
+          'await data.parseXlsx(bytes, options?) -> {sheetName: object[]} | object[] // options: sheet, header (default true)',
+        description:
+          "Excel workbook bytes (from workspace.readBytes or a fetched body) to records per sheet; pass sheet to get one sheet's rows directly. Formula cells yield their computed result.",
+        async: true
+      },
+      {
+        name: "data.parseYaml",
+        signature: "await data.parseYaml(text) -> value",
+        description: "One YAML document as a plain value.",
+        async: true
+      },
+      {
+        name: "data.toYaml",
+        signature: "await data.toYaml(value) -> string",
+        description: "Any JSON-serializable value as YAML text.",
+        async: true
+      },
+      {
+        name: "data.parseXml",
+        signature:
+          "await data.parseXml(text, options?) -> object // options: attributes (default true)",
+        description:
+          'XML (RSS/Atom feeds, sitemaps) as a plain object; attributes ride along prefixed "@_". Text values stay strings. Invalid XML throws with the parser\'s reason.',
+        async: true
+      },
+      {
+        name: "data.unzip",
+        signature: "await data.unzip(bytes) -> {path: Uint8Array}",
+        description:
+          "Extract a zip archive to a map of entry path to content bytes (utf8Decode for text entries).",
+        async: true
+      },
+      {
+        name: "data.zip",
+        signature: "await data.zip({path: Uint8Array | string}) -> Uint8Array",
+        description:
+          "Build a zip archive from named entries; string values are UTF-8 encoded.",
+        async: true
+      },
+      {
+        name: "data.diff",
+        signature:
+          "await data.diff(a, b, options?) -> string // options: context, oldName, newName",
+        description:
+          "Unified diff of two texts — empty hunks mean identical. Handy for verify loops and change reports.",
         async: true
       }
     ]

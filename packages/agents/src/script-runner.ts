@@ -4,7 +4,7 @@
  * Executes an orchestration *script* (plain JavaScript) inside the QuickJS
  * sandbox. The script coordinates sub-agents through a small primitive set —
  * `agent()`, `parallel()`, `pipeline()`, `log()`, `budget` — while every
- * `agent()` call runs a real {@link StepExecutor} on the host. This is the
+ * `agent()` call runs a real {@link CodeActExecutor} on the host. This is the
  * counterpart to the data-shaped `TaskPlan`: a script can express loops,
  * conditionals, budget-scaled fan-out, and dedup-between-rounds that a static
  * task DAG cannot.
@@ -40,11 +40,12 @@ import type {
   ProcessingMessage,
   StepResult
 } from "@nodetool-ai/protocol";
-import { StepExecutor, type StepExecutorOptions } from "./step-executor.js";
-import { CodeActExecutor } from "./codeact/codeact-executor.js";
-import { resolveExecutionMode } from "./codeact/execution-mode.js";
+import {
+  CodeActExecutor,
+  type CodeActExecutorOptions
+} from "./codeact/codeact-executor.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { AgentExecutionMode, Step, Task } from "./types.js";
+import type { Step, Task } from "./types.js";
 import { runInSandbox } from "./js-sandbox.js";
 
 const log = createLogger("nodetool.agents.script-runner");
@@ -78,7 +79,7 @@ export interface ScriptRunnerOptions {
   systemPrompt?: string;
   inputs?: Record<string, unknown>;
   maxStepIterations?: number;
-  /** Cap on output tokens per sub-agent turn. Forwarded to each StepExecutor. */
+  /** Cap on output tokens per sub-agent turn. Forwarded to each sub-agent executor. */
   maxTokens?: number;
   /** Concurrent `agent()` calls beyond this queue. Default 8. */
   maxConcurrentAgents?: number;
@@ -88,8 +89,6 @@ export interface ScriptRunnerOptions {
   scriptTimeoutMs?: number;
   /** External cancellation, forwarded to every sub-agent step executor. */
   signal?: AbortSignal;
-  /** Action space for every `agent()` sub-agent. Default `"tools"`. */
-  executionMode?: AgentExecutionMode;
 }
 
 /** Simple counting semaphore; released slots go to waiters FIFO. */
@@ -250,7 +249,6 @@ export class ScriptRunner {
   private readonly signal?: AbortSignal;
   private readonly maxAgentCalls: number;
   private readonly scriptTimeoutMs: number;
-  private readonly executionMode: AgentExecutionMode;
   private readonly semaphore: Semaphore;
   private readonly channel = new MessageChannel();
   private agentCalls = 0;
@@ -267,7 +265,6 @@ export class ScriptRunner {
     this.signal = opts.signal;
     this.maxAgentCalls = opts.maxAgentCalls ?? DEFAULT_MAX_AGENT_CALLS;
     this.scriptTimeoutMs = opts.scriptTimeoutMs ?? DEFAULT_SCRIPT_TIMEOUT_MS;
-    this.executionMode = resolveExecutionMode(opts.executionMode);
     this.semaphore = new Semaphore(
       opts.maxConcurrentAgents ?? DEFAULT_MAX_CONCURRENT_AGENTS
     );
@@ -337,7 +334,7 @@ export class ScriptRunner {
 
   /**
    * Host bridge behind the guest `agent()` primitive: run one sub-agent as a
-   * single {@link StepExecutor} step. Never rejects — failures come back as
+   * single {@link CodeActExecutor} step. Never rejects — failures come back as
    * `{ok: false, error}` and the guest prelude re-throws them, so the QuickJS
    * host-promise-rejection leak is never hit.
    */
@@ -402,7 +399,7 @@ export class ScriptRunner {
       ? this.tools.filter((t) => opts.tools!.includes(t.name))
       : [...this.tools];
 
-    const executorOpts: StepExecutorOptions = {
+    const executorOpts: CodeActExecutorOptions = {
       task,
       step,
       context: this.context,
@@ -414,10 +411,7 @@ export class ScriptRunner {
       maxTokens: this.maxTokens,
       signal: this.signal
     };
-    const executor =
-      this.executionMode === "codeact"
-        ? new CodeActExecutor(executorOpts)
-        : new StepExecutor(executorOpts);
+    const executor = new CodeActExecutor(executorOpts);
 
     let result: unknown = null;
     let error: string | null = null;

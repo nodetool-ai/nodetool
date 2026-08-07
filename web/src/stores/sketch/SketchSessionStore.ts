@@ -37,6 +37,7 @@ import {
 } from "./SketchInstance";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../NotificationStore";
+import { registerDocumentSync } from "../documentSync";
 import { useAssetStore } from "../AssetStore";
 import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import {
@@ -128,6 +129,12 @@ export interface SketchSessionState {
   setName: (name: string) => void;
   /** Record that the editor has seeded the global store from this document. */
   markHydrated: (documentId: string) => void;
+  /**
+   * Forget that seeding, so the next `initialEditorState` re-hydrates the
+   * global store. Used when the server copy has to replace the canvas —
+   * a document rewritten outside this browser.
+   */
+  clearHydrated: () => void;
   markSaving: () => void;
   markSaved: (updatedAt: string, serverHash: string) => void;
   markSaveFailed: (conflict: boolean) => void;
@@ -255,6 +262,7 @@ export const createSketchSessionStore = (): SketchSessionStoreApi =>
     }),
   setName: (name) => set((state) => (state.name === name ? state : { name })),
   markHydrated: (documentId) => set({ hydratedDocumentId: documentId }),
+  clearHydrated: () => set({ hydratedDocumentId: null }),
   markSaving: () => set({ saveState: "saving", hasConflict: false }),
   markSaved: (updatedAt, serverHash) =>
     set({
@@ -958,6 +966,23 @@ export function useStandaloneSketchDocument(
       );
     };
 
+    // Writes from outside this browser (agent doc-ops, CLI, another tab) come
+    // in as `resource_change`. A clean editor re-hydrates from the server copy
+    // — dropping the hydration marker is what lets the refetched document back
+    // past the lifecycle gate. A dirty one is told instead: re-seeding the
+    // canvas under unsaved strokes would throw them away.
+    const unwatchDocument = registerDocumentSync("imagedocument", response.id, {
+      localRevision: () => sessionStore.getState().baseUpdatedAt,
+      isDirty: () =>
+        pendingDirtyRef.current ||
+        instance.saveInFlight.current ||
+        sessionStore.getState().hasConflict,
+      reload: () => {
+        sessionStore.getState().clearHydrated();
+        void utilsRef.current.sketch.get.invalidate({ id: response.id });
+      }
+    });
+
     type SelectedFields = {
       document: SketchStore["document"];
       activeTool: SketchTool;
@@ -999,6 +1024,7 @@ export function useStandaloneSketchDocument(
 
     return () => {
       alive = false;
+      unwatchDocument();
       unsubscribeSketch();
       unsubscribeSession();
       flush();

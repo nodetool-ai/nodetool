@@ -133,6 +133,7 @@ export {
   planScript,
   multiTaskPlanScript,
   stepScript,
+  codeStepScript,
   textScript,
   toolCallScript,
   autoScript,

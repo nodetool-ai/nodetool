@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueries } from "@tanstack/react-query";
 
 import {
@@ -24,6 +24,7 @@ import {
   type AppDocument
 } from "./appData";
 import AppBuilderShell from "./AppBuilderShell";
+import { registerDocumentSync } from "../../stores/documentSync";
 
 export interface ApplicationAppBuilderProps {
   applicationId: string;
@@ -62,9 +63,38 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
   const utils = trpc.useUtils();
   const fetchWorkflow = useWorkflowManager((s) => s.fetchWorkflow);
 
-  const [conflict, setConflict] = useState(false);
+  // Why the "changed elsewhere" banner is up: a save the server rejected, or
+  // a write that landed on the row while this canvas was open (agent doc-ops,
+  // CLI, another tab). Both mean the same thing to the user — reload or lose
+  // the other side — but they read differently.
+  const [conflict, setConflict] = useState<"save-rejected" | "external" | null>(
+    null
+  );
   // Bumped to remount the editor when the user asks for the latest document.
   const [seed, setSeed] = useState(0);
+
+  // The row revision this canvas is based on. Kept in a ref because the
+  // `resource_change` for our own save can beat the mutation's cache write,
+  // and comparing against a stale `application.updatedAt` would raise the
+  // banner on the user's own save.
+  const revisionRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (application?.updatedAt) revisionRef.current = application.updatedAt;
+  }, [application?.updatedAt]);
+
+  // This editor saves on command, so its canvas may hold edits nobody has
+  // seen — it never takes the server copy on its own. An outside write raises
+  // the banner, and the user decides.
+  useEffect(
+    () =>
+      registerDocumentSync("application", applicationId, {
+        localRevision: () => revisionRef.current,
+        isDirty: () => true,
+        reload: () => {},
+        onExternalChange: () => setConflict("external")
+      }),
+    [applicationId]
+  );
 
   const document = useMemo<AppDocument | null>(() => {
     if (!application) return null;
@@ -128,7 +158,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
     async (next: AppDocument) => {
       if (!application) return;
       try {
-        await updateApplication.mutateAsync({
+        const saved = await updateApplication.mutateAsync({
           id: application.id,
           // Spread into fresh literals: the router's schema types `ui` as an
           // open record, which an interface does not satisfy directly.
@@ -136,11 +166,12 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
           // Compare-and-swap against the row this editor loaded.
           baseUpdatedAt: application.updatedAt
         });
-        setConflict(false);
+        setConflict(null);
+        revisionRef.current = saved.updatedAt;
         addNotification({ type: "success", content: "App saved" });
       } catch (err) {
         if (isConcurrencyConflict(err)) {
-          setConflict(true);
+          setConflict("save-rejected");
           addNotification({
             type: "error",
             alert: true,
@@ -160,7 +191,7 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
 
   const handleReload = useCallback(async () => {
     await utils.applications.get.invalidate({ id: applicationId });
-    setConflict(false);
+    setConflict(null);
     setSeed((value) => value + 1);
   }, [applicationId, utils]);
 
@@ -203,9 +234,11 @@ const ApplicationAppBuilder: React.FC<ApplicationAppBuilderProps> = ({
                 </EditorButton>
               }
             >
-              This app changed since it was opened, so the last save was
-              rejected. Reload to start from the current version — reloading
-              discards what is on this canvas.
+              {conflict === "save-rejected"
+                ? "This app changed since it was opened, so the last save was rejected."
+                : "This app changed outside this editor."}{" "}
+              Reload to start from the current version — reloading discards what
+              is on this canvas.
             </AlertBanner>
           </FlexColumn>
         ) : undefined

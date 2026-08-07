@@ -755,5 +755,363 @@ export const SCRIPT_VOICE_TOOL_NAMES = [
   "list_scripts",
   "get_script",
   "voice_script_lines",
-  "assemble_script_timeline"
+  "assemble_script_timeline",
+  "edit_script"
 ] as const;
+
+// ── Script text editing ────────────────────────────────────────────────────
+//
+// The voicing tools above turn written lines into audio; this one writes the
+// lines. Adding a speaker, adding or rewriting a line, assigning a voice —
+// all of it was browser-only, since the `ui_script_*` tools round-trip into
+// the open editor's store. An agent could voice a script it could not author.
+
+/** Operations one call may apply, so a runaway script cannot rewrite a script. */
+const MAX_SCRIPT_OPS = 80;
+
+const SCRIPT_OPS = [
+  "add_speaker",
+  "set_speaker",
+  "set_speaker_voice",
+  "remove_speaker",
+  "add_section",
+  "add_line",
+  "set_line_text",
+  "set_line_speaker",
+  "remove_line"
+] as const;
+
+type ScriptOpName = (typeof SCRIPT_OPS)[number];
+
+const isScriptOpName = (value: string): value is ScriptOpName =>
+  (SCRIPT_OPS as readonly string[]).includes(value);
+
+interface ParsedScriptOp {
+  op: ScriptOpName;
+  args: Record<string, unknown>;
+}
+
+function parseScriptOps(raw: unknown): ParsedScriptOp[] | ToolError {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    return {
+      error:
+        'ops must be a non-empty array, e.g. [{"op": "add_line", "text": "Hello."}].'
+    };
+  }
+  if (raw.length > MAX_SCRIPT_OPS) {
+    return {
+      error: `ops holds ${raw.length} entries; at most ${MAX_SCRIPT_OPS} per call.`
+    };
+  }
+  const parsed: ParsedScriptOp[] = [];
+  for (const [index, entry] of raw.entries()) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+      return { error: `ops[${index}] must be an object.` };
+    }
+    const { op, ...args } = entry as Record<string, unknown>;
+    if (typeof op !== "string" || !isScriptOpName(op.trim())) {
+      return {
+        error: `ops[${index}] names "${String(op)}"; expected one of ${SCRIPT_OPS.join(", ")}.`
+      };
+    }
+    parsed.push({ op: op.trim() as ScriptOpName, args });
+  }
+  return parsed;
+}
+
+/** Resolve a speaker reference: id or name (case-insensitive). */
+function findSpeakerIndex(doc: ScriptDocument, target: unknown): number {
+  const raw = typeof target === "string" ? target.trim() : "";
+  const byId = doc.cast.findIndex((speaker) => speaker.id === raw);
+  if (byId >= 0) return byId;
+  const name = raw.toLowerCase();
+  return doc.cast.findIndex(
+    (speaker) => speaker.name.trim().toLowerCase() === name
+  );
+}
+
+/** The section an op addresses: by id, else the last one, else a fresh one. */
+function resolveSection(doc: ScriptDocument, target: unknown) {
+  if (typeof target === "string" && target.trim() !== "") {
+    const found = doc.sections.find((section) => section.id === target.trim());
+    if (!found) throw new Error(`No section matches "${target}".`);
+    return found;
+  }
+  if (doc.sections.length === 0) {
+    const section = { id: `section_1`, lines: [] };
+    doc.sections.push(section);
+    return section;
+  }
+  return doc.sections[doc.sections.length - 1];
+}
+
+function mintId(prefix: string, used: Set<string>): string {
+  let n = used.size + 1;
+  while (used.has(`${prefix}_${n}`)) n += 1;
+  return `${prefix}_${n}`;
+}
+
+/** A provider/model/voice triple, all three or none — never a half-guess. */
+function parseVoiceBinding(args: Record<string, unknown>): ScriptVoiceBinding | null {
+  const provider = args["provider"];
+  const model = args["model"];
+  const voice = args["voice"];
+  const given = [provider, model, voice].filter((v) => typeof v === "string");
+  if (given.length === 0) return null;
+  if (given.length !== 3) {
+    throw new Error(
+      "A voice needs provider, model and voice together (use find_model to pick one)."
+    );
+  }
+  const binding: ScriptVoiceBinding = {
+    provider: String(provider),
+    model: String(model),
+    voice: String(voice)
+  };
+  if (args["settings"] && typeof args["settings"] === "object") {
+    binding.settings = args["settings"] as Record<string, unknown>;
+  }
+  return binding;
+}
+
+interface ScriptOpRecord {
+  op: string;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+/** Apply one script operation. Returns its summary, or throws with the reason. */
+function applyScriptOp(
+  doc: ScriptDocument,
+  { op, args }: ParsedScriptOp
+): unknown {
+  switch (op) {
+    case "add_speaker": {
+      const name = args["name"];
+      if (typeof name !== "string" || name.trim() === "") {
+        throw new Error("add_speaker needs a non-empty `name`.");
+      }
+      const speaker = {
+        id: mintId("speaker", new Set(doc.cast.map((s) => s.id))),
+        name: name.trim(),
+        ...(typeof args["color"] === "string" ? { color: args["color"] } : {}),
+        voice: parseVoiceBinding(args)
+      };
+      doc.cast.push(speaker);
+      return { id: speaker.id, name: speaker.name, has_voice: !!speaker.voice };
+    }
+
+    case "set_speaker": {
+      const index = findSpeakerIndex(doc, args["target"]);
+      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      const speaker = { ...doc.cast[index] };
+      if (args["name"] !== undefined) speaker.name = String(args["name"]);
+      if (args["color"] !== undefined) speaker.color = String(args["color"]);
+      doc.cast[index] = speaker;
+      return { id: speaker.id, name: speaker.name };
+    }
+
+    case "set_speaker_voice": {
+      const index = findSpeakerIndex(doc, args["target"]);
+      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      const voice = parseVoiceBinding(args);
+      if (!voice) {
+        throw new Error(
+          "set_speaker_voice needs provider, model and voice (use find_model to pick one)."
+        );
+      }
+      // Every take voiced with the old binding is now stale — `needsVoicing`
+      // reads that off the take's own `voiceSnapshot`, so nothing to write.
+      doc.cast[index] = { ...doc.cast[index], voice };
+      return { id: doc.cast[index].id, voice };
+    }
+
+    case "remove_speaker": {
+      const index = findSpeakerIndex(doc, args["target"]);
+      if (index < 0) throw new Error(`No speaker matches "${String(args["target"])}".`);
+      const [removed] = doc.cast.splice(index, 1);
+      for (const section of doc.sections) {
+        section.lines = section.lines.map((line) =>
+          line.speakerId === removed.id ? { ...line, speakerId: null } : line
+        );
+      }
+      return { removed: removed.id };
+    }
+
+    case "add_section": {
+      const section = {
+        id: mintId("section", new Set(doc.sections.map((s) => s.id))),
+        ...(typeof args["title"] === "string" ? { title: args["title"] } : {}),
+        lines: []
+      };
+      doc.sections.push(section);
+      return { id: section.id, title: section.title };
+    }
+
+    case "add_line": {
+      const text = args["text"];
+      if (typeof text !== "string" || text.trim() === "") {
+        throw new Error("add_line needs a non-empty `text`.");
+      }
+      const section = resolveSection(doc, args["section"]);
+      let speakerId: string | null = null;
+      if (args["speaker"] !== undefined) {
+        const index = findSpeakerIndex(doc, args["speaker"]);
+        if (index < 0) {
+          throw new Error(`No speaker matches "${String(args["speaker"])}".`);
+        }
+        speakerId = doc.cast[index].id;
+      }
+      const used = new Set(scriptLines(doc.sections).map((line) => line.id));
+      const line: ScriptLine = {
+        id: mintId("line", used),
+        speakerId,
+        text,
+        ...(typeof args["direction"] === "string"
+          ? { direction: args["direction"] }
+          : {}),
+        ...(typeof args["pause_after_ms"] === "number"
+          ? { pauseAfterMs: args["pause_after_ms"] }
+          : {}),
+        takes: []
+      };
+      const at =
+        typeof args["index"] === "number"
+          ? Math.max(0, Math.min(Math.trunc(args["index"]), section.lines.length))
+          : section.lines.length;
+      section.lines.splice(at, 0, line);
+      return { id: line.id, section_id: section.id, index: at };
+    }
+
+    case "set_line_text": {
+      const target = String(args["target"] ?? "");
+      const line = findLine(scriptLines(doc.sections), target);
+      if (!line) throw new Error(`No line matches "${target}".`);
+      const text = args["text"];
+      if (typeof text !== "string" || text.trim() === "") {
+        throw new Error("set_line_text needs a non-empty `text`.");
+      }
+      // The takes stay: each carries the text it was voiced from, so rewriting
+      // the line makes them stale rather than gone, and `voice_script_lines`
+      // re-records exactly those.
+      line.text = text;
+      return { id: line.id, text: line.text, status: "stale" };
+    }
+
+    case "set_line_speaker": {
+      const target = String(args["target"] ?? "");
+      const line = findLine(scriptLines(doc.sections), target);
+      if (!line) throw new Error(`No line matches "${target}".`);
+      const index = findSpeakerIndex(doc, args["speaker"]);
+      if (index < 0) {
+        throw new Error(`No speaker matches "${String(args["speaker"])}".`);
+      }
+      line.speakerId = doc.cast[index].id;
+      return { id: line.id, speaker_id: line.speakerId };
+    }
+
+    case "remove_line": {
+      const target = String(args["target"] ?? "");
+      const line = findLine(scriptLines(doc.sections), target);
+      if (!line) throw new Error(`No line matches "${target}".`);
+      for (const section of doc.sections) {
+        section.lines = section.lines.filter((l) => l.id !== line.id);
+      }
+      return { removed: line.id };
+    }
+  }
+}
+
+export class EditScriptTool extends Tool {
+  readonly name = "edit_script";
+  readonly description =
+    "Edit a saved script headlessly: add cast members and assign their " +
+    "voices, add sections, and add, rewrite, reassign and remove lines. " +
+    "Operations run in order against the stored document and the result is " +
+    "saved; an open editor picks the change up live. Rewriting a line leaves " +
+    "its takes in place as stale, so voice_script_lines re-records exactly " +
+    "those. Call get_script first for line and speaker ids.";
+  readonly jsonSchema = {
+    type: "object" as const,
+    properties: {
+      script_id: { type: "string" as const, description: "Script id." },
+      ops: {
+        type: "array" as const,
+        description:
+          'Operations in order. Each is {"op": <name>, ...arguments}: ' +
+          "add_speaker {name, color?, provider?, model?, voice?}, " +
+          "set_speaker {target, name?, color?}, " +
+          "set_speaker_voice {target, provider, model, voice, settings?}, " +
+          "remove_speaker {target}, add_section {title?}, " +
+          "add_line {text, speaker?, section?, direction?, pause_after_ms?, index?}, " +
+          "set_line_text {target, text}, set_line_speaker {target, speaker}, " +
+          "remove_line {target}. A line `target` is its id, its 0-based index " +
+          "across the script, or its exact text; a speaker `target` is its id " +
+          "or name.",
+        items: { type: "object" as const }
+      }
+    },
+    required: ["script_id", "ops"]
+  };
+
+  async process(
+    context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    const ops = parseScriptOps(params["ops"]);
+    if (isError(ops)) return ops;
+
+    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+      const script = await loadScript(context, params["script_id"]);
+      if (isError(script)) return script;
+      const { row, doc } = script;
+
+      // A failing op is recorded and the script continues: stopping at the
+      // first error hides every problem behind it.
+      const records: ScriptOpRecord[] = [];
+      for (const parsed of ops) {
+        try {
+          records.push({ op: parsed.op, ok: true, result: applyScriptOp(doc, parsed) });
+        } catch (e) {
+          records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
+        }
+      }
+
+      const saved = await Script.updateFieldsIfUnchanged(row.id, row.updated_at, {
+        document: JSON.stringify(doc)
+      });
+      if (!saved) continue;
+
+      const failed = records.filter((record) => !record.ok);
+      return {
+        script_id: row.id,
+        updated_at: saved.updated_at,
+        applied: records.length - failed.length,
+        failed: failed.length,
+        ops: records,
+        cast: doc.cast.map((speaker) => ({
+          id: speaker.id,
+          name: speaker.name,
+          has_voice: !!speaker.voice
+        })),
+        lines: scriptLines(doc.sections).map((line, index) => ({
+          id: line.id,
+          index,
+          speaker_id: line.speakerId ?? null,
+          text: line.text,
+          takes: line.takes.length
+        }))
+      };
+    }
+
+    return {
+      error: `Script ${String(params["script_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+    };
+  }
+
+  userMessage(params: Record<string, unknown>): string {
+    const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
+    return `Editing script ${String(params["script_id"])} (${count} ops)`;
+  }
+}

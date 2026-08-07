@@ -79,6 +79,28 @@ const consumeMigratedLoad = (sequenceId: string): boolean =>
   migratedLoads.delete(sequenceId);
 
 /**
+ * Whether the mounted autosave holds work the server has not accepted: a
+ * debounced or in-flight save, or a document that differs from the last one
+ * persisted. `useTimelineExternalSync` asks before taking a copy of the
+ * sequence written outside this browser — a reload while this is true would
+ * discard the user's edits.
+ *
+ * A probe answers only for the sequence its own store currently holds, so an
+ * id no mounted autosave covers reads as clean — the truth when nothing is
+ * editing it.
+ */
+type DirtyProbe = (sequenceId: string) => boolean;
+
+const dirtyProbes = new Set<DirtyProbe>();
+
+export function isTimelineDocumentDirty(sequenceId: string): boolean {
+  for (const probe of dirtyProbes) {
+    if (probe(sequenceId)) return true;
+  }
+  return false;
+}
+
+/**
  * Whether two snapshots carry the same persisted document. Compares the slice
  * references (and scriptEnabled) — the store's mutations return the SAME array
  * reference on a no-op, so reference equality is a correct, O(1) dirty check.
@@ -240,6 +262,14 @@ export function useTimelineAutosave(
     let lastScriptEnabled: TimelineStoreState["scriptEnabled"] =
       initial.scriptEnabled;
 
+    const dirtyProbe: DirtyProbe = (sequenceId) => {
+      const state = store.getState();
+      if (state.sequenceId !== sequenceId) return false;
+      if (pendingRef.current || inFlightRef.current) return true;
+      return !sameDocument(pickSnapshot(state), lastSavedRef.current);
+    };
+    dirtyProbes.add(dirtyProbe);
+
     // A sequence loaded before this hook subscribed may still owe its
     // one-time migration save.
     if (initial.sequenceId && consumeMigratedLoad(initial.sequenceId)) {
@@ -277,6 +307,7 @@ export function useTimelineAutosave(
 
     return () => {
       unsubscribe();
+      dirtyProbes.delete(dirtyProbe);
       if (inFlightRef.current) {
         // A save is already running. Setting this flag tells its `finally`
         // handler to flush the still-pending snapshot immediately rather

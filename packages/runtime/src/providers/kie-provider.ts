@@ -1079,6 +1079,7 @@ export class KieProvider extends BaseProvider {
     if (params.aspectRatio) input.aspect_ratio = params.aspectRatio;
     this.applyVideoDuration(input, fields, params);
     this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
 
     log.debug("Kie textToVideo", { model: modelId });
     const apiKey = this.requireApiKey();
@@ -1110,6 +1111,41 @@ export class KieProvider extends BaseProvider {
    * Only fields the manifest marks required AND gives a default are filled, so
    * this cannot invent a value the model never described.
    */
+  /**
+   * Trim string inputs to the length the manifest declares for them.
+   *
+   * Kie rejects an over-long field with `500 {"msg":"The text length cannot
+   * exceed the maximum limit"}` — no field name, no limit, no actual length.
+   * The manifest already carries the cap (Kling 2.6's `prompt` is capped at
+   * 1000), so the ceiling is known here and there is no reason to spend a
+   * round trip discovering it.
+   *
+   * Composed prompts are what hit this: `composeShotPrompt` concatenates a
+   * shot's action, camera, motion and the screenplay's style bible, and a
+   * verbose director clears 1000 characters without trying. Truncation is on a
+   * word boundary and always logged with both lengths — silently reshaping
+   * someone's prompt is worse than the 500 it replaces.
+   */
+  private clampToDeclaredMax(
+    input: Record<string, unknown>,
+    fields: ModelInputField[]
+  ): void {
+    for (const field of fields) {
+      const max = typeof field.max === "number" ? field.max : undefined;
+      if (max === undefined || max <= 0) continue;
+      const value = input[field.name];
+      if (typeof value !== "string" || value.length <= max) continue;
+      const cut = value.slice(0, max);
+      const lastSpace = cut.lastIndexOf(" ");
+      input[field.name] = (lastSpace > max * 0.6 ? cut.slice(0, lastSpace) : cut).trimEnd();
+      log.warn("Kie input truncated to the manifest's declared maximum", {
+        field: field.name,
+        max,
+        originalLength: value.length
+      });
+    }
+  }
+
   private applyRequiredDefaults(
     input: Record<string, unknown>,
     fields: ModelInputField[]
@@ -1168,6 +1204,7 @@ export class KieProvider extends BaseProvider {
     const apiKey = this.requireApiKey();
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
     this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
@@ -1258,6 +1295,7 @@ export class KieProvider extends BaseProvider {
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
     this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
@@ -1302,6 +1340,7 @@ export class KieProvider extends BaseProvider {
 
     const { pollInterval, maxAttempts } = this.pollConfig(modelId);
     this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
     const taskId = await submitTaskWithWebhook(apiKey, modelId, input);
     await waitForCompletion(apiKey, taskId, pollInterval, maxAttempts);
     return downloadResultBytes(apiKey, taskId);
@@ -1329,6 +1368,7 @@ export class KieProvider extends BaseProvider {
     this.applyEditOptions(input, fields, params);
     this.applyVideoDuration(input, fields, params);
     this.applyRequiredDefaults(input, fields);
+    this.clampToDeclaredMax(input, fields);
 
     log.debug("Kie imageToVideo", { model: modelId, images: imageUrls.length });
 

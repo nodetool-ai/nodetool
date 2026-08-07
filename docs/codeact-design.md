@@ -1,14 +1,14 @@
-# CodeAct Execution Mode — Design
+# CodeAct Execution — Design
 
-Status: implemented behind `executionMode: "codeact"` (default stays `"tools"`).
+Status: the only agent execution mode. There is no switch.
 Code: `packages/agents/src/codeact/`.
 
 ## What this is
 
-An alternative action space for the agent step loop. In the default mode the
-model acts by emitting one JSON tool call per action, the host executes it, and
-the result comes back as a tool message — one round trip per tool. In CodeAct
-mode the model acts by writing a JavaScript program; the program runs in the
+The action space of the agent step loop. The older loop had the model emit one
+JSON tool call per action, the host execute it, and the result come back as a
+tool message — one round trip per tool. Under CodeAct the model acts by writing
+a JavaScript program; the program runs in the
 QuickJS sandbox where the same toolbelt is exposed as async functions
 (`tools.web_search(...)`), and one round trip can chain, loop over, branch on,
 and post-process any number of tool calls. The program's output — return value,
@@ -32,26 +32,23 @@ The research this follows:
   the sandbox, and surface only the reduction; in tool mode the whole payload
   transits the transcript.
 - **To Run or Not to Run** (arXiv:2606.26978) — execution isn't free; there are
-  regimes where restricting it saves cost with little accuracy loss. That is
-  why this is a *mode*, not a replacement: the default stays `"tools"`, and the
-  eval suite exists to measure where codeact actually wins before any default
-  flips.
+  regimes where restricting it saves cost with little accuracy loss. The
+  `codeact` eval suite is where that cost/benefit stays measurable.
 
 ## What already exists (and is reused unchanged)
 
 | Piece | Where | Role here |
 |---|---|---|
 | QuickJS WASM sandbox | `packages/agents/src/js-sandbox.ts` (`runInSandbox`) | Executes every action. All its limits (30 s timeout, 64 MB heap, fetch caps, output truncation, SSRF guard, workspace containment) apply per action. |
-| Tool base class + registry | `src/tools/base-tool.ts`, `tool-registry.ts` | The toolbelt is the same `Tool[]` the tool-mode step gets — codeact adds no capability that tool mode doesn't have. |
+| Tool base class + registry | `src/tools/base-tool.ts`, `tool-registry.ts` | The toolbelt is the same `Tool[]` a step has always been given — codeact adds no capability of its own. |
 | Provider loop | `BaseProvider.generateLoop` | Drives the turn loop; codeact presents exactly one provider tool. |
 | Result-schema validation | `src/utils/json-schema-validate.ts` | `finish(result)` validates host-side with the same checker `finish_step` uses. |
 | Never-reject bridge convention | `js-sandbox.ts` / `script-runner.ts` | Host bridges resolve `{ok, ...}` envelopes; a guest prelude re-throws. Required by the QuickJS handle-leak workaround. |
 | Agent memory | `context.memory` | Step/task results land under the same keys; memory tools are in the toolbelt as functions like everything else. |
 
 CodeAct is *not* script mode. `ScriptRunner` orchestrates **sub-agents**
-(`agent()` spawns a `StepExecutor`); codeact is what a single step *does
-instead of* JSON tool calls. The two compose: a script-mode run whose
-sub-steps execute in codeact mode is just both flags set.
+(`agent()` spawns a `CodeActExecutor`); codeact is what a single step does.
+The two compose: a script-mode run's sub-steps are codeact steps.
 
 ## The action protocol
 
@@ -163,28 +160,22 @@ The action executes with the same privileges tool mode already grants:
 
 ## Integration surface
 
-- `AgentOptions.executionMode?: "tools" | "codeact"` — threaded through
-  `Agent` → `ParallelTaskExecutor` → `TaskExecutor`, which picks the executor
-  class per step (`createStepExecutor`). Script mode forwards it to its
-  sub-agents; process-mode fan-out steps use it too.
-- **The setting**: `NODETOOL_AGENT_EXECUTION_MODE` (`tools` | `codeact`),
-  registered in the settings registry so it appears in the Settings UI and
-  `nodetool settings`. Resolution precedence, everywhere a mode is resolved
-  (`resolveExecutionMode`): explicit option > the setting > `"tools"`. The
-  server mirrors the stored value into the environment at startup
-  (`applyAgentExecutionModeSetting`); a real environment variable wins over
-  the stored value, and a Settings change takes effect on the next server
-  start.
-- CLI: `nodetool agent run <yaml> --codeact`; the agent YAML also takes
-  `execution_mode: codeact`. Flag > YAML > setting.
+- Every step executor is a `CodeActExecutor`: `Agent` →
+  `ParallelTaskExecutor` → `TaskExecutor` construct one per step, script mode
+  builds one per `agent()` sub-agent, and `run_subtask` / `run_search` spawn
+  their children the same way. There is no option, setting, or flag selecting
+  an action space.
+- Two callers stay on `StepExecutor`, the older JSON-tool-call loop, and it is
+  no longer exported from the package: `SupervisorAgent` and the app-build
+  spec stage. Both are one-shot structured verdicts on a fail-closed path,
+  where a sandbox error would add a failure mode and code actions buy nothing.
 
 ## Chat turns (websocket runner)
 
-The chat websocket runner honors the same setting: when `resolveExecutionMode()`
-says `codeact`, a plain chat turn presents `execute_code` (plus `view_image`,
-the one channel that puts pixels into context and so cannot ride the JSON
-observation envelope) instead of the toolbelt, and the ToolSearch deferral
-machinery is replaced by the in-sandbox `searchTools()`. The adapter is
+A chat turn with tools presents `execute_code` (plus `view_image`, the one
+channel that puts pixels into context and so cannot ride the JSON observation
+envelope) instead of the toolbelt; discovery is the in-sandbox
+`searchTools()`. The adapter is
 `createChatCodeActSession` (`packages/agents/src/codeact/chat-codeact.ts`): a
 chat toolbelt mixes server tools with client (`ui_*`) tools that exist
 server-side only as schemas, so instead of `buildToolBridge` the session
@@ -218,13 +209,52 @@ sync are untouched. A failed commit names the failing operation and keeps it
 cancels its queued ops instead of issuing a delete. Tests:
 `packages/agents/tests/chat-codeact.test.ts`.
 
+## The platform as objects: `nodetool.*`
+
+Alongside the graph model, an action gets the `nodetool` object model
+(`packages/agents/src/codeact/nodetool-api.ts`): namespaces wrapping belt
+tools, so gating and routing stay untouched and a method whose backing tool is
+absent throws naming it. The namespaces are `workflows`, `graph()`, `nodes`,
+`agents`, `models`, `providers`, `media`, `documents`, `web`, `memory`,
+`style`, `email`, `assets`, `jobs`, `collections`, `apps`, `timelines`,
+`sketches`, `scripts`, `storyboards`, plus `batch()` for bounded fan-out.
+
+`web` is the outside world behind one surface: `search(query, {provider})`
+picks whichever search backend the belt carries (`"default"`, `"openai"`,
+`"google"`, `"dataforseo"` pin one), with `news`, `images`, `browse(url)`,
+`fetch(url)`, `download` and `screenshot` alongside. `memory` is the
+conversation's durable notes (`thread_memory_*`), `style` the user's
+accumulated taste, `email` the Gmail three.
+
+Every wrapped tool is filtered out of the prompt's tool catalog
+(`nodetoolApiCoveredToolNames`) — it stays callable through the bridge and
+findable via `searchTools()`, but `nodetool.*` is its one documented form.
+Workspace files are the exception on purpose: they go through the sandbox's own
+in-process `workspace.*` API, which costs no tool call, and the prompt's action
+contract says so.
+
+## What the belt does not carry
+
+Two shrinks keep the belt to capabilities a model cannot write itself:
+
+- The pure-computation tools (`calculate`, `geometry`, `trigonometry`,
+  `statistics`, `unit_conversion`) are gone everywhere, MCP included. Anything
+  a model can do by writing code is not a tool; `run_code` and `js` remain the
+  code path for callers that want one.
+- `getAgentToolbelt()` (`src/tools/builtin-tools.ts`) drops the
+  provider-specific media duplicates — `image_generation`,
+  `openai_image_generation`, `google_image_generation`,
+  `openai_text_to_speech` — because `nodetool.media` already covers them
+  through the provider-agnostic `generate_image` / `generate_speech`. They stay
+  in `getBuiltinTools()`, so MCP clients, which have no object model, keep
+  them.
+
 ## Evaluation
 
 `eval codeact` (registered next to `subtask`): objectives with instrumented
 tools where the interesting metric is *rounds* and *tool routing*, scored
 structurally (required tools invoked, forbidden ones not, action count within
-bounds, final result correct). Run the same cases through both modes to get
-the paper's comparison on our own toolbelt:
+bounds, final result correct):
 
 ```bash
 npm run dev:nodetool -- eval codeact -p anthropic -m claude-sonnet-5
@@ -237,8 +267,6 @@ finalization — no network, no model.
 
 ## Non-goals (now)
 
-- Flipping the default. `"tools"` remains until the eval says otherwise per
-  the cost-effectiveness caveat above.
 - Python actions. The sandbox is JS; the CodeAct result is about code as the
   action space, not about Python specifically.
 - Replacing planners. GraphPlanner/ScriptPlanner/CodePlanner already use

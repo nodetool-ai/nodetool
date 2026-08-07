@@ -41,6 +41,7 @@ import {
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
+import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
 import {
   getSecret,
@@ -56,7 +57,7 @@ import {
 } from "@nodetool-ai/config";
 import { join } from "node:path";
 import { getAssetAdapter } from "./lib/storage.js";
-import { storeAssetWithThumbnail } from "./lib/thumbnail.js";
+import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { McpServerOptions } from "./mcp-server.js";
 
 export type FrontendDocumentToolExecutor = (
@@ -65,25 +66,6 @@ export type FrontendDocumentToolExecutor = (
 ) => Promise<{ handled: boolean; result?: unknown }>;
 
 const log = createLogger("nodetool.websocket.mcp-agent-tools");
-
-const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/webp": "webp",
-  "image/bmp": "bmp",
-  "image/svg+xml": "svg",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "application/pdf": "pdf",
-  "text/plain": "txt",
-  "text/html": "html",
-  "model/gltf-binary": "glb"
-};
 
 /**
  * Per-user workspace directory the bridged file tools (read_file, write_file,
@@ -122,31 +104,7 @@ function buildAgentToolContext(userId: string): ProcessingContext {
     workspaceStorage: new FileStorageAdapter(workspaceDir)
   });
   context.setModelInterfaces({
-    createAsset: async (args) => {
-      const asset = new Asset({
-        user_id: args.userId,
-        workflow_id: args.workflowId ?? null,
-        node_id: args.nodeId ?? null,
-        job_id: args.jobId ?? null,
-        name: args.name,
-        content_type: args.contentType,
-        parent_id: args.parentId ?? null
-      });
-      if (args.content) {
-        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-        const key = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          key,
-          args.content,
-          args.contentType
-        );
-        asset.size = args.content.length;
-      }
-      await asset.save();
-      return asset;
-    },
+    createAsset: createAssetModelInterface,
     getAssetInfo: async ({ userId, assetId }) => {
       const asset = await Asset.find(userId, assetId);
       if (!asset) return null;
@@ -344,7 +302,18 @@ function collectBridgedTools(
     // Workflow / node / job / asset / app tools, plus the ui_* workflow
     // document tools. The read tools among them (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.
-    ...getAllMcpTools({ registry: options?.registry }),
+    // Thread this mount's own configuration into the host deps — a server
+    // configured with a non-default examples dir or metadata roots must not
+    // silently fall back to the defaults.
+    ...getAllMcpTools({
+      registry: options?.registry,
+      ...mcpToolHostDeps({
+        registry: options?.registry,
+        metadataRoots: options?.metadataRoots,
+        metadataMaxDepth: options?.metadataMaxDepth,
+        examplesDir: options?.examplesDir
+      })
+    }),
     // Google Workspace runs on the token from the user's Google sign-in, so it
     // only exists on deployments that have a login — same gate the runner uses.
     ...(isGoogleWorkspaceEnabled() ? getGoogleWorkspaceTools() : []),
@@ -449,9 +418,14 @@ export function registerAgentMcpTools(
       continue;
     }
     taken.add(tool.name);
-    // find_model reads the configured-providers map at call time, so populate
-    // it before the handler runs.
-    register(tool, tool instanceof FindModelTool ? ensureProviders : undefined);
+    // find_model and list_models read the configured-providers map at call
+    // time, so populate it before either handler runs.
+    register(
+      tool,
+      tool instanceof FindModelTool || tool instanceof ListModelsTool
+        ? ensureProviders
+        : undefined
+    );
     registered += 1;
   }
   log.info("Registered agent MCP tools", {

@@ -4,9 +4,7 @@
  * Drives a real {@link CodeActExecutor} over the instrumented offline
  * toolbelt in `codeact-cases.ts` and scores each run structurally: required
  * tools invoked through the bridge, action-round and tool-call bounds, and a
- * predicate over the final result. `--mode tools` runs the identical cases
- * through {@link StepExecutor}, so the two action spaces compare on the same
- * objectives (the CodeAct paper's comparison, on our toolbelt).
+ * predicate over the final result.
  */
 
 import { randomUUID } from "node:crypto";
@@ -14,10 +12,11 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { StepResult, ToolCallUpdate } from "@nodetool-ai/protocol";
 import type { EvalCheck } from "./graph-planner-eval.js";
-import { CodeActExecutor, EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
-import { StepExecutor } from "../step-executor.js";
+import {
+  CodeActExecutor,
+  EXECUTE_CODE_TOOL_NAME
+} from "../codeact/codeact-executor.js";
 import type { Step, Task } from "../types.js";
-import type { AgentExecutionMode } from "../types.js";
 import {
   CODEACT_EVAL_CASES,
   createCodeActRecorder,
@@ -31,9 +30,9 @@ const DEFAULT_MAX_ITERATIONS = 8;
 /** Everything the pure checker needs — no provider, no I/O. */
 export interface CodeActObservation {
   toolsInvoked: Set<string>;
-  /** Provider turns that carried a code action (tool mode: total tool calls). */
+  /** Provider turns that carried a code action. */
   actions: number;
-  /** Bridged tool invocations (tool mode: direct tool calls). */
+  /** Bridged tool invocations. */
   toolCalls: number;
   result: unknown;
 }
@@ -54,7 +53,6 @@ export interface CodeActCaseResult {
 export interface CodeActEvalReport {
   provider: string;
   model: string;
-  mode: AgentExecutionMode;
   startedAt: string;
   cases: CodeActCaseResult[];
   summary: {
@@ -72,8 +70,6 @@ export interface RunCodeActEvalOptions {
   provider: BaseProvider;
   model: string;
   cases?: readonly CodeActEvalCase[];
-  /** Action space under test. Default `"codeact"`. */
-  mode?: AgentExecutionMode;
   maxIterations?: number;
   signal?: AbortSignal;
   onEvent?: (line: string) => void;
@@ -137,7 +133,6 @@ async function runCase(
   evalCase: CodeActEvalCase,
   opts: RunCodeActEvalOptions
 ): Promise<CodeActCaseResult> {
-  const mode = opts.mode ?? "codeact";
   const recorder = createCodeActRecorder();
   const tools = createCodeActTools(recorder);
   const maxIterations = opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
@@ -163,7 +158,7 @@ async function runCase(
     steps: [step]
   };
 
-  const executorOpts = {
+  const executor = new CodeActExecutor({
     task,
     step,
     context,
@@ -172,11 +167,7 @@ async function runCase(
     tools,
     maxIterations,
     signal: opts.signal
-  };
-  const executor =
-    mode === "codeact"
-      ? new CodeActExecutor(executorOpts)
-      : new StepExecutor(executorOpts);
+  });
 
   const costBefore = opts.provider.getTotalCost();
   const startedAt = Date.now();
@@ -189,11 +180,8 @@ async function runCase(
       if (opts.signal?.aborted) break;
       if (item.type === "tool_call_update") {
         const tc = item as ToolCallUpdate;
-        // In codeact mode a "round" is one execute_code turn; in tool mode
-        // every provider tool call is one round.
-        if (mode !== "codeact" || tc.name === EXECUTE_CODE_TOOL_NAME) {
-          actions++;
-        }
+        // A "round" is one execute_code turn.
+        if (tc.name === EXECUTE_CODE_TOOL_NAME) actions++;
       }
       if (item.type === "step_result") {
         const sr = item as StepResult;
@@ -244,12 +232,11 @@ export async function runCodeActEval(
   opts: RunCodeActEvalOptions
 ): Promise<CodeActEvalReport> {
   const cases = opts.cases ?? CODEACT_EVAL_CASES;
-  const mode = opts.mode ?? "codeact";
   const results: CodeActCaseResult[] = [];
 
   for (const evalCase of cases) {
     if (opts.signal?.aborted) break;
-    opts.onEvent?.(`▸ ${evalCase.id} (${mode})`);
+    opts.onEvent?.(`▸ ${evalCase.id}`);
     const result = await runCase(evalCase, opts);
     results.push(result);
     opts.onEvent?.(
@@ -267,7 +254,6 @@ export async function runCodeActEval(
   return {
     provider: opts.provider.provider,
     model: opts.model,
-    mode,
     startedAt: new Date().toISOString(),
     cases: results,
     summary: {
@@ -291,7 +277,7 @@ export async function runCodeActEval(
 export function formatCodeActReport(report: CodeActEvalReport): string {
   const lines: string[] = [];
   lines.push(
-    `CodeAct eval — provider=${report.provider} model=${report.model} mode=${report.mode}`
+    `CodeAct eval — provider=${report.provider} model=${report.model}`
   );
   lines.push("");
   const header = [

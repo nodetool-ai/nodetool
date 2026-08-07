@@ -10,9 +10,7 @@
     "src/utils/remove-base64-images.ts",
     "src/utils/wrap-generators-parallel.ts",
     "src/tools/tool-permissions.ts",
-    "src/tools/control-tool.ts",
-    "src/tools/calculator-tool.ts",
-    "src/tools/math-tools.ts"
+    "src/tools/control-tool.ts"
   ],
   "vitest": {
     "configFile": "vitest.mutation.config.ts"

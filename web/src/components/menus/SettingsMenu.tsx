@@ -40,7 +40,6 @@ import {
   getDisplayedSettingGroups
 } from "./RemoteSettingsMenu";
 import ServerNumberSetting from "./ServerNumberSetting";
-import ServerSelectSetting from "./ServerSelectSetting";
 import { getAboutSidebarSections } from "./aboutSidebarUtils";
 import DefaultModelsMenu from "./DefaultModelsMenu";
 import MCPSettingsMenu from "./MCPSettingsMenu";
@@ -74,11 +73,6 @@ const CLOSE_BEHAVIOR_OPTIONS = [
   { value: "ask", label: "Ask Every Time" },
   { value: "quit", label: "Quit Application" },
   { value: "background", label: "Keep Running in Background" }
-] as const;
-
-const AGENT_EXECUTION_MODE_OPTIONS = [
-  { value: "tools", label: "Tools (JSON tool calls)" },
-  { value: "codeact", label: "CodeAct (JavaScript actions)" }
 ] as const;
 
 const PAN_CONTROLS_OPTIONS = [
@@ -844,32 +838,6 @@ function SettingsPage() {
                           min={1}
                           max={64}
                           description="How many runs of the same workflow may run at once before further runs queue. Applies to concurrent generation (timeline, sketch); canvas runs always stay sequential."
-                        />
-                      </SearchItem>
-
-                      <SearchItem
-                        search={generalSearch}
-                        keywords="agent execution mode codeact code act tools javascript sandbox action space"
-                      >
-                        <ServerSelectSetting
-                          envVar="NODETOOL_AGENT_EXECUTION_MODE"
-                          id="agent-execution-mode-select"
-                          label="Agent Execution Mode"
-                          defaultValue="tools"
-                          options={AGENT_EXECUTION_MODE_OPTIONS}
-                          description={
-                            <>
-                              How agent steps act on their toolbelt.
-                              <br />
-                              <b>Tools:</b> one JSON tool call per action (the
-                              default).
-                              <br />
-                              <b>CodeAct:</b> each step writes JavaScript that
-                              runs in the sandbox and calls the same tools, so
-                              one action can loop, branch, and combine several
-                              tools.
-                            </>
-                          }
                         />
                       </SearchItem>
                     </div>

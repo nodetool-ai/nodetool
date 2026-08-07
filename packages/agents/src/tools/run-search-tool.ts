@@ -14,7 +14,7 @@
  *    exploration prompt paragraph and the child loop's iteration budget.
  *
  * The child loop runs as a single unstructured Step in prose mode: with no
- * output schema, StepExecutor ends the loop on a no-tool-call assistant
+ * output schema, the executor ends the loop on a no-tool-call assistant
  * message, whose text becomes the result (the search report).
  *
  * Recursion is bounded by {@link RunSearchToolOptions.maxDepth} (default 3) via
@@ -28,7 +28,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { StepExecutor } from "../step-executor.js";
+import { CodeActExecutor } from "../codeact/codeact-executor.js";
 import { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 import type { ForwardMessage } from "./run-subtask-tool.js";
 import type { Step, Task } from "../types.js";
@@ -48,7 +48,7 @@ const DEFAULT_MAX_ITERATIONS = 20;
  * to be available inside a search; anything not listed (write/edit/execute/
  * spawn) is excluded by construction.
  *
- * Note: StepExecutor auto-attaches memory_list/memory_read/memory_write to
+ * Note: the executor auto-attaches memory_list/memory_read/memory_write to
  * every step regardless of this array. memory_write only touches the shared
  * memory namespace (no filesystem/state mutation), and the prompt forbids
  * writes; combined with the absence of any forwarded filesystem-write tool,
@@ -180,7 +180,7 @@ export class RunSearchTool extends Tool {
     childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
 
     // Search runs as a single unstructured Step — no schema, no planning.
-    // StepExecutor's no-tool-call path captures the final assistant text as the
+    // The executor's no-tool-call path captures the final assistant text as the
     // search report. The adapted exploration prompt lands in the step
     // instructions (the prose template's objective slot).
     const step: Step = {
@@ -203,7 +203,7 @@ export class RunSearchTool extends Tool {
         ? this.maxIterations * 2
         : this.maxIterations;
 
-    const executor = new StepExecutor({
+    const executor = new CodeActExecutor({
       task,
       step,
       context: childCtx,
@@ -244,7 +244,7 @@ export class RunSearchTool extends Tool {
 
         if (item.type === "step_result") {
           const sr = item as StepResult;
-          // StepExecutor reports failure as `result: { error: "Step failed…" }`
+          // The executor reports failure as `result: { error: "Step failed…" }`
           // and never sets the top-level `sr.error`; detect the nested error
           // shape so a failed search isn't returned as a successful report.
           const nestedError =

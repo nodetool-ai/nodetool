@@ -316,29 +316,6 @@ describe("CodeActExecutor", () => {
   });
 });
 
-describe("resolveExecutionMode", () => {
-  it("prefers the explicit option, then the setting, then tools", async () => {
-    const { resolveExecutionMode, AGENT_EXECUTION_MODE_ENV } = await import(
-      "../src/codeact/execution-mode.js"
-    );
-    const saved = process.env[AGENT_EXECUTION_MODE_ENV];
-    try {
-      delete process.env[AGENT_EXECUTION_MODE_ENV];
-      expect(resolveExecutionMode()).toBe("tools");
-      process.env[AGENT_EXECUTION_MODE_ENV] = "codeact";
-      expect(resolveExecutionMode()).toBe("codeact");
-      expect(resolveExecutionMode("tools")).toBe("tools");
-      process.env[AGENT_EXECUTION_MODE_ENV] = "CodeAct";
-      expect(resolveExecutionMode()).toBe("codeact");
-      process.env[AGENT_EXECUTION_MODE_ENV] = "nonsense";
-      expect(resolveExecutionMode()).toBe("tools");
-    } finally {
-      if (saved === undefined) delete process.env[AGENT_EXECUTION_MODE_ENV];
-      else process.env[AGENT_EXECUTION_MODE_ENV] = saved;
-    }
-  });
-});
-
 describe("CodeAct progressive tool disclosure", () => {
   class NamedTool extends Tool {
     constructor(

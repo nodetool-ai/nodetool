@@ -23,7 +23,7 @@ Objective (user goal)
 │                                                        │
 │  1. Skill resolution    (load SKILL.md files)          │
 │  2. Planning phase      (TaskPlanner → Task with Steps)│
-│  3. Execution phase     (TaskExecutor → StepExecutor)  │
+│  3. Execution phase     (TaskExecutor → CodeActExecutor)│
 │                                                        │
 └────────────────────────────────────────────────────────┘
     │
@@ -39,10 +39,10 @@ Structured result (validated against output JSON schema)
 | **ParallelTaskExecutor** | Execute independent tasks of a plan concurrently | `packages/agents/src/parallel-task-executor.ts` |
 | **TaskPlanner** | Decompose an objective into a task DAG | `packages/agents/src/task-planner.ts` |
 | **TaskExecutor** | Walk the step DAG, respecting dependency order | `packages/agents/src/task-executor.ts` |
-| **StepExecutor** | Run the tool-calling loop for a single step | `packages/agents/src/step-executor.ts` |
+| **CodeActExecutor** | Run the sandboxed-JavaScript action loop for a single step | `packages/agents/src/codeact/codeact-executor.ts` |
 
 The top-level **Agent** orchestrates planning (via `TaskPlanner`) and execution (via `TaskExecutor` →
-`StepExecutor`), then validates the final result against the output schema. Its constructor accepts a
+`CodeActExecutor`), then validates the final result against the output schema. Its constructor accepts a
 `provider` (`BaseProvider`), `model`, `tools`, `objective`, and the options in the
 [Configuration Reference](#configuration-reference) below. It exposes
 `execute(context): AsyncGenerator<ProcessingMessage>` and `getResults(): unknown`.
@@ -81,18 +81,18 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 
 ## Execution Phase
 
-**TaskExecutor** walks the step DAG, respecting dependency order. For each step, it creates a **StepExecutor** that runs a tool-calling loop:
+**TaskExecutor** walks the step DAG, respecting dependency order. For each step, it creates a **CodeActExecutor** that runs the code-action loop:
 
-1. Build messages — system prompt, user instructions, upstream step results
+1. Build messages — the CodeAct contract, the tool catalog, the step instructions
 2. Stream the LLM response
-3. Collect and execute tool calls in parallel
-4. Append tool results to conversation history
-5. Repeat until the LLM calls `finish_step` or max iterations are reached
-6. Validate the result against the step's output schema
+3. Run the action's JavaScript in the QuickJS sandbox, where the toolbelt is `tools.<name>()`
+4. Feed the observation (return value, logs, error) back as the tool result
+5. Repeat until the program calls `finish(result)` or max iterations are reached
+6. Validate the result against the step's output schema — host-side, in `finish`
 
-### Token Management
-
-StepExecutor estimates token usage and enters a "conclusion stage" at 90% of the budget. In this stage only the `finish_step` tool is available, forcing the LLM to wrap up. Older messages are summarized to stay within limits.
+See [codeact-design.md](codeact-design.md) for the action protocol, the
+sandbox limits that apply per action, and the `state` object that persists
+across a step's actions.
 
 ### Fan-Out Execution
 
@@ -175,7 +175,6 @@ abstract class Tool {
 | **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
 | **Search** | `WebSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
 | **Code execution** | `RunCodeTool`, `MiniJSAgentTool` | `code-tools.ts`, `js-code-tool.ts` |
-| **Math** | `CalculatorTool`, `StatisticsTool`, `GeometryTool`, `TrigonometryTool`, `ConversionTool` | `math-tools.ts`, `calculator-tool.ts` |
 | **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
 | **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
 | **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |

@@ -4,7 +4,7 @@
  * Port of src/nodetool/agents/task_executor.py
  *
  * Iteratively finds steps whose dependencies are satisfied, runs
- * StepExecutor for each, and collects results until all steps complete
+ * CodeActExecutor for each, and collects results until all steps complete
  * or the safety limit is reached.
  *
  * Process-mode steps automatically fan out over list inputs produced by
@@ -26,12 +26,10 @@ import {
 } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.agents.task-executor");
-import { StepExecutor, type StepExecutorOptions } from "./step-executor.js";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
-import { resolveExecutionMode } from "./codeact/execution-mode.js";
 import { mergeAsyncGenerators } from "./utils/merge-generators.js";
 import type { Tool } from "./tools/base-tool.js";
-import type { AgentExecutionMode, Step, Task } from "./types.js";
+import type { Step, Task } from "./types.js";
 import { DEFAULT_AGENT_POLICY } from "./agent-policy.js";
 
 const DEFAULT_MAX_STEPS = 50;
@@ -47,7 +45,7 @@ export interface TaskExecutorOptions {
   inputs?: Record<string, unknown>;
   maxSteps?: number;
   maxStepIterations?: number;
-  /** Cap on output tokens per step turn. Forwarded to each StepExecutor. */
+  /** Cap on output tokens per step turn. Forwarded to each step executor. */
   maxTokens?: number;
   /** ID of the final aggregation step (will use useFinishTask=true). */
   finalStepId?: string;
@@ -62,13 +60,11 @@ export interface TaskExecutorOptions {
   /**
    * Memory keys (typically `task:<id>` from the parent plan's task-level
    * dependencies) to surface in every step's user message as required
-   * upstream context. Forwarded to {@link StepExecutor.upstreamMemoryKeys}.
+   * upstream context. Forwarded to {@link CodeActExecutor.upstreamMemoryKeys}.
    */
   upstreamMemoryKeys?: string[];
   /** External cancellation, forwarded to every step executor. */
   signal?: AbortSignal;
-  /** Step action space — JSON tool calls (default) or CodeAct. */
-  executionMode?: AgentExecutionMode;
 }
 
 export class TaskExecutor {
@@ -87,7 +83,6 @@ export class TaskExecutor {
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
   private signal?: AbortSignal;
-  private executionMode: AgentExecutionMode;
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -108,19 +103,6 @@ export class TaskExecutor {
       opts.maxConcurrentAgents ?? DEFAULT_AGENT_POLICY.maxConcurrentAgents;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.signal = opts.signal;
-    this.executionMode = resolveExecutionMode(opts.executionMode);
-  }
-
-  /**
-   * The two executors share the option shape and message contract; the mode
-   * picks the action space (docs/codeact-design.md).
-   */
-  private createStepExecutor(
-    opts: StepExecutorOptions
-  ): StepExecutor | CodeActExecutor {
-    return this.executionMode === "codeact"
-      ? new CodeActExecutor(opts)
-      : new StepExecutor(opts);
   }
 
   /**
@@ -183,7 +165,7 @@ export class TaskExecutor {
       }
 
       const stepGenerators = normalSteps.map((step) => {
-        const executor = this.createStepExecutor({
+        const executor = new CodeActExecutor({
           task: this.task,
           step,
           context: this.context,
@@ -432,7 +414,7 @@ export class TaskExecutor {
     });
 
     const generators = ephemeralSteps.map((ephStep) => {
-      const executor = this.createStepExecutor({
+      const executor = new CodeActExecutor({
         task: this.task,
         step: ephStep,
         context: this.context,

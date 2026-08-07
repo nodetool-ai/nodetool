@@ -14,8 +14,8 @@ const updateSettings = jest.fn().mockResolvedValue(undefined);
 const mockStore = useRemoteSettingsStore as unknown as jest.Mock;
 
 const OPTIONS = [
-  { value: "tools", label: "Tools (JSON tool calls)" },
-  { value: "codeact", label: "CodeAct (JavaScript actions)" }
+  { value: "serpapi", label: "SerpAPI" },
+  { value: "brave", label: "Brave Search" }
 ] as const;
 
 const setStoredValue = (value: string | undefined) => {
@@ -23,7 +23,7 @@ const setStoredValue = (value: string | undefined) => {
     settings:
       value === undefined
         ? []
-        : [{ env_var: "NODETOOL_AGENT_EXECUTION_MODE", value }],
+        : [{ env_var: "SERP_PROVIDER", value }],
     fetchSettings,
     updateSettings
   };
@@ -37,11 +37,11 @@ const renderSetting = () =>
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
         <ServerSelectSetting
-          envVar="NODETOOL_AGENT_EXECUTION_MODE"
-          label="Agent Execution Mode"
-          defaultValue="tools"
+          envVar="SERP_PROVIDER"
+          label="Search Provider"
+          defaultValue="serpapi"
           options={OPTIONS}
-          description="How agent steps act on their toolbelt."
+          description="Which provider backs web search."
         />
       </ThemeProvider>
     </QueryClientProvider>
@@ -55,41 +55,33 @@ describe("ServerSelectSetting", () => {
   it("falls back to the default when the setting is unset", () => {
     setStoredValue(undefined);
     renderSetting();
-    expect(screen.getByRole("combobox")).toHaveTextContent(
-      "Tools (JSON tool calls)"
-    );
+    expect(screen.getByRole("combobox")).toHaveTextContent("SerpAPI");
   });
 
   it("shows the stored value", () => {
-    setStoredValue("codeact");
+    setStoredValue("brave");
     renderSetting();
-    expect(screen.getByRole("combobox")).toHaveTextContent(
-      "CodeAct (JavaScript actions)"
-    );
+    expect(screen.getByRole("combobox")).toHaveTextContent("Brave Search");
   });
 
   it("writes the picked value back to the server setting", async () => {
-    setStoredValue("tools");
+    setStoredValue("serpapi");
     renderSetting();
 
     await userEvent.click(screen.getByRole("combobox"));
-    await userEvent.click(
-      screen.getByRole("option", { name: "CodeAct (JavaScript actions)" })
-    );
+    await userEvent.click(screen.getByRole("option", { name: "Brave Search" }));
 
     expect(updateSettings).toHaveBeenCalledWith({
-      NODETOOL_AGENT_EXECUTION_MODE: "codeact"
+      SERP_PROVIDER: "brave"
     });
   });
 
   it("does not write when the value is unchanged", async () => {
-    setStoredValue("codeact");
+    setStoredValue("brave");
     renderSetting();
 
     await userEvent.click(screen.getByRole("combobox"));
-    await userEvent.click(
-      screen.getByRole("option", { name: "CodeAct (JavaScript actions)" })
-    );
+    await userEvent.click(screen.getByRole("option", { name: "Brave Search" }));
 
     expect(updateSettings).not.toHaveBeenCalled();
   });

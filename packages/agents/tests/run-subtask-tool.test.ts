@@ -187,18 +187,18 @@ describe("RunSubtaskTool", () => {
           return {};
         }
       });
-      const baseTools = [make("browser")]; // intentionally NO run_subtask
+      const baseTools = [make("read_file")]; // intentionally NO run_subtask
 
-      let capturedToolNames: string[] = [];
+      let capturedPrompt = "";
       const provider = createMockProvider([
         [{ type: "chunk", content: "ok", done: true }]
       ]);
       const origGen = provider.generateMessages.bind(provider);
       provider.generateMessages = async function* (opts: any) {
-        if (opts && Array.isArray(opts.tools)) {
-          capturedToolNames = (opts.tools as Array<{ name: string }>).map(
-            (t) => t.name
-          );
+        if (opts && Array.isArray(opts.messages)) {
+          capturedPrompt = (opts.messages as Array<{ content?: unknown }>)
+            .map((m) => (typeof m.content === "string" ? m.content : ""))
+            .join("\n");
         }
         yield* origGen(opts);
       };
@@ -219,8 +219,12 @@ describe("RunSubtaskTool", () => {
         [TOOL_CALL_ID_FIELD]: "tc_root"
       });
 
-      expect(capturedToolNames).toContain("browser");
-      expect(capturedToolNames).toContain("run_subtask");
+      // Code actions reach the toolbelt through the sandbox, so the child's
+      // toolset shows up in the documented catalog, not in the provider tools.
+      // `run_subtask` is documented as the object model's `nodetool.agents`,
+      // which the prompt carries only when the belt can serve it.
+      expect(capturedPrompt).toContain("tools.read_file(");
+      expect(capturedPrompt).toContain("nodetool.agents");
     });
 
     it("does not mutate the caller's depth counter (each level gets a copy)", async () => {
@@ -262,21 +266,21 @@ describe("RunSubtaskTool", () => {
         }
       });
       const parentTools = [
-        make("browser"),
+        make("read_file"),
         make("memory_read"),
         make("write_file")
       ];
 
-      let capturedToolNames: string[] = [];
+      let capturedPrompt = "";
       const provider = createMockProvider([
         [{ type: "chunk", content: "ok", done: true }]
       ]);
       const origGen = provider.generateMessages.bind(provider);
       provider.generateMessages = async function* (opts: any) {
-        if (opts && Array.isArray(opts.tools)) {
-          capturedToolNames = (opts.tools as Array<{ name: string }>).map(
-            (t) => t.name
-          );
+        if (opts && Array.isArray(opts.messages)) {
+          capturedPrompt = (opts.messages as Array<{ content?: unknown }>)
+            .map((m) => (typeof m.content === "string" ? m.content : ""))
+            .join("\n");
         }
         yield* origGen(opts);
       };
@@ -299,14 +303,10 @@ describe("RunSubtaskTool", () => {
 
       // All parent tools are inherited; run_subtask is stitched in so the
       // child can itself recurse.
-      expect(capturedToolNames).toEqual(
-        expect.arrayContaining([
-          "browser",
-          "memory_read",
-          "write_file",
-          "run_subtask"
-        ])
-      );
+      for (const name of ["read_file", "memory_read", "write_file"]) {
+        expect(capturedPrompt).toContain(`tools.${name}(`);
+      }
+      expect(capturedPrompt).toContain("nodetool.agents");
     });
   });
 });

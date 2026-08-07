@@ -22,7 +22,6 @@
 import type { Tool } from "./base-tool.js";
 import { registerTool } from "./tool-registry.js";
 
-import { CalculatorTool } from "./calculator-tool.js";
 import { RunCodeTool } from "./code-tools.js";
 import { MiniJSAgentTool } from "./js-code-tool.js";
 import { BrowserTool, ScreenshotTool } from "./browser-tools.js";
@@ -52,12 +51,6 @@ import {
   ArchiveEmailTool,
   AddLabelToEmailTool
 } from "./email-tools.js";
-import {
-  StatisticsTool,
-  GeometryTool,
-  TrigonometryTool,
-  ConversionTool
-} from "./math-tools.js";
 import {
   ExtractPDFTextTool,
   ExtractPDFTablesTool,
@@ -95,7 +88,8 @@ import {
   ListScriptsTool,
   GetScriptTool,
   VoiceScriptLinesTool,
-  AssembleScriptTimelineTool
+  AssembleScriptTimelineTool,
+  EditScriptTool
 } from "./script-voice-tools.js";
 import {
   ListStoryboardsTool,
@@ -103,7 +97,8 @@ import {
   RenderStoryboardStillsTool,
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool
+  AssembleStoryboardTimelineTool,
+  EditStoryboardTool
 } from "./storyboard-render-tools.js";
 import {
   ListSketchesTool,
@@ -112,6 +107,7 @@ import {
   CreateSketchVersionTool,
   RestoreSketchVersionTool
 } from "./sketch-version-tools.js";
+import { EditSketchTool } from "./sketch-edit-tools.js";
 import {
   ListTimelinesTool,
   ListTimelineVersionsTool,
@@ -119,6 +115,7 @@ import {
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool
 } from "./timeline-version-tools.js";
+import { EditTimelineTool } from "./timeline-edit-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -147,6 +144,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetScriptTool,
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool,
+  EditScriptTool,
 
   // Storyboard → rendered media → timeline, without authoring a workflow
   ListStoryboardsTool,
@@ -155,6 +153,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool,
+  EditStoryboardTool,
 
   // Sketch snapshot history (find a sketch, pin a state, roll one back)
   ListSketchesTool,
@@ -162,6 +161,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetSketchVersionTool,
   CreateSketchVersionTool,
   RestoreSketchVersionTool,
+  EditSketchTool,
 
   // Timeline snapshot history (find a cut, pin a state, roll one back)
   ListTimelinesTool,
@@ -169,6 +169,7 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   GetTimelineVersionTool,
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool,
+  EditTimelineTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,
@@ -209,13 +210,8 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   AddLabelToEmailTool,
 
   // Compute
-  CalculatorTool,
   RunCodeTool,
   MiniJSAgentTool,
-  StatisticsTool,
-  GeometryTool,
-  TrigonometryTool,
-  ConversionTool,
 
   // Documents
   ExtractPDFTextTool,
@@ -231,6 +227,33 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
  */
 export function getBuiltinTools(): Tool[] {
   return BUILTIN_TOOL_CLASSES.map((Cls) => new Cls());
+}
+
+/**
+ * Built-ins an agent's toolbelt leaves out. Every one is a provider-specific
+ * duplicate of a capability the `nodetool.media.*` object model already covers
+ * through the provider-agnostic `generate_image` / `generate_speech`: offering
+ * both makes the model choose a provider before it has chosen a model. They
+ * stay in {@link getBuiltinTools}, so MCP clients — which have no object model
+ * and no `find_model` habit — keep them.
+ */
+export const AGENT_TOOLBELT_EXCLUDED: ReadonlySet<string> = new Set([
+  "image_generation",
+  "openai_image_generation",
+  "google_image_generation",
+  "openai_text_to_speech"
+]);
+
+/**
+ * The built-ins an agent gets: {@link getBuiltinTools} minus
+ * {@link AGENT_TOOLBELT_EXCLUDED}. Use this wherever a toolbelt is assembled
+ * for a model to reason over; use `getBuiltinTools` for the full inventory
+ * (MCP, registration, audits).
+ */
+export function getAgentToolbelt(): Tool[] {
+  return getBuiltinTools().filter(
+    (tool) => !AGENT_TOOLBELT_EXCLUDED.has(tool.name)
+  );
 }
 
 let registeredNames: string[] | null = null;

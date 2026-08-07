@@ -1,7 +1,7 @@
 /**
  * ScriptRunner — orchestration scripts in the QuickJS sandbox, with every
- * `agent()` call backed by a real StepExecutor driven here by a fake provider
- * whose loop just calls `finish_step`.
+ * `agent()` call backed by a real CodeActExecutor driven here by a fake
+ * provider whose loop runs one code action calling `finish()`.
  */
 import { describe, it, expect } from "vitest";
 import { ScriptRunner } from "../src/script-runner.js";
@@ -12,6 +12,7 @@ import type {
 } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
 
 const ECHO_SCHEMA = {
   type: "object",
@@ -27,9 +28,9 @@ interface EchoProviderOptions {
 }
 
 /**
- * Fake provider whose generateLoop finishes every step via `finish_step`,
- * echoing the step's objective (embedded in the system message). Tracks the
- * number of concurrently running loops.
+ * Fake provider whose generateLoop finishes every step with one code action,
+ * echoing the step's objective (the user message). Tracks the number of
+ * concurrently running loops.
  */
 function createEchoProvider(opts: EchoProviderOptions = {}) {
   let active = 0;
@@ -54,17 +55,22 @@ function createEchoProvider(opts: EchoProviderOptions = {}) {
         if (opts.delayMs) {
           await new Promise((r) => setTimeout(r, opts.delayMs));
         }
-        const system = String(args.messages[0]?.content ?? "");
-        const objective = /# Objective\n(.*)/.exec(system)?.[1] ?? "?";
+        const user = String(args.messages[1]?.content ?? "");
+        const objective = user.split("\n\n")[0] || "?";
         const echo = (opts.echoFor ?? ((p: string) => p))(objective);
-        const finish = args.tools?.find((t) => t.name === "finish_step");
+        const execute = args.tools?.find(
+          (t) => t.name === EXECUTE_CODE_TOOL_NAME
+        );
         const tc: ToolCall = {
           id: `tc_${calls}`,
-          name: "finish_step",
-          args: { result: { echo } }
+          name: EXECUTE_CODE_TOOL_NAME,
+          args: {
+            title: "Echoing the objective",
+            code: `await finish(${JSON.stringify({ echo })});`
+          }
         };
         yield tc;
-        const content = await finish?.execute?.(tc.args as never);
+        const content = await execute?.execute?.(tc.args as never);
         yield {
           type: "message",
           message: {

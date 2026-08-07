@@ -419,6 +419,13 @@ export interface ModelInputField {
   enumValues?: string[];
   required?: boolean;
   default?: unknown;
+  /**
+   * Declared upper bound: character count for a string field, numeric ceiling
+   * otherwise. Kie publishes it (Kling 2.6's `prompt` is capped at 1000) and
+   * rejects an over-long value with an unnamed 500, so carrying it here lets a
+   * provider enforce the cap before spending the round trip.
+   */
+  max?: number;
 }
 
 /**
@@ -442,7 +449,8 @@ export function getModelInputFields(
       type: f.type.toLowerCase(),
       ...(f.values && f.values.length > 0 ? { enumValues: f.values } : {}),
       ...(f.required !== undefined ? { required: f.required } : {}),
-      ...(f.default !== undefined ? { default: f.default } : {})
+      ...(f.default !== undefined ? { default: f.default } : {}),
+      ...(typeof f.max === "number" ? { max: f.max } : {})
     }));
   }
   return (entry.inputFields ?? []).map((f) => ({

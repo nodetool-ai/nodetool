@@ -19,6 +19,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Agent } from "../src/agent.js";
 import { TaskExecutor } from "../src/task-executor.js";
 import { StepExecutor } from "../src/step-executor.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
 import { ParallelTaskExecutor } from "../src/parallel-task-executor.js";
 import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import type { Task, TaskPlan } from "../src/types.js";
@@ -102,6 +103,16 @@ const finishStep = (id: string, result: unknown) => ({
   args: { result }
 });
 
+/** One code action that finishes the step with `result`. */
+const finishAction = (id: string, result: unknown) => ({
+  id,
+  name: EXECUTE_CODE_TOOL_NAME,
+  args: {
+    title: "Finishing the step",
+    code: `await finish(${JSON.stringify(result)});`
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
@@ -109,7 +120,7 @@ const finishStep = (id: string, result: unknown) => ({
 describe("Agent memory propagation", () => {
   it("writes step and task results to memory under canonical keys", async () => {
     const provider = createRecordingProvider([
-      [finishStep("tc1", { value: 42 })]
+      [finishAction("tc1", { value: 42 })]
     ]);
     const context = createMockContext();
 
@@ -156,7 +167,7 @@ describe("Agent memory propagation", () => {
 
   it("seeds inputs as input: memory entries", async () => {
     const provider = createRecordingProvider([
-      [finishStep("tc1", { value: 1 })]
+      [finishAction("tc1", { value: 1 })]
     ]);
     const context = createMockContext();
 
@@ -204,9 +215,9 @@ describe("Agent memory propagation", () => {
   it("makes upstream task results visible in downstream task prompts (plan mode)", async () => {
     const provider = createRecordingProvider([
       // task_research → step_research
-      [finishStep("tc_a", { findings: ["alpha", "beta"] })],
+      [finishAction("tc_a", { findings: ["alpha", "beta"] })],
       // task_report → step_report (depends on task_research)
-      [finishStep("tc_b", { report: "summary" })]
+      [finishAction("tc_b", { report: "summary" })]
     ]);
     const context = createMockContext();
 
@@ -274,14 +285,12 @@ describe("Agent memory propagation", () => {
     // First call (research) has no upstream task → no memory hint.
     const firstUserMsg = provider.calls[0].userContent;
     expect(firstUserMsg).not.toContain("task:task_research");
-    expect(firstUserMsg).not.toContain("Required upstream memory");
+    expect(firstUserMsg).not.toContain("Required upstream context");
 
     // Second call (report) names the upstream task as a memory hint —
     // values are NOT included; the agent fetches via memory_read.
     const secondUserMsg = provider.calls[1].userContent;
-    expect(secondUserMsg).toContain(
-      "# Required upstream memory (call `memory_read` with these keys):"
-    );
+    expect(secondUserMsg).toContain("Required upstream context");
     expect(secondUserMsg).toContain("- task:task_research");
     expect(secondUserMsg).not.toContain("alpha");
     expect(secondUserMsg).not.toContain("beta");
@@ -292,9 +301,9 @@ describe("Agent memory propagation", () => {
     ).toEqual({ findings: ["alpha", "beta"] });
   });
 
-  it("preserves the default execution discipline (finish_step instructions) when a custom user prompt is provided", async () => {
+  it("preserves the default execution discipline (the CodeAct contract) when a custom user prompt is provided", async () => {
     const provider = createRecordingProvider([
-      [finishStep("tc_a", { findings: [] })]
+      [finishAction("tc_a", { findings: [] })]
     ]);
     const context = createMockContext();
 
@@ -340,11 +349,11 @@ describe("Agent memory propagation", () => {
     }
 
     // The final system prompt must contain BOTH the user preamble AND the
-    // default execution discipline (output schema, finish_step protocol).
+    // default execution discipline (output schema, finish() protocol).
     const sys = provider.calls[0].systemPrompt;
     expect(sys).toContain("DOMAIN_PREAMBLE_MARKER");
-    expect(sys).toContain("`finish_step`");
-    expect(sys).toContain("Output Schema");
+    expect(sys).toContain("await finish(result)");
+    expect(sys).toContain("# Output schema");
   });
 
   it("plan mode emits a final task_result discoverable by callers", async () => {
@@ -377,7 +386,7 @@ describe("Agent memory propagation", () => {
       // Planner: finish_plan
       [{ id: "tc_finish_plan", name: "finish_plan", args: { title: "P" } }],
       // Step task_one_s1
-      [finishStep("tc_step", { greeting: "Hello" })]
+      [finishAction("tc_step", { greeting: "Hello" })]
     ]);
     const context = createMockContext();
 

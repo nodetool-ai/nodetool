@@ -75,7 +75,7 @@ packages/           # 58 npm workspace packages (TypeScript backend)
   node-sdk/         # BaseNode class, NodeRegistry, type system
   runtime/          # ProcessingContext, LLM providers, message queue
   kernel/           # Workflow graph, Actor runtime, WorkflowRunner
-  agents/           # Planning agent system (TaskPlanner → TaskExecutor → StepExecutor)
+  agents/           # Planning agent system (TaskPlanner → TaskExecutor → CodeActExecutor)
   chat/             # Chat message processing, token counting
   base-nodes/       # Core workflow nodes (text, image, LLM, agents)
   websocket/        # Fastify HTTP + WebSocket server (main API, port 7777)
@@ -115,7 +115,7 @@ protocol → config → security → auth → storage
 - **Styling**: MUI v7 + `sx` prop for one-off, `styled()` for reusable. Theme values only, no hardcoded colors/spacing. Prefer `FlexRow`/`FlexColumn` over `Box sx={{ display: "flex" }}` when the shorthand props (`gap`, `align`, `justify`) reduce verbosity; use `Box` directly when you have significant additional `sx` overrides anyway.
 - **Node graph**: ReactFlow 12. Nodes extend `BaseNode` from `@nodetool-ai/node-sdk`.
 - **LLM providers**: All in `packages/runtime/src/providers/` — Anthropic, OpenAI, Gemini, Ollama, Mistral, Groq, Claude Agent SDK
-- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), StepExecutor (tool-calling loop for one step)
+- **Agent system**: `packages/agents/` — full planning agent (TaskPlanner → DAG of Steps), TaskExecutor/ParallelTaskExecutor (walk the DAG), CodeActExecutor (sandboxed-JavaScript action loop for one step)
 - **Workflow execution**: Actor-model in `packages/kernel/` — DAG-based, message-passing between node actors
 - **Python bridge**: `PythonStdioBridge` in `packages/runtime/` — spawns `python -m nodetool.worker --stdio`, communicates via length-prefixed msgpack over stdin/stdout. Lazy-connected on first workflow with Python nodes.
 - **Serialization**: MsgPack for WebSocket messages, JSON for REST API
@@ -368,7 +368,7 @@ fail, kernel-enforced against the allowed set — and gets back either the next
 escalation or the run's final report. HTTP surface:
 `POST /api/workflows/:id/run|debug {interactive: true}` plus
 `GET/POST /api/debug/sessions/:id[/verdict|/cancel]`
-(`packages/websocket/src/debug-sessions.ts`). Escalations the agent leaves
+(`packages/execution/src/service/debug-sessions.ts`). Escalations the agent leaves
 unanswered fail closed on the decision timeout (default 10 min). The browser surface is exposed in `web/` as
 `npm run test:debug-harness` (env: `NODETOOL_DEBUG_GRAPH`, `NODETOOL_DEBUG_OUT`,
 `NODETOOL_DEBUG_PARAMS`).
@@ -554,19 +554,19 @@ reaches it through the **`build_app`** tool. Provider and model come from the
 body; a `build_app` call that omits them inherits the calling agent's own
 provider/model (stamped on the ProcessingContext under
 `ACTIVE_MODEL_CONTEXT_KEY` by every tool-calling loop — chat turns and
-`StepExecutor` sub-agents alike), and the server falls back to
+`run_subtask` sub-agents alike), and the server falls back to
 `NODETOOL_APP_BUILD_PROVIDER` / `NODETOOL_APP_BUILD_MODEL`. The cost cap
 defaults to the harness's own $2.
 
 A build runs for minutes, so `poll: true` returns a session id immediately and
 the caller reads `GET /api/debug/sessions/:id` until it settles, or cancels with
 `POST /api/debug/sessions/:id/cancel` — the same session machinery an
-interactive `debug_workflow` run uses (`packages/websocket/src/debug-sessions.ts`).
+interactive `debug_workflow` run uses (`packages/execution/src/service/debug-sessions.ts`).
 A cancelled build settles as `failed` with `reason: "cancelled"`.
 
 The bundle behind a green verdict is offered, never installed: it becomes an
 application through the normal `POST /api/applications/import-bundle`. Server
-code: `packages/websocket/src/lib/app-build-service.ts`.
+code: `packages/agents/src/app-build/build-service.ts`.
 
 ### nodetool validate (Static Workflow Check)
 
@@ -1120,7 +1120,7 @@ workflow.run                       (kernel WorkflowRunner)
     agent.execute                  (Agent.execute)
       agent.plan                   (TaskPlanner / GraphPlanner)
         llm.chat / llm.stream      (BaseProvider)
-      agent.step                   (StepExecutor)
+      agent.step                   (CodeActExecutor)
         llm.chat / llm.stream
 ```
 

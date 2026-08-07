@@ -186,7 +186,7 @@ Tool names in the `tools:` list must match the agent's tool registry. Common too
 - `generate_video`
 
 **Other:**
-- `find_model`, `calculator`, `statistics`, `geometry`, `conversion`
+- `find_model`
 - `extract_pdf_text`, `convert_pdf_to_markdown`, `convert_document`
 - NodeTool MCP tools (workflows, nodes, jobs, assets, models)
 

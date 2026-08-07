@@ -147,9 +147,21 @@ describe("http-api extra: workflows root + by-id branches", () => {
   });
 
   it("GET /api/workflows advances past the supplied cursor", async () => {
-    await makeWorkflow({ user_id: "user-1", name: "Oldest" });
-    await makeWorkflow({ user_id: "user-1", name: "Middle" });
-    await makeWorkflow({ user_id: "user-1", name: "Newest" });
+    // Distinct updated_at values: the cursor is a strict `lt` on updated_at,
+    // so three back-to-back creates landing in the same millisecond would make
+    // page 2 empty and the test flaky. save() stamps updated_at from the
+    // clock (nextUpdatedAtAfter), so passing explicit values is not enough —
+    // advance the clock between creates instead.
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:00.000Z") });
+    try {
+      await makeWorkflow({ user_id: "user-1", name: "Oldest" });
+      vi.advanceTimersByTime(5);
+      await makeWorkflow({ user_id: "user-1", name: "Middle" });
+      vi.advanceTimersByTime(5);
+      await makeWorkflow({ user_id: "user-1", name: "Newest" });
+    } finally {
+      vi.useRealTimers();
+    }
 
     const first = await app.inject({
       method: "GET",

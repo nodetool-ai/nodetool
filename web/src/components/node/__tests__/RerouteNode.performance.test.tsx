@@ -21,6 +21,12 @@ jest.mock('../../../stores/MetadataStore', () => {
         properties: []
       }
     },
+    // `createNodeStore` reads both of these at construction time. The real
+    // store starts them at `{}` and a setter, so a mock that omits them is not
+    // a lighter stand-in — it is a shape the store can never see, and
+    // `Object.keys(undefined)` throws before the first test body runs.
+    nodeTypes: {},
+    addUnknownNodeTypes: jest.fn(),
     getMetadata: jest.fn((type: string) => ({
       node_type: type,
       outputs: [{ name: 'output', type: { type: 'str' } }],

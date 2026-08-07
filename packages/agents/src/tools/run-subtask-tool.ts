@@ -17,7 +17,7 @@ import type { BaseProvider } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
-import { StepExecutor } from "../step-executor.js";
+import { CodeActExecutor } from "../codeact/codeact-executor.js";
 import { SUBTASK_DEPTH_KEY, TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 import type { Step, Task } from "../types.js";
 
@@ -149,7 +149,7 @@ export class RunSubtaskTool extends Tool {
     childCtx.set(SUBTASK_DEPTH_KEY, childDepth);
 
     // Subtask runs as a single unstructured Step — no schema, no planning.
-    // StepExecutor's no-tool-call path captures the final assistant text.
+    // CodeActExecutor's no-tool-call path captures the final assistant text.
     const step: Step = {
       id: randomUUID(),
       instructions: prompt,
@@ -163,7 +163,7 @@ export class RunSubtaskTool extends Tool {
       steps: [step]
     };
 
-    const executor = new StepExecutor({
+    const executor = new CodeActExecutor({
       task,
       step,
       context: childCtx,
@@ -204,7 +204,7 @@ export class RunSubtaskTool extends Tool {
 
         if (item.type === "step_result") {
           const sr = item as StepResult;
-          // StepExecutor reports failure as `result: { error: "Step failed…" }`
+          // The executor reports failure as `result: { error: "Step failed…" }`
           // and never sets the top-level `sr.error`, so a failed subtask would
           // otherwise be returned to the parent as a normal success value.
           // Detect the nested error shape too.

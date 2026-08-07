@@ -50,7 +50,6 @@ import {
   type PythonBridge
 } from "@nodetool-ai/runtime";
 import { initMasterKey } from "@nodetool-ai/security";
-import { applyAgentExecutionModeSetting } from "./settings-registry.js";
 import {
   WorkerManager,
   startReaper,
@@ -280,11 +279,6 @@ try {
   // userId)` closure when invoking provider APIs — there is no shared
   // global resolver.
   await initMasterKey();
-
-  // Agent execution mode ("tools" | "codeact"): the stored setting reaches
-  // the agents package through the environment. Applied once here; changing
-  // it in Settings takes effect on the next server start.
-  await applyAgentExecutionModeSetting();
 } catch (err) {
   log.error(
     "Database setup failed",
@@ -1333,6 +1327,8 @@ if (!isProduction) {
     // must derive agentToolsScope from the session instead.
     const response = await handleMcpHttpRequest(request, {
       metadataRoots,
+      registry,
+      examplesDir: apiOptions.examplesDir,
       agentToolsScope: { userId: "1", source: "local-dev-http" }
     });
     if (!response) {

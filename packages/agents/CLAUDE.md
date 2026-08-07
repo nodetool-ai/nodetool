@@ -31,8 +31,8 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 
 | Writer | Trigger | Key | Kind |
 |---|---|---|---|
-| `StepExecutor` | Step completion | `step:<step.id>` | `step_result` |
-| `StepExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
+| `CodeActExecutor` | Step completion | `step:<step.id>` | `step_result` |
+| `CodeActExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
 | `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
@@ -41,7 +41,7 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 
 ### Custom prompts are preambles, not replacements
 
-`StepExecutor.buildSystemPrompt()` always uses the default execution prompt (memory tools docs, output schema, `finish_step` discipline). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
+A step executor always builds the default execution prompt (the CodeAct action contract, the output schema, the `finish()` discipline). A caller-supplied `systemPrompt` is layered as a preamble *before* the default — it cannot override the execution contract. Earlier versions allowed this and broke result capture in plan mode.
 
 ### Final synthesis: CompilerAgent
 
@@ -54,7 +54,7 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 
 ### Threading task-level deps through executors
 
-`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every `StepExecutor`. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `memory_read` when it needs the values.
+`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every step executor. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `memory_read` when it needs the values.
 
 ### Tests
 
@@ -108,7 +108,8 @@ createdMs, accessedMs}` and reports a missing path as `exists: false` rather
 than throwing), the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
-`data.{parseCsv,selectHtml}`, and any caller-supplied `globals`. `fetch` sends a
+`data.{parseCsv,toCsv,selectHtml,htmlToMarkdown,parseXlsx,parseYaml,toYaml,
+parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
 `Uint8Array` body as raw bytes instead of JSON.
 
 `progress` is fire-and-forget: it reports to
@@ -118,18 +119,25 @@ wires it to `context.postMessage({ type: "node_progress", … })`, the same
 channel the Python worker uses, so a long-running snippet drives the node's
 progress bar.
 
-`data` is the structured-parsing pair: `parseCsv(text, {delimiter, header})`
-returns records keyed by the header row (default) or raw string arrays with
-`header: false`, and `selectHtml(html, selector, {attr, limit})` runs a CSS
-selector and returns trimmed text — or the named attribute, skipping matches
-that lack it. Both are host bridges over papaparse and cheerio,
-`await import`ed on first use inside the bridge — lazily, so neither library
-sits in any entry graph, but visibly, so esbuild inlines them into the packaged
-backend's single-file `server.mjs` and Vite picks cheerio's `browser` build for
-the in-browser runner. CSV values stay strings (no `dynamicTyping`) so a column
-never changes shape between runs. The guest itself has no module loader —
-`import`/`require` do not exist — so a host bridge is the only way
-library-backed behaviour reaches user code.
+`data` is the structured-data namespace, all host bridges over libraries that
+stay host-side: `parseCsv`/`toCsv` (papaparse — values stay strings, no
+`dynamicTyping`, so a column never changes shape between runs), `selectHtml`
+(cheerio CSS selection) and `htmlToMarkdown` (turndown), `parseXlsx` (exceljs —
+sheets to records, formula cells yield their computed result), `parseYaml`/
+`toYaml` (js-yaml), `parseXml` (fast-xml-parser — attributes prefixed `@_`,
+text values stay strings), `unzip`/`zip` (fflate — bytes cross host→guest via
+the base64-marker rebuild, deep-revived so entry values are real
+`Uint8Array`s), and `diff` (unified text diff). Every library is
+`await import`ed on first use inside its bridge — lazily, so none sits in any
+entry graph, but visibly, so esbuild inlines them into the packaged backend's
+single-file `server.mjs` and Vite resolves browser builds for the in-browser
+runner. Text inputs cap at `MAX_DATA_INPUT_CHARS`, binary at
+`MAX_DATA_INPUT_BYTES`, and `unzip` refuses archives inflating past
+`MAX_UNZIP_TOTAL_BYTES`. Members are documented to models via the sandbox
+manifest (`code-gen/sandbox-manifest.ts`), which the drift test holds equal to
+the real surface. The guest itself has no module loader — `import`/`require`
+do not exist — so a host bridge is the only way library-backed behaviour
+reaches user code.
 
 `format` exists because QuickJS ships no `Intl`: each member is a host bridge
 over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and
@@ -229,6 +237,37 @@ for await (const msg of agent.execute(ctx)) {
 
 const result = agent.getResults();
 ```
+
+## The core API is in-process (`src/tools/mcp-tools.ts`)
+
+The workflow/node/job/asset tools call NodeTool's own code, never HTTP. There
+is no `NODETOOL_API_URL`, no `fetch`, and no server that has to be listening:
+
+| Concern | Where it comes from |
+|---|---|
+| Workflows, jobs, assets | `@nodetool-ai/models` (`Workflow`, `Job`, `Asset`) |
+| Running / debugging a workflow | `runWorkflow` in `@nodetool-ai/execution/service` |
+| Interactive escalations | `submitEscalationVerdict` + the `debugSessions` registry, same module |
+| Debugging an app | `runApplicationDebug`, same module |
+| Building an app | `runApplicationBuild` (`src/app-build/build-service.ts`) |
+
+`@nodetool-ai/execution/service` is the layer the REST routes call too, so a
+tool result and the endpoint's response are one function's answer and cannot
+drift. `packages/websocket` keeps the Fastify routes, auth and WS transport as
+thin adapters over it.
+
+Three things live above this package in the dependency order and arrive by
+injection through `getAllMcpTools(options)`:
+
+- `registry` — a `NodeRegistry`. Node discovery needs it, and so does anything
+  that executes. Without one those tools answer with a "no node registry in
+  this process" error instead of reaching for a network fallback.
+- `examples` — the shipped example-workflow catalog (JSON inside the installed
+  node packages; only the server walks the metadata roots).
+- `exportDsl` — `workflowToDsl` from `@nodetool-ai/dsl`.
+
+The server builds all three in `packages/websocket/src/mcp-tool-deps.ts` and
+spreads `mcpToolHostDeps()` into every `getAllMcpTools` call site.
 
 ## Script Voicing Tools (`src/tools/script-voice-tools.ts`)
 
@@ -459,19 +498,17 @@ downstream may treat a failure as a satisfied dependency: `TaskExecutor` blocks
 dependents and marks them failed with the blocking step named, and a plan whose
 every task failed throws instead of compiling a deliverable out of nothing.
 
-## CodeAct Execution Mode (`src/codeact/`)
+## CodeAct Execution (`src/codeact/`)
 
-An alternative action space for the step loop (`executionMode: "codeact"` on
-`AgentOptions`, or the `NODETOOL_AGENT_EXECUTION_MODE` setting; default stays
-`"tools"`). Instead of one JSON tool call per
-action, each step acts by writing JavaScript that runs in the QuickJS sandbox
-with the toolbelt exposed as `tools.<name>()` functions, a `state` object that
-persists across actions, and `finish(result)` for host-validated completion.
-Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
+The action space of the step loop, and the only one. Each step acts by writing
+JavaScript that runs in the QuickJS sandbox with the toolbelt exposed as
+`tools.<name>()` functions, a `state` object that persists across actions, and
+`finish(result)` for host-validated completion. Design and the research it
+follows (CodeAct, ICML 2024): docs/codeact-design.md.
 
-- `CodeActExecutor` mirrors `StepExecutor`'s message contract, memory writes,
-  and failure semantics — consumers work unchanged. Bridged tool calls surface
-  as `tool_call_update` events (ids `codeact_<n>`).
+- `CodeActExecutor` keeps the message contract, memory writes, and failure
+  semantics the step loop has always had — consumers work unchanged. Bridged
+  tool calls surface as `tool_call_update` events (ids `codeact_<n>`).
 - Progressive disclosure: resident tools (`CODEACT_RESIDENT_TOOL_NAMES` —
   the search family incl. `web_search`/`search_nodes`/`run_search`/
   `asset_search`/`grep`/`glob`, the Claude-agent file set
@@ -479,17 +516,13 @@ Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   memory, `run_subtask`) are documented in full; past `CODEACT_DEFER_THRESHOLD` tools, the rest is name-only in the
   prompt and discovered in-sandbox with `await searchTools("query")`
   (ToolSearch grammar). All tools stay callable either way.
-- The mode threads through `TaskExecutor`, `ParallelTaskExecutor`, and
-  `ScriptRunner` sub-agents; each resolves `resolveExecutionMode(explicit)` —
-  explicit option > `NODETOOL_AGENT_EXECUTION_MODE` > `"tools"`. The setting
-  is registered in the websocket settings registry and exposed in the web
-  Settings UI (General → Execution → "Agent Execution Mode"). The stored value
-  is mirrored into the environment at server startup and again on every write,
-  so switching modes applies to the next run without a restart; a real
-  `NODETOOL_AGENT_EXECUTION_MODE` environment variable pins the mode and wins
-  over both. CLI:
-  `nodetool agent run <yaml> --codeact` (YAML: `execution_mode: codeact`).
-- Chat turns honor the same setting: the websocket runner swaps the toolbelt
+- Every step executor is one: `TaskExecutor`, `ParallelTaskExecutor`,
+  `ScriptRunner`'s `agent()` sub-agents, `run_subtask`, and `run_search` all
+  construct `CodeActExecutor`. `StepExecutor` — the older one-JSON-tool-call
+  loop — is no longer exported; two callers keep it because they are one-shot
+  structured verdicts on a fail-closed path where a sandbox error would only
+  add a failure mode: `SupervisorAgent` and the app-build spec stage.
+- Chat turns run in it too: the websocket runner swaps the toolbelt
   for `execute_code` (+ `view_image`) via `createChatCodeActSession`
   (`src/codeact/chat-codeact.ts`), which bridges `tools.<name>()` to the chat
   runner's own tool router instead of `buildToolBridge` — permission gating
@@ -498,17 +531,73 @@ Design and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   (`src/codeact/graph-model.ts`): `openWorkflow()` returns a model whose
   synchronous mutators queue ops against a local mirror and `commit()` replays
   them through the same `ui_*` contract.
-- Eval suite `codeact` runs the same offline instrumented cases through either
-  executor for a mode comparison: `nodetool eval codeact -p <p> -m <m>`.
+  The CLI's local (no-server) turn runs the same session — `execute_code`
+  (+ `view_image`) is what `processChat` sees, wired in
+  `packages/cli/src/chat-codeact.ts`.
+- Both executors also load the `nodetool` object model
+  (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
+  `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/
+  create/open), `nodetool.graph()` (an ad-hoc graph builder with
+  `ref.output()` wiring, `copyFrom()` graph-into-graph copying with id
+  remapping, `validate()`, `save()`, and `run()` — save-as-`codeact-adhoc` +
+  run), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
+  workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
+  one ranked model; `find`/`list` for the long form), `nodetool.providers`
+  (roster derived from the model catalog), and `nodetool.media`
+  (`generateImage/editImage/generateVideo/animateImage/speak/transcribe/embed`
+  plus the judge loop `critique/compare/scoreAdherence`, each taking a
+  pick/find result or `"provider/model_id"`), `nodetool.nodes`
+  (`search/info/list` — the graph builder's discovery half),
+  `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),
+  `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a
+  `run_subtask` child with a fresh context; `fanout(prompts, {concurrency})`
+  batches them), the single-node harness on `nodetool.nodes.run(type,
+  inputs)`, `nodetool.web` (one surface over every search/fetch tool:
+  `search(query, {provider})` picks the backend the belt carries — `"default"`,
+  `"openai"`, `"google"`, `"dataforseo"` pin one — plus `news`, `images`,
+  `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
+  (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
+  (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
+  (`list/search/images/get/save/read`), `jobs` (with
+  `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
+  `collections` (full RAG loop: `index/indexBatch/search/hybridSearch/query`),
+  `timelines`, `sketches`, `scripts`, and `storyboards`. `workflows` also
+  carries `resolve(sessionId, escalationId, action)` for interactive-run
+  escalations and `examples()`/`example("<package>/<name>")` feeding
+  `copyFrom`. Every method wraps a
+  belt tool, so gating and routing are untouched; a method whose backing tool
+  is missing throws naming the tool, and the prompt section documents only the
+  namespaces the belt can serve (`buildNodetoolApiPromptSection`). One surface
+  per capability: tools the object model wraps
+  (`nodetoolApiCoveredToolNames`, plus `GRAPH_MODEL_TOOL_NAMES` when the graph
+  model loads) are filtered out of the prompt's tool catalog — they stay
+  callable through the bridge and findable via `searchTools()`, but the
+  `nodetool.*` form is the only documented one. Workspace files are the
+  deliberate exception: they are not wrapped, because the sandbox's own
+  `workspace.*` API is in-process and costs no tool call — the action contract
+  steers there.
+- The belt carries only what a model cannot write itself. The pure-computation
+  tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
+  `unit_conversion`) were deleted outright, MCP included; `run_code` and `js`
+  remain for callers that want a code tool. `getAgentToolbelt()`
+  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific media
+  duplicates `image_generation`, `openai_image_generation`,
+  `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
+  covers them through the provider-agnostic `generate_image` /
+  `generate_speech`. `getBuiltinTools()` still returns them, so MCP clients,
+  which have no object model, keep them.
+- Eval suite `codeact` scores the executor on offline instrumented cases:
+  `nodetool eval codeact -p <p> -m <m>`.
 - Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
-  `tests/chat-codeact.test.ts` (scripted provider, real sandbox, no network).
+  `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
+  `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
 
 ## Script Mode (code-shaped orchestration)
 
 The third planning mode next to `TaskPlan` and the graph planner: the LLM
 authors a JavaScript *orchestration script* (`ScriptPlanner`), and
 `ScriptRunner` executes it in the QuickJS sandbox. Every `agent()` call in the
-script runs a real `StepExecutor` sub-agent on the host. A script expresses
+script runs a real `CodeActExecutor` sub-agent on the host. A script expresses
 what a static DAG cannot — loops until a condition holds, budget-scaled
 fan-out, dedup between rounds, early exit.
 
@@ -975,7 +1064,7 @@ IS_SANDBOX=1 npm run dev:nodetool -- eval timeline-tools \
 Where the tool-loop suites score a model on one flat tool surface, the
 `subtask` suite scores `RunSubtaskTool` — the primitive that lets an agent
 decompose work by spawning a fresh child agent that inherits the parent's
-toolset. It runs a real `StepExecutor` parent equipped with `run_subtask` plus
+toolset. It runs a real `CodeActExecutor` parent equipped with `run_subtask` plus
 six instrumented worker tools (`calculate`, `kv_write`, `kv_read`,
 `lookup_fact`, `slugify`, `flaky_fail`), each objective written to force
 delegation. The tools are shared instances at both levels; each records the
@@ -1098,7 +1187,7 @@ workflow.run
       agent.plan        (TaskPlanner.planMultiTask / GraphPlanner.plan)
         llm.chat        (BaseProvider.generateMessageTraced)
         llm.stream      (BaseProvider.generateMessagesTraced)
-      agent.step        (StepExecutor.execute)
+      agent.step        (CodeActExecutor.execute)
         llm.chat
         llm.stream
 ```

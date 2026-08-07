@@ -13,6 +13,8 @@ import { bridge } from "../lib/bridge.js";
 import { getUserId, type HttpApiOptions } from "../http-api.js";
 import {
   handleWorkflowById,
+  handleWorkflowRun,
+  handleDebugSessionRequest,
   handleWorkflowDslExport,
   handleWorkflowExportBundle,
   handleWorkflowsExportBundle,
@@ -20,6 +22,7 @@ import {
   handleWorkflowExamples,
   handleWorkflowExamplesSearch,
   handleWorkflowExamplesThumbnail,
+  handleWorkflowExampleByName,
   handleWorkflowTools,
   handleSdkWorkflowSummaries,
   handleWorkflowInterface,
@@ -62,6 +65,21 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       handleWorkflowExamples(request, apiOptions)
     );
   });
+
+  // One example workflow, graph included — the fetch counterpart of the list
+  // above, and what the `get_example_workflow` agent tool calls.
+  app.get(
+    "/api/workflows/examples/:package_name/:example_name",
+    async (req, reply) => {
+      const { package_name, example_name } = req.params as {
+        package_name: string;
+        example_name: string;
+      };
+      await bridge(req, reply, (request) =>
+        handleWorkflowExampleByName(request, package_name, example_name, apiOptions)
+      );
+    }
+  );
 
   app.get("/api/workflows/names", async (req, reply) => {
     await bridge(req, reply, async (request) => {
@@ -138,6 +156,23 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     }
   });
 
+  // Execute a saved workflow. The editor runs workflows over the WebSocket, so
+  // these two are the agent surface: `run_workflow`, `debug_workflow`,
+  // `start_background_job`, and the `nodetool debug` harness all POST here.
+  app.post("/api/workflows/:id/run", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowRun(request, id, apiOptions)
+    );
+  });
+
+  app.post("/api/workflows/:id/debug", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleWorkflowRun(request, id, apiOptions, true)
+    );
+  });
+
   app.get("/api/workflows/:id/dsl-export", async (req, reply) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
@@ -156,6 +191,22 @@ const workflowsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     const { id } = req.params as { id: string };
     await bridge(req, reply, (request) =>
       handleWorkflowExportBundle(request, id, apiOptions)
+    );
+  });
+
+  // Interactive debug sessions — the escalation channel an agent polls after a
+  // `run`/`debug` call made with `interactive: true`.
+  app.get("/api/debug/sessions/:id", async (req, reply) => {
+    const { id } = req.params as { id: string };
+    await bridge(req, reply, (request) =>
+      handleDebugSessionRequest(request, id, null, apiOptions)
+    );
+  });
+
+  app.post("/api/debug/sessions/:id/:action", async (req, reply) => {
+    const { id, action } = req.params as { id: string; action: string };
+    await bridge(req, reply, (request) =>
+      handleDebugSessionRequest(request, id, action, apiOptions)
     );
   });
 

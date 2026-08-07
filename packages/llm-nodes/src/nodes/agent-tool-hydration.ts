@@ -17,12 +17,9 @@
 
 import {
   BrowserTool,
-  CalculatorTool,
-  ConversionTool,
   DataForSEOImagesTool,
   DataForSEONewsTool,
   DataForSEOSearchTool,
-  GeometryTool,
   GoogleGroundedSearchTool,
   GoogleImageGenerationTool,
   GoogleImagesTool,
@@ -35,7 +32,6 @@ import {
   RunCodeTool,
   ScreenshotTool,
   SearchEmailTool,
-  StatisticsTool,
   Tool
 } from "@nodetool-ai/agents";
 
@@ -58,11 +54,7 @@ const STATIC_TOOL_CLASSES: ToolCtor[] = [
   BrowserTool,
   ScreenshotTool,
   HttpRequestTool,
-  CalculatorTool,
   RunCodeTool,
-  StatisticsTool,
-  GeometryTool,
-  ConversionTool,
   SearchEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,

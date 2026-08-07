@@ -48,7 +48,7 @@ The fix is one store, one API, and one access pattern — **progressive disclosu
        ┌─────────────────────────┴─────────────────────────┐
        │                                                   │
        ▼                                                   ▼
-  StepExecutor                              ParallelTaskExecutor
+  CodeActExecutor                           ParallelTaskExecutor
   (writes step:, task: on finish-task       (passes task.dependsOn IDs as
    steps; auto-attaches memory_list /        upstream key hints to
    memory_read / memory_write tools)         TaskExecutor)
@@ -62,8 +62,8 @@ Every executor writes results into `context.memory`. Every step has the three me
 
 | Namespace | Helper | Written By | Used For |
 |---|---|---|---|
-| `step:<id>` | `memoryKeys.step(id)` | `StepExecutor`, `TaskExecutor` (process mode) | Per-step results |
-| `task:<id>` | `memoryKeys.task(id)` | `StepExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
+| `step:<id>` | `memoryKeys.step(id)` | `CodeActExecutor`, `TaskExecutor` (process mode) | Per-step results |
+| `task:<id>` | `memoryKeys.task(id)` | `CodeActExecutor` (finish-task steps), `ParallelTaskExecutor` | Per-task results |
 | `input:<key>` | `memoryKeys.input(key)` | `TaskExecutor`, `ParallelTaskExecutor` | Caller-supplied inputs |
 | `shared:<key>` | `memoryKeys.shared(key)` | `memory_write` tool | Cross-agent communication, scratch space |
 
@@ -105,7 +105,7 @@ export interface MemoryEntry {
 
 ## Memory Tools (the LLM-facing API)
 
-Three tools are auto-attached to every `StepExecutor`. Their schemas are documented at the top of every default execution system prompt so the model knows when to call them.
+Three tools are auto-attached to every step executor. Their signatures appear in the prompt's tool catalog, so the model knows when to call them.
 
 ### `memory_list`
 
@@ -251,7 +251,7 @@ context.memory.clear({ keyPrefix: "input:" });   // by prefix
 
 ## How Each Agent Type Uses Memory
 
-### StepExecutor (`packages/agents/src/step-executor.ts`)
+### CodeActExecutor (`packages/agents/src/codeact/codeact-executor.ts`)
 
 The execution engine for a single step.
 
@@ -265,15 +265,15 @@ The execution engine for a single step.
 
 **LLM access**:
 
-- The default execution system prompts (`DEFAULT_EXECUTION_SYSTEM_PROMPT`, `DEFAULT_FINISH_TASK_SYSTEM_PROMPT`, `DEFAULT_UNSTRUCTURED_SYSTEM_PROMPT`) include a `## Memory Tools (progressive disclosure)` section that explains how to use the tools.
+- The memory tools ride in the toolbelt like any other, so the prompt's tool catalog documents them as `tools.memory_list()` / `tools.memory_read()` / `tools.memory_write()`.
 - The user message includes only **specific declared upstream keys** as a hint:
   - `step:<id>` for every entry of the step's `dependsOn` (intra-task deps).
-  - any key supplied via `StepExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
+  - any key supplied via `CodeActExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
 - Values are not included; the agent calls `memory_read` to fetch them.
 
-**Tool attachment**: `getMemoryTools()` is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools and (when the step has a schema) `finish_step`. The conclusion stage strips everything except `finish_step`.
+**Tool attachment**: `getMemoryTools()` is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
 
-**Custom prompts are preambles, not replacements**: A caller-supplied `systemPrompt` is layered before the default execution prompt, so the contract — including the memory-tool documentation and `finish_step` discipline — is non-bypassable.
+**Custom prompts are preambles, not replacements**: A caller-supplied `systemPrompt` is layered before the default execution prompt, so the contract — including the tool catalog and the `finish()` discipline — is non-bypassable.
 
 ### TaskExecutor (`packages/agents/src/task-executor.ts`)
 
@@ -292,7 +292,7 @@ for (const [key, value] of Object.entries(this.inputs)) {
 
 In **process mode** (fan-out over a discover step's list), it reads the discover result via `memoryKeys.step(discoverStepId)` and writes the aggregated array back under `memoryKeys.step(processStepId)` after collecting per-item results.
 
-`TaskExecutor` accepts an optional `upstreamMemoryKeys` array (e.g. `task:<id>` keys from the parent plan). It forwards this verbatim to every `StepExecutor` it creates.
+`TaskExecutor` accepts an optional `upstreamMemoryKeys` array (e.g. `task:<id>` keys from the parent plan). It forwards this verbatim to every step executor it creates.
 
 ### ParallelTaskExecutor (`packages/agents/src/parallel-task-executor.ts`)
 
@@ -327,7 +327,7 @@ This is the canonical end-to-end flow for a multi-task plan:
    └─ For each executable task:
       └─ TaskExecutor.executeTasks()
          └─ For each step:
-            └─ StepExecutor.execute()
+            └─ CodeActExecutor.execute()
                ├─ buildSystemPrompt() → default execution prompt
                │     (includes "Memory Tools" section)
                ├─ buildUserMessage() → instructions
@@ -528,7 +528,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 - Check the conclusion stage: if the step is at >90% token budget, only `finish_step` is allowed and `memory_read` is filtered out.
 
 **Symptom:** Task result key is missing after the step yielded `step_result` with `is_task_result: true`.
-- `StepExecutor` only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task (or the explicit `finalStepId` option). Steps in the middle of a task only write `step:<id>`.
+- A step executor only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task (or the explicit `finalStepId` option). Steps in the middle of a task only write `step:<id>`.
 - For belt-and-suspenders, `ParallelTaskExecutor` performs an idempotent task-result write after each task, falling back to the last step's value.
 
 **Symptom:** Tests pass but memory entries seem stale across test runs.

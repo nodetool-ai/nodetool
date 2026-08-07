@@ -8,8 +8,7 @@ export type {
   Task,
   TaskPlan,
   PlanApprovalDecision,
-  RequestPlanApproval,
-  AgentExecutionMode
+  RequestPlanApproval
 } from "./types.js";
 export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 
@@ -24,13 +23,6 @@ export {
 } from "./tools/tool-search.js";
 export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
-export { CalculatorTool } from "./tools/calculator-tool.js";
-export {
-  StatisticsTool,
-  GeometryTool,
-  TrigonometryTool,
-  ConversionTool
-} from "./tools/math-tools.js";
 export {
   OpenAIWebSearchTool,
   OpenAIImageGenerationTool,
@@ -118,9 +110,6 @@ export {
   PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
-  ListNodesTool,
-  SearchNodesTool,
-  GetNodeInfoTool,
   ListJobsTool,
   GetJobTool,
   GetJobLogsTool,
@@ -132,6 +121,11 @@ export {
 } from "./tools/mcp-tools.js";
 export type {
   PlanWorkflowGraphToolOptions,
+  GetAllMcpToolsOptions,
+  ExampleWorkflowCatalog,
+  WorkflowDslExporter,
+  PackageAssetLister,
+  WorkflowEnvironmentProvider,
   TimelineLoader,
   TimelineToolRecord,
   SketchLoader,
@@ -195,7 +189,9 @@ export {
 } from "./tools/tool-registry.js";
 export {
   BUILTIN_TOOL_CLASSES,
+  AGENT_TOOLBELT_EXCLUDED,
   getBuiltinTools,
+  getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
@@ -356,8 +352,6 @@ export { removeBase64Images } from "./utils/remove-base64-images.js";
 export { wrapGeneratorsParallel } from "./utils/wrap-generators-parallel.js";
 
 // Core execution
-export { StepExecutor } from "./step-executor.js";
-export type { StepExecutorOptions } from "./step-executor.js";
 export {
   CodeActExecutor,
   DEFAULT_CODEACT_MAX_ITERATIONS,
@@ -367,10 +361,6 @@ export {
 } from "./codeact/codeact-executor.js";
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
-export {
-  resolveExecutionMode,
-  AGENT_EXECUTION_MODE_ENV
-} from "./codeact/execution-mode.js";
 export {
   buildToolBridge,
   renderToolCatalog,
@@ -393,6 +383,12 @@ export {
   GRAPH_MODEL_TOOL_NAMES,
   hasGraphModelTools
 } from "./codeact/graph-model.js";
+export {
+  NODETOOL_API_NAMESPACE_TOOLS,
+  NODETOOL_API_PRELUDE_FULL,
+  buildNodetoolApiPromptSection,
+  hasNodetoolApiTools
+} from "./codeact/nodetool-api.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
@@ -443,6 +439,7 @@ export {
   GetScriptTool,
   VoiceScriptLinesTool,
   AssembleScriptTimelineTool,
+  EditScriptTool,
   SCRIPT_VOICE_TOOL_NAMES
 } from "./tools/script-voice-tools.js";
 export {
@@ -452,6 +449,7 @@ export {
   RenderStoryboardClipsTool,
   ReviseStoryboardClipTool,
   AssembleStoryboardTimelineTool,
+  EditStoryboardTool,
   STORYBOARD_RENDER_TOOL_NAMES
 } from "./tools/storyboard-render-tools.js";
 export {
@@ -470,6 +468,8 @@ export {
   RestoreTimelineVersionTool,
   TIMELINE_VERSION_TOOL_NAMES
 } from "./tools/timeline-version-tools.js";
+export { EditTimelineTool } from "./tools/timeline-edit-tools.js";
+export { EditSketchTool } from "./tools/sketch-edit-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {
@@ -947,3 +947,10 @@ export type {
   JudgeWidgetState
 } from "./app-build/judge.js";
 export { renderBuildReportMarkdown } from "./app-build/markdown.js";
+// The build as a service: what `POST /api/applications/build` and the
+// `build_app` tool both call, minus request parsing.
+export { runApplicationBuild } from "./app-build/build-service.js";
+export type {
+  AppBuildDeps,
+  AppBuildRequest
+} from "./app-build/build-service.js";

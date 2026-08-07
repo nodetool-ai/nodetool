@@ -4,6 +4,7 @@ import type { TaskPlan } from "../src/types.js";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { memoryKeys, BaseProvider } from "@nodetool-ai/runtime";
 import { createMockContext } from "./_helpers/mock-context.js";
+import { finishAction } from "./_helpers/codeact-provider.js";
 
 function createMockProvider(delayMs = 0) {
   return {
@@ -14,11 +15,7 @@ function createMockProvider(delayMs = 0) {
         await new Promise((r) => setTimeout(r, delayMs));
       }
       yield { type: "chunk" as const, content: "Working...", done: false };
-      yield {
-        id: "tc_1",
-        name: "finish_step",
-        args: { result: { done: true } }
-      };
+      yield finishAction({ done: true });
     },
     async *generateMessagesTraced(...args: unknown[]) {
       yield* (this as ReturnType<typeof createMockProvider>).generateMessages(

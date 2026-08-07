@@ -430,8 +430,23 @@ async function renderRoughCut(opts: {
   }
 
   // Audio-only cut: synthesize a black picture to carry the mix.
+  //
+  // `Math.max()` with no arguments is -Infinity, and spreading an empty array
+  // is exactly that call. A timeline holding neither video nor audio reached
+  // ffmpeg as `-t -Infinity` and died on "Invalid duration for option t",
+  // naming neither the timeline nor the absent clips. `totalDurationMs` above
+  // seeds a `reduce` for the same computation and is unaffected — one file,
+  // two idioms, one of them wrong. Nothing renders from an empty timeline, so
+  // say so here rather than build a command that cannot parse.
+  if (audioClips.length === 0) {
+    throw new Error(
+      "Timeline has no clips to render. Add at least one video, image or " +
+        "audio clip before rendering."
+    );
+  }
   const totalS =
-    Math.max(...audioClips.map((c) => c.startMs + c.durationMs)) / 1000;
+    audioClips.reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0) /
+    1000;
   await execFfmpeg(
     [
       "-y",

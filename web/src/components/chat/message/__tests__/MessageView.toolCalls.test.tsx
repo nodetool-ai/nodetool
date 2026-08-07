@@ -171,4 +171,29 @@ describe("MessageView CodeAct actions", () => {
     // The lone `code` arg is lifted out — no leftover Arguments JSON section.
     expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
   });
+
+  it("shows the action's title as the card headline", () => {
+    renderView({
+      id: "m6",
+      role: "assistant",
+      tool_calls: [
+        {
+          id: "b",
+          name: "execute_code",
+          args: {
+            title: "Rendering product images from CSV",
+            code: "await tools.run_workflow({});"
+          }
+        }
+      ]
+    } as Message);
+
+    expect(
+      screen.getByRole("button", { name: /rendering product images from csv/i })
+    ).toBeInTheDocument();
+    // The generic tool-name fallback is replaced, and `title` is not
+    // duplicated into an Arguments section.
+    expect(screen.queryByText(/^execute code$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Arguments")).not.toBeInTheDocument();
+  });
 });

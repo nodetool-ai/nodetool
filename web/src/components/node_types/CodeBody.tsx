@@ -19,7 +19,6 @@ import React, {
   useState
 } from "react";
 import { css } from "@emotion/react";
-import type { Edge } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -46,7 +45,6 @@ import TextEditorModal from "../properties/TextEditorModal";
 
 import type { NodeMetadata } from "../../stores/ApiTypes";
 import type { NodeData } from "../../stores/NodeData";
-import type { NodeStoreState } from "../../stores/NodeStore";
 import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
 import { useBespokePropertyWriter } from "../../hooks/nodes/useBespokePropertyWriter";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
@@ -351,33 +349,10 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
     [setProperty, setPropertyComplete, inferIO, findNode, updateNodeData, id]
   );
 
-  // An accepted submission replaces the node's dynamic inputs and outputs
-  // wholesale, so any edge attached to a handle the new interface drops is left
-  // pointing at nothing. Until generation can remap edges, a connected node is
-  // not offered the button at all.
-  const hasEdges = useNodes(
-    useMemo(() => {
-      let lastEdges: Edge[] | null = null;
-      let lastResult = false;
-      return (state: NodeStoreState) => {
-        if (state.edges === lastEdges) {
-          return lastResult;
-        }
-        lastEdges = state.edges;
-        lastResult = state.edges.some(
-          (edge) => edge.source === id || edge.target === id
-        );
-        return lastResult;
-      };
-    }, [id])
-  );
-
-  // AI authoring targets the Code node only, and stays hidden on a node that
-  // already has code to lose — generation replaces the buffer wholesale.
-  const hasCode =
-    typeof data.properties?.code === "string" &&
-    data.properties.code.trim().length > 0;
-  const supportsCodeGen = isCodeNode(nodeType) && !hasCode && !hasEdges;
+  // AI authoring targets the Code node only. An accepted submission replaces
+  // the code buffer and the dynamic interface wholesale, so it can drop edges
+  // and overwrite a body — the dialog's own confirmation carries that.
+  const supportsCodeGen = isCodeNode(nodeType);
   const codeGenInputs = useMemo(
     () => nodeInputsToCodeGenPorts(data.dynamic_inputs),
     [data.dynamic_inputs]

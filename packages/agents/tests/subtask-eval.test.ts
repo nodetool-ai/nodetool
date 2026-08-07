@@ -7,6 +7,7 @@ import {
   type SubtaskEvalCase,
   type SubtaskObservation
 } from "../src/index.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../src/codeact/codeact-executor.js";
 
 /** Build an observation with sensible empties, overridden per test. */
 function obs(partial: Partial<SubtaskObservation>): SubtaskObservation {
@@ -89,26 +90,26 @@ describe("checkSubtaskExpectations", () => {
 describe("runSubtaskEval (scripted provider, end-to-end)", () => {
   it("drives a real parent->child delegation and captures depth-1 tool use", async () => {
     // Flat call sequence, dispatched in order across the shared provider
-    // instance used by BOTH the parent StepExecutor and the child spawned by
+    // instance used by BOTH the parent executor and the child spawned by
     // run_subtask: parent delegates → child calls calculate → child finalizes
-    // → parent finalizes.
+    // → parent finalizes. Every action is a code action; an unschema'd step
+    // finalizes on the first assistant turn without one.
+    const action = (code: string) => ({
+      type: "tool_call" as const,
+      name: EXECUTE_CODE_TOOL_NAME,
+      args: { title: "Running a code action", code }
+    });
     const provider = new ScriptedProvider([
       () => [
-        {
-          type: "tool_call",
-          name: "run_subtask",
-          args: {
-            description: "compute product",
-            prompt: "Multiply 47 by 89 with the calculate tool and report it."
-          }
-        }
+        action(
+          `await tools.run_subtask({
+             description: "compute product",
+             prompt: "Multiply 47 by 89 with the calculate tool and report it."
+           });`
+        )
       ],
       () => [
-        {
-          type: "tool_call",
-          name: "calculate",
-          args: { a: 47, op: "multiply", b: 89 }
-        }
+        action(`await tools.calculate({ a: 47, op: "multiply", b: 89 });`)
       ],
       () => [{ type: "chunk", content: "The product is 4183.", done: true }],
       () => [{ type: "chunk", content: "The result is 4183.", done: true }]
