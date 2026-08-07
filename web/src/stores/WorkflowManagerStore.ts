@@ -70,14 +70,22 @@ const STORAGE_KEYS = {
   OPEN_WORKFLOWS: "openWorkflows"
 } as const;
 
+// localStorage holds whatever an older build left there, so a non-string entry
+// yields nothing rather than an `undefined` id flowing into routing.
+const readOpenWorkflowIds = (): string[] => {
+  const parsed: unknown = JSON.parse(
+    localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"
+  );
+  return Array.isArray(parsed)
+    ? parsed.filter((id): id is string => typeof id === "string")
+    : [];
+};
+
 // localStorage utilities with debounced writes.
 const storage = {
   getCurrentWorkflow: () => localStorage.getItem(STORAGE_KEYS.CURRENT_WORKFLOW),
 
-  getOpenWorkflows: (): string[] =>
-    JSON.parse(
-      localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"
-    ) as string[],
+  getOpenWorkflows: readOpenWorkflowIds,
 
   setCurrentWorkflow: debounce((workflowId: string) => {
     localStorage.setItem(STORAGE_KEYS.CURRENT_WORKFLOW, workflowId);
@@ -91,10 +99,7 @@ const storage = {
   }, 100)
 };
 
-export const getOpenWorkflowsFromStorage = (): string[] =>
-  JSON.parse(
-    localStorage.getItem(STORAGE_KEYS.OPEN_WORKFLOWS) || "[]"
-  ) as string[];
+export const getOpenWorkflowsFromStorage = readOpenWorkflowIds;
 
 /**
  * Determines the next active workflow ID when a workflow is removed.

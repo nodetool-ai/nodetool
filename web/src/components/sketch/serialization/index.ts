@@ -45,6 +45,10 @@ function getDefaultBounds(width: number, height: number): LayerRasterBounds {
   return { x: 0, y: 0, width, height };
 }
 
+function numberOr(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
 function getDataUrlByteLength(dataUrl: string): number {
   const commaIndex = dataUrl.indexOf(",");
   if (commaIndex < 0) {
@@ -96,12 +100,19 @@ export function deserializeLayerData(
     return { image: data, bounds: fallbackBounds };
   }
   try {
-    const decoded = JSON.parse(
+    const decoded: unknown = JSON.parse(
       window.atob(data.slice(SERIALIZED_LAYER_DATA_PREFIX.length))
-    ) as SerializedLayerData;
+    );
+    const payload = (decoded ?? {}) as Partial<SerializedLayerData>;
+    const bounds = payload.bounds;
     return {
-      image: decoded.image ?? null,
-      bounds: decoded.bounds ?? fallbackBounds
+      image: typeof payload.image === "string" ? payload.image : null,
+      bounds: {
+        x: numberOr(bounds?.x, fallbackBounds.x),
+        y: numberOr(bounds?.y, fallbackBounds.y),
+        width: numberOr(bounds?.width, fallbackBounds.width),
+        height: numberOr(bounds?.height, fallbackBounds.height)
+      }
     };
   } catch {
     return { image: data, bounds: fallbackBounds };

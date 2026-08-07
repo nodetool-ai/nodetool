@@ -1,11 +1,12 @@
 import { globalShortcut } from "electron";
 import { logMessage } from "./logger";
 import { fetchWorkflows } from "./api";
+import { workflowShortcut } from "./workflowSettings";
 import { Workflow } from "./types";
 import { runWorkflow } from "./workflowExecution";
 
 const registerWorkflowShortcut = async (workflow: Workflow): Promise<boolean> => {
-  const shortcut = workflow.settings?.shortcut;
+  const shortcut = workflowShortcut(workflow);
   if (!shortcut) {
     logMessage(
       `Workflow "${workflow.name}" (${workflow.id}) has no shortcut configured`,
@@ -65,8 +66,7 @@ async function setupWorkflowShortcuts(): Promise<void> {
     let failedCount = 0;
 
     for (const workflow of workflows) {
-      const shortcut = workflow.settings?.shortcut;
-      if (shortcut) {
+      if (workflowShortcut(workflow)) {
         const success = await registerWorkflowShortcut(workflow);
         if (success) {
           registeredCount++;

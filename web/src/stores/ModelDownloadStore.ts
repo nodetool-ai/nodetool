@@ -5,10 +5,23 @@ import { trpc } from "../lib/trpc";
 import { useHfCacheStatusStore } from "./HfCacheStatusStore";
 import type { ModelScope } from "./ModelManagerStore";
 
+const DOWNLOAD_STATUSES = [
+  "pending",
+  "idle",
+  "running",
+  "completed",
+  "cancelled",
+  "error",
+  "start",
+  "progress"
+] as const;
+
+type DownloadStatus = (typeof DOWNLOAD_STATUSES)[number];
+
 interface DownloadProgressMessage {
   repo_id?: string;
   path?: string;
-  status?: Download["status"];
+  status?: DownloadStatus;
   model_type?: string;
   downloaded_bytes?: number;
   total_bytes?: number;
@@ -19,21 +32,49 @@ interface DownloadProgressMessage {
   message?: string;
 }
 
+const optionalString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+const optionalNumber = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+// `JSON.parse` hands back `any`, so a byte count arriving as a string would
+// otherwise reach the progress bar and render as NaN.
+const parseDownloadProgress = (
+  value: unknown
+): DownloadProgressMessage | null => {
+  if (typeof value !== "object" || value === null) {
+    return null;
+  }
+  const frame = value as Record<string, unknown>;
+  const status = optionalString(frame.status);
+  const currentFiles = frame.current_files;
+  return {
+    repo_id: optionalString(frame.repo_id),
+    path: optionalString(frame.path),
+    status: DOWNLOAD_STATUSES.includes(status as DownloadStatus)
+      ? (status as DownloadStatus)
+      : undefined,
+    model_type: optionalString(frame.model_type),
+    downloaded_bytes: optionalNumber(frame.downloaded_bytes),
+    total_bytes: optionalNumber(frame.total_bytes),
+    total_files: optionalNumber(frame.total_files),
+    downloaded_files: optionalNumber(frame.downloaded_files),
+    current_files: Array.isArray(currentFiles)
+      ? currentFiles.filter((file): file is string => typeof file === "string")
+      : undefined,
+    error: optionalString(frame.error),
+    message: optionalString(frame.message)
+  };
+};
+
 interface SpeedDataPoint {
   bytes: number;
   timestamp: number;
 }
 
 interface Download {
-  status:
-    | "pending"
-    | "idle"
-    | "running"
-    | "completed"
-    | "cancelled"
-    | "error"
-    | "start"
-    | "progress";
+  status: DownloadStatus;
   id: string;
   downloadedBytes: number;
   totalBytes: number;
@@ -207,9 +248,12 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
     });
 
     if (ws) {
-      ws.onmessage = (event) => {
-        const data: DownloadProgressMessage = JSON.parse(event.data);
-        if (data.repo_id) {
+      ws.onmessage = (event: MessageEvent<unknown>) => {
+        const data =
+          typeof event.data === "string"
+            ? parseDownloadProgress(JSON.parse(event.data))
+            : null;
+        if (data?.repo_id) {
           const id = data.path ? data.repo_id + "/" + data.path : data.repo_id;
           // Ignore progress for dismissed rows — otherwise removeDownload + next WS
           // tick recreates the entry via updateDownload's "missing entry" bootstrap.
@@ -253,7 +297,7 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
             }
             useHfCacheStatusStore.getState().invalidate([id]);
           }
-        } else if (data.status === "error") {
+        } else if (data?.status === "error") {
           // Server-side failure before the download manager attached a
           // repo_id (e.g. the manager failed to start). There's nothing to
           // attribute it to, so fail every entry still awaiting its first

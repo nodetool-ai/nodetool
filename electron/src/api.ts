@@ -28,6 +28,8 @@ export async function fetchWorkflows(): Promise<Workflow[]> {
     const data = await createApiClient().workflows.list.query({ limit: 100 });
     const count = data.workflows.length;
     logMessage(`Successfully fetched ${count} workflows`);
+    // Still asserted: the wire makes `graph` nullable and a node's `data`
+    // optional, which `getInputNodes` dereferences unconditionally.
     return data.workflows as unknown as Workflow[];
   } catch (error) {
     if (error instanceof Error) {

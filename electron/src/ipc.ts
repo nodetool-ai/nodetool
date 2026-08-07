@@ -44,6 +44,7 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { installMcpBundle } from "./mcpBundle";
 import { IpcRequest } from "./types.d";
 import { registerWorkflowShortcut, setupWorkflowShortcuts } from "./shortcuts";
+import { workflowShortcut } from "./workflowSettings";
 import { emitWorkflowsChanged, emitServerStateChanged } from "./tray";
 import {
   fetchAvailablePackages,
@@ -788,8 +789,9 @@ export function initializeIpcHandlers(): void {
     IpcChannels.ON_DELETE_WORKFLOW,
     async (_event, workflow) => {
       logMessage(`Deleting workflow: ${workflow.name}`);
-      if (workflow.settings?.shortcut) {
-        globalShortcut.unregister(workflow.settings.shortcut);
+      const shortcut = workflowShortcut(workflow);
+      if (shortcut) {
+        globalShortcut.unregister(shortcut);
       }
       emitWorkflowsChanged();
     },
