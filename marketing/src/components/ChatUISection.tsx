@@ -48,9 +48,9 @@ export default function ChatUISection() {
             className="text-lg text-slate-400 leading-relaxed"
           >
             The chat isn&apos;t a help panel — it&apos;s an agent with the whole
-            app as its toolbelt, around 120 tools across every editor. Ask in
-            plain English and it builds the workflow, runs it, and leaves
-            behind something you can inspect, edit, and rerun.
+            app as its toolbelt: anything you can click in any editor, it can
+            do. Ask in plain English and it builds the workflow, runs it, and
+            leaves behind something you can inspect, edit, and rerun.
           </motion.p>
         </div>
 

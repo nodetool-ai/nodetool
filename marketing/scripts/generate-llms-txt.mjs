@@ -32,7 +32,7 @@ const PREAMBLE = `# NodeTool
 
 ## What NodeTool is
 
-- An agent-first workspace: every editor is exposed to agents as tools, around 120 in all, and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
+- An agent-first workspace: every action in every editor is also an agent tool — anything you can click, an agent can do — and the full toolbelt speaks MCP for outside agents such as Claude Desktop and Claude Code.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
 - Two editions of one open-source codebase: **Studio**, a free desktop app for macOS, Windows, and Linux, and **Cloud**, the same app hosted in a browser (currently in alpha).
 - Planning agents: give an agent a goal and it plans the steps, picks a model or tool, and executes multi-step tasks on the canvas.
@@ -133,7 +133,7 @@ Cloud uses bring-your-own provider keys. See [pricing](${BASE_URL}/pricing.md) a
     title: "NodeTool Developer Platform",
     description:
       "Build, run, extend, and deploy NodeTool workflows with code — or through an agent.",
-    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime. It is agent-first: every editor is exposed as tools, around 120 in all, and the full toolbelt speaks MCP, so Claude Code or any MCP-aware agent can build, validate, run, and debug workflows.
+    body: `NodeTool provides a TypeScript SDK, CLI, HTTP and WebSocket APIs, custom-node APIs, and a deployable workflow runtime. It is agent-first: every editor action is also an agent tool, and the full toolbelt speaks MCP, so Claude Code or any MCP-aware agent can build, validate, run, and debug workflows.
 
 Use the [CLI](https://docs.nodetool.ai/cli.md) for automation, the [node catalog](https://docs.nodetool.ai/nodes/catalog.json) to discover node schemas, and the [developer guide](https://docs.nodetool.ai/developer/index.md) to extend NodeTool.`,
   },
@@ -141,7 +141,7 @@ Use the [CLI](https://docs.nodetool.ai/cli.md) for automation, the [node catalog
     title: "NodeTool Agents",
     description:
       "NodeTool is agent-first: every editor is exposed to agents as tools.",
-    body: `NodeTool is agent-first. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all. An agent plans multi-step tasks, builds and runs workflows, and repairs what fails, on the same surfaces you use. The full toolbelt is also exposed over MCP for outside agents such as Claude Desktop and Claude Code.
+    body: `NodeTool is agent-first. Every editor — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — hands agents the same actions you have: wire a graph, paint a layer, cut a clip, revise a shot, place a widget. An agent plans multi-step tasks, builds and runs workflows, and repairs what fails, on the same surfaces you use. The full toolbelt is also exposed over MCP for outside agents such as Claude Desktop and Claude Code.
 
 Read the [agent documentation](https://docs.nodetool.ai/agents/index.md) for installation, schema discovery, validation, execution, and job monitoring.`,
   },
