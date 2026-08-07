@@ -24,7 +24,8 @@ import type { GraphData } from "@nodetool-ai/protocol";
 import {
   listOfflineModelIds,
   listRegisteredProviderIds,
-  type NodeExecutor
+  type NodeExecutor,
+  type ProcessingContext
 } from "@nodetool-ai/runtime";
 import { normalizeGraph } from "../normalize-graph.js";
 import { collectExecutionSummary } from "../debug/collector.js";
@@ -63,6 +64,12 @@ export interface WorkflowRunEnvironment {
     [key: string]: unknown;
   }) => NodeExecutor;
   ensurePythonBridge?: () => Promise<void>;
+  /**
+   * Attach host-provided model interfaces (asset persistence, message
+   * storage, …) to the run's ProcessingContext before execution. Without it
+   * nodes that persist artifacts — every image Output — fail their run.
+   */
+  configureContext?: (context: ProcessingContext) => void;
 }
 
 /** Provider/model catalogs the pre-flight checks a graph's selections against. */
@@ -391,12 +398,18 @@ export async function runWorkflow(
         resolveExecutor(
           node as { id: string; type: string; [key: string]: unknown }
         ),
-      executionContext: buildWorkspaceExecutionContext({
-        jobId: job.id,
-        workflowId,
-        userId,
-        workspaceDir
-      }),
+      executionContext: (() => {
+        const executionContext = buildWorkspaceExecutionContext({
+          jobId: job.id,
+          workflowId,
+          userId,
+          workspaceDir
+        });
+        // The host attaches its model interfaces (asset persistence, …) —
+        // without them an Output node that stores an image fails the run.
+        environment.configureContext?.(executionContext);
+        return executionContext;
+      })(),
       ...(supervisorHandle ? { supervisor: supervisorHandle } : {})
     });
     hydratedGraph = hydrateGraphNodeFlags(

@@ -128,7 +128,10 @@ export class Asset extends DBModel {
       }
     }
     if (contentType) {
-      conditions.push(eq(assets.content_type, contentType));
+      // Prefix match, like searchAssetsGlobal: a "image" filter must find
+      // "image/png". Exact equality only matched legacy bare-type rows.
+      const sanitizedType = contentType.replace(/[%_\\]/g, "\\$&");
+      conditions.push(like(assets.content_type, `${sanitizedType}%`));
     }
     if (workflowId) {
       conditions.push(eq(assets.workflow_id, workflowId));

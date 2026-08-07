@@ -57,8 +57,10 @@ import {
   logPythonWorkerStderr,
   safeFetch,
   type NodeExecutor,
+  type ProcessingContext,
   type PythonBridge
 } from "@nodetool-ai/runtime";
+import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
@@ -342,6 +344,7 @@ type WorkflowRuntimeEnvironment = {
     type: string;
     [key: string]: unknown;
   }) => NodeExecutor;
+  configureContext: (context: ProcessingContext) => void;
 };
 
 export async function getWorkflowRuntimeEnvironment(
@@ -505,7 +508,19 @@ export async function getWorkflowRuntimeEnvironment(
         return registry.resolve(node);
       };
 
-      return { registry, pythonBridge, ensurePythonBridge, resolveExecutor };
+      return {
+        registry,
+        pythonBridge,
+        ensurePythonBridge,
+        resolveExecutor,
+        // Asset persistence for the run's ProcessingContext — an Output node
+        // that stores an image needs it on every host, not just chat turns.
+        configureContext: (context: ProcessingContext) => {
+          context.setModelInterfaces({
+            createAsset: createAssetModelInterface
+          });
+        }
+      };
     })();
   }
 

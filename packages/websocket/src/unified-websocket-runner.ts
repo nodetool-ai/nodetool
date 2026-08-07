@@ -176,6 +176,7 @@ import {
   type LongTermMemory
 } from "@nodetool-ai/agents";
 import { RunNodeTool } from "./agent/run-node-tool.js";
+import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { appRouter } from "./trpc/router.js";
@@ -1028,51 +1029,10 @@ function createRuntimeContext(opts: {
     }
   });
 
-  const MIME_TO_EXT: Record<string, string> = {
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/gif": "gif",
-    "image/webp": "webp",
-    "image/bmp": "bmp",
-    "image/svg+xml": "svg",
-    "audio/mpeg": "mp3",
-    "audio/mp3": "mp3",
-    "audio/wav": "wav",
-    "audio/ogg": "ogg",
-    "video/mp4": "mp4",
-    "video/webm": "webm",
-    "application/pdf": "pdf",
-    "text/plain": "txt",
-    "text/html": "html",
-    "model/gltf-binary": "glb"
-  };
-
   ctx.setModelInterfaces({
-    createAsset: async (args) => {
-      const asset = new Asset({
-        user_id: args.userId,
-        workflow_id: args.workflowId ?? null,
-        node_id: args.nodeId ?? null,
-        job_id: args.jobId ?? null,
-        name: args.name,
-        content_type: args.contentType,
-        parent_id: args.parentId ?? null
-      });
-      if (args.content) {
-        const ext = MIME_TO_EXT[args.contentType] ?? "bin";
-        const key = `${asset.id}.${ext}`;
-        await storeAssetWithThumbnail(
-          asset.user_id,
-          asset.id,
-          key,
-          args.content,
-          args.contentType
-        );
-        asset.size = args.content.length;
-      }
-      await asset.save();
-      return asset;
-    },
+    // Shared with MCP sessions and workflow runs (lib/asset-model-interface):
+    // one persistence path, one home-folder default.
+    createAsset: createAssetModelInterface,
     createMessage: async ({ userId, req }) => {
       // Persist an AgentNode thread message. `content` / `tool_calls` are stored
       // raw — the `content` column is a jsonText type that serializes them, so

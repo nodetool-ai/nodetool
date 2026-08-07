@@ -36,12 +36,10 @@ type JsonObject = Record<string, unknown>;
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import {
   WORKFLOW_DOCUMENT_TOOL_NAMES,
-  hydrateGraphNodeFlags,
   NodeRegistry,
   rankNodeMetadata,
   type NodeMetadata
 } from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
@@ -50,11 +48,9 @@ import {
   type NodeExecutor,
   type PythonBridge
 } from "@nodetool-ai/runtime";
-import { WorkflowRunner } from "@nodetool-ai/kernel";
-import {
-  resolveWorkflowWorkspace,
-  buildWorkspaceExecutionContext
-} from "./lib/workflow-workspace.js";
+import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
+import { runWorkflow } from "@nodetool-ai/execution/service";
+import { createAssetModelInterface } from "./lib/asset-model-interface.js";
 import type { AgentTransport } from "./agent/transport.js";
 import { registerAgentMcpTools } from "./mcp-agent-tools.js";
 
@@ -483,146 +479,46 @@ export function createMcpServer(options?: McpServerOptions): McpServer {
     },
     async ({ workflow_id, params, user_id }) => {
       try {
-        const workflow = await Workflow.find(user_id, workflow_id);
-        if (!workflow) {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify({ error: "Workflow not found" })
-              }
-            ],
-            isError: true
-          };
-        }
-
-        const runMode = workflow.run_mode ?? "workflow";
-        if (runMode !== "workflow") {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify({
-                  error: `Workflow run mode "${runMode}" is not supported by the backend MCP runner.`
-                })
-              }
-            ],
-            isError: true
-          };
-        }
-
-        const graph = workflow.getGraph();
-        const runnableGraph: {
-          nodes: Array<{
-            id: string;
-            type: string;
-            [key: string]: unknown;
-          }>;
-          edges: Array<{
-            id?: string | null;
-            source: string;
-            target: string;
-            sourceHandle: string;
-            targetHandle: string;
-            edge_type?: "data" | "control";
-            [key: string]: unknown;
-          }>;
-        } = {
-          nodes: graph.nodes.map((node) => {
-            const record = node as Record<string, unknown>;
-            return {
-              ...record,
-              id: String(record.id ?? ""),
-              type: String(record.type ?? ""),
-              properties: (record.properties ?? record.data ?? {}) as Record<
-                string,
-                unknown
-              >
-            };
-          }),
-          edges: graph.edges.map((edge) => {
-            const record = edge as Record<string, unknown>;
-            return {
-              ...record,
-              id:
-                typeof record.id === "string" || record.id == null
-                  ? (record.id as string | null | undefined)
-                  : String(record.id),
-              source: String(record.source ?? ""),
-              target: String(record.target ?? ""),
-              sourceHandle: String(record.sourceHandle ?? ""),
-              targetHandle: String(record.targetHandle ?? ""),
-              edge_type: record.edge_type === "control" ? "control" : "data"
-            };
-          })
-        };
-        const runtime = await getRuntimeEnvironment(options);
-        const hasPythonNode = runnableGraph.nodes.some((node) => {
-          const nodeType = typeof node.type === "string" ? node.type : "";
-          return (
-            nodeType !== "" &&
-            Boolean(runtime.registry.getMetadata(nodeType)) &&
-            !runtime.registry.has(nodeType)
-          );
-        });
-        if (hasPythonNode) {
-          await runtime.ensurePythonBridge();
-        }
-
-        const job = await Job.create({
-          workflow_id,
-          user_id,
-          status: "running",
+        // The shared run service: same normalization, python-bridge gating,
+        // job accounting, and context wiring (asset persistence included) as
+        // the HTTP route and the in-process agent tools. This handler used to
+        // inline all of that and drifted — its runs could not persist assets.
+        const outcome = await runWorkflow({
+          workflowId: workflow_id,
+          userId: user_id,
           params,
-          graph: runnableGraph
+          environment: async () => {
+            const runtime = await getRuntimeEnvironment(options);
+            return {
+              registry: runtime.registry,
+              resolveExecutor: runtime.resolveExecutor,
+              ensurePythonBridge: runtime.ensurePythonBridge,
+              configureContext: (context) => {
+                context.setModelInterfaces({
+                  createAsset: createAssetModelInterface
+                });
+              }
+            };
+          },
+          resolveWorkspace: resolveWorkflowWorkspace
         });
 
-        const workspaceDir = await resolveWorkflowWorkspace(
-          workflow_id,
-          user_id
-        );
-        const runner = new WorkflowRunner(job.id, {
-          resolveExecutor: (node) =>
-            runtime.resolveExecutor(
-              node as { id: string; type: string; [key: string]: unknown }
-            ),
-          executionContext: buildWorkspaceExecutionContext({
-            jobId: job.id,
-            workflowId: workflow_id,
-            userId: user_id,
-            workspaceDir
-          })
-        });
-        const result = await runner.run(
-          { job_id: job.id, workflow_id, params },
-          hydrateGraphNodeFlags(
-            runnableGraph as unknown as GraphData,
-            runtime.registry
-          )
-        );
-
-        if (result.status === "completed") {
-          job.markCompleted();
-        } else if (result.status === "cancelled") {
-          job.markCancelled();
-        } else {
-          job.markFailed(result.error ?? "Workflow run failed");
+        if (outcome.kind === "error") {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({ error: outcome.detail })
+              }
+            ],
+            isError: true
+          };
         }
-        await job.save();
-
         return {
           content: [
             {
               type: "text" as const,
-              text: JSON.stringify({
-                job_id: job.id,
-                workflow_id,
-                status: result.status,
-                outputs: result.outputs,
-                error: result.error ?? null,
-                message_count: result.messages.length,
-                background: false
-              })
+              text: JSON.stringify(outcome.payload)
             }
           ]
         };
