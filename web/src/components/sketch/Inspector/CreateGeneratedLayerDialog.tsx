@@ -51,7 +51,7 @@ interface PickerWorkflow {
 
 const ROW_GAP_PX = 4;
 
-const dialogStyles = (theme: Theme) =>
+const dialogStyles = () =>
   css({
     // Never wider than the viewport: the dialog is reachable on phones, where
     // a hard 560px min forces the page to scroll sideways.
@@ -241,7 +241,7 @@ const CreateGeneratedLayerDialogBody: React.FC<{
           onCancel={handleClose}
           confirmText={isBusy ? "Creating…" : "Create layer"}
           confirmDisabled={confirmDisabled}
-          PaperProps={{ css: dialogStyles(theme) }}
+          PaperProps={{ css: dialogStyles() }}
         >
           <FlexColumn gap={1.5}>
             <Caption color="secondary">

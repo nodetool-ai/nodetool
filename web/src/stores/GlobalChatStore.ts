@@ -371,10 +371,10 @@ const inFlightMessageLoads = new Map<string, Promise<Message[]>>();
  * Chat-initiated workflow runs stream `node_update`s over the chat socket, not
  * through the editor's `handleUpdate` pipeline — so their run never registers as
  * the focused job and their provider costs never land in ResultsStore under the
- * workflow id. That left the CostTicker (rendered in Global Chat) stuck at $0.
+ * workflow id. That left the per-node cost footers stuck at $0.
  *
- * Mirror the editor path here: register the run so `useLiveRunCost(workflowId)`
- * follows it, record any provider charge, and refresh the session budget spend.
+ * Mirror the editor path here: register the run so `getProviderCost` finds it,
+ * record any provider charge, and refresh the session budget spend.
  */
 function isNodeUpdate(
   msg: WebSocketMessage

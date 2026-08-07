@@ -134,8 +134,7 @@ const DataframeProperty = ({
   value = { type: "dataframe" as const, uri: "" },
   onChange,
   nodeType: _nodeType,
-  property,
-  propertyIndex
+  property
 }: PropertyProps) => {
   const theme = useTheme();
   const [isExpanded, setIsExpanded] = useState(false);

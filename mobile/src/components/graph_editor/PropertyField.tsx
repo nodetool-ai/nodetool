@@ -963,11 +963,10 @@ const imageSizeStyles = StyleSheet.create({
 // ── JSON widget ─────────────────────────────────────────────────────
 
 const JSONWidget: React.FC<{
-  prop: Property;
   value: unknown;
   onChange: (v: unknown) => void;
   colors: ThemeColors;
-}> = ({ prop, value, onChange, colors }) => {
+}> = ({ value, onChange, colors }) => {
   const dataStr =
     typeof value === "object" &&
     value !== null &&
@@ -1396,12 +1395,11 @@ const ListWidget: React.FC<{
 // ── File/folder path widget ─────────────────────────────────────────
 
 const FilePathWidget: React.FC<{
-  prop: Property;
   value: unknown;
   onChange: (v: unknown) => void;
   colors: ThemeColors;
   isFolder?: boolean;
-}> = ({ prop, value, onChange, colors, isFolder }) => {
+}> = ({ value, onChange, colors, isFolder }) => {
   const pathStr = typeof value === "string" ? value : "";
 
   const pickFile = useCallback(async () => {
@@ -1883,7 +1881,7 @@ const WidgetRenderer: React.FC<{
     case "image_size":
       return <ImageSizeWidget value={value} onChange={onChange} colors={colors} />;
     case "json":
-      return <JSONWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return <JSONWidget value={value} onChange={onChange} colors={colors} />;
     case "dict":
       return <DictWidget value={value} onChange={onChange} colors={colors} />;
     case "string_list":
@@ -1891,9 +1889,9 @@ const WidgetRenderer: React.FC<{
     case "list":
       return <ListWidget prop={property} value={value} onChange={onChange} colors={colors} />;
     case "file_path":
-      return <FilePathWidget prop={property} value={value} onChange={onChange} colors={colors} />;
+      return <FilePathWidget value={value} onChange={onChange} colors={colors} />;
     case "folder_path":
-      return <FilePathWidget prop={property} value={value} onChange={onChange} colors={colors} isFolder />;
+      return <FilePathWidget value={value} onChange={onChange} colors={colors} isFolder />;
     case "model":
       return <ModelWidget prop={property} value={value} onChange={onChange} colors={colors} />;
     case "asset_ref":

@@ -17,7 +17,7 @@ const pulse = keyframes`
   }
 `;
 
-const styles = (theme: Theme, variant: string, size: string) =>
+const styles = (theme: Theme, size: string) =>
   css({
     display: "flex",
     flexDirection: "column",
@@ -116,7 +116,7 @@ export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({
 
   return (
     <Box
-      css={styles(theme, variant, sizePreset)}
+      css={styles(theme, sizePreset)}
       className={`loading-spinner ${className || ""}`}
       role="status"
       aria-live="polite"

@@ -16,8 +16,6 @@ import { memo, useMemo } from "react";
 
 export function CustomEdge({
   id,
-  source,
-  target,
   sourceX,
   sourceY,
   targetX,
