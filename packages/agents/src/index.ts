@@ -766,6 +766,12 @@ export type {
   CodeActEvalExpectations,
   CodeActToolRecorder
 } from "./evals/codeact-cases.js";
+export {
+  CODEACT_API_EVAL_CASES,
+  uncoveredNodetoolApiNamespaces
+} from "./evals/codeact-api-cases.js";
+export { CODEACT_API_CORE_CASES } from "./evals/codeact-api-core.js";
+export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
 
 // Planning-mode evaluation harnesses (TaskPlanner DAG, ScriptPlanner script)
 export {

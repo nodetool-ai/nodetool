@@ -1082,13 +1082,16 @@ interface PromptEntry {
 const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "workflows",
-    doc: `- \`nodetool.workflows\` — \`list()\`, \`get(id)\`, \`run(id, params, {interactive})\`,
+    doc: `- \`nodetool.workflows\` — \`list()\` and \`examples()\` return \`{workflows}\`
+  (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
   \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
   \`create(name, graph, {description, tags})\`, \`open(id?)\` (the editable object
   model — see the graph-editing section). An interactive run returns an
   escalation: answer it with \`resolve(sessionId, escalationId, action,
   {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
-  get the next escalation or the final report. \`examples()\` lists the shipped
+  get the next escalation or the final report. Write the whole
+  run-and-resolve loop (\`while (report.status === "escalated") ...\`) in one
+  action. \`examples()\` lists the shipped
   example workflows and \`example("<package>/<name>")\` loads one with its
   graph, ready for \`nodetool.graph().copyFrom(...)\`.`
   },
@@ -1125,7 +1128,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "models",
     doc: `- \`nodetool.models\` — \`await pick(capability)\` resolves ONE ranked model
   (e.g. \`pick("text_to_image")\` → \`{provider, model_id}\`), \`find(capability,
-  {task, provider_hint, prefer_local, limit})\` for the ranked list,
+  {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
+  \`{results}\`),
   \`list({provider, model_type})\` to browse. Never guess a model id — pick one,
   then pass it to \`nodetool.media.*\` or into node properties.`
   },
@@ -1202,7 +1206,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`await wait(jobId, {timeoutMs, pollMs})\` polls until the job settles
   (completed/failed/cancelled) and returns the job. Pair it with
   \`nodetool.workflows.start(id, params)\`: start the run, do other work, then
-  \`wait\` on the job id instead of blocking on \`run()\`.`
+  \`wait\` on the job id instead of blocking on \`run()\`. \`wait\` replaces a
+  \`get()\` polling loop — start, wait, and read the result in one action,
+  never one \`get()\` per action.`
   },
   {
     namespace: "collections",
@@ -1273,8 +1279,9 @@ return { ok: runs.filter((r) => r.ok).length, failed: state.failed.length };
 \`\`\`
 
 \`nodetool.batch(items, fn, {concurrency, stopOnError})\` never throws — each
-entry settles as \`{ok, index, item, value | error}\`. Mind the per-action
-tool-call budget: chunk big lists across actions and keep progress in \`state\`.`;
+entry settles as \`{ok, index, item, value | error}\`. A handful of items is one
+\`batch\` call in one action; only lists big enough to threaten the sandbox
+limits get chunked across actions with progress in \`state\`.`;
 
 const MEDIA_EXAMPLE = `Pick a model once, then generate — batching included:
 

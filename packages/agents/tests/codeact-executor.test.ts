@@ -394,3 +394,40 @@ describe("CodeAct progressive tool disclosure", () => {
     expect(executor.getResult()).toEqual({ answer: 1 });
   });
 });
+
+describe("coercionArtifactPaths", () => {
+  it("names the paths carrying [object Object]", async () => {
+    const { coercionArtifactPaths } = await import(
+      "../src/codeact/codeact-executor.js"
+    );
+    expect(
+      coercionArtifactPaths({
+        shout: "[object Object]",
+        nested: { list: ["fine", "x [object Object] y"] },
+        ok: "SHIP IT",
+        n: 3
+      })
+    ).toEqual(["result.shout", "result.nested.list[1]"]);
+    expect(coercionArtifactPaths({ ok: "clean" })).toEqual([]);
+  });
+
+  it("flags a JSON-serialized envelope standing in for the value", async () => {
+    const { coercionArtifactPaths } = await import(
+      "../src/codeact/codeact-executor.js"
+    );
+    expect(
+      coercionArtifactPaths({
+        slug: '{"status":"completed","outputs":{"slug":"fox-in-snow"}}',
+        shout: '{"shout":"SHIP IT"}'
+      })
+    ).toEqual(["result.slug", "result.shout"]);
+    // Plain values, JSON that is not an envelope, and arrays stay legal.
+    expect(
+      coercionArtifactPaths({
+        text: '{"unrelated":1}',
+        list: '["a","b"]',
+        word: "SHIP IT"
+      })
+    ).toEqual([]);
+  });
+});

@@ -587,7 +587,19 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `generate_speech`. `getBuiltinTools()` still returns them, so MCP clients,
   which have no object model, keep them.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
-  `nodetool eval codeact -p <p> -m <m>`.
+  `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
+  it covers the full `nodetool.*` API surface: 19 cases over two
+  deterministic in-memory worlds (`src/evals/codeact-api-core.ts`,
+  `codeact-api-surfaces.ts`) whose fakes are named like real belt tools so
+  the object-model prelude lights up. `tests/codeact-api-coverage.test.ts`
+  fails when a namespace loses its last case.
+  `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case
+  live and writes every action's code to `nodetool-debug/` — the tool to
+  reach for before touching the action-contract prompt. Measured on
+  `claude_agent_sdk`/sonnet (`IS_SANDBOX=1 … --max-iterations 40`): 20-22 of
+  23 per run, mean score ~0.98, ~2.3 actions per case; the residual misses
+  rotate with sampling, so judge prompt changes on the per-action dumps, not
+  on one run's pass count.
 - Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
   `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
   `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).

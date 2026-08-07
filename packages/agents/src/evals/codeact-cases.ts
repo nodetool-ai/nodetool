@@ -16,7 +16,7 @@ export function createCodeActRecorder(): CodeActToolRecorder {
   return { invocations: [] };
 }
 
-class RecordingTool extends Tool {
+export class RecordingTool extends Tool {
   constructor(
     readonly name: string,
     readonly description: string,
@@ -129,6 +129,19 @@ export interface CodeActEvalCase {
   objective: string;
   outputSchema?: Record<string, unknown>;
   expect: CodeActEvalExpectations;
+  /**
+   * Supply the case's own instrumented toolbelt. Defaults to the toy worker
+   * belt ({@link createCodeActTools}); the nodetool-API cases hand back fakes
+   * named like real belt tools so the `nodetool.*` object model lights up.
+   */
+  createTools?: (recorder: CodeActToolRecorder) => Tool[];
+  /** Override the suite-level action-round cap for this case. */
+  maxIterations?: number;
+  /**
+   * `nodetool.*` namespaces this case exercises — the coverage test asserts
+   * the API cases collectively cover every namespace the object model has.
+   */
+  namespaces?: readonly string[];
 }
 
 const SUM_SCHEMA = {
