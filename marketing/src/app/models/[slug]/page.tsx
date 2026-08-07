@@ -5,6 +5,8 @@ import { Download, ArrowRight, KeyRound } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import FaqSection from "@/components/FaqSection";
+import { toQaPairs } from "@/lib/jsonld";
 import ShowcaseMedia from "@/components/models/ShowcaseMedia";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
@@ -165,20 +167,10 @@ function ModelPage({ model }: { model: ModelEntry }) {
       url: BASE_URL,
     },
   };
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: model.faq.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
       <JsonLd data={softwareLd} />
-      <JsonLd data={faqLd} />
       <BackgroundGlow accent={model.accent} />
       <SiteHeader />
 
@@ -321,7 +313,7 @@ function ModelPage({ model }: { model: ModelEntry }) {
         )}
 
         {/* FAQ */}
-        <FaqSection faq={model.faq} />
+        <FaqSection items={toQaPairs(model.faq)} className="mx-auto mt-20 max-w-3xl px-6" />
 
         <DownloadCta
           heading={`Run ${model.name} your way.`}
@@ -398,27 +390,6 @@ function ProviderTable({ model }: { model: ModelEntry }) {
   );
 }
 
-function FaqSection({ faq }: { faq: { q: string; a: string }[] }) {
-  if (faq.length === 0) return null;
-  return (
-    <section aria-label="FAQ" className="mx-auto mt-20 max-w-3xl px-6">
-      <h2 className="text-2xl font-semibold tracking-tight text-white">
-        Frequently asked
-      </h2>
-      <dl className="mt-6 space-y-4">
-        {faq.map((f) => (
-          <div
-            key={f.q}
-            className="rounded-xl border border-slate-800/70 bg-slate-900/40 p-6"
-          >
-            <dt className="font-semibold text-white">{f.q}</dt>
-            <dd className="mt-2 leading-relaxed text-slate-300">{f.a}</dd>
-          </div>
-        ))}
-      </dl>
-    </section>
-  );
-}
 
 // ---------------------------------------------------------------------------
 // Model-vs-model comparison page
@@ -447,20 +418,10 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
       },
     ],
   };
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: comparison.faq.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
       <JsonLd data={breadcrumbLd} />
-      <JsonLd data={faqLd} />
       <BackgroundGlow accent={comparison.accent} />
       <SiteHeader />
 
@@ -555,7 +516,7 @@ function ComparisonPage({ comparison }: { comparison: ModelComparison }) {
         </section>
 
         {/* FAQ */}
-        <FaqSection faq={comparison.faq} />
+        <FaqSection items={toQaPairs(comparison.faq)} className="mx-auto mt-20 max-w-3xl px-6" />
 
         <DownloadCta
           heading="Run the duel yourself."

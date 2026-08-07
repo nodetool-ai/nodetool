@@ -1101,6 +1101,19 @@ export function getCompetitor(slug: string): Competitor | undefined {
 }
 
 /**
+ * The two-sentence answer that opens a `/vs` or `/alternatives` page, directly
+ * under the H1: what the other tool is, then what NodeTool is. Built from the
+ * record's own fields so it never states more than the page already claims,
+ * and short enough to be quoted whole.
+ */
+export function shortAnswer(c: Competitor): string {
+  const article = /^[aeiou]/i.test(c.competitorTagline) ? "an" : "a";
+  const tagline =
+    c.competitorTagline.charAt(0).toLowerCase() + c.competitorTagline.slice(1);
+  return `${c.name} is ${article} ${tagline}. NodeTool is the open-source, agent-first creative workspace: image, video, audio, and text on one canvas, every major model called with your own keys at provider prices, as a desktop app or self-hosted.`;
+}
+
+/**
  * Sibling comparison links for the in-content ComparisonMesh — every competitor
  * except the current one, so each page links 11 siblings (≥ 8 required). Same
  * category first, so the most relevant comparisons lead.

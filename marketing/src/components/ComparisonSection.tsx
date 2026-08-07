@@ -7,6 +7,47 @@ interface ComparisonSectionProps {
   reducedMotion?: boolean;
 }
 
+interface ComparisonRow {
+  label: string;
+  nodetool: string;
+  comfyui: string;
+  weave: string;
+}
+
+/** Cells match the per-competitor tables on /vs/comfyui and /vs/figma-weave. */
+const comparisonRows: ComparisonRow[] = [
+  {
+    label: "Media on one canvas",
+    nodetool: "Image, video, audio, text",
+    comfyui: "Diffusion images",
+    weave: "Hosted creative canvas",
+  },
+  {
+    label: "Models",
+    nodetool: "Every major provider and media type",
+    comfyui: "Stable Diffusion and other diffusion models",
+    weave: "Hand-picked list",
+  },
+  {
+    label: "What you pay",
+    nodetool: "Provider list prices, on your own keys",
+    comfyui: "Your own compute and provider accounts",
+    weave: "Figma Weave AI credits",
+  },
+  {
+    label: "Source",
+    nodetool: "Open source (AGPL-3.0)",
+    comfyui: "Open source",
+    weave: "Closed",
+  },
+  {
+    label: "Where it runs",
+    nodetool: "Desktop app and browser, self-host any time",
+    comfyui: "Your own machine",
+    weave: "Browser only",
+  },
+];
+
 export default function ComparisonSection({
   reducedMotion = false,
 }: ComparisonSectionProps) {
@@ -63,6 +104,68 @@ export default function ComparisonSection({
             reducedMotion={reducedMotion}
             delay={0.1}
           />
+        </div>
+
+        {/* Head-to-head table — the shape answer engines quote. */}
+        <div className="scroll-fade mt-10">
+          <h3
+            id="comparison-table-title"
+            className="text-xl md:text-2xl font-semibold tracking-tight text-white"
+          >
+            How does NodeTool compare with ComfyUI and Figma Weave?
+          </h3>
+          <p className="mt-3 max-w-2xl text-slate-400 leading-relaxed">
+            ComfyUI goes deep on diffusion images and runs locally. Figma Weave
+            is a hosted canvas with a curated model list, billed in its own AI
+            credits. NodeTool is open source, covers image, video, audio, and
+            text, and calls every provider on your own keys.
+          </p>
+          <div
+            className="mt-6 overflow-x-auto rounded-2xl border border-slate-800/80"
+            role="region"
+            aria-labelledby="comparison-table-title"
+            tabIndex={0}
+          >
+            <table className="w-full min-w-[42rem] border-collapse text-left">
+              <caption className="sr-only">
+                NodeTool compared with ComfyUI and Figma Weave
+              </caption>
+              <thead>
+                <tr className="bg-slate-900/60 text-sm">
+                  <th scope="col" className="px-5 py-4 font-medium text-slate-400">
+                    &nbsp;
+                  </th>
+                  <th scope="col" className="px-5 py-4 font-semibold text-white">
+                    NodeTool
+                  </th>
+                  <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
+                    ComfyUI
+                  </th>
+                  <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
+                    Figma Weave
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparisonRows.map((row, i) => (
+                  <tr
+                    key={row.label}
+                    className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
+                  >
+                    <th
+                      scope="row"
+                      className="px-5 py-4 text-sm font-medium text-slate-300"
+                    >
+                      {row.label}
+                    </th>
+                    <td className="px-5 py-4 text-sm text-white">{row.nodetool}</td>
+                    <td className="px-5 py-4 text-sm text-slate-400">{row.comfyui}</td>
+                    <td className="px-5 py-4 text-sm text-slate-400">{row.weave}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Position panel */}

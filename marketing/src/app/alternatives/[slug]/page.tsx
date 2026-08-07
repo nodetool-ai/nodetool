@@ -5,11 +5,14 @@ import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import JsonLd from "../../../components/JsonLd";
 import ComparisonMesh from "../../../components/ComparisonMesh";
+import FaqSection from "../../../components/FaqSection";
+import { breadcrumbSchema, itemListSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
   competitors,
   getCompetitor,
   alternativesFor,
+  shortAnswer,
   THEMES,
   type FeatureRow,
 } from "../../../data/competitorEntries";
@@ -63,45 +66,18 @@ export default async function AlternativesPage({
   const tools = alternativesFor(c.slug);
   const rows: FeatureRow[] = c.rows;
 
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: `${c.name} alternatives`,
-        item: `https://nodetool.ai/alternatives/${c.slug}`,
-      },
-    ],
-  };
+  const breadcrumb = breadcrumbSchema([
+    { name: `${c.name} alternatives`, url: `/alternatives/${c.slug}` },
+  ]);
 
-  const faq = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: c.faq.map((item) => ({
-      "@type": "Question",
-      name: item.question,
-      acceptedAnswer: { "@type": "Answer", text: item.answer },
-    })),
-  };
-
-  const itemList = {
-    "@context": "https://schema.org",
-    "@type": "ItemList",
-    name: `${c.name} alternatives`,
-    itemListElement: tools.map((t, i) => ({
-      "@type": "ListItem",
-      position: i + 1,
-      name: t.name,
-    })),
-  };
+  const itemList = itemListSchema(
+    `${c.name} alternatives`,
+    tools.map((t) => ({ name: t.name, ...(t.href ? { url: t.href } : {}) }))
+  );
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
       <JsonLd data={breadcrumb} />
-      <JsonLd data={faq} />
       <JsonLd data={itemList} />
 
       {/* Background glows */}
@@ -130,7 +106,11 @@ export default async function AlternativesPage({
           >
             Looking for a {c.name} alternative?
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-slate-300">
+          {/* Direct answer first — the paragraph an answer engine can lift. */}
+          <p className="mt-5 text-lg leading-relaxed text-white">
+            {shortAnswer(c)}
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-400">
             {c.limitation} If that is what brought you here, these are the
             alternatives worth weighing, and why teams pick NodeTool: an
             open-source canvas for image, video, audio, and text that runs on
@@ -139,7 +119,16 @@ export default async function AlternativesPage({
         </section>
 
         {/* Tool list */}
-        <section aria-label="Alternatives" className="mx-auto mt-16 max-w-3xl px-6">
+        <section
+          aria-labelledby="alt-list-title"
+          className="mx-auto mt-16 max-w-3xl px-6"
+        >
+          <h2
+            id="alt-list-title"
+            className="mb-6 text-2xl font-semibold tracking-tight text-white"
+          >
+            What are the best {c.name} alternatives?
+          </h2>
           <ul className="space-y-4">
             {tools.map((t) => (
               <li
@@ -151,14 +140,14 @@ export default async function AlternativesPage({
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg font-semibold text-white">
+                  <h3 className="text-lg font-semibold text-white">
                     {t.name}
                     {t.isNodetool && (
                       <span className="ml-2 align-middle text-[11px] font-semibold uppercase tracking-[0.14em] text-emerald-300">
                         Recommended
                       </span>
                     )}
-                  </h2>
+                  </h3>
                   {t.href && (
                     <a
                       href={t.href}
@@ -206,25 +195,8 @@ export default async function AlternativesPage({
           </div>
         </section>
 
-        {/* Visible FAQ */}
-        <section aria-labelledby="faq-title" className="mx-auto mt-16 max-w-3xl px-6">
-          <h2 id="faq-title" className="text-2xl font-semibold tracking-tight text-white">
-            Frequently asked questions
-          </h2>
-          <dl className="mt-6 space-y-4">
-            {c.faq.map((item) => (
-              <div
-                key={item.question}
-                className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-6"
-              >
-                <dt className="font-semibold text-white">{item.question}</dt>
-                <dd className="mt-2 text-sm leading-relaxed text-slate-300">
-                  {item.answer}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </section>
+        {/* Visible FAQ — and the FAQPage schema, built from these same rows. */}
+        <FaqSection items={c.faq} />
 
         {/* Sibling comparison mesh */}
         <ComparisonMesh currentSlug={c.slug} basePath="/alternatives" />

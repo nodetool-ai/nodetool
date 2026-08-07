@@ -28,8 +28,16 @@ export type FaqCategory =
  * Named marketing surfaces an FAQ row can be pinned to. A page renders
  * `<FaqBlock surface="agents" />` and gets every row that lists `"agents"`.
  * `"models"` is consumed by PR-4's model pages; the rows are ready for it.
+ *
+ * A row pinned to a surface is *rendered* there, which is what lets the block
+ * emit `FAQPage` schema for it: the schema only ever repeats visible text.
  */
-export type FaqSurface = "agents" | "comparison" | "models";
+export type FaqSurface =
+  | "landing"
+  | "agents"
+  | "comparison"
+  | "models"
+  | "pricing";
 
 export interface FaqEntry extends PageEntry {
   /** URL slug, e.g. "what-is-byok" → /faq/what-is-byok. */
@@ -80,7 +88,7 @@ const seeds: FaqSeed[] = [
       "NodeTool is the open creative AI workspace. Every major model from every major provider, including FAL, KIE, OpenAI, Anthropic, Gemini, and Replicate, sits on one visual canvas that you run on your own machine or in the browser. Image, video, music, and text share that canvas, alongside agents that carry out longer jobs step by step.",
     category: "general",
     relatedRoute: "/",
-    surfaces: ["agents", "comparison"],
+    surfaces: ["landing", "agents", "comparison"],
   },
   {
     slug: "is-nodetool-open-source",
@@ -89,7 +97,7 @@ const seeds: FaqSeed[] = [
       "Yes. The whole project is **AGPL-3.0** on [GitHub](https://github.com/nodetool-ai/nodetool). Studio and Cloud are built from the same source, and nothing is held back for a paid tier. You can host it yourself at any time.",
     category: "general",
     relatedRoute: "/studio",
-    surfaces: ["comparison"],
+    surfaces: ["landing", "comparison"],
   },
   {
     slug: "what-is-byok",
@@ -98,7 +106,16 @@ const seeds: FaqSeed[] = [
       "It means you connect your own provider accounts and pay each provider directly at their list price. NodeTool never adds a markup, never sells its own credits, and never runs models on its own servers. Your keys, your bill, your data. You will sometimes see this written as **BYOK**.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["agents", "comparison", "models"],
+    surfaces: ["agents", "comparison", "models", "pricing"],
+  },
+  {
+    slug: "how-much-does-nodetool-cost",
+    question: "How much does NodeTool cost?",
+    answerMd:
+      "NodeTool Studio, the desktop app, is free and open source. NodeTool Cloud is a subscription that covers hosting; it is in alpha and its price is set at full release. In both editions you bring your own API keys and pay each provider their list price directly, so what a run costs is whatever the provider charges for it. Local models through Ollama, MLX, or llama.cpp cost nothing per call.",
+    category: "byok",
+    relatedRoute: "/pricing",
+    surfaces: ["landing", "pricing", "comparison"],
   },
   {
     slug: "does-nodetool-mark-up-model-pricing",
@@ -107,7 +124,7 @@ const seeds: FaqSeed[] = [
       "No. There are no credits and no markup. You bring your own API keys and pay each provider their list price directly. You can also run local models with Ollama, MLX, or llama.cpp in the desktop app for no per-call cost at all.",
     category: "byok",
     relatedRoute: "/pricing",
-    surfaces: ["comparison", "models"],
+    surfaces: ["comparison", "models", "pricing"],
   },
   {
     slug: "studio-or-cloud",
@@ -116,7 +133,16 @@ const seeds: FaqSeed[] = [
       "Studio is the desktop app: free, open source, running on your machine, with support for local models through MLX, Ollama, and GGUF. Cloud is the same workspace in the browser, with nothing to install and no graphics card needed, and your keys still go straight to the providers. The workflows are the same either way.",
     category: "editions",
     relatedRoute: "/cloud",
-    surfaces: [],
+    surfaces: ["pricing"],
+  },
+  {
+    slug: "is-nodetool-local-first",
+    question: "Is NodeTool local-first and private?",
+    answerMd:
+      "NodeTool Studio runs on your own machine: the workspace, your workflows, your files, and your API keys stay there, and open-weight models can run locally through MLX, Ollama, llama.cpp, vLLM, and LM Studio. When you call a hosted model, that request goes from your machine straight to the provider you chose, on your key — it does not pass through NodeTool servers. Cloud is the same open-source app hosted in the browser, and your keys still call the providers directly.",
+    category: "general",
+    relatedRoute: "/studio",
+    surfaces: ["landing", "comparison"],
   },
   {
     slug: "which-models-are-supported",
@@ -125,7 +151,7 @@ const seeds: FaqSeed[] = [
       "The leading models, including Flux, Seedance, Wan, Veo, Kling, Hailuo, Qwen Image, Whisper, ElevenLabs, and Suno, reached through providers such as FAL, KIE, OpenAI, Anthropic, Gemini, Replicate, Together, Groq, Mistral, OpenRouter, and HuggingFace. Models can also run on your own computer through MLX, Ollama, llama.cpp, vLLM, and LM Studio.",
     category: "models",
     relatedRoute: "/studio",
-    surfaces: ["agents", "models"],
+    surfaces: ["landing", "agents", "models"],
   },
   {
     slug: "can-i-run-models-locally",
@@ -134,7 +160,7 @@ const seeds: FaqSeed[] = [
       "Yes. NodeTool Studio runs open-weight models on your own hardware through MLX (Apple Silicon), Ollama, llama.cpp, vLLM, and LM Studio. Nothing leaves your machine unless you call a cloud provider yourself.",
     category: "models",
     relatedRoute: "/studio",
-    surfaces: ["models"],
+    surfaces: ["models", "pricing"],
   },
   {
     slug: "how-is-nodetool-different-from-comfyui",
@@ -153,6 +179,15 @@ const seeds: FaqSeed[] = [
       "Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source and runs on your own provider keys. Your workflows, files, and keys belong to you, and you can switch providers the moment a better model appears.",
     category: "comparison",
     relatedRoute: "/vs/weavy",
+    surfaces: ["comparison"],
+  },
+  {
+    slug: "how-is-nodetool-different-from-n8n-and-flowise",
+    question: "How is NodeTool different from n8n or Flowise?",
+    answerMd:
+      "n8n connects business apps and Flowise builds chatbots that answer from your documents; in both, generating an image, a video, or a soundtrack means an HTTP node you configure by hand. NodeTool makes that work native: image, video, music, and text models, agents, and editing tools on one canvas, with an agent that can author the pipeline. NodeTool is **AGPL-3.0** open source rather than fair-code, runs as a desktop app, and calls every provider on your own keys.",
+    category: "comparison",
+    relatedRoute: "/vs/n8n",
     surfaces: ["comparison"],
   },
   {
@@ -199,7 +234,7 @@ const seeds: FaqSeed[] = [
       "Every editor in NodeTool — the node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder — is exposed to agents as tools, around 120 in all. An agent doesn't describe what you could do; it builds the workflow, runs it, and repairs what fails, on the same surfaces you use. The same tools are exposed over **MCP**, so outside agents such as Claude Desktop and Claude Code can drive NodeTool too.",
     category: "general",
     relatedRoute: "/agents",
-    surfaces: ["agents"],
+    surfaces: ["landing", "agents"],
   },
   {
     slug: "what-is-a-planning-agent",

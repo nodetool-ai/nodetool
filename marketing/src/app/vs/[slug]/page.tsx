@@ -5,10 +5,13 @@ import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
 import JsonLd from "../../../components/JsonLd";
 import ComparisonMesh from "../../../components/ComparisonMesh";
+import FaqSection from "../../../components/FaqSection";
+import { breadcrumbSchema } from "../../../lib/jsonld";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import {
   competitors,
   getCompetitor,
+  shortAnswer,
   THEMES,
   type FeatureRow,
 } from "../../../data/competitorEntries";
@@ -65,36 +68,15 @@ export default async function VsPage({
       ? "mt-0.5 h-4 w-4 shrink-0 text-slate-600"
       : "mt-0.5 h-4 w-4 shrink-0 text-emerald-400";
 
-  const breadcrumb = {
-    "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
-      {
-        "@type": "ListItem",
-        position: 2,
-        name: `NodeTool vs ${c.name}`,
-        item: `https://nodetool.ai/vs/${c.slug}`,
-      },
-    ],
-  };
-
-  const faq = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: c.faq.map((item) => ({
-      "@type": "Question",
-      name: item.question,
-      acceptedAnswer: { "@type": "Answer", text: item.answer },
-    })),
-  };
+  const breadcrumb = breadcrumbSchema([
+    { name: `NodeTool vs ${c.name}`, url: `/vs/${c.slug}` },
+  ]);
 
   const rows: FeatureRow[] = c.rows;
 
   return (
     <main className="relative min-h-screen overflow-hidden text-white">
       <JsonLd data={breadcrumb} />
-      <JsonLd data={faq} />
 
       {/* Background glows */}
       <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
@@ -122,7 +104,11 @@ export default async function VsPage({
           >
             {c.heroHeading}
           </h1>
-          <p className="mt-5 text-lg leading-relaxed text-slate-300">
+          {/* Direct answer first — the paragraph an answer engine can lift. */}
+          <p className="mt-5 text-lg leading-relaxed text-white">
+            {shortAnswer(c)}
+          </p>
+          <p className="mt-4 leading-relaxed text-slate-400">
             {c.heroParagraph}
           </p>
         </section>
@@ -161,7 +147,16 @@ export default async function VsPage({
         </section>
 
         {/* Comparison table */}
-        <section aria-label="Compare" className="mx-auto mt-16 max-w-5xl px-6">
+        <section
+          aria-labelledby="compare-title"
+          className="mx-auto mt-16 max-w-5xl px-6"
+        >
+          <h2
+            id="compare-title"
+            className="mb-6 text-center text-2xl font-semibold tracking-tight text-white"
+          >
+            NodeTool vs {c.name}: what is different?
+          </h2>
           <div className="overflow-hidden rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
             <table className="w-full border-collapse text-left">
               <thead>
@@ -198,6 +193,9 @@ export default async function VsPage({
             </p>
           </div>
         </section>
+
+        {/* Visible FAQ — and the FAQPage schema, built from these same rows. */}
+        <FaqSection items={c.faq} />
 
         {/* Sibling comparison mesh */}
         <ComparisonMesh currentSlug={c.slug} basePath="/vs" />

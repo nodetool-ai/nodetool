@@ -23,6 +23,9 @@ import CommunitySection from "../components/CommunitySection";
 import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
 import UseCasesShowcase from "../components/UseCasesShowcase";
+import FaqBlock from "../components/FaqBlock";
+import JsonLd from "../components/JsonLd";
+import { demoVideoSchema } from "../lib/siteSchema";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Download } from "lucide-react";
 import { SmartDownloadButton } from "./SmartDownloadButton";
@@ -234,6 +237,9 @@ export default function Home() {
           <rect width="100%" height="100%" fill="url(#page-grid)" />
         </svg>
       </div>
+      {/* The demo video below lives on this page, so its schema does too. */}
+      <JsonLd data={demoVideoSchema} />
+
       {/* Shared site header (P3) */}
       <SiteHeader />
 
@@ -375,6 +381,15 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* Visible answers to the questions people arrive with — and the page's
+            FAQPage schema, emitted from these exact rows. */}
+        <FaqBlock
+          surface="landing"
+          className="mt-24"
+          linkToStandalone
+          emitSchema
+        />
 
         {/* Community / Discord */}
         <CommunitySection stars={stars} />

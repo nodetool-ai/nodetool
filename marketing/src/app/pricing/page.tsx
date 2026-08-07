@@ -3,6 +3,8 @@ import { Check, Minus, Download } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import JsonLd from "../../components/JsonLd";
+import FaqBlock from "../../components/FaqBlock";
+import { breadcrumbSchema } from "../../lib/jsonld";
 import { SmartDownloadButton } from "../SmartDownloadButton";
 
 export const metadata: Metadata = {
@@ -19,14 +21,7 @@ export const metadata: Metadata = {
   },
 };
 
-const breadcrumb = {
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  itemListElement: [
-    { "@type": "ListItem", position: 1, name: "Home", item: "https://nodetool.ai" },
-    { "@type": "ListItem", position: 2, name: "Pricing", item: "https://nodetool.ai/pricing" },
-  ],
-};
+const breadcrumb = breadcrumbSchema([{ name: "Pricing", url: "/pricing" }]);
 
 const offers = {
   "@context": "https://schema.org",
@@ -184,8 +179,22 @@ export default function PricingPage() {
         </section>
 
         {/* Edition comparison table */}
-        <section aria-label="Compare editions" className="mx-auto mt-16 max-w-5xl px-6">
-          <div className="overflow-hidden rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
+        <section
+          aria-labelledby="editions-title"
+          className="mx-auto mt-16 max-w-5xl px-6"
+        >
+          <h2
+            id="editions-title"
+            className="text-2xl font-semibold tracking-tight text-white"
+          >
+            What is the difference between Studio and Cloud?
+          </h2>
+          <p className="mt-3 max-w-2xl leading-relaxed text-slate-400">
+            Studio is the free desktop app and runs on your machine, local
+            models included. Cloud is a subscription for the same open-source
+            workspace in the browser. Both call providers with your own keys.
+          </p>
+          <div className="mt-6 overflow-hidden rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
             <table className="w-full border-collapse text-left">
               <thead>
                 <tr className="bg-slate-900/60 text-sm">
@@ -214,7 +223,7 @@ export default function PricingPage() {
         <section aria-labelledby="byok-title" className="mx-auto mt-16 max-w-3xl px-6">
           <div className="rounded-2xl border border-slate-800/70 bg-slate-950/40 p-8 md:p-10">
             <h2 id="byok-title" className="text-2xl font-semibold tracking-tight text-white">
-              How bringing your own keys works
+              How does bringing your own keys work?
             </h2>
             <p className="mt-4 leading-relaxed text-slate-300">
               You add your own API keys for the providers you use, such as FAL,
@@ -226,6 +235,9 @@ export default function PricingPage() {
             </p>
           </div>
         </section>
+
+        {/* Visible FAQ — and this page's FAQPage schema, from these rows. */}
+        <FaqBlock surface="pricing" className="mt-16" linkToStandalone emitSchema />
 
         {/* Closing CTA */}
         <section className="mx-auto my-24 max-w-2xl px-6 text-center">

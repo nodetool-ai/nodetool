@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import FaqSection from "../../../components/FaqSection";
+import { moviePosterUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import MoviePosterGraph from "../../../components/MoviePosterGraph";
 
@@ -29,32 +31,12 @@ const posters = [
   { src: "/poster-singularity-5.png", caption: "“The future doesn't evolve. It accelerates.”" },
 ];
 
-const steps = [
-  {
-    icon: FileText,
-    title: "Set the brief",
-    body: "Three text inputs hold the film's title, its genre, and the audience you're selling to. That's the entire creative input.",
-    detail: "Singularity · Sci-Fi · AI Enthusiasts",
-  },
-  {
-    icon: Wand2,
-    title: "Write the strategy",
-    body: "A Prompt node frames the brief and an agent returns a real creative strategy: positioning, audience insight, a core visual concept, and a color palette.",
-    detail: "Positioning · audience insight · hex palette",
-  },
-  {
-    icon: List,
-    title: "Spin up concepts",
-    body: "A list generator turns the strategy into a batch of distinct plot angles, so one run gives you a spread of directions, not a single guess.",
-    detail: "Five plot concepts per run",
-  },
-  {
-    icon: ImageIcon,
-    title: "Render the key art",
-    body: "Each concept is templated into a full theatrical poster prompt, then an image model renders it, title, tagline, billing block and all.",
-    detail: "GPT Image-2 · 2K · authentic Hollywood layout",
-  },
-];
+/** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
+const stepIcons = [FileText, Wand2, List, ImageIcon];
+const steps = moviePosterUseCase.steps.map((step, i) => ({
+  ...step,
+  icon: stepIcons[i],
+}));
 
 const tweaks = [
   {
@@ -394,6 +376,11 @@ export default function MoviePosterUseCase() {
             </div>
           </div>
         </section>
+
+        {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
+        <div className="relative py-8">
+          <FaqSection items={moviePosterUseCase.faq} className="mx-auto max-w-3xl px-6" />
+        </div>
 
         {/* Closing CTA */}
         <section className="relative py-24">

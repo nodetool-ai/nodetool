@@ -11,6 +11,7 @@ import { miniAppEntries } from "./miniApps";
 import { solutionRegistryEntries } from "./landingEntries";
 import { taskRegistryEntries } from "./taskEntries";
 import { showcasePageEntries } from "./showcasePages";
+import { blogPageEntries } from "./blogEntries";
 
 /**
  * A page engine's contribution to the registry. `sample`, when set, tells the
@@ -41,6 +42,7 @@ export const registryModules: RegistryModule[] = [
   { name: "apps", entries: miniAppEntries },
   { name: "solutions", entries: solutionRegistryEntries },
   { name: "tasks", entries: taskRegistryEntries },
+  { name: "blog", entries: blogPageEntries },
   // Showcase pages can grow into the hundreds once W-1 seeds real batches, so
   // the smoke suite samples the first 12 — hub + filter pages are ordered first.
   { name: "showcase", entries: showcasePageEntries, sample: 12 },
