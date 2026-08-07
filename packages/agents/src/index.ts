@@ -643,11 +643,13 @@ export type {
 } from "./evals/surfaces/script.js";
 export {
   createSketchToolBridge,
+  getLastSketchToolBridge,
   SKETCH_TOOL_LOOP_CASES
 } from "./evals/surfaces/sketch.js";
 export type {
   SketchBridgeFinalState,
-  SketchBridgeInitialState
+  SketchBridgeInitialState,
+  SketchToolBridge
 } from "./evals/surfaces/sketch.js";
 export {
   createTimelineToolBridge,

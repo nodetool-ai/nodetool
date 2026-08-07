@@ -291,6 +291,69 @@ FrontendToolRegistry.register({
   }
 });
 
+const strokePointSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  pressure: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Pen pressure in [0,1]; omit for an even, mouse-like stroke.")
+});
+
+const strokeSchema = z.object({
+  target: targetParam
+    .optional()
+    .describe("Layer to paint on; defaults to the active layer."),
+  tool: z
+    .enum(["brush", "pencil", "eraser"])
+    .optional()
+    .describe(
+      "Paint engine (default `brush`). `pencil` is aliased hard-edged, `eraser` removes pixels."
+    ),
+  points: z
+    .array(strokePointSchema)
+    .min(1)
+    .describe(
+      "Polyline the stroke follows, in canvas pixels (x right, y down, origin top-left). Dabs are interpolated along each segment, so a smooth curve just needs enough points — roughly one every few pixels of arc."
+    ),
+  color: z
+    .string()
+    .optional()
+    .describe("Hex color; defaults to the foreground. Ignored by the eraser."),
+  size: z.number().min(0.1).optional().describe("Brush diameter in pixels."),
+  opacity: z.number().min(0).max(1).optional(),
+  hardness: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Edge hardness — 1 is crisp, 0 is a soft airbrushed falloff."),
+  closed: z
+    .boolean()
+    .optional()
+    .describe("Connect the last point back to the first, closing the shape.")
+});
+
+FrontendToolRegistry.register({
+  name: "ui_sketch_stroke",
+  description:
+    "Paint one or more brush/pencil/eraser strokes onto raster layers — the actual drawing tool. Each stroke is a polyline of canvas-pixel points that the paint engine interpolates into a smooth line, with its own color, size, opacity and hardness. Pass several strokes in one call to draw a whole figure at once; the batch commits as a single undo step. Build curves by sampling points along them (a circle is ~24 points), and put separate parts of a drawing on separate layers so they can be edited independently. Call ui_sketch_get_layer_image afterwards to see what you drew.",
+  parameters: z.object({
+    sketch_id: sketchIdParam,
+    strokes: z.array(strokeSchema).min(1)
+  }),
+  async execute({ sketch_id, strokes }) {
+    const results = getSketchAgentHandler(sketch_id).paintStrokes(strokes);
+    return {
+      ok: true,
+      strokes: results,
+      url: docUrl("sketch", sketch_id)
+    };
+  }
+});
+
 FrontendToolRegistry.register({
   name: "ui_sketch_resize_canvas",
   description:

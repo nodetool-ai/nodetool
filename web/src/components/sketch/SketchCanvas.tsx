@@ -34,6 +34,10 @@ import {
   useCanvasOrchestration,
   useCanvasTouchGestures
 } from "./sketchCanvasHooks";
+import type {
+  AgentStrokeOutcome,
+  AgentStrokeRequest
+} from "./painting/agentStrokes";
 import { clientToDocumentCanvas } from "./tools/transform/handleGeometry";
 import type { StrokeEndOptions } from "./tools/types";
 import SketchCanvasPresentation from "./SketchCanvasPresentation";
@@ -89,6 +93,12 @@ export interface SketchCanvasRef {
     } | null
   ) => void;
   fillLayerWithColor: (layerId: string, color: string) => void;
+  /**
+   * Paint agent-described strokes with the real brush/pencil/eraser engine.
+   * Pixel work only — history and document sync stay with the caller, so a
+   * whole batch can commit as one undo entry.
+   */
+  paintStrokes: (strokes: readonly AgentStrokeRequest[]) => AgentStrokeOutcome[];
   fillLayerRect: (
     layerId: string,
     x: number,

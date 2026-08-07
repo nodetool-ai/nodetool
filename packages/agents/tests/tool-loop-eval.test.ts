@@ -15,6 +15,7 @@ import {
   type ToolLoopObservation,
   type ToolLoopFinalState
 } from "../src/index.js";
+import { DEFAULT_MAX_ITERATIONS } from "../src/app-build/tool-loop.js";
 import type {
   BaseProvider,
   ProviderStreamItem,
@@ -33,9 +34,17 @@ function prop(name: string, required = false): Property {
   };
 }
 function out(name: string): OutputSlot {
-  return { name, type: { type: "str", optional: false, type_args: [] }, stream: false };
+  return {
+    name,
+    type: { type: "str", optional: false, type_args: [] },
+    stream: false
+  };
 }
-function node(node_type: string, properties: Property[], outputs: OutputSlot[]): NodeMetadata {
+function node(
+  node_type: string,
+  properties: Property[],
+  outputs: OutputSlot[]
+): NodeMetadata {
   return {
     title: node_type,
     description: "",
@@ -261,6 +270,56 @@ describe("runToolLoopEval", () => {
     const byName = Object.fromEntries(r.checks.map((c) => [c.name, c.pass]));
     expect(byName["no-error-results"]).toBe(false);
     expect(byName["tool:ui_connect_nodes"]).toBe(false);
+  });
+
+  it("lets a case declare its own turn budget, with the runner option winning", async () => {
+    // A case whose work is inherently many-turned (drawing) carries its own
+    // budget, so a default suite run does not die on the runner's cap.
+    const seen: Array<number | undefined> = [];
+    const spyProvider = (): BaseProvider =>
+      ({
+        provider: "scripted",
+        hasToolSupport: async () => true,
+        getTotalCost: () => 0,
+        async *generateLoop(args: {
+          maxIterations?: number;
+        }): AsyncGenerator<ProviderStreamItem> {
+          seen.push(args.maxIterations);
+          yield {
+            type: "chunk",
+            content: "",
+            done: true
+          } as ProviderStreamItem;
+        }
+      }) as unknown as BaseProvider;
+
+    const budgetedCase: ToolLoopEvalCase = { ...GOOD_CASE, maxIterations: 40 };
+
+    await runToolLoopEval({
+      provider: spyProvider(),
+      model: "test-model",
+      cases: [budgetedCase]
+    });
+    expect(seen).toEqual([40]);
+
+    // An explicit runner option still overrides the case's own budget.
+    seen.length = 0;
+    await runToolLoopEval({
+      provider: spyProvider(),
+      model: "test-model",
+      cases: [budgetedCase],
+      maxIterations: 7
+    });
+    expect(seen).toEqual([7]);
+
+    // A case with no budget of its own falls back to the loop's default cap.
+    seen.length = 0;
+    await runToolLoopEval({
+      provider: spyProvider(),
+      model: "test-model",
+      cases: [GOOD_CASE]
+    });
+    expect(seen).toEqual([DEFAULT_MAX_ITERATIONS]);
   });
 
   it("formats a readable report", async () => {

@@ -1019,10 +1019,21 @@ an asset reference → recall it.
 Bridges reuse the pure packages where the real logic already lives —
 `@nodetool-ai/timeline` (`splitClip`, `ANIMATION_PRESETS`, subtitle assembly,
 clip/track factories) — rather than reimplement. The sketch surface reimplements
-its layer-stack ops directly (the image-editor package carries only types, no
-reusable layer logic).
-Browser-only tools (image/asset capture, WebGL viewport render) are scoped out:
-`ui_sketch_get_layer_image`, `ui_sketch_render_to_asset`,
+its layer-stack ops directly, but not its pixels: every raster layer is an
+`@napi-rs/canvas` bitmap and `ui_sketch_stroke` runs the editor's own paint core
+(`@nodetool-ai/image-editor/painting.js`, pointed at skia with
+`setPaintSurfaceFactory(createCanvas)`), so a headless stroke is the stroke the
+browser would paint. `ui_sketch_get_layer_image` composites those layers —
+opacity and blend mode included, NodeTool's `"normal"`/`"add"` mapping onto
+Canvas's `"source-over"`/`"lighter"` — and hands the model a PNG of its own
+work. `SketchToolBridge.compositePng()` (or `getLastSketchToolBridge()`, for a
+bridge the eval runner owns) takes the finished drawing out for a human to look
+at. That is what makes `draw-an-animal` scoreable: it checks that strokes
+landed on several named layers and covered a real fraction of the canvas
+(`strokedFraction`, measured over stroked layers only so a solid `fillColor`
+backdrop cannot pass it) — outcomes, not a pixel-exact cat.
+Browser-only tools (asset capture, WebGL viewport render) are scoped out:
+`ui_sketch_render_to_asset`,
 `ui_timeline_get_clip_frames`, `ui_3d_capture_view`. Storyboard cannot import
 `@nodetool-ai/llm-nodes` (it depends on `@nodetool-ai/agents`), so its
 generate/render jobs are faked by flipping shot status. The app-builder surface

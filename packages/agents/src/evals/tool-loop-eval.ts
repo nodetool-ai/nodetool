@@ -124,6 +124,13 @@ export interface ToolLoopEvalCase<TFinal = ToolLoopFinalState> {
    * build on the answer. See `./escalation.ts`.
    */
   escalation?: EscalationConfig;
+  /**
+   * Turn cap for this case, overriding the runner's `maxIterations`. A case
+   * whose work is inherently many-turned — drawing is dozens of strokes, not
+   * three property edits — declares the budget it needs rather than forcing
+   * every suite run to be invoked with a flag.
+   */
+  maxIterations?: number;
   expect: ToolLoopEvalExpectations<TFinal>;
 }
 
@@ -401,7 +408,9 @@ async function runCase<TFinal>(
     systemPrompt:
       evalCase.systemPrompt ?? opts.systemPrompt ?? DEFAULT_SYSTEM_PROMPT,
     userPrompt: buildUserPrompt(evalCase),
-    maxIterations: opts.maxIterations,
+    // A case that declares its own budget wins: an explicit per-case need
+    // beats the runner default. An explicit --max-iterations still overrides.
+    maxIterations: opts.maxIterations ?? evalCase.maxIterations,
     signal: opts.signal,
     onToolCall: (record) =>
       opts.onEvent?.(

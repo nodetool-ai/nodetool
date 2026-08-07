@@ -3,14 +3,20 @@
  *
  * Points, sizes, rectangles, and color conversion helpers used across the
  * sketch editor domain.
+ *
+ * `Point`, `Rgba`, and `parseColorToRgba` are defined in the paint core
+ * (`@nodetool-ai/image-editor/painting.js`) because the headless stroke engine
+ * needs them; they are re-exported here so the sketch editor's own imports are
+ * unchanged.
  */
 
-// ─── Primitive Types ──────────────────────────────────────────────────────────
+import type { Rgba } from "@nodetool-ai/image-editor/painting.js";
+import { parseColorToRgba } from "@nodetool-ai/image-editor/painting.js";
 
-export interface Point {
-  x: number;
-  y: number;
-}
+export type { Point, Rgba } from "@nodetool-ai/image-editor/painting.js";
+export { parseColorToRgba };
+
+// ─── Primitive Types ──────────────────────────────────────────────────────────
 
 export interface Size {
   width: number;
@@ -33,81 +39,8 @@ export interface Rect {
 
 // ─── Color Conversion Helpers ─────────────────────────────────────────────────
 
-/** RGBA with alpha in the 0–1 range (CSS-style). */
-export interface Rgba {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
-
 const clamp255 = (v: number): number => Math.max(0, Math.min(255, Math.round(v)));
 const clamp01 = (v: number): number => Math.max(0, Math.min(1, v));
-
-/**
- * Parse hex, rgb(), or rgba() strings used by the sketch color pickers.
- * Unknown input falls back to opaque white.
- */
-export function parseColorToRgba(input: string): Rgba {
-  const t = input.trim();
-  if (!t) {
-    return { r: 255, g: 255, b: 255, a: 1 };
-  }
-  const lower = t.toLowerCase();
-  if (lower.startsWith("rgba")) {
-    const m = lower.match(
-      /rgba\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/
-    );
-    if (m) {
-      return {
-        r: clamp255(Number(m[1])),
-        g: clamp255(Number(m[2])),
-        b: clamp255(Number(m[3])),
-        a: clamp01(Number(m[4]))
-      };
-    }
-  }
-  if (lower.startsWith("rgb(")) {
-    const m = lower.match(/rgb\s*\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)\s*\)/);
-    if (m) {
-      return {
-        r: clamp255(Number(m[1])),
-        g: clamp255(Number(m[2])),
-        b: clamp255(Number(m[3])),
-        a: 1
-      };
-    }
-  }
-
-  let h = t.replace(/^#/, "");
-  if (!/^[0-9a-fA-F]+$/.test(h)) {
-    return { r: 255, g: 255, b: 255, a: 1 };
-  }
-  if (h.length === 3) {
-    h = `${h[0]}${h[0]}${h[1]}${h[1]}${h[2]}${h[2]}`;
-  }
-  if (h.length === 6) {
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    if ([r, g, b].some((x) => Number.isNaN(x))) {
-      return { r: 255, g: 255, b: 255, a: 1 };
-    }
-    return { r, g, b, a: 1 };
-  }
-  if (h.length === 8) {
-    const r = parseInt(h.slice(0, 2), 16);
-    const g = parseInt(h.slice(2, 4), 16);
-    const b = parseInt(h.slice(4, 6), 16);
-    const aByte = parseInt(h.slice(6, 8), 16);
-    if ([r, g, b, aByte].some((x) => Number.isNaN(x))) {
-      return { r: 255, g: 255, b: 255, a: 1 };
-    }
-    return { r, g, b, a: clamp01(aByte / 255) };
-  }
-
-  return { r: 255, g: 255, b: 255, a: 1 };
-}
 
 /** Serialize to rgb() / rgba() for canvas and CSS. */
 export function rgbaToCss({ r, g, b, a }: Rgba): string {
