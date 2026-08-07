@@ -287,6 +287,7 @@ function SketchEditor({
   const clearCanvasGetters = useSketchCanvasRefStore((s) => s.clearGetters);
   useEffect(() => {
     const canvasRef = session.canvasRef;
+    const pushHistory = session.historyStore.pushHistory;
     setCanvasGetters({
       flattenToDataUrl: () => canvasRef.current?.flattenToDataUrl() ?? "",
       getMaskDataUrl: () => canvasRef.current?.getMaskDataUrl() ?? null,
@@ -296,6 +297,43 @@ function SketchEditor({
         canvasRef.current?.getLayerData(layerId) ?? null,
       fillLayerWithColor: (layerId, color) =>
         canvasRef.current?.fillLayerWithColor(layerId, color),
+      paintStrokes: (strokes) => {
+        const canvas = canvasRef.current;
+        if (!canvas) {
+          throw new Error("The canvas is not ready yet.");
+        }
+        // A pointer stroke may still be waiting for its rAF merge; drain it so
+        // the checkpoint below snapshots the layer as the user last saw it.
+        canvas.drainPendingStrokeCommit();
+
+        const targets = [...new Set(strokes.map((s) => s.layerId))];
+        const snapshots: Record<string, HTMLCanvasElement | null> = {};
+        for (const layerId of targets) {
+          snapshots[layerId] = canvas.snapshotLayerCanvas(layerId);
+        }
+        // One checkpoint for the whole batch, pushed before any pixel moves —
+        // the push-before-mutate convention a pointer stroke uses on
+        // pointer-down. Undo therefore rewinds the entire batch at once.
+        pushHistory(
+          strokes.length === 1
+            ? "paint stroke"
+            : `paint ${strokes.length} strokes`,
+          snapshots
+        );
+
+        const outcomes = canvas.paintStrokes(strokes);
+
+        // Same finalization a pointer stroke runs: persist the pixels onto the
+        // document (which marks it dirty for autosave) and flag the sketch
+        // node's image/mask outputs for re-export.
+        for (const layerId of targets) {
+          session.canvasActions.handleStrokeEnd(
+            layerId,
+            canvas.getLayerData(layerId)
+          );
+        }
+        return outcomes;
+      },
       clearActiveLayer: () => session.canvasActions.handleClearLayer(),
       fitViewToScreen: () => session.canvasActions.handleZoomFit()
     });
@@ -305,6 +343,7 @@ function SketchEditor({
   }, [
     session.canvasRef,
     session.canvasActions,
+    session.historyStore,
     setCanvasGetters,
     clearCanvasGetters
   ]);

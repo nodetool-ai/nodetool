@@ -57,6 +57,7 @@ const createMockHandler = (): jest.Mocked<SketchAgentHandler> => ({
   setForegroundColor: jest.fn(),
   setBackgroundColor: jest.fn(),
   setActiveTool: jest.fn(),
+  paintStrokes: jest.fn(),
   resizeCanvas: jest.fn(),
   setSelection: jest.fn(),
   getLayerImage: jest.fn(),

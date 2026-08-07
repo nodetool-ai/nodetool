@@ -332,6 +332,60 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
         return editor.getState().backgroundColor;
       },
 
+      paintStrokes(strokes) {
+        if (strokes.length === 0) {
+          throw new Error("Provide at least one stroke to paint.");
+        }
+        const paint = canvasRef.getState().paintStrokes;
+        if (!paint) throw new Error("Canvas is not ready yet.");
+
+        // Resolve and vet every target before a single pixel moves, so a bad
+        // target fails cleanly instead of leaving half a batch on the canvas.
+        const resolved = strokes.map((stroke) => {
+          const layer = requireLayer(stroke.target ?? "active");
+          if (layer.type !== "raster") {
+            throw new Error(
+              `Layer "${layer.name}" is a ${layer.type} layer; strokes can only be painted on raster layers.`
+            );
+          }
+          if (layer.locked) {
+            // Locked layers are the ones whose pixels come from elsewhere (a
+            // workflow input, a linked asset), so there is nothing to unlock —
+            // paint on a layer of your own instead.
+            throw new Error(
+              `Layer "${layer.name}" is locked and cannot take pixels. Paint on another layer, or add one with ui_sketch_add_layer.`
+            );
+          }
+          if (stroke.points.length === 0) {
+            throw new Error(
+              `Stroke for layer "${layer.name}" has no points; give it at least one.`
+            );
+          }
+          return { layer, stroke };
+        });
+
+        const outcomes = paint(
+          resolved.map(({ layer, stroke }) => ({
+            layerId: layer.id,
+            tool: stroke.tool ?? "brush",
+            points: stroke.points,
+            color: stroke.color,
+            size: stroke.size,
+            opacity: stroke.opacity,
+            hardness: stroke.hardness,
+            closed: stroke.closed
+          }))
+        );
+
+        return outcomes.map((outcome, i) => ({
+          layerId: outcome.layerId,
+          layerName: resolved[i].layer.name,
+          tool: outcome.tool,
+          points: outcome.points,
+          bounds: outcome.bounds
+        }));
+      },
+
       setActiveTool(tool) {
         if (!SKETCH_TOOLS.includes(tool)) {
           throw new Error(

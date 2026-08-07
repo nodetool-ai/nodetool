@@ -2,6 +2,11 @@
 
 import { create, type StoreApi, type UseBoundStore } from "zustand";
 
+import type {
+  AgentStrokeOutcome,
+  AgentStrokeRequest
+} from "../../components/sketch/painting/agentStrokes";
+
 export interface SketchCanvasRefState {
   /** Flattens all visible layers into a PNG data URL, or returns null. */
   flattenToDataUrl: (() => string | null) | null;
@@ -13,6 +18,14 @@ export interface SketchCanvasRefState {
   getLayerData: ((layerId: string) => string | null) | null;
   /** Fills the given raster layer with a solid color (respecting alpha lock). */
   fillLayerWithColor: ((layerId: string, color: string) => void) | null;
+  /**
+   * Paints brush/pencil/eraser strokes onto raster layers with the editor's own
+   * paint engine, commits the whole batch as one undo entry, and redraws.
+   * Returns what each stroke touched, in document-space pixels.
+   */
+  paintStrokes:
+    | ((strokes: readonly AgentStrokeRequest[]) => AgentStrokeOutcome[])
+    | null;
   /**
    * Clears the active layer — within the active selection if one exists,
    * otherwise the whole layer. Pushes its own history entry.
@@ -27,6 +40,9 @@ export interface SketchCanvasRefState {
     setLayerData: (layerId: string, data: string | null) => void;
     getLayerData?: (layerId: string) => string | null;
     fillLayerWithColor?: (layerId: string, color: string) => void;
+    paintStrokes?: (
+      strokes: readonly AgentStrokeRequest[]
+    ) => AgentStrokeOutcome[];
     clearActiveLayer: () => void;
     fitViewToScreen?: () => void;
   }) => void;
@@ -45,6 +61,7 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
     setLayerData: null,
     getLayerData: null,
     fillLayerWithColor: null,
+    paintStrokes: null,
     clearActiveLayer: null,
     fitViewToScreen: null,
 
@@ -55,6 +72,7 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         setLayerData: getters.setLayerData,
         getLayerData: getters.getLayerData ?? null,
         fillLayerWithColor: getters.fillLayerWithColor ?? null,
+        paintStrokes: getters.paintStrokes ?? null,
         clearActiveLayer: getters.clearActiveLayer,
         fitViewToScreen: getters.fitViewToScreen ?? null
       }),
@@ -66,6 +84,7 @@ export const createSketchCanvasRefStore = (): SketchCanvasRefStoreApi =>
         setLayerData: null,
         getLayerData: null,
         fillLayerWithColor: null,
+        paintStrokes: null,
         clearActiveLayer: null,
         fitViewToScreen: null
       })

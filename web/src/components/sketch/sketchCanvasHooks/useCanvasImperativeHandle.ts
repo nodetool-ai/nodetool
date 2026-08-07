@@ -16,6 +16,12 @@ import {
 import type { SketchCanvasRef } from "../SketchCanvas";
 import type { LayerContentBounds, Point, Selection, SketchDocument } from "../types";
 import type { SketchRuntime } from "../rendering";
+import { paintAgentStroke } from "../painting/agentStrokes";
+import type {
+  AgentStrokeOutcome,
+  AgentStrokeRequest
+} from "../painting/agentStrokes";
+import type { PaintSurface } from "@nodetool-ai/image-editor/painting.js";
 import { useSketchStore } from "../state/useSketchStore";
 
 export interface UseCanvasImperativeHandleParams {
@@ -167,6 +173,49 @@ export function useCanvasImperativeHandle({
       fillLayerWithColor: (layerId: string, color: string) => {
         runtime.fillLayerWithColor(layerId, color);
         redraw();
+      },
+      paintStrokes: (strokes: readonly AgentStrokeRequest[]) => {
+        // Read live state, not the render closure: a batch can follow an edit
+        // made earlier in the same tick, when the store is already ahead of
+        // `doc`. Same reason `mergeLayerDown` reads the store below.
+        const state = useSketchStore.getState();
+        const liveDoc = state.document;
+        const stampCache = new Map<string, PaintSurface>();
+        const outcomes: AgentStrokeOutcome[] = [];
+        const touched = new Set<string>();
+
+        for (const stroke of strokes) {
+          const layer = liveDoc.layers.find((l) => l.id === stroke.layerId);
+          if (!layer) {
+            throw new Error(
+              `Layer not found in the document: ${stroke.layerId}`
+            );
+          }
+          outcomes.push(
+            paintAgentStroke({
+              stroke,
+              layer,
+              layerCanvas: runtime.getOrCreateLayerCanvas(
+                layer.id,
+                Math.max(1, layer.contentBounds.width || liveDoc.canvas.width),
+                Math.max(1, layer.contentBounds.height || liveDoc.canvas.height)
+              ),
+              toolSettings: state.toolSettings,
+              foregroundColor: state.foregroundColor,
+              canvasSize: liveDoc.canvas,
+              stampCache
+            })
+          );
+          touched.add(layer.id);
+        }
+
+        // Tell the runtime the CPU pixels moved (WebGPU re-uploads the layer
+        // texture here) and composite, so the user sees the strokes appear.
+        for (const layerId of touched) {
+          runtime.invalidateLayer(layerId);
+        }
+        redraw();
+        return outcomes;
       },
       fillLayerRect: (layerId: string, x: number, y: number, width: number, height: number, color: string) => {
         runtime.fillLayerRect(layerId, x, y, width, height, color);

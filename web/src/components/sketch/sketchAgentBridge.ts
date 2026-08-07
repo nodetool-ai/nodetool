@@ -128,6 +128,51 @@ export interface SketchAddLayerOptions {
 /** How {@link SketchAgentHandler.setSelection} shapes the pixel selection. */
 export type SketchSelectionOp = "all" | "clear" | "invert";
 
+/** The paint engines an agent can drive. Mirrors the editor's own tools. */
+export type SketchStrokeTool = "brush" | "pencil" | "eraser";
+
+/** One sampled point of a stroke, in canvas (document) pixel coordinates. */
+export interface SketchStrokePoint {
+  x: number;
+  y: number;
+  /** Pen pressure in [0,1]; omit for an unmodulated (mouse-like) stroke. */
+  pressure?: number;
+}
+
+/** A single continuous stroke, as the agent describes it. */
+export interface SketchStrokeOptions {
+  /** Layer to paint on; defaults to the active layer. */
+  target?: string;
+  /** Paint engine; defaults to `brush`. */
+  tool?: SketchStrokeTool;
+  /**
+   * Polyline the stroke follows. A single point lays down one dab; the engine
+   * interpolates dabs along each segment, so a smooth curve just needs enough
+   * points.
+   */
+  points: SketchStrokePoint[];
+  /** Stroke color (hex). Defaults to the foreground; ignored by the eraser. */
+  color?: string;
+  /** Brush diameter in pixels. Defaults to the layer's current brush size. */
+  size?: number;
+  /** Stroke opacity in [0,1]. */
+  opacity?: number;
+  /** Edge hardness in [0,1] — 1 is a crisp edge, 0 a soft falloff. */
+  hardness?: number;
+  /** Connect the last point back to the first, closing the shape. */
+  closed?: boolean;
+}
+
+export interface SketchStrokeResult {
+  layerId: string;
+  layerName: string;
+  tool: SketchStrokeTool;
+  /** Number of points the stroke was drawn through. */
+  points: number;
+  /** Bounding box of the pixels this stroke touched; null if it painted none. */
+  bounds: { x: number; y: number; width: number; height: number } | null;
+}
+
 export interface SketchLayerImageResult {
   /** null target → the flattened composite; otherwise the addressed layer. */
   layerId: string | null;
@@ -172,6 +217,12 @@ export interface SketchAgentHandler {
   setForegroundColor: (color: string) => string;
   setBackgroundColor: (color: string) => string;
   setActiveTool: (tool: SketchToolName) => SketchToolName;
+  /**
+   * Paint strokes onto raster layers with the real brush/pencil/eraser engine.
+   * The whole batch commits as one undo step, so an agent can lay down a full
+   * drawing in a single call instead of one round trip per stroke.
+   */
+  paintStrokes: (strokes: SketchStrokeOptions[]) => SketchStrokeResult[];
   resizeCanvas: (width: number, height: number) => { width: number; height: number };
   setSelection: (op: SketchSelectionOp) => { hasSelection: boolean };
   /** Read pixels: the flattened composite (target null) or a single layer. */
