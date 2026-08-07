@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1418,
+    "total": 1453,
     "counts": {
       "3d": 48,
-      "image": 691,
-      "audio": 125,
+      "image": 703,
+      "audio": 126,
       "text": 15,
-      "video": 539
+      "video": 561
     },
     "topTags": [
       "editing",
@@ -54,6 +54,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
       "img2vid"
     ],
     "models": [
+      {
+        "id": "alibaba/qwen-image-3/edit",
+        "name": "Qwen Image3 Edit",
+        "kind": "image",
+        "desc": "Qwen Image 3 Edit modifies an existing image from a text instruction, including text in the image.",
+        "tags": [
+          "editing",
+          "image to image",
+          "img2img"
+        ]
+      },
+      {
+        "id": "alibaba/qwen-image-3/text-to-image",
+        "name": "Qwen Image3 Text To Image",
+        "kind": "image",
+        "desc": "Qwen Image 3 generates images from text with strong multilingual text rendering.",
+        "tags": [
+          "generation",
+          "text to image",
+          "txt2img"
+        ]
+      },
       {
         "id": "bria/embed-product",
         "name": "Embed Product",
@@ -473,28 +495,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "fal-ai/ben/v2/image",
-        "name": "Ben V2 Image",
-        "kind": "image",
-        "desc": "A fast and high quality model for image background removal.",
-        "tags": [
-          "editing",
-          "transformation",
-          "image to image"
-        ]
-      },
-      {
-        "id": "fal-ai/bernini-r/edit-image",
-        "name": "Bernini REdit Image",
-        "kind": "image",
-        "desc": "Edit any image with a natural-language instruction using Bernini-R, changing the weather, materials, objects, or style while preserving the original composit…",
-        "tags": [
-          "editing",
-          "image to image",
-          "img2img"
-        ]
-      },
-      {
         "id": "alibaba/happy-horse/image-to-video",
         "name": "Alibaba Happy Horse Image To Video",
         "kind": "video",
@@ -591,6 +591,127 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "video",
           "generation",
           "avatar"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/draft-enhance",
+        "name": "Flux3 Draft Enhance",
+        "kind": "video",
+        "desc": "FLUX 3 Draft Enhance upgrades a draft video to full quality, keeping its motion and composition.",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/extend-video",
+        "name": "Flux3 Extend Video",
+        "kind": "video",
+        "desc": "FLUX 3 continues an existing video, generating more footage from where it ends.",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/extend-video/draft",
+        "name": "Flux3 Extend Video Draft",
+        "kind": "video",
+        "desc": "FLUX 3 Draft continues an existing video as a low-cost preview, meant to be enhanced afterwards.",
+        "tags": [
+          "video",
+          "editing",
+          "video to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/first-last-frame-to-video",
+        "name": "Flux3 First Last Frame To Video",
+        "kind": "video",
+        "desc": "FLUX 3 generates a video that starts at one image and ends at another.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/first-last-frame-to-video/draft",
+        "name": "Flux3 First Last Frame To Video Draft",
+        "kind": "video",
+        "desc": "FLUX 3 Draft generates a low-cost preview video between a first and last frame.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/image-to-video",
+        "name": "Flux3 Image To Video",
+        "kind": "video",
+        "desc": "FLUX 3 animates a still image into a video with cinematic motion.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/image-to-video/draft",
+        "name": "Flux3 Image To Video Draft",
+        "kind": "video",
+        "desc": "FLUX 3 Draft animates a still image into a low-cost preview video, meant to be enhanced afterwards.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/keyframes-to-video",
+        "name": "Flux3 Keyframes To Video",
+        "kind": "video",
+        "desc": "FLUX 3 generates a video that passes through a set of keyframe images.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/keyframes-to-video/draft",
+        "name": "Flux3 Keyframes To Video Draft",
+        "kind": "video",
+        "desc": "FLUX 3 Draft generates a low-cost preview video through a set of keyframe images.",
+        "tags": [
+          "video",
+          "generation",
+          "image to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/text-to-video",
+        "name": "Flux3 Text To Video",
+        "kind": "video",
+        "desc": "FLUX 3 generates videos from text prompts with cinematic motion and detail.",
+        "tags": [
+          "video",
+          "generation",
+          "text to video"
+        ]
+      },
+      {
+        "id": "blackforestlabs/flux-3/text-to-video/draft",
+        "name": "Flux3 Text To Video Draft",
+        "kind": "video",
+        "desc": "FLUX 3 Draft generates low-cost preview videos from text, meant to be enhanced afterwards.",
+        "tags": [
+          "video",
+          "generation",
+          "text to video"
         ]
       },
       {
@@ -814,124 +935,14 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
-        "id": "decart/lucy-14b/image-to-video",
-        "name": "Decart Lucy14 BImage To Video",
-        "kind": "video",
-        "desc": "Decart Lucy 14b",
+        "id": "alibaba/qwen-audio-3-tts",
+        "name": "Qwen Audio3 Tts",
+        "kind": "audio",
+        "desc": "Qwen Audio 3.0 TTS (Flash) synthesizes natural speech from text with low latency.",
         "tags": [
-          "video",
-          "animation",
-          "image to video"
-        ]
-      },
-      {
-        "id": "decart/lucy-edit/dev",
-        "name": "Decart Lucy Edit Dev",
-        "kind": "video",
-        "desc": "Edit outfits, objects, faces, or restyle your video - all with maximum detail retention.",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "decart/lucy-edit/fast",
-        "name": "Decart Lucy Edit Fast",
-        "kind": "video",
-        "desc": "Lucy Edit [Fast]",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "decart/lucy-edit/pro",
-        "name": "Decart Lucy Edit Pro",
-        "kind": "video",
-        "desc": "Edit outfits, objects, faces, or restyle your video - all with maximum detail retention.",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "decart/lucy-restyle",
-        "name": "Decart Lucy Restyle",
-        "kind": "video",
-        "desc": "Lucy Restyle",
-        "tags": [
-          "video",
-          "editing",
-          "video to video"
-        ]
-      },
-      {
-        "id": "fal-ai/ai-avatar",
-        "name": "AIAvatar",
-        "kind": "video",
-        "desc": "MultiTalk generates talking avatar videos from images and audio files.",
-        "tags": [
-          "video",
-          "avatar",
-          "talking head"
-        ]
-      },
-      {
-        "id": "fal-ai/ai-avatar/multi",
-        "name": "AIAvatar Multi",
-        "kind": "video",
-        "desc": "MultiTalk generates multi-speaker avatar videos with audio synchronization.",
-        "tags": [
-          "video",
-          "avatar",
-          "multi speaker"
-        ]
-      },
-      {
-        "id": "fal-ai/ai-avatar/multi-text",
-        "name": "AIAvatar Multi Text",
-        "kind": "video",
-        "desc": "MultiTalk generates multi-speaker avatar videos from images and text.",
-        "tags": [
-          "video",
-          "avatar",
-          "multi speaker"
-        ]
-      },
-      {
-        "id": "fal-ai/ai-avatar/single-text",
-        "name": "AIAvatar Single Text",
-        "kind": "video",
-        "desc": "MultiTalk generates talking avatar videos from an image and text input.",
-        "tags": [
-          "video",
-          "avatar",
-          "talking head"
-        ]
-      },
-      {
-        "id": "fal-ai/amt-interpolation",
-        "name": "AMTInterpolation",
-        "kind": "video",
-        "desc": "AMT (Any-to-Many Temporal) Interpolation creates smooth transitions between video frames.",
-        "tags": [
-          "video",
-          "interpolation",
-          "frame generation"
-        ]
-      },
-      {
-        "id": "fal-ai/amt-interpolation/frame-interpolation",
-        "name": "AMTFrame Interpolation",
-        "kind": "video",
-        "desc": "AMT Frame Interpolation creates smooth transitions between image frames.",
-        "tags": [
-          "video",
-          "interpolation",
-          "frame generation"
+          "audio",
+          "tts",
+          "text to speech"
         ]
       },
       {
@@ -1185,17 +1196,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "audio",
           "dialogue",
           "conversation"
-        ]
-      },
-      {
-        "id": "fal-ai/elevenlabs/tts/eleven-v3",
-        "name": "Eleven Labs TTSV3",
-        "kind": "audio",
-        "desc": "ElevenLabs TTS v3 generates high-quality natural speech with advanced voice control.",
-        "tags": [
-          "audio",
-          "tts",
-          "speech"
         ]
       },
       {
@@ -2263,11 +2263,11 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
   },
   "kie": {
     "id": "kie",
-    "total": 140,
+    "total": 151,
     "counts": {
-      "image": 44,
-      "audio": 25,
-      "video": 69,
+      "image": 48,
+      "audio": 28,
+      "video": 73,
       "text": 2
     },
     "topTags": [],
@@ -2497,6 +2497,34 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "qwen3/image-to-image",
+        "name": "Qwen3 Image to Image",
+        "kind": "image",
+        "desc": "Qwen3 Image to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "qwen3/pro-image-to-image",
+        "name": "Qwen3 Pro Image to Image",
+        "kind": "image",
+        "desc": "Qwen3 Pro Image to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "qwen3/pro-text-to-image",
+        "name": "Qwen3 Pro Text to Image",
+        "kind": "image",
+        "desc": "Qwen3 Pro Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "qwen3/text-to-image",
+        "name": "Qwen3 Text to Image",
+        "kind": "image",
+        "desc": "Qwen3 Text to Image via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "recraft/crisp-upscale",
         "name": "Recraft Crisp Upscale",
         "kind": "image",
@@ -2522,34 +2550,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Seedream4.5 Text to Image",
         "kind": "image",
         "desc": "Seedream4.5 - Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/5-lite-image-to-image",
-        "name": "Seedream5.0 Lite Image to Image",
-        "kind": "image",
-        "desc": "Seedream5.0 Lite - Image to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/5-lite-text-to-image",
-        "name": "Seedream5.0 Lite Text to Image",
-        "kind": "image",
-        "desc": "Seedream5.0 Lite - Text to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/5-pro-image-to-image",
-        "name": "Seedream5.0 Pro Image to Image",
-        "kind": "image",
-        "desc": "Seedream5.0 Pro - Image to Image via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "seedream/5-pro-text-to-image",
-        "name": "Seedream5.0 Pro Text to Image",
-        "kind": "image",
-        "desc": "Seedream5.0 Pro - Text to Image via Kie.ai.",
         "tags": []
       },
       {
@@ -2784,6 +2784,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "kling-3.0/video",
+        "name": "Kling 3.0",
+        "kind": "video",
+        "desc": "Kling 3.0 via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "kling/ai-avatar-pro",
         "name": "Kling AI Avatar Pro",
         "kind": "video",
@@ -2823,13 +2830,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Kling V2.1 Pro",
         "kind": "video",
         "desc": "Kling V2.1 Pro via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "kling/v2-1-standard",
-        "name": "Kling V2.1 Standard",
-        "kind": "video",
-        "desc": "Kling V2.1 Standard via Kie.ai.",
         "tags": []
       },
       {
@@ -2938,6 +2938,13 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "tags": []
       },
       {
+        "id": "generate-persona",
+        "name": "Generate Persona",
+        "kind": "audio",
+        "desc": "Generate Persona via Kie.ai.",
+        "tags": []
+      },
+      {
         "id": "generate-sounds",
         "name": "Generate sounds",
         "kind": "audio",
@@ -2949,6 +2956,20 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Get Timestamped Lyrics",
         "kind": "audio",
         "desc": "Get Timestamped Lyrics via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "google/gemini-2-5-pro-tts",
+        "name": "Gemini 2.5 Pro Text to Speech",
+        "kind": "audio",
+        "desc": "Gemini 2.5 Pro Text to Speech via Kie.ai.",
+        "tags": []
+      },
+      {
+        "id": "google/gemini-3-1-flash-tts",
+        "name": "Gemini 3.1 Flash Text to speech",
+        "kind": "audio",
+        "desc": "Gemini 3.1 Flash Text to speech via Kie.ai.",
         "tags": []
       },
       {
@@ -2977,27 +2998,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         "name": "Suno Voice Create Custom Voice API",
         "kind": "audio",
         "desc": "Suno Voice Create Custom Voice API via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "suno-voice-regenerate",
-        "name": "Suno Voice Regenerate Verification Phrase",
-        "kind": "audio",
-        "desc": "Suno Voice Regenerate Verification Phrase via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "suno-voice-validate",
-        "name": "Suno Voice Generate Verification Phrase API",
-        "kind": "audio",
-        "desc": "Suno Voice Generate Verification Phrase API via Kie.ai.",
-        "tags": []
-      },
-      {
-        "id": "upload-and-cover-audio",
-        "name": "Upload And Cover Audio",
-        "kind": "audio",
-        "desc": "Upload And Cover Audio via Kie.ai.",
         "tags": []
       },
       {

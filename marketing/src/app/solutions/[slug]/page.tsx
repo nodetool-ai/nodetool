@@ -5,6 +5,7 @@ import { ArrowLeft, Download, Play, Boxes, Check } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import JsonLd from "@/components/JsonLd";
+import { faqPageSchema, toQaPairs } from "@/lib/jsonld";
 import FeaturesSection from "@/components/FeaturesSection";
 import UseCasesShowcase from "@/components/UseCasesShowcase";
 import WorkflowGraphFromJson from "@/components/WorkflowGraphFromJson";
@@ -80,15 +81,8 @@ export default async function SolutionPage({
       { "@type": "ListItem", position: 3, name: entry.headline, item: landingCanonical(entry) },
     ],
   };
-  const faqLd = {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: entry.faqs.map((f) => ({
-      "@type": "Question",
-      name: f.q,
-      acceptedAnswer: { "@type": "Answer", text: f.a },
-    })),
-  };
+  // Mirrors the FAQ rendered below — same rows, same order.
+  const faqLd = faqPageSchema(toQaPairs(entry.faqs));
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#040408] text-white">

@@ -18,36 +18,17 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import FaqSection from "../../../components/FaqSection";
+import { productVideoUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
 import WorkflowGraph from "../../../components/WorkflowGraph";
 
-const steps = [
-  {
-    icon: FileText,
-    title: "Feed in the campaign",
-    body: "Three text inputs hold the brief, the target audience, and the key features. A product photo goes in alongside them as the hero shot.",
-    detail:
-      "Aurora Trail smart fitness watch · active millennials who hike · GPS, heart-rate, adaptive coaching, water resistance",
-  },
-  {
-    icon: Wand2,
-    title: "Assemble the prompt",
-    body: "A Prompt node templates those inputs into a precise, rule-based request: one camera move, one subject action, lighting, color anchors, and hard constraints.",
-    detail: "No on-screen text, no logos, no watermarks, no distorted anatomy",
-  },
-  {
-    icon: Sparkles,
-    title: "Direct the shot",
-    body: "An agent turns the request into a concrete, cinematic prompt with framing, lens, and motion cues, the part most people get wrong by hand.",
-    detail: "Gemini 3.1 Pro · 50mm macro push over the watch on a wet river rock at dawn",
-  },
-  {
-    icon: Clapperboard,
-    title: "Render the video",
-    body: "A text-to-video model animates the product photo from the agent's prompt into a finished, ready-to-post clip.",
-    detail: "Veo 3.1 · 16:9 · 720p · 8 seconds · rendered in ~44s",
-  },
-];
+/** Step text is shared with the page's HowTo schema — see data/useCaseEntries. */
+const stepIcons = [FileText, Wand2, Sparkles, Clapperboard];
+const steps = productVideoUseCase.steps.map((step, i) => ({
+  ...step,
+  icon: stepIcons[i],
+}));
 
 const tweaks = [
   {
@@ -392,6 +373,11 @@ export default function ProductVideoUseCase() {
             </div>
           </div>
         </section>
+
+        {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
+        <div className="relative py-8">
+          <FaqSection items={productVideoUseCase.faq} className="mx-auto max-w-3xl px-6" />
+        </div>
 
         {/* Closing CTA */}
         <section className="relative py-24">

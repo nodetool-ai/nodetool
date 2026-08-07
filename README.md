@@ -1,6 +1,6 @@
 # NodeTool
 
-**The open-source, agent-first creative AI workspace.**
+**The open-source, agent-first creative workspace.**
 
 *Every model. Your keys. Your canvas.*
 
