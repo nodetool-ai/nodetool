@@ -1,8 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
 import { css } from "@emotion/react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import { MOTION } from "./tokens";
 import { Badge, BadgeProps, Tooltip } from "@mui/material";
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
@@ -34,7 +32,7 @@ export interface NotificationBadgeProps {
   ariaLabel?: string;
 }
 
-const styles = (theme: Theme, animate: boolean) => css`
+const styles = (animate: boolean) => css`
   .notification-badge {
     .MuiBadge-badge {
       font-size: var(--fontSizeSmaller);
@@ -82,8 +80,6 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   className,
   ariaLabel
 }) => {
-  const theme = useTheme();
-
   const getAriaLabel = () => {
     if (ariaLabel) {
       return ariaLabel;
@@ -122,7 +118,7 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   
   if (tooltip) {
     return (
-      <div className={`notification-badge-wrapper nodrag ${className || ""}`} css={styles(theme, animate)}>
+      <div className={`notification-badge-wrapper nodrag ${className || ""}`} css={styles(animate)}>
         <Tooltip title={tooltip} enterDelay={TOOLTIP_ENTER_DELAY}>
           {badgeContent}
         </Tooltip>
@@ -131,7 +127,7 @@ const NotificationBadgeInternal: React.FC<NotificationBadgeProps> = ({
   }
   
   return (
-    <div className={`notification-badge-wrapper nodrag ${className || ""}`} css={styles(theme, animate)}>
+    <div className={`notification-badge-wrapper nodrag ${className || ""}`} css={styles(animate)}>
       {badgeContent}
     </div>
   );

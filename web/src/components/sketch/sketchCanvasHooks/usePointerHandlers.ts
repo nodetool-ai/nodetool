@@ -343,7 +343,6 @@ export function usePointerHandlers({
     symmetryMode,
     symmetryRays,
     layerCanvasesRef,
-    selection,
     getOrCreateLayerCanvas,
     invalidateLayer,
     onLayerContentBoundsChange

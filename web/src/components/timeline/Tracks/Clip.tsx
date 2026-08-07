@@ -128,9 +128,8 @@ const clipStyles = (
     overflow: "hidden",
     backgroundColor: theme.vars.palette.background.paper,
     backgroundImage: `linear-gradient(0deg, ${clipSurfaceTint(
-      theme,
       mediaType
-    )}, ${clipSurfaceTint(theme, mediaType)})`,
+    )}, ${clipSurfaceTint(mediaType)})`,
     border: selected
       ? `1.5px solid ${theme.vars.palette.secondary.main}`
       : `1px solid ${clipBorderTint(theme, mediaType)}`,

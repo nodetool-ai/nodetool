@@ -526,7 +526,7 @@ ipcMain.handle("update-installed", async () => {
     });
 });
 
-app.on("before-quit", (event) => {
+app.on("before-quit", () => {
   if (!isAppQuitting) {
     isAppQuitting = true;
     stopServer();
@@ -594,7 +594,7 @@ process.on("uncaughtException", (error: Error) => {
 
 process.on(
   "unhandledRejection",
-  (reason: unknown, promise: Promise<unknown>) => {
+  (reason: unknown) => {
     const message = logUnexpectedError("Unhandled Promise Rejection", reason);
     showUnexpectedErrorDialog("Unexpected Error", message);
 

@@ -23,7 +23,6 @@ import {
   isLayerCompositeVisible,
   type SketchDocument,
   type Point,
-  type Selection,
   type BlurSettings,
   type CloneStampSettings
 } from "../types";
@@ -55,7 +54,6 @@ export interface UsePointerHandlerUtilsParams {
   symmetryMode: string;
   symmetryRays: number;
   layerCanvasesRef: React.MutableRefObject<Map<string, HTMLCanvasElement>>;
-  selection?: Selection | null;
   getOrCreateLayerCanvas: (layerId: string) => HTMLCanvasElement;
   invalidateLayer: (layerId: string) => void;
   onLayerContentBoundsChange?: (
@@ -77,7 +75,6 @@ export function usePointerHandlerUtils({
   symmetryMode,
   symmetryRays,
   layerCanvasesRef,
-  selection,
   getOrCreateLayerCanvas,
   invalidateLayer,
   onLayerContentBoundsChange

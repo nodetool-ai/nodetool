@@ -54,7 +54,7 @@ export function trackTypeAccent(theme: Theme, type: TrackTypeKey): string {
 }
 
 /** Subtle background tint behind a clip body, scoped to track type. */
-export function clipSurfaceTint(theme: Theme, type: ClipMediaKey): string {
+export function clipSurfaceTint(type: ClipMediaKey): string {
   switch (type) {
     case "video":
       return "rgba(34, 211, 238, 0.10)"; // info / cyan, low-chroma wash
