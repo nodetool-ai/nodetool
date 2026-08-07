@@ -41,12 +41,6 @@ export type ApprovalDecision = "allow" | "allow_for_chat" | "deny";
 export const TOOL_PERMISSION_CATEGORIES: Readonly<
   Record<string, PermissionCategory>
 > = {
-  // --- read: pure compute ---
-  calculate: "read",
-  geometry: "read",
-  statistics: "read",
-  trigonometry: "read",
-  unit_conversion: "read",
   // --- read: filesystem / workspace reads ---
   read_file: "read",
   list_directory: "read",

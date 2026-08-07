@@ -549,7 +549,13 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a
   `run_subtask` child with a fresh context; `fanout(prompts, {concurrency})`
   batches them), the single-node harness on `nodetool.nodes.run(type,
-  inputs)`, plus `assets`, `jobs` (with
+  inputs)`, `nodetool.web` (one surface over every search/fetch tool:
+  `search(query, {provider})` picks the backend the belt carries — `"default"`,
+  `"openai"`, `"google"`, `"dataforseo"` pin one — plus `news`, `images`,
+  `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
+  (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
+  (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
+  (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),
   `collections` (full RAG loop: `index/indexBatch/search/hybridSearch/query`),
   `timelines`, `sketches`, `scripts`, and `storyboards`. `workflows` also
@@ -563,12 +569,25 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   (`nodetoolApiCoveredToolNames`, plus `GRAPH_MODEL_TOOL_NAMES` when the graph
   model loads) are filtered out of the prompt's tool catalog — they stay
   callable through the bridge and findable via `searchTools()`, but the
-  `nodetool.*` form is the only documented one.
+  `nodetool.*` form is the only documented one. Workspace files are the
+  deliberate exception: they are not wrapped, because the sandbox's own
+  `workspace.*` API is in-process and costs no tool call — the action contract
+  steers there.
+- The belt carries only what a model cannot write itself. The pure-computation
+  tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
+  `unit_conversion`) were deleted outright, MCP included; `run_code` and `js`
+  remain for callers that want a code tool. `getAgentToolbelt()`
+  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific media
+  duplicates `image_generation`, `openai_image_generation`,
+  `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
+  covers them through the provider-agnostic `generate_image` /
+  `generate_speech`. `getBuiltinTools()` still returns them, so MCP clients,
+  which have no object model, keep them.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`.
 - Tests: `tests/codeact-executor.test.ts`, `tests/codeact-eval.test.ts`,
-  `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` (scripted
-  provider, real sandbox, no network).
+  `tests/chat-codeact.test.ts`, `tests/nodetool-api.test.ts` and
+  `tests/nodetool-api-*.test.ts` (scripted provider, real sandbox, no network).
 
 ## Script Mode (code-shaped orchestration)
 

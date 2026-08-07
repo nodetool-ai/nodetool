@@ -30,6 +30,9 @@ Rules:
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
   fields you need); large payloads belong in \`state\`, the workspace, or agent
   memory — not in the transcript.
+- For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
+  \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
+  \`remove\`) — it is in-process, so a read costs nothing a tool call would.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
 - Top-level \`await\` and \`return\` work. There is no module loader: no
   \`import\`/\`require\`, and \`eval\`/\`Function\` are disabled.`;

@@ -151,7 +151,7 @@ import {
   type ChatCodeActToolCall
 } from "@nodetool-ai/agents";
 import {
-  getBuiltinTools,
+  getAgentToolbelt,
   getAllMcpTools,
   registerBuiltinTools,
   getGoogleWorkspaceTools,
@@ -5306,7 +5306,7 @@ export class UnifiedWebSocketRunner {
     if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.getConfiguredProviders(userId);
     const rawToolbelt: Tool[] = [
-      ...getBuiltinTools(),
+      ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
       ...getAllMcpTools({
         registry: this.nodeRegistry,
@@ -5345,18 +5345,11 @@ export class UnifiedWebSocketRunner {
         })
       );
     }
-    // When the active provider generates images natively (OpenAI Responses
-    // `image_generation` tool), drop the redundant provider-specific
-    // `openai_image_generation` tool — the native `image_generation` covers it
-    // and avoids offering two overlapping image tools.
-    const dropOpenAIImageTool = provider.supportsNativeImageGeneration;
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
     for (const tool of rawToolbelt) {
       if (seenToolNames.has(tool.name)) continue;
-      if (dropOpenAIImageTool && tool.name === "openai_image_generation")
-        continue;
       seenToolNames.add(tool.name);
       dedupedToolbelt.push(tool);
     }

@@ -209,6 +209,46 @@ sync are untouched. A failed commit names the failing operation and keeps it
 cancels its queued ops instead of issuing a delete. Tests:
 `packages/agents/tests/chat-codeact.test.ts`.
 
+## The platform as objects: `nodetool.*`
+
+Alongside the graph model, an action gets the `nodetool` object model
+(`packages/agents/src/codeact/nodetool-api.ts`): namespaces wrapping belt
+tools, so gating and routing stay untouched and a method whose backing tool is
+absent throws naming it. The namespaces are `workflows`, `graph()`, `nodes`,
+`agents`, `models`, `providers`, `media`, `documents`, `web`, `memory`,
+`style`, `email`, `assets`, `jobs`, `collections`, `apps`, `timelines`,
+`sketches`, `scripts`, `storyboards`, plus `batch()` for bounded fan-out.
+
+`web` is the outside world behind one surface: `search(query, {provider})`
+picks whichever search backend the belt carries (`"default"`, `"openai"`,
+`"google"`, `"dataforseo"` pin one), with `news`, `images`, `browse(url)`,
+`fetch(url)`, `download` and `screenshot` alongside. `memory` is the
+conversation's durable notes (`thread_memory_*`), `style` the user's
+accumulated taste, `email` the Gmail three.
+
+Every wrapped tool is filtered out of the prompt's tool catalog
+(`nodetoolApiCoveredToolNames`) — it stays callable through the bridge and
+findable via `searchTools()`, but `nodetool.*` is its one documented form.
+Workspace files are the exception on purpose: they go through the sandbox's own
+in-process `workspace.*` API, which costs no tool call, and the prompt's action
+contract says so.
+
+## What the belt does not carry
+
+Two shrinks keep the belt to capabilities a model cannot write itself:
+
+- The pure-computation tools (`calculate`, `geometry`, `trigonometry`,
+  `statistics`, `unit_conversion`) are gone everywhere, MCP included. Anything
+  a model can do by writing code is not a tool; `run_code` and `js` remain the
+  code path for callers that want one.
+- `getAgentToolbelt()` (`src/tools/builtin-tools.ts`) drops the
+  provider-specific media duplicates — `image_generation`,
+  `openai_image_generation`, `google_image_generation`,
+  `openai_text_to_speech` — because `nodetool.media` already covers them
+  through the provider-agnostic `generate_image` / `generate_speech`. They stay
+  in `getBuiltinTools()`, so MCP clients, which have no object model, keep
+  them.
+
 ## Evaluation
 
 `eval codeact` (registered next to `subtask`): objectives with instrumented

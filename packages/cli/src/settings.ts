@@ -23,7 +23,6 @@ export const DEFAULT_SETTINGS: ChatSettings = {
     "browser",
     "take_screenshot",
     "run_code",
-    "calculate",
     // NodeTool MCP tools
     "list_workflows",
     "get_workflow",

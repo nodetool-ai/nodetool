@@ -51,7 +51,36 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "convert_markdown_to_pdf",
     "convert_pdf_to_markdown"
   ],
-  assets: ["list_assets", "get_asset", "asset_search", "save_asset", "read_asset"],
+  web: [
+    "web_search",
+    "openai_web_search",
+    "google_grounded_search",
+    "google_images",
+    "google_news",
+    "dataforseo_search",
+    "dataforseo_news",
+    "dataforseo_images",
+    "http_request",
+    "download_file",
+    "browser",
+    "take_screenshot"
+  ],
+  memory: [
+    "thread_memory_save",
+    "thread_memory_list",
+    "thread_memory_update",
+    "thread_memory_delete"
+  ],
+  email: ["search_email", "archive_email", "add_label_to_email"],
+  style: ["get_style_profile", "record_style_preference"],
+  assets: [
+    "list_assets",
+    "get_asset",
+    "asset_search",
+    "save_asset",
+    "read_asset",
+    "list_images"
+  ],
   jobs: ["list_jobs", "get_job", "get_job_logs"],
   collections: [
     "list_collections",
@@ -153,6 +182,31 @@ const nodetool = (() => {
     throw new Error(
       "nodetool: expected a graph builder, a {nodes, edges} graph, or a " +
       "workflow record with a .graph"
+    );
+  };
+
+  /**
+   * Route a web query to one of several interchangeable backing tools.
+   * \`choices\` is [providerName, toolName, queryField][] in preference order.
+   * \`opts.provider\` pins one (and then must exist); otherwise the first
+   * provider this belt carries wins. Nothing available throws naming them all.
+   */
+  const __pickWeb = (method, opts, choices, query) => {
+    const rest = __merge(opts);
+    const wanted = rest.provider;
+    delete rest.provider;
+    const text = String(query === undefined || query === null ? "" : query);
+    for (const choice of choices) {
+      if (wanted !== undefined && wanted !== choice[0]) continue;
+      if (!__has(choice[1])) continue;
+      const args = __merge(rest);
+      args[choice[2]] = text;
+      return tools[choice[1]](args);
+    }
+    throw new Error(
+      "nodetool.web." + method + ": no backing tool on this belt" +
+      (wanted !== undefined ? ' for provider "' + wanted + '"' : "") +
+      " (tried " + choices.map((c) => c[1]).join(", ") + ")."
     );
   };
 
@@ -693,8 +747,96 @@ const nodetool = (() => {
         )
     },
 
+    web: {
+      /**
+       * Search the web. Providers in preference order: "default"
+       * (web_search), "openai", "google", "dataforseo". Naming one that is
+       * not on the belt throws and says so.
+       */
+      search: (query, opts) =>
+        __pickWeb(
+          "search",
+          opts,
+          [
+            ["default", "web_search", "query"],
+            ["openai", "openai_web_search", "query"],
+            ["google", "google_grounded_search", "query"],
+            ["dataforseo", "dataforseo_search", "keyword"]
+          ],
+          query
+        ),
+      news: (query, opts) =>
+        __pickWeb(
+          "news",
+          opts,
+          [
+            ["google", "google_news", "keyword"],
+            ["dataforseo", "dataforseo_news", "keyword"]
+          ],
+          query
+        ),
+      images: (query, opts) =>
+        __pickWeb(
+          "images",
+          opts,
+          [
+            ["google", "google_images", "keyword"],
+            ["dataforseo", "dataforseo_images", "keyword"]
+          ],
+          query
+        ),
+      /** One HTTP request; returns the response body as text. */
+      fetch: (url, opts) => __need("http_request")(__merge(opts, { url: url })),
+      /** Fetch a page and get its readable text (HTML stripped). */
+      browse: (url) => __need("browser")({ url: url }),
+      /** Save a URL's bytes into the workspace. */
+      download: (url, outputFile) =>
+        __need("download_file")({ url: url, output_file: outputFile }),
+      /** Render a page in a remote browser and save the PNG. */
+      screenshot: (url, outputFile) =>
+        __need("take_screenshot")({
+          url: url,
+          output_file: outputFile || "screenshot.png"
+        })
+    },
+
+    memory: {
+      /** Remember something durably in THIS conversation. */
+      save: (content, opts) =>
+        __need("thread_memory_save")(__merge(opts, { content: content })),
+      list: (opts) => __need("thread_memory_list")(__merge(opts)),
+      update: (memoryId, fields) =>
+        __need("thread_memory_update")(
+          __merge(fields, { memory_id: memoryId })
+        ),
+      remove: (memoryId) =>
+        __need("thread_memory_delete")({ memory_id: memoryId })
+    },
+
+    email: {
+      search: (opts) => __need("search_email")(__merge(opts)),
+      archive: (messageIds) =>
+        __need("archive_email")({
+          message_ids: Array.isArray(messageIds) ? messageIds : [messageIds]
+        }),
+      label: (messageId, label) =>
+        __need("add_label_to_email")({ message_id: messageId, label: label })
+    },
+
+    style: {
+      /** The user's accumulated taste, as a profile block for prompts. */
+      profile: (opts) => __need("get_style_profile")(__merge(opts)),
+      /** Record one preference learned from a choice or a correction. */
+      record: (takeaway, opts) =>
+        __need("record_style_preference")(
+          __merge(opts, { takeaway: takeaway })
+        )
+    },
+
     assets: {
       list: (opts) => __need("list_assets")(__merge(opts)),
+      /** Image assets as lightweight handles — feed an id to view_image. */
+      images: (opts) => __need("list_images")(__merge(opts)),
       search: (query, opts) =>
         __has("asset_search")
           ? tools.asset_search(__merge(opts, { query: query }))
@@ -954,8 +1096,40 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`markdownToPdf(inputFile, outputFile)\`, \`pdfToMarkdown(inputFile, outputFile)\`.`
   },
   {
+    namespace: "web",
+    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\` picks
+  the best search backend this belt carries (\`provider\` pins one:
+  \`"default"\`, \`"openai"\`, \`"google"\`, \`"dataforseo"\`), \`news(query)\` and
+  \`images(query)\` are the vertical searches. \`browse(url)\` returns a page's
+  readable text, \`fetch(url, {method, headers, body})\` is a raw HTTP request,
+  \`download(url, outputFile)\` saves bytes into the workspace, and
+  \`screenshot(url, outputFile)\` renders a page to PNG.`
+  },
+  {
+    namespace: "memory",
+    doc: `- \`nodetool.memory\` — durable notes for THIS conversation, shown back to you
+  at the start of each turn. \`save(content, {title, kind, resources})\` —
+  put the assets, workflows and collections you produce in \`resources\` so you
+  can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
+  title, resources})\`, and \`remove(memoryId)\`.`
+  },
+  {
+    namespace: "style",
+    doc: `- \`nodetool.style\` — the user's accumulated taste. \`profile({query, k})\`
+  returns it as a block to inject into generation prompts and to pass as
+  \`taste_profile\` to \`nodetool.media.critique/compare\`; \`record(takeaway,
+  {chosen, rejected, brief})\` saves one preference whenever the user picks
+  between candidates or corrects a style.`
+  },
+  {
+    namespace: "email",
+    doc: `- \`nodetool.email\` — \`search({subject, text, since_hours_ago, max_results})\`,
+  \`archive(messageIds)\`, \`label(messageId, label)\`.`
+  },
+  {
     namespace: "assets",
     doc: `- \`nodetool.assets\` — \`list({content_type, limit})\`, \`search(query)\`,
+  \`images({query, limit})\` (image handles — pass an id to \`view_image\`),
   \`get(assetId)\`, \`save(name, {...})\`, \`read(name)\`.`
   },
   {

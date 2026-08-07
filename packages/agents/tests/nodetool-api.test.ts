@@ -425,7 +425,7 @@ describe("nodetool object model", () => {
 
   it("gates the prompt section and prelude on the belt", () => {
     expect(hasNodetoolApiTools(["run_workflow"])).toBe(true);
-    expect(hasNodetoolApiTools(["web_search"])).toBe(false);
+    expect(hasNodetoolApiTools(["read_file"])).toBe(false);
 
     const section = buildNodetoolApiPromptSection([
       "run_workflow",
@@ -442,7 +442,7 @@ describe("nodetool object model", () => {
     expect(section).not.toContain("nodetool.timelines");
     expect(section).not.toContain("nodetool.providers");
 
-    expect(buildNodetoolApiPromptSection(["web_search"])).toBe("");
+    expect(buildNodetoolApiPromptSection(["read_file"])).toBe("");
 
     const { executeTool } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);
@@ -503,9 +503,9 @@ describe("nodetool object model", () => {
   it("documents wrapped tools only through the object model — never twice", async () => {
     const { executeTool } = createFakeRouter();
     const plainTool = {
-      name: "web_search",
-      description: "Search the web.",
-      inputSchema: objectSchema({ query: { type: "string" } })
+      name: "read_file",
+      description: "Read a workspace file.",
+      inputSchema: objectSchema({ path: { type: "string" } })
     };
     const session = makeSession(
       [plainTool, ...WORKFLOW_TOOLS, ...MODEL_TOOLS, ...MEDIA_TOOLS],
@@ -521,7 +521,7 @@ describe("nodetool object model", () => {
       expect(session.systemPromptSection).not.toContain(wrapped);
     }
     // …unwrapped tools stay documented raw, and the API section is present.
-    expect(session.systemPromptSection).toContain("tools.web_search(");
+    expect(session.systemPromptSection).toContain("tools.read_file(");
     expect(session.systemPromptSection).toContain("nodetool.workflows");
 
     // Wrapped tools remain callable through the bridge.

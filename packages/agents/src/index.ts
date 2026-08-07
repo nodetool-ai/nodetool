@@ -23,13 +23,6 @@ export {
 } from "./tools/tool-search.js";
 export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
-export { CalculatorTool } from "./tools/calculator-tool.js";
-export {
-  StatisticsTool,
-  GeometryTool,
-  TrigonometryTool,
-  ConversionTool
-} from "./tools/math-tools.js";
 export {
   OpenAIWebSearchTool,
   OpenAIImageGenerationTool,
@@ -195,7 +188,9 @@ export {
 } from "./tools/tool-registry.js";
 export {
   BUILTIN_TOOL_CLASSES,
+  AGENT_TOOLBELT_EXCLUDED,
   getBuiltinTools,
+  getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";

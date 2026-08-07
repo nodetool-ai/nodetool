@@ -187,7 +187,7 @@ describe("RunSubtaskTool", () => {
           return {};
         }
       });
-      const baseTools = [make("browser")]; // intentionally NO run_subtask
+      const baseTools = [make("read_file")]; // intentionally NO run_subtask
 
       let capturedPrompt = "";
       const provider = createMockProvider([
@@ -223,7 +223,7 @@ describe("RunSubtaskTool", () => {
       // toolset shows up in the documented catalog, not in the provider tools.
       // `run_subtask` is documented as the object model's `nodetool.agents`,
       // which the prompt carries only when the belt can serve it.
-      expect(capturedPrompt).toContain("tools.browser(");
+      expect(capturedPrompt).toContain("tools.read_file(");
       expect(capturedPrompt).toContain("nodetool.agents");
     });
 
@@ -266,7 +266,7 @@ describe("RunSubtaskTool", () => {
         }
       });
       const parentTools = [
-        make("browser"),
+        make("read_file"),
         make("memory_read"),
         make("write_file")
       ];
@@ -303,7 +303,7 @@ describe("RunSubtaskTool", () => {
 
       // All parent tools are inherited; run_subtask is stitched in so the
       // child can itself recurse.
-      for (const name of ["browser", "memory_read", "write_file"]) {
+      for (const name of ["read_file", "memory_read", "write_file"]) {
         expect(capturedPrompt).toContain(`tools.${name}(`);
       }
       expect(capturedPrompt).toContain("nodetool.agents");
