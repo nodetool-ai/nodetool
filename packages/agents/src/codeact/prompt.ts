@@ -36,6 +36,11 @@ Rules:
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
   fields you need); large payloads belong in \`state\`, the workspace, or agent
   memory — not in the transcript.
+- Extract fields you have verified exist. Coercing an unread object to a
+  string yields "[object Object]", and a plausible-looking wrong field passes
+  schema validation — when a return shape is uncertain, stash the value in
+  \`state\` and return its keys plus a sample so the next action extracts from
+  the real shape instead of a guess.
 - For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
   \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
   \`remove\`) — it is in-process, so a read costs nothing a tool call would.
