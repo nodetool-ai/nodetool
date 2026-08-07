@@ -60,12 +60,13 @@ describe("settleStepResult", () => {
     ).toEqual({ ok: true, result });
   });
 
-  it("with a schema, still treats the sole-key {error} payload as failure", () => {
+  it("with a schema, preserves a sole-key {error} result", () => {
+    const result = { error: "valid business field" };
     expect(
-      settleStepResult(stepResult({ result: { error: "died" } }), {
+      settleStepResult(stepResult({ result }), {
         hasOutputSchema: true
       })
-    ).toEqual({ ok: false, error: "died" });
+    ).toEqual({ ok: true, result });
   });
 
   it("passes prose results through", () => {
@@ -157,6 +158,40 @@ describe("forwardSubAgentStream", () => {
     });
     expect(out).toEqual({ aborted: true, value: null });
     expect(produced).toBeLessThanOrEqual(3);
+  });
+
+  it("returns when aborted while waiting for the next event", async () => {
+    const controller = new AbortController();
+    let release: (() => void) | undefined;
+    const blocked = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+
+    async function* blockedProducer(): AsyncGenerator<
+      ProcessingMessage,
+      string
+    > {
+      yield logMsg("first");
+      await blocked;
+      yield logMsg("second");
+      return "done";
+    }
+
+    const resultPromise = forwardSubAgentStream(blockedProducer(), {
+      forward: () => {
+        controller.abort();
+      },
+      signal: controller.signal
+    });
+
+    try {
+      await expect(resultPromise).resolves.toEqual({
+        aborted: true,
+        value: null
+      });
+    } finally {
+      release?.();
+    }
   });
 });
 

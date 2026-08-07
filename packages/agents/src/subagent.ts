@@ -84,13 +84,10 @@ export interface SubAgentRunOptions {
 /**
  * Settle a `step_result` into an outcome.
  *
- * The executor reports failure two ways: the protocol-level `error` field,
- * and — when the step dies inside the loop (iteration cap, provider error) —
- * a `{error: "Step failed…"}` result payload with no top-level error. A sole
- * `error` key is always that failure shape. A result that merely *contains* a
- * string `error` among other keys is ambiguous: without a schema nothing
- * legitimate produces it (prose mode returns text), so it is treated as
- * failure; with a schema the shape was requested, so it passes through.
+ * The executor reports failures through the protocol-level `error` field.
+ * In schema-free mode, a result object with a string `error` property is also
+ * treated as a legacy failure shape (prose mode normally returns text). With
+ * a schema, the object shape was explicitly requested and passes through.
  */
 export function settleStepResult(
   sr: StepResult,
@@ -101,11 +98,8 @@ export function settleStepResult(
   if (result === null || result === undefined) return null;
   if (typeof result === "object" && !Array.isArray(result)) {
     const record = result as Record<string, unknown>;
-    if (typeof record.error === "string") {
-      const soleKey = Object.keys(record).length === 1;
-      if (soleKey || !opts.hasOutputSchema) {
-        return { ok: false, error: record.error };
-      }
+    if (typeof record.error === "string" && !opts.hasOutputSchema) {
+      return { ok: false, error: record.error };
     }
   }
   return { ok: true, result };
@@ -210,15 +204,56 @@ export interface ForwardSubAgentStreamOptions extends SubAgentStreamTag {
   /** Receives each tagged event. Failures are logged, never fatal. */
   forward?: ForwardMessage;
   /**
-   * Checked between events: once aborted, the generator is closed and the
-   * stream reports `aborted` instead of a value. Sub-agents whose executor
-   * already holds the signal don't need this — pass it when the producer's
-   * own abort only stops its LLM loop and an in-flight round would otherwise
-   * keep the turn alive (the graph planner's case).
+   * Interrupts pending event reads: once aborted, the generator is closed and
+   * the stream reports `aborted` instead of a value. Sub-agents whose executor
+   * already holds the signal don't need this — pass it when the producer's own
+   * abort only stops its LLM loop and an in-flight round would otherwise keep
+   * the turn alive (the graph planner's case).
    */
   signal?: AbortSignal;
   /** Name used in the broken-forwarder warning. Defaults to "subagent". */
   label?: string;
+}
+
+type SubAgentNext<R> =
+  | { aborted: false; next: IteratorResult<ProcessingMessage, R> }
+  | { aborted: true };
+
+async function nextSubAgentEvent<R>(
+  gen: AsyncGenerator<ProcessingMessage, R>,
+  signal?: AbortSignal
+): Promise<SubAgentNext<R>> {
+  if (!signal) {
+    return { aborted: false, next: await gen.next() };
+  }
+  if (signal.aborted) {
+    return { aborted: true };
+  }
+
+  let onAbort: (() => void) | undefined;
+  const aborted = new Promise<{ aborted: true }>((resolve) => {
+    onAbort = () => resolve({ aborted: true });
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+
+  try {
+    return await Promise.race([
+      gen.next().then((next) => ({ aborted: false as const, next })),
+      aborted
+    ]);
+  } finally {
+    if (onAbort) {
+      signal.removeEventListener("abort", onAbort);
+    }
+  }
+}
+
+function closeSubAgentGenerator<R>(
+  gen: AsyncGenerator<ProcessingMessage, R>
+): void {
+  void gen.return(null as never).catch(() => {
+    // The caller has settled after cancellation; producer cleanup is best-effort.
+  });
 }
 
 /**
@@ -233,10 +268,16 @@ export async function forwardSubAgentStream<R>(
   gen: AsyncGenerator<ProcessingMessage, R>,
   opts: ForwardSubAgentStreamOptions
 ): Promise<{ aborted: boolean; value: R | null }> {
-  let next = await gen.next();
+  let read = await nextSubAgentEvent(gen, opts.signal);
+  if (read.aborted) {
+    closeSubAgentGenerator(gen);
+    return { aborted: true, value: null };
+  }
+
+  let next = read.next;
   while (!next.done) {
     if (opts.signal?.aborted) {
-      await gen.return(null as never);
+      closeSubAgentGenerator(gen);
       return { aborted: true, value: null };
     }
     const tagged = tagSubAgentMessage(next.value, opts);
@@ -251,7 +292,12 @@ export async function forwardSubAgentStream<R>(
         );
       }
     }
-    next = await gen.next();
+    read = await nextSubAgentEvent(gen, opts.signal);
+    if (read.aborted) {
+      closeSubAgentGenerator(gen);
+      return { aborted: true, value: null };
+    }
+    next = read.next;
   }
   if (opts.signal?.aborted) {
     return { aborted: true, value: null };
