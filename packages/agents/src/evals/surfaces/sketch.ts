@@ -5,22 +5,43 @@
  * a `SketchAgentHandler` the live `SketchEditor` registers on the
  * `sketchAgentBridge` under its document id — it mutates a layered raster
  * document backed by real canvases and (for generation) dispatches actual
- * image-generation jobs. None of that can run under Node. This bridge
- * reimplements the *effects* of the non-pixel, non-asset tools against a
- * plain in-memory layer stack, so a model can drive the same `ui_sketch_*`
- * tool surface headlessly.
+ * image-generation jobs. This bridge reimplements the *effects* of those tools
+ * against an in-memory layer stack, so a model can drive the same
+ * `ui_sketch_*` tool surface headlessly.
+ *
+ * The pixels are real. Every raster layer is backed by an `@napi-rs/canvas`
+ * bitmap, and `ui_sketch_stroke` runs the editor's own brush/pencil/eraser
+ * engine — `@nodetool-ai/image-editor/painting.js`, the same module the browser
+ * calls — through `setPaintSurfaceFactory(createCanvas)`. So a headless run
+ * paints the strokes a live editor would, and `ui_sketch_get_layer_image`
+ * hands the model a PNG of its own work.
  *
  * What it does NOT fork is the tool *contract*: names and descriptions are
  * copied verbatim from the builtin file, and parameters mirror its Zod
  * shapes — minus the `sketch_id` param, since this bridge addresses a single
  * implicit document rather than a registry of open editors.
  *
- * `ui_sketch_get_layer_image` and `ui_sketch_render_to_asset` are
- * intentionally excluded: they need a real canvas to rasterize pixels and an
- * asset-upload service, neither of which has a meaningful headless
- * equivalent.
+ * `ui_sketch_render_to_asset` stays excluded: it needs an asset-upload service,
+ * which has no meaningful headless equivalent. To look at what a run drew, take
+ * the composite PNG off the bridge instead ({@link SketchToolBridge.compositePng},
+ * or {@link getLastSketchToolBridge} when the eval runner owns the instance).
  */
 
+import { createCanvas, type Canvas, type SKRSContext2D } from "@napi-rs/canvas";
+import {
+  DEFAULT_BRUSH_SETTINGS,
+  DEFAULT_ERASER_SETTINGS,
+  DEFAULT_PENCIL_SETTINGS,
+  drawBrushStroke,
+  drawEraserStroke,
+  drawPencilStroke,
+  setPaintSurfaceFactory,
+  type DirtyRectTracker,
+  type PaintContext2D,
+  type PaintSurface,
+  type Point,
+  type StrokeStampState
+} from "@nodetool-ai/image-editor/painting.js";
 import { z } from "zod";
 import { parseWithTypeCoercion } from "@nodetool-ai/runtime";
 import type { HeadlessTool } from "../tool-loop-bridge.js";
@@ -28,6 +49,15 @@ import type {
   HeadlessSurfaceBridge,
   ToolLoopEvalCase
 } from "../tool-loop-eval.js";
+
+/**
+ * Point the paint core at skia. Idempotent and process-wide: the engine only
+ * uses it to allocate its brush-stamp scratch bitmaps, so every bridge in this
+ * process shares one factory.
+ */
+setPaintSurfaceFactory(
+  createCanvas as unknown as (w: number, h: number) => PaintSurface
+);
 
 export type SketchBlendMode =
   | "normal"
@@ -63,6 +93,27 @@ export const SKETCH_BLEND_MODES = [
 
 const BLEND_MODES = SKETCH_BLEND_MODES;
 
+/**
+ * NodeTool's blend-mode names onto Canvas2D `globalCompositeOperation`. All but
+ * two are spelled the same; `"normal"` is Canvas's default `"source-over"` and
+ * `"add"` is its additive `"lighter"`.
+ */
+const CANVAS_COMPOSITE_OP: Record<SketchBlendMode, string> = {
+  normal: "source-over",
+  multiply: "multiply",
+  screen: "screen",
+  overlay: "overlay",
+  darken: "darken",
+  lighten: "lighten",
+  "color-dodge": "color-dodge",
+  "color-burn": "color-burn",
+  "hard-light": "hard-light",
+  "soft-light": "soft-light",
+  difference: "difference",
+  exclusion: "exclusion",
+  add: "lighter"
+};
+
 const TOOLS = [
   "move",
   "transform",
@@ -90,6 +141,54 @@ const targetParam = z
 const blendModeEnum = z.enum(BLEND_MODES);
 const toolEnum = z.enum(TOOLS);
 
+const strokePointSchema = z.object({
+  x: z.number(),
+  y: z.number(),
+  pressure: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Pen pressure in [0,1]; omit for an even, mouse-like stroke.")
+});
+
+const strokeSchema = z.object({
+  target: targetParam
+    .optional()
+    .describe("Layer to paint on; defaults to the active layer."),
+  tool: z
+    .enum(["brush", "pencil", "eraser"])
+    .optional()
+    .describe(
+      "Paint engine (default `brush`). `pencil` is aliased hard-edged, `eraser` removes pixels."
+    ),
+  points: z
+    .array(strokePointSchema)
+    .min(1)
+    .describe(
+      "Polyline the stroke follows, in canvas pixels (x right, y down, origin top-left). Dabs are interpolated along each segment, so a smooth curve just needs enough points — roughly one every few pixels of arc."
+    ),
+  color: z
+    .string()
+    .optional()
+    .describe("Hex color; defaults to the foreground. Ignored by the eraser."),
+  size: z.number().min(0.1).optional().describe("Brush diameter in pixels."),
+  opacity: z.number().min(0).max(1).optional(),
+  hardness: z
+    .number()
+    .min(0)
+    .max(1)
+    .optional()
+    .describe("Edge hardness — 1 is crisp, 0 is a soft airbrushed falloff."),
+  closed: z
+    .boolean()
+    .optional()
+    .describe("Connect the last point back to the first, closing the shape.")
+});
+
+/** One stroke as the tool receives it, after Zod parsing. */
+type StrokeArgs = z.infer<typeof strokeSchema>;
+
 export interface SketchBridgeInitialState {
   name?: string;
   width?: number;
@@ -106,6 +205,16 @@ export interface SketchBridgeFinalState {
   backgroundColor: string;
   activeTool: string;
   hasSelection: boolean;
+  /** Non-transparent pixels in the flattened composite of all visible layers. */
+  paintedPixels: number;
+  /** {@link paintedPixels} over the canvas area, in [0,1]. */
+  paintedFraction: number;
+  /**
+   * Same measure over only the layers `ui_sketch_stroke` actually painted on.
+   * A solid `fillColor` layer covers the whole canvas, so `paintedFraction`
+   * alone cannot tell a drawing from a backdrop — this can.
+   */
+  strokedFraction: number;
   layers: {
     id: string;
     name: string;
@@ -115,6 +224,10 @@ export interface SketchBridgeFinalState {
     blendMode: SketchBlendMode;
     index: number;
     hasBinding: boolean;
+    /** Non-transparent pixels on this layer's own bitmap. */
+    paintedPixels: number;
+    /** How many strokes have been committed to this layer. */
+    strokeCount: number;
     prompt?: string;
     provider?: string;
     model?: string;
@@ -139,9 +252,20 @@ interface Layer {
   provider?: string;
   model?: string;
   bindingStatus?: string;
-  /** Solid fill applied at creation (headless stand-in for painted pixels). */
+  /** Solid fill applied to the bitmap when it is first materialized. */
   fillColor?: string;
+  /** Strokes committed to this layer, so a fill and a drawing stay tellable apart. */
+  strokeCount: number;
+  /**
+   * Raster backing, allocated lazily at the current canvas size — most layers
+   * in a layer-management case never hold a pixel, and a 1024² bitmap per
+   * layer is not free.
+   */
+  raster: Canvas | null;
 }
+
+/** Serializable view handed back to the model — the bitmap never crosses. */
+type LayerView = Omit<Layer, "raster">;
 
 function tool(
   name: string,
@@ -163,14 +287,159 @@ function tool(
   };
 }
 
+/** The 2D context of a skia canvas, seen as the paint core's context. */
+const paintContext = (canvas: Canvas): SKRSContext2D & PaintContext2D => {
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Could not acquire a 2D context.");
+  return ctx as SKRSContext2D & PaintContext2D;
+};
+
+/** Count pixels with a non-zero alpha — "how much of this bitmap is painted". */
+function countPaintedPixels(canvas: Canvas | null): number {
+  if (!canvas) return 0;
+  const { data } = paintContext(canvas).getImageData(
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
+  let painted = 0;
+  for (let i = 3; i < data.length; i += 4) {
+    if (data[i] !== 0) painted += 1;
+  }
+  return painted;
+}
+
+/** One point of a stroke as the tool schema describes it. */
+interface StrokePoint extends Point {
+  pressure?: number;
+}
+
+/**
+ * Run one polyline through a paint engine into a fresh doc-sized stroke buffer.
+ *
+ * This is the editor's own compositing model: dabs land at full alpha in a
+ * buffer, and the buffer goes onto the layer once — `source-over` at the
+ * stroke's opacity for brush/pencil, `destination-out` for the eraser, which is
+ * what makes a semi-transparent stroke a single even wash instead of a chain of
+ * overlapping dabs.
+ */
+function renderStroke(options: {
+  width: number;
+  height: number;
+  tool: "brush" | "pencil" | "eraser";
+  points: StrokePoint[];
+  color: string;
+  size: number;
+  hardness: number;
+  closed: boolean;
+}): { buffer: Canvas; dirty: DirtyRectTracker } {
+  const { width, height, tool, color, size, hardness, closed } = options;
+  const buffer = createCanvas(width, height);
+  const ctx = paintContext(buffer);
+  const dirty: DirtyRectTracker = { current: null };
+  const stampCache = new Map<string, PaintSurface>();
+  const stampState: StrokeStampState = {
+    hasStamped: false,
+    distanceToNextDab: 0
+  };
+
+  const points = [...options.points];
+  if (closed && points.length > 2) {
+    points.push(points[0]);
+  }
+
+  // The engine is opacity-agnostic here: the buffer carries the stroke at full
+  // strength and the caller applies opacity when it composites.
+  const brush = {
+    ...DEFAULT_BRUSH_SETTINGS,
+    color,
+    size,
+    hardness,
+    opacity: 1
+  };
+  const pencil = { ...DEFAULT_PENCIL_SETTINGS, color, size, opacity: 1 };
+  const eraser = { ...DEFAULT_ERASER_SETTINGS, size, opacity: 1 };
+
+  const segment = (from: StrokePoint, to: StrokePoint): void => {
+    const pressure = to.pressure ?? from.pressure;
+    switch (tool) {
+      case "brush":
+        drawBrushStroke(
+          from,
+          to,
+          brush,
+          ctx,
+          pressure,
+          dirty,
+          stampCache,
+          stampState
+        );
+        return;
+      case "pencil":
+        drawPencilStroke(from, to, pencil, ctx, pressure, dirty, stampState);
+        return;
+      case "eraser":
+        drawEraserStroke(
+          from,
+          to,
+          eraser,
+          brush,
+          pencil,
+          ctx,
+          pressure,
+          dirty,
+          stampCache,
+          stampState
+        );
+    }
+  };
+
+  if (points.length === 1) {
+    // A one-point stroke is a single dab, not a no-op.
+    segment(points[0], points[0]);
+  } else {
+    for (let i = 1; i < points.length; i += 1) {
+      segment(points[i - 1], points[i]);
+    }
+  }
+
+  return { buffer, dirty };
+}
+
+/**
+ * A headless sketch bridge, plus the escape hatch a harness needs to look at
+ * what the model actually drew.
+ */
+export interface SketchToolBridge extends HeadlessSurfaceBridge<SketchBridgeFinalState> {
+  /** PNG bytes of the flattened composite of all visible layers. */
+  compositePng: () => Buffer;
+  /** Same pixels as a `data:image/png;base64,…` URL. */
+  compositeDataUrl: () => string;
+}
+
+let lastCreatedBridge: SketchToolBridge | null = null;
+
+/**
+ * The most recently created sketch bridge, or null before the first one.
+ *
+ * `ToolLoopEvalCase.createBridge` builds the bridge inside the runner, so a
+ * caller that wants the drawing afterwards has no handle on it. Cases run
+ * sequentially, so after a single-case run this is that run's bridge — enough
+ * to write the composite PNG somewhere a human can look at it.
+ */
+export function getLastSketchToolBridge(): SketchToolBridge | null {
+  return lastCreatedBridge;
+}
+
 /**
  * Build an in-memory sketch/image-editor bridge whose tools share the
- * `ui_sketch_*` contract but run headlessly against a plain layer array (no
- * canvas, no pixels).
+ * `ui_sketch_*` contract but run headlessly, against a layer stack of real
+ * skia bitmaps driven by the editor's own paint engine.
  */
 export function createSketchToolBridge(
   initial: SketchBridgeInitialState = {}
-): HeadlessSurfaceBridge<SketchBridgeFinalState> {
+): SketchToolBridge {
   const name = initial.name ?? "Untitled";
   let width = initial.width ?? 1024;
   let height = initial.height ?? 1024;
@@ -196,7 +465,9 @@ export function createSketchToolBridge(
     locked: false,
     alphaLock: false,
     parentId: null,
-    hasBinding: false
+    hasBinding: false,
+    strokeCount: 0,
+    raster: null
   });
 
   const layers: Layer[] = [];
@@ -231,7 +502,52 @@ export function createSketchToolBridge(
     throw new Error(`No layer found matching "${target}".`);
   };
 
-  const serialize = (l: Layer): Layer => ({ ...l });
+  const serialize = (l: Layer): LayerView => {
+    const { raster: _raster, ...view } = l;
+    return view;
+  };
+
+  /**
+   * Materialize this layer's bitmap at the current canvas size, applying its
+   * `fillColor` the first time. A layer that was resized while empty is
+   * reallocated rather than kept at the old size.
+   */
+  const ensureRaster = (layer: Layer): Canvas => {
+    const existing = layer.raster;
+    if (existing && existing.width === width && existing.height === height) {
+      return existing;
+    }
+    const next = createCanvas(width, height);
+    const ctx = paintContext(next);
+    if (existing) {
+      // Resize keeps pixels; anything past the new bounds is clipped.
+      ctx.drawImage(existing, 0, 0);
+    } else if (layer.fillColor) {
+      ctx.fillStyle = layer.fillColor;
+      ctx.fillRect(0, 0, width, height);
+    }
+    layer.raster = next;
+    return next;
+  };
+
+  /** Composite the given layers bottom-to-top honoring visibility, opacity and blend. */
+  const compositeOf = (source: Layer[]): Canvas => {
+    const out = createCanvas(width, height);
+    const ctx = paintContext(out);
+    for (const layer of source) {
+      if (!layer.visible || layer.opacity <= 0 || !layer.raster) continue;
+      ctx.save();
+      ctx.globalAlpha = layer.opacity;
+      ctx.globalCompositeOperation = CANVAS_COMPOSITE_OP[
+        layer.blendMode
+      ] as SKRSContext2D["globalCompositeOperation"];
+      ctx.drawImage(ensureRaster(layer), 0, 0);
+      ctx.restore();
+    }
+    return out;
+  };
+
+  const composite = (): Canvas => compositeOf(layers);
 
   const tools: HeadlessTool[] = [
     tool(
@@ -276,6 +592,8 @@ export function createSketchToolBridge(
         );
         if (typeof fillColor === "string" && fillColor) {
           layer.fillColor = fillColor;
+          // A fill is pixels, not a label — lay them down now.
+          ensureRaster(layer);
         }
         layers.splice(idx, 0, layer);
         activeLayerId = id;
@@ -309,8 +627,16 @@ export function createSketchToolBridge(
         const copy: Layer = {
           ...source,
           id,
-          name: `${source.name} copy`
+          name: `${source.name} copy`,
+          raster: null
         };
+        if (source.raster) {
+          // Own bitmap, not a shared reference — painting the copy must not
+          // paint the original.
+          const dup = createCanvas(source.raster.width, source.raster.height);
+          paintContext(dup).drawImage(source.raster, 0, 0);
+          copy.raster = dup;
+        }
         layers.splice(indexOf(source.id) + 1, 0, copy);
         activeLayerId = id;
         return { ok: true, layer: serialize(copy) };
@@ -343,8 +669,10 @@ export function createSketchToolBridge(
       async ({ target, ...patch }) => {
         const layer = resolveTarget(target as string);
         if (patch.name !== undefined) layer.name = patch.name as string;
-        if (patch.visible !== undefined) layer.visible = patch.visible as boolean;
-        if (patch.opacity !== undefined) layer.opacity = patch.opacity as number;
+        if (patch.visible !== undefined)
+          layer.visible = patch.visible as boolean;
+        if (patch.opacity !== undefined)
+          layer.opacity = patch.opacity as number;
         if (patch.blendMode !== undefined)
           layer.blendMode = patch.blendMode as SketchBlendMode;
         if (patch.locked !== undefined) layer.locked = patch.locked as boolean;
@@ -385,6 +713,7 @@ export function createSketchToolBridge(
         }
         const below = layers[idx - 1];
         const merged = makeLayer(nextLayerId(), below.name, "raster");
+        merged.raster = compositeOf([below, layer]);
         layers.splice(idx - 1, 2, merged);
         activeLayerId = merged.id;
         return { ok: true, layer: serialize(merged) };
@@ -400,11 +729,10 @@ export function createSketchToolBridge(
           .map((l, i) => (l.visible ? i : -1))
           .filter((i) => i >= 0);
         const insertAt =
-          visibleIndices.length > 0
-            ? visibleIndices[0]
-            : layers.length;
+          visibleIndices.length > 0 ? visibleIndices[0] : layers.length;
         const removeCount = visibleIndices.length;
         const flattened = makeLayer(nextLayerId(), "Flattened", "raster");
+        flattened.raster = compositeOf(visibleIndices.map((i) => layers[i]));
         if (removeCount > 0) {
           for (let i = layers.length - 1; i >= 0; i -= 1) {
             if (visibleIndices.includes(i)) layers.splice(i, 1);
@@ -463,7 +791,7 @@ export function createSketchToolBridge(
         activeLayerId = id;
         const result: {
           ok: true;
-          layer: Layer;
+          layer: LayerView;
           generationStarted: boolean;
           note?: string;
         } = {
@@ -510,6 +838,78 @@ export function createSketchToolBridge(
     ),
 
     tool(
+      "ui_sketch_stroke",
+      "Paint one or more brush/pencil/eraser strokes onto raster layers — the actual drawing tool. Each stroke is a polyline of canvas-pixel points that the paint engine interpolates into a smooth line, with its own color, size, opacity and hardness. Pass several strokes in one call to draw a whole figure at once; the batch commits as a single undo step. Build curves by sampling points along them (a circle is ~24 points), and put separate parts of a drawing on separate layers so they can be edited independently. Call ui_sketch_get_layer_image afterwards to see what you drew.",
+      z.object({ strokes: z.array(strokeSchema).min(1) }),
+      async ({ strokes }) => {
+        const batch = strokes as StrokeArgs[];
+        // Resolve and validate every target before painting anything, so a bad
+        // stroke in the batch leaves no half-drawn figure behind.
+        const resolved = batch.map((stroke) => {
+          const layer = resolveTarget(stroke.target ?? "active");
+          if (layer.locked) {
+            throw new Error(
+              `Layer "${layer.name}" is locked — unlock it with ui_sketch_set_layer_props before painting.`
+            );
+          }
+          if (layer.type !== "raster") {
+            throw new Error(
+              `Layer "${layer.name}" is a ${layer.type} layer; strokes only paint on raster layers.`
+            );
+          }
+          return { layer, stroke };
+        });
+
+        const results = resolved.map(({ layer, stroke }) => {
+          const strokeTool = stroke.tool ?? "brush";
+          const opacity = stroke.opacity ?? 1;
+          const { buffer, dirty } = renderStroke({
+            width,
+            height,
+            tool: strokeTool,
+            points: stroke.points,
+            color: stroke.color ?? foregroundColor,
+            size: stroke.size ?? DEFAULT_BRUSH_SETTINGS.size,
+            hardness: stroke.hardness ?? DEFAULT_BRUSH_SETTINGS.hardness,
+            closed: stroke.closed ?? false
+          });
+
+          const ctx = paintContext(ensureRaster(layer));
+          ctx.save();
+          ctx.globalAlpha = opacity;
+          ctx.globalCompositeOperation =
+            strokeTool === "eraser" ? "destination-out" : "source-over";
+          ctx.drawImage(buffer, 0, 0);
+          ctx.restore();
+          layer.strokeCount += 1;
+
+          const box = dirty.current;
+          const bounds = box
+            ? (() => {
+                const x = Math.max(0, Math.min(width, box.minX));
+                const y = Math.max(0, Math.min(height, box.minY));
+                const right = Math.max(0, Math.min(width, box.maxX));
+                const bottom = Math.max(0, Math.min(height, box.maxY));
+                return right > x && bottom > y
+                  ? { x, y, width: right - x, height: bottom - y }
+                  : null;
+              })()
+            : null;
+
+          return {
+            layerId: layer.id,
+            layerName: layer.name,
+            tool: strokeTool,
+            points: stroke.points.length,
+            bounds
+          };
+        });
+
+        return { ok: true, strokes: results };
+      }
+    ),
+
+    tool(
       "ui_sketch_resize_canvas",
       "Resize the canvas (artboard) to `width` x `height` pixels. Existing layers keep their pixels; content outside the new bounds is clipped.",
       z.object({
@@ -517,8 +917,13 @@ export function createSketchToolBridge(
         height: z.number().min(1)
       }),
       async ({ width: w, height: h }) => {
-        width = w as number;
-        height = h as number;
+        width = Math.max(1, Math.round(w as number));
+        height = Math.max(1, Math.round(h as number));
+        // Re-cut every existing bitmap now rather than on next use, so the
+        // reported pixel counts always describe the current canvas.
+        for (const layer of layers) {
+          if (layer.raster) ensureRaster(layer);
+        }
         return { ok: true, width, height };
       }
     ),
@@ -533,36 +938,87 @@ export function createSketchToolBridge(
         else hasSelection = !hasSelection;
         return { ok: true, hasSelection };
       }
+    ),
+
+    tool(
+      "ui_sketch_get_layer_image",
+      "Inspect the canvas as an image. Omit `target` (or pass null) for the flattened composite of all visible layers; pass a layer id/name to read that single layer's pixels. Returns the dimensions plus an image you can visually inspect, so you can see the current artwork before editing it.",
+      z.object({
+        target: targetParam
+          .nullable()
+          .optional()
+          .describe("Layer to read; omit or null for the flattened composite.")
+      }),
+      async ({ target }) => {
+        const addressed = (target ?? null) as string | null;
+        const layer = addressed === null ? null : resolveTarget(addressed);
+        const canvas = layer ? ensureRaster(layer) : composite();
+        return {
+          ok: true,
+          layerId: layer?.id ?? null,
+          layerName: layer?.name ?? null,
+          width,
+          height,
+          note:
+            layer === null
+              ? "Flattened composite of all visible layers (PNG)."
+              : `Pixels of layer "${layer.name}" (PNG).`,
+          // Mirrors the frontend tool: the base64 rides in `image_content`, not
+          // in the result body, so a full-canvas PNG never lands in the
+          // transcript verbatim.
+          image_content: {
+            uri: canvas.toDataURL("image/png"),
+            mimeType: "image/png"
+          }
+        };
+      }
     )
   ];
 
-  return {
+  const bridge: SketchToolBridge = {
     tools,
-    finalState: (): SketchBridgeFinalState => ({
-      name,
-      width,
-      height,
-      activeLayerId,
-      foregroundColor,
-      backgroundColor,
-      activeTool,
-      hasSelection,
-      layers: layers.map((l, i) => ({
-        id: l.id,
-        name: l.name,
-        type: l.type,
-        visible: l.visible,
-        opacity: l.opacity,
-        blendMode: l.blendMode,
-        index: i,
-        hasBinding: l.hasBinding,
-        ...(l.prompt !== undefined ? { prompt: l.prompt } : {}),
-        ...(l.provider !== undefined ? { provider: l.provider } : {}),
-        ...(l.model !== undefined ? { model: l.model } : {}),
-        ...(l.fillColor !== undefined ? { fillColor: l.fillColor } : {})
-      }))
-    })
+    compositePng: () => composite().toBuffer("image/png"),
+    compositeDataUrl: () => composite().toDataURL("image/png"),
+    finalState: (): SketchBridgeFinalState => {
+      const area = width * height;
+      const paintedPixels = countPaintedPixels(composite());
+      const strokedPixels = countPaintedPixels(
+        compositeOf(layers.filter((l) => l.strokeCount > 0))
+      );
+      return {
+        name,
+        width,
+        height,
+        activeLayerId,
+        foregroundColor,
+        backgroundColor,
+        activeTool,
+        hasSelection,
+        paintedPixels,
+        paintedFraction: paintedPixels / area,
+        strokedFraction: strokedPixels / area,
+        layers: layers.map((l, i) => ({
+          id: l.id,
+          name: l.name,
+          type: l.type,
+          visible: l.visible,
+          opacity: l.opacity,
+          blendMode: l.blendMode,
+          index: i,
+          hasBinding: l.hasBinding,
+          paintedPixels: countPaintedPixels(l.raster),
+          strokeCount: l.strokeCount,
+          ...(l.prompt !== undefined ? { prompt: l.prompt } : {}),
+          ...(l.provider !== undefined ? { provider: l.provider } : {}),
+          ...(l.model !== undefined ? { model: l.model } : {}),
+          ...(l.fillColor !== undefined ? { fillColor: l.fillColor } : {})
+        }))
+      };
+    }
   };
+
+  lastCreatedBridge = bridge;
+  return bridge;
 }
 
 const SKETCH_SYSTEM_PROMPT = `You are an assistant driving a Sketch / image editor through UI tools.
@@ -572,6 +1028,12 @@ Use the ui_sketch_* tools to inspect and modify the open image document:
 - Layers are addressed by id, by (case-insensitive) name, or the literal "active" for the active layer.
 - Add layers with ui_sketch_add_layer, adjust them with ui_sketch_set_layer_props (opacity, blend mode, name, visibility, lock).
 - Generate imagery with ui_sketch_generate; recolor with ui_sketch_set_color; resize the canvas with ui_sketch_resize_canvas; shape the pixel selection with ui_sketch_selection.
+
+You can draw. ui_sketch_stroke paints real pixels with the editor's brush, pencil and eraser:
+- A stroke is a polyline of canvas-pixel points (x right, y down, origin top-left) plus its own color, size, opacity and hardness. The engine interpolates dabs along each segment, so a curve is just enough sampled points — a circle is about 24 points around it, and you can pass "closed": true to join the last point back to the first.
+- Pass several strokes in one call to lay down a whole figure at once. Paint on raster layers only, and never on a locked one.
+- Put separate parts of a drawing on separate, named layers (ui_sketch_add_layer) so each can be moved, recolored or hidden on its own.
+- Call ui_sketch_get_layer_image to look at your own work — omit target for the flattened composite, or name a layer to see it alone. Check the result and fix what looks wrong before you finish.
 
 Call one tool at a time and use the result before the next call. When the objective is fully satisfied, STOP calling tools and give a one-line summary.`;
 
@@ -627,7 +1089,9 @@ export const SKETCH_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<SketchBridgeFinal
             name: "hasBoundLayerWithPrompt",
             detail: "no layer has a generation binding with a prompt set",
             test: (s) =>
-              s.layers.some((l) => l.hasBinding && !!l.prompt && l.prompt.length > 0)
+              s.layers.some(
+                (l) => l.hasBinding && !!l.prompt && l.prompt.length > 0
+              )
           },
           {
             name: "foregroundSet",
@@ -664,6 +1128,50 @@ export const SKETCH_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<SketchBridgeFinal
             name: "hasSelection",
             detail: "canvas has no active selection",
             test: (s) => s.hasSelection === true
+          }
+        ]
+      }
+    },
+    {
+      id: "draw-an-animal",
+      description:
+        "Draw a cat with ui_sketch_stroke across separate named layers, then look at the result",
+      objective:
+        "Draw a simple cat on the canvas. Put the body, the head, and the face details (eyes, nose, whiskers) on separate layers, each with a name that says what it holds, and draw each part with strokes. When you are done, look at the flattened result to check what you drew.",
+      createBridge: () => createSketchToolBridge({ width: 512, height: 512 }),
+      systemPrompt: SKETCH_SYSTEM_PROMPT,
+      // Drawing is many-turned: a layer per part, a stroke batch per layer, and
+      // a look at the result. Measured runs land around 8-20 calls, well past
+      // the runner's default cap of 12.
+      maxIterations: 40,
+      expect: {
+        requiredTools: ["ui_sketch_stroke", "ui_sketch_get_layer_image"],
+        // Looking at the drawing only means something once there is one.
+        ordering: [["ui_sketch_stroke", "ui_sketch_get_layer_image"]],
+        noErrorResults: true,
+        minToolCalls: 3,
+        maxToolCalls: 40,
+        finalState: [
+          {
+            name: "hasSeparateNamedLayers",
+            detail:
+              "fewer than 3 distinctly named layers — the parts were not separated",
+            test: (s) =>
+              new Set(s.layers.map((l) => l.name.trim().toLowerCase())).size >=
+              3
+          },
+          {
+            name: "partsAreOnDifferentLayers",
+            detail: "strokes landed on fewer than 2 layers",
+            test: (s) => s.layers.filter((l) => l.strokeCount > 0).length >= 2
+          },
+          {
+            name: "canvasIsMeaningfullyPainted",
+            // Structural, not pictorial: a cat this cannot judge, but a canvas
+            // still 99% empty is not a drawing by any reading. Measured over
+            // the stroked layers only, so a solid backdrop fill cannot pass it.
+            detail: "strokes covered less than 1% of the canvas",
+            test: (s) => s.strokedFraction >= 0.01
           }
         ]
       }
