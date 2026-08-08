@@ -1285,14 +1285,16 @@ forward is a workflow.
   every sequence also keeps a snapshot history, read with
   \`list_timeline_versions\` and \`get_timeline_version\`, pinned with
   \`create_timeline_version\` and rolled back with
-  \`restore_timeline_version\` — none of which needs an open editor.
+  \`restore_timeline_version\` — none of which needs an open editor. A
+  timeline can be previewed inline in chat; see "Linking resources".
 - **sketch** — a layered image document. Family \`+sketch\`: layers, drawing
   tools, generating into a layer, rendering the result to an asset.
   \`validate_sketch\` statically checks a document — the open one or any saved
   one by id. \`list_sketches\` finds one; every sketch also keeps a snapshot
   history, read with \`list_sketch_versions\` and \`get_sketch_version\`,
   pinned with \`create_sketch_version\` and rolled back with
-  \`restore_sketch_version\` — none of which needs an open editor.
+  \`restore_sketch_version\` — none of which needs an open editor. A sketch
+  can be previewed inline in chat; see "Linking resources".
 - **model3d** — a 3D scene. Family \`+ui_3d\`: add and transform objects, set
   materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`list_collections\`,
@@ -1357,6 +1359,16 @@ field; copy that string rather than composing one. At most one link per
 resource per reply, and never link a resource you only looked up. Images are
 the exception: show them inline per "Image and media" above instead of
 linking them.
+
+Sketches and timelines can be SHOWN inline, not just linked. Embed one with
+image syntax on its own line — \`![Label](sketch://<id>)\` or
+\`![Label](timeline://<id>)\` — and the chat UI renders a live preview of the
+document (the sketch's composited canvas, the timeline's preview frame) with
+an open-in-editor chip beneath it. Do this after creating or meaningfully
+changing a sketch or timeline so the user sees the result without opening the
+editor; use a plain link when you only reference one. An embed counts as that
+resource's one link for the reply — don't also link it. Other resource kinds
+have no inline renderer: link them, never embed them with image syntax.
 
 # File types
 References to documents, images, videos, or audio files have the shape:
