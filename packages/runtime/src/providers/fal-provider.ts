@@ -2,13 +2,16 @@
  * FAL AI Provider — wraps the @fal-ai/client SDK to provide image generation
  * through the standard BaseProvider interface.
  *
- * Supports: textToImage, imageToImage, getAvailableImageModels
+ * Supports: textToImage, imageToImage, getAvailableImageModels, and chat
+ * against fal's OpenAI-compatible LLM route.
  */
 
 import { BaseProvider } from "./base-provider.js";
 import { createLogger } from "@nodetool-ai/config";
+import { OpenAICompatProvider } from "./openai-compat-provider.js";
 import type {
   ImageModel,
+  LanguageModel,
   VideoModel,
   TTSModel,
   MusicModel,
@@ -45,6 +48,18 @@ const log = createLogger("nodetool.runtime.providers.fal");
 
 const FAL_MANIFEST_PKG = "@nodetool-ai/fal-nodes";
 const FAL_MANIFEST_PATH = "fal-manifest.json";
+
+/** fal's OpenAI-compatible chat route (`openrouter/router`). */
+const FAL_LLM_BASE_URL = "https://fal.run/openrouter/router/openai/v1";
+
+/** Public, keyless catalog of the ids that route accepts. */
+const OPENROUTER_CATALOG_URL = "https://openrouter.ai/api/v1/models";
+
+interface OpenRouterCatalogRow {
+  id?: string;
+  name?: string;
+  supported_parameters?: string[];
+}
 
 type FalQueueUpdate = {
   status: string;
@@ -404,14 +419,22 @@ function sizeEnumRank(value: string): number {
 export class FalProvider extends BaseProvider {
   private apiKey: string;
   private _client: FalClient | null = null;
+  private _chat: OpenAICompatProvider | null = null;
+  private readonly _fetch: typeof fetch;
+  /** Model ids the catalog says accept `tools`. Filled by the model listing. */
+  private _toolCapableModels: Set<string> | null = null;
 
   static override requiredSecrets(): string[] {
     return ["FAL_API_KEY"];
   }
 
-  constructor(secrets: Record<string, unknown> = {}) {
+  constructor(
+    secrets: Record<string, unknown> = {},
+    options: { fetchFn?: typeof fetch } = {}
+  ) {
     super("fal_ai");
     this.apiKey = (secrets["FAL_API_KEY"] as string) ?? "";
+    this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
   /** Build an onQueueUpdate callback that forwards progress via emitMessage. */
@@ -570,17 +593,95 @@ export class FalProvider extends BaseProvider {
     return b.args;
   }
 
-  async generateMessage(
-    _args: Parameters<BaseProvider["generateMessage"]>[0]
-  ): Promise<Message> {
-    throw new Error("fal_ai does not support chat generation");
+  /**
+   * fal's chat surface is an OpenAI-compatible route
+   * ({@link FAL_LLM_BASE_URL}) backed by OpenRouter, so it speaks the same
+   * dialect every other gateway provider here does — with one difference: fal
+   * authenticates with `Key <FAL_KEY>`, not `Bearer`, and answers 401 to the
+   * Bearer form. The compat client spreads `defaultHeaders` after its own
+   * Authorization, so this overrides it.
+   */
+  private chatProvider(): OpenAICompatProvider {
+    if (this._chat) return this._chat;
+    if (!this.apiKey) {
+      throw new Error("FAL_API_KEY is required for chat generation");
+    }
+    const chat = new OpenAICompatProvider(
+      {
+        providerId: "fal_ai",
+        apiKey: this.apiKey,
+        baseURL: FAL_LLM_BASE_URL,
+        defaultHeaders: { Authorization: `Key ${this.apiKey}` }
+      },
+      { fetchFn: this._fetch }
+    );
+    chat.setMessageEmitter((msg) => this.emitMessage(msg));
+    this._chat = chat;
+    return chat;
   }
 
-  // eslint-disable-next-line require-yield
+  /**
+   * Language models reachable through fal's OpenAI-compatible route. The route
+   * is OpenRouter's router, so the ids it accepts are OpenRouter's ids and its
+   * public catalog is the model list — fal itself publishes no `/models` for
+   * this endpoint. Unreachable catalog means no language models rather than a
+   * failed provider, matching how the other enumerating providers fail.
+   */
+  override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    let rows: OpenRouterCatalogRow[];
+    try {
+      const response = await this._fetch(OPENROUTER_CATALOG_URL);
+      if (!response.ok) return [];
+      const payload = (await response.json()) as {
+        data?: OpenRouterCatalogRow[];
+      };
+      rows = payload.data ?? [];
+    } catch (err) {
+      log.warn(`Could not load the fal language-model catalog: ${err}`);
+      return [];
+    }
+
+    const toolCapable = new Set<string>();
+    const models: LanguageModel[] = [];
+    for (const row of rows) {
+      if (typeof row.id !== "string" || row.id.length === 0) continue;
+      if (row.supported_parameters?.includes("tools")) toolCapable.add(row.id);
+      models.push({ id: row.id, name: row.name ?? row.id, provider: "fal_ai" });
+    }
+    this._toolCapableModels = toolCapable;
+    return models;
+  }
+
+  /**
+   * Tool support varies model by model across a 300-model catalog, so answer
+   * from what the catalog declared. Before any listing there is nothing to
+   * answer from — say yes, as the base class does, rather than hiding tools
+   * from a model that has them.
+   */
+  override async hasToolSupport(model: string): Promise<boolean> {
+    return this._toolCapableModels?.has(model) ?? true;
+  }
+
+  async generateMessage(
+    args: Parameters<BaseProvider["generateMessage"]>[0]
+  ): Promise<Message> {
+    return this.chatProvider().generateMessage(args);
+  }
+
   async *generateMessages(
-    _args: Parameters<BaseProvider["generateMessages"]>[0]
+    args: Parameters<BaseProvider["generateMessages"]>[0]
   ): AsyncGenerator<ProviderStreamItem> {
-    throw new Error("fal_ai does not support chat generation");
+    yield* this.chatProvider().generateMessages(args);
+  }
+
+  /** Chat spend accrues on the delegate; report it as this provider's own. */
+  override get cost(): number {
+    return super.cost + (this._chat?.cost ?? 0);
+  }
+
+  override resetCost(): void {
+    super.resetCost();
+    this._chat?.resetCost();
   }
 
   private buildTextToImageArgs(
