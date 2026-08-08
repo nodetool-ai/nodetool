@@ -449,6 +449,12 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               disabled={creating !== null}
             />
             <MenuItemPrimitive
+              label="New chat"
+              icon={<ForumOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewChat()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
               label="New text file…"
               icon={<ArticleOutlinedIcon fontSize="small" />}
               hasSubmenu
@@ -489,12 +495,6 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New 3D model"
               icon={<ViewInArOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewModel()}
-              disabled={creating !== null}
-            />
-            <MenuItemPrimitive
-              label="New chat"
-              icon={<ForumOutlinedIcon fontSize="small" />}
-              onClick={() => void handleNewChat()}
               disabled={creating !== null}
               dividerAfter
             />
