@@ -49,6 +49,10 @@ by returning an object whose keys are exactly the declared outputs.
   If or Switch control nodes downstream instead.
 - Prefer pure data reshaping. Reach for fetch, workspace, or getSecret only when
   the instruction asks for outside data.
+- When the node fetches or reads for each item of a list, fan the calls out with
+  \`parallelMap\` (or \`Promise.all\` for a short fixed set) instead of awaiting
+  one per loop iteration — they run concurrently, and a sequential loop over a
+  20-row list is 20 round trips where one would do.
 - Do not use \`state\` or \`yield\` unless the instruction asks for streaming or
   for values that persist across runs. A one-shot transformation needs neither.
 - Pass media and asset reference objects through unchanged. They are handles the

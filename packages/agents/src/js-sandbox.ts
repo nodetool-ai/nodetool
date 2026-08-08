@@ -9,8 +9,9 @@
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
  * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
- * `format`, `data`) and a few pure guest-side binary helpers (`toBase64`,
- * `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`). `crypto`
+ * `format`, `data`) and a few pure guest-side helpers (`toBase64`,
+ * `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`,
+ * `parallelMap`). `crypto`
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
  * `stat`, `mkdir`, and `remove`; `progress` forwards a percentage and label to
@@ -28,6 +29,16 @@
  * on first use, and are never handed to the guest — so the snippet surface is
  * the same string-in/plain-data-out contract in dev, in packaged Electron, and
  * in the browser runner, which bundles this module too.
+ *
+ * The sandbox is fully asynchronous. Every host bridge call returns a real
+ * promise, and a bridge call starts its host-side work the moment it is
+ * invoked — not when it is awaited — so `Promise.all` (and `allSettled`,
+ * `race`, `any`) over bridge calls runs them in parallel on the host. Five
+ * fetches under `Promise.all` take one round trip, not five. `parallelMap`
+ * is the bounded form of that fan-out. `sleep` is the only timer: the
+ * timer globals (`setTimeout` and friends) are deleted inside the user-code
+ * module (see {@link wrapCode}), because timer callbacks would run outside
+ * the never-reject/abort-guard conventions every bridge follows.
  */
 
 import { addSerializer, expose, loadQuickJs } from "@sebastianwessel/quickjs";
@@ -1886,9 +1897,16 @@ export function buildSandbox(
     TextDecoder: globalThis.TextDecoder,
     URL: globalThis.URL,
     URLSearchParams: globalThis.URLSearchParams,
-    // Async primitives blocked — use sleep() instead.
+    // Timer globals blocked — use sleep() for delays and Promise.all /
+    // parallelMap for concurrency. The engine re-installs host-backed timers
+    // on every evaluation, so the real deletion happens in wrapCode; these
+    // entries keep the manifest's blocked list truthful.
     setTimeout: undefined,
+    clearTimeout: undefined,
     setInterval: undefined,
+    clearInterval: undefined,
+    setImmediate: undefined,
+    clearImmediate: undefined,
     // Bridge functions — the only non-native surface the sandbox exposes.
     fetch: sandboxedFetch,
     crypto: sandboxCrypto,
@@ -1912,12 +1930,39 @@ export function buildSandbox(
 // ---------------------------------------------------------------------------
 
 /**
+ * Timer globals the guest must not see. The documented contract has always
+ * been "`sleep` is the only timer", but `@sebastianwessel/quickjs` installs
+ * host-backed `setTimeout`/`setInterval`/`setImmediate` into the context on
+ * every `evalCode` call — *after* the init prelude runs — so a prelude-time
+ * `delete` does not stick. {@link wrapCode} deletes them inside the user-code
+ * module itself, which evaluates after the library's re-install. They are
+ * blocked deliberately: their callbacks fire through `ctx.callFunction` with
+ * errors silently discarded, outside the never-reject and abort-guard
+ * conventions every bridge follows. Concurrency does not need them —
+ * bridge calls run in parallel under `Promise.all`/`parallelMap`.
+ */
+export const BLOCKED_TIMER_GLOBALS = [
+  "setTimeout",
+  "clearTimeout",
+  "setInterval",
+  "clearInterval",
+  "setImmediate",
+  "clearImmediate"
+] as const;
+
+/**
  * Wrap user code as the default export of an ES module with a top-level-awaited
  * async IIFE body, so `return <value>` inside the snippet becomes the module's
- * default export and `await` at the top level works.
+ * default export and `await` at the top level works. The module first drops
+ * the timer globals the engine re-installs per evaluation (see
+ * {@link BLOCKED_TIMER_GLOBALS}).
  */
 export function wrapCode(code: string): string {
-  return `export default await (async () => {
+  const dropTimers = BLOCKED_TIMER_GLOBALS.map(
+    (n) => `delete globalThis.${n};`
+  ).join(" ");
+  return `${dropTimers}
+export default await (async () => {
 ${code}
 })();`;
 }
@@ -2072,7 +2117,8 @@ export const GUEST_HELPER_NAMES = [
   "toHex",
   "fromHex",
   "utf8Encode",
-  "utf8Decode"
+  "utf8Decode",
+  "parallelMap"
 ] as const;
 
 export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
@@ -2280,6 +2326,28 @@ globalThis.fromHex = (s) => {
   const out = new Uint8Array(t.length >> 1);
   for (let i = 0; i < out.length; i++) out[i] = parseInt(t.substr(i * 2, 2), 16);
   return out;
+};
+globalThis.parallelMap = async (items, fn, concurrency) => {
+  if (typeof fn !== "function") {
+    throw new TypeError("parallelMap: fn must be a function");
+  }
+  const list = Array.from(items);
+  const raw = Number(concurrency === undefined ? 5 : concurrency);
+  const limit = Number.isFinite(raw)
+    ? Math.min(Math.max(Math.floor(raw), 1), 32)
+    : 5;
+  const results = new Array(list.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < list.length) {
+      const i = next++;
+      results[i] = await fn(list[i], i);
+    }
+  };
+  const workers = [];
+  for (let w = 0; w < Math.min(limit, list.length); w++) workers.push(worker());
+  await Promise.all(workers);
+  return results;
 };
 const __revive = (v) => (v && typeof v === "object" && typeof v[__bytesMarker] === "string")
   ? globalThis.fromBase64(v[__bytesMarker])

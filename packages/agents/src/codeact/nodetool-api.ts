@@ -1128,7 +1128,7 @@ const BATCH_EXAMPLE = `Batching turns one workflow into a dynamic pipeline — l
 per-item parameters live in your code:
 
 \`\`\`js
-const rows = data.parseCsv(await workspace.read("products.csv"));
+const rows = await data.parseCsv(await workspace.read("products.csv"));
 const runs = await nodetool.batch(rows, (row) =>
   nodetool.workflows.run(wfId, { image_url: row.image_url, title: row.title }),
   { concurrency: 3 });

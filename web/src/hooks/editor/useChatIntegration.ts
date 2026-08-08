@@ -178,6 +178,8 @@ CRYPTO AND BINARY:
 
 ASYNC APIS:
 - await fetch(url, options?) → { ok, status, statusText, headers, body, json, text, bytes, arrayBuffer } — 20 calls per run, 15s timeout each, 1MB response cap. Private and loopback addresses are refused.
+- Bridge calls run in parallel: Promise.all over several fetch calls takes one round trip, not one per call.
+- await parallelMap(items, fn, concurrency?) → results in input order — bounded fan-out, concurrency default 5. The way to fetch many URLs.
 - await sleep(ms) — the only timer, capped at 5000ms
 - await getSecret(name) → string or undefined
 - uuid() → string
@@ -194,7 +196,7 @@ STREAMING: yield an object to emit multiple results, and use the state object to
 
 RETURN FORMAT: Always return an object like { output: value } or { key1: val1, key2: val2 }. Each key becomes a named output port on the node.
 
-BLOCKED: setTimeout, setInterval, eval, Function, require, import, process
+BLOCKED: setTimeout, setInterval, setImmediate, eval, Function, require, import, process
 </sandbox_api>`
       : "";
     return (

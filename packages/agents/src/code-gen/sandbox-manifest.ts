@@ -500,6 +500,14 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     signature: "utf8Decode(bytes) -> string",
     description: "UTF-8 decode.",
     async: false
+  },
+  parallelMap: {
+    name: "parallelMap",
+    signature:
+      "await parallelMap(items, fn, concurrency?) -> results[] // fn receives (item, index); concurrency default 5, max 32",
+    description:
+      "Run an async function over items with at most `concurrency` in flight, preserving input order. The bounded form of Promise.all fan-out — the way to fetch many URLs in parallel. Rejects on the first failure; wrap fn in try/catch to collect errors instead.",
+    async: true
   }
 };
 
@@ -632,6 +640,7 @@ export function getSandboxManifest(): SandboxManifest {
     limits: [...overridableLimits(), ...fixedLimits()],
     notes: [
       "Code runs as an async function body: top-level await works and `return` produces the node's result.",
+      "Bridge calls start host-side work when invoked, not when awaited: Promise.all / allSettled / race / any over fetch or workspace calls run them in parallel. Use parallelMap for bounded fan-out. sleep is the only timer.",
       "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
       "Media and asset values are reference objects. Pass them through unchanged.",
       "There is no module loader and no Intl. Anything a library would do comes from the bridges below."

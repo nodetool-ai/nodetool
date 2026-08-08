@@ -107,7 +107,7 @@ export class CodeNode extends BaseNode {
     "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root(), " +
     "getSecret(), uuid(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
     "format.number/date/relativeTime/list, data.parseCsv/selectHtml, " +
-    "toBase64/fromBase64/toHex/fromHex. " +
+    "toBase64/fromBase64/toHex/fromHex, parallelMap. " +
     "Dynamic inputs become global variables; return an object to define outputs." +
     "\n    code, javascript, function, script, dynamic";
   static readonly inlineFields = ["code"];
@@ -133,6 +133,8 @@ export class CodeNode extends BaseNode {
       "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
       "toBase64/fromBase64/toHex/fromHex. Await fetch, sleep, workspace, getSecret, format, " +
       "data and crypto.digest/hmac; the rest are synchronous. " +
+      "Concurrent calls run in parallel: use Promise.all or " +
+      "parallelMap(items, fn, concurrency) to fan out fetches. " +
       "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles."
   })
