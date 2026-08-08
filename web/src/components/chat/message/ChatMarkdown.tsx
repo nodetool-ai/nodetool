@@ -5,6 +5,9 @@ import ReactMarkdown, { defaultUrlTransform, type Options } from "react-markdown
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { isResourceUri } from "@nodetool-ai/protocol";
+import InlineResourcePreview, {
+  isInlinePreviewUri
+} from "./InlineResourcePreview";
 import "../../../styles/markdown/nodetool-markdown.css";
 import { SPACING, getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
@@ -107,6 +110,31 @@ const useChatAssetSrc = (src: string | undefined): string | undefined => {
   return src;
 };
 
+/**
+ * A paragraph that carries an inline document preview renders as a `<div>`:
+ * the preview is a block element (canvas frame + chip), which is invalid
+ * inside `<p>` and would trip React's DOM-nesting warning.
+ */
+interface HastNodeLike {
+  type?: string;
+  tagName?: string;
+  properties?: { src?: unknown };
+  children?: HastNodeLike[];
+}
+
+const containsInlinePreview = (node: unknown): boolean => {
+  const children = (node as HastNodeLike | undefined)?.children;
+  return Boolean(
+    children?.some(
+      (child) =>
+        child.type === "element" &&
+        child.tagName === "img" &&
+        typeof child.properties?.src === "string" &&
+        isInlinePreviewUri(child.properties.src)
+    )
+  );
+};
+
 const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   src,
   alt,
@@ -144,9 +172,25 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
     () => ({
       code: (props: React.ComponentPropsWithoutRef<"code">) => <CodeBlock {...props} onInsert={onInsertCode} />,
       pre: (props: React.ComponentPropsWithoutRef<"pre">) => <PreRenderer {...props} onInsert={onInsertCode} />,
-      img: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => (
-        <ChatMarkdownImg {...props} />
-      ),
+      img: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => {
+        const src = typeof props.src === "string" ? props.src : undefined;
+        if (src && isInlinePreviewUri(src)) {
+          return (
+            <InlineResourcePreview uri={src} label={props.alt || src} />
+          );
+        }
+        return <ChatMarkdownImg {...props} />;
+      },
+      p: ({
+        node,
+        children,
+        ...props
+      }: { node?: unknown } & React.ComponentPropsWithoutRef<"p">) =>
+        containsInlinePreview(node) ? (
+          <div {...props}>{children}</div>
+        ) : (
+          <p {...props}>{children}</p>
+        ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
         if (href && isResourceUri(href)) {
