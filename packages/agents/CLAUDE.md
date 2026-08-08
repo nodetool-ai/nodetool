@@ -553,7 +553,10 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   create/open), `nodetool.graph()` (an ad-hoc graph builder with
   `ref.output()` wiring, `copyFrom()` graph-into-graph copying with id
   remapping, `validate()`, `save()`, and `run()` — save-as-`codeact-adhoc` +
-  run), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
+  run; it runs on the shared graph DSL core in `src/graph-dsl-core.ts`, the
+  same implementation behind the GraphPlanner's `submit_graph`, so wiring
+  semantics and guards — snake_case auto ids, `connect()` id checks, handles
+  that throw when stringified — cannot drift between the two surfaces), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
   one ranked model; `find`/`list` for the long form), `nodetool.providers`
   (roster derived from the model catalog), and `nodetool.media`

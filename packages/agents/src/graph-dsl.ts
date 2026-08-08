@@ -12,81 +12,33 @@
 
 import type { GraphData, NodeDescriptor, Edge } from "@nodetool-ai/protocol";
 import { runInSandbox } from "./js-sandbox.js";
+import { GRAPH_DSL_CORE_PRELUDE } from "./graph-dsl-core.js";
 
 /** Wall-clock budget for a graph program. Pure graph building is fast. */
 export const GRAPH_DSL_TIMEOUT_MS = 10_000;
 
 /**
- * Guest-side prelude defining the DSL surface. `node()` registers a node and
- * returns a ref whose `.output(slot?)` produces a wiring handle; `graph()`
- * turns handle-valued top-level properties into edges (mirroring how
- * `workflow()` in @nodetool-ai/dsl derives edges from OutputHandle inputs).
- * All created nodes are included — an orphan node is a validation finding for
- * the planner to fix, not something to silently prune.
+ * Guest-side prelude defining the DSL surface: the shared graph DSL core
+ * (`graph-dsl-core.ts` — the same wiring, validation, and handle guards the
+ * CodeAct sandbox's `nodetool.graph()` uses) plus the planner's free-function
+ * form. `node()` registers a node on one implicit builder and returns a ref
+ * whose `.output(slot?)` produces a wiring handle; `graph()` collects the
+ * result (mirroring how `workflow()` in @nodetool-ai/dsl derives edges from
+ * OutputHandle inputs). All created nodes are included — an orphan node is a
+ * validation finding for the planner to fix, not something to silently prune.
  */
-const GRAPH_DSL_PRELUDE = `const __nodes = [];
-const __ids = Object.create(null);
-function __autoId(type) {
-  const last = String(type).split(".").pop() || "node";
-  const snake = last.replace(/([a-z0-9])([A-Z])/g, "$1_$2").toLowerCase();
-  const n = (__ids[snake] = (__ids[snake] || 0) + 1);
-  return n === 1 ? snake : snake + "_" + n;
-}
+const GRAPH_DSL_PRELUDE = `${GRAPH_DSL_CORE_PRELUDE}
+const __g = __graphDslBuilder();
 function node(type, properties, id) {
-  if (typeof type !== "string" || type.length === 0) {
-    throw new Error("node(type, properties): type must be a non-empty string");
-  }
-  if (properties !== undefined && (properties === null || typeof properties !== "object" || Array.isArray(properties))) {
-    throw new Error("node(type, properties): properties must be an object");
-  }
-  const nodeId = typeof id === "string" && id.length > 0 ? id : __autoId(type);
-  __nodes.push({ id: nodeId, type: type, properties: properties || {} });
-  return {
-    id: nodeId,
-    output: function (slot) {
-      if (slot !== undefined && (typeof slot !== "string" || slot.length === 0)) {
-        throw new Error("output(slot): slot must be a non-empty string");
-      }
-      var handle = {
-        __handle: true,
-        source: nodeId,
-        sourceHandle: slot || "output"
-      };
-      // Interpolating a handle into a string silently yields "[object
-      // Object]": no edge is created and the node gets that literal text.
-      // Refuse the conversion so the mistake comes back as a submit_graph
-      // error instead of a broken graph that validates clean.
-      handle[Symbol.toPrimitive] = function () {
-        throw new Error(
-          "Cannot use " +
-            nodeId +
-            ".output() inside a string. A handle wires an edge; it is not text. " +
-            "Pass it as the property value itself — { prompt: " +
-            nodeId +
-            ".output() } — and put any fixed instructions in a separate " +
-            "property (an Agent node's system property)."
-        );
-      };
-      return handle;
-    }
-  };
+  return __g.node(
+    type,
+    properties,
+    typeof id === "string" && id.length > 0 ? { id: id } : undefined
+  );
 }
 function graph() {
-  const nodes = [];
-  const edges = [];
-  for (const n of __nodes) {
-    const data = {};
-    for (const key in n.properties) {
-      const v = n.properties[key];
-      if (v && typeof v === "object" && v.__handle === true) {
-        edges.push({ source: v.source, sourceHandle: v.sourceHandle, target: n.id, targetHandle: key });
-      } else {
-        data[key] = v;
-      }
-    }
-    nodes.push({ id: n.id, type: n.type, properties: data });
-  }
-  return { __graph: true, nodes: nodes, edges: edges };
+  const j = __g.toJSON();
+  return { __graph: true, nodes: j.nodes, edges: j.edges };
 }
 `;
 

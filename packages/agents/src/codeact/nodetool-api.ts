@@ -14,6 +14,8 @@
  * from the graph-model prelude when that is loaded.
  */
 
+import { GRAPH_DSL_CORE_PRELUDE } from "../graph-dsl-core.js";
+
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   workflows: [
@@ -188,20 +190,11 @@ const nodetool = (() => {
     return merged;
   };
 
-  /** Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record. */
-  const __graphJson = (source) => {
-    if (source && typeof source.toJSON === "function") return source.toJSON();
-    if (source && Array.isArray(source.nodes)) {
-      return { nodes: source.nodes, edges: source.edges || [] };
-    }
-    if (source && source.graph && Array.isArray(source.graph.nodes)) {
-      return { nodes: source.graph.nodes, edges: source.graph.edges || [] };
-    }
-    throw new Error(
-      "nodetool: expected a graph builder, a {nodes, edges} graph, or a " +
-      "workflow record with a .graph"
-    );
-  };
+  /**
+   * Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record —
+   * the shared graph DSL core's normalizer.
+   */
+  const __graphJson = __graphJsonOf;
 
   /**
    * A backend that is registered but unusable — no key, no configuration.
@@ -253,9 +246,6 @@ const nodetool = (() => {
     );
   };
 
-  const __nodeId = (ref) =>
-    typeof ref === "string" ? ref : ref && ref.id ? ref.id : String(ref);
-
   /**
    * Normalize a model reference to the {provider, model} pair the media
    * tools take. Accepts a find/pick result ({provider, model_id}), a bare
@@ -280,173 +270,39 @@ const nodetool = (() => {
     );
   };
 
+  /**
+   * The graph DSL core (\`__graphDslBuilder\`, shared with the GraphPlanner's
+   * submit_graph programs) plus the tool-backed methods only this sandbox
+   * has: validate, save, and the save-and-run shortcut.
+   */
   function graphBuilder(base) {
-    const nodes = [];
-    const edges = [];
-    const byId = {};
-    let seq = 0;
-
-    const uniqueId = (hint) => {
-      const stem = String(hint || "node")
-        .split(".")
-        .pop()
-        .replace(/[^A-Za-z0-9_]/g, "_")
-        .toLowerCase();
-      let id = stem + "_" + (++seq);
-      while (byId[id]) id = stem + "_" + (++seq);
-      return id;
-    };
-
-    const addEdge = (source, sourceHandle, target, targetHandle) => {
-      const edge = {
-        id: "e" + (edges.length + 1) + "_" + source + "_" + target,
-        source: source,
-        sourceHandle: sourceHandle || "output",
-        target: target,
-        targetHandle: targetHandle
-      };
-      edges.push(edge);
-      return edge;
-    };
-
-    const wireProps = (targetId, props) => {
-      const plain = {};
-      for (const key of Object.keys(props || {})) {
-        const value = props[key];
-        if (value && typeof value === "object" && value.__ntOutput === true) {
-          addEdge(value.node, value.slot, targetId, key);
-        } else {
-          plain[key] = value;
-        }
+    const g = __graphDslBuilder();
+    g.validate = () => __need("validate_workflow")({ graph: g.toJSON() });
+    g.save = (name, opts) =>
+      __need("create_workflow")(
+        __merge(opts, { name: name, graph: g.toJSON() })
+      );
+    /**
+     * Run this graph ad hoc: saves it as a workflow (tagged so it is easy
+     * to find and clean up), then runs it. Returns { workflow, result }.
+     * Pass { name } to keep it as a deliberate, named workflow instead.
+     */
+    g.run = async (params, opts) => {
+      const name =
+        (opts && opts.name) || "Ad-hoc graph " + new Date().toISOString();
+      const tags = (opts && opts.tags) || ["codeact-adhoc"];
+      const workflow = await g.save(name, { tags: tags });
+      if (!workflow || !workflow.id) {
+        throw new Error("Ad-hoc run: saving the graph returned no id");
       }
-      return plain;
+      const result = await __need("run_workflow")(
+        __merge(opts && opts.interactive ? { interactive: true } : {}, {
+          workflow_id: workflow.id,
+          params: params || {}
+        })
+      );
+      return { workflow: workflow, result: result };
     };
-
-    const makeRef = (raw) => {
-      const ref = {
-        id: raw.id,
-        type: raw.type,
-        properties: raw.properties,
-        output: (slot) => ({
-          __ntOutput: true,
-          node: raw.id,
-          slot: slot || "output"
-        }),
-        set(props) {
-          Object.assign(raw.properties, wireProps(raw.id, props));
-          return ref;
-        }
-      };
-      byId[raw.id] = ref;
-      return ref;
-    };
-
-    const g = {
-      node(type, properties, opts) {
-        const id = (opts && opts.id) || uniqueId(type);
-        if (byId[id]) throw new Error('Duplicate node id "' + id + '"');
-        const raw = { id: id, type: type, properties: {} };
-        nodes.push(raw);
-        const ref = makeRef(raw);
-        Object.assign(raw.properties, wireProps(id, properties));
-        return ref;
-      },
-      connect(source, sourceHandle, target, targetHandle) {
-        return addEdge(
-          __nodeId(source),
-          sourceHandle,
-          __nodeId(target),
-          targetHandle
-        );
-      },
-      get(id) {
-        const found = byId[id];
-        if (!found) {
-          throw new Error(
-            "Node not found: " + id + ". Known: " + Object.keys(byId).join(", ")
-          );
-        }
-        return found;
-      },
-      nodes: nodes,
-      edges: edges,
-      /**
-       * Copy another graph (builder, {nodes, edges}, or workflow record) into
-       * this one. Ids that collide are remapped with a prefix; returns
-       * { idMap, refs } where refs is keyed by the SOURCE id, so wiring into
-       * copied nodes never needs the remapped name.
-       */
-      copyFrom(source, opts) {
-        const src = __graphJson(source);
-        const prefix = (opts && opts.prefix) || "";
-        const idMap = {};
-        const refs = {};
-        for (const n of src.nodes) {
-          const props = __merge(
-            n.properties ||
-              (n.data && n.data.properties ? n.data.properties : n.data)
-          );
-          let id = prefix + n.id;
-          if (byId[id]) id = uniqueId(prefix + n.id);
-          idMap[n.id] = id;
-          const raw = { id: id, type: n.type, properties: props };
-          nodes.push(raw);
-          refs[n.id] = makeRef(raw);
-        }
-        for (const e of src.edges || []) {
-          if (idMap[e.source] === undefined || idMap[e.target] === undefined) {
-            continue;
-          }
-          addEdge(
-            idMap[e.source],
-            e.sourceHandle || e.source_output,
-            idMap[e.target],
-            e.targetHandle || e.target_input
-          );
-        }
-        return { idMap: idMap, refs: refs };
-      },
-      toJSON() {
-        return {
-          nodes: nodes.map((n) => ({
-            id: n.id,
-            type: n.type,
-            properties: __merge(n.properties)
-          })),
-          edges: edges.map((e) => __merge(e))
-        };
-      },
-      validate() {
-        return __need("validate_workflow")({ graph: g.toJSON() });
-      },
-      save(name, opts) {
-        return __need("create_workflow")(
-          __merge(opts, { name: name, graph: g.toJSON() })
-        );
-      },
-      /**
-       * Run this graph ad hoc: saves it as a workflow (tagged so it is easy
-       * to find and clean up), then runs it. Returns { workflow, result }.
-       * Pass { name } to keep it as a deliberate, named workflow instead.
-       */
-      async run(params, opts) {
-        const name =
-          (opts && opts.name) || "Ad-hoc graph " + new Date().toISOString();
-        const tags = (opts && opts.tags) || ["codeact-adhoc"];
-        const workflow = await g.save(name, { tags: tags });
-        if (!workflow || !workflow.id) {
-          throw new Error("Ad-hoc run: saving the graph returned no id");
-        }
-        const result = await __need("run_workflow")(
-          __merge(opts && opts.interactive ? { interactive: true } : {}, {
-            workflow_id: workflow.id,
-            params: params || {}
-          })
-        );
-        return { workflow: workflow, result: result };
-      }
-    };
-
     if (base) g.copyFrom(base, {});
     return g;
   }
@@ -1069,8 +925,8 @@ const NAMESPACE_TOOLS_LITERAL = `const __NT_NAMESPACE_TOOLS = ${JSON.stringify(
   NODETOOL_API_NAMESPACE_TOOLS
 )};`;
 
-/** The full prelude: the namespace map plus the API definition. */
-export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${NODETOOL_API_PRELUDE}`;
+/** The full prelude: namespace map, shared graph DSL core, API definition. */
+export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_DSL_CORE_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
 
 interface PromptEntry {
   /** Namespace key in {@link NODETOOL_API_NAMESPACE_TOOLS}. */
@@ -1101,8 +957,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   needed. \`g.node(type, props)\` returns a ref; pass \`ref.output(slot?)\` as a
   property value to wire an edge (or \`g.connect(a, "output", b, "text")\`).
   \`g.copyFrom(workflowOrGraph, {prefix})\` copies another graph in (ids remapped;
-  returns \`{idMap, refs}\` keyed by source id). \`await g.validate()\` before
-  \`await g.run(params)\` (saves it tagged \`codeact-adhoc\`, then runs) or
+  returns \`{idMap, refs}\` keyed by source id). Wiring is checked as you build:
+  \`connect\` refuses an id the graph does not have, and a handle inside a
+  string throws — a handle wires an edge, it is not text. \`await g.validate()\`
+  before \`await g.run(params)\` (saves it tagged \`codeact-adhoc\`, then runs) or
   \`await g.save(name)\`.`
   },
   {

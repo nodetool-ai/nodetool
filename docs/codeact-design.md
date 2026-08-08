@@ -227,6 +227,15 @@ absent throws naming it. The namespaces are `workflows`, `graph()`, `nodes`,
 `style`, `email`, `assets`, `jobs`, `collections`, `apps`, `timelines`,
 `sketches`, `scripts`, `storyboards`, plus `batch()` for bounded fan-out.
 
+`nodetool.graph()` is not its own graph language: it is the graph DSL core
+(`src/graph-dsl-core.ts`), the same implementation the GraphPlanner's
+`submit_graph` programs run on. One wiring semantics across both surfaces —
+snake_case auto ids, `node(type, props)` argument validation, `connect()`
+refusing an id the graph does not have, and handles that throw when
+interpolated into a string instead of silently becoming `"[object Object]"`.
+The sandbox layer adds only the tool-backed methods (`validate()`, `save()`,
+`run()`).
+
 `web` is the outside world behind one surface: `search(query, {provider})`
 picks whichever search backend the belt carries (`"default"`, `"openai"`,
 `"google"`, `"dataforseo"` pin one), with `news`, `images`, `browse(url)`,
