@@ -333,6 +333,17 @@ function isSafeExternalUrl(url: string): boolean {
   ) {
     return false;
   }
+  // Decimal-encoded IPv4 (e.g. 2130706433 = 127.0.0.1). WHATWG URL
+  // normalises these in most runtimes, but guard here for completeness.
+  if (/^\d+$/.test(host)) {
+    const n = parseInt(host, 10);
+    if (n < 0 || n > 0xffffffff) return false;
+    const a = (n >>> 24) & 0xff;
+    const b = (n >>> 16) & 0xff;
+    const c = (n >>> 8) & 0xff;
+    const d = n & 0xff;
+    return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
+  }
   // IPv4 literal check
   const ipv4 = host.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
   if (ipv4) {
@@ -350,6 +361,20 @@ function isSafeExternalUrl(url: string): boolean {
     if (host === "::" || host === "::1") return false;
     if (host.startsWith("fc") || host.startsWith("fd")) return false; // ULA fc00::/7
     if (host.startsWith("fe80:")) return false; // link-local
+    // IPv4-mapped IPv6 (::ffff:x.x.x.x in dotted-quad or hex form). WHATWG
+    // URL serialises these as ::ffff:hhhh:hhhh; match both to be safe.
+    const v4DotMatch = host.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+    if (v4DotMatch) return isSafeExternalUrl(`http://${v4DotMatch[1]}/`);
+    const v4HexMatch = host.match(/^::ffff:([0-9a-f]+):([0-9a-f]+)$/);
+    if (v4HexMatch) {
+      const hi = parseInt(v4HexMatch[1], 16);
+      const lo = parseInt(v4HexMatch[2], 16);
+      const a = (hi >>> 8) & 0xff;
+      const b = hi & 0xff;
+      const c = (lo >>> 8) & 0xff;
+      const d = lo & 0xff;
+      return isSafeExternalUrl(`http://${a}.${b}.${c}.${d}/`);
+    }
   }
   return true;
 }
