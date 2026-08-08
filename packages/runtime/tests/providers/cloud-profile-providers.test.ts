@@ -7,6 +7,9 @@ const CLOUD = [
   "groq",
   "mistral",
   "xai",
+  // A cloud user can save an OpenRouter key in settings; pruning the provider
+  // left that key with an empty language-model picker.
+  "openrouter",
   "fal_ai",
   "kie"
 ];
@@ -21,7 +24,6 @@ const OUT_OF_SCOPE = [
   "voyage",
   "jina",
   "huggingface",
-  "openrouter",
   "deepseek",
   "moonshot",
   "ollama"

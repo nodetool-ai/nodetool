@@ -170,8 +170,18 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
 });
 
 describe("cloud provider + pack allowlists", () => {
-  it("keeps the big labs plus Fal and Kie, drops the rest", () => {
-    for (const id of ["openai", "anthropic", "gemini", "mistral", "xai", "groq", "fal_ai", "kie"]) {
+  it("keeps the big labs plus OpenRouter, Fal and Kie, drops the rest", () => {
+    for (const id of [
+      "openai",
+      "anthropic",
+      "gemini",
+      "mistral",
+      "xai",
+      "groq",
+      "openrouter",
+      "fal_ai",
+      "kie"
+    ]) {
       expect(isCloudProvider(id)).toBe(true);
     }
     for (const id of ["replicate", "together", "minimax", "topaz", "cohere", "ollama"]) {

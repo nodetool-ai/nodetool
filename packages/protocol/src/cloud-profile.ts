@@ -204,6 +204,11 @@ export const CLOUD_NODE_DENYLIST: readonly string[] = [
  * plus Fal and Kie for media. Anthropic and Groq have no dedicated node
  * namespace — they reach users through the Agent / Chat / generator nodes via
  * the provider registry, so they live here only.
+ *
+ * OpenRouter is here for the same reason the labs are: it is a bring-your-own-key
+ * aggregator reached through the same nodes, and one key covers hundreds of
+ * models. Pruning it while the settings UI still offers an OpenRouter key card
+ * let a cloud user save a key and find an empty model picker.
  */
 export const CLOUD_PROVIDER_IDS: readonly string[] = [
   "openai",
@@ -212,6 +217,7 @@ export const CLOUD_PROVIDER_IDS: readonly string[] = [
   "groq",
   "mistral",
   "xai",
+  "openrouter",
   "fal_ai",
   "kie",
   "nodetool"

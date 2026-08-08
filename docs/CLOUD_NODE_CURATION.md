@@ -52,7 +52,8 @@ types dropped from a kept namespace), `CLOUD_PROVIDER_IDS`, and
 
 ## Providers
 
-Limited to the big foundation-model labs plus Fal + Kie for media.
+Limited to the big foundation-model labs plus OpenRouter for breadth and
+Fal + Kie for media.
 
 | Provider  | Id        | Role                          |
 | --------- | --------- | ----------------------------- |
@@ -62,14 +63,16 @@ Limited to the big foundation-model labs plus Fal + Kie for media.
 | Mistral   | `mistral` | LLM, vision                   |
 | xAI       | `xai`     | LLM, image, vision            |
 | Groq      | `groq`    | Fast LLM (via Agent/Chat nodes) |
+| OpenRouter | `openrouter` | Aggregator: one key, hundreds of LLMs (via Agent/Chat nodes) |
 | Fal       | `fal_ai`  | Hosted image/video/audio models |
 | Kie       | `kie`     | Hosted image/video/audio models |
 
-Anthropic and Groq have **no dedicated node namespace** — they reach users
-through the Agent / Chat / generator nodes via the provider registry.
+Anthropic, Groq and OpenRouter have **no dedicated node namespace** — they
+reach users through the Agent / Chat / generator nodes via the provider
+registry.
 
 **Dropped providers:** Replicate, Together, MiniMax, Topaz, Reve, AtlasCloud,
-ElevenLabs, Cohere, Voyage, Jina, Moonshot, DeepSeek, OpenRouter, Cerebras,
+ElevenLabs, Cohere, Voyage, Jina, Moonshot, DeepSeek, Cerebras,
 Evolink, Aki, Meshy, Rodin, and all local runtimes (Ollama, LM Studio,
 llama.cpp, vLLM, Hugging Face local, Transformers.js).
 
