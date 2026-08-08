@@ -185,6 +185,23 @@ ASYNC APIS:
 - uuid() → string
 - progress(percent, message?) — drives the node progress bar; fire-and-forget
 
+IMAGES (encoded bytes in, encoded bytes out, so calls chain; png, jpeg, webp, avif):
+- await image.info(bytes) → { width, height, format, byteLength }
+- await image.resize(bytes, options) — width, height, fit (cover, contain, fill); one dimension keeps the aspect ratio
+- await image.crop(bytes, options) — x, y, width, height
+- await image.rotate(bytes, degrees, options?) — grows the canvas to the rotated bounding box
+- await image.flip(bytes, options?) — horizontal (default true), vertical
+- await image.adjust(bytes, options) — brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity
+- await image.composite(bytes, layers, options?) — layer: image, x, y, width, height, opacity, blendMode
+- await image.convert(bytes, options) — format, quality; await image.decode(bytes) and await image.encode(pixels, options?) for raw RGBA
+
+CANVAS (drawing):
+- createCanvas(width, height) → a surface; getContext with "2d" gives a Canvas 2D context
+- The context takes the usual calls synchronously: fillRect, strokeRect, arc, ellipse, roundRect, fillText, drawImage, createLinearGradient, save, translate, rotate, and the usual properties
+- drawImage takes image bytes, not an image object
+- awaiting toBytes on the surface renders and returns the encoded image — options: format, quality, background
+- await canvas.measureText(text, font?) → text metrics, for laying text out before drawing it
+
 WORKSPACE (file I/O, needs a workspace context):
 - await workspace.read(path) → string; await workspace.write(path, content)
 - await workspace.readBytes(path) → Uint8Array; await workspace.writeBytes(path, bytes)
