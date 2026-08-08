@@ -1024,7 +1024,7 @@ export function isLayerCompositeVisible(
     if (depth++ > MAX_LAYER_DEPTH) {
       break;
     }
-    const parent = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
+    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
     if (!parent || !parent.visible) {
       return false;
     }
@@ -1053,7 +1053,7 @@ export function getAncestorGroupOpacityProduct(
   let current: Layer | undefined = layer;
   let depth = 0;
   while (current?.parentId && depth++ <= MAX_LAYER_DEPTH) {
-    const parent = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
+    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
     if (!parent) {
       break;
     }
