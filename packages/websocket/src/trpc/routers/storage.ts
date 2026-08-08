@@ -65,6 +65,9 @@ export const storageRouter = router({
       }
       // Prefer the owner-prefixed object; fall back to the flat legacy key
       // when a deployment hasn't run `nodetool storage migrate-keys` yet.
+      // Also handle the reverse: a flat asset reference (e.g. from an old
+      // `asset://<id>.png` markdown image) is translated to the current
+      // owner-prefixed key when that object exists.
       const adapter = getAssetAdapter();
       const owner = assetKeyOwner(input.key);
       let key = input.key;
@@ -78,6 +81,25 @@ export const storageRouter = router({
         // thing that vouched for ownership — `<me>/<someone-else's-id>.png`
         // would otherwise resolve to (and sign) their flat object. Re-check
         // against the `assets` row, exactly as the REST route does.
+        if (resolved) {
+          const stillOwned =
+            assetKeyOwner(resolved) === ctx.userId ||
+            (await callerOwnsStorageKey(ctx.userId, resolved));
+          if (!stillOwned) {
+            throwApiError(ApiErrorCode.NOT_FOUND, "Object not found");
+          }
+          key = resolved;
+        }
+      } else if (owner === null) {
+        // Flat key (legacy or from `asset://<id>.ext`): prefer the
+        // owner-prefixed object when it exists, otherwise keep the flat key.
+        // This lets `asset://<asset-id>.png` references resolve to
+        // `<user>/<asset-id>.png` on deployments that have migrated.
+        const resolved = await resolveExistingAssetKey(
+          adapter,
+          ctx.userId,
+          input.key
+        );
         if (resolved) {
           const stillOwned =
             assetKeyOwner(resolved) === ctx.userId ||

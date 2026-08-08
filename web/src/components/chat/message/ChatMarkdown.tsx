@@ -10,7 +10,9 @@ import { SPACING, getSpacingPx } from "../../ui_primitives";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
-import { resolveUri } from "../../../utils/imageUtils";
+import { packageAssetHttpPath } from "@nodetool-ai/protocol";
+import { BASE_URL } from "../../../stores/BASE_URL";
+import { trpc } from "../../../trpc/client";
 import ResourceChip from "./ResourceChip";
 import "../../../styles/markdown/github-markdown.css";
 
@@ -77,6 +79,63 @@ const audioSpanCss = css({ display: "inline-flex", alignItems: "center", gap: ge
 const audioCss = css({ height: "32px" });
 const imageCss = css({ maxWidth: "100%", height: "auto", borderRadius: BORDER_RADIUS.md });
 
+const extractStorageKey = (uri: string | null | undefined): string | null => {
+  if (!uri) return null;
+  if (uri.startsWith("asset://")) return uri.slice("asset://".length);
+  if (uri.startsWith("/api/storage/")) return uri.slice("/api/storage/".length);
+  return null;
+};
+
+const useChatAssetSrc = (src: string | undefined): string | undefined => {
+  const key = extractStorageKey(src);
+  const { data } = trpc.storage.signUrl.useQuery(
+    { key: key ?? "" },
+    { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
+  );
+  if (!src) return undefined;
+  if (key) {
+    // Asset storage reference — resolve through the authenticated signed-URL
+    // mechanism so owner-prefixed keys (`<user>/<id>.png`) and cloud
+    // backends (S3/Supabase presigned URLs) are handled correctly.
+    // While the query is loading, return undefined rather than the obsolete
+    // flat `/api/storage/<id>.png` fallback.
+    return data?.url;
+  }
+  const pkgPath = packageAssetHttpPath(src);
+  if (pkgPath) return `${BASE_URL}${pkgPath}`;
+  if (src.startsWith("/api/")) return `${BASE_URL}${src}`;
+  return src;
+};
+
+const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
+  src,
+  alt,
+  ...props
+}) => {
+  const resolvedSrc = useChatAssetSrc(typeof src === "string" ? src : undefined);
+  return (
+    <img
+      {...props}
+      src={resolvedSrc}
+      alt={alt ?? ""}
+      css={imageCss}
+      loading="lazy"
+    />
+  );
+};
+
+const ChatMarkdownImageLink: React.FC<{ href: string; children: React.ReactNode }> = ({
+  href,
+  children
+}) => {
+  const resolvedHref = useChatAssetSrc(href);
+  return (
+    <a href={resolvedHref} target="_blank" rel="noopener noreferrer">
+      <img src={resolvedHref} alt={String(children ?? "")} css={imageCss} loading="lazy" />
+    </a>
+  );
+};
+
 const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
@@ -85,14 +144,8 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
     () => ({
       code: (props: React.ComponentPropsWithoutRef<"code">) => <CodeBlock {...props} onInsert={onInsertCode} />,
       pre: (props: React.ComponentPropsWithoutRef<"pre">) => <PreRenderer {...props} onInsert={onInsertCode} />,
-      img: ({ node: _node, src, alt, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => (
-        <img
-          {...props}
-          src={typeof src === "string" ? resolveUri(src) : src}
-          alt={alt ?? ""}
-          css={imageCss}
-          loading="lazy"
-        />
+      img: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"img">) => (
+        <ChatMarkdownImg {...props} />
       ),
       a: ({ node: _node, ...props }: { node?: unknown } & React.ComponentPropsWithoutRef<"a">) => {
         const { href, children } = props;
@@ -100,11 +153,7 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
           return <ResourceChip uri={href} label={linkText(children) || href} />;
         }
         if (href && isImageHref(href)) {
-          return (
-            <a href={resolveUri(href)} target="_blank" rel="noopener noreferrer">
-              <img src={resolveUri(href)} alt={String(children ?? "")} css={imageCss} loading="lazy" />
-            </a>
-          );
+          return <ChatMarkdownImageLink href={href}>{children}</ChatMarkdownImageLink>;
         }
         const isAudio =
           href &&

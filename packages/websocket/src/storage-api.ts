@@ -240,6 +240,22 @@ async function handleStorageRequest(
 
   let filePath = resolveStoragePath(rootDir, key);
 
+  // Flat asset references (e.g. `asset://<id>.png` → `/api/storage/<id>.png`)
+  // are legacy; the current layout is owner-prefixed (`<user>/<id>.png`).
+  // For a flat key owned by the caller, prefer the prefixed object when it
+  // exists so `asset://` markdown images resolve without a 404. The local
+  // backend needs both directions — cloud backends do this via the URL
+  // builder and `nodetool storage migrate-keys`.
+  if (assetKeyOwner(key) === null) {
+    if (await callerOwnsStorageKey(userId, key)) {
+      const prefixedKey = `${userId}/${key}`;
+      const prefixedPath = resolveStoragePath(rootDir, prefixedKey);
+      if (await pathExists(prefixedPath)) {
+        filePath = prefixedPath;
+      }
+    }
+  }
+
   // Objects written before the owner-prefixed layout are flat. Fall back to
   // the legacy path when the prefixed one is missing, re-checking ownership
   // against the `assets` row since the prefix no longer vouches for it. Only
