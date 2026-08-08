@@ -107,7 +107,8 @@ source for read containment and the destination for write containment;
 `stat` returns `{exists, size, isDirectory, isFile, isSymlink, modifiedMs,
 createdMs, accessedMs}` and reports a missing path as `exists: false` rather
 than throwing), the pure guest-side helpers
-`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`,
+`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`/
+`parallelMap`,
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
 `data.{parseCsv,toCsv,selectHtml,htmlToMarkdown,parseXlsx,parseYaml,toYaml,
 parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
@@ -148,6 +149,19 @@ a thrown `Error` carrying Intl's own message. `eval` and `Function` are deleted 
 re-enter dynamic code generation. Core JS (`JSON`, `Math`, `Date`, `Map`,
 `URL`, `TextEncoder`, etc.) is QuickJS's native implementation, not a
 host-bridged version.
+
+**Async concurrency**: a bridge call starts its host-side work when invoked,
+not when awaited, so `Promise.all`/`allSettled`/`race`/`any` over `fetch`,
+`workspace.*` or any other bridge run the host operations in parallel — five
+fetches under `Promise.all` take one round trip. `parallelMap(items, fn,
+concurrency?)` is the bounded form (order-preserving, default 5, max 32,
+rejects on first failure). The per-run fetch cap counts parallel calls the
+same as serial ones. Timer globals (`setTimeout`, `setInterval`,
+`setImmediate` and their clears) are deleted inside the user-code module —
+the engine re-installs host-backed versions on every evaluation, so the
+prelude alone can't remove them; `wrapCode` does. `sleep` stays the only
+timer. Tests pinning all of this: `tests/js-sandbox.test.ts`
+("async concurrency").
 
 **State sync-back**: object-typed globals are deep-replaced on the host after
 the guest runs, so `CodeNode`'s `state` object persists across invocations.

@@ -143,6 +143,20 @@ describe("wrapCode", () => {
     expect(wrapped).toContain("return 42");
     expect(wrapped).toContain("()");
   });
+
+  it("drops the engine-provided timer globals before user code", () => {
+    const wrapped = wrapCode("return 42");
+    for (const name of [
+      "setTimeout",
+      "clearTimeout",
+      "setInterval",
+      "clearInterval",
+      "setImmediate",
+      "clearImmediate"
+    ]) {
+      expect(wrapped).toContain(`delete globalThis.${name};`);
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -628,6 +642,154 @@ describe("runInSandbox fetch bridge", () => {
     });
     expect(result.success).toBe(false);
     expect(result.error).toMatch(/Fetch limit exceeded/i);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runInSandbox — async concurrency
+//
+// The contract these pin: a bridge call starts its host-side work when
+// invoked, not when awaited, so Promise combinators and parallelMap fan work
+// out in parallel. A library upgrade that silently serialized host promises
+// would fail the wall-clock and in-flight assertions here.
+// ---------------------------------------------------------------------------
+
+describe("runInSandbox async concurrency", () => {
+  const originalFetch = globalThis.fetch;
+  afterEach(() => {
+    (globalThis as { fetch: typeof originalFetch }).fetch = originalFetch;
+  });
+
+  /** Mock fetch that resolves after `delayMs` and records peak concurrency. */
+  const trackingFetch = (delayMs: number) => {
+    let inFlight = 0;
+    const state = { maxInFlight: 0, calls: 0 };
+    (globalThis as { fetch: unknown }).fetch = vi.fn(async (url: string) => {
+      state.calls++;
+      inFlight++;
+      state.maxInFlight = Math.max(state.maxInFlight, inFlight);
+      await new Promise((r) => setTimeout(r, delayMs));
+      inFlight--;
+      return new Response(JSON.stringify({ url }), { status: 200 });
+    });
+    return state;
+  };
+
+  it("runs bridge calls under Promise.all in parallel", async () => {
+    const state = trackingFetch(150);
+    const started = Date.now();
+    const result = await runInSandbox({
+      code: `
+        const urls = Array.from({ length: 5 }, (_, i) => "https://example.com/" + i);
+        const responses = await Promise.all(urls.map((u) => fetch(u)));
+        return responses.every((r) => r.ok);
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe(true);
+    expect(state.maxInFlight).toBe(5);
+    // Serialized, five 150ms fetches would take >= 750ms.
+    expect(Date.now() - started).toBeLessThan(700);
+  });
+
+  it("runs concurrent sleeps in parallel", async () => {
+    const started = Date.now();
+    const result = await runInSandbox({
+      code: `
+        await Promise.all([sleep(300), sleep(300), sleep(300)]);
+        return "done";
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("done");
+    expect(Date.now() - started).toBeLessThan(800);
+  });
+
+  it("supports Promise.allSettled and Promise.race over bridges", async () => {
+    const result = await runInSandbox({
+      code: `
+        const settled = await Promise.allSettled([
+          sleep(10),
+          fetch("nonsense://blocked")
+        ]);
+        const raced = await Promise.race([
+          sleep(200).then(() => "slow"),
+          sleep(1).then(() => "fast")
+        ]);
+        return { states: settled.map((s) => s.status), raced };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      states: ["fulfilled", "rejected"],
+      raced: "fast"
+    });
+  });
+
+  it("parallelMap preserves input order and bounds concurrency", async () => {
+    const state = trackingFetch(100);
+    const result = await runInSandbox({
+      code: `
+        const items = [0, 1, 2, 3, 4, 5];
+        const out = await parallelMap(items, async (n, i) => {
+          const r = await fetch("https://example.com/" + n);
+          return n * 10 + i;
+        }, 2);
+        return out;
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([0, 11, 22, 33, 44, 55]);
+    expect(state.calls).toBe(6);
+    expect(state.maxInFlight).toBeLessThanOrEqual(2);
+    expect(state.maxInFlight).toBeGreaterThan(1);
+  });
+
+  it("parallelMap handles empty input and rejects on the first failure", async () => {
+    const result = await runInSandbox({
+      code: `
+        const empty = await parallelMap([], async () => 1);
+        let failed = null;
+        try {
+          await parallelMap([1, 2, 3], async (n) => {
+            if (n === 2) throw new Error("boom at " + n);
+            return n;
+          });
+        } catch (e) {
+          failed = e.message;
+        }
+        return { empty, failed };
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ empty: [], failed: "boom at 2" });
+  });
+
+  it("enforces the fetch cap across parallel calls", async () => {
+    trackingFetch(5);
+    const result = await runInSandbox({
+      code: `
+        const urls = Array.from({ length: 30 }, (_, i) => "https://example.com/" + i);
+        await Promise.all(urls.map((u) => fetch(u)));
+        return "ok";
+      `
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Fetch limit exceeded/i);
+  });
+
+  it("does not expose timer globals to user code", async () => {
+    const result = await runInSandbox({
+      code: `
+        return [
+          typeof setTimeout, typeof clearTimeout,
+          typeof setInterval, typeof clearInterval,
+          typeof setImmediate, typeof clearImmediate
+        ];
+      `
+    });
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual(Array(6).fill("undefined"));
   });
 });
 

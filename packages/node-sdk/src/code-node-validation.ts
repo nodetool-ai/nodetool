@@ -54,8 +54,10 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
+  "parallelMap",
   // Blocked in the sandbox, but still not user inputs
-  "setTimeout", "setInterval", "eval", "Function",
+  "setTimeout", "clearTimeout", "setInterval", "clearInterval",
+  "setImmediate", "clearImmediate", "eval", "Function",
   // JS literals that acorn parses as Identifier nodes
   "undefined", "true", "false", "null",
   "this", "arguments", "globalThis", "self", "window", "document", "process",
