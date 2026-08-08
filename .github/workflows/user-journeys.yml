@@ -27,9 +27,14 @@ on:
 permissions:
   contents: read
 
+# On main, every commit's reliability-ring1 run must reach a conclusion of its
+# own: fly-deploy.yml gates the deploy on this workflow's result for that exact
+# head_sha, so a run cancelled by a follow-up merge reads as "Ring 1 failed" and
+# blocks the release. Same reasoning (and same expression) as docker.yml.
+# Elsewhere — PR branches, tags — superseded runs are still cancelled.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/') }}
 
 jobs:
   journeys:
