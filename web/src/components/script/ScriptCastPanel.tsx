@@ -18,6 +18,8 @@ import {
 } from "../ui_primitives";
 import TTSModelSelect from "../properties/TTSModelSelect";
 import type { TTSModelValue } from "../../stores/ApiTypes";
+import { useInStudio } from "../../studio/StudioContext";
+import { STUDIO_VOICE } from "../../studio/curatedModels";
 import {
   useScriptStore,
   type ScriptSpeaker,
@@ -124,6 +126,9 @@ const ScriptCastPanel = ({
 }: ScriptCastPanelProps) => {
   const theme = useTheme();
   const addSpeaker = useScriptStore((s) => s.addSpeaker);
+  // Studio hands a new speaker a curated voice, so the beginner shell never
+  // starts a cast on an unset picker.
+  const inStudio = useInStudio();
 
   const onAdd = useCallback(() => {
     addSpeaker(scriptId, {
@@ -137,9 +142,12 @@ const ScriptCastPanel = ({
         theme.vars.palette.info.main,
         theme.vars.palette.error.main
       ][cast.length % 6],
-      voice: null
+      voice:
+        inStudio && STUDIO_VOICE
+          ? modelValueToVoice(STUDIO_VOICE)
+          : null
     });
-  }, [addSpeaker, scriptId, cast.length, theme]);
+  }, [addSpeaker, scriptId, cast.length, theme, inStudio]);
 
   return (
     <FlexColumn

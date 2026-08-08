@@ -13,6 +13,9 @@ import {
   type ImageModelTask
 } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import CuratedModelSelect from "./curated/CuratedModelSelect";
+import { useInStudio } from "../../studio/StudioContext";
+import { forTasks, STUDIO_STILL_MODELS } from "../../studio/curatedModels";
 
 interface ImageModelSelectProps {
   onChange: (value: ImageModelValue) => void;
@@ -32,6 +35,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const inStudio = useInStudio();
 
   const { models: fetchedModels } = useImageModelsByProvider();
 
@@ -121,6 +125,17 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
     },
     [onChange, addRecent]
   );
+
+  if (inStudio) {
+    return (
+      <CuratedModelSelect
+        label="Image model"
+        options={forTasks(STUDIO_STILL_MODELS, task)}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
 
   return (
     <>

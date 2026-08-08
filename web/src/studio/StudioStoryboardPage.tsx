@@ -5,7 +5,9 @@
  * sidebar and tab machinery. Two Studio-specific behaviors:
  *
  * - New boards get the curated Studio models stamped on (director, still,
- *   clip), so a beginner never touches a model picker.
+ *   clip), so a board generates before anyone opens a dropdown. The still and
+ *   clip pickers stay, curated down to three options each; the director is
+ *   pinned and its picker is hidden.
  * - Assembling navigates straight to `/studio/timeline/:id`, the product's
  *   one finishing surface.
  */

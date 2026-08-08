@@ -15,10 +15,12 @@
  */
 import {
   NODETOOL_MODELS,
-  nodetoolModelById
+  nodetoolModelById,
+  type NodetoolModelKind
 } from "@nodetool-ai/protocol";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import type {
+  EncodedAudioResult,
   ImageModel,
   ImageToImageParams,
   ImageToVideoParams,
@@ -27,6 +29,7 @@ import type {
   ProviderStreamItem,
   TextToImageParams,
   TextToVideoParams,
+  TTSModel,
   VideoModel
 } from "./types.js";
 import { FalProvider } from "./fal-provider.js";
@@ -68,7 +71,10 @@ export class NodetoolProvider extends BaseProvider {
    * absorption window. Construction is cheap — both delegates build their
    * network clients lazily.
    */
-  private delegateFor(modelId: string): {
+  private delegateFor(
+    modelId: string,
+    task?: string
+  ): {
     provider: BaseProvider;
     model: string;
   } {
@@ -76,18 +82,22 @@ export class NodetoolProvider extends BaseProvider {
     if (!def) {
       throw new Error(`Unknown NodeTool model "${modelId}".`);
     }
-    const key = this.platformKey(def.delegate.provider);
+    const delegate =
+      (task === "image_to_image" ? def.editDelegate : undefined) ??
+      (task === "text_to_video" ? def.textDelegate : undefined) ??
+      def.delegate;
+    const key = this.platformKey(delegate.provider);
     if (!key) {
       throw new Error(
         `NodeTool model "${modelId}" is not available on this server ` +
-          `(missing ${PLATFORM_KEYS[def.delegate.provider]}).`
+          `(missing ${PLATFORM_KEYS[delegate.provider]}).`
       );
     }
     const provider =
-      def.delegate.provider === "fal_ai"
+      delegate.provider === "fal_ai"
         ? new FalProvider({ FAL_API_KEY: key })
         : new AnthropicProvider({ ANTHROPIC_API_KEY: key });
-    return { provider, model: def.delegate.model };
+    return { provider, model: delegate.model };
   }
 
   /** Run a delegated call and absorb the delegate's cost delta as our own. */
@@ -120,14 +130,20 @@ export class NodetoolProvider extends BaseProvider {
     for (const def of NODETOOL_MODELS) {
       if (!this.isFunded(def.delegate.provider)) continue;
       if (def.kind === "language") capabilities.push("generate_message");
-      if (def.kind === "image")
-        capabilities.push("text_to_image", "image_to_image");
-      if (def.kind === "video") capabilities.push("image_to_video");
+      if (def.kind === "image") {
+        capabilities.push("text_to_image");
+        if (def.editDelegate) capabilities.push("image_to_image");
+      }
+      if (def.kind === "video") {
+        capabilities.push("image_to_video");
+        if (def.textDelegate) capabilities.push("text_to_video");
+      }
+      if (def.kind === "tts") capabilities.push("text_to_speech");
     }
     return [...new Set(capabilities)];
   }
 
-  private fundedModels(kind: "language" | "image" | "video") {
+  private fundedModels(kind: NodetoolModelKind) {
     return NODETOOL_MODELS.filter(
       (def) => def.kind === kind && this.isFunded(def.delegate.provider)
     );
@@ -162,6 +178,15 @@ export class NodetoolProvider extends BaseProvider {
     }));
   }
 
+  override async getAvailableTTSModels(): Promise<TTSModel[]> {
+    return this.fundedModels("tts").map((def) => ({
+      id: def.id,
+      name: def.name,
+      provider: "nodetool",
+      voices: (def.voices ?? []).map((voice) => voice.id)
+    }));
+  }
+
   override async textToImage(params: TextToImageParams): Promise<Uint8Array> {
     const { provider, model } = this.delegateFor(params.model.id);
     return this.absorbing(provider, () =>
@@ -176,7 +201,10 @@ export class NodetoolProvider extends BaseProvider {
     images: Uint8Array[],
     params: ImageToImageParams
   ): Promise<Uint8Array> {
-    const { provider, model } = this.delegateFor(params.model.id);
+    const { provider, model } = this.delegateFor(
+      params.model.id,
+      "image_to_image"
+    );
     return this.absorbing(provider, () =>
       provider.imageToImage(images, {
         ...params,
@@ -186,7 +214,10 @@ export class NodetoolProvider extends BaseProvider {
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
-    const { provider, model } = this.delegateFor(params.model.id);
+    const { provider, model } = this.delegateFor(
+      params.model.id,
+      "text_to_video"
+    );
     return this.absorbing(provider, () =>
       provider.textToVideo({
         ...params,
@@ -205,6 +236,19 @@ export class NodetoolProvider extends BaseProvider {
         ...params,
         model: { ...params.model, id: model, provider: provider.provider }
       })
+    );
+  }
+
+  override async textToSpeechEncoded(args: {
+    text: string;
+    model: string;
+    voice?: string;
+    speed?: number;
+    audioFormat?: string;
+  }): Promise<EncodedAudioResult | null> {
+    const { provider, model } = this.delegateFor(args.model);
+    return this.absorbing(provider, () =>
+      provider.textToSpeechEncoded({ ...args, model })
     );
   }
 

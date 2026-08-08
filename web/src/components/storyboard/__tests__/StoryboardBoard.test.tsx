@@ -56,6 +56,7 @@ jest.mock("../ShotCard", () => stub("shot-card"));
 jest.mock("../StoryboardEntitiesField", () => stub("entities"));
 
 import StoryboardBoard from "../StoryboardBoard";
+import { StudioProvider } from "../../../studio/StudioContext";
 
 const makeShot = (id: string): Shot => ({
   type: "shot",
@@ -70,6 +71,15 @@ const renderBoard = (onDirect: (n: number) => void) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <StoryboardBoard boardId="board-1" onDirect={onDirect} />
+    </ThemeProvider>
+  );
+
+const renderBoardInStudio = () =>
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <StudioProvider>
+        <StoryboardBoard boardId="board-1" onDirect={jest.fn()} />
+      </StudioProvider>
     </ThemeProvider>
   );
 
@@ -104,5 +114,23 @@ describe("StoryboardBoard direct guard", () => {
     await user.click(within(dialog).getByRole("button", { name: "Re-direct" }));
 
     expect(onDirect).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("StoryboardBoard model fields", () => {
+  it("offers still and clip models but no screenplay model in Studio", () => {
+    mockShots = [];
+    renderBoardInStudio();
+
+    expect(screen.getByTestId("image-model")).toBeInTheDocument();
+    expect(screen.getByTestId("video-model")).toBeInTheDocument();
+    expect(screen.queryByTestId("lang-model")).not.toBeInTheDocument();
+  });
+
+  it("keeps the screenplay model in the workspace editor", () => {
+    mockShots = [];
+    renderBoard(jest.fn());
+
+    expect(screen.getByTestId("lang-model")).toBeInTheDocument();
   });
 });

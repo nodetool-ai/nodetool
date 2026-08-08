@@ -136,6 +136,11 @@ export interface MediaChatComposerProps {
   /** Pure chat panel: hide the mode picker and force "chat" mode. Used by the
    *  app builder / video / 3d editor agent panels which are hardcoded to chat. */
   hideModePicker?: boolean;
+  /**
+   * Hide the language-model chip. The Studio beginner shell pins the assistant
+   * to a curated model, so there is nothing to pick.
+   */
+  hideModelPicker?: boolean;
   /** Thread this composer writes to. A surface that opened the thread with a
    *  prompt in mind (the dashboard quick starters) seeds it through
    *  ChatDraftStore; the seed lands in the textarea once, unsent. */
@@ -176,6 +181,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   leadingActions,
   placeholder: placeholderOverride,
   hideModePicker = false,
+  hideModelPicker = false,
   threadId
 }) => {
   const theme = useTheme();
@@ -1098,7 +1104,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           {isPi && <PiComposerControls disabled={isBusy} />}
 
           {/* Model chip — changes based on mode */}
-          {!isPi && mode === "chat" && (
+          {!isPi && mode === "chat" && !hideModelPicker && (
             <>
               <MediaControlChip
                 ref={languageModelAnchorRef}

@@ -168,6 +168,8 @@ type ChatViewProps = {
   composerPlaceholder?: string;
   /** Pure chat panel: hide the media mode picker and force chat mode. */
   hideModePicker?: boolean;
+  /** Hide the language-model chip (the Studio shell pins the model). */
+  hideModelPicker?: boolean;
   /**
    * Show a "New chat" button above the thread. For surfaces with no chrome of
    * their own (the workspace chat tab); panels that already carry a header
@@ -218,6 +220,7 @@ const ChatView = ({
   composerToolbar,
   composerPlaceholder,
   hideModePicker,
+  hideModelPicker,
   showNewChatButton = false,
   threadId
 }: ChatViewProps) => {
@@ -323,6 +326,7 @@ const ChatView = ({
           composerToolbar={composerToolbar}
           placeholder={composerPlaceholder}
           hideModePicker={hideModePicker}
+          hideModelPicker={hideModelPicker}
           threadId={effectiveThreadId}
         />
       </div>

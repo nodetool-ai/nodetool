@@ -70,6 +70,7 @@ type ChatInputSectionProps = {
   placeholder?: string;
   /** Pure chat panel: hide the media mode picker, force chat mode. */
   hideModePicker?: boolean;
+  hideModelPicker?: boolean;
   /** Thread this composer writes to; used to pick up a seeded prompt. */
   threadId?: string | null;
 };
@@ -89,6 +90,7 @@ const ChatInputSection = ({
   composerToolbar,
   placeholder,
   hideModePicker,
+  hideModelPicker,
   threadId
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
@@ -122,6 +124,7 @@ const ChatInputSection = ({
             requireToolSupport={requireToolSupport}
             placeholder={placeholder}
             hideModePicker={hideModePicker}
+            hideModelPicker={hideModelPicker}
             threadId={threadId}
           />
         )}
