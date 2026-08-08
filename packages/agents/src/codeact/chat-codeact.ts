@@ -67,7 +67,10 @@ export interface ChatCodeActSessionOptions {
    * plain value, or `MessageContent[]` blocks (flattened to their text here).
    */
   executeTool: (call: ChatCodeActToolCall) => Promise<unknown>;
-  /** Context for the sandbox's workspace/secret APIs. */
+  /**
+   * @deprecated Chat code never receives the ProcessingContext directly.
+   * Capabilities that need it must go through the gated tool router.
+   */
   context?: ProcessingContext;
   signal?: AbortSignal;
   /** Wall-clock limit per code action. Defaults to {@link DEFAULT_CODEACT_ACTION_TIMEOUT_MS}. */
@@ -147,6 +150,7 @@ export function createChatCodeActSession(
   const maxCallsPerAction =
     options.maxToolCallsPerAction ?? DEFAULT_MAX_TOOL_CALLS_PER_ACTION;
   const withGraphModel = hasGraphModelTools(toolNames);
+  const toolCallIdPrefix = globalThis.crypto.randomUUID();
 
   // Persists across the turn's actions (CaveAgent-style runtime state).
   const state: Record<string, unknown> = {};
@@ -201,7 +205,7 @@ export function createChatCodeActSession(
 
       options.onToolCall?.({ name, args });
       const raw = await options.executeTool({
-        id: `codeact_${totalCalls}`,
+        id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
         name,
         args
       });
@@ -321,9 +325,9 @@ export function createChatCodeActSession(
 
     const outcome = await runInSandbox({
       code: `${prelude}\n${code}`,
-      context: options.context,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
       signal: options.signal,
+      limits: { maxFetchCalls: 0 },
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,

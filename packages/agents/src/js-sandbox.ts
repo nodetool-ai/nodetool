@@ -2316,7 +2316,7 @@ export default true;`,
         // extract the current values of the object-typed user globals and
         // replace the contents of the host-side objects in place. CodeNode
         // relies on this to make its `state` object persist across invocations.
-        if (userResult.ok && syncTargetNames.length > 0) {
+        if (syncTargetNames.length > 0) {
           const extractor = `export default {${syncTargetNames
             .map(
               (n) =>

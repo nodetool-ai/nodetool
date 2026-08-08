@@ -34,8 +34,8 @@ Rules:
   Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
   them next turn — never re-fetch what you already have.
 - Keep observations small. \`return\` a compact summary (counts, ids, the few
-  fields you need); large payloads belong in \`state\`, the workspace, or agent
-  memory — not in the transcript.
+  fields you need); large payloads belong in \`state\` or agent memory — not in
+  the transcript.
 - Extract fields you have verified exist. Coercing an unread object to a
   string yields "[object Object]", and a plausible-looking wrong field passes
   schema validation. Return shapes are NOT documented in the catalog, so the
@@ -43,17 +43,21 @@ Rules:
   \`console.log(JSON.stringify(x))\` it before extracting — the log rides
   along in the same observation, costs nothing, and turns a wrong guess into
   something you can fix inside the same program instead of a probe action.
-- For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
-  \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
-  \`remove\`) — it is in-process, so a read costs nothing a tool call would.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
 - Top-level \`await\` and \`return\` work. There is no module loader: no
   \`import\`/\`require\`, and \`eval\`/\`Function\` are disabled.`;
 
 const ACTION_CONTRACT_STEP = `${ACTION_CONTRACT_BASE}
+- For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
+  \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
+  \`remove\`) — it is in-process, so a read costs nothing a tool call would.
 - Do not ask the user questions. Choose a reasonable assumption and proceed.`;
 
 const ACTION_CONTRACT_CHAT = `${ACTION_CONTRACT_BASE}
+- Network, secrets, files, and assets are available only through \`tools.*\`.
+  Direct \`fetch\`, \`getSecret\`, \`workspace\`, \`assetToSandbox\`, and
+  \`sandboxToAsset\` access is disabled so permission checks and approvals
+  cannot be bypassed.
 - When you need the user's decision, stop writing code and ask in a plain
   assistant message.`;
 
@@ -89,9 +93,17 @@ function renderSandboxSummary(
   manifest: SandboxManifest,
   variant: "step" | "chat"
 ): string {
+  const unavailableInChat = new Set([
+    "fetch",
+    "getSecret",
+    "workspace",
+    "assetToSandbox",
+    "sandboxToAsset"
+  ]);
   const lines: string[] = [];
   for (const bridge of Object.values(manifest.bridges)) {
     if (bridge.internal || bridge.members.length === 0) continue;
+    if (variant === "chat" && unavailableInChat.has(bridge.name)) continue;
     for (const member of bridge.members) {
       lines.push(`- ${member.signature}`);
     }

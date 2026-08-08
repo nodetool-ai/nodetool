@@ -543,6 +543,24 @@ describe("runInSandbox", () => {
     expect(r2.result).toBe(2);
     expect(state).toEqual({ counter: 2, history: [1, 2] });
   });
+
+  it("syncs object globals after guest code throws", async () => {
+    const state: Record<string, unknown> = { queued: [] };
+
+    const result = await runInSandbox({
+      code: `
+        state.queued.push({ tool: "ui_add_node", id: "node-1" });
+        throw new Error("commit failed");
+      `,
+      globals: { state }
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("commit failed");
+    expect(state).toEqual({
+      queued: [{ tool: "ui_add_node", id: "node-1" }]
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
