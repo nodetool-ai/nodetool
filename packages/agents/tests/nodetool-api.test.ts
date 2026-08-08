@@ -321,6 +321,37 @@ describe("nodetool object model", () => {
     });
   });
 
+  it("validates wiring as the graph is built (shared DSL core)", async () => {
+    const { executeTool } = createFakeRouter();
+    const session = makeSession(WORKFLOW_TOOLS, executeTool);
+    const obs = await runAction(
+      session,
+      `const g = nodetool.graph();
+       const inp = g.node("nodetool.input.StringInput", { name: "prompt" });
+       const errors = {};
+       try { g.node("nodetool.agents.Agent", { prompt: "Use " + inp.output() }); }
+       catch (e) { errors.interpolated = e.message; }
+       try { g.connect(inp, "output", "no_such_node", "value"); }
+       catch (e) { errors.unknownTarget = e.message; }
+       try { g.node(42, {}); }
+       catch (e) { errors.badType = e.message; }
+       const agent = g.node("nodetool.agents.Agent", {});
+       return { errors, ids: g.nodes.map((n) => n.id), agentId: agent.id };`
+    );
+    expect(obs.ok).toBe(true);
+    const r = obs.result as {
+      errors: Record<string, string>;
+      ids: string[];
+      agentId: string;
+    };
+    expect(r.errors.interpolated).toContain("inside a string");
+    expect(r.errors.unknownTarget).toContain("Node not found: no_such_node");
+    expect(r.errors.badType).toContain("type must be a non-empty string");
+    // Auto ids follow the graph DSL's snake_case scheme.
+    expect(r.ids).toEqual(["string_input", "agent"]);
+    expect(r.agentId).toBe("agent");
+  });
+
   it("copies a saved workflow's graph into a builder with id remapping", async () => {
     const { executeTool } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);

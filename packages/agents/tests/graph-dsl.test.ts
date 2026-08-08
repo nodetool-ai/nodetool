@@ -78,6 +78,26 @@ describe("evaluateGraphDsl", () => {
     expect(graph!.nodes).toHaveLength(3);
   });
 
+  it("refuses a handle interpolated into a string", async () => {
+    const { graph, error } = await evaluateGraphDsl(`
+      const input = node("nodetool.input.StringInput", { name: "prompt" });
+      node("nodetool.agents.Agent", { prompt: "Summarize: " + input.output() });
+      return graph();
+    `);
+    expect(graph).toBeUndefined();
+    expect(error).toContain("inside a string");
+  });
+
+  it("refuses a duplicate explicit id", async () => {
+    const { graph, error } = await evaluateGraphDsl(`
+      node("nodetool.image.TextToImage", { prompt: "a" }, "hero");
+      node("nodetool.image.TextToImage", { prompt: "b" }, "hero");
+      return graph();
+    `);
+    expect(graph).toBeUndefined();
+    expect(error).toContain('Duplicate node id "hero"');
+  });
+
   it("reports syntax errors as error text", async () => {
     const { graph, error } = await evaluateGraphDsl(`const x = ;`);
     expect(graph).toBeUndefined();
