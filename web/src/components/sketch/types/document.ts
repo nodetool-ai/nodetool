@@ -896,12 +896,16 @@ export function getChildLayers(layers: Layer[], parentId: string | null | undefi
 }
 
 /** Returns the nesting depth of a layer in the tree (0 for root). */
-export function getLayerDepth(layers: Layer[], layerId: string): number {
+export function getLayerDepth(
+  layers: Layer[],
+  layerId: string,
+  layerMap?: Map<string, Layer>
+): number {
   let depth = 0;
-  let current = layers.find((l) => l.id === layerId);
+  let current = layerMap ? layerMap.get(layerId) : layers.find((l) => l.id === layerId);
   while (current?.parentId) {
     depth++;
-    current = layers.find((l) => l.id === current!.parentId);
+    current = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
     if (depth > MAX_LAYER_DEPTH) { break; } // prevent infinite loops in corrupt data
   }
   return depth;
@@ -1005,7 +1009,8 @@ export function getDescendantIds(layers: Layer[], groupId: string): string[] {
 export function isLayerCompositeVisible(
   layers: Layer[],
   layer: Layer,
-  isolatedLayerId: string | null | undefined
+  isolatedLayerId: string | null | undefined,
+  layerMap?: Map<string, Layer>
 ): boolean {
   if (isolatedLayerId && layer.id === isolatedLayerId) {
     return true;
@@ -1019,7 +1024,7 @@ export function isLayerCompositeVisible(
     if (depth++ > MAX_LAYER_DEPTH) {
       break;
     }
-    const parent = layers.find((l) => l.id === current!.parentId);
+    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
     if (!parent || !parent.visible) {
       return false;
     }
@@ -1038,7 +1043,8 @@ export function isLayerCompositeVisible(
 export function getAncestorGroupOpacityProduct(
   layers: Layer[],
   layer: Layer,
-  isolatedLayerId: string | null | undefined
+  isolatedLayerId: string | null | undefined,
+  layerMap?: Map<string, Layer>
 ): number {
   if (isolatedLayerId && layer.id === isolatedLayerId) {
     return 1;
@@ -1047,7 +1053,7 @@ export function getAncestorGroupOpacityProduct(
   let current: Layer | undefined = layer;
   let depth = 0;
   while (current?.parentId && depth++ <= MAX_LAYER_DEPTH) {
-    const parent = layers.find((l) => l.id === current!.parentId);
+    const parent: Layer | undefined = layerMap ? layerMap.get(current!.parentId) : layers.find((l) => l.id === current!.parentId);
     if (!parent) {
       break;
     }
@@ -1066,12 +1072,19 @@ export function getAncestorGroupOpacityProduct(
  */
 export function buildVisibleLayerTree(layers: Layer[]): Array<{ layer: Layer; depth: number }> {
   const result: Array<{ layer: Layer; depth: number }> = [];
-  const collapsedGroupIds = new Set(
-    layers.filter((l) => l.type === "group" && l.collapsed).map((l) => l.id)
-  );
+  const collapsedGroupIds = new Set<string>();
+  const layerMap = new Map<string, Layer>();
+
+  for (let i = 0; i < layers.length; i++) {
+    const l = layers[i];
+    layerMap.set(l.id, l);
+    if (l.type === "group" && l.collapsed) {
+      collapsedGroupIds.add(l.id);
+    }
+  }
 
   for (const layer of layers) {
-    const depth = getLayerDepth(layers, layer.id);
+    const depth = getLayerDepth(layers, layer.id, layerMap);
     // Check if any ancestor group is collapsed
     let hidden = false;
     let current: Layer | undefined = layer;
@@ -1080,7 +1093,7 @@ export function buildVisibleLayerTree(layers: Layer[]): Array<{ layer: Layer; de
         hidden = true;
         break;
       }
-      current = layers.find((l) => l.id === current!.parentId);
+      current = layerMap.get(current!.parentId);
     }
     if (!hidden) {
       result.push({ layer, depth });

@@ -143,6 +143,11 @@ export function renderDocumentComposite(
   const includeMaskLayers = options?.includeMaskLayers ?? false;
   let { strokeTempCanvas } = strokeState;
 
+  const docLayerMap = new Map<string, Layer>();
+  for (let i = 0; i < doc.layers.length; i++) {
+    docLayerMap.set(doc.layers[i].id, doc.layers[i]);
+  }
+
   for (const layer of doc.layers) {
     if (layer.type === "group") {
       continue;
@@ -150,7 +155,7 @@ export function renderDocumentComposite(
     if (layer.type === "mask" && !includeMaskLayers) {
       continue;
     }
-    if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)) {
+    if (!isLayerCompositeVisible(doc.layers, layer, isolatedLayerId, docLayerMap)) {
       continue;
     }
     if (isolatedLayerId && layer.id !== isolatedLayerId) {
@@ -173,7 +178,8 @@ export function renderDocumentComposite(
     const opacityScale = getAncestorGroupOpacityProduct(
       doc.layers,
       layer,
-      isolatedLayerId
+      isolatedLayerId,
+      docLayerMap
     );
     const hasActiveStroke = activeStroke && activeStroke.layerId === layer.id;
     const compositeOffset = getLayerGeometry(layer, layerCanvas, {
