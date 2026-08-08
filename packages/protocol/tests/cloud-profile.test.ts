@@ -4,7 +4,7 @@ import {
   CLOUD_NODE_ALLOWLIST,
   CLOUD_NODE_DENYLIST,
   CLOUD_HOST_FILE_NODES,
-  CLOUD_PROVIDER_IDS,
+  NON_CLOUD_PROVIDER_IDS,
   CLOUD_BUILTIN_PACK_IDS,
   isCloudNodeType,
   isCloudProvider,
@@ -170,7 +170,7 @@ describe("code is node-level trimmed; text is whole-listed minus file I/O", () =
 });
 
 describe("cloud provider + pack allowlists", () => {
-  it("keeps the big labs plus OpenRouter, Fal and Kie, drops the rest", () => {
+  it("keeps every hosted API — the labs, the aggregators, and the media APIs", () => {
     for (const id of [
       "openai",
       "anthropic",
@@ -180,13 +180,39 @@ describe("cloud provider + pack allowlists", () => {
       "groq",
       "openrouter",
       "fal_ai",
-      "kie"
+      "kie",
+      "replicate",
+      "together",
+      "minimax",
+      "elevenlabs",
+      "meshy",
+      "rodin",
+      "topaz",
+      "cohere",
+      "voyage",
+      "deepseek",
+      "huggingface"
     ]) {
       expect(isCloudProvider(id)).toBe(true);
     }
-    for (const id of ["replicate", "together", "minimax", "topaz", "cohere", "ollama"]) {
+  });
+
+  it("drops local engines and the local-CLI subscription", () => {
+    for (const id of [
+      "ollama",
+      "lmstudio",
+      "llama_cpp",
+      "node_llama_cpp",
+      "vllm",
+      "transformers_js",
+      "claude_agent_sdk"
+    ]) {
       expect(isCloudProvider(id)).toBe(false);
     }
+  });
+
+  it("treats an unknown provider id as cloud-eligible", () => {
+    expect(isCloudProvider("some-future-hosted-api")).toBe(true);
   });
 
   it("denylisted node types target an allowed namespace and stay out", () => {
@@ -206,8 +232,10 @@ describe("cloud provider + pack allowlists", () => {
     }
   });
 
-  it("provider allowlist is non-empty and unique", () => {
-    expect(CLOUD_PROVIDER_IDS.length).toBeGreaterThan(0);
-    expect(new Set(CLOUD_PROVIDER_IDS).size).toBe(CLOUD_PROVIDER_IDS.length);
+  it("non-cloud provider list is non-empty and unique", () => {
+    expect(NON_CLOUD_PROVIDER_IDS.length).toBeGreaterThan(0);
+    expect(new Set(NON_CLOUD_PROVIDER_IDS).size).toBe(
+      NON_CLOUD_PROVIDER_IDS.length
+    );
   });
 });

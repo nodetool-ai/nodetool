@@ -270,7 +270,7 @@ registerBuiltinProvider(PROVIDER_IDS.ANTHROPIC, AnthropicProvider, { ANTHROPIC_A
 // store, so the provider is always "configured"; a missing CLI or a missing
 // optional `@anthropic-ai/claude-agent-sdk` package (a soft dependency the user
 // installs themselves) surfaces at call time. Pruned from the cloud profile
-// (not in CLOUD_PROVIDER_IDS) since it needs a local executable and subscription.
+// (in NON_CLOUD_PROVIDER_IDS) since it needs a local executable and subscription.
 registerBuiltinProvider(PROVIDER_IDS.CLAUDE_AGENT_SDK, ClaudeAgentProvider, {});
 registerBuiltinProvider(PROVIDER_IDS.GEMINI, GeminiProvider, { GEMINI_API_KEY: "" });
 registerBuiltinProvider(PROVIDER_IDS.GROQ, GroqProvider, { GROQ_API_KEY: "" });
@@ -388,11 +388,12 @@ if (
 }
 
 // Cloud profile (production default, or NODETOOL_NODE_PROFILE=cloud; disabled
-// by NODETOOL_NODE_PROFILE=full): keep only the
-// curated provider allowlist (the big LLM labs plus Fal + Kie). Pruning after
-// registration — rather than gating each register call — keeps the
-// registration block above untouched and works regardless of which providers
-// a future edit adds.
+// by NODETOOL_NODE_PROFILE=full): drop the providers a cloud server cannot
+// reach on the user's behalf — local engines and the local-CLI subscription.
+// Every hosted API stays, since it works the same from a Fly machine as from a
+// laptop. Pruning after registration — rather than gating each register call —
+// keeps the registration block above untouched and works regardless of which
+// providers a future edit adds.
 if (_cloudProfile) {
   for (const id of listBuiltinProviderIds()) {
     if (!isCloudProvider(id)) unregisterBuiltinProvider(id);

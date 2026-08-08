@@ -200,27 +200,40 @@ export const CLOUD_NODE_DENYLIST: readonly string[] = [
 ];
 
 /**
- * Provider ids exposed in the cloud product: the big foundation-model labs
- * plus Fal and Kie for media. Anthropic and Groq have no dedicated node
- * namespace — they reach users through the Agent / Chat / generator nodes via
- * the provider registry, so they live here only.
+ * Providers kept *out* of the cloud product. Every other registered provider
+ * is offered — the node catalog is curated, the provider list is not.
  *
- * OpenRouter is here for the same reason the labs are: it is a bring-your-own-key
- * aggregator reached through the same nodes, and one key covers hundreds of
- * models. Pruning it while the settings UI still offers an OpenRouter key card
- * let a cloud user save a key and find an empty model picker.
+ * The rule is reachability, not curation: a provider stays out when the cloud
+ * server cannot reach it on the user's behalf. That is either an engine that
+ * runs on the user's own machine (Ollama, LM Studio, llama.cpp, vLLM,
+ * Transformers.js in-process) or a personal subscription reached by spawning a
+ * local CLI (the Claude Agent SDK shells out to `claude`). Everything else is
+ * an HTTP API behind a key the user pastes into settings, which works the same
+ * from a Fly machine as from a laptop.
+ *
+ * A curated allowlist sat here before, and every provider it omitted still had
+ * an API-key card in settings: a cloud user could save an OpenRouter key and
+ * find an empty model picker, with nothing saying why. Listing only what
+ * genuinely cannot work keeps the settings UI and the registry from drifting.
+ *
+ * The local engines are additionally never registered under the cloud profile
+ * (see the provider index); naming them here keeps the predicate honest for
+ * anything registered after that gate, and for callers asking about a
+ * provider id on its own.
  */
-export const CLOUD_PROVIDER_IDS: readonly string[] = [
-  "openai",
-  "anthropic",
-  "gemini",
-  "groq",
-  "mistral",
-  "xai",
-  "openrouter",
-  "fal_ai",
-  "kie",
-  "nodetool"
+export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
+  // Engines that run on the user's own machine.
+  "ollama",
+  "lmstudio",
+  "llama_cpp",
+  "node_llama_cpp",
+  "vllm",
+  "mlx",
+  "transformers_js",
+  // A personal subscription reached by spawning the local `claude` CLI.
+  "claude_agent_sdk",
+  // Test double, dev-gated at registration.
+  "fake"
 ];
 
 /**
@@ -246,7 +259,13 @@ export function isCloudNodeType(nodeType: string): boolean {
   );
 }
 
-/** Whether `providerId` is exposed in the cloud product. */
+/**
+ * Whether `providerId` is exposed in the cloud product — true for everything
+ * except the local engines and local-CLI subscriptions in
+ * {@link NON_CLOUD_PROVIDER_IDS}. An unknown id is treated as cloud-eligible:
+ * a provider added to the registry reaches cloud users without a second edit
+ * here, and one that cannot work there has to be named.
+ */
 export function isCloudProvider(providerId: string): boolean {
-  return CLOUD_PROVIDER_IDS.includes(providerId);
+  return !NON_CLOUD_PROVIDER_IDS.includes(providerId);
 }
