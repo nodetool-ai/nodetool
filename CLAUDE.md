@@ -4,6 +4,10 @@ Visual AI workflow platform. TypeScript monorepo with React frontend, Electron d
 
 > _Last updated: 2026-07-11._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
 
+## Communication Style
+
+Talk to the user in ASD-STE100 Simplified Technical English.
+
 ## Critical Commands
 
 ```bash
