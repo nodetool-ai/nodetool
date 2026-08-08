@@ -93,6 +93,7 @@ import type {
 import {
   ProcessingContext as RuntimeProcessingContext,
   ACTIVE_MODEL_CONTEXT_KEY,
+  CORE_TOOL_NAMES,
   encodeRawRgbaToPng,
   getCostReconciler,
   isProviderSessionUpdate,
@@ -5479,8 +5480,8 @@ export class UnifiedWebSocketRunner {
     // is created below, once the tool router and processing context exist.
     const useCodeAct = allSchemas.length > 0;
 
-    // The tool list handed to the provider: `execute_code` (+ `view_image`),
-    // pushed once the session exists.
+    // The tool list handed to the provider: `execute_code`, the core tools
+    // (CORE_TOOL_NAMES) and `view_image`, pushed once the session exists.
     const providerToolSchemas: ProviderTool[] = [];
     log.info("Provider tool schemas", {
       permissionMode,
@@ -5521,6 +5522,13 @@ export class UnifiedWebSocketRunner {
       | null = null;
     let codeactSession: ChatCodeActSession | null = null;
     if (useCodeAct) {
+      // The core set (file, search, fetch, todo, delegation) is also a plain
+      // tool call: those are the shapes every model is trained on, so routing
+      // them through a sandbox action buys nothing. They stay on the belt so
+      // code can still compose them; the prompt documents the direct call.
+      const directSchemas = allSchemas.filter(
+        (s) => s.name !== "view_image" && CORE_TOOL_NAMES.has(s.name)
+      );
       codeactSession = createChatCodeActSession({
         tools: allSchemas
           .filter((s) => s.name !== "view_image")
@@ -5529,6 +5537,7 @@ export class UnifiedWebSocketRunner {
             description: s.description,
             inputSchema: s.inputSchema
           })),
+        directToolNames: directSchemas.map((s) => s.name),
         executeTool: async (call: ChatCodeActToolCall) => {
           if (!codeactExecuteToolRef) {
             throw new Error("Tool router not ready");
@@ -5548,6 +5557,7 @@ export class UnifiedWebSocketRunner {
         clock: codeactClock
       });
       providerToolSchemas.push(codeactSession.providerTool);
+      providerToolSchemas.push(...directSchemas);
       // `view_image` stays a direct provider tool: it is the one channel that
       // puts pixels into the model's context, and pixels cannot ride the
       // sandbox's JSON observation envelope.
@@ -5556,7 +5566,8 @@ export class UnifiedWebSocketRunner {
       codeactPromptSection = codeactSession.systemPromptSection;
       log.info("Chat turn running in codeact mode", {
         threadId,
-        toolCount: allSchemas.length
+        toolCount: allSchemas.length,
+        directToolCount: directSchemas.length
       });
     }
 
@@ -5785,6 +5796,7 @@ export class UnifiedWebSocketRunner {
         executeTool: useTools ? effectiveExecuteTool : undefined,
         maxIterations: MAX_TOOL_ROUNDS,
         sequentialTools: session ? true : undefined,
+        workspaceDir: chatWorkspaceDir ?? undefined,
         signal
       })) {
         if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)

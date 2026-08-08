@@ -248,16 +248,19 @@ describe("RunSearchTool", () => {
         [TOOL_CALL_ID_FIELD]: "tc_outer"
       });
 
-      // Code actions reach the toolbelt through the sandbox, so the child's
-      // toolset shows up in the documented catalog, not in the provider tools.
+      // The child's toolset shows up in the prompt, not in the provider tools.
+      // These are all core tools, so they are listed as direct calls.
       const prompt = cap.messagesText();
+      const directSection = prompt.slice(prompt.indexOf("# Direct tools"));
+      expect(prompt).toContain("# Direct tools");
       for (const name of ["read_file", "glob", "grep", "list_directory"]) {
-        expect(prompt).toContain(`tools.${name}(`);
+        expect(directSection).toContain(name);
       }
-      // Write / external tools are filtered out.
-      expect(prompt).not.toContain("tools.write_file(");
-      expect(prompt).not.toContain("tools.edit_file(");
-      expect(prompt).not.toContain("tools.browser(");
+      // Write / external tools are filtered out — of both surfaces.
+      for (const name of ["write_file", "edit_file", "browser"]) {
+        expect(prompt).not.toContain(`tools.${name}(`);
+        expect(directSection).not.toContain(name);
+      }
     });
 
     it("does not stitch in run_subtask or run_search — the loop cannot spawn", async () => {

@@ -80,6 +80,12 @@ export interface ChatCodeActSessionOptions {
   /** Tools documented in full; defaults to {@link CODEACT_RESIDENT_TOOL_NAMES}. */
   residentToolNames?: Iterable<string>;
   /**
+   * Tools the caller also offers as ordinary provider tools. They stay on the
+   * belt — code composes them — but the prompt documents them as direct calls
+   * instead of repeating their `tools.*` signature.
+   */
+  directToolNames?: Iterable<string>;
+  /**
    * The action's wall clock, which the host stops while a bridged call waits on
    * the user (a permission prompt). Without it, the time a person spends
    * deciding is charged to the action budget and the program is killed
@@ -282,6 +288,8 @@ export function createChatCodeActSession(
   if (withGraphModel) {
     for (const name of GRAPH_MODEL_TOOL_NAMES) covered.add(name);
   }
+  // Tools the caller also offers top level are documented there, not here.
+  for (const name of options.directToolNames ?? []) covered.add(name);
   const catalogTools = options.tools.filter((t) => !covered.has(t.name));
 
   // Progressive disclosure, mirroring the step executor's split.
@@ -309,6 +317,9 @@ export function createChatCodeActSession(
     tools: resident,
     deferredTools: deferred,
     variant: "chat",
+    directToolNames: options.directToolNames
+      ? [...options.directToolNames]
+      : undefined,
     extraSections
   });
 

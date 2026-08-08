@@ -924,6 +924,13 @@ export abstract class BaseProvider {
        * this reason.
        */
       turnBudget?: TurnBudget;
+      /**
+       * The run's workspace directory. Only providers that drive their own
+       * agent loop over host tools read it — the Claude Agent SDK uses it as
+       * the session `cwd` so its path-scoped built-ins resolve where the
+       * NodeTool tools they replace would have. Ignored here.
+       */
+      workspaceDir?: string;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
@@ -932,6 +939,7 @@ export abstract class BaseProvider {
       maxIterations: _omitMax,
       sequentialTools,
       turnBudget,
+      workspaceDir: _omitWorkspaceDir,
       ...turnArgs
     } = args;
     const messages = [...args.messages];

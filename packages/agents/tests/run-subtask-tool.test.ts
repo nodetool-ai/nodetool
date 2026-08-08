@@ -219,11 +219,13 @@ describe("RunSubtaskTool", () => {
         [TOOL_CALL_ID_FIELD]: "tc_root"
       });
 
-      // Code actions reach the toolbelt through the sandbox, so the child's
-      // toolset shows up in the documented catalog, not in the provider tools.
-      // `run_subtask` is documented as the object model's `nodetool.agents`,
-      // which the prompt carries only when the belt can serve it.
-      expect(capturedPrompt).toContain("tools.read_file(");
+      // The child's toolset shows up in the prompt, not in the provider tools:
+      // core tools under the direct-tool section, everything else as a
+      // `tools.*` signature. `run_subtask` is additionally documented as the
+      // object model's `nodetool.agents`, which the prompt carries only when
+      // the belt can serve it.
+      expect(capturedPrompt).toContain("# Direct tools");
+      expect(capturedPrompt).toContain("read_file");
       expect(capturedPrompt).toContain("nodetool.agents");
     });
 
@@ -302,9 +304,12 @@ describe("RunSubtaskTool", () => {
       });
 
       // All parent tools are inherited; run_subtask is stitched in so the
-      // child can itself recurse.
-      for (const name of ["read_file", "memory_read", "write_file"]) {
-        expect(capturedPrompt).toContain(`tools.${name}(`);
+      // child can itself recurse. The core tools are documented as direct
+      // calls, the rest as sandbox signatures.
+      expect(capturedPrompt).toContain("tools.memory_read(");
+      expect(capturedPrompt).toContain("# Direct tools");
+      for (const name of ["read_file", "write_file"]) {
+        expect(capturedPrompt).toContain(name);
       }
       expect(capturedPrompt).toContain("nodetool.agents");
     });

@@ -799,6 +799,103 @@ describe("ClaudeAgentProvider", () => {
     expect(executed[0]).toMatchObject({ name: "echo", args: { text: "hi" } });
   });
 
+  it("replaces NodeTool tools with the SDK built-ins that cover them", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-native"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("y")],
+        model: "haiku",
+        workspaceDir: "/tmp/ws",
+        tools: [
+          { name: "read_file", description: "read" },
+          { name: "grep", description: "grep" },
+          { name: "web_search", description: "search" },
+          // No built-in covers these three, so they stay NodeTool's.
+          { name: "list_directory", description: "ls" },
+          { name: "run_subtask", description: "delegate" },
+          { name: "echo", description: "echo" }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+
+    const opts = calls[0].options as Options;
+    expect(opts.allowedTools).toEqual([
+      "mcp__nodetool_tools__list_directory",
+      "mcp__nodetool_tools__run_subtask",
+      "mcp__nodetool_tools__echo"
+    ]);
+    // The built-ins stay live, anchored to the run's workspace.
+    expect(opts.disallowedTools).toBeUndefined();
+    expect(opts.cwd).toBe("/tmp/ws");
+  });
+
+  it("keeps the path-scoped NodeTool tools when no workspace is given", async () => {
+    // The SDK's Read/Write/Glob/Grep resolve against cwd. Without a workspace
+    // to point cwd at, they would read somewhere else entirely, so NodeTool's
+    // workspace-contained versions must survive.
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-nocwd"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("y")],
+        model: "haiku",
+        tools: [
+          { name: "read_file", description: "read" },
+          { name: "web_search", description: "search" }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+
+    const opts = calls[0].options as Options;
+    // web_search is not path-scoped, so WebSearch still replaces it.
+    expect(opts.allowedTools).toEqual(["mcp__nodetool_tools__read_file"]);
+    expect(opts.cwd).toBeUndefined();
+  });
+
+  it("leaves the built-ins live when every offered tool was replaced", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-allnative"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("x"), userMsg("y")],
+        model: "haiku",
+        workspaceDir: "/tmp/ws",
+        tools: [{ name: "grep", description: "grep" }],
+        executeTool: async () => "ok"
+      })
+    );
+
+    const opts = calls[0].options as Options;
+    expect(opts.mcpServers).toBeUndefined();
+    // The caller offered a tool, so the built-ins must not be disabled — and
+    // the loop must still be allowed the turns to use them.
+    expect(opts.disallowedTools).toBeUndefined();
+    expect(opts.maxTurns).toBeGreaterThan(1);
+  });
+
   it("preserves keys of a free-form object param (no z.object({}) stripping)", async () => {
     // Regression: a tool param declared as a free-form object (e.g. add_node's
     // `node_properties`) was converted to z.object({}), which strips every

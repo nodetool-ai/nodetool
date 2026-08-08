@@ -8,9 +8,12 @@
  * whose `process()` runs one code action; the toolbelt itself moves inside the
  * sandbox and is never offered to the provider.
  *
- * `view_image` is the exception, as on the server: it is the one channel that
- * puts pixels into the model's context, and pixels cannot ride the sandbox's
- * JSON observation envelope. It stays a direct provider tool.
+ * Two sets also reach the provider directly, as on the server. The core tools
+ * (`CORE_TOOL_NAMES` — file, search, fetch, todo, delegation) are the shapes
+ * every model is trained on, so they cost less as a plain tool call than as a
+ * sandbox round trip; they stay on the belt too, because code composes them.
+ * And `view_image` is the one channel that puts pixels into the model's
+ * context, which cannot ride the JSON observation envelope.
  */
 
 import type {
@@ -18,6 +21,7 @@ import type {
   Message,
   ProcessingContext
 } from "@nodetool-ai/runtime";
+import { CORE_TOOL_NAMES } from "@nodetool-ai/runtime";
 import {
   Tool,
   createChatCodeActSession,
@@ -56,7 +60,10 @@ class ExecuteCodeTool extends Tool {
 }
 
 export interface CliCodeActTurn {
-  /** The tools handed to the provider: `execute_code` (+ `view_image`). */
+  /**
+   * The tools handed to the provider: `execute_code`, the core tools, and
+   * `view_image`.
+   */
   tools: Tool[];
   /** System prompt for the turn: the CodeAct contract and tool catalog. */
   systemPrompt: string;
@@ -76,6 +83,9 @@ export function createCliCodeActTurn(
   options: CliCodeActTurnOptions
 ): CliCodeActTurn {
   const byName = new Map(options.tools.map((tool) => [tool.name, tool]));
+  const directTools = options.tools.filter(
+    (t) => t.name !== VIEW_IMAGE_TOOL && CORE_TOOL_NAMES.has(t.name)
+  );
   const beltTools = options.tools.filter((t) => t.name !== VIEW_IMAGE_TOOL);
 
   const session = createChatCodeActSession({
@@ -84,6 +94,7 @@ export function createCliCodeActTurn(
       description: tool.description,
       inputSchema: tool.inputSchema
     })),
+    directToolNames: directTools.map((t) => t.name),
     executeTool: async (call) => {
       const tool = byName.get(call.name);
       if (!tool) throw new Error(`Tool "${call.name}" not available`);
@@ -96,7 +107,7 @@ export function createCliCodeActTurn(
     onToolCall: options.onToolCall
   });
 
-  const tools: Tool[] = [new ExecuteCodeTool(session)];
+  const tools: Tool[] = [new ExecuteCodeTool(session), ...directTools];
   const viewImage = byName.get(VIEW_IMAGE_TOOL);
   if (viewImage) tools.push(viewImage);
 

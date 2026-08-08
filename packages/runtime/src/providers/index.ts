@@ -52,6 +52,12 @@ import { FakeProvider } from "./fake-provider.js";
 export { BaseProvider, providerCapabilities } from "./base-provider.js";
 export type { ProviderCapability } from "./base-provider.js";
 export {
+  CORE_TOOL_NAMES,
+  SDK_NATIVE_TOOL_REPLACEMENTS,
+  SDK_NATIVE_WORKSPACE_SCOPED,
+  sdkNativeReplacements
+} from "./core-tools.js";
+export {
   isSafePublicHttpsUrl,
   assertSafePublicHttpsUrl,
   safeFetch

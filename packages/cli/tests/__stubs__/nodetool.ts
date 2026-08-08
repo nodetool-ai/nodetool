@@ -215,6 +215,21 @@ export const getProvider = async (id: string): Promise<BaseProvider> =>
 export class ProcessingContext {
   constructor(_opts?: unknown) {}
 }
+/** Mirrors the real CORE_TOOL_NAMES so the CodeAct split behaves in tests. */
+export const CORE_TOOL_NAMES: ReadonlySet<string> = new Set([
+  "read_file",
+  "write_file",
+  "edit_file",
+  "list_directory",
+  "glob",
+  "grep",
+  "web_search",
+  "browser",
+  "http_request",
+  "download_file",
+  "todo_write",
+  "run_subtask"
+]);
 export async function initTelemetry() {}
 export async function processChat(_opts?: unknown) {}
 

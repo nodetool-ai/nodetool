@@ -10,8 +10,13 @@
  * never hit.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { JsonSchema, MessageImageContent } from "@nodetool-ai/runtime";
+import { CORE_TOOL_NAMES, type ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  JsonSchema,
+  MessageContent,
+  MessageImageContent,
+  ProviderTool
+} from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 import {
   extractInjectableImages,
@@ -176,6 +181,67 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       return images;
     }
   };
+}
+
+/**
+ * Split a toolbelt into the tools also offered top level and the rest.
+ *
+ * Membership is {@link CORE_TOOL_NAMES} — the tools that mirror a Claude Agent
+ * SDK built-in. They are the shapes every frontier model is trained on, so a
+ * plain tool call beats a sandbox round trip whose only job is to forward one.
+ *
+ * `core` is a view, not a removal: the belt keeps every tool, because the
+ * object model (`nodetool.web`, `nodetool.agents`) and any hand-written
+ * fan-out call them from inside an action. What the top-level offer changes is
+ * the *documented* path — the prompt catalog lists them as direct tools, and
+ * the default way to reach one is a tool call.
+ */
+export function splitCoreTools(tools: Tool[]): {
+  core: Tool[];
+  belt: Tool[];
+} {
+  const core: Tool[] = [];
+  const belt: Tool[] = [];
+  for (const tool of tools) {
+    (CORE_TOOL_NAMES.has(tool.name) ? core : belt).push(tool);
+  }
+  return { core, belt };
+}
+
+/**
+ * Render core tools as provider tool definitions that execute themselves.
+ *
+ * The result travels as text; pixels a tool returns are handed back as image
+ * content blocks instead, the way the sandbox bridge holds them out of the
+ * observation.
+ */
+export function buildCoreProviderTools(options: {
+  tools: Tool[];
+  context: ProcessingContext;
+  onToolCall?: (record: ToolCallRecord) => void;
+}): ProviderTool[] {
+  return options.tools.map((tool) => ({
+    name: tool.name,
+    description: tool.description,
+    inputSchema: tool.inputSchema as Record<string, unknown> | undefined,
+    execute: async (
+      args: Record<string, unknown>,
+      toolCallId?: string
+    ): Promise<string | MessageContent[]> => {
+      const id = toolCallId ?? `core_${tool.name}`;
+      options.onToolCall?.({ name: tool.name, args, toolCallId: id });
+      let result = await Tool.executeTool(tool, options.context, args, {
+        toolCallId: id
+      });
+      const injected = extractInjectableImages(result);
+      if (!injected) return JSON.stringify(toTransferable(result));
+      result = stripImagePayload(result);
+      return [
+        { type: "text", text: JSON.stringify(toTransferable(result)) },
+        ...injected.images
+      ];
+    }
+  }));
 }
 
 /**

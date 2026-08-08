@@ -412,6 +412,101 @@ describe("CodeAct progressive tool disclosure", () => {
   });
 });
 
+describe("CodeAct core tools", () => {
+  class NamedTool extends Tool {
+    constructor(
+      readonly name: string,
+      readonly description: string
+    ) {
+      super();
+    }
+    protected override readonly jsonSchema = {
+      type: "object",
+      properties: { value: { type: "string" } },
+      required: ["value"]
+    };
+    async process(
+      _context: ProcessingContext,
+      params: Record<string, unknown>
+    ): Promise<unknown> {
+      return { echoed: params["value"], via: this.name };
+    }
+  }
+
+  it("offers the core tools to the provider and documents them as direct", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    let offered: string[] = [];
+    let systemPrompt = "";
+    const provider = createLoopProvider([
+      { toolCalls: [codeAction("tc_1", `await finish({answer: 1});`)] }
+    ]);
+    const inner = provider.generateLoop.bind(provider);
+    provider.generateLoop = ((args: {
+      tools?: Array<{ name: string }>;
+      messages: Array<{ role: string; content?: unknown }>;
+    }) => {
+      offered = (args.tools ?? []).map((t) => t.name);
+      systemPrompt = String(
+        args.messages.find((m) => m.role === "system")?.content ?? ""
+      );
+      return inner(args as never);
+    }) as typeof provider.generateLoop;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [
+        new NamedTool("read_file", "Read a file."),
+        new NamedTool("lookup_customer", "Look up a customer record by id.")
+      ]
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    // `read_file` mirrors an SDK built-in, so it is a tool call of its own.
+    expect(offered).toContain("execute_code");
+    expect(offered).toContain("read_file");
+    expect(offered).not.toContain("lookup_customer");
+    // And the prompt points at it there, not at a `tools.read_file(` signature.
+    expect(systemPrompt).toContain("# Direct tools");
+    expect(systemPrompt).not.toContain("tools.read_file(");
+    expect(systemPrompt).toContain("tools.lookup_customer(");
+  });
+
+  it("still reaches a core tool from inside a code action", async () => {
+    // The belt keeps them: `nodetool.web`, `nodetool.agents` and any
+    // hand-written fan-out call these from code, in one action.
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext();
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `const r = await tools.read_file({value: "x"});
+             await finish({answer: r.via === "read_file" ? 1 : 0});`
+          )
+        ]
+      }
+    ]);
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [new NamedTool("read_file", "Read a file.")]
+    });
+    for await (const msg of executor.execute()) void msg;
+
+    expect(executor.getResult()).toEqual({ answer: 1 });
+  });
+});
+
 describe("coercionArtifactPaths", () => {
   it("names the paths carrying [object Object]", async () => {
     const { coercionArtifactPaths } = await import(

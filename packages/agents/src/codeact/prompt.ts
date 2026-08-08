@@ -152,6 +152,12 @@ export interface CodeActPromptOptions {
    * asking the user is allowed. Chat callers ignore `resultSchema`.
    */
   variant?: "step" | "chat";
+  /**
+   * Tools offered as ordinary tool calls rather than through the sandbox —
+   * the file, search, fetch and delegation set. Listed by name so the model
+   * does not hunt for them in `tools.*`, where they are absent.
+   */
+  directToolNames?: string[];
   /** Extra sections appended after the tool catalog (e.g. the graph model). */
   extraSections?: string[];
 }
@@ -187,6 +193,18 @@ export function buildCodeActSystemPrompt(
         `match's signature and description. Do not guess arguments for a ` +
         `tool you have not looked up.\n\n` +
         deferred.map((t) => t.name).join(", ")
+    );
+  }
+  const direct = options.directToolNames ?? [];
+  if (direct.length > 0) {
+    sections.push(
+      `# Direct tools (call them, do not write code for them)\n` +
+        `These are ordinary tool calls, not sandbox functions. They are not ` +
+        `in \`tools.*\` and \`searchTools()\` does not list them. Call one ` +
+        `directly when you need exactly what it does; write a code action ` +
+        `when you need to compose several calls, loop, or transform the ` +
+        `results.\n\n` +
+        direct.join(", ")
     );
   }
   for (const section of options.extraSections ?? []) {

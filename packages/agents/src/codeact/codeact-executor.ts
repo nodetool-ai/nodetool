@@ -50,6 +50,8 @@ import { linkAbort } from "../utils/link-abort.js";
 import { removeThinkTags } from "../utils/think-tags.js";
 import {
   buildToolBridge,
+  buildCoreProviderTools,
+  splitCoreTools,
   toolSignature,
   CODEACT_PRELUDE,
   type ToolCallRecord,
@@ -276,7 +278,14 @@ export class CodeActExecutor {
   private readonly context: ProcessingContext;
   private readonly provider: BaseProvider;
   private readonly model: string;
+  /** The sandbox toolbelt: everything the model reaches through `tools.*`. */
   private readonly tools: Tool[];
+  /**
+   * The subset also offered to the provider as ordinary tools — see
+   * {@link splitCoreTools}. These stay on the belt so code can still compose
+   * them; what changes is that the prompt documents them as direct calls.
+   */
+  private readonly coreTools: Tool[];
   private readonly systemPrompt: string;
   private readonly maxIterations: number;
   private readonly maxTokens?: number;
@@ -320,6 +329,9 @@ export class CodeActExecutor {
       if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
     }
 
+    // The core set is offered to the provider as ordinary tools as well.
+    this.coreTools = splitCoreTools(this.tools).core;
+
     const toolNames = this.tools.map((t) => t.name);
     const withGraphModel = hasGraphModelTools(toolNames);
     const withNodetoolApi = hasNodetoolApiTools(toolNames);
@@ -336,6 +348,11 @@ export class CodeActExecutor {
     if (withGraphModel) {
       for (const name of GRAPH_MODEL_TOOL_NAMES) covered.add(name);
     }
+    // Same rule for the core set, one level up: it is documented as direct
+    // tools, so the catalog does not repeat it as a `tools.*` signature. The
+    // bridge still reaches it, which is what keeps `nodetool.web`,
+    // `nodetool.agents` and any hand-written fan-out composable in one action.
+    for (const tool of this.coreTools) covered.add(tool.name);
     const catalogTools = this.tools.filter((t) => !covered.has(t.name));
 
     // Progressive disclosure: resident tools are documented in full; the
@@ -374,6 +391,7 @@ export class CodeActExecutor {
       deferredTools: this.deferredTools,
       resultSchema: this.resultSchema,
       preamble: opts.systemPrompt,
+      directToolNames: this.coreTools.map((t) => t.name),
       extraSections
     });
   }
@@ -593,7 +611,14 @@ export class CodeActExecutor {
           "(return value, logs, error) is the tool result.",
         inputSchema: EXECUTE_CODE_INPUT_SCHEMA,
         execute: (args: Record<string, unknown>) => executeAction(args)
-      }
+      },
+      // No `onToolCall` here: a top-level call already arrives as a ToolCall
+      // item on the provider stream, which the loop below reports. Only the
+      // sandbox's bridged calls need the extra hook.
+      ...buildCoreProviderTools({
+        tools: this.coreTools,
+        context: this.context
+      })
     ];
 
     const drainUi = function* (): Generator<ProcessingMessage> {
@@ -609,18 +634,25 @@ export class CodeActExecutor {
         maxIterations: this.maxIterations,
         maxTokens: this.maxTokens,
         sequentialTools: true,
+        workspaceDir: this.context.workspaceDir ?? undefined,
         signal: abort.signal
       });
 
       for await (const item of stream) {
         if (isToolCall(item)) {
+          const coreTool =
+            item.name === EXECUTE_CODE_TOOL_NAME
+              ? undefined
+              : toolsByName.get(item.name);
           yield {
             type: "tool_call_update",
             node_id: this.step.id,
             tool_call_id: item.id,
             name: item.name,
             args: item.args,
-            message: executeCodeMessage(item.args)
+            message: coreTool
+              ? Tool.resolveMessage(coreTool, item.args)
+              : executeCodeMessage(item.args)
           } satisfies ToolCallUpdate;
           yield* drainUi();
           continue;

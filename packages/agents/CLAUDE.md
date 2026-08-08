@@ -536,6 +536,27 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - `CodeActExecutor` keeps the message contract, memory writes, and failure
   semantics the step loop has always had — consumers work unchanged. Bridged
   tool calls surface as `tool_call_update` events (ids `codeact_<n>`).
+- The core set goes top level. Every NodeTool tool that mirrors a Claude Agent
+  SDK built-in (`CORE_TOOL_NAMES` in `@nodetool-ai/runtime` — the file set,
+  `glob`/`grep`, `web_search`, `browser`/`http_request`/`download_file`,
+  `todo_write`, `run_subtask`) is offered to the provider as an ordinary tool
+  next to `execute_code`, for every provider. Those are the shapes models are
+  trained on, so a tool call beats a sandbox round trip that only forwards one.
+  They stay on the belt — `nodetool.web`, `nodetool.agents` and hand-written
+  fan-out call them from code — but the prompt documents them once, under
+  "Direct tools", instead of as a `tools.*` signature. `splitCoreTools` /
+  `buildCoreProviderTools` in `src/codeact/tool-api.ts`.
+- On `claude_agent_sdk` the built-in wins outright. The provider drops every
+  tool `SDK_NATIVE_TOOL_REPLACEMENTS` maps (`read_file`→`Read`,
+  `write_file`→`Write`, `edit_file`→`Edit`, `glob`→`Glob`, `grep`→`Grep`,
+  `web_search`→`WebSearch`, `todo_write`→`TodoWrite`) from its MCP toolset and
+  lets the SDK's own tool serve the call. The path-scoped five are substituted
+  only when the caller passes a `workspaceDir`, which becomes the session
+  `cwd` — without it the SDK would resolve paths outside the run's workspace,
+  so NodeTool's contained versions stay. `list_directory`, `browser`,
+  `http_request`, `download_file` and `run_subtask` are never substituted: no
+  built-in covers what they do (`Task` would hand the child SDK tools, not the
+  NodeTool belt). See `packages/runtime/src/providers/core-tools.ts`.
 - Progressive disclosure: resident tools (`CODEACT_RESIDENT_TOOL_NAMES` —
   the search family incl. `web_search`/`search_nodes`/`run_search`/
   `asset_search`/`grep`/`glob`, the Claude-agent file set
@@ -550,7 +571,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   structured verdicts on a fail-closed path where a sandbox error would only
   add a failure mode: `SupervisorAgent` and the app-build spec stage.
 - Chat turns run in it too: the websocket runner swaps the toolbelt
-  for `execute_code` (+ `view_image`) via `createChatCodeActSession`
+  for `execute_code` (+ the core set, + `view_image`) via `createChatCodeActSession`
   (`src/codeact/chat-codeact.ts`), which bridges `tools.<name>()` to the chat
   runner's own tool router instead of `buildToolBridge` — permission gating
   and client (`ui_*`) round-trips stay where they are. When the belt carries
@@ -558,8 +579,8 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   (`src/codeact/graph-model.ts`): `openWorkflow()` returns a model whose
   synchronous mutators queue ops against a local mirror and `commit()` replays
   them through the same `ui_*` contract.
-  The CLI's local (no-server) turn runs the same session — `execute_code`
-  (+ `view_image`) is what `processChat` sees, wired in
+  The CLI's local (no-server) turn runs the same session — `execute_code`,
+  the core tools and `view_image` are what `processChat` sees, wired in
   `packages/cli/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw

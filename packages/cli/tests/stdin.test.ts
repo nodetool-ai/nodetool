@@ -5,6 +5,7 @@
  * by mocking readline.createInterface and all external dependencies.
  */
 import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { CORE_TOOL_NAMES as CORE_TOOL_NAMES_STUB } from "./__stubs__/nodetool.js";
 
 // ─── Top-level mocks (hoisted by vitest) ─────────────────────────────────────
 
@@ -36,7 +37,10 @@ vi.mock("@nodetool-ai/runtime", () => ({
   },
   FileStorageAdapter: class {
     constructor(_root?: string) {}
-  }
+  },
+  // This mock replaces the shared stub wholesale, so re-state the one other
+  // export the CodeAct wiring reads.
+  CORE_TOOL_NAMES: CORE_TOOL_NAMES_STUB
 }));
 
 vi.mock("@nodetool-ai/chat", () => ({
@@ -413,7 +417,7 @@ describe("runStdinMode — direct provider chat", () => {
     expect(processChat).toHaveBeenCalled();
   });
 
-  it("runs the turn in CodeAct — the provider sees execute_code, not the belt", async () => {
+  it("runs the turn in CodeAct — the provider sees execute_code and the core tools, not the whole belt", async () => {
     const { processChat } = await import("@nodetool-ai/chat");
     (processChat as ReturnType<typeof vi.fn>).mockClear();
     _nextLines = ["Hello AI"];
@@ -426,7 +430,12 @@ describe("runStdinMode — direct provider chat", () => {
       tools: Array<{ name: string }>;
       messages: Array<{ role: string; content: string }>;
     };
-    expect(call.tools.map((t) => t.name)).toEqual(["execute_code"]);
+    // `run_subtask` is a core tool, so it rides alongside `execute_code`;
+    // everything else on the belt stays inside the sandbox.
+    expect(call.tools.map((t) => t.name)).toEqual([
+      "execute_code",
+      "run_subtask"
+    ]);
     expect(call.messages[0]).toEqual({
       role: "system",
       content: "CODEACT CONTRACT"

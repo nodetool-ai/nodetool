@@ -44,10 +44,10 @@ import type {
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
 import { BaseProvider } from "./base-provider.js";
+import { sdkNativeReplacements } from "./core-tools.js";
 import {
   isProviderMessageEvent,
   isProviderSessionUpdate,
-  WEB_SEARCH_TOOL_NAME,
   type LanguageModel,
   type Message,
   type MessageContent,
@@ -132,6 +132,18 @@ interface TurnConfig {
   maxTurns: number;
   /** The in-process MCP tool server + allow-list, or null when tool-free. */
   mcp: { mcpServers: Options["mcpServers"]; allowedTools: string[] } | null;
+  /**
+   * Whether the caller offered tools at all. Distinct from `mcp`, which is null
+   * both on the tool-free path and when every offered tool was replaced by an
+   * SDK built-in. Only the first case may disable the built-ins.
+   */
+  toolsOffered: boolean;
+  /**
+   * Session working directory. Set to the run's workspace so the SDK's
+   * path-scoped built-ins (`Read`/`Write`/`Edit`/`Glob`/`Grep`) resolve where
+   * the NodeTool tools they replace would have.
+   */
+  cwd?: string;
 }
 
 interface ClaudeAgentProviderOptions {
@@ -263,6 +275,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
       turnBudget?: TurnBudget;
+      workspaceDir?: string;
     }
   ): AsyncGenerator<ProviderStreamItem> {
     // The SDK owns the loop, so honoring the budget is this override's job:
@@ -273,12 +286,20 @@ export class ClaudeAgentProvider extends BaseProvider {
     if (turnBudget && !this._admitTurn(turnBudget, args.model, args.messages)) {
       return;
     }
-    // Drop the SerpAPI-backed `web_search` tool: the SDK's built-in `WebSearch`
-    // (live under bypassPermissions) handles web search natively, so we don't
-    // expose a redundant MCP one.
-    const tools = (args.tools ?? []).filter(
-      (t) => t.name !== WEB_SEARCH_TOOL_NAME
+    // Drop every NodeTool tool the SDK ships a built-in for. Those built-ins
+    // are live under bypassPermissions, so keeping the MCP copy would give one
+    // capability two surfaces and make the model pick between them.
+    const offered = args.tools ?? [];
+    const replaced = sdkNativeReplacements(
+      offered.map((t) => t.name),
+      args.workspaceDir
     );
+    const tools = offered.filter((t) => !replaced.has(t.name));
+    if (replaced.size > 0) {
+      log.debug("Using SDK built-ins in place of NodeTool tools", {
+        replaced: [...replaced]
+      });
+    }
     const executeTool = args.executeTool;
     // A tool dispatches either through its own `execute` or the harness
     // `executeTool`; build the MCP server when at least one route exists.
@@ -337,8 +358,13 @@ export class ClaudeAgentProvider extends BaseProvider {
         { ...args, signal: abortController.signal },
         {
           emitMessages: true,
-          maxTurns: mcp ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
-          mcp
+          // Turns are for tool rounds, and a replaced tool still costs one —
+          // key this on what the caller offered, not on what survived into MCP.
+          maxTurns:
+            offered.length > 0 ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
+          mcp,
+          toolsOffered: offered.length > 0,
+          cwd: args.workspaceDir
         }
       );
       // The SDK grows the conversation internally, so reserving against the
@@ -407,7 +433,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     yield* this.runWithSession(args, {
       emitMessages: false,
       maxTurns: args.maxTurns ?? 1,
-      mcp: null
+      mcp: null,
+      toolsOffered: false
     });
   }
 
@@ -551,13 +578,22 @@ export class ClaudeAgentProvider extends BaseProvider {
       // safety flag below.
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      // On the tool-free path (config.mcp === null — the documented "pure LLM"
-      // primitive used by generateMessage/generateMessages), explicitly disable
-      // the SDK's built-in tools. Under bypassPermissions they are otherwise
-      // live and auto-approved, so a prompt-injected "call Bash …" in untrusted
-      // text being summarized/classified would execute on the host. allowedTools
-      // is only a no-prompt approval list, not an availability restriction.
-      ...(plan.config.mcp ? {} : { disallowedTools: SDK_BUILTIN_TOOLS }),
+      // On the tool-free path (the documented "pure LLM" primitive used by
+      // generateMessage/generateMessages), explicitly disable the SDK's
+      // built-in tools. Under bypassPermissions they are otherwise live and
+      // auto-approved, so a prompt-injected "call Bash …" in untrusted text
+      // being summarized/classified would execute on the host. allowedTools is
+      // only a no-prompt approval list, not an availability restriction.
+      //
+      // The test is `toolsOffered`, not `mcp`: a caller whose every tool was
+      // replaced by a built-in offered tools and has no MCP server, and
+      // disabling the built-ins there would leave it with nothing.
+      ...(plan.config.toolsOffered
+        ? {}
+        : { disallowedTools: SDK_BUILTIN_TOOLS }),
+      // Anchor the path-scoped built-ins to the run's workspace, which is where
+      // the NodeTool tools they replace were contained.
+      ...(plan.config.cwd ? { cwd: plan.config.cwd } : {}),
       includePartialMessages: true,
       // Setting env REPLACES the child env, so spread process.env minus the
       // nested-session leakage. Preserves PATH/HOME/ANTHROPIC_BASE_URL/proxies.
