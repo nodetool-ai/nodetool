@@ -1,5 +1,7 @@
 import { describe, it, expect, afterEach, vi } from "vitest";
 
+// Every hosted API survives the cloud profile: settings offers an API-key card
+// for each, and a key with no provider behind it is an empty model picker.
 const CLOUD = [
   "openai",
   "anthropic",
@@ -7,10 +9,9 @@ const CLOUD = [
   "groq",
   "mistral",
   "xai",
+  "openrouter",
   "fal_ai",
-  "kie"
-];
-const OUT_OF_SCOPE = [
+  "kie",
   "replicate",
   "together",
   "minimax",
@@ -21,10 +22,20 @@ const OUT_OF_SCOPE = [
   "voyage",
   "jina",
   "huggingface",
-  "openrouter",
   "deepseek",
   "moonshot",
-  "ollama"
+  "elevenlabs",
+  "meshy",
+  "rodin"
+];
+// Local engines are never registered under the cloud profile in the first
+// place; the CLI-backed subscription is registered and then pruned.
+const OUT_OF_SCOPE = [
+  "ollama",
+  "lmstudio",
+  "llama_cpp",
+  "node_llama_cpp",
+  "claude_agent_sdk"
 ];
 
 // The provider registry registers (and, under the cloud profile, prunes) at

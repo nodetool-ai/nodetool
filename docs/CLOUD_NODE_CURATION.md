@@ -39,39 +39,47 @@ loads unchanged. When active, three things happen at server bootstrap:
    registered).
 2. **Node registry** — every node type outside the curated allowlist is pruned
    (`applyCloudNodePolicy`).
-3. **Provider registry** — every provider outside the allowlist is pruned, so
-   only the curated providers appear in model selectors.
+3. **Provider registry** — the local engines and the local-CLI subscription
+   are pruned; every hosted API stays, so any key the settings page accepts
+   reaches a working model selector.
 
 The single source of truth is
 [`packages/protocol/src/cloud-profile.ts`](../packages/protocol/src/cloud-profile.ts):
 `CLOUD_NODE_NAMESPACES` (whole namespaces kept), `CLOUD_NODE_ALLOWLIST`
 (individual node types kept from an otherwise-trimmed namespace — the sandboxed
 Code node and the curated text nodes), `CLOUD_NODE_DENYLIST` (individual node
-types dropped from a kept namespace), `CLOUD_PROVIDER_IDS`, and
+types dropped from a kept namespace), `NON_CLOUD_PROVIDER_IDS`, and
 `CLOUD_BUILTIN_PACK_IDS`. Maintaining the cloud offering = editing those lists.
 
 ## Providers
 
-Limited to the big foundation-model labs plus Fal + Kie for media.
+Every provider NodeTool registers is offered, except the ones a cloud server
+cannot reach on the user's behalf. The node catalog is curated; the provider
+list is not.
 
-| Provider  | Id        | Role                          |
-| --------- | --------- | ----------------------------- |
-| OpenAI    | `openai`  | LLM, image, audio, realtime   |
-| Anthropic | `anthropic` | LLM (via Agent/Chat nodes)  |
-| Google    | `gemini`  | LLM, image, audio, video      |
-| Mistral   | `mistral` | LLM, vision                   |
-| xAI       | `xai`     | LLM, image, vision            |
-| Groq      | `groq`    | Fast LLM (via Agent/Chat nodes) |
-| Fal       | `fal_ai`  | Hosted image/video/audio models |
-| Kie       | `kie`     | Hosted image/video/audio models |
+Providers are bring-your-own-key: a key pasted into settings works the same
+from a Fly machine as from a laptop, and the settings page offers an API-key
+card for every one of them. A curated allowlist sat here before, and each
+provider it omitted still had that card — so a cloud user could save an
+OpenRouter key and find an empty model picker with nothing saying why.
 
-Anthropic and Groq have **no dedicated node namespace** — they reach users
-through the Agent / Chat / generator nodes via the provider registry.
+**Kept:** every hosted API — OpenAI, Anthropic, Gemini, Mistral, xAI, Groq,
+OpenRouter, DeepSeek, Moonshot, MiniMax, Cerebras, Together, Alibaba, Evolink,
+GMI, AtlasCloud, Aki, Cohere, Voyage, Jina, Hugging Face, Replicate, Fal, Kie,
+ElevenLabs, Topaz, Reve, Meshy, Rodin, Codex, and NodeTool's own managed
+models.
 
-**Dropped providers:** Replicate, Together, MiniMax, Topaz, Reve, AtlasCloud,
-ElevenLabs, Cohere, Voyage, Jina, Moonshot, DeepSeek, OpenRouter, Cerebras,
-Evolink, Aki, Meshy, Rodin, and all local runtimes (Ollama, LM Studio,
-llama.cpp, vLLM, Hugging Face local, Transformers.js).
+**Dropped** (`NON_CLOUD_PROVIDER_IDS`): the engines that run on the user's own
+machine — Ollama, LM Studio, llama.cpp, node-llama-cpp, vLLM, MLX,
+Transformers.js — plus the Claude Agent SDK, which reaches a personal
+subscription by spawning the local `claude` CLI, and the dev-only `fake`
+provider. The local engines are also never registered under the cloud profile
+in the first place.
+
+A provider needs no dedicated node namespace to be useful: Anthropic, Groq and
+OpenRouter reach users through the Agent / Chat / generator nodes, and
+ElevenLabs through the generic `nodetool.audio.TextToSpeech` node, via the
+provider registry alone.
 
 ## Namespaces kept
 
@@ -174,5 +182,7 @@ cloud profile drops:
 - Hide a single node from a kept namespace (e.g. a file-I/O node in
   `nodetool.text`, or a developer agent in `nodetool.agents`) → add its node
   type to `CLOUD_NODE_DENYLIST`.
-- Add/remove a provider → edit `CLOUD_PROVIDER_IDS` (and, for whole provider
-  packs, `CLOUD_BUILTIN_PACK_IDS`).
+- Hide a provider that cannot work in the cloud → add its id to
+  `NON_CLOUD_PROVIDER_IDS`. A newly registered provider is offered by default;
+  nothing needs editing to ship one. For whole provider packs, edit
+  `CLOUD_BUILTIN_PACK_IDS`.
