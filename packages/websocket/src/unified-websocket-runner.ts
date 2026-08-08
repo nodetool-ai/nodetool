@@ -145,6 +145,8 @@ import {
 } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
+  createSandboxClock,
+  type SandboxClock,
   CODEACT_RESIDENT_TOOL_NAMES,
   EXECUTE_CODE_TOOL_NAME,
   type ChatCodeActSession,
@@ -4885,10 +4887,19 @@ export class UnifiedWebSocketRunner {
    */
   private attachPlanApproval(
     context: RuntimeProcessingContext,
-    threadId: string | null
+    threadId: string | null,
+    clock?: SandboxClock
   ): void {
-    const request: RequestPlanApproval = (plan) =>
-      this.requestPlanApproval(threadId, plan);
+    // Same reasoning as the tool-approval gate: a plan presented from inside a
+    // code action parks the guest program, and the wait belongs to the user.
+    const request: RequestPlanApproval = async (plan) => {
+      const resume = clock?.suspend();
+      try {
+        return await this.requestPlanApproval(threadId, plan);
+      } finally {
+        resume?.();
+      }
+    };
     context.set(PLAN_APPROVAL_CONTEXT_KEY, request);
   }
 
@@ -5321,9 +5332,22 @@ export class UnifiedWebSocketRunner {
     const sessionAllow =
       this.chatSessionAllow.get(threadId) ?? new Set<string>();
     this.chatSessionAllow.set(threadId, sessionAllow);
-    const requestApproval = (
+    // A gated call inside a code action parks the guest program until the user
+    // answers. That wait is the user's, not the program's: charged to the
+    // action's wall clock it kills the very program that asked, and the answer
+    // then resolves nothing. The clock stops for the length of the prompt and
+    // the action resumes with the budget it had.
+    const codeactClock = createSandboxClock();
+    const requestApproval = async (
       request: ApprovalRequest
-    ): Promise<ApprovalDecision> => this.requestToolApproval(threadId, request);
+    ): Promise<ApprovalDecision> => {
+      const resume = codeactClock.suspend();
+      try {
+        return await this.requestToolApproval(threadId, request);
+      } finally {
+        resume();
+      }
+    };
     const baseTools = gateTools(dedupedToolbelt, {
       mode: permissionMode,
       sessionAllow,
@@ -5468,7 +5492,7 @@ export class UnifiedWebSocketRunner {
     });
     // Any agent planning inside this turn (e.g. via run_node spawning an
     // Agent node in plan mode) pauses for user plan approval.
-    this.attachPlanApproval(ctx, threadId || null);
+    this.attachPlanApproval(ctx, threadId || null, codeactClock);
     // Stamp the turn's own selection so harness-launching tools (build_app)
     // inherit this chat's provider/model when the call doesn't name one.
     ctx.set(ACTIVE_MODEL_CONTEXT_KEY, {
@@ -5508,7 +5532,8 @@ export class UnifiedWebSocketRunner {
           ...RESIDENT_TOOL_NAMES
         ],
         context: ctx,
-        signal
+        signal,
+        clock: codeactClock
       });
       providerToolSchemas.push(codeactSession.providerTool);
       // `view_image` stays a direct provider tool: it is the one channel that

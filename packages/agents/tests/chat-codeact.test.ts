@@ -10,6 +10,7 @@ import {
   type ChatCodeActToolCall
 } from "../src/codeact/chat-codeact.js";
 import { hasGraphModelTools } from "../src/codeact/graph-model.js";
+import { createSandboxClock } from "../src/js-sandbox.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 const objectSchema = (props: Record<string, unknown>) => ({
@@ -507,5 +508,86 @@ describe("hasGraphModelTools", () => {
     ).toBe(true);
     expect(hasGraphModelTools(["ui_get_graph", "ui_add_node"])).toBe(false);
     expect(hasGraphModelTools([])).toBe(false);
+  });
+});
+
+describe("permission prompts suspend the action clock", () => {
+  const SLOW_TOOL = [
+    { name: "write_file", description: "write", inputSchema: objectSchema({}) }
+  ];
+
+  it("kills the action when a slow gated call is charged to the budget", async () => {
+    const session = createChatCodeActSession({
+      tools: SLOW_TOOL,
+      actionTimeoutMs: 1000,
+      executeTool: async () => {
+        await new Promise((r) => setTimeout(r, 2500));
+        return JSON.stringify({ ok: true });
+      }
+    });
+    const obs = await runAction(session, `return await tools.write_file({});`);
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("ExecutionTimeout");
+  }, 20_000);
+
+  it("resumes the program when the wait runs on a suspended clock", async () => {
+    const clock = createSandboxClock();
+    const session = createChatCodeActSession({
+      tools: SLOW_TOOL,
+      actionTimeoutMs: 1000,
+      clock,
+      executeTool: async () => {
+        // Stands in for the user staring at the approval dialog.
+        const resume = clock.suspend();
+        try {
+          await new Promise((r) => setTimeout(r, 2500));
+          return JSON.stringify({ ok: true });
+        } finally {
+          resume();
+        }
+      }
+    });
+    const obs = await runAction(
+      session,
+      `await tools.write_file({});\nreturn "resumed";`
+    );
+    expect(obs.ok).toBe(true);
+    expect(obs.result).toBe("resumed");
+  }, 20_000);
+
+  it("still stops a runaway program that never waits on the user", async () => {
+    const clock = createSandboxClock();
+    const session = createChatCodeActSession({
+      tools: SLOW_TOOL,
+      actionTimeoutMs: 1000,
+      clock,
+      executeTool: async () => JSON.stringify({ ok: true })
+    });
+    const obs = await runAction(session, `while (true) {}`);
+    expect(obs.ok).toBe(false);
+  }, 20_000);
+});
+
+describe("createSandboxClock", () => {
+  it("counts only suspended time, and nests", async () => {
+    const clock = createSandboxClock();
+    expect(clock.suspendedMs()).toBe(0);
+    const outer = clock.suspend();
+    const inner = clock.suspend();
+    await new Promise((r) => setTimeout(r, 60));
+    inner();
+    expect(clock.suspendedMs()).toBeGreaterThanOrEqual(50);
+    outer();
+    const settled = clock.suspendedMs();
+    await new Promise((r) => setTimeout(r, 40));
+    expect(clock.suspendedMs()).toBe(settled);
+  });
+
+  it("ignores a resume called twice", () => {
+    const clock = createSandboxClock();
+    const resume = clock.suspend();
+    resume();
+    resume();
+    expect(clock.suspendedMs()).toBeGreaterThanOrEqual(0);
   });
 });

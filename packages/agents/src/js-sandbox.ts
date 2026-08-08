@@ -74,6 +74,13 @@ export const MAX_DATA_INPUT_CHARS = 5 * 1024 * 1024;
 /** Byte ceiling for binary `data.*` inputs (xlsx workbooks, zip archives). */
 export const MAX_DATA_INPUT_BYTES = 10 * 1024 * 1024;
 
+/**
+ * Headroom added to the engine's own wall-clock abort when a {@link SandboxClock}
+ * is in play. The clock only stops the *guest's* budget; this bounds how long a
+ * run may stay suspended in total, so a prompt nobody ever answers still ends.
+ */
+export const DEFAULT_SUSPEND_ALLOWANCE_MS = 30 * 60 * 1000;
+
 /** Total uncompressed size `data.unzip` will inflate before refusing. */
 export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
 /** Default number of `data.selectHtml` matches returned. */
@@ -1915,6 +1922,49 @@ ${code}
 })();`;
 }
 
+/**
+ * A run's wall clock, which the host can stop while the guest waits on
+ * something outside its own control — above all a permission prompt, which is
+ * bounded only by how long a person takes to answer it.
+ *
+ * The timeout exists to bound *guest execution*: a runaway loop, a program that
+ * never returns. Time a program spends parked on a host round-trip it cannot
+ * hurry is not that, and charging it to the same budget kills the program
+ * mid-wait — the answer then resolves nothing, because the sandbox that asked
+ * is already gone.
+ *
+ * `suspend()` returns the matching resume; calls nest, and the clock restarts
+ * only when the last one resumes.
+ */
+export interface SandboxClock {
+  /** Stop the guest's budget until the returned function is called. */
+  suspend(): () => void;
+  /** Milliseconds suspended so far, including a suspension still open. */
+  suspendedMs(): number;
+}
+
+export function createSandboxClock(): SandboxClock {
+  let depth = 0;
+  let openedAt = 0;
+  let accumulated = 0;
+  return {
+    suspend() {
+      if (depth === 0) openedAt = Date.now();
+      depth++;
+      let resumed = false;
+      return () => {
+        if (resumed) return;
+        resumed = true;
+        depth--;
+        if (depth === 0) accumulated += Date.now() - openedAt;
+      };
+    },
+    suspendedMs() {
+      return depth > 0 ? accumulated + (Date.now() - openedAt) : accumulated;
+    }
+  };
+}
+
 export interface RunSandboxOptions {
   /** The JavaScript code to execute. */
   code: string;
@@ -1946,6 +1996,19 @@ export interface RunSandboxOptions {
    * run). Without a callback the guest function is a no-op.
    */
   onProgress?: SandboxProgressCallback;
+  /**
+   * Wall clock the host can stop while the guest waits on a round-trip it
+   * cannot hurry (a permission prompt). Time suspended is added back to
+   * {@link timeoutMs}, so the guest keeps its full execution budget across the
+   * wait. Without a clock the timeout is plain wall-clock, as before.
+   */
+  clock?: SandboxClock;
+  /**
+   * Total suspension a run may accumulate before the engine aborts it anyway.
+   * Only consulted when {@link clock} is set. Defaults to
+   * {@link DEFAULT_SUSPEND_ALLOWANCE_MS}.
+   */
+  suspendAllowanceMs?: number;
 }
 
 export interface RunSandboxResult {
@@ -2039,7 +2102,9 @@ export async function runInSandbox(
     globals,
     signal,
     limits,
-    onProgress
+    onProgress,
+    clock,
+    suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
 
@@ -2085,9 +2150,13 @@ export async function runInSandbox(
         // mechanism that can stop a spinning loop. Compose cancellation with
         // the library's own wall-clock deadline (it installed one before
         // calling us; replacing it means re-implementing the deadline here).
+        // Suspended time is added back, so a program parked on a permission
+        // prompt resumes with the budget it had when it asked.
         const deadline = Date.now() + timeoutMs;
         ctx.runtime.setInterruptHandler(
-          () => signal?.aborted === true || Date.now() > deadline
+          () =>
+            signal?.aborted === true ||
+            Date.now() > deadline + (clock?.suspendedMs() ?? 0)
         );
 
         const bridges: Record<string, unknown> = {};
@@ -2348,7 +2417,13 @@ export default true;`,
         return userResult;
       },
       {
-        executionTimeout: timeoutMs,
+        // The engine's own abort is a plain `setTimeout` armed when evaluation
+        // starts — it cannot be paused. With a clock in play it becomes the
+        // backstop for a run that stays suspended forever, while the interrupt
+        // handler above keeps the exact bound on guest execution.
+        executionTimeout: clock
+          ? timeoutMs + Math.max(0, suspendAllowanceMs)
+          : timeoutMs,
         memoryLimit: resolvedLimits.memoryLimitBytes,
         maxStackSize: resolvedLimits.stackLimitBytes
       }

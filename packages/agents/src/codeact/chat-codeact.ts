@@ -18,7 +18,7 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { runInSandbox } from "../js-sandbox.js";
+import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import { stripImagePayload } from "../tools/image-injection.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
@@ -79,6 +79,13 @@ export interface ChatCodeActSessionOptions {
   maxToolCallsPerAction?: number;
   /** Tools documented in full; defaults to {@link CODEACT_RESIDENT_TOOL_NAMES}. */
   residentToolNames?: Iterable<string>;
+  /**
+   * The action's wall clock, which the host stops while a bridged call waits on
+   * the user (a permission prompt). Without it, the time a person spends
+   * deciding is charged to the action budget and the program is killed
+   * mid-wait; the answer then resolves nothing.
+   */
+  clock?: SandboxClock;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
 }
@@ -327,6 +334,7 @@ export function createChatCodeActSession(
       code: `${prelude}\n${code}`,
       timeoutMs: options.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
       signal: options.signal,
+      clock: options.clock,
       limits: { maxFetchCalls: 0 },
       globals: {
         __callTool: callTool,

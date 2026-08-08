@@ -40,7 +40,7 @@ import {
 import type { Step, Task } from "../types.js";
 import { Tool } from "../tools/base-tool.js";
 import { getMemoryTools } from "../tools/memory-tools.js";
-import { runInSandbox } from "../js-sandbox.js";
+import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import { truncateToolResult } from "../constants.js";
 import {
   formatViolations,
@@ -244,6 +244,13 @@ export interface CodeActExecutorOptions {
   /** Tool calls one action may consume. Default 50. */
   maxToolCallsPerAction?: number;
   /**
+   * The action's wall clock, which the host stops while a bridged call waits on
+   * the user (a permission prompt). Without it, the time a person spends
+   * deciding is charged to the action budget and the program is killed
+   * mid-wait; the answer then resolves nothing.
+   */
+  clock?: SandboxClock;
+  /**
    * Tools documented in full in the prompt. Defaults to
    * {@link CODEACT_RESIDENT_TOOL_NAMES}; the rest of the toolbelt is
    * deferred behind `searchTools()` once the belt exceeds
@@ -278,6 +285,7 @@ export class CodeActExecutor {
   private readonly upstreamMemoryKeys: string[];
   private readonly signal?: AbortSignal;
   private readonly actionTimeoutMs?: number;
+  private readonly clock?: SandboxClock;
   private readonly maxToolCallsPerAction?: number;
   private readonly resultSchema: Record<string, unknown> | null;
   private readonly residentTools: Tool[];
@@ -303,6 +311,7 @@ export class CodeActExecutor {
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
     this.signal = opts.signal;
     this.actionTimeoutMs = opts.actionTimeoutMs;
+    this.clock = opts.clock;
     this.maxToolCallsPerAction = opts.maxToolCallsPerAction;
 
     // Memory tools ride in the toolbelt as functions like everything else.
@@ -534,6 +543,7 @@ export class CodeActExecutor {
         context: this.context,
         timeoutMs: this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
         signal: this.signal,
+        clock: this.clock,
         globals: {
           ...bridge.globals,
           __finish: finishBridge,
