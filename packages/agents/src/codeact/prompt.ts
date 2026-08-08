@@ -30,6 +30,16 @@ Rules:
   seeing an observation first (and then finish the rest in that next action).
 - Multi-round protocols (poll a job, answer run escalations, retry a flaky
   call) are ONE action: write the loop, not one action per round.
+- Independent work runs CONCURRENTLY, and a sequential \`for\` loop over
+  \`await\` is the most common way an action wastes wall-clock. A call starts
+  its work when invoked, not when awaited, so
+  \`await Promise.all(items.map(x => tools.foo(x)))\` fans out for real —
+  ten independent lookups take one round trip, not ten. Use
+  \`await parallelMap(items, async (x) => …, 5)\` when the list is long enough
+  that unbounded fan-out would blow a rate limit or the per-action tool
+  budget; it preserves input order and keeps at most N in flight.
+  \`Promise.allSettled\` when some are allowed to fail. Sequence only what
+  genuinely depends on a previous result.
 - \`state\` is a plain object that persists across your actions in this step.
   Stash fetched data and intermediates there (\`state.rows = ...\`) and reuse
   them next turn — never re-fetch what you already have.

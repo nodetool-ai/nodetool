@@ -363,6 +363,23 @@ describe("CodeAct progressive tool disclosure", () => {
     expect(prompt).toContain('searchTools("query")');
   });
 
+  it("tells the model that independent calls run concurrently", async () => {
+    const { buildCodeActSystemPrompt } = await import("../src/codeact/prompt.js");
+    // The sandbox parallelizes host calls, but a model that does not know it
+    // writes `for (const x of xs) await tools.foo(x)` and pays one round trip
+    // per item. Both variants need the guidance — chat turns fan out over
+    // `tools.*` exactly as steps do.
+    for (const variant of ["step", "chat"] as const) {
+      const prompt = buildCodeActSystemPrompt({ tools: bigBelt(), variant });
+      expect(prompt, variant).toContain("Promise.all");
+      expect(prompt, variant).toContain("parallelMap");
+      // The helper's signature rides along from the manifest.
+      expect(prompt, variant).toContain("await parallelMap(items, fn");
+      // And the timers it replaces are still declared absent.
+      expect(prompt, variant).toContain("setTimeout");
+    }
+  });
+
   it("discovers a deferred tool via searchTools and calls it", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);
     const context = createMockContext();

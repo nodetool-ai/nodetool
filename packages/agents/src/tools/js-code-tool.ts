@@ -82,7 +82,21 @@ Read a secret by name (API keys, tokens, etc).
 Generate a random UUID v4.
 
 ### sleep(ms)
-Pause execution (max 5s per call).
+Pause execution (max 5s per call). The only timer — \`setTimeout\`/\`setInterval\` do not exist.
+
+### parallelMap(items, fn, concurrency?) → results[]
+Run an async function over items with at most \`concurrency\` in flight (default 5, max 32), \
+preserving input order. Rejects on the first failure; catch inside \`fn\` to collect errors instead.
+\`\`\`js
+const pages = await parallelMap(urls, async (url) => (await fetch(url)).json, 5);
+\`\`\`
+
+## Concurrency
+
+Bridge calls start their work when invoked, not when awaited, so independent calls run in \
+parallel. \`await Promise.all(urls.map(u => fetch(u)))\` costs one round trip, not one per URL; \
+\`Promise.allSettled\`, \`race\` and \`any\` work too. Awaiting inside a \`for\` loop serializes \
+everything — do that only when a call depends on the previous result.
 
 ## Guidelines
 - Use \`return\` to produce the final result (returned in the "result" field)
