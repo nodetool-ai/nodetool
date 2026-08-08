@@ -45,21 +45,94 @@ describe("FalProvider", () => {
     expect(ids).toContain("fal-ai/fast-sdxl");
   });
 
-  // --- Chat generation throws ---
+  // --- Language models ---
 
-  it("generateMessage throws (not supported)", async () => {
-    const p = createProvider();
-    await expect(
-      p.generateMessage({ messages: [], model: "test" } as any)
-    ).rejects.toThrow("fal_ai does not support chat generation");
+  function catalogFetch(rows: unknown[]): typeof fetch {
+    return vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ data: rows })
+    }) as unknown as typeof fetch;
+  }
+
+  it("lists language models from the catalog behind fal's LLM route", async () => {
+    const fetchFn = catalogFetch([
+      { id: "anthropic/claude-sonnet-4.5", name: "Claude Sonnet 4.5" },
+      { id: "openai/gpt-5", name: "GPT-5" }
+    ]);
+    const p = new FalProvider({ FAL_API_KEY: "test-key" }, { fetchFn });
+
+    const models = await p.getAvailableLanguageModels();
+
+    expect(fetchFn).toHaveBeenCalledWith("https://openrouter.ai/api/v1/models");
+    expect(models).toEqual([
+      {
+        id: "anthropic/claude-sonnet-4.5",
+        name: "Claude Sonnet 4.5",
+        provider: "fal_ai"
+      },
+      { id: "openai/gpt-5", name: "GPT-5", provider: "fal_ai" }
+    ]);
   });
 
-  it("generateMessages throws (not supported)", async () => {
-    const p = createProvider();
-    const gen = p.generateMessages({ messages: [], model: "test" } as any);
-    await expect(gen.next()).rejects.toThrow(
-      "fal_ai does not support chat generation"
+  it("returns no language models when the catalog is unreachable", async () => {
+    const fetchFn = vi
+      .fn()
+      .mockRejectedValue(new Error("offline")) as unknown as typeof fetch;
+    const p = new FalProvider({ FAL_API_KEY: "test-key" }, { fetchFn });
+
+    expect(await p.getAvailableLanguageModels()).toEqual([]);
+  });
+
+  it("reports tool support from what the catalog declared", async () => {
+    const fetchFn = catalogFetch([
+      { id: "with-tools", supported_parameters: ["tools", "temperature"] },
+      { id: "without-tools", supported_parameters: ["temperature"] }
+    ]);
+    const p = new FalProvider({ FAL_API_KEY: "test-key" }, { fetchFn });
+
+    // Before any listing there is nothing to answer from.
+    expect(await p.hasToolSupport("without-tools")).toBe(true);
+
+    await p.getAvailableLanguageModels();
+
+    expect(await p.hasToolSupport("with-tools")).toBe(true);
+    expect(await p.hasToolSupport("without-tools")).toBe(false);
+  });
+
+  // --- Chat generation ---
+
+  it("chats over fal's OpenAI-compatible route with Key auth", async () => {
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: new Headers({ "content-type": "application/json" }),
+      json: async () => ({
+        choices: [{ message: { role: "assistant", content: "hi" } }]
+      })
+    }) as unknown as typeof fetch;
+    const p = new FalProvider({ FAL_API_KEY: "test-key" }, { fetchFn });
+
+    const message = await p.generateMessage({
+      messages: [{ role: "user", content: "hello" }],
+      model: "openai/gpt-5"
+    } as any);
+
+    expect(message.content).toBe("hi");
+    const [url, init] = (fetchFn as unknown as ReturnType<typeof vi.fn>).mock
+      .calls[0];
+    expect(url).toBe(
+      "https://fal.run/openrouter/router/openai/v1/chat/completions"
     );
+    expect((init.headers as Record<string, string>).Authorization).toBe(
+      "Key test-key"
+    );
+  });
+
+  it("refuses chat generation without an API key", async () => {
+    const p = new FalProvider({});
+    await expect(
+      p.generateMessage({ messages: [], model: "openai/gpt-5" } as any)
+    ).rejects.toThrow("FAL_API_KEY is required");
   });
 
   // --- textToImage ---
