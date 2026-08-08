@@ -58,10 +58,12 @@ jobs:
     timeout-minutes: 65
     outputs:
       sha: ${{ github.event.workflow_run.head_sha }}
+      deploy: ${{ steps.poll.outputs.deploy }}
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - name: Poll for both workflows' success on this commit
+        id: poll
         shell: bash
         run: |
           set -euo pipefail
@@ -74,6 +76,20 @@ jobs:
               --jq '.workflow_runs[0].conclusion // "pending"'
           }
 
+          # True once a newer commit has landed on main. That commit's own
+          # fly-deploy run releases the newer image, so anything this run could
+          # still conclude about ${sha} is moot — and a red X here would be
+          # noise, not a broken deploy.
+          superseded() {
+            [ "$(gh api "repos/${repo}/commits/main" --jq .sha)" != "${sha}" ]
+          }
+
+          skip() {
+            echo "::notice::${1} Superseded on main; skipping the deploy of ${sha}."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          }
+
           for attempt in $(seq 1 60); do
             docker_conclusion="$(conclusion_for docker.yml)"
             journeys_conclusion="$(conclusion_for user-journeys.yml)"
@@ -81,19 +97,29 @@ jobs:
 
             if [ "${docker_conclusion}" = "success" ] && [ "${journeys_conclusion}" = "success" ]; then
               echo "Both workflows succeeded for ${sha}."
+              echo "deploy=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            if [ "${docker_conclusion}" = "failure" ] || [ "${docker_conclusion}" = "cancelled" ]; then
-              echo "::error::docker.yml concluded '${docker_conclusion}' for ${sha}; not deploying."
-              exit 1
-            fi
-            if [ "${journeys_conclusion}" = "failure" ] || [ "${journeys_conclusion}" = "cancelled" ]; then
-              echo "::error::user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}; not deploying."
-              exit 1
-            fi
+            case "${docker_conclusion}" in
+              failure|cancelled|timed_out)
+                if superseded; then skip "docker.yml concluded '${docker_conclusion}' for ${sha}."; fi
+                echo "::error::docker.yml concluded '${docker_conclusion}' for ${sha}; not deploying."
+                exit 1
+                ;;
+            esac
+            case "${journeys_conclusion}" in
+              failure|cancelled|timed_out)
+                if superseded; then skip "user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}."; fi
+                echo "::error::user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}; not deploying."
+                exit 1
+                ;;
+            esac
             sleep 60
           done
 
+          if superseded; then
+            skip "Timed out waiting for docker.yml and user-journeys.yml on ${sha}."
+          fi
           echo "::error::Timed out waiting for docker.yml and user-journeys.yml to both complete for ${sha}."
           exit 1
 
@@ -103,11 +129,13 @@ jobs:
     runs-on: ubuntu-latest
     # Skip when the image build (or the reliability Ring 1 gate) failed/was
     # cancelled. workflow_dispatch always runs (manual re-deploy); on
-    # workflow_run, `gate` must have completed successfully.
+    # workflow_run, `gate` must have completed successfully AND still consider
+    # this commit worth releasing — it reports deploy=false for a commit main
+    # has already moved past, whose own run does the releasing.
     if: >
       always() &&
       (github.event_name == 'workflow_dispatch' ||
-       needs.gate.result == 'success')
+       (needs.gate.result == 'success' && needs.gate.outputs.deploy == 'true'))
     steps:
       - uses: actions/checkout@v7
         with:

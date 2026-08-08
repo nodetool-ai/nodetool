@@ -104,7 +104,12 @@ F2 wires this table into the actual gates:
   workflows' conclusion on the triggering commit before `deploy` runs —
   whichever of the two finishes second is the run that actually reaches
   `deploy` (the other is superseded by `fly-deploy`'s existing
-  `cancel-in-progress` concurrency group).
+  `cancel-in-progress` concurrency group). Because that gate reads a
+  per-commit conclusion, `user-journeys.yml` does not cancel superseded runs
+  on `main` — a run cancelled by the next merge would read as "Ring 1 failed"
+  and block the release. And when the gate does see a red or cancelled
+  upstream for a commit `main` has already moved past, it skips the deploy
+  instead of failing: that commit's image is not what anyone is releasing.
 - **Ring 2**: `release.yaml` gained a per-OS "Reliability Ring 2
   packed-backend journey" step right after each OS's existing smoke-boot
   step, running linear-text-pipeline against that OS's packed backend
