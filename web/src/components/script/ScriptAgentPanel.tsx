@@ -11,6 +11,7 @@ import { FlexColumn, Text, SPACING, getSpacingPx } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
 import ChatPanelHeader from "../chat/containers/ChatPanelHeader";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useInStudio } from "../../studio/StudioContext";
 
 const styles = (_theme: Theme) =>
   css({
@@ -50,6 +51,7 @@ interface ScriptAgentPanelProps {
 const ScriptAgentPanel = ({ scriptId }: ScriptAgentPanelProps) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
+  const inStudio = useInStudio();
 
   // Bind the open script id as the chat's `workflow_id`. The server only
   // forwards client `ui_*` tools to the model when a turn carries a
@@ -164,6 +166,7 @@ const ScriptAgentPanel = ({ scriptId }: ScriptAgentPanelProps) => {
           progressMessage={statusMessage}
           model={selectedModel}
           onModelChange={setSelectedModel}
+          hideModelPicker={inStudio}
           onStop={stopGeneration}
           onNewChat={handleNewChat}
           requireToolSupport

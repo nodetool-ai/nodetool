@@ -1,10 +1,11 @@
 /**
  * Pin the Studio assistants to the curated director model. Every editor's
  * agent panel reads `GlobalChatStore.selectedModel`, so inside the Studio
- * shell that selection is forced to the curated model (the model picker the
- * panels render then shows it, and turns run on it — metered like all
- * `nodetool`-provider calls). The user's own selection is restored when the
- * shell unmounts, so workspace chat is untouched.
+ * shell that selection is forced to the curated model and the panels hide
+ * their model chip — picking the brain behind the assistants is not a
+ * beginner's decision. Turns run on it, metered like all `nodetool`-provider
+ * calls. The user's own selection is restored when the shell unmounts, so
+ * workspace chat is untouched.
  */
 
 import { useEffect } from "react";

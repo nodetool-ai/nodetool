@@ -12,6 +12,9 @@ import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import type { VideoModelTask } from "../../hooks/useModelsByProvider";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import CuratedModelSelect from "./curated/CuratedModelSelect";
+import { useInStudio } from "../../studio/StudioContext";
+import { forTasks, STUDIO_CLIP_MODELS } from "../../studio/curatedModels";
 
 interface VideoModelSelectProps {
   onChange: (value: VideoModelValue) => void;
@@ -31,6 +34,7 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const inStudio = useInStudio();
 
   const { data: models } = useQuery({
     queryKey: ["video-models"],
@@ -70,6 +74,17 @@ const VideoModelSelect: React.FC<VideoModelSelectProps> = ({
     },
     [onChange, addRecent]
   );
+
+  if (inStudio) {
+    return (
+      <CuratedModelSelect
+        label="Video model"
+        options={forTasks(STUDIO_CLIP_MODELS, task)}
+        value={value}
+        onChange={onChange}
+      />
+    );
+  }
 
   return (
     <>

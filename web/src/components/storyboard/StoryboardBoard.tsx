@@ -47,6 +47,7 @@ import {
   type ImageModelTask
 } from "../../hooks/useModelsByProvider";
 import LanguageModelSelect from "../properties/LanguageModelSelect";
+import { useInStudio } from "../../studio/StudioContext";
 import ImageModelSelect from "../properties/ImageModelSelect";
 import VideoModelSelect from "../properties/VideoModelSelect";
 import ShotCard from "./ShotCard";
@@ -222,6 +223,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     shots
   } = useBoard(boardId);
 
+  const inStudio = useInStudio();
   const setTitle = useStoryboardStore((state) => state.setTitle);
   const setBrief = useStoryboardStore((state) => state.setBrief);
   const setStyle = useStoryboardStore((state) => state.setStyle);
@@ -346,12 +348,16 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               </FormSection>
 
               <FormSection label="Direction" className="settings">
-                <FormField label="Screenplay model" sx={modelFieldSx}>
-                  <LanguageModelSelect
-                    value={directorModel?.id ?? ""}
-                    onChange={(value) => setDirectorModel(boardId, value)}
-                  />
-                </FormField>
+                {/* The Studio shell pins the director model — a beginner
+                    picks what the film looks like, not which LLM writes it. */}
+                {!inStudio && (
+                  <FormField label="Screenplay model" sx={modelFieldSx}>
+                    <LanguageModelSelect
+                      value={directorModel?.id ?? ""}
+                      onChange={(value) => setDirectorModel(boardId, value)}
+                    />
+                  </FormField>
+                )}
                 <FormField label="Still model" sx={modelFieldSx}>
                   <ImageModelSelect
                     value={imageModel?.id ?? ""}

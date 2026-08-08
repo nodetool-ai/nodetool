@@ -53,6 +53,8 @@ import type {
   VideoResolution
 } from "../../stores/MediaGenerationStore";
 import type { VideoModel } from "../../stores/ApiTypes";
+import { useInStudio } from "../../studio/StudioContext";
+import { forTasks, STUDIO_CLIP_MODELS } from "../../studio/curatedModels";
 
 /**
  * Resolve the video track to drop the clip onto: the first unlocked video
@@ -79,6 +81,7 @@ export interface TopBarPromptProps {
 
 export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false }) => {
   const theme = useTheme();
+  const inStudio = useInStudio();
   const [prompt, setPrompt] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -192,6 +195,18 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
     [handleSubmit]
   );
 
+  // Inside the Studio shell the chip opens the curated list instead of the
+  // provider browser — same chip, three options, no API keys.
+  const curatedClipOptions = useMemo(
+    () =>
+      forTasks(STUDIO_CLIP_MODELS, "text_to_video").map((option) => ({
+        id: option.id,
+        label: option.label,
+        description: option.blurb
+      })),
+    []
+  );
+
   const handlePickVideoModel = useCallback((model: VideoModel) => {
     const normalized = normalizeVideoModel(model);
     setUserPicked(true);
@@ -276,15 +291,30 @@ export const TopBarPrompt: React.FC<TopBarPromptProps> = memo(({ compact = false
           truncate
           showChevron={false}
         />
-        {videoModelOpen && (
-          <VideoModelMenuDialog
-            open
-            anchorEl={videoModelAnchorRef.current}
-            onClose={() => setVideoModelOpen(false)}
-            onModelChange={handlePickVideoModel}
-            task="text_to_video"
-          />
-        )}
+        {videoModelOpen &&
+          (inStudio ? (
+            <MediaOptionMenu
+              anchorEl={videoModelAnchorRef.current}
+              open
+              onClose={() => setVideoModelOpen(false)}
+              header="Video model"
+              value={selectedModel?.id ?? ""}
+              options={curatedClipOptions}
+              onChange={(id) => {
+                const picked = STUDIO_CLIP_MODELS.find((o) => o.id === id);
+                if (picked) handlePickVideoModel(picked.value);
+                setVideoModelOpen(false);
+              }}
+            />
+          ) : (
+            <VideoModelMenuDialog
+              open
+              anchorEl={videoModelAnchorRef.current}
+              onClose={() => setVideoModelOpen(false)}
+              onModelChange={handlePickVideoModel}
+              task="text_to_video"
+            />
+          ))}
 
         <MediaControlChip
           icon={<AccessTimeIcon fontSize="small" />}

@@ -22,6 +22,7 @@ import {
 } from "../components/ui_primitives";
 import { useStudioCredits } from "./useStudioCredits";
 import { useStudioAssistantModel } from "./useStudioAssistantModel";
+import { StudioProvider } from "./StudioContext";
 
 const CreditsChip = () => {
   const navigate = useNavigate();
@@ -74,47 +75,49 @@ const StudioShell = ({
   const navigate = useNavigate();
   useStudioAssistantModel();
   return (
-    <FlexColumn fullHeight sx={{ width: "100%", minHeight: 0 }}>
-      <FlexRow
-        align="center"
-        gap={SPACING.md}
-        sx={{
-          flexShrink: 0,
-          px: SPACING.lg,
-          py: SPACING.sm,
-          borderBottom: `1px solid ${theme.vars.palette.divider}`
-        }}
-      >
-        {showBack && (
-          <EditorButton
-            size="small"
-            startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-            onClick={() => navigate("/studio")}
-          >
-            Studio
-          </EditorButton>
-        )}
-        {!showBack && (
-          <FlexRow align="center" gap={SPACING.sm}>
-            <MovieFilterRoundedIcon fontSize="small" />
-            <Text size="normal" weight={600}>
-              NodeTool Studio
+    <StudioProvider>
+      <FlexColumn fullHeight sx={{ width: "100%", minHeight: 0 }}>
+        <FlexRow
+          align="center"
+          gap={SPACING.md}
+          sx={{
+            flexShrink: 0,
+            px: SPACING.lg,
+            py: SPACING.sm,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          {showBack && (
+            <EditorButton
+              size="small"
+              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => navigate("/studio")}
+            >
+              Studio
+            </EditorButton>
+          )}
+          {!showBack && (
+            <FlexRow align="center" gap={SPACING.sm}>
+              <MovieFilterRoundedIcon fontSize="small" />
+              <Text size="normal" weight={600}>
+                NodeTool Studio
+              </Text>
+            </FlexRow>
+          )}
+          {title && (
+            <Text size="normal" color="secondary" truncate>
+              {title}
             </Text>
-          </FlexRow>
-        )}
-        {title && (
-          <Text size="normal" color="secondary" truncate>
-            {title}
-          </Text>
-        )}
-        <FlexRow sx={{ flex: 1 }} />
-        {actions}
-        <CreditsChip />
-      </FlexRow>
-      <FlexColumn sx={{ flex: 1, minHeight: 0, width: "100%" }}>
-        {children}
+          )}
+          <FlexRow sx={{ flex: 1 }} />
+          {actions}
+          <CreditsChip />
+        </FlexRow>
+        <FlexColumn sx={{ flex: 1, minHeight: 0, width: "100%" }}>
+          {children}
+        </FlexColumn>
       </FlexColumn>
-    </FlexColumn>
+    </StudioProvider>
   );
 };
 

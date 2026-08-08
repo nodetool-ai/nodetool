@@ -12,6 +12,9 @@ import { trpc } from "../../lib/trpc";
 import Select from "../inputs/Select";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
+import CuratedModelSelect from "./curated/CuratedModelSelect";
+import { useInStudio } from "../../studio/StudioContext";
+import { STUDIO_VOICES } from "../../studio/curatedModels";
 import { SPACING, getSpacingPx } from "../ui_primitives";
 
 interface TTSModelSelectProps {
@@ -30,6 +33,7 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const addRecent = useModelPreferencesStore((s) => s.addRecent);
+  const inStudio = useInStudio();
   const { data: models } = useQuery({
     queryKey: ["tts-models"],
     queryFn: () => trpc.models.tts.query() as Promise<TTSModel[]>
@@ -147,6 +151,19 @@ const TTSModelSelect: React.FC<TTSModelSelectProps> = ({
     flexDirection: "column" as const,
     gap: getSpacingPx(SPACING.xs)
   }), []);
+
+  // A curated voice is one model plus one voice, so Studio picks a voice
+  // directly instead of a model picker followed by a voice picker.
+  if (inStudio) {
+    return (
+      <CuratedModelSelect
+        label="Voice"
+        options={STUDIO_VOICES}
+        value={selectedVoice}
+        onChange={onChange}
+      />
+    );
+  }
 
   return (
     <div style={containerStyle}>
