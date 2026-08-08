@@ -81,6 +81,7 @@ column by `resolveSandboxLimits`:
 | Limit | Default | Configured by | Ceiling |
 |-------|---------|---------------|---------|
 | Execution time | `timeoutMs` (30 s) | `setInterruptHandler` (CPU budget) + wall-clock race | — |
+| Suspended time | `DEFAULT_SUSPEND_ALLOWANCE_MS` (30 min) | `RunSandboxOptions.suspendAllowanceMs`, only with a `clock` | — |
 | Guest heap | `GUEST_MEMORY_LIMIT` = 64 MB | `runtime.setMemoryLimit` (`limits.memoryLimitBytes`) | 512 MB |
 | Call stack | `GUEST_STACK_LIMIT` = 512 KB | `runtime.setMaxStackSize` (`limits.stackLimitBytes`) | 8 MB |
 | Fetch calls | `MAX_FETCH_CALLS` = 20 per run | counter inside bridge (`limits.maxFetchCalls`) | 100 |
@@ -151,6 +152,18 @@ host-bridged version.
 **State sync-back**: object-typed globals are deep-replaced on the host after
 the guest runs, so `CodeNode`'s `state` object persists across invocations.
 Primitive globals pass by value (no sync).
+
+**Suspending the clock** (`createSandboxClock`, `RunSandboxOptions.clock`): the
+timeout bounds *guest execution*, and a program waiting on a permission prompt
+is not executing — it is waiting on a person. Charged to the same budget, the
+wait kills the program that asked, and the answer then resolves nothing. A
+caller that owns such a wait wraps it in `clock.suspend()`; the suspended time
+is added back to `timeoutMs`, so the program resumes with the budget it had.
+Suspensions nest, and the engine's own abort moves out to
+`timeoutMs + suspendAllowanceMs` as the backstop for a prompt nobody answers.
+The interrupt handler still cuts a runaway loop at exactly `timeoutMs` of
+running time. The websocket chat runner owns one clock per turn and suspends it
+around every tool- and plan-approval round trip.
 
 **Known QuickJS limitations**:
 - `url.searchParams.set(...)` doesn't propagate back to the parent URL. Build

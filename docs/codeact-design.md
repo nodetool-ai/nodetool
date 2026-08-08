@@ -185,6 +185,14 @@ materialization all stay where they are. `state` persists across the turn's
 actions; there is no `finish()` — a plain assistant message ends the turn, and
 the prompt says so (`variant: "chat"` of `buildCodeActSystemPrompt`).
 
+A gated tool call parks the running program on the user's answer, so the turn
+carries a **sandbox clock** (`createSandboxClock`): the runner suspends it for
+the length of every tool- and plan-approval round trip, and the action resumes
+with the budget it had when it asked. Without it the action's wall clock ran
+through the prompt and killed the program mid-wait — the dialog was still on
+screen, and answering it resolved nothing. Tests:
+`packages/websocket/tests/chat-codeact-approval.test.ts`.
+
 ## Workflow graph editing: the JS object model
 
 When the belt carries the `ui_*` workflow document tools, code actions get an

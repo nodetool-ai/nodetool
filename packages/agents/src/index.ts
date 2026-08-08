@@ -311,12 +311,14 @@ export {
   buildSandbox,
   runInSandbox,
   serializeResult,
-  resolveSandboxLimits
+  resolveSandboxLimits,
+  createSandboxClock
 } from "./js-sandbox.js";
 export {
   DEFAULT_TIMEOUT_MS,
   MAX_OUTPUT_SIZE,
   MAX_LOOP_ITERATIONS,
+  DEFAULT_SUSPEND_ALLOWANCE_MS,
   EXPOSED_BRIDGE_NAMES,
   GUEST_HELPER_NAMES,
   RESERVED_SANDBOX_NAMES
@@ -324,6 +326,7 @@ export {
 export type {
   RunSandboxOptions,
   RunSandboxResult,
+  SandboxClock,
   SandboxLimits,
   ResolvedSandboxLimits,
   SandboxProgressCallback,
