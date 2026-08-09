@@ -408,7 +408,8 @@ export {
   NODETOOL_API_NAMESPACE_TOOLS,
   NODETOOL_API_PRELUDE_FULL,
   buildNodetoolApiPromptSection,
-  hasNodetoolApiTools
+  hasNodetoolApiTools,
+  nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
 
 // Agents
