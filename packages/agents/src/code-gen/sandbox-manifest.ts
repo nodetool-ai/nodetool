@@ -23,6 +23,12 @@ import {
   type ExposedBridgeName,
   type GuestHelperName
 } from "../js-sandbox.js";
+import {
+  MAX_CANVAS_OPS,
+  MAX_DECODE_PIXELS,
+  MAX_IMAGE_INPUT_BYTES,
+  MAX_IMAGE_PIXELS
+} from "../sandbox-media.js";
 
 /** The node this manifest describes. */
 export const SANDBOX_MANIFEST_NODE_TYPE = "nodetool.code.Code";
@@ -455,6 +461,118 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       }
     ]
   },
+  image: {
+    name: "image",
+    kind: "namespace",
+    description:
+      "Raster image editing. Every member takes and returns encoded image " +
+      "bytes, so calls chain. Formats: png, jpeg, webp, avif.",
+    members: [
+      {
+        name: "image.info",
+        signature:
+          "await image.info(bytes) -> { width, height, format, byteLength }",
+        description:
+          "Dimensions and encoding of an image, without decoding it into the guest.",
+        async: true
+      },
+      {
+        name: "image.decode",
+        signature:
+          "await image.decode(bytes) -> { width, height, pixels } // pixels: RGBA Uint8Array",
+        description:
+          "Raw pixels for per-pixel work. Four bytes per pixel — resize first, and prefer the other members when they do the job.",
+        async: true
+      },
+      {
+        name: "image.encode",
+        signature:
+          "await image.encode({ width, height, pixels }, options?) -> Uint8Array // options: format, quality, background",
+        description: "Encode raw RGBA pixels — the inverse of decode.",
+        async: true
+      },
+      {
+        name: "image.resize",
+        signature:
+          "await image.resize(bytes, options) -> Uint8Array // options: width, height, fit (cover | contain | fill), background, format, quality",
+        description:
+          "Scale an image. One of width or height keeps the aspect ratio; both apply the fit mode, which defaults to contain.",
+        async: true
+      },
+      {
+        name: "image.crop",
+        signature:
+          "await image.crop(bytes, options) -> Uint8Array // options: x, y, width, height, format, quality",
+        description:
+          "Cut a rectangle out. A rectangle outside the image is an error, not a clamp.",
+        async: true
+      },
+      {
+        name: "image.rotate",
+        signature:
+          "await image.rotate(bytes, degrees, options?) -> Uint8Array // options: background, format, quality",
+        description:
+          "Rotate clockwise, growing the canvas to the rotated bounding box so nothing is clipped.",
+        async: true
+      },
+      {
+        name: "image.flip",
+        signature:
+          "await image.flip(bytes, options?) -> Uint8Array // options: horizontal (default true), vertical, format, quality",
+        description: "Mirror an image.",
+        async: true
+      },
+      {
+        name: "image.adjust",
+        signature:
+          "await image.adjust(bytes, options) -> Uint8Array // options: brightness, contrast, saturate, grayscale, sepia, invert, blur, hueRotate, opacity, format, quality",
+        description:
+          "Filter an image. 1 is unchanged for the multiplying filters, 0 for grayscale, sepia, invert and blur.",
+        async: true
+      },
+      {
+        name: "image.composite",
+        signature:
+          "await image.composite(bytes, layers, options?) -> Uint8Array // layer: { image, x, y, width, height, opacity, blendMode }",
+        description:
+          "Draw layers over a base image — watermarks, badges, stacked renders. blendMode takes the Canvas globalCompositeOperation names.",
+        async: true
+      },
+      {
+        name: "image.convert",
+        signature:
+          "await image.convert(bytes, options) -> Uint8Array // options: format, quality, background",
+        description:
+          "Re-encode without resampling. Converting to jpeg fills transparency with background, white by default.",
+        async: true
+      }
+    ]
+  },
+  canvas: {
+    name: "canvas",
+    kind: "namespace",
+    description:
+      "Draw with a real Canvas 2D context. Use createCanvas for the familiar " +
+      "API; these are the raw calls behind it.",
+    members: [
+      {
+        name: "canvas.render",
+        signature:
+          "await canvas.render(spec) -> Uint8Array // spec: { width, height, background, format, quality, gradients, ops }",
+        description:
+          "Replay a recorded draw list and encode the result. createCanvas builds the spec for you.",
+        async: true
+      },
+      {
+        name: "canvas.measureText",
+        signature:
+          "await canvas.measureText(text, font?) -> { width, actualBoundingBoxAscent, actualBoundingBoxDescent, ... }",
+        description:
+          "Text metrics for a CSS font string, so text can be laid out before it is drawn.",
+        async: true
+      }
+    ]
+  },
   __maxIter: {
     name: "__maxIter",
     kind: "function",
@@ -508,6 +626,14 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     description:
       "Run an async function over items with at most `concurrency` in flight, preserving input order. The bounded form of Promise.all fan-out — the way to fetch many URLs in parallel. Rejects on the first failure; wrap fn in try/catch to collect errors instead.",
     async: true
+  },
+  createCanvas: {
+    name: "createCanvas",
+    signature:
+      "createCanvas(width, height) -> { width, height, getContext, toBytes, toSpec }",
+    description:
+      "A Canvas 2D surface. getContext with \"2d\" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec hands the recorded draw list to canvas.render instead.",
+    async: false
   }
 };
 
@@ -603,6 +729,30 @@ function fixedLimits(): SandboxLimitDoc[] {
       unit: "count",
       value: DEFAULT_SELECT_HTML_LIMIT,
       ceiling: MAX_SELECT_HTML_LIMIT
+    },
+    {
+      key: "maxImageInputBytes",
+      description: "encoded image accepted by an image.* call",
+      unit: "bytes",
+      value: MAX_IMAGE_INPUT_BYTES
+    },
+    {
+      key: "maxImagePixels",
+      description: "pixels in a decoded image or rendered canvas",
+      unit: "count",
+      value: MAX_IMAGE_PIXELS
+    },
+    {
+      key: "maxDecodePixels",
+      description: "pixels returned by image.decode",
+      unit: "count",
+      value: MAX_DECODE_PIXELS
+    },
+    {
+      key: "maxCanvasOps",
+      description: "draw operations per canvas render",
+      unit: "count",
+      value: MAX_CANVAS_OPS
     }
   ];
 }
@@ -643,6 +793,7 @@ export function getSandboxManifest(): SandboxManifest {
       "Bridge calls start host-side work when invoked, not when awaited: Promise.all / allSettled / race / any over fetch or workspace calls run them in parallel. Use parallelMap for bounded fan-out. sleep is the only timer.",
       "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
       "Media and asset values are reference objects. Pass them through unchanged.",
+      "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back.",
       "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
     ]
   };

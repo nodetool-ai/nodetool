@@ -52,9 +52,10 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Host bridges
   "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
+  "image", "canvas",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
-  "parallelMap",
+  "parallelMap", "createCanvas",
   // Blocked in the sandbox, but still not user inputs
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",
   "setImmediate", "clearImmediate", "eval", "Function",
