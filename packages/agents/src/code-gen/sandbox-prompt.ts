@@ -73,7 +73,9 @@ export function renderSandboxApiReference(
     `# Sandbox API — Code node\n\nCode runs in a ${manifest.runtime} sandbox. Only the names below exist.`
   );
 
-  sections.push(`## Rules\n${manifest.notes.map((n) => `- ${n}`).join("\n")}`);
+  sections.push(
+    `## Rules\n${manifest.notes.map((n) => `- ${n.text}`).join("\n")}`
+  );
 
   const bridgeBlocks: string[] = [];
   for (const bridge of Object.values(manifest.bridges)) {

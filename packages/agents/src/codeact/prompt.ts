@@ -9,6 +9,7 @@ import {
   getSandboxManifest,
   type SandboxManifest
 } from "../code-gen/sandbox-manifest.js";
+import { extractApiReferences } from "../code-gen/sandbox-prompt.js";
 import { renderToolCatalog, type ToolSignatureSource } from "./tool-api.js";
 
 const ACTION_CONTRACT_BASE = `# CodeAct Execution
@@ -54,8 +55,7 @@ Rules:
   along in the same observation, costs nothing, and turns a wrong guess into
   something you can fix inside the same program instead of a probe action.
 - A failed tool call throws; use try/catch when partial failure is acceptable.
-- Top-level \`await\` and \`return\` work. There is no module loader: no
-  \`import\`/\`require\`, and \`eval\`/\`Function\` are disabled.`;
+- Top-level \`await\` and \`return\` work.`;
 
 const ACTION_CONTRACT_STEP = `${ACTION_CONTRACT_BASE}
 - For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
@@ -63,13 +63,15 @@ const ACTION_CONTRACT_STEP = `${ACTION_CONTRACT_BASE}
   \`remove\`) — it is in-process, so a read costs nothing a tool call would.
 - Do not ask the user questions. Choose a reasonable assumption and proceed.`;
 
-const ACTION_CONTRACT_CHAT = `${ACTION_CONTRACT_BASE}
-- Network, secrets, files, and assets are available only through \`tools.*\`.
-  Direct \`fetch\`, \`getSecret\`, \`workspace\`, \`assetToSandbox\`, and
-  \`sandboxToAsset\` access is disabled so permission checks and approvals
-  cannot be bypassed.
+function actionContractChat(unavailable: readonly string[]): string {
+  return `${ACTION_CONTRACT_BASE}
+- Network, secrets, files, and assets are available only through \`tools.*\`,
+  so permission checks and approvals cannot be bypassed. Unusable here:
+  ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
+  with no context and a zero-request fetch limit.
 - When you need the user's decision, stop writing code and ask in a plain
   assistant message.`;
+}
 
 const CHAT_COMPLETION = `# Answering the user
 
@@ -98,18 +100,64 @@ const FINISH_FREEFORM = `# Completing the step
 Call \`await finish(result)\` when the objective is met, or — for a purely
 textual answer — reply with a final assistant message containing no tool call.`;
 
+/**
+ * Bridges a chat action cannot use for a reason the manifest does not record.
+ * `fetch` exists but is cut by `maxFetchCalls: 0`, and `getSecret` answers
+ * `undefined` rather than throwing without a context. Both are enforced in
+ * `createChatCodeActSession`; everything else follows from `requiresContext`.
+ */
+const CHAT_UNAVAILABLE_BRIDGES = ["fetch", "getSecret"] as const;
+
+/**
+ * The bridges the chat variant hides: the two above plus every bridge whose
+ * members all need a `ProcessingContext`, which a chat action runs without.
+ */
+export function chatUnavailableBridges(
+  manifest: SandboxManifest = getSandboxManifest()
+): string[] {
+  const derived = Object.values(manifest.bridges)
+    .filter(
+      (bridge) =>
+        bridge.members.length > 0 &&
+        bridge.members.every((member) => member.requiresContext)
+    )
+    .map((bridge) => bridge.name as string);
+  return [...new Set([...CHAT_UNAVAILABLE_BRIDGES, ...derived])].sort();
+}
+
+/**
+ * Manifest notes the action contract states in its own words, at more length
+ * and with the action-loop specifics. Removing one from the contract must
+ * remove it here too.
+ *
+ * Unlike the audience tag, this one is a phrase match: it exists because two
+ * files say the same thing, so there is no shared field to key on. Keep it to
+ * rules the contract genuinely restates.
+ */
+const CONTRACT_NOTE_PHRASES = ["start host-side work when invoked"];
+
+/** Manifest notes that hold for a code action of this variant. */
+function relevantNotes(
+  manifest: SandboxManifest,
+  hidden: Set<string>
+): string[] {
+  return manifest.notes
+    .filter((note) => (note.audience ?? "all") === "all")
+    .map((note) => note.text)
+    .filter((text) => {
+      if (CONTRACT_NOTE_PHRASES.some((phrase) => text.includes(phrase))) {
+        return false;
+      }
+      return !extractApiReferences(text).some((name) => hidden.has(name));
+    });
+}
+
 /** Compact, manifest-derived sandbox reference: signatures only. */
 function renderSandboxSummary(
   manifest: SandboxManifest,
   variant: "step" | "chat"
 ): string {
-  const unavailableInChat = new Set([
-    "fetch",
-    "getSecret",
-    "workspace",
-    "assetToSandbox",
-    "sandboxToAsset"
-  ]);
+  const unavailableInChat = new Set(chatUnavailableBridges(manifest));
   const lines: string[] = [];
   for (const bridge of Object.values(manifest.bridges)) {
     if (bridge.internal || bridge.members.length === 0) continue;
@@ -123,8 +171,14 @@ function renderSandboxSummary(
   }
   const besides =
     variant === "chat" ? "`tools.*`, `state`" : "`tools.*`, `state`, `finish`";
+  const notes = relevantNotes(
+    manifest,
+    variant === "chat" ? unavailableInChat : new Set<string>()
+  );
   return [
     `# Sandbox API (besides ${besides})`,
+    // Before the signatures: the notes point at "the bridges below".
+    notes.map((note) => `- ${note}`).join("\n"),
     lines.join("\n"),
     `Built-ins: ${manifest.nativeGlobals.join(", ")}.`,
     `Not available: ${manifest.blockedGlobals.join(", ")}.`,
@@ -170,7 +224,9 @@ export function buildCodeActSystemPrompt(
   const sections: string[] = [];
   if (options.preamble?.trim()) sections.push(options.preamble.trim());
   sections.push(
-    variant === "chat" ? ACTION_CONTRACT_CHAT : ACTION_CONTRACT_STEP
+    variant === "chat"
+      ? actionContractChat(chatUnavailableBridges(manifest))
+      : ACTION_CONTRACT_STEP
   );
   if (variant === "chat") {
     sections.push(CHAT_COMPLETION);

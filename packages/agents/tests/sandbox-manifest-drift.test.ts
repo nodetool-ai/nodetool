@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { buildSandbox } from "../src/js-sandbox.js";
+import { buildSandbox, runInSandbox } from "../src/js-sandbox.js";
 import {
   getSandboxManifest,
-  sandboxManifestNames
+  sandboxManifestNames,
+  GUEST_GLOBALS_SNAPSHOT
 } from "../src/code-gen/sandbox-manifest.js";
 import {
   renderSandboxApiReference,
@@ -92,6 +93,42 @@ describe("sandbox manifest", () => {
     expect(manifest.nativeGlobals).toContain("JSON");
     expect(manifest.nativeGlobals).not.toContain("setTimeout");
   });
+
+  it("documents the byte and number types the bridges return", () => {
+    for (const name of ["Uint8Array", "ArrayBuffer", "DataView", "BigInt"]) {
+      expect(manifest.nativeGlobals, name).toContain(name);
+    }
+  });
+
+  it("names what other runtimes have and this guest does not", () => {
+    for (const name of ["btoa", "atob", "structuredClone", "Intl"]) {
+      expect(manifest.blockedGlobals, name).toContain(name);
+      expect(manifest.nativeGlobals, name).not.toContain(name);
+    }
+  });
+});
+
+describe("guest globals snapshot", () => {
+  // The manifest is built synchronously from a checked-in list because booting
+  // QuickJS is async. This is what holds that list to the running guest.
+  it("equals what the running sandbox reports", async () => {
+    const run = await runInSandbox({
+      code: "return Object.getOwnPropertyNames(globalThis)"
+    });
+    expect(run.error).toBeFalsy();
+    const observed = (run.result as string[])
+      .filter((name) => !name.startsWith("__"))
+      .sort();
+    expect(observed).toEqual([...GUEST_GLOBALS_SNAPSHOT]);
+  }, 60_000);
+
+  it("has no name the manifest calls blocked", () => {
+    const blocked = getSandboxManifest().blockedGlobals;
+    const present = blocked.filter((name) =>
+      GUEST_GLOBALS_SNAPSHOT.includes(name)
+    );
+    expect(present, "blocked names the guest actually has").toEqual([]);
+  });
 });
 
 describe("authoring instructions name only APIs the sandbox has", () => {
@@ -145,6 +182,26 @@ function documentedGlobals(): Set<string> {
 }
 
 /**
+ * Names a consumer may deliberately omit, with the reason.
+ *
+ * The two copies answer different questions, so an identical set is not always
+ * right. The validator asks "does this name resolve?" — `env` does, so reading
+ * it is not an error. Input inference asks "could this usefully be an input?" —
+ * dynamic inputs are exposed after the library's stubs and shadow them
+ * (`js-sandbox.ts` installs user globals last), so a Code node with an input
+ * named `env` works, and treating the stub as a reserved name would drop the
+ * handle on re-inference and silently read `{}` instead.
+ *
+ * Keep this list short and reasoned. It is the escape hatch that stops the
+ * pinning below from locking in a bug, which is exactly what the old
+ * hand-restated sets did.
+ */
+const INTENTIONAL_OMISSIONS: Record<string, ReadonlySet<string>> = {
+  "the web set": new Set(["env"]),
+  "the node-sdk set": new Set()
+};
+
+/**
  * Both copies of the sandbox global list — the web editor's input inference and
  * the node-sdk graph validator — restate the manifest because neither package
  * can import it. Drift either way is a bug: a missing name invents an input or
@@ -152,8 +209,11 @@ function documentedGlobals(): Set<string> {
  */
 function expectMatchesSandbox(names: ReadonlySet<string>, label: string): void {
   const documented = documentedGlobals();
+  const allowed = INTENTIONAL_OMISSIONS[label] ?? new Set<string>();
 
-  const missing = [...documented].filter((n) => !names.has(n));
+  const missing = [...documented].filter(
+    (n) => !names.has(n) && !allowed.has(n)
+  );
   expect(missing, `sandbox names ${label} omits`).toEqual([]);
 
   const phantom = [...names].filter(

@@ -928,6 +928,14 @@ const NAMESPACE_TOOLS_LITERAL = `const __NT_NAMESPACE_TOOLS = ${JSON.stringify(
 /** The full prelude: namespace map, shared graph DSL core, API definition. */
 export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_DSL_CORE_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
 
+/** Guest names {@link NODETOOL_API_PRELUDE_FULL} defines. */
+export const NODETOOL_API_GLOBALS = [
+  "nodetool",
+  "__NT_NAMESPACE_TOOLS",
+  "__graphJsonOf",
+  "__graphDslBuilder"
+] as const;
+
 interface PromptEntry {
   /** Namespace key in {@link NODETOOL_API_NAMESPACE_TOOLS}. */
   namespace: string;

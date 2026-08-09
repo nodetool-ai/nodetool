@@ -22,6 +22,8 @@ import {
   extractInjectableImages,
   stripImagePayload
 } from "../tools/image-injection.js";
+import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
+import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
 
 /** Tool-call ceiling per code action; a runaway guest loop stops here. */
 export const DEFAULT_MAX_TOOL_CALLS_PER_ACTION = 50;
@@ -278,8 +280,15 @@ async function searchTools(query, maxResults) {
 }
 `;
 
-/** Names the prelude and bridge globals claim inside the guest. */
-export const CODEACT_RESERVED_NAMES = [
+/**
+ * Every name the guest already has beyond the sandbox manifest's own surface:
+ * the host bridges the executors install as `globals`, the wrappers
+ * {@link CODEACT_PRELUDE} builds over them, and the two optional object-model
+ * preludes. User code cannot rebind these, and prompt text may name them
+ * without the sandbox-manifest drift check calling them undefined.
+ */
+export const CODEACT_INJECTED_GLOBALS = [
+  // Host bridges (`runInSandbox` globals) plus the prelude's wrappers.
   "tools",
   "finish",
   "state",
@@ -287,7 +296,9 @@ export const CODEACT_RESERVED_NAMES = [
   "__callTool",
   "__finish",
   "__toolNames",
-  "__searchTools"
+  "__searchTools",
+  ...GRAPH_MODEL_GLOBALS,
+  ...NODETOOL_API_GLOBALS
 ] as const;
 
 // ---------------------------------------------------------------------------

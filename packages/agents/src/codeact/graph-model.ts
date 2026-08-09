@@ -39,6 +39,9 @@ export function hasGraphModelTools(toolNames: Iterable<string>): boolean {
   return REQUIRED_TOOL_NAMES.every((name) => names.has(name));
 }
 
+/** Guest names {@link GRAPH_MODEL_PRELUDE} defines. */
+export const GRAPH_MODEL_GLOBALS = ["openWorkflow"] as const;
+
 /**
  * Guest-side prelude defining `openWorkflow()`. Plain QuickJS-safe JS — no
  * host bridges of its own; every effect goes through `tools.ui_*`.

@@ -2665,7 +2665,12 @@ export default true;`,
           ? timeoutMs + Math.max(0, suspendAllowanceMs)
           : timeoutMs,
         memoryLimit: resolvedLimits.memoryLimitBytes,
-        maxStackSize: resolvedLimits.stackLimitBytes
+        maxStackSize: resolvedLimits.stackLimitBytes,
+        // The library defaults this to `{NODE_DEBUG: "true"}`, which reaches
+        // the guest as `process.env` and can flip debug paths in its `node:util`
+        // polyfill. Guest code has no business reading host-shaped environment
+        // variables, so the stub carries nothing.
+        env: {}
       }
     );
 

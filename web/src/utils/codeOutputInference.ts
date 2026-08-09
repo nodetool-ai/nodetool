@@ -106,27 +106,42 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
  * lives in `packages/agents/tests/sandbox-manifest-drift.test.ts`.
  */
 const SANDBOX_GLOBALS = new Set([
-  // QuickJS built-ins
-  "console", "JSON", "Math", "Date", "RegExp", "Array", "Object", "String",
-  "Number", "Boolean", "Map", "Set", "WeakMap", "WeakSet", "Symbol", "Promise",
-  "Error", "TypeError", "RangeError", "URIError", "SyntaxError",
-  "parseInt", "parseFloat", "isNaN", "isFinite",
-  "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI",
-  "btoa", "atob", "structuredClone", "TextEncoder", "TextDecoder",
-  "URL", "URLSearchParams", "Infinity", "NaN",
+  // Guest globals, as observed in the running QuickJS sandbox
+  "AggregateError", "Array", "ArrayBuffer", "BigInt", "BigInt64Array",
+  "BigUint64Array", "Boolean", "Buffer", "DataView", "Date", "Error",
+  "EvalError", "FinalizationRegistry", "Float32Array", "Float64Array",
+  "Headers", "Infinity", "Int16Array", "Int32Array", "Int8Array",
+  "InternalError", "JSON", "Map", "Math", "NaN", "Number", "Object",
+  "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect", "RegExp",
+  "Request", "Response", "Set", "SharedArrayBuffer", "String", "Symbol",
+  "SyntaxError", "TextDecoder", "TextEncoder", "TypeError", "URIError",
+  "URL", "URLSearchParams", "Uint16Array", "Uint32Array", "Uint8Array",
+  "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI",
+  "decodeURIComponent", "encodeURI", "encodeURIComponent", "escape",
+  "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt", "performance",
+  "process", "queueMicrotask", "undefined", "unescape",
+  // `env` is deliberately absent, though the guest has it. Dynamic inputs are
+  // exposed after the sandbox's stubs and shadow them, so a Code node with an
+  // input named `env` works — listing it here would drop that handle on
+  // re-inference and leave the code silently reading the empty stub. The
+  // node-sdk validator still accepts `env` as a resolvable name; the two lists
+  // answer different questions. Pinned by INTENTIONAL_OMISSIONS in
+  // packages/agents/tests/sandbox-manifest-drift.test.ts.
   // Host bridges
-  "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
+  "console", "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
   "image", "canvas",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
   "parallelMap", "createCanvas",
-  // Blocked in the sandbox, but still not user inputs
+  // Absent from this guest, but not user inputs either
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",
   "setImmediate", "clearImmediate", "eval", "Function",
+  "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
+  "FormData",
   // JS literals that acorn parses as Identifier nodes
-  "undefined", "true", "false", "null", "NaN", "Infinity",
-  "this", "arguments", "globalThis", "self", "window", "document", "process",
+  "true", "false", "null",
+  "this", "arguments", "self", "window", "document",
   // Code node reserved props
   "code", "timeout", "state",
   // Sandbox internals
