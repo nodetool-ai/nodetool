@@ -17,7 +17,7 @@
  *   // outputs: { sum: 15, upper: "HELLO" }
  */
 
-import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { BaseNode, prop, CODE_INPUTS_GLOBAL } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
@@ -240,8 +240,15 @@ export class CodeNode extends BaseNode {
     // Build the function body with implicit return support.
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
 
-    // Inject state as a direct reference so mutations persist across calls.
-    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+    // Declared inputs arrive on one `inputs` object rather than as globals of
+    // their own name. Sharing the global namespace with the sandbox API let an
+    // input called `env` or `data` shadow a bridge, and made every undeclared
+    // identifier ambiguous between a typo and a missing slot.
+    // State stays a direct reference so mutations persist across calls.
+    const globals = {
+      [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
+      state: this._state
+    };
 
     const sandboxResult = await runInSandbox({
       code: body,
@@ -285,8 +292,15 @@ export class CodeNode extends BaseNode {
       return __yielded;
     `;
 
-    // Inject state as a direct reference so mutations persist across calls.
-    const globals = { ...deepCopyInputs(dynamicInputs), state: this._state };
+    // Declared inputs arrive on one `inputs` object rather than as globals of
+    // their own name. Sharing the global namespace with the sandbox API let an
+    // input called `env` or `data` shadow a bridge, and made every undeclared
+    // identifier ambiguous between a typo and a missing slot.
+    // State stays a direct reference so mutations persist across calls.
+    const globals = {
+      [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
+      state: this._state
+    };
 
     const sandboxResult = await runInSandbox({
       code: wrappedBody,

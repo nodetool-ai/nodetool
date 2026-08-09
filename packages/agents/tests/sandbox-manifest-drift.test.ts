@@ -27,10 +27,6 @@ const CHAT_INTEGRATION = path.join(
   repoRoot,
   "web/src/hooks/editor/useChatIntegration.ts"
 );
-const OUTPUT_INFERENCE = path.join(
-  repoRoot,
-  "web/src/utils/codeOutputInference.ts"
-);
 
 /** Names the Code node or JS syntax supplies — not part of the sandbox. */
 const NODE_LEVEL_NAMES = new Set([
@@ -50,6 +46,7 @@ const NODE_LEVEL_NAMES = new Set([
   "code",
   "timeout",
   "state",
+  "inputs",
   "__maxIter"
 ]);
 
@@ -182,38 +179,20 @@ function documentedGlobals(): Set<string> {
 }
 
 /**
- * Names a consumer may deliberately omit, with the reason.
+ * The node-sdk graph validator restates the manifest because it cannot import
+ * it — the dependency runs the other way. Drift either way is a bug: a missing
+ * name turns a legitimate bridge call into a bogus "not defined" error, an
+ * extra one hides a real reference.
  *
- * The two copies answer different questions, so an identical set is not always
- * right. The validator asks "does this name resolve?" — `env` does, so reading
- * it is not an error. Input inference asks "could this usefully be an input?" —
- * dynamic inputs are exposed after the library's stubs and shadow them
- * (`js-sandbox.ts` installs user globals last), so a Code node with an input
- * named `env` works, and treating the stub as a reserved name would drop the
- * handle on re-inference and silently read `{}` instead.
- *
- * Keep this list short and reasoned. It is the escape hatch that stops the
- * pinning below from locking in a bug, which is exactly what the old
- * hand-restated sets did.
- */
-const INTENTIONAL_OMISSIONS: Record<string, ReadonlySet<string>> = {
-  "the web set": new Set(["env"]),
-  "the node-sdk set": new Set()
-};
-
-/**
- * Both copies of the sandbox global list — the web editor's input inference and
- * the node-sdk graph validator — restate the manifest because neither package
- * can import it. Drift either way is a bug: a missing name invents an input or
- * a "not defined" error, an extra one hides a real reference.
+ * The web editor used to keep a second copy for input inference. It no longer
+ * needs one: inputs arrive on the `inputs` object, so inference reads
+ * `inputs.name` instead of subtracting every sandbox global from the free
+ * identifiers.
  */
 function expectMatchesSandbox(names: ReadonlySet<string>, label: string): void {
   const documented = documentedGlobals();
-  const allowed = INTENTIONAL_OMISSIONS[label] ?? new Set<string>();
 
-  const missing = [...documented].filter(
-    (n) => !names.has(n) && !allowed.has(n)
-  );
+  const missing = [...documented].filter((n) => !names.has(n));
   expect(missing, `sandbox names ${label} omits`).toEqual([]);
 
   const phantom = [...names].filter(
@@ -221,21 +200,6 @@ function expectMatchesSandbox(names: ReadonlySet<string>, label: string): void {
   );
   expect(phantom, `${label} names the sandbox does not provide`).toEqual([]);
 }
-
-describe("web input inference globals", () => {
-  it("matches the sandbox surface", () => {
-    const source = readIfPresent(OUTPUT_INFERENCE);
-    if (!source) return;
-    const literal = source.match(
-      /const SANDBOX_GLOBALS = new Set\(\[([\s\S]*?)\]\)/
-    );
-    expect(literal, "SANDBOX_GLOBALS in codeOutputInference.ts").toBeTruthy();
-    const webNames = new Set(
-      [...literal![1].matchAll(/"([^"]+)"/g)].map((m) => m[1])
-    );
-    expectMatchesSandbox(webNames, "the web set");
-  });
-});
 
 describe("graph validator globals", () => {
   it("matches the sandbox surface", () => {

@@ -74,143 +74,51 @@ describe("inferOutputKeysFromCode", () => {
 });
 
 describe("inferInputKeysFromCode", () => {
-  it("returns null for empty string", () => {
+  it("returns null for empty code", () => {
     expect(inferInputKeysFromCode("")).toBeNull();
   });
 
-  it("returns null for non-string input", () => {
-    expect(inferInputKeysFromCode(null as unknown as string)).toBeNull();
+  it("returns null when the code reads no inputs", () => {
+    expect(inferInputKeysFromCode("return { out: 1 + 2 };")).toBeNull();
   });
 
-  it("detects undeclared identifiers as inputs", () => {
-    const code = `return { result: inputData + 1 }`;
-    expect(inferInputKeysFromCode(code)).toEqual(["inputData"]);
+  it("reads names off the inputs object", () => {
+    const result = inferInputKeysFromCode(
+      "return { out: inputs.a + inputs.b };"
+    );
+    expect(result).toEqual(expect.arrayContaining(["a", "b"]));
+    expect(result).toHaveLength(2);
   });
 
-  it("excludes declared variables", () => {
-    const code = `
-      const x = 10;
-      let y = 20;
-      return { result: x + y }
-    `;
+  it("reads a bracketed string key", () => {
+    expect(inferInputKeysFromCode('return { out: inputs["a-b"] };')).toEqual([
+      "a-b"
+    ]);
+  });
+
+  it("ignores a bare identifier — inputs are not globals", () => {
+    // The old inference guessed that every undeclared name was an input, which
+    // is what let a stale sandbox-global list invent phantom slots.
+    expect(inferInputKeysFromCode("return { out: text + lodash };")).toBeNull();
+  });
+
+  it("ignores a property named inputs on something else", () => {
+    expect(inferInputKeysFromCode("return { out: opts.inputs.a };")).toBeNull();
+  });
+
+  it("yields nothing when the body binds its own inputs", () => {
+    const code = "const inputs = { a: 1 };\nreturn { out: inputs.a };";
     expect(inferInputKeysFromCode(code)).toBeNull();
   });
 
-  it("excludes sandbox globals", () => {
-    const code = `
-      const result = JSON.parse(Math.random().toString());
-      console.log(result);
-      return { result }
-    `;
+  it("yields nothing for a dynamic read it cannot enumerate", () => {
+    const code = "const k = 'a';\nreturn { out: inputs[k] };";
     expect(inferInputKeysFromCode(code)).toBeNull();
   });
 
-  it("excludes function declarations", () => {
-    const code = `
-      function helper(a, b) { return a + b; }
-      return { sum: helper(1, 2) }
-    `;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("excludes function expression names and params", () => {
-    const code = `
-      const fn = function process(item) { return item; };
-      return { out: fn(1) }
-    `;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("excludes arrow function params", () => {
-    const code = `
-      const fn = (item) => item * 2;
-      return { out: fn(1) }
-    `;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("does not count property accesses as inputs", () => {
-    const code = `return { result: myObj.someProp }`;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toContain("myObj");
-    expect(inputs).not.toContain("someProp");
-  });
-
-  it("does not count object keys as inputs", () => {
-    const code = `return { foo: 123 }`;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("handles destructuring declarations", () => {
-    const code = `
-      const { a, b } = someInput;
-      return { sum: a + b }
-    `;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toContain("someInput");
-    expect(inputs).not.toContain("a");
-    expect(inputs).not.toContain("b");
-  });
-
-  it("handles array destructuring", () => {
-    const code = `
-      const [first, ...rest] = items;
-      return { first, count: rest.length }
-    `;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toContain("items");
-    expect(inputs).not.toContain("first");
-    expect(inputs).not.toContain("rest");
-  });
-
-  it("excludes class declarations", () => {
-    const code = `
-      class MyClass {}
-      return { instance: new MyClass() }
-    `;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("excludes catch clause params", () => {
-    const code = `
-      try { throw inputVal } catch (err) { return { error: err.message } }
-    `;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toContain("inputVal");
-    expect(inputs).not.toContain("err");
-  });
-
-  it("returns null for invalid code", () => {
-    expect(inferInputKeysFromCode("{{{{ not valid")).toBeNull();
-  });
-
-  it("excludes import declarations", () => {
-    const code = `
-      import { foo } from "bar";
-      return { result: foo() }
-    `;
-    expect(inferInputKeysFromCode(code)).toBeNull();
-  });
-
-  it("detects multiple undeclared inputs", () => {
-    const code = `return { sum: a + b + c }`;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).toEqual(expect.arrayContaining(["a", "b", "c"]));
-    expect(inputs).toHaveLength(3);
-  });
-
-  it("excludes the data bridge but not names the sandbox lacks", () => {
-    // `_` and `dayjs` are not bridged into the guest, so a reference to one is
-    // an ordinary undefined variable and becomes an input. `data` is a real
-    // bridge (data.parseCsv / data.selectHtml) and is not.
-    const code = `
-      const rows = await data.parseCsv(text);
-      const result = _.map(rows, (x) => x * 2);
-      const d = dayjs();
-      return { result, d }
-    `;
-    const inputs = inferInputKeysFromCode(code);
-    expect(inputs).not.toContain("data");
-    expect(inputs).toEqual(expect.arrayContaining(["_", "dayjs", "text"]));
+  it("ignores names in comments and strings", () => {
+    const code =
+      '// inputs.ghost is not read\nconst s = "inputs.other";\nreturn { out: inputs.real + s };';
+    expect(inferInputKeysFromCode(code)).toEqual(["real"]);
   });
 });

@@ -275,17 +275,18 @@ describe("ui_get_graph tool", () => {
       expect(errors.join("\n")).toContain("does not parse");
     });
 
-    it("reports a name that is neither a sandbox API nor an input", async () => {
+    it("reports an inputs read the node has no slot for", async () => {
       const errors = await codeGraph({
-        properties: { code: "return { out: lodash.sum(rows) };" },
+        properties: { code: "return { out: inputs.rows.concat(inputs.extra) };" },
         dynamic_properties: { rows: [] },
       });
-      expect(errors.join("\n")).toContain('"lodash"');
+      expect(errors.join("\n")).toContain('"inputs.extra"');
+      expect(errors.join("\n")).not.toContain('"inputs.rows"');
     });
 
     it("accepts inputs that arrive over an edge", async () => {
       const errors = await codeGraph(
-        { properties: { code: "return { out: text.length };" } },
+        { properties: { code: "return { out: inputs.text.length };" } },
         [{ id: "e1", source: "s1", target: "c1", sourceHandle: "output", targetHandle: "text" }],
         [{ id: "s1", type: "nodetool.constant.String", position: { x: -200, y: 0 }, data: {} }]
       );

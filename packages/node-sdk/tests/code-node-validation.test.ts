@@ -20,7 +20,11 @@ describe("validateCodeNodeBody", () => {
   it("accepts a body that reads its inputs and returns its outputs", () => {
     expect(
       validateCodeNodeBody(
-        body("const total = a + b;\nreturn { total };", ["a", "b"], ["total"])
+        body(
+          "const total = inputs.a + inputs.b;\nreturn { total };",
+          ["a", "b"],
+          ["total"]
+        )
       )
     ).toEqual([]);
   });
@@ -43,7 +47,7 @@ describe("validateCodeNodeBody", () => {
 
   it("flags a name that is neither a sandbox API nor an input", () => {
     const issues = validateCodeNodeBody(
-      body("return { out: lodash.sum(values) };", ["values"], ["out"])
+      body("return { out: lodash.sum(inputs.values) };", ["values"], ["out"])
     );
     const undefinedName = issues.find((i) => i.code === "code_undefined_name");
     expect(undefinedName?.severity).toBe("error");
@@ -54,7 +58,7 @@ describe("validateCodeNodeBody", () => {
     expect(
       codes(
         body(
-          `const res = await fetch(url);
+          `const res = await fetch(inputs.url);
            state.seen = (state.seen ?? 0) + 1;
            console.log(format.number(state.seen));
            return { body: res.json, seen: state.seen };`,

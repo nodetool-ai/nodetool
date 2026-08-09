@@ -80,6 +80,10 @@ function validateCodeNode(
     ...Object.keys(asRecord(node.data?.dynamic_properties)),
     ...Object.keys(asRecord(node.data?.dynamic_inputs))
   ]);
+  // Reads off the `inputs` object that no slot or edge feeds. A bare undefined
+  // name (`lodash`) is not decidable here — that needs the sandbox global list,
+  // which lives in node-sdk's validator; `validate_workflow` and the run-time
+  // graph check report those.
   const undefinedNames = (inferInputKeysFromCode(code) ?? []).filter(
     (name) =>
       !available.has(name) && !connectedInputs.has(`${node.id}::${name}`)
@@ -87,8 +91,8 @@ function validateCodeNode(
   if (undefinedNames.length > 0) {
     errors.push(
       `Node ${nodeLabel}: the code reads ${undefinedNames
-        .map((name) => `"${name}"`)
-        .join(", ")}, which ${undefinedNames.length > 1 ? "are" : "is"} neither a sandbox API nor an input of this node.`
+        .map((name) => `"inputs.${name}"`)
+        .join(", ")}, which ${undefinedNames.length > 1 ? "are" : "is"} not an input of this node.`
     );
   }
 }

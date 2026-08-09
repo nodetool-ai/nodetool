@@ -1763,6 +1763,38 @@ storage
     }
   });
 
+workflows
+  .command("migrate-code-inputs")
+  .description(
+    "Rewrite saved Code node bodies to read declared inputs off `inputs`"
+  )
+  .option("--dry-run", "Report what would change without writing anything")
+  .option("--user-id <id>", "Migrate only this user's workflows")
+  .option("--json", "Output the report as JSON")
+  .action(async (opts) => {
+    await setupDb();
+    const { migrateCodeInputs, formatMigrateCodeInputsReport } = await import(
+      "./commands/migrate-code-inputs.js"
+    );
+    try {
+      const report = await migrateCodeInputs({
+        dryRun: Boolean(opts.dryRun),
+        ...(opts.userId ? { userId: opts.userId } : {})
+      });
+      if (opts.json) {
+        console.log(JSON.stringify(report, null, 2));
+      } else {
+        console.log(
+          formatMigrateCodeInputsReport(report, Boolean(opts.dryRun))
+        );
+      }
+      if (report.failed > 0) process.exit(1);
+    } catch (e) {
+      console.error(String(e));
+      process.exit(1);
+    }
+  });
+
 // ---------------------------------------------------------------------------
 // secrets
 // ---------------------------------------------------------------------------

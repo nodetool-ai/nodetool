@@ -2,8 +2,8 @@
  * AST primitives for the body of a Code node (`nodetool.code.Code`).
  *
  * A Code node's `code` property is the body of one async function: declared
- * dynamic inputs arrive as globals and the returned object's keys are the
- * node's output handles. Everything a checker needs to say about such a body —
+ * dynamic inputs arrive on an `inputs` object and the returned object's keys
+ * are the node's output handles. Everything a checker needs to say about such a body —
  * does it parse, what does it return, which names does it invent — is derived
  * here, so the graph validator, the code-generation planner and the editor all
  * read the same AST rather than three approximations of it.
@@ -395,16 +395,88 @@ export function typeofGuardedNames(
   return guarded;
 }
 
+/** The global every declared input of a Code node arrives on. */
+export const CODE_INPUTS_GLOBAL = "inputs";
+
 /**
- * Identifiers the code reads without binding them. Property names, object
- * keys and labels are excluded: none of them resolve against the scope chain,
- * so none of them can throw a ReferenceError.
+ * Input names the body reads off the `inputs` global, and whether it also
+ * reaches for the object in a way this analysis cannot resolve to names.
+ *
+ * `inputs.text` and `inputs["text"]` both count. A dynamic read
+ * (`inputs[key]`), a spread, or passing `inputs` somewhere sets `opaque`:
+ * the body uses inputs the reader cannot enumerate, so a caller must not
+ * conclude an undeclared slot is unused. A body that shadows `inputs` with
+ * its own binding reports nothing — the reads are that binding's, not the
+ * node's.
  */
-export function freeIdentifiers(
+export function inputsMemberReads(statements: readonly CodeBodyStatement[]): {
+  names: string[];
+  opaque: boolean;
+} {
+  if (collectBoundNamesFrom(statements).has(CODE_INPUTS_GLOBAL)) {
+    return { names: [], opaque: false };
+  }
+  const names = new Set<string>();
+  let opaque = false;
+
+  walk(statements, (node, ancestors) => {
+    if (node.type !== "Identifier" || node.name !== CODE_INPUTS_GLOBAL) return;
+    const parent = ancestors[ancestors.length - 2];
+    // A property *named* `inputs` (`opts.inputs`, `{inputs: 1}`) is not the
+    // global. `inputs.x` is, and there `inputs` is the object, not the
+    // property.
+    if (parent?.type === "MemberExpression") {
+      if (parent.property === node && !parent.computed) return;
+      if (parent.object === node) {
+        if (!parent.computed && parent.property.type === "Identifier") {
+          names.add(parent.property.name);
+          return;
+        }
+        if (
+          parent.computed &&
+          parent.property.type === "Literal" &&
+          typeof parent.property.value === "string"
+        ) {
+          names.add(parent.property.value);
+          return;
+        }
+        // `inputs[key]` — a real read of a name only the runtime knows.
+        opaque = true;
+        return;
+      }
+    }
+    if (parent?.type === "Property" && parent.key === node && !parent.computed) {
+      return;
+    }
+    // `{...inputs}`, `f(inputs)`, `Object.keys(inputs)` — the whole bag leaves.
+    opaque = true;
+  });
+
+  return { names: [...names], opaque };
+}
+
+/** One identifier the code reads without binding it. */
+interface IdentifierRead {
+  name: string;
+  start: number;
+  end: number;
+  /** `{ text }` — a rewrite has to become `{ text: <expr> }`, not `{ <expr> }`. */
+  shorthand: boolean;
+}
+
+/**
+ * Identifier *reads* — occurrences that resolve against the scope chain.
+ * Property names, object keys and labels are excluded: none of them resolve,
+ * so none of them can throw a ReferenceError.
+ *
+ * Positions come along because the migration rewrites these occurrences in
+ * place; sharing one collector keeps "what counts as a read" from drifting
+ * between the check and the rewrite.
+ */
+function identifierReads(
   statements: readonly CodeBodyStatement[]
-): string[] {
-  const bound = collectBoundNamesFrom(statements);
-  const referenced = new Set<string>();
+): IdentifierRead[] {
+  const reads: IdentifierRead[] = [];
 
   walk(statements, (node, ancestors) => {
     if (node.type !== "Identifier") return;
@@ -416,7 +488,9 @@ export function freeIdentifiers(
         if (parent.property === node && !parent.computed) return;
         break;
       case "Property":
-        if (parent.key === node && !parent.computed) return;
+        if (parent.key === node && !parent.computed && !parent.shorthand) {
+          return;
+        }
         break;
       case "MethodDefinition":
       case "PropertyDefinition":
@@ -452,8 +526,82 @@ export function freeIdentifiers(
       default:
         break;
     }
-    referenced.add(node.name);
+    reads.push({
+      name: node.name,
+      start: node.start,
+      end: node.end,
+      shorthand: parent.type === "Property" && parent.shorthand === true
+    });
   });
 
-  return [...referenced].filter((name) => !bound.has(name));
+  // A shorthand property's `key` and `value` are the same node, so the walk
+  // reaches the occurrence twice. One position is one read.
+  const seen = new Set<number>();
+  return reads.filter((read) => {
+    if (seen.has(read.start)) return false;
+    seen.add(read.start);
+    return true;
+  });
+}
+
+/**
+ * Identifiers the code reads without binding them. Property names, object
+ * keys and labels are excluded: none of them resolve against the scope chain,
+ * so none of them can throw a ReferenceError.
+ */
+export function freeIdentifiers(
+  statements: readonly CodeBodyStatement[]
+): string[] {
+  const bound = collectBoundNamesFrom(statements);
+  const names = new Set(identifierReads(statements).map((read) => read.name));
+  return [...names].filter((name) => !bound.has(name));
+}
+
+/**
+ * Rewrite a pre-`inputs` Code node body: every free read of a declared input
+ * becomes `inputs.<name>`.
+ *
+ * Inputs used to arrive as globals of their own name. Bodies written that way
+ * throw a ReferenceError now, so this is the mechanical half of that move —
+ * offsets come from the AST, so a name inside a string or a comment, an object
+ * key, or a locally shadowed binding is left alone.
+ *
+ * Returns the rewritten source and the names it touched. `changed` is false
+ * when there was nothing to do, when the body does not parse, or when it binds
+ * `inputs` itself — rewriting into a shadowed name would silently change which
+ * object is read.
+ */
+export function migrateCodeBodyToInputs(
+  code: string,
+  inputNames: readonly string[]
+): { code: string; changed: boolean; rewritten: string[] } {
+  const unchanged = { code, changed: false, rewritten: [] as string[] };
+  const targets = new Set(inputNames);
+  if (targets.size === 0) return unchanged;
+
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) return unchanged;
+
+  const bound = collectBoundNamesFrom(parsed.statements);
+  if (bound.has(CODE_INPUTS_GLOBAL)) return unchanged;
+
+  const edits = identifierReads(parsed.statements).filter(
+    (read) => targets.has(read.name) && !bound.has(read.name)
+  );
+  if (edits.length === 0) return unchanged;
+
+  // Apply back to front so earlier offsets stay valid.
+  let out = code;
+  for (const edit of [...edits].sort((a, b) => b.start - a.start)) {
+    const replacement = edit.shorthand
+      ? `${edit.name}: ${CODE_INPUTS_GLOBAL}.${edit.name}`
+      : `${CODE_INPUTS_GLOBAL}.${edit.name}`;
+    out = out.slice(0, edit.start) + replacement + out.slice(edit.end);
+  }
+
+  return {
+    code: out,
+    changed: true,
+    rewritten: [...new Set(edits.map((e) => e.name))].sort()
+  };
 }

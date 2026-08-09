@@ -61,7 +61,7 @@
         "parent_id": null,
         "type": "nodetool.code.Code",
         "data": {
-          "code": "const res = await fetch(url, { headers: { ...headers } });\nreturn { output: await res.text(), status: res.status };",
+          "code": "const res = await fetch(inputs.url, { headers: { ...inputs.headers } });\nreturn { output: await res.text(), status: res.status };",
           "timeout": 30,
           "max_response_mb": 8,
           "allow_local_network": false,
@@ -291,7 +291,7 @@
         "parent_id": null,
         "type": "nodetool.code.Code",
         "data": {
-          "code": "const res = await fetch(url, { headers: { ...headers } });\nreturn { output: await res.text(), status: res.status };",
+          "code": "const res = await fetch(inputs.url, { headers: { ...inputs.headers } });\nreturn { output: await res.text(), status: res.status };",
           "timeout": 30,
           "max_response_mb": 8,
           "allow_local_network": false,
