@@ -24,11 +24,17 @@ test("workflow suite executes and records artifacts", async ({ page }) => {
   });
 
   await page.goto("/e2e-runner.html?manual=1");
-  await page.waitForFunction(() => Boolean(window.__E2E__), undefined, {
-    timeout: 90_000
-  });
+  // The app installs `window.__E2E__` BEFORE it awaits `harness.init()`, so a
+  // controller that exists says nothing about the manifest having arrived.
+  // Wait for the manifest itself — reading it the moment the controller appears
+  // races the fetch and reports an empty suite.
+  await page
+    .waitForFunction(() => (window.__E2E__?.manifest().length ?? 0) > 0, undefined, {
+      timeout: 90_000
+    })
+    .catch(() => {});
 
-  const total = await page.evaluate(() => window.__E2E__!.manifest().length);
+  const total = await page.evaluate(() => window.__E2E__?.manifest().length ?? 0);
   expect(total, "manifest should list workflows").toBeGreaterThan(0);
 
   const screenshotsDir = resolve(ARTIFACT_DIR, "screenshots");
