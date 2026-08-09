@@ -65,7 +65,8 @@ export default [
       "react/jsx-key": "error",
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "warn",
-      "@typescript-eslint/no-explicit-any": "off",
+      // mobile/src carries no `any`; keep it that way.
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": [
         "warn",
@@ -88,6 +89,17 @@ export default [
       "curly": "warn",
       "no-throw-literal": "error",
       "no-case-declarations": "off"
+    }
+  },
+  // Mocks and partial fixtures still use `any`; the src rule above is the gate.
+  {
+    files: [
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/__mocks__/**/*.{ts,tsx}",
+      "**/*.test.{ts,tsx}"
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off"
     }
   }
 ];

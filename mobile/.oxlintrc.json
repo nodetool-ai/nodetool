@@ -5,7 +5,7 @@
     "correctness": "error"
   },
   "rules": {
-    "typescript/no-explicit-any": "off",
+    "typescript/no-explicit-any": "error",
     "typescript/explicit-module-boundary-types": "off",
     "typescript/no-unused-vars": [
       "warn",
@@ -41,5 +41,17 @@
     ".expo/**",
     "dist/**",
     "**/*.d.ts"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/__tests__/**/*.{ts,tsx}",
+        "**/__mocks__/**/*.{ts,tsx}",
+        "**/*.test.{ts,tsx}"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
   ]
 }

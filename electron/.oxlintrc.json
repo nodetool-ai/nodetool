@@ -5,7 +5,7 @@
     "correctness": "error"
   },
   "rules": {
-    "typescript/no-explicit-any": "off",
+    "typescript/no-explicit-any": "error",
     "typescript/explicit-module-boundary-types": "off",
     "typescript/no-unused-vars": "off",
     "no-unused-vars": "off",
@@ -34,7 +34,8 @@
     {
       "files": ["**/__tests__/**/*.ts", "**/*.test.ts"],
       "rules": {
-        "typescript/no-require-imports": "off"
+        "typescript/no-require-imports": "off",
+        "typescript/no-explicit-any": "off"
       }
     }
   ]
