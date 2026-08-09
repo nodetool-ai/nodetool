@@ -305,17 +305,3 @@ export function paintAgentStroke({
   }
   return outcome;
 }
-
-/** Union of two document-space boxes; either may be null. */
-export function unionStrokeBounds(
-  a: AgentStrokeBounds | null,
-  b: AgentStrokeBounds | null
-): AgentStrokeBounds | null {
-  if (!a) return b;
-  if (!b) return a;
-  const minX = Math.min(a.x, b.x);
-  const minY = Math.min(a.y, b.y);
-  const maxX = Math.max(a.x + a.width, b.x + b.width);
-  const maxY = Math.max(a.y + a.height, b.y + b.height);
-  return { x: minX, y: minY, width: maxX - minX, height: maxY - minY };
-}
