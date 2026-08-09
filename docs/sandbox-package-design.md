@@ -372,17 +372,121 @@ Nothing new is invented:
   always uses the installed version).
 - Replacing existing host bridges.
 
-## Rollout
+## Implementation plan
 
-1. **Phase 1 — guest JS modules.** Protocol types, discovery + registry,
-   virtual-FS mount in `runInSandbox`, Code node `packages` property,
-   validation changes, sandbox-manifest section, delivery route + browser
-   runner, Electron bundle staging. Ships end-to-end value on its own.
-2. **Phase 2 — config-only npm modules and WASM host modules.** The
-   esbuild bundling path with its forbidden-global scan and bundle cache;
-   WASM binary validation, worker-pool call path with timeouts, `__wasm`
-   bridge + guest wrapper convention, browser Web Worker path.
-3. **Phase 3 — ecosystem.** Registry-index summaries and Package Manager
-   search/UI, per-file hashes in the manifest, `nodetool package init`
-   scaffolding for a sandbox-module pack, the pack-less `sandboxNpm`
-   user declaration, docs and an example pack.
+Each milestone is one or two PRs, lands green on its own, and the system
+works at every point in between.
+
+### M0 — Types and discovery (no runtime change)
+
+- `@nodetool-ai/protocol`: `SandboxModuleManifest`, `ResolvedSandboxModule`
+  types; extend the pack manifest type.
+- `packages/node-sdk`: parse `sandboxModules` in `pack-loader.ts`
+  discovery; static validation (containment, size caps, acorn parse,
+  intra-pack imports only); new skip reasons; a `SandboxModuleRegistry`
+  (specifier → resolved module) populated at pack load, with no consumer
+  yet.
+- Tests: fixture packs (valid, oversize, escaping path, bad import) in
+  `packages/node-sdk/tests/`.
+
+### M1 — Guest mounting in the sandbox
+
+- `packages/agents/src/js-sandbox.ts`: `RunSandboxOptions.modules`;
+  build the wrapper's `nodeModules` virtual FS from resolved sources;
+  map resolve failures to a clear error naming the `packages`
+  declaration.
+- Sandbox manifest + drift test: a generated `packages` section that
+  appears only when modules are mounted.
+- Tests: import works, undeclared specifier fails at resolve, module code
+  hits the same memory/deadline limits, guest cannot reach undeclared
+  siblings.
+
+### M2 — Code node, CodeAct, and validation
+
+- `packages/code-nodes`: `packages` property on `nodetool.code.Code`;
+  resolve declared specifiers through the registry and pass `modules`
+  to `runInSandbox`.
+- `packages/node-sdk` (`code-analysis.ts`, `code-node-validation.ts`):
+  replace the blanket `import` rejection with "every specifier must be
+  declared and installed"; keep rejecting `require` and stray `export`s.
+- `nodetool validate` / `validate_workflow`: unknown-module error naming
+  the pack to install; declared-but-unused warning.
+- CodeAct (`codeact-executor.ts`): advertise the installed catalog in the
+  prompt; parse each step's imports and mount what it uses.
+- Update every "no module loader" prompt string and its drift test in the
+  same PR — the phrase becomes "imports are limited to declared sandbox
+  packages".
+
+### M3 — Delivery: browser runner and packaged Electron
+
+- `packages/websocket`: `GET /api/sandbox-modules/:pack/:name` with the
+  package-asset containment guards; `packs.list` reports sandbox modules
+  and their status.
+- `web`: browser runner fetches and caches sources by pack version and
+  mounts them identically; Code node property editor with autocomplete
+  from `packs.list`.
+- `scripts/bundle-backend.mjs` / `verify-backend-bundle.mjs`: stage
+  builtin packs' module files under `_sandbox/<pack>/`; resolution
+  fallback in the flattened layout; covered by `npm run backend:smoke`.
+
+### M4 — Config-only npm modules
+
+- Bundler in `node-sdk` (esbuild, `platform: "neutral"`, no externals) run
+  at discovery for `npm`-sourced entries; forbidden-global scan on the
+  output; cache at `<userData>/sandbox-bundles/` keyed by resolved
+  version; new skip reasons for bundle failures.
+- Tests: fixture packs wrapping a pure package (bundles, imports, runs)
+  and a builtin-dependent package (skipped with the right reason).
+
+### M5 — WASM host modules
+
+- Manifest `kind: "wasm"`; binary section parse + export check at
+  discovery.
+- `packages/agents`: compile cache; per-invocation instances; the
+  `__wasm` bridge with number/typed-array marshaling; worker execution
+  (Node `worker_threads`, browser Web Worker) with hard timeout and
+  terminate; memory cap at instantiation.
+- Guest wrapper convention documented; one reference pack used in tests.
+
+### M6 — Migrate existing host-bridge libraries into a builtin pack
+
+A new builtin pack, `packages/sandbox-std` (`@nodetool-ai/sandbox-std`),
+dogfoods the npm config-only path. Disposition of every library the
+sandbox bridges today:
+
+| Bridge | Library | Disposition | Why |
+|---|---|---|---|
+| `data.parseCsv` / `toCsv` | papaparse | migrate → `sandbox-std/csv` | pure JS |
+| `data.parseYaml` / `toYaml` | js-yaml | migrate → `sandbox-std/yaml` | pure JS |
+| `data.parseXml` / `toXml` | fast-xml-parser | migrate → `sandbox-std/xml` | pure JS |
+| `data.diff` | diff | migrate → `sandbox-std/diff` | pure JS |
+| `data.zip` / `unzip` | fflate | migrate → `sandbox-std/zip` | pure JS; the 50 MB host cap becomes the guest 64 MB memory limit |
+| `data.selectHtml` | cheerio | decided by the bundle: if it bundles neutral and fits the cap, migrate; else stays a bridge | large dependency tree |
+| `data.parseXlsx` | exceljs | stays a bridge | Node streams/Buffer |
+| `data.htmlToMarkdown` | turndown | stays a bridge | needs a DOM |
+| `format.*` | host `Intl` | stays a bridge | quickjs-ng ships no Intl |
+| `image.*`, `canvas.*` | @napi-rs/canvas | stays a bridge | native code |
+| `fetch`, `crypto`, `getSecret`, `workspace`, assets, `progress` | — | stays a bridge | capabilities, not libraries |
+
+Compatibility rules for the migration:
+
+- **No existing workflow breaks.** The `data.*` bridges stay, unchanged,
+  for at least one major release. Migration adds the import path; it does
+  not remove the bridge path.
+- The sandbox manifest marks migrated bridges "prefer
+  `import ... from "sandbox-std/..."`", so CodeAct and the Code-node
+  planner steer new code to imports while old code keeps running.
+- The `codeact` and `code-gen` eval suites run before and after the
+  prompt change; a regression blocks the switch, not the pack.
+- Bridge removal, if ever, is its own decision later — the bridges are
+  cheap to keep and heavy ones (`Intl`, canvas, xlsx) are permanent.
+
+### M7 — Ecosystem
+
+Registry-index `sandboxModules` summaries and Package Manager search/UI,
+per-file hashes in the manifest, `nodetool package init --sandbox`
+scaffolding, the pack-less `sandboxNpm` user declaration, docs and an
+example third-party pack.
+
+Dependency order: M0 → M1 → M2 → M3 ship in sequence; M4 and M5 are
+independent of each other after M3; M6 needs M4; M7 is last.
