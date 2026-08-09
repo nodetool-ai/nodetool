@@ -19,7 +19,7 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
 | `@nodetool-ai/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
 | `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, NodeActor, WorkflowRunner |
-| `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, StepExecutor, Tool registry |
+| `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
 | `@nodetool-ai/base-nodes` | Core workflow nodes (text, image, LLM, agents, math, etc.) |
 | `@nodetool-ai/fal-nodes` | FAL AI integration nodes |

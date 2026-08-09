@@ -123,7 +123,6 @@ Tests live in `tests/`. All tests use `initTestDb()` which creates an in-memory 
 
 ```bash
 npm run test --workspace=packages/models
-npm run test:watch --workspace=packages/models
 ```
 
 When writing tests for new models, call `initTestDb()` in `beforeEach` to reset state between tests.

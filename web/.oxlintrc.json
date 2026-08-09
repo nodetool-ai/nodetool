@@ -5,7 +5,7 @@
     "correctness": "error"
   },
   "rules": {
-    "typescript/no-explicit-any": "off",
+    "typescript/no-explicit-any": "error",
     "typescript/explicit-module-boundary-types": "off",
     "typescript/no-unused-vars": "off",
     "no-unused-vars": "off",
@@ -28,5 +28,24 @@
     "playwright.config.ts",
     "**/*.d.ts",
     "src/api.ts"
+  ],
+  "overrides": [
+    {
+      "files": [
+        "**/__tests__/**/*.{ts,tsx}",
+        "**/__mocks__/**/*.{ts,tsx}",
+        "**/*.test.{ts,tsx}",
+        "src/setupTests.ts"
+      ],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    },
+    {
+      "files": ["src/components/node/PropertyInput.types.ts"],
+      "rules": {
+        "typescript/no-explicit-any": "off"
+      }
+    }
   ]
 }

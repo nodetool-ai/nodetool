@@ -92,6 +92,10 @@ column by `resolveSandboxLimits`:
 | Progress reports | `MAX_PROGRESS_CALLS` = 1000 per run, one per `PROGRESS_MIN_INTERVAL_MS` = 100 ms | counter + timestamp inside the bridge | — |
 | `data.*` input | `MAX_DATA_INPUT_CHARS` = 5 MB of text | length check inside each bridge | — |
 | `data.selectHtml` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
+| `image.*` input | `MAX_IMAGE_INPUT_BYTES` = 25 MB | length check inside each bridge | — |
+| Image / canvas pixels | `MAX_IMAGE_PIXELS` = 32 M, longest edge `MAX_IMAGE_DIMENSION` = 16384 | `assertSurfaceSize` | — |
+| `image.decode` pixels | `MAX_DECODE_PIXELS` = 8 M | check inside the bridge | — |
+| Canvas draw ops | `MAX_CANVAS_OPS` = 10 000 per render | count inside `renderCanvas` | — |
 
 QuickJS's memory limiter counts its own heap objects; string and typed-array
 payloads are not charged against it, so `memoryLimitBytes` bites on object
@@ -108,8 +112,10 @@ source for read containment and the destination for write containment;
 createdMs, accessedMs}` and reports a missing path as `exists: false` rather
 than throwing), the pure guest-side helpers
 `toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`/
-`parallelMap`,
+`parallelMap`/`createCanvas`,
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
+`image.{info,decode,encode,resize,crop,rotate,flip,adjust,composite,convert}`,
+`canvas.{render,measureText}`,
 `data.{parseCsv,toCsv,selectHtml,htmlToMarkdown,parseXlsx,parseYaml,toYaml,
 parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
 `Uint8Array` body as raw bytes instead of JSON.
@@ -120,6 +126,36 @@ parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
 wires it to `context.postMessage({ type: "node_progress", … })`, the same
 channel the Python worker uses, so a long-running snippet drives the node's
 progress bar.
+
+`image` and `canvas` are the media namespaces, both host bridges over a real
+2D canvas (`src/sandbox-media.ts`). The backend is picked at first use:
+`@napi-rs/canvas` (Skia) on Node, loaded through `importHidden` so no bundler
+pulls the native addon into a browser graph — it is already staged as an
+external by `scripts/bundle-backend.mjs` — and `OffscreenCanvas` +
+`createImageBitmap` in the browser runner. `image` takes and returns *encoded*
+bytes (`png`/`jpeg`/`webp`/`avif`), so `resize` → `adjust` → `convert` chains
+without the guest ever holding a surface: `info`, `decode`, `encode`, `resize`
+(`fit`: cover/contain/fill), `crop`, `rotate` (grows to the rotated bounding
+box), `flip`, `adjust` (the CSS filter set), `composite` (layers with position,
+size, opacity and `globalCompositeOperation` blend mode) and `convert`.
+Encoding to `jpeg` fills transparency with `background`, white by default.
+
+A canvas *context* is a host object with methods, which the plain-data bridge
+contract cannot carry, so drawing is recorded rather than proxied: the guest
+helper `createCanvas(width, height)` returns a surface whose `getContext("2d")`
+takes the ordinary Canvas 2D calls **synchronously**, appending each to a draw
+list, and `await surface.toBytes({format, quality, background})` ships the whole
+list through `canvas.render` to be replayed against a real context and encoded.
+`drawImage` takes image bytes, not an image object. Gradients work the same way
+— `createLinearGradient` returns a tagged handle that the renderer swaps for the
+real gradient when it is assigned to `fillStyle`. The method and property
+allowlists live in `src/sandbox-canvas-api.ts`, read by both the guest recorder
+and the host replay, and an op naming anything outside them is refused. The
+recorded ops are marshaled out of the guest one object at a time (~1 ms each),
+which is what `MAX_CANVAS_OPS` really bounds — for heavy composition reach for
+`image.composite` instead of tens of thousands of primitives.
+`canvas.measureText(text, font?)` returns text metrics so text can be laid out
+before it is drawn.
 
 `data` is the structured-data namespace, all host bridges over libraries that
 stay host-side: `parseCsv`/`toCsv` (papaparse — values stay strings, no

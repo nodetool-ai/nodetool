@@ -182,7 +182,8 @@ abstract class Tool {
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
 | **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
-| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `SearchNodesTool`, `ListNodesTool`, `GetNodeInfoTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool` | `mcp-tools.ts` |
+| **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool` | `mcp-tools.ts` |
+| **Node registry** | `LocalSearchNodesTool`, `LocalListNodesTool`, `LocalGetNodeInfoTool` | `local-search-nodes-tool.ts`, `local-list-nodes-tool.ts`, `local-get-node-info-tool.ts` |
 | **Models** | `ListModelsTool` | `list-models-tool.ts` |
 
 ### Workflow Harness Tools

@@ -188,10 +188,6 @@ export const autoUpdater = {
   quitAndInstall: jest.fn(),
 };
 
-export const powerMonitor = {
-  on: jest.fn(),
-};
-
 export const globalShortcut = {
   register: jest.fn(),
   unregister: jest.fn(),

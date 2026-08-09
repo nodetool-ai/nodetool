@@ -31,7 +31,6 @@ import type { Property } from "../../types/ApiTypes";
 interface PropertyFieldProps {
   property: Property;
   value: unknown;
-  nodeType?: string;
   onChange: (value: unknown) => void;
   /** When true, shows a "connected" badge and placeholder instead of the input. */
   isConnected?: boolean;
@@ -1775,7 +1774,6 @@ const assetStyles = StyleSheet.create({
 export const PropertyField: React.FC<PropertyFieldProps> = ({
   property,
   value,
-  nodeType,
   onChange,
   isConnected = false,
 }) => {

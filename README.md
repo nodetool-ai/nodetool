@@ -297,7 +297,7 @@ server starts with no node types registered.
 
 The repo ships a starter kit in [`.claude/`](.claude/README.md): a SessionStart
 hook that installs dependencies in web sessions, slash commands (`/serve`,
-`/verify`, `/onboard`), and 18 NodeTool skills covering workflow building,
+`/verify`, `/onboard`), and 10 NodeTool skills covering workflow building,
 custom nodes, the API, deployment, and troubleshooting.
 
 ### Python Nodes (optional)

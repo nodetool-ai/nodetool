@@ -29,14 +29,6 @@ export type SyncedDocumentType =
   | "script"
   | "application";
 
-export const SYNCED_DOCUMENT_TYPES: readonly SyncedDocumentType[] = [
-  "timelinesequence",
-  "imagedocument",
-  "storyboard",
-  "script",
-  "application"
-];
-
 /** Human name per type, used in the "changed elsewhere" message. */
 const DOCUMENT_LABEL: Record<SyncedDocumentType, string> = {
   timelinesequence: "timeline",

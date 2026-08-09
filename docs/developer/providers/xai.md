@@ -28,9 +28,9 @@ No static lists to edit. No registry changes. No rebuilds needed for the provide
 | Concern | Path |
 |---|---|
 | Provider class | `packages/runtime/src/providers/xai-provider.ts` |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 235 |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, …)`) |
 | Provider ID constant | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS.XAI = "xai"`) |
-| Cloud profile allowlist | `packages/protocol/src/cloud-profile.ts` (`CLOUD_PROVIDER_IDS`, `CLOUD_NODE_NAMESPACES`) |
+| Cloud profile denylist | `packages/protocol/src/cloud-profile.ts` (`NON_CLOUD_PROVIDER_IDS`, `CLOUD_NODE_NAMESPACES`) |
 | Provider tests | `packages/runtime/tests/providers/xai-provider.test.ts` |
 | Type definitions | `packages/runtime/src/providers/types.ts` |
 

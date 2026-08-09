@@ -158,5 +158,3 @@ export const useNodeAutoRun = (
 };
 
 export const useInputNodeAutoRun = useNodeAutoRun;
-
-export default useNodeAutoRun;

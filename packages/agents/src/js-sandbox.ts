@@ -9,9 +9,9 @@
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
  * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
- * `format`, `data`) and a few pure guest-side helpers (`toBase64`,
- * `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`,
- * `parallelMap`). `crypto`
+ * `format`, `data`, `image`, `canvas`) and a few pure guest-side helpers
+ * (`toBase64`, `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`,
+ * `parallelMap`, `createCanvas`). `crypto`
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
  * `stat`, `mkdir`, and `remove`; `progress` forwards a percentage and label to
@@ -24,8 +24,10 @@
  * The guest itself stays module-free — there is no loader, so user code cannot
  * `import`/`require` anything. Library-backed capabilities reach it only
  * through narrow host bridges that take and return plain data:
- * `data.parseCsv` (papaparse), `data.selectHtml` (cheerio), `format.*` (Intl)
- * and `crypto.*` (WebCrypto). The libraries run host-side, are imported lazily
+ * `data.parseCsv` (papaparse), `data.selectHtml` (cheerio), `format.*` (Intl),
+ * `crypto.*` (WebCrypto), and `image.*`/`canvas.*` (a real 2D canvas —
+ * `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser runner; see
+ * `sandbox-media.ts`). The libraries run host-side, are imported lazily
  * on first use, and are never handed to the guest — so the snippet surface is
  * the same string-in/plain-data-out contract in dev, in packaged Electron, and
  * in the browser runner, which bundles this module too.
@@ -52,6 +54,12 @@ const quickJsVariant = (
 ).default;
 import { Scope } from "quickjs-emscripten-core";
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import {
+  CANVAS_GRADIENT_FACTORIES,
+  CANVAS_GRADIENT_MARKER,
+  CANVAS_METHODS,
+  CANVAS_PROPERTIES
+} from "./sandbox-canvas-api.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // ---------------------------------------------------------------------------
@@ -298,6 +306,27 @@ function encodeBase64(bytes: Uint8Array): string {
 /** Tag bytes for the guest prelude to turn back into a real `Uint8Array`. */
 function toGuestBytes(bytes: Uint8Array): Record<string, string> {
   return { [SANDBOX_BYTES_MARKER]: encodeBase64(bytes) };
+}
+
+/**
+ * Same tagging, applied at any depth. A bridge that returns bytes inside a
+ * record (`image.decode`'s `{width, height, pixels}`) hands its result through
+ * this; the guest side pairs it with `__wrapDeep`, which revives every marker.
+ */
+function toGuestBytesDeep(value: unknown, depth = 0): unknown {
+  if (value instanceof Uint8Array) return toGuestBytes(value);
+  if (depth >= SERIALIZE_MAX_DEPTH) return value;
+  if (Array.isArray(value)) {
+    return value.map((v) => toGuestBytesDeep(v, depth + 1));
+  }
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+      out[k] = toGuestBytesDeep(v, depth + 1);
+    }
+    return out;
+  }
+  return value;
 }
 
 function neverReject<Args extends unknown[], R>(
@@ -633,6 +662,18 @@ async function loadDiff(): Promise<DiffLike> {
     (v) =>
       typeof (v as DiffLike | undefined)?.createTwoFilesPatch === "function"
   );
+}
+
+export type SandboxMediaModule = typeof import("./sandbox-media.js");
+
+/**
+ * The media engine behind the `image` and `canvas` bridges. Loaded on first
+ * use like the data libraries, and for the same reasons — the canvas backend
+ * (Skia on Node) is heavy, and nothing that never draws should pay for it.
+ * Unlike those, the import is intra-package, so every bundler resolves it.
+ */
+async function loadSandboxMedia(): Promise<SandboxMediaModule> {
+  return import("./sandbox-media.js");
 }
 
 /** True if a literal IPv4/IPv6 host is loopback, link-local, or private. */
@@ -1857,6 +1898,40 @@ export function buildSandbox(
     }
   };
 
+  // Media bridges. The engine (`sandbox-media.ts`) is imported on first use
+  // like every other library-backed bridge, and picks its canvas backend from
+  // the runtime — `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser
+  // runner. Bytes come back tagged for the guest prelude to revive, so the
+  // guest-visible API is `Uint8Array` in and `Uint8Array` out.
+  const withGuestBytes = <A extends unknown[]>(
+    fn: (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) => {
+    return async (...args: A) => toGuestBytesDeep(await fn(...args));
+  };
+
+  const mediaMember = <A extends unknown[]>(
+    pick: (media: SandboxMediaModule) => (...args: A) => Promise<unknown>
+  ): ((...args: A) => Promise<unknown>) =>
+    withGuestBytes(async (...args: A) => pick(await loadSandboxMedia())(...args));
+
+  const image = {
+    info: mediaMember((m) => m.imageOps.info),
+    decode: mediaMember((m) => m.imageOps.decode),
+    encode: mediaMember((m) => m.imageOps.encode),
+    resize: mediaMember((m) => m.imageOps.resize),
+    crop: mediaMember((m) => m.imageOps.crop),
+    rotate: mediaMember((m) => m.imageOps.rotate),
+    flip: mediaMember((m) => m.imageOps.flip),
+    adjust: mediaMember((m) => m.imageOps.adjust),
+    composite: mediaMember((m) => m.imageOps.composite),
+    convert: mediaMember((m) => m.imageOps.convert)
+  };
+
+  const canvas = {
+    render: mediaMember((m) => m.renderCanvas),
+    measureText: mediaMember((m) => m.measureCanvasText)
+  };
+
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
@@ -1919,6 +1994,8 @@ export function buildSandbox(
     progress,
     format,
     data,
+    image,
+    canvas,
     __maxIter: MAX_LOOP_ITERATIONS
   };
 
@@ -2105,6 +2182,8 @@ export const EXPOSED_BRIDGE_NAMES = [
   "progress",
   "format",
   "data",
+  "image",
+  "canvas",
   "__maxIter"
 ] as const;
 
@@ -2118,7 +2197,8 @@ export const GUEST_HELPER_NAMES = [
   "fromHex",
   "utf8Encode",
   "utf8Decode",
-  "parallelMap"
+  "parallelMap",
+  "createCanvas"
 ] as const;
 
 export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
@@ -2236,6 +2316,8 @@ export async function runInSandbox(
         bridges.workspace = wrapAllMembers(bridges.workspace);
         bridges.format = wrapAllMembers(bridges.format);
         bridges.data = wrapAllMembers(bridges.data);
+        bridges.image = wrapAllMembers(bridges.image);
+        bridges.canvas = wrapAllMembers(bridges.canvas);
         const hostCrypto = bridges.crypto as {
           randomUUID: () => string;
           getRandomValues: (n: number) => Record<string, string>;
@@ -2426,6 +2508,96 @@ globalThis.data = {
   unzip: __wrapDeep(__data.unzip),
   zip: __wrap(__data.zip),
   diff: __wrap(__data.diff)
+};
+const __image = globalThis.image;
+globalThis.image = {
+  info: __wrapDeep(__image.info),
+  decode: __wrapDeep(__image.decode),
+  encode: __wrapDeep(__image.encode),
+  resize: __wrapDeep(__image.resize),
+  crop: __wrapDeep(__image.crop),
+  rotate: __wrapDeep(__image.rotate),
+  flip: __wrapDeep(__image.flip),
+  adjust: __wrapDeep(__image.adjust),
+  composite: __wrapDeep(__image.composite),
+  convert: __wrapDeep(__image.convert)
+};
+const __canvasBridge = globalThis.canvas;
+globalThis.canvas = {
+  render: __wrapDeep(__canvasBridge.render),
+  measureText: __wrapDeep(__canvasBridge.measureText)
+};
+const __canvasProps = ${JSON.stringify(CANVAS_PROPERTIES)};
+const __canvasMethods = ${JSON.stringify(CANVAS_METHODS)};
+const __canvasGradients = ${JSON.stringify(CANVAS_GRADIENT_FACTORIES)};
+const __gradMarker = "${CANVAS_GRADIENT_MARKER}";
+// A canvas context is a host object with methods, which the bridge contract
+// cannot carry. So this records the ordinary Canvas 2D calls synchronously and
+// ships the whole draw list in one canvas.render() when toBytes() is awaited.
+globalThis.createCanvas = (width, height) => {
+  const ops = [];
+  const gradients = {};
+  let gradientSeq = 0;
+  const asStyle = (value) =>
+    value && typeof value === "object" && typeof value[__gradMarker] === "string"
+      ? { [__gradMarker]: value[__gradMarker] }
+      : value;
+  const ctx = {};
+  for (const name of __canvasMethods) {
+    ctx[name] = (...args) => {
+      ops.push({ op: name, args });
+      return ctx;
+    };
+  }
+  ctx.drawImage = (source, ...rest) => {
+    ops.push({ op: "drawImage", args: [source, ...rest] });
+    return ctx;
+  };
+  const values = {};
+  for (const prop of __canvasProps) {
+    Object.defineProperty(ctx, prop, {
+      enumerable: true,
+      get: () => values[prop],
+      set: (value) => {
+        values[prop] = value;
+        ops.push({ op: "set", args: [prop, asStyle(value)] });
+      }
+    });
+  }
+  for (const factory of Object.keys(__canvasGradients)) {
+    ctx[factory] = (...coords) => {
+      const id = "g" + gradientSeq++;
+      const spec = { type: __canvasGradients[factory], coords, stops: [] };
+      gradients[id] = spec;
+      const handle = {
+        [__gradMarker]: id,
+        addColorStop: (offset, color) => {
+          spec.stops.push([offset, color]);
+          return handle;
+        }
+      };
+      return handle;
+    };
+  }
+  const surface = {
+    width,
+    height,
+    getContext: (kind) => {
+      if (kind !== undefined && kind !== "2d") {
+        throw new Error('createCanvas: only the "2d" context exists');
+      }
+      return ctx;
+    },
+    toSpec: (options) => ({
+      width,
+      height,
+      gradients,
+      ops,
+      ...(options || {})
+    }),
+    toBytes: (options) => globalThis.canvas.render(surface.toSpec(options))
+  };
+  return surface;
 };
 const __crypto = globalThis.crypto;
 globalThis.crypto = {
