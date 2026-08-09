@@ -106,10 +106,10 @@ in the existing `nodetool` field:
 }
 ```
 
-Documentation is not in the manifest. Each pack that ships sandbox
-modules also ships a **`SKILL.md`** at its root — the compressed docs
-page for the library (see "How agents learn a pack" below). The manifest
-declares what exists; the skill explains how to use it.
+A pack's configuration is two files: this manifest and a **`SKILL.md`**
+at the package root — the compressed docs page for the library (see "How
+agents learn a pack" below). The manifest declares what exists; the
+skill explains how to use it. Both are declarative; neither is code.
 
 Manifest types live in `@nodetool-ai/protocol` (`SandboxModuleManifest`).
 Rules enforced at discovery time (`pack-loader.ts`):
@@ -482,12 +482,11 @@ works at every point in between.
 ### M6 — Migrate existing host-bridge libraries into normal packs
 
 The migrated libraries ship as **normal packs** — one small npm package
-per library, config-only (`sandboxModules` with an `npm` source, no
-`register`, no glue code) plus a hand-written `SKILL.md`: the compressed
-docs page for that library as it behaves inside the sandbox. The skill is
-the one thing a config-only pack authors, and it is documentation, not
-code. Packs are listed in the registry index, installed and uninstalled
-through the ordinary flow. Nothing is compiled into NodeTool;
+per library, config-only: the `sandboxModules` manifest with an `npm`
+source and the `SKILL.md` — the compressed docs page for that library as
+it behaves inside the sandbox. No `register`, no glue code; the whole
+pack is configuration. Packs are listed in the registry index, installed
+and uninstalled through the ordinary flow. Nothing is compiled into NodeTool;
 these packs dogfood exactly the path a third party would use, including
 the trust rule (sandbox-only, so no allowlist entry needed).
 
