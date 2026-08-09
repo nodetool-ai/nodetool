@@ -107,7 +107,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 **Cause 1: Wrong data type**
 - **Example:** Connecting `List[String]` to a node expecting `String`
-- **Fix:** Add conversion node (e.g., `GetElement` to extract single item from list)
+- **Fix:** Add a conversion node (e.g. a `nodetool.code.Code` node that returns one item from the list)
 
 **Cause 2: Null/empty output**
 - **Example:** Previous node returned null, next node expects data
@@ -121,12 +121,8 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 | From Type | To Type | Solution Node |
 |-----------|---------|---------------|
-| `List[T]` | `T` | `GetElement` or `SelectElements` |
-| `String` | `List[String]` | `Split` or wrap in `[string]` |
-| `Image` | `Tensor` | Automatic in most cases |
-| `Audio` | `AudioSegment` | Automatic conversion |
-| `Path` | `String` | `PathToString` |
-| `Dict` | `String` | `DictToJson` or `FormatText` |
+| `String` | `List[String]` | `nodetool.text.Split` |
+| Anything else | Anything else | `nodetool.code.Code` — return the shape the next node wants |
 
 ---
 
@@ -449,7 +445,7 @@ NODETOOL_LOG_LEVEL=debug nodetool serve
 
 1. Create `test-inputs/` folder
 2. Save sample images, text, audio
-3. Use `FileInput` nodes for consistent testing
+3. Use `nodetool.input.FilePathInput` nodes for consistent testing
 4. Share test cases with teammates
 
 ---

@@ -261,7 +261,7 @@ graph TD
 - `GmailSearch` (`lib.mail.GmailSearch`): Search Gmail with queries
 - `Template`: Format email fields into text (lib.mail also provides `AddLabel`, `MoveToArchive`, `SendEmail`)
 - `FetchRSSFeed`: Get RSS feed entries
-- `GetRequest`: Fetch web content
+- `WebFetch` (`lib.browser.WebFetch`): Fetch web content
 
 ______________________________________________________________________
 

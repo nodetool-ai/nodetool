@@ -44,12 +44,12 @@ NodeTool enforces type safety on all connections. Here are the common data types
 
 | Type | Description | Example Nodes |
 |------|------------|---------------|
-| **String** | Text data | `StringInput`, `FormatText`, `Agent` |
+| **String** | Text data | `StringInput`, `Template`, `Agent` |
 | **Image** | Image data (PNG, JPEG, etc.) | `TextToImage`, `Resize`, `ImageInput` |
 | **Audio** | Audio data (WAV, MP3, etc.) | `AudioInput` |
 | **Video** | Video data | `Sora2TextToVideo`, `KlingVideoV16StandardImageToVideo` |
 | **List[T]** | A list of items of type T | `ListGenerator`, `Split`, `Collect` |
-| **Dict** | Key-value pairs | `ParseJSON`, `SaveJSON` |
+| **Dict** | Key-value pairs | `ParseJSON`, `ExtractJSON` |
 | **Number** | Integer or float | `IntegerInput`, `FloatInput` |
 | **Boolean** | True/false | `BooleanInput` |
 

@@ -117,12 +117,6 @@ param/stream seeding via the kernel's own `pushInputValue`/
 
 ## What this package does not do
 
-- **Does not migrate any call site.** Every site in the inventory table above
-  is unchanged; that's Track A tasks A3 (CLI, debug harness, headless job
-  runner) and A5 (WS runner, last, once the reliability harness in Track C
-  can watch the migration for behavior drift).
-- **Does not add a dependency-lint rule** forbidding direct
-  `new WorkflowRunner(...)` outside this package — that's task A4.
 - **Does not validate the message stream against a schema.** `messages` is a
   live `AsyncIterable<ProcessingMessage>`; runtime protocol validation is
   Track B (`packages/protocol`'s Zod-first `messages.ts`).
