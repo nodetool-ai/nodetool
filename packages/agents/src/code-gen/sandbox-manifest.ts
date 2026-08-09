@@ -65,6 +65,25 @@ export interface SandboxLimitDoc {
   readonly ceiling?: number;
 }
 
+/**
+ * A rule that holds for the guest, tagged with who it applies to.
+ *
+ * The audience is data rather than something a consumer infers from the prose:
+ * a note about the node's declared outputs is nonsense to a CodeAct action,
+ * which completes through `finish()`. Matching the wording to decide that
+ * couples one file's prompt to another file's sentences, and rewording a note
+ * would silently leak it into the wrong prompt.
+ */
+export interface SandboxNote {
+  readonly text: string;
+  /**
+   * `"all"` (default) holds anywhere the sandbox runs. `"code-node"` holds only
+   * for `nodetool.code.Code`, whose result contract is a returned object of
+   * declared outputs.
+   */
+  readonly audience?: "all" | "code-node";
+}
+
 export interface SandboxManifest {
   readonly nodeType: typeof SANDBOX_MANIFEST_NODE_TYPE;
   readonly runtime: "quickjs";
@@ -77,7 +96,7 @@ export interface SandboxManifest {
   /** Names that exist in other JS runtimes but not here. */
   readonly blockedGlobals: readonly string[];
   readonly limits: readonly SandboxLimitDoc[];
-  readonly notes: readonly string[];
+  readonly notes: readonly SandboxNote[];
 }
 
 /**
@@ -932,13 +951,27 @@ export function getSandboxManifest(): SandboxManifest {
     blockedGlobals: blocked,
     limits: [...overridableLimits(), ...fixedLimits()],
     notes: [
-      "Code runs as an async function body: top-level await works and `return` produces the node's result.",
-      "Bridge calls start host-side work when invoked, not when awaited: Promise.all / allSettled / race / any over fetch or workspace calls run them in parallel. Use parallelMap for bounded fan-out. sleep is the only timer.",
-      "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
-      "Media and asset values are reference objects. Pass them through unchanged.",
-      "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back.",
-      "There is no module loader and no Intl. Anything a library would do comes from the bridges below.",
-      "`process`, `env` and `Buffer` exist but are the sandbox's own stubs, not Node's: `process` carries an empty `env` and a working directory of \"/\". Nothing reaches the host through them."
+      {
+        text: "Code runs as an async function body: top-level await works and `return` produces the node's result.",
+        audience: "code-node"
+      },
+      {
+        text: "Bridge calls start host-side work when invoked, not when awaited: Promise.all / allSettled / race / any over fetch or workspace calls run them in parallel. Use parallelMap for bounded fan-out. sleep is the only timer."
+      },
+      {
+        text: "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
+        audience: "code-node"
+      },
+      { text: "Media and asset values are reference objects. Pass them through unchanged." },
+      {
+        text: "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back."
+      },
+      {
+        text: "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
+      },
+      {
+        text: "`process`, `env` and `Buffer` exist but are the sandbox's own stubs, not Node's: `process.env` is empty and the working directory is \"/\". Nothing reaches the host through them."
+      }
     ]
   };
   return cached;

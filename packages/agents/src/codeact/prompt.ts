@@ -126,15 +126,13 @@ export function chatUnavailableBridges(
 }
 
 /**
- * Manifest notes about the Code node's own result contract. A code action
- * returns an observation, not a node's outputs.
- */
-const NODE_ONLY_NOTE_PHRASES = ["the node's result", "the node's outputs"];
-
-/**
  * Manifest notes the action contract states in its own words, at more length
  * and with the action-loop specifics. Removing one from the contract must
  * remove it here too.
+ *
+ * Unlike the audience tag, this one is a phrase match: it exists because two
+ * files say the same thing, so there is no shared field to key on. Keep it to
+ * rules the contract genuinely restates.
  */
 const CONTRACT_NOTE_PHRASES = ["start host-side work when invoked"];
 
@@ -143,15 +141,15 @@ function relevantNotes(
   manifest: SandboxManifest,
   hidden: Set<string>
 ): string[] {
-  return manifest.notes.filter((note) => {
-    if (NODE_ONLY_NOTE_PHRASES.some((phrase) => note.includes(phrase))) {
-      return false;
-    }
-    if (CONTRACT_NOTE_PHRASES.some((phrase) => note.includes(phrase))) {
-      return false;
-    }
-    return !extractApiReferences(note).some((name) => hidden.has(name));
-  });
+  return manifest.notes
+    .filter((note) => (note.audience ?? "all") === "all")
+    .map((note) => note.text)
+    .filter((text) => {
+      if (CONTRACT_NOTE_PHRASES.some((phrase) => text.includes(phrase))) {
+        return false;
+      }
+      return !extractApiReferences(text).some((name) => hidden.has(name));
+    });
 }
 
 /** Compact, manifest-derived sandbox reference: signatures only. */

@@ -87,6 +87,22 @@ return { result, data };`;
     expect(result).not.toContain("JSON");
   });
 
+  it("still offers `env` as an input, since a dynamic input shadows the stub", () => {
+    // The guest has an `env` stub, but user globals are exposed after it, so a
+    // Code node with an input named `env` reads the input. Treating the stub as
+    // reserved would drop the handle here and leave the code reading `{}`.
+    const result = inferInputKeysFromCode("return { output: env.API_HOST };");
+    expect(result).toContain("env");
+  });
+
+  it("ignores the sandbox stubs a dynamic input cannot usefully replace", () => {
+    const code = `return { output: process.cwd() + Buffer.from(x).length };`;
+    const result = inferInputKeysFromCode(code);
+    expect(result).toContain("x");
+    expect(result).not.toContain("process");
+    expect(result).not.toContain("Buffer");
+  });
+
   it("ignores declared variables", () => {
     const code = `const x = 10;
 let y = 20;

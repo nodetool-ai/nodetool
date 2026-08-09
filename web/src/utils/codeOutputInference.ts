@@ -117,9 +117,16 @@ const SANDBOX_GLOBALS = new Set([
   "SyntaxError", "TextDecoder", "TextEncoder", "TypeError", "URIError",
   "URL", "URLSearchParams", "Uint16Array", "Uint32Array", "Uint8Array",
   "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI",
-  "decodeURIComponent", "encodeURI", "encodeURIComponent", "env", "escape",
+  "decodeURIComponent", "encodeURI", "encodeURIComponent", "escape",
   "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt", "performance",
   "process", "queueMicrotask", "undefined", "unescape",
+  // `env` is deliberately absent, though the guest has it. Dynamic inputs are
+  // exposed after the sandbox's stubs and shadow them, so a Code node with an
+  // input named `env` works — listing it here would drop that handle on
+  // re-inference and leave the code silently reading the empty stub. The
+  // node-sdk validator still accepts `env` as a resolvable name; the two lists
+  // answer different questions. Pinned by INTENTIONAL_OMISSIONS in
+  // packages/agents/tests/sandbox-manifest-drift.test.ts.
   // Host bridges
   "console", "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",

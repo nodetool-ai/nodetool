@@ -46,15 +46,33 @@ describe("CodeAct prompt / sandbox drift", () => {
 
   it("carries the manifest's notes into the summary", () => {
     const manifest = getSandboxManifest();
-    const intl = manifest.notes.find((note) => note.includes("Intl"));
+    const intl = manifest.notes.find((note) => note.text.includes("Intl"));
     const prompt = buildCodeActSystemPrompt({ tools: [], variant: "step" });
     // The note may disappear once `Intl` is listed as a blocked global; what
     // must not happen is the prompt staying silent about it either way.
     if (intl) {
-      expect(prompt).toContain(intl);
+      expect(prompt).toContain(intl.text);
     } else {
       expect(manifest.blockedGlobals).toContain("Intl");
       expect(prompt).toContain("Intl");
+    }
+  });
+
+  it("keeps Code-node-only notes out of both variants", () => {
+    // A code action completes through finish(), so a rule about the node's
+    // declared outputs contradicts the contract. The audience tag decides this,
+    // not the wording — rewording a note must not leak it in here.
+    const nodeOnly = getSandboxManifest().notes.filter(
+      (note) => note.audience === "code-node"
+    );
+    expect(nodeOnly.length).toBeGreaterThan(0);
+    for (const variant of ["step", "chat"] as const) {
+      const prompt = buildCodeActSystemPrompt({ tools: [], variant });
+      for (const note of nodeOnly) {
+        expect(prompt, `${variant} prompt leaks a code-node note`).not.toContain(
+          note.text
+        );
+      }
     }
   });
 
