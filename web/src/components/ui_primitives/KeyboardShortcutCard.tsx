@@ -61,7 +61,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
   const hasMore = maxVisible && shortcuts.length > maxVisible;
   const remainingCount = maxVisible ? shortcuts.length - maxVisible : 0;
 
-  const renderShortcutItem = (item: ShortcutItem, index: number) => {
+  const renderShortcutItem = (item: ShortcutItem) => {
     return (
       <Box
         key={item.action}
@@ -178,7 +178,7 @@ const KeyboardShortcutCardInternal: React.FC<KeyboardShortcutCardProps> = ({
                   }}
                 />
               )}
-              {renderShortcutItem(item, index)}
+              {renderShortcutItem(item)}
             </Box>
           );
         })}

@@ -12,7 +12,6 @@ import type { Property } from "../../types/ApiTypes";
 import { PropertyField } from "./PropertyField";
 
 interface ChainNodePropertiesProps {
-  nodeType: string;
   properties: Property[];
   values: Record<string, unknown>;
   /** Inputs that are wired from other nodes (shown as "connected"). */
@@ -25,13 +24,11 @@ interface ChainNodePropertiesProps {
 const PropertyRow = React.memo(function PropertyRow({
   property,
   value,
-  nodeType,
   isConnected,
   onUpdate,
 }: {
   property: Property;
   value: unknown;
-  nodeType: string;
   isConnected: boolean;
   onUpdate: (name: string, value: unknown) => void;
 }) {
@@ -43,7 +40,6 @@ const PropertyRow = React.memo(function PropertyRow({
     <PropertyField
       property={property}
       value={value}
-      nodeType={nodeType}
       isConnected={isConnected}
       onChange={handleChange}
     />
@@ -51,7 +47,6 @@ const PropertyRow = React.memo(function PropertyRow({
 });
 
 export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
-  nodeType,
   properties,
   values,
   connectedInputs,
@@ -84,7 +79,6 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           key={prop.name}
           property={prop}
           value={values[prop.name] ?? prop.default}
-          nodeType={nodeType}
           isConnected={connectedInputs.includes(prop.name)}
           onUpdate={handleChange}
         />

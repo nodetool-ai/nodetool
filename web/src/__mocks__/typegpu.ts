@@ -42,4 +42,3 @@ const tgpu = {
 export default tgpu;
 
 export const writeToArrayBuffer = (): void => undefined;
-export const readFromArrayBuffer = (): undefined => undefined;
