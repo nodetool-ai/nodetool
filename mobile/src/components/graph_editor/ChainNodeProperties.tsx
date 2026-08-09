@@ -5,7 +5,7 @@
  * ChainNodeProperties which delegates to getComponentForProperty.
  */
 
-import React, { useCallback, useRef } from "react";
+import React, { useCallback } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useTheme } from "../../hooks/useTheme";
 import type { Property } from "../../types/ApiTypes";
@@ -54,14 +54,6 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
 }) => {
   const { colors } = useTheme();
 
-  // ChainEditor builds `onUpdate` inline per node, so it changes every render;
-  // going through a ref keeps each row's callback stable.
-  const onUpdateRef = useRef(onUpdate);
-  onUpdateRef.current = onUpdate;
-  const handleChange = useCallback((name: string, value: unknown) => {
-    onUpdateRef.current(name, value);
-  }, []);
-
   if (properties.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -80,7 +72,7 @@ export const ChainNodeProperties: React.FC<ChainNodePropertiesProps> = ({
           property={prop}
           value={values[prop.name] ?? prop.default}
           isConnected={connectedInputs.includes(prop.name)}
-          onUpdate={handleChange}
+          onUpdate={onUpdate}
         />
       ))}
     </View>

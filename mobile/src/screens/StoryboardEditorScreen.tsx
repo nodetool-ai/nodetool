@@ -118,9 +118,244 @@ const STATUS_LABELS: Record<ShotStatus, string> = {
   failed: 'Failed',
 };
 
+interface ShotCardProps {
+  shot: Shot;
+  index: number;
+  isLast: boolean;
+  isSelected: boolean;
+  onSelect: (shotId: string | null) => void;
+  onPatch: (shotId: string, patch: Partial<Shot>) => void;
+  onMove: (shotId: string, delta: number) => void;
+  onRemove: (shotId: string) => void;
+}
+
+/**
+ * `patchShot` rebuilds only the shot it edits and hands back every other shot
+ * object unchanged, so memoizing here turns a keystroke from a repaint of every
+ * card on the board — four text fields and a thumbnail each — into a repaint of
+ * one. That only holds while the handlers stay stable, so they are bound per
+ * shot here, not at the call site.
+ */
+const ShotCard = React.memo(function ShotCard({
+  shot,
+  index,
+  isLast,
+  isSelected,
+  onSelect,
+  onPatch,
+  onMove,
+  onRemove,
+}: ShotCardProps) {
+  const { colors, shadows } = useTheme();
+  const thumbnail = apiService.resolveUrl(shot.keyframe?.uri);
+
+  const handleSelect = useCallback(
+    () => onSelect(isSelected ? null : shot.id),
+    [onSelect, isSelected, shot.id]
+  );
+  const handleAction = useCallback(
+    (action: string) => onPatch(shot.id, { action }),
+    [onPatch, shot.id]
+  );
+  const handleSlug = useCallback(
+    (slug: string) => onPatch(shot.id, { slug }),
+    [onPatch, shot.id]
+  );
+  const handleMotion = useCallback(
+    (motion: string) => onPatch(shot.id, { motion }),
+    [onPatch, shot.id]
+  );
+  const handleDuration = useCallback(
+    (text: string) => {
+      const parsed = Number.parseFloat(text);
+      onPatch(shot.id, {
+        duration_seconds: Number.isFinite(parsed) ? parsed : undefined,
+      });
+    },
+    [onPatch, shot.id]
+  );
+  const handleMoveUp = useCallback(() => onMove(shot.id, -1), [onMove, shot.id]);
+  const handleMoveDown = useCallback(() => onMove(shot.id, 1), [onMove, shot.id]);
+  const handleRemove = useCallback(() => onRemove(shot.id), [onRemove, shot.id]);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        shadows.small,
+        {
+          backgroundColor: colors.cardBg,
+          borderColor: isSelected ? colors.primary : colors.borderLight,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={handleSelect}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Select shot ${index + 1}`}
+        accessibilityState={{ selected: isSelected }}
+        style={styles.cardHeader}
+      >
+        <View
+          style={[
+            styles.indexBadge,
+            {
+              backgroundColor: isSelected ? colors.primary : colors.primaryMuted,
+            },
+          ]}
+        >
+          <Text
+            style={[
+              styles.indexBadgeText,
+              { color: isSelected ? colors.textOnPrimary : colors.primary },
+            ]}
+          >
+            {index + 1}
+          </Text>
+        </View>
+        <Text style={[styles.slugPreview, { color: colors.text }]} numberOfLines={1}>
+          {shot.slug || 'Untitled shot'}
+        </Text>
+        <View
+          style={[styles.statusPill, { backgroundColor: colors.accentMuted }]}
+          accessibilityLabel={`Shot ${index + 1} status ${STATUS_LABELS[shot.status]}`}
+        >
+          <Text style={[styles.statusPillText, { color: colors.accent }]}>
+            {STATUS_LABELS[shot.status]}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {thumbnail !== null && (
+        <Image
+          source={{ uri: thumbnail }}
+          style={styles.thumbnail}
+          resizeMode="cover"
+          accessibilityLabel={`Keyframe for shot ${index + 1}`}
+        />
+      )}
+
+      <GrowingTextInput
+        style={[
+          styles.input,
+          styles.inputMulti,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={shot.action}
+        onChangeText={handleAction}
+        placeholder="What we see in this shot"
+        placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={`Shot ${index + 1} action`}
+      />
+
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={shot.slug ?? ''}
+        onChangeText={handleSlug}
+        placeholder="Label, e.g. Lighthouse at dusk"
+        placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={`Shot ${index + 1} slug`}
+      />
+
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={shot.motion ?? ''}
+        onChangeText={handleMotion}
+        placeholder="Motion, e.g. slow push in"
+        placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={`Shot ${index + 1} motion`}
+      />
+
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={
+          shot.duration_seconds === undefined ? '' : String(shot.duration_seconds)
+        }
+        onChangeText={handleDuration}
+        placeholder="Duration in seconds"
+        placeholderTextColor={colors.textTertiary}
+        keyboardType="numeric"
+        accessibilityLabel={`Shot ${index + 1} duration in seconds`}
+      />
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          onPress={handleMoveUp}
+          activeOpacity={0.7}
+          disabled={index === 0}
+          accessibilityRole="button"
+          accessibilityLabel={`Move shot ${index + 1} up`}
+          accessibilityState={{ disabled: index === 0 }}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons
+            name="arrow-up-outline"
+            size={18}
+            color={index === 0 ? colors.textTertiary : colors.text}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleMoveDown}
+          activeOpacity={0.7}
+          disabled={isLast}
+          accessibilityRole="button"
+          accessibilityLabel={`Move shot ${index + 1} down`}
+          accessibilityState={{ disabled: isLast }}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons
+            name="arrow-down-outline"
+            size={18}
+            color={isLast ? colors.textTertiary : colors.text}
+          />
+        </TouchableOpacity>
+        <View style={styles.spacer} />
+        <TouchableOpacity
+          onPress={handleRemove}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete shot ${index + 1}`}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 export default function StoryboardEditorScreen({ navigation, route }: Props) {
   const { id, name: initialName } = route.params;
-  const { colors, shadows } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const store = documentStore<StoryboardDocument>('storyboard', id);
@@ -629,196 +864,19 @@ export default function StoryboardEditorScreen({ navigation, route }: Props) {
             </TouchableOpacity>
           </View>
         ) : (
-          doc.shots.map((shot, index) => {
-            const isSelected = shot.id === selectedShotId;
-            const thumbnail = apiService.resolveUrl(shot.keyframe?.uri);
-            return (
-              <View
-                key={shot.id}
-                style={[
-                  styles.card,
-                  shadows.small,
-                  {
-                    backgroundColor: colors.cardBg,
-                    borderColor: isSelected ? colors.primary : colors.borderLight,
-                  },
-                ]}
-              >
-                <TouchableOpacity
-                  onPress={() => select(isSelected ? null : shot.id)}
-                  activeOpacity={0.7}
-                  accessibilityRole="button"
-                  accessibilityLabel={`Select shot ${index + 1}`}
-                  accessibilityState={{ selected: isSelected }}
-                  style={styles.cardHeader}
-                >
-                  <View
-                    style={[
-                      styles.indexBadge,
-                      {
-                        backgroundColor: isSelected ? colors.primary : colors.primaryMuted,
-                      },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.indexBadgeText,
-                        { color: isSelected ? colors.textOnPrimary : colors.primary },
-                      ]}
-                    >
-                      {index + 1}
-                    </Text>
-                  </View>
-                  <Text
-                    style={[styles.slugPreview, { color: colors.text }]}
-                    numberOfLines={1}
-                  >
-                    {shot.slug || 'Untitled shot'}
-                  </Text>
-                  <View
-                    style={[styles.statusPill, { backgroundColor: colors.accentMuted }]}
-                    accessibilityLabel={`Shot ${index + 1} status ${STATUS_LABELS[shot.status]}`}
-                  >
-                    <Text style={[styles.statusPillText, { color: colors.accent }]}>
-                      {STATUS_LABELS[shot.status]}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {thumbnail !== null && (
-                  <Image
-                    source={{ uri: thumbnail }}
-                    style={styles.thumbnail}
-                    resizeMode="cover"
-                    accessibilityLabel={`Keyframe for shot ${index + 1}`}
-                  />
-                )}
-
-                <GrowingTextInput
-                  style={[
-                    styles.input,
-                    styles.inputMulti,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.borderLight,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={shot.action}
-                  onChangeText={(action) => patchShot(shot.id, { action })}
-                  placeholder="What we see in this shot"
-                  placeholderTextColor={colors.textTertiary}
-                  accessibilityLabel={`Shot ${index + 1} action`}
-                />
-
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.borderLight,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={shot.slug ?? ''}
-                  onChangeText={(slug) => patchShot(shot.id, { slug })}
-                  placeholder="Label, e.g. Lighthouse at dusk"
-                  placeholderTextColor={colors.textTertiary}
-                  accessibilityLabel={`Shot ${index + 1} slug`}
-                />
-
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.borderLight,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={shot.motion ?? ''}
-                  onChangeText={(motion) => patchShot(shot.id, { motion })}
-                  placeholder="Motion, e.g. slow push in"
-                  placeholderTextColor={colors.textTertiary}
-                  accessibilityLabel={`Shot ${index + 1} motion`}
-                />
-
-                <TextInput
-                  style={[
-                    styles.input,
-                    {
-                      backgroundColor: colors.inputBg,
-                      borderColor: colors.borderLight,
-                      color: colors.text,
-                    },
-                  ]}
-                  value={
-                    shot.duration_seconds === undefined
-                      ? ''
-                      : String(shot.duration_seconds)
-                  }
-                  onChangeText={(text) => {
-                    const parsed = Number.parseFloat(text);
-                    patchShot(shot.id, {
-                      duration_seconds: Number.isFinite(parsed) ? parsed : undefined,
-                    });
-                  }}
-                  placeholder="Duration in seconds"
-                  placeholderTextColor={colors.textTertiary}
-                  keyboardType="numeric"
-                  accessibilityLabel={`Shot ${index + 1} duration in seconds`}
-                />
-
-                <View style={styles.cardActions}>
-                  <TouchableOpacity
-                    onPress={() => moveShot(shot.id, -1)}
-                    activeOpacity={0.7}
-                    disabled={index === 0}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Move shot ${index + 1} up`}
-                    accessibilityState={{ disabled: index === 0 }}
-                    hitSlop={ICON_HIT_SLOP}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons
-                      name="arrow-up-outline"
-                      size={18}
-                      color={index === 0 ? colors.textTertiary : colors.text}
-                    />
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => moveShot(shot.id, 1)}
-                    activeOpacity={0.7}
-                    disabled={index === doc.shots.length - 1}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Move shot ${index + 1} down`}
-                    accessibilityState={{ disabled: index === doc.shots.length - 1 }}
-                    hitSlop={ICON_HIT_SLOP}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons
-                      name="arrow-down-outline"
-                      size={18}
-                      color={
-                        index === doc.shots.length - 1 ? colors.textTertiary : colors.text
-                      }
-                    />
-                  </TouchableOpacity>
-                  <View style={styles.spacer} />
-                  <TouchableOpacity
-                    onPress={() => removeShot(shot.id)}
-                    activeOpacity={0.7}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Delete shot ${index + 1}`}
-                    hitSlop={ICON_HIT_SLOP}
-                    style={styles.iconButton}
-                  >
-                    <Ionicons name="trash-outline" size={18} color={colors.error} />
-                  </TouchableOpacity>
-                </View>
-              </View>
-            );
-          })
+          doc.shots.map((shot, index) => (
+            <ShotCard
+              key={shot.id}
+              shot={shot}
+              index={index}
+              isLast={index === doc.shots.length - 1}
+              isSelected={shot.id === selectedShotId}
+              onSelect={select}
+              onPatch={patchShot}
+              onMove={moveShot}
+              onRemove={removeShot}
+            />
+          ))
         )}
       </ScrollView>
     </KeyboardAvoidingView>
