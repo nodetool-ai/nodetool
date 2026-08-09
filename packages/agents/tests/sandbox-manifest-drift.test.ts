@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import { readFileSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { buildSandbox } from "../src/js-sandbox.js";
+import { buildSandbox, runInSandbox } from "../src/js-sandbox.js";
 import {
   getSandboxManifest,
-  sandboxManifestNames
+  sandboxManifestNames,
+  GUEST_GLOBALS_SNAPSHOT
 } from "../src/code-gen/sandbox-manifest.js";
 import {
   renderSandboxApiReference,
@@ -91,6 +92,42 @@ describe("sandbox manifest", () => {
     expect(manifest.blockedGlobals).toContain("eval");
     expect(manifest.nativeGlobals).toContain("JSON");
     expect(manifest.nativeGlobals).not.toContain("setTimeout");
+  });
+
+  it("documents the byte and number types the bridges return", () => {
+    for (const name of ["Uint8Array", "ArrayBuffer", "DataView", "BigInt"]) {
+      expect(manifest.nativeGlobals, name).toContain(name);
+    }
+  });
+
+  it("names what other runtimes have and this guest does not", () => {
+    for (const name of ["btoa", "atob", "structuredClone", "Intl"]) {
+      expect(manifest.blockedGlobals, name).toContain(name);
+      expect(manifest.nativeGlobals, name).not.toContain(name);
+    }
+  });
+});
+
+describe("guest globals snapshot", () => {
+  // The manifest is built synchronously from a checked-in list because booting
+  // QuickJS is async. This is what holds that list to the running guest.
+  it("equals what the running sandbox reports", async () => {
+    const run = await runInSandbox({
+      code: "return Object.getOwnPropertyNames(globalThis)"
+    });
+    expect(run.error).toBeFalsy();
+    const observed = (run.result as string[])
+      .filter((name) => !name.startsWith("__"))
+      .sort();
+    expect(observed).toEqual([...GUEST_GLOBALS_SNAPSHOT]);
+  }, 60_000);
+
+  it("has no name the manifest calls blocked", () => {
+    const blocked = getSandboxManifest().blockedGlobals;
+    const present = blocked.filter((name) =>
+      GUEST_GLOBALS_SNAPSHOT.includes(name)
+    );
+    expect(present, "blocked names the guest actually has").toEqual([]);
   });
 });
 

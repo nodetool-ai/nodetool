@@ -1,16 +1,18 @@
 /**
  * Serializable description of the guest surface `nodetool.code.Code` runs on.
  *
- * Every name and number here is read out of `js-sandbox.ts` rather than
- * restated, so a prompt or help text derived from the manifest cannot advertise
- * an API the sandbox does not marshal. Only the human prose (signatures,
- * descriptions) is written here.
+ * Every bridge, helper and limit here is read out of `js-sandbox.ts` rather
+ * than restated, so a prompt or help text derived from the manifest cannot
+ * advertise an API the sandbox does not marshal. Only the human prose
+ * (signatures, descriptions) and `GUEST_GLOBALS_SNAPSHOT` — which no
+ * synchronous host call can answer — are written here.
  */
 import {
   buildSandbox,
   resolveSandboxLimits,
   DELETED_GUEST_GLOBALS,
   EXPOSED_BRIDGE_NAMES,
+  GUEST_HELPER_NAMES,
   DEFAULT_TIMEOUT_MS,
   DEFAULT_FORMAT_LOCALE,
   DEFAULT_SELECT_HTML_LIMIT,
@@ -757,21 +759,162 @@ function fixedLimits(): SandboxLimitDoc[] {
   ];
 }
 
-/** Split the `buildSandbox` record into what QuickJS provides natively and what
- * it deliberately leaves undefined. */
+/**
+ * Every own global the QuickJS guest really has, machine-observed rather than
+ * inferred from the host-side `buildSandbox` record — that record states what
+ * the host means to install, which is neither what `@sebastianwessel/quickjs`
+ * marshals nor what the engine itself ships. Names beginning `__` (runtime
+ * internals) are filtered out.
+ *
+ * Booting the guest is async and `getSandboxManifest` is synchronous, so the
+ * list is checked in. Regenerate it with:
+ *
+ *     npx tsx packages/agents/scripts/probe-guest-globals.ts
+ *
+ * The live-probe case in `tests/sandbox-manifest-drift.test.ts` boots the real
+ * sandbox and fails when this drifts from it.
+ */
+export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
+  "AggregateError",
+  "Array",
+  "ArrayBuffer",
+  "BigInt",
+  "BigInt64Array",
+  "BigUint64Array",
+  "Boolean",
+  "Buffer",
+  "DataView",
+  "Date",
+  "Error",
+  "EvalError",
+  "FinalizationRegistry",
+  "Float32Array",
+  "Float64Array",
+  "Headers",
+  "Infinity",
+  "Int16Array",
+  "Int32Array",
+  "Int8Array",
+  "InternalError",
+  "JSON",
+  "Map",
+  "Math",
+  "NaN",
+  "Number",
+  "Object",
+  "Promise",
+  "Proxy",
+  "RangeError",
+  "ReferenceError",
+  "Reflect",
+  "RegExp",
+  "Request",
+  "Response",
+  "Set",
+  "SharedArrayBuffer",
+  "String",
+  "Symbol",
+  "SyntaxError",
+  "TextDecoder",
+  "TextEncoder",
+  "TypeError",
+  "URIError",
+  "URL",
+  "URLSearchParams",
+  "Uint16Array",
+  "Uint32Array",
+  "Uint8Array",
+  "Uint8ClampedArray",
+  "WeakMap",
+  "WeakRef",
+  "WeakSet",
+  "assetToSandbox",
+  "canvas",
+  "console",
+  "createCanvas",
+  "crypto",
+  "data",
+  "decodeURI",
+  "decodeURIComponent",
+  "encodeURI",
+  "encodeURIComponent",
+  "env",
+  "escape",
+  "fetch",
+  "format",
+  "fromBase64",
+  "fromHex",
+  "getSecret",
+  "globalThis",
+  "image",
+  "isFinite",
+  "isNaN",
+  "parallelMap",
+  "parseFloat",
+  "parseInt",
+  "performance",
+  "process",
+  "progress",
+  "queueMicrotask",
+  "sandboxToAsset",
+  "sleep",
+  "toBase64",
+  "toHex",
+  "undefined",
+  "unescape",
+  "utf8Decode",
+  "utf8Encode",
+  "uuid",
+  "workspace"
+];
+
+/**
+ * Names a model reaches for out of habit that this guest does not have. They
+ * are absent from `GUEST_GLOBALS_SNAPSHOT` — this list is what makes the
+ * absence something the manifest can say out loud. `btoa`, `atob` and
+ * `structuredClone` sit in the host-side `buildSandbox` record but are never
+ * marshaled; `Intl` is why the `format.*` bridge exists.
+ */
+const ABSENT_GLOBALS = [
+  "AbortController",
+  "Blob",
+  "FormData",
+  "Intl",
+  "atob",
+  "btoa",
+  "structuredClone"
+] as const;
+
+/**
+ * Split the observed guest globals into what a model may use directly and what
+ * it must be told is missing. Bridges and prelude helpers are documented
+ * elsewhere in the manifest, so they drop out of both lists.
+ */
 function partitionNativeGlobals(): {
   native: string[];
   blocked: string[];
 } {
-  const bridgeNames = new Set<string>(EXPOSED_BRIDGE_NAMES);
+  const documentedElsewhere = new Set<string>([
+    ...EXPOSED_BRIDGE_NAMES,
+    ...GUEST_HELPER_NAMES
+  ]);
+  const native = GUEST_GLOBALS_SNAPSHOT.filter(
+    (name) => !documentedElsewhere.has(name)
+  );
+  // The names the host record leaves undefined are the timer globals the
+  // prelude removes.
   const { sandbox } = buildSandbox();
-  const native: string[] = [];
-  const blocked: string[] = [];
-  for (const [name, value] of Object.entries(sandbox)) {
-    if (bridgeNames.has(name)) continue;
-    (value === undefined ? blocked : native).push(name);
-  }
-  return { native, blocked: [...blocked, ...DELETED_GUEST_GLOBALS] };
+  const hostBlocked = Object.entries(sandbox)
+    .filter(([, value]) => value === undefined)
+    .map(([name]) => name);
+  return {
+    native,
+    blocked: [
+      ...hostBlocked,
+      ...DELETED_GUEST_GLOBALS,
+      ...ABSENT_GLOBALS
+    ].sort()
+  };
 }
 
 let cached: SandboxManifest | null = null;
@@ -794,7 +937,8 @@ export function getSandboxManifest(): SandboxManifest {
       "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
       "Media and asset values are reference objects. Pass them through unchanged.",
       "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back.",
-      "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
+      "There is no module loader and no Intl. Anything a library would do comes from the bridges below.",
+      "`process`, `env` and `Buffer` exist but are the sandbox's own stubs, not Node's: `process` carries an empty `env` and a working directory of \"/\". Nothing reaches the host through them."
     ]
   };
   return cached;

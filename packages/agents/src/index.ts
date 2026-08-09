@@ -388,7 +388,7 @@ export {
   renderToolSignature,
   toolSignature,
   CODEACT_PRELUDE,
-  CODEACT_RESERVED_NAMES,
+  CODEACT_INJECTED_GLOBALS,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION
 } from "./codeact/tool-api.js";
 export type { ToolSignatureSource } from "./codeact/tool-api.js";

@@ -41,31 +41,52 @@ export function isJsCodeNodeType(nodeType: string): boolean {
  * `packages/agents/tests/sandbox-manifest-drift.test.ts`.
  */
 export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
-  // QuickJS built-ins
-  "console", "JSON", "Math", "Date", "RegExp", "Array", "Object", "String",
-  "Number", "Boolean", "Map", "Set", "WeakMap", "WeakSet", "Symbol", "Promise",
-  "Error", "TypeError", "RangeError", "URIError", "SyntaxError",
-  "parseInt", "parseFloat", "isNaN", "isFinite",
-  "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI",
-  "btoa", "atob", "structuredClone", "TextEncoder", "TextDecoder",
-  "URL", "URLSearchParams", "Infinity", "NaN",
+  // Guest globals, as observed in the running QuickJS sandbox
+  "AggregateError", "Array", "ArrayBuffer", "BigInt", "BigInt64Array",
+  "BigUint64Array", "Boolean", "Buffer", "DataView", "Date", "Error",
+  "EvalError", "FinalizationRegistry", "Float32Array", "Float64Array",
+  "Headers", "Infinity", "Int16Array", "Int32Array", "Int8Array",
+  "InternalError", "JSON", "Map", "Math", "NaN", "Number", "Object",
+  "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect", "RegExp",
+  "Request", "Response", "Set", "SharedArrayBuffer", "String", "Symbol",
+  "SyntaxError", "TextDecoder", "TextEncoder", "TypeError", "URIError",
+  "URL", "URLSearchParams", "Uint16Array", "Uint32Array", "Uint8Array",
+  "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI",
+  "decodeURIComponent", "encodeURI", "encodeURIComponent", "env", "escape",
+  "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt", "performance",
+  "process", "queueMicrotask", "undefined", "unescape",
   // Host bridges
-  "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
+  "console", "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
   "image", "canvas",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
   "parallelMap", "createCanvas",
-  // Blocked in the sandbox, but still not user inputs
+  // Absent from this guest, but not user inputs either
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",
   "setImmediate", "clearImmediate", "eval", "Function",
+  "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
+  "FormData",
   // JS literals that acorn parses as Identifier nodes
-  "undefined", "true", "false", "null",
-  "this", "arguments", "globalThis", "self", "window", "document", "process",
+  "true", "false", "null",
+  "this", "arguments", "self", "window", "document",
   // Code node reserved props
   "code", "timeout", "state",
   // Sandbox internals
   "__maxIter"
+]);
+
+/**
+ * The subset of `SANDBOX_GLOBALS` the guest does not actually have. They stay
+ * in that set so neither the graph validator nor the editor's input inference
+ * turns one into a dynamic input handle, but a body that reads one gets told
+ * what to use instead.
+ */
+const ABSENT_GLOBALS: ReadonlySet<string> = new Set([
+  "setTimeout", "clearTimeout", "setInterval", "clearInterval",
+  "setImmediate", "clearImmediate", "eval", "Function",
+  "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
+  "FormData"
 ]);
 
 export interface CodeNodeIssue {
@@ -153,9 +174,25 @@ export function validateCodeNodeBody(
   const inScope = new Set(input.availableInputs);
   const free = freeIdentifiers(parsed.statements);
   const guarded = typeofGuardedNames(parsed.statements);
-  const undefinedNames = free.filter(
-    (name) =>
-      !inScope.has(name) && !SANDBOX_GLOBALS.has(name) && !guarded.has(name)
+  const unbound = free.filter(
+    (name) => !inScope.has(name) && !guarded.has(name)
+  );
+  const absentNames = [
+    ...new Set(unbound.filter((name) => ABSENT_GLOBALS.has(name)))
+  ];
+  if (absentNames.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "code_undefined_name",
+      message:
+        `The code reads ${formatNames(absentNames.sort())}, which other JavaScript runtimes ` +
+        `have but this sandbox does not — ${absentNames.length > 1 ? "they throw" : "it throws"} ReferenceError. ` +
+        "Use the sandbox equivalent: toBase64/fromBase64 for base64, format.* for Intl, " +
+        "sleep for timers, JSON round-trip for a deep copy."
+    });
+  }
+  const undefinedNames = unbound.filter(
+    (name) => !SANDBOX_GLOBALS.has(name) && !ABSENT_GLOBALS.has(name)
   );
   if (undefinedNames.length > 0) {
     issues.push({
