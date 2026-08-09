@@ -174,7 +174,7 @@ FORMATTING (there is no Intl; these are host calls, default locale en-US):
 CRYPTO AND BINARY:
 - crypto.randomUUID() → string; crypto.getRandomValues(length) → Uint8Array
 - await crypto.digest(algorithm, data) and await crypto.hmac(algorithm, key, data) → Uint8Array; SHA-1/256/384/512
-- toBase64, fromBase64, toHex, fromHex, utf8Encode, utf8Decode — synchronous conversions between strings and Uint8Array
+- toBase64, fromBase64, toHex, fromHex — synchronous conversions between strings/bytes; TextEncoder and TextDecoder are native for UTF-8
 
 ASYNC APIS:
 - await fetch(url, options?) → { ok, status, statusText, headers, body, json, text, bytes, arrayBuffer } — 20 calls per run, 15s timeout each, 1MB response cap. Private and loopback addresses are refused.
@@ -182,7 +182,6 @@ ASYNC APIS:
 - await parallelMap(items, fn, concurrency?) → results in input order — bounded fan-out, concurrency default 5. The way to fetch many URLs.
 - await sleep(ms) — the only timer, capped at 5000ms
 - await getSecret(name) → string or undefined
-- uuid() → string
 - progress(percent, message?) — drives the node progress bar; fire-and-forget
 
 IMAGES (encoded bytes in, encoded bytes out, so calls chain; png, jpeg, webp, avif):

@@ -376,10 +376,10 @@ describe("MiniJSAgentTool", () => {
     });
   });
 
-  it("uuid() returns a UUID", async () => {
+  it("crypto.randomUUID() returns a UUID", async () => {
     const result = (await tool.process(mockContext, {
       code: `
-        const id = uuid();
+        const id = crypto.randomUUID();
         return typeof id === "string" && id.length === 36;
       `
     })) as Record<string, unknown>;

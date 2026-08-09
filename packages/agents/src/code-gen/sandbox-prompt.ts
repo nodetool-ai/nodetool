@@ -117,7 +117,7 @@ export function renderSandboxApiReference(
 
 /**
  * Identifier-like API references in a block of instruction text: bare calls
- * (`uuid(`) and dotted access (`data.parseCsv`). Returns the root name of each,
+ * (`sleep(`) and dotted access (`data.parseCsv`). Returns the root name of each,
  * which is what has to exist in the sandbox.
  */
 export function extractApiReferences(text: string): string[] {

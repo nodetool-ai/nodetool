@@ -22,7 +22,7 @@ export class RunCodeTool extends Tool {
   readonly description =
     "Execute JavaScript code in a sandboxed QuickJS environment. Only javascript is supported. " +
     "Vanilla JS plus bridges: fetch(), console.*, workspace.read/write/list/readBytes/writeBytes/" +
-    "stat/mkdir/remove(), getSecret(), uuid(), sleep(), progress(), crypto.randomUUID/" +
+    "stat/mkdir/remove(), getSecret(), sleep(), progress(), crypto.randomUUID/" +
     "getRandomValues/digest/hmac, format.number/date/relativeTime/list, " +
     "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
     "toBase64/fromBase64/toHex/fromHex. No imports — there is no module loader. " +

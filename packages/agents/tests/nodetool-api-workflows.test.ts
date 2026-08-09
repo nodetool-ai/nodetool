@@ -180,12 +180,14 @@ describe("nodetool.workflows escalations", () => {
 });
 
 describe("nodetool.workflows examples", () => {
-  it("lists examples through list_workflows", async () => {
+  it("lists examples through list({workflow_type: \"example\"})", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(WORKFLOW_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `return await nodetool.workflows.examples({ query: "sum", limit: 5 });`
+      `return await nodetool.workflows.list({
+         workflow_type: "example", query: "sum", limit: 5
+       });`
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toMatchObject({

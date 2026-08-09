@@ -95,7 +95,7 @@ Verified against `packages/agents/src/js-sandbox.ts` by running code in it:
 | `Date`, ISO parse/format | yes |
 | `fetch()` (host-mediated, rate-limited) | yes |
 | `workspace.read/write/readBytes/writeBytes/list/stat/mkdir/remove` | yes |
-| `getSecret()`, `uuid()`, `sleep()`, `progress()` | yes |
+| `getSecret()`, `sleep()`, `progress()` | yes |
 | `crypto.digest/hmac/randomUUID/getRandomValues` | yes |
 | `data.parseCsv` (papaparse), `data.selectHtml` (cheerio) | yes |
 | `format.number/date/relativeTime/list` (host `Intl` bridge) | yes |

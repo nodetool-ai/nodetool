@@ -343,13 +343,11 @@ describe("nodetool.style", () => {
     const obs = await runAction(
       session,
       `const profile = await nodetool.style.profile();
-       const details = await nodetool.style.profileDetails();
-       return { profile: profile, itemCount: details.items.length };`
+       return { profile: profile };`
     );
     expect(obs.ok).toBe(true);
     expect(obs.result).toEqual({
-      profile: "- Prefers muted palettes.",
-      itemCount: 1
+      profile: "- Prefers muted palettes."
     });
   });
 
@@ -378,13 +376,10 @@ describe("nodetool.style", () => {
     expect(calls[1].args["taste_profile"]).toBe("- Muted palettes.");
   });
 
-  it("accepts the full profile record as taste_profile too", async () => {
+  it("passes critique opts through unwrapped", async () => {
     const calls: ChatCodeActToolCall[] = [];
     const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
       calls.push(call);
-      if (call.name === "get_style_profile") {
-        return JSON.stringify({ profile: "- Muted palettes.", items: [] });
-      }
       return JSON.stringify({ verdict: "ok" });
     };
     const session = makeSession(
@@ -393,14 +388,15 @@ describe("nodetool.style", () => {
     );
     const obs = await runAction(
       session,
-      `const details = await nodetool.style.profileDetails();
-       await nodetool.media.critique("asset://a1", "a poster", "openai/gpt-5.4", {
-         taste_profile: details
+      `await nodetool.media.critique("asset://a1", "a poster", "openai/gpt-5.4", {
+         taste_profile: "- Muted palettes.",
+         max_defects: 3
        });
        return true;`
     );
     expect(obs.ok).toBe(true);
-    expect(calls[1].args["taste_profile"]).toBe("- Muted palettes.");
+    expect(calls[0].args["taste_profile"]).toBe("- Muted palettes.");
+    expect(calls[0].args["max_defects"]).toBe(3);
   });
 
   it("maps profile/record onto the style tools", async () => {

@@ -176,7 +176,7 @@ describe("data.zip / data.unzip bridges", () => {
         const entries = await data.unzip(archive);
         return {
           names: Object.keys(entries).sort(),
-          text: utf8Decode(entries["notes/a.txt"]),
+          text: new TextDecoder().decode(entries["notes/a.txt"]),
           bin: Array.from(entries["raw.bin"]),
           isBytes: entries["raw.bin"] instanceof Uint8Array
         };`

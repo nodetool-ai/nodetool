@@ -66,7 +66,7 @@ describe("sandbox manifest", () => {
         expect(typeof value, bridge.name).toBe("function");
         continue;
       }
-      const documented = bridge.members
+      const documented = [...bridge.members, ...(bridge.internalMembers ?? [])]
         .map((m) => m.name.split(".")[1])
         .sort();
       expect(Object.keys(value as object).sort(), bridge.name).toEqual(

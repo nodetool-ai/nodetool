@@ -7,10 +7,10 @@
  * between host and guest (unlike Node's `node:vm`, which shares the V8 heap).
  *
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
- * of bridge functions (`fetch`, `workspace`, `getSecret`, `uuid`, `sleep`,
+ * of bridge functions (`fetch`, `workspace`, `getSecret`, `sleep`,
  * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
  * `format`, `data`, `image`, `canvas`) and a few pure guest-side helpers
- * (`toBase64`, `fromBase64`, `toHex`, `fromHex`, `utf8Encode`, `utf8Decode`,
+ * (`toBase64`, `fromBase64`, `toHex`, `fromHex`,
  * `parallelMap`, `createCanvas`). `crypto`
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
  * (WebCrypto-backed); `workspace` covers text and binary reads/writes plus
@@ -1314,8 +1314,6 @@ export function buildSandbox(
     }
   };
 
-  const uuid = () => globalThis.crypto.randomUUID();
-
   // WebCrypto exists in both Node >= 20 and browsers, so no node:crypto import
   // is needed and the sandbox stays browser-safe. `getRandomValues` is the one
   // synchronous member: it clamps instead of throwing, since a host throw does
@@ -2145,7 +2143,6 @@ export function buildSandbox(
     // Bridge functions — the only non-native surface the sandbox exposes.
     fetch: sandboxedFetch,
     crypto: sandboxCrypto,
-    uuid,
     sleep,
     getSecret,
     workspace,
@@ -2333,7 +2330,6 @@ export const EXPOSED_BRIDGE_NAMES = [
   "console",
   "fetch",
   "crypto",
-  "uuid",
   "sleep",
   "getSecret",
   "workspace",
@@ -2355,16 +2351,34 @@ export const GUEST_HELPER_NAMES = [
   "fromBase64",
   "toHex",
   "fromHex",
-  "utf8Encode",
-  "utf8Decode",
   "parallelMap",
   "createCanvas"
 ] as const;
 
 export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
 
-/** Globals the prelude removes so the guest cannot re-enter code generation. */
-export const DELETED_GUEST_GLOBALS = ["eval", "Function"] as const;
+/**
+ * Globals the init prelude removes. `eval` and `Function` go so the guest
+ * cannot re-enter code generation. The rest are stubs
+ * `@sebastianwessel/quickjs` installs unconditionally (its node-compatibility
+ * layer and `provideEnv` have no off switch): `Buffer`, `process`, `env`,
+ * `Headers`, `Request`, `Response`, `performance`. Nothing in the sandbox's
+ * own machinery uses them — the fetch bridge returns plain objects and the
+ * guest-to-host serializers dispatch on constructor names no guest code can
+ * reach once the classes are gone — so they are deleted to keep the guest
+ * surface minimal instead of documented as stubs.
+ */
+export const DELETED_GUEST_GLOBALS = [
+  "eval",
+  "Function",
+  "Buffer",
+  "process",
+  "env",
+  "Headers",
+  "Request",
+  "Response",
+  "performance"
+] as const;
 
 /** Names that should never be reassigned via `globals` — core sandbox APIs. */
 export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
@@ -2519,25 +2533,8 @@ export async function runInSandbox(
           `const __marker = "${SANDBOX_ERROR_MARKER}";
 const __bytesMarker = "${SANDBOX_BYTES_MARKER}";
 const __b64chars = "${BASE64_ALPHABET}";
-const __hasTE = typeof TextEncoder === "function";
-globalThis.utf8Encode = (s) => {
-  if (__hasTE) return new TextEncoder().encode(String(s));
-  const esc = encodeURIComponent(String(s));
-  const out = [];
-  for (let i = 0; i < esc.length; i++) {
-    if (esc[i] === "%") { out.push(parseInt(esc.substr(i + 1, 2), 16)); i += 2; }
-    else out.push(esc.charCodeAt(i));
-  }
-  return new Uint8Array(out);
-};
-globalThis.utf8Decode = (b) => {
-  if (__hasTE) return new TextDecoder().decode(b instanceof Uint8Array ? b : Uint8Array.from(b));
-  let esc = "";
-  for (let i = 0; i < b.length; i++) esc += "%" + (b[i] < 16 ? "0" : "") + b[i].toString(16);
-  return decodeURIComponent(esc);
-};
 globalThis.toBase64 = (input) => {
-  const b = typeof input === "string" ? globalThis.utf8Encode(input) : input;
+  const b = typeof input === "string" ? new TextEncoder().encode(input) : input;
   let out = "";
   for (let i = 0; i < b.length; i += 3) {
     const c = (b[i] << 16) | ((b[i + 1] || 0) << 8) | (b[i + 2] || 0);

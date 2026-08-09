@@ -33,7 +33,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
   models: ["find_model", "list_models", "list_provider_models"],
-  providers: ["list_models", "list_provider_models"],
   media: [
     "generate_image",
     "edit_image",
@@ -175,20 +174,6 @@ const nodetool = (() => {
     return fn;
   };
   const __merge = (a, b) => Object.assign({}, a || {}, b || {});
-
-  /**
-   * \`taste_profile\` is a prompt block (a string). Accept the full record
-   * \`profileDetails()\` returns too, so passing either shape works.
-   */
-  const __taste = (opts) => {
-    const merged = __merge(opts);
-    const profile = merged.taste_profile;
-    if (profile && typeof profile === "object" &&
-        typeof profile.profile === "string") {
-      merged.taste_profile = profile.profile;
-    }
-    return merged;
-  };
 
   /**
    * Accept a GraphBuilder, a bare {nodes, edges}, or a workflow record —
@@ -405,21 +390,6 @@ const nodetool = (() => {
           text.split(/\\s+/).slice(0, 6).join(" ") ||
           "Subtask";
         return __need("run_subtask")({ description: description, prompt: text });
-      },
-      /**
-       * Fan out sub-agents over prompts (strings or {prompt, description})
-       * with nodetool.batch semantics: bounded concurrency, one settled
-       * {ok, value | error} entry per prompt.
-       */
-      fanout(prompts, opts) {
-        return api.batch(
-          Array.from(prompts),
-          (p) =>
-            typeof p === "string"
-              ? api.agents.run(p, opts)
-              : api.agents.run(p.prompt, __merge(opts, { description: p.description })),
-          opts
-        );
       }
     },
 
@@ -462,9 +432,6 @@ const nodetool = (() => {
             action: action
           })
         ),
-      /** Shipped example workflows — id, name, description, tags only. */
-      examples: (opts) =>
-        __need("list_workflows")(__merge(opts, { workflow_type: "example" })),
       /**
        * One example workflow, graph included — ready for
        * nodetool.graph().copyFrom(...). Name is "<package>/<example>", or
@@ -487,7 +454,7 @@ const nodetool = (() => {
           throw new Error(
             "nodetool.workflows.example: name an example — " +
             '"<package>/<example>", or (example, {package}). ' +
-            "nodetool.workflows.examples() lists them."
+            'nodetool.workflows.list({workflow_type: "example"}) lists them.'
           );
         }
         return __need("get_example_workflow")({
@@ -529,38 +496,10 @@ const nodetool = (() => {
         }
         return results[0];
       },
-      list: (opts) => __need("list_models")(__merge(opts))
-    },
-
-    providers: {
-      /** Configured providers, derived from the model catalog: one entry per
-       * provider with its model count and the model types it serves. */
-      async list() {
-        const res = await __need("list_models")({ limit: 1000 });
-        const byProvider = {};
-        for (const m of (res && res.results) || []) {
-          const entry =
-            byProvider[m.provider] ||
-            (byProvider[m.provider] = {
-              provider: m.provider,
-              models: 0,
-              types: []
-            });
-          entry.models++;
-          if (m.type && entry.types.indexOf(m.type) < 0) {
-            entry.types.push(m.type);
-          }
-        }
-        const list = Object.keys(byProvider).map((key) => byProvider[key]);
-        if (list.length === 0 && res && res.note) {
-          return { providers: [], note: res.note };
-        }
-        return list;
-      },
-      models: (provider, opts) =>
-        __has("list_provider_models")
-          ? tools.list_provider_models(__merge(opts, { provider: provider }))
-          : __need("list_models")(__merge(opts, { provider: provider }))
+      list: (opts) => __need("list_models")(__merge(opts)),
+      /** One provider's own catalog. */
+      forProvider: (provider, opts) =>
+        __need("list_provider_models")(__merge(opts, { provider: provider }))
     },
 
     media: {
@@ -603,7 +542,7 @@ const nodetool = (() => {
       critique: (image, brief, model, opts) =>
         __need("critique_image")(
           __merge(
-            __taste(opts),
+            opts,
             __merge(__model(model), { image: image, brief: brief })
           )
         ),
@@ -611,7 +550,7 @@ const nodetool = (() => {
       compare: (images, brief, model, opts) =>
         __need("compare_images")(
           __merge(
-            __taste(opts),
+            opts,
             __merge(__model(model), { images: images, brief: brief })
           )
         ),
@@ -725,8 +664,7 @@ const nodetool = (() => {
     style: {
       /**
        * The user's accumulated taste as a prompt-ready block: a string, which
-       * is what generation prompts and \`taste_profile\` take. Use
-       * \`profileDetails()\` for the individual preference records.
+       * is what generation prompts and \`taste_profile\` take.
        */
       profile: (opts) =>
         __need("get_style_profile")(__merge(opts)).then((r) =>
@@ -734,8 +672,6 @@ const nodetool = (() => {
             ? r.profile
             : r
         ),
-      /** The same profile plus the preference items behind it. */
-      profileDetails: (opts) => __need("get_style_profile")(__merge(opts)),
       /** Record one preference learned from a choice or a correction. */
       record: (takeaway, opts) =>
         __need("record_style_preference")(
@@ -748,9 +684,7 @@ const nodetool = (() => {
       /** Image assets as lightweight handles — feed an id to view_image. */
       images: (opts) => __need("list_images")(__merge(opts)),
       search: (query, opts) =>
-        __has("asset_search")
-          ? tools.asset_search(__merge(opts, { query: query }))
-          : __need("list_assets")(__merge(opts, { query: query })),
+        __need("asset_search")(__merge(opts, { query: query })),
       get: (id) => __need("get_asset")({ asset_id: id }),
       save: (name, opts) => __need("save_asset")(__merge(opts, { name: name })),
       read: (name, opts) => __need("read_asset")(__merge(opts, { name: name }))
@@ -946,7 +880,7 @@ interface PromptEntry {
 const NAMESPACE_DOCS: PromptEntry[] = [
   {
     namespace: "workflows",
-    doc: `- \`nodetool.workflows\` — \`list()\` and \`examples()\` return \`{workflows}\`
+    doc: `- \`nodetool.workflows\` — \`list()\` returns \`{workflows}\`
   (an envelope, not a bare array), \`get(id)\`, \`run(id, params, {interactive})\`,
   \`start(id, params)\` (background job), \`debug(id, params)\`, \`validate(idOrGraph)\`,
   \`create(name, graph, {description, tags})\`, \`open(id?)\` (the editable object
@@ -955,7 +889,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   {outputs, reason, apply_to})\` — retry/substitute/skip/end_stream/fail — and
   get the next escalation or the final report. Write the whole
   run-and-resolve loop (\`while (report.status === "escalated") ...\`) in one
-  action. \`examples()\` lists the shipped
+  action. \`list({workflow_type: "example"})\` enumerates the shipped
   example workflows and \`example("<package>/<name>")\` loads one with its
   graph, ready for \`nodetool.graph().copyFrom(...)\`.`
   },
@@ -985,8 +919,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "agents",
     doc: `- \`nodetool.agents\` — delegate to sub-agents. \`await run(prompt, {description})\`
   spawns a child with this belt's tools but a FRESH context: the prompt must be
-  self-contained (ask for JSON in it when you want structure back).
-  \`fanout(prompts, {concurrency})\` runs several with batch semantics — one
+  self-contained (ask for JSON in it when you want structure back). Fan out
+  with \`nodetool.batch(prompts, (p) => nodetool.agents.run(p))\` — one
   settled \`{ok, value | error}\` entry per prompt. Delegate work that benefits
   from a fresh focused context, not one-tool errands.`
   },
@@ -996,13 +930,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   (e.g. \`pick("text_to_image")\` → \`{provider, model_id}\`), \`find(capability,
   {task, provider_hint, prefer_local, limit})\` for the ranked list (returns
   \`{results}\`),
-  \`list({provider, model_type})\` to browse. Never guess a model id — pick one,
+  \`list({provider, model_type})\` to browse, \`forProvider(provider)\` for one
+  provider's own catalog. Never guess a model id — pick one,
   then pass it to \`nodetool.media.*\` or into node properties.`
-  },
-  {
-    namespace: "providers",
-    doc: `- \`nodetool.providers\` — \`list()\` (configured providers with model counts and
-  types), \`models(provider)\` (one provider's catalog).`
   },
   {
     namespace: "media",
@@ -1050,9 +980,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "style",
     doc: `- \`nodetool.style\` — the user's accumulated taste. \`profile({query, k})\`
   returns a string block to inject into generation prompts and to pass as
-  \`taste_profile\` to \`nodetool.media.critique/compare\`
-  (\`profileDetails()\` returns that block plus the preference records behind
-  it); \`record(takeaway, {chosen, rejected, brief})\` saves one preference
+  \`taste_profile\` to \`nodetool.media.critique/compare\`;
+  \`record(takeaway, {chosen, rejected, brief})\` saves one preference
   whenever the user picks between candidates or corrects a style.`
   },
   {
@@ -1206,6 +1135,14 @@ Reach for a \`ui_*\` tool only for what a server-side edit cannot do:
 
 If you do not know the document's id, find it with \`list()\` on the namespace.`;
 
+/**
+ * Heading of the prompt section {@link buildNodetoolApiPromptSection} renders.
+ * `buildCodeActSystemPrompt` keys on it to know the `nodetool` object model is
+ * loaded — and then documents `nodetool.batch` as THE fan-out primitive
+ * instead of the bare-sandbox `parallelMap` helper.
+ */
+export const NODETOOL_API_SECTION_HEADER = "# The `nodetool` object model";
+
 export function buildNodetoolApiPromptSection(
   toolNames: Iterable<string>
 ): string {
@@ -1218,7 +1155,7 @@ export function buildNodetoolApiPromptSection(
   if (active.length === 0) return "";
 
   const sections: string[] = [
-    `# The \`nodetool\` object model`,
+    NODETOOL_API_SECTION_HEADER,
     `Platform objects — workflows, graphs, models, media, documents — are
 driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
 tools are deliberately absent from the tool catalog above; this object model

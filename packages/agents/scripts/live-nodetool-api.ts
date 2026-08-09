@@ -83,7 +83,7 @@ return runs.map((r) => ({
     // 3. Examples → copyFrom → inspect + revalidate.
     name: "example-copy",
     code: `
-const examples = await nodetool.workflows.examples({ limit: 50 });
+const examples = await nodetool.workflows.list({ workflow_type: "example", limit: 50 });
 const list = examples.workflows || examples;
 const pick = list.find((w) => /getting|start|hello|text/i.test(w.name)) || list[0];
 const full = await nodetool.workflows.example(
@@ -103,10 +103,17 @@ return {
 };`
   },
   {
-    // 4. Providers → pick → one cheap image (skips without a t2i provider).
+    // 4. Model catalog → pick → one cheap image (skips without a t2i provider).
     name: "media-pick",
     code: `
-const providers = await nodetool.providers.list();
+const catalog = await nodetool.models.list({ limit: 1000 });
+const byProvider = {};
+for (const m of (catalog.results || [])) {
+  byProvider[m.provider] = (byProvider[m.provider] || 0) + 1;
+}
+const providers = Object.keys(byProvider).map(
+  (p) => ({ provider: p, models: byProvider[p] })
+);
 let picked = null;
 let image = null;
 try {

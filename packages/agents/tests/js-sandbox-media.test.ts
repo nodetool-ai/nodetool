@@ -369,7 +369,7 @@ describe("image transforms", () => {
 
   it("reports a decode failure with the format it sniffed", async () => {
     const message = await run(`
-      try { await image.info(utf8Encode("not an image at all")); return "no throw"; }
+      try { await image.info(new TextEncoder().encode("not an image at all")); return "no throw"; }
       catch (e) { return e.message; }
     `);
     expect(message).toMatch(/could not decode the image \(unknown\)/);

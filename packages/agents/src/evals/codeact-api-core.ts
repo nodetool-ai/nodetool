@@ -1,6 +1,6 @@
 /**
  * CodeAct eval cases for the CORE `nodetool.*` namespaces — workflows, graph,
- * nodes, models, providers, media, jobs, assets, agents (plus `batch`).
+ * nodes, models, media, jobs, assets, agents (plus `batch`).
  *
  * The belt below is a set of fakes named exactly like the real tools, so the
  * executor lights up the object model, its prompt section, and the guest
@@ -1249,7 +1249,7 @@ export const CODEACT_API_CORE_CASES: readonly CodeActEvalCase[] = [
       required: ["provider", "model", "uris"]
     },
     createTools: createCoreApiTools,
-    namespaces: ["providers", "models", "media"],
+    namespaces: ["models", "media"],
     expect: {
       requiredTools: ["list_models", "find_model", "generate_image"],
       maxActions: 5,
