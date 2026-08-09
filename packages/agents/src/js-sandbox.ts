@@ -77,6 +77,8 @@ export const GUEST_MEMORY_LIMIT = 64 * 1024 * 1024;
 export const GUEST_STACK_LIMIT = 512 * 1024;
 /** Per-request wall-clock cap for the fetch bridge. */
 export const FETCH_TIMEOUT_MS = 15_000;
+/** Redirect hops the fetch bridge follows before giving up. */
+export const MAX_FETCH_REDIRECTS = 5;
 /** Locale used by the `format` bridge when the caller names none. */
 export const DEFAULT_FORMAT_LOCALE = "en-US";
 /** Largest `crypto.getRandomValues` request the bridge will serve. */
@@ -410,6 +412,15 @@ async function loadNodePath(): Promise<typeof import("node:path")> {
  * would otherwise be dereferenced (arbitrary host file read/write). For a write
  * to a not-yet-existing file, the parent directory is checked instead. Throws
  * on an escape.
+ *
+ * TOCTOU: the realpath check and the fs op that follows it are separate awaits,
+ * and guest bridge calls run concurrently (Promise.all), so an in-workspace
+ * symlink could be swapped to point outside between this check and the caller's
+ * read/write. Keeping this the last step before the op narrows the window but
+ * does not close it — a full fix needs fd-based ops (O_NOFOLLOW / openat), which
+ * node:fs/promises does not expose. Accepted as low-risk: it needs a local
+ * attacker racing a symlink swap inside the workspace, and both surfaces here
+ * (Code node, MiniJSAgentTool) run first-party or already-trusted code.
  */
 async function assertWorkspaceContained(
   context: { resolveWorkspacePath: (p: string) => string },
@@ -676,6 +687,62 @@ async function loadSandboxMedia(): Promise<SandboxMediaModule> {
   return import("./sandbox-media.js");
 }
 
+/** True if the first two octets of an IPv4 address fall in a blocked range. */
+function isBlockedV4(a: number, b: number): boolean {
+  if (a === 127 || a === 10 || a === 0) return true; // loopback, private, this-host
+  if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
+  if (a === 192 && b === 168) return true; // private
+  if (a === 172 && b >= 16 && b <= 31) return true; // private
+  if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT 100.64.0.0/10
+  if (a === 198 && (b === 18 || b === 19)) return true; // benchmarking 198.18.0.0/15
+  return false;
+}
+
+/**
+ * Expand an IPv6 literal (hex form, `::` allowed) to its eight 16-bit hextets.
+ * Returns null when the input is not a well-formed pure-hex IPv6 address —
+ * dotted-quad tails are handled by the caller's IPv4 path, not here.
+ */
+function expandIpv6(h: string): number[] | null {
+  if (!h.includes(":")) return null;
+  const parts = h.split("::");
+  if (parts.length > 2) return null;
+  const head = parts[0] ? parts[0].split(":") : [];
+  const tail = parts.length === 2 ? (parts[1] ? parts[1].split(":") : []) : null;
+  let hextets: string[];
+  if (tail === null) {
+    hextets = head;
+  } else {
+    const missing = 8 - head.length - tail.length;
+    if (missing < 0) return null;
+    hextets = [...head, ...new Array<string>(missing).fill("0"), ...tail];
+  }
+  if (hextets.length !== 8) return null;
+  const nums = hextets.map((x) => parseInt(x || "0", 16));
+  if (nums.some((n) => !Number.isFinite(n) || n < 0 || n > 0xffff)) return null;
+  return nums;
+}
+
+/**
+ * Extract the first two octets of an IPv4 address embedded in a hex-serialized
+ * IPv6 literal — the WHATWG URL parser rewrites `::ffff:127.0.0.1` to
+ * `::ffff:7f00:1`, so the dotted regex no longer matches. Covers IPv4-mapped
+ * (`::ffff:x:x`, incl. the full `0:0:0:0:0:ffff:x:x`), IPv4-compatible
+ * (`::a.b.c.d`, deprecated) and NAT64 (`64:ff9b::/96`). Returns null when no
+ * embedded v4 is present.
+ */
+function embeddedV4FromHexIpv6(h: string): [number, number] | null {
+  const nums = expandIpv6(h);
+  if (!nums) return null;
+  const isZero = (from: number, to: number): boolean =>
+    nums.slice(from, to).every((n) => n === 0);
+  const octets = (): [number, number] => [(nums[6] >> 8) & 0xff, nums[6] & 0xff];
+  if (isZero(0, 5) && nums[5] === 0xffff) return octets(); // ::ffff:a.b.c.d
+  if (isZero(0, 6)) return octets(); // ::a.b.c.d (IPv4-compatible, deprecated)
+  if (nums[0] === 0x64 && nums[1] === 0xff9b && isZero(2, 6)) return octets(); // 64:ff9b::/96
+  return null;
+}
+
 /** True if a literal IPv4/IPv6 host is loopback, link-local, or private. */
 function isBlockedIpLiteral(host: string): boolean {
   // Strip IPv6 brackets/zone id.
@@ -683,20 +750,23 @@ function isBlockedIpLiteral(host: string): boolean {
     .replace(/^\[|\]$/g, "")
     .split("%")[0]
     .toLowerCase();
-  // IPv4 (incl. IPv4-mapped IPv6 like ::ffff:127.0.0.1)
+  // IPv4, dotted form (incl. an IPv4-mapped IPv6 tail like ::ffff:127.0.0.1).
   const v4 = h.match(/(?:^|:)((?:\d{1,3}\.){3}\d{1,3})$/);
   if (v4) {
     const [a, b] = v4[1].split(".").map(Number);
-    if (a === 127 || a === 10 || a === 0) return true; // loopback, private, this-host
-    if (a === 169 && b === 254) return true; // link-local incl. 169.254.169.254 metadata
-    if (a === 192 && b === 168) return true; // private
-    if (a === 172 && b >= 16 && b <= 31) return true; // private
-    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
-    return false;
+    return isBlockedV4(a, b);
   }
-  // IPv6
+  // IPv4 embedded in a hex-serialized IPv6 literal — ::ffff:7f00:1 (mapped) and
+  // 64:ff9b::a9fe:a9fe (NAT64). These match neither the v4 regex nor the plain
+  // IPv6 checks below, so without this an ::ffff:169.254.169.254 metadata fetch
+  // slips through.
+  const embedded = embeddedV4FromHexIpv6(h);
+  if (embedded) return isBlockedV4(embedded[0], embedded[1]);
+  // Plain IPv6.
   if (h === "::1" || h === "::") return true; // loopback / unspecified
-  if (h.startsWith("fe80")) return true; // link-local
+  // Link-local fe80::/10 spans fe80::–febf::, so the first three hex digits are
+  // fe8/fe9/fea/feb — "fe80" alone is too narrow.
+  if (/^fe[89ab]/.test(h)) return true;
   if (h.startsWith("fc") || h.startsWith("fd")) return true; // unique-local fc00::/7
   return false;
 }
@@ -1101,7 +1171,97 @@ export function buildSandbox(
         }
       }
 
-      const response = await fetch(url, fetchOptions);
+      // Follow redirects manually on Node so the SSRF guard runs on every hop's
+      // resolved Location, not just the initial URL — otherwise an allowed
+      // public URL that 302s to http://169.254.169.254/ or an internal host
+      // bypasses the guard entirely. In a browser redirect:"manual" yields an
+      // opaque response whose Location is unreadable, and cross-origin bodies
+      // are CORS-blocked anyway, so the browser keeps the single redirect:
+      // "follow" call with only the already-run initial-URL check.
+      const onNode =
+        typeof globalThis.process?.versions?.node === "string";
+      let response: Response;
+      if (!onNode) {
+        response = await fetch(url, { ...fetchOptions, redirect: "follow" });
+      } else {
+        const dropContentHeaders = (
+          h: Record<string, string>
+        ): Record<string, string> => {
+          const out: Record<string, string> = {};
+          for (const [k, v] of Object.entries(h)) {
+            const lk = k.toLowerCase();
+            if (lk === "content-length" || lk === "content-type") continue;
+            out[k] = v;
+          }
+          return out;
+        };
+        // Credential headers must not cross to a different origin — this
+        // mirrors Node's native redirect:"follow", which strips them per the
+        // fetch spec. Guest code sets headers from getSecret(...), so a
+        // redirect to an attacker origin would otherwise exfiltrate them.
+        const dropSensitiveHeaders = (
+          h: Record<string, string>
+        ): Record<string, string> => {
+          const out: Record<string, string> = {};
+          for (const [k, v] of Object.entries(h)) {
+            const lk = k.toLowerCase();
+            if (
+              lk === "authorization" ||
+              lk === "cookie" ||
+              lk === "proxy-authorization"
+            ) {
+              continue;
+            }
+            out[k] = v;
+          }
+          return out;
+        };
+        let currentUrl = url;
+        let method = fetchOptions.method ?? "GET";
+        let body = fetchOptions.body;
+        let headers: Record<string, string> = { ...requestHeaders };
+        let hops = 0;
+        for (;;) {
+          response = await fetch(currentUrl, {
+            ...fetchOptions,
+            method,
+            body,
+            headers: Object.keys(headers).length ? headers : undefined,
+            redirect: "manual"
+          });
+          const status = response.status;
+          if (status < 300 || status >= 400) break;
+          const location = response.headers.get("location");
+          if (!location) break; // 3xx without Location — treat as final.
+          if (hops++ >= MAX_FETCH_REDIRECTS) {
+            throw new Error("fetch: too many redirects");
+          }
+          const nextUrl = new URL(location, currentUrl).toString();
+          // Re-run the guard on the resolved target BEFORE the next request.
+          assertFetchUrlAllowed(nextUrl, resolvedLimits.allowPrivateNetwork);
+          // Strip credential headers on a cross-origin hop (origin includes
+          // scheme, host and port); keep them on same-origin redirects.
+          if (new URL(nextUrl).origin !== new URL(currentUrl).origin) {
+            headers = dropSensitiveHeaders(headers);
+          }
+          // Method/body rewrite per the HTTP spec + browser behavior:
+          // 303 always → GET; 301/302 on a non-GET/HEAD → GET (what browsers
+          // do); 307/308 preserve method and body.
+          if (
+            status === 303 ||
+            ((status === 301 || status === 302) &&
+              method !== "GET" &&
+              method !== "HEAD")
+          ) {
+            method = "GET";
+            body = undefined;
+            headers = dropContentHeaders(headers);
+          }
+          // Free the redirect response's socket before the next hop.
+          await response.body?.cancel().catch(() => {});
+          currentUrl = nextUrl;
+        }
+      }
       // Read the body under a hard byte cap so a large/fast response can't OOM
       // the shared host heap (the guest's 64MB WASM limit does not apply to
       // these host-side bytes). Aborts the transfer once the cap is exceeded.

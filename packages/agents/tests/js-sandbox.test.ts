@@ -265,11 +265,90 @@ describe("buildSandbox", () => {
       "http://10.0.0.5/internal",
       "http://192.168.1.1/",
       "http://[::1]/",
-      "file:///etc/passwd"
+      "file:///etc/passwd",
+      // IPv4-mapped / NAT64 IPv6 — the URL parser hex-serializes these, so the
+      // dotted-quad check misses them unless the embedded v4 is extracted.
+      "http://[::ffff:169.254.169.254]/",
+      "http://[::ffff:127.0.0.1]/",
+      "http://[::ffff:7f00:1]/",
+      "http://[64:ff9b::a9fe:a9fe]/",
+      // IPv4-compatible IPv6 — canonicalizes to [::a9fe:a9fe].
+      "http://[::169.254.169.254]/"
     ]) {
       await expect(fetchFn(url)).rejects.toThrow(
         /blocked|unsupported|invalid/i
       );
+    }
+  });
+
+  it("re-validates every redirect hop, not just the initial URL", async () => {
+    // Prove per-hop validation: the first hop is an allowed loopback origin
+    // (allowPrivateNetwork), which 302s to a file: URL. The scheme check runs
+    // on every hop regardless of allowPrivateNetwork, so the follow-up is
+    // rejected — a redirect target is validated before the next request.
+    const { createServer } = await import("node:http");
+    const server = createServer((_req, res) => {
+      res.writeHead(302, { Location: "file:///etc/passwd" });
+      res.end();
+    });
+    await new Promise<void>((resolve) =>
+      server.listen(0, "127.0.0.1", resolve)
+    );
+    const port = (server.address() as { port: number }).port;
+    try {
+      const { sandbox } = buildSandbox(undefined, undefined, {
+        allowPrivateNetwork: true
+      });
+      const fetchFn = sandbox.fetch as (u: string) => Promise<unknown>;
+      await expect(fetchFn(`http://127.0.0.1:${port}/`)).rejects.toThrow(
+        /unsupported scheme/i
+      );
+    } finally {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+  });
+
+  it("strips credential headers on a cross-origin redirect but keeps them same-origin", async () => {
+    // Hop A 302s to hop B on a different port (a different origin, since origin
+    // includes the port). The forwarded headers must lose Authorization/Cookie
+    // but keep X-Keep.
+    const { createServer } = await import("node:http");
+    let hopBHeaders: Record<string, string | string[] | undefined> = {};
+    const hopB = createServer((req, res) => {
+      hopBHeaders = req.headers;
+      res.writeHead(200, { "content-type": "text/plain" });
+      res.end("ok");
+    });
+    await new Promise<void>((resolve) => hopB.listen(0, "127.0.0.1", resolve));
+    const portB = (hopB.address() as { port: number }).port;
+    const hopA = createServer((_req, res) => {
+      res.writeHead(302, { Location: `http://127.0.0.1:${portB}/` });
+      res.end();
+    });
+    await new Promise<void>((resolve) => hopA.listen(0, "127.0.0.1", resolve));
+    const portA = (hopA.address() as { port: number }).port;
+    try {
+      const { sandbox } = buildSandbox(undefined, undefined, {
+        allowPrivateNetwork: true
+      });
+      const fetchFn = sandbox.fetch as (
+        u: string,
+        o?: Record<string, unknown>
+      ) => Promise<{ status: number }>;
+      const res = await fetchFn(`http://127.0.0.1:${portA}/`, {
+        headers: {
+          Authorization: "secret",
+          Cookie: "session=secret",
+          "X-Keep": "1"
+        }
+      });
+      expect(res.status).toBe(200);
+      expect(hopBHeaders["authorization"]).toBeUndefined();
+      expect(hopBHeaders["cookie"]).toBeUndefined();
+      expect(hopBHeaders["x-keep"]).toBe("1");
+    } finally {
+      await new Promise<void>((resolve) => hopA.close(() => resolve()));
+      await new Promise<void>((resolve) => hopB.close(() => resolve()));
     }
   });
 });
