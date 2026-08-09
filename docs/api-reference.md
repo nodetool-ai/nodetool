@@ -33,6 +33,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Workflows | `/api/workflows/{id}/export-bundle` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One workflow and its assets as a `.nodetool` zip |
 | Workflows | `/api/workflows/export-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Several workflows in one `.nodetool` zip, by `workflow_ids` |
 | Workflows | `/api/workflows/import-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Import a `.nodetool` zip into the caller's library |
+| Workflows | `/api/debug/sessions/{id}`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | State of an interactive run: the escalation it is parked on, or its final report |
+| Workflows | `/api/debug/sessions/{id}/verdict` | `POST`           | Depends on `AUTH_PROVIDER`                     | no                          | Answer the parked escalation, then wait for the next one or the final report |
+| Workflows | `/api/debug/sessions/{id}/cancel` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Cancel the run and return its final report |
 | Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
 | Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
@@ -134,6 +137,113 @@ Response:
 
 `outputs` is an object keyed by output-node name. The route does not stream — for
 real-time progress, run the workflow over the [WebSocket API](websocket-api.md).
+
+### Interactive Runs: Answering a Failed Node
+
+By default a node that throws ends the run. Post `"interactive": true` to
+`/api/workflows/{id}/run` or `/api/workflows/{id}/debug` and the failure comes
+back to you instead: the run parks on the node and the response returns at once
+with the escalation. Your client decides what happens next, standing where the
+`--supervise` LLM supervisor otherwise would.
+
+Reach for it when the caller (an agent, a test harness, a batch script) is the
+one that knows whether a given failure should be retried, skipped, or fatal.
+
+```bash
+curl -X POST "http://localhost:7777/api/workflows/YOUR_WORKFLOW_ID/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"interactive": true}'
+```
+
+```json
+{
+  "status": "escalated",
+  "session_id": "8629a9bc-052f-4af9-96fd-56779be0d94e",
+  "job_id": "180129ebe0864d7ea5f70c1de80b22af",
+  "workflow_id": "YOUR_WORKFLOW_ID",
+  "escalation_id": "esc-1",
+  "escalation": {
+    "nodeId": "work",
+    "nodeType": "nodetool.code.Code",
+    "correlationLineage": [],
+    "invocationKey": "",
+    "allowedActions": ["skip", "fail"],
+    "detail": "boom 42",
+    "inputs": { "code": "throw new Error(\"boom 42\");" },
+    "declaredOutputs": {},
+    "attempt": 1,
+    "spentCostUsd": 0,
+    "createdAssets": false,
+    "retrySafe": false,
+    "emitted": false
+  },
+  "resolve": "POST /api/debug/sessions/8629a9bc-052f-4af9-96fd-56779be0d94e/verdict with {\"escalation_id\": \"esc-1\", \"verdict\": {\"action\": ...}} — allowed actions: skip, fail. The run is parked on this node until a verdict arrives; an unanswered escalation fails closed on the decision timeout."
+}
+```
+
+`inputs`, `detail`, and `candidateOutput` are redacted and truncated before they
+leave the kernel. `allowedActions` is computed per invocation and enforced there
+too, so a verdict outside the list is refused however it was produced. `retry`
+appears only when the invocation is replayable — `retrySafe`, nothing spent,
+no assets created. `substitute` appears only when the node produced a malformed
+value a validator can check. A node reading a stream gets `end_stream` and
+`fail` and nothing else; `skip` and `fail` are always available.
+
+Answer on the session. `escalation_id` identifies the escalation you are
+answering, and `verdict.action` is one of `retry`, `substitute` (with
+`outputs`), `skip`, `end_stream`, or `fail`:
+
+```bash
+curl -X POST "http://localhost:7777/api/debug/sessions/SESSION_ID/verdict" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"escalation_id": "esc-1", "verdict": {"action": "skip"}}'
+```
+
+The call blocks until the run escalates again, in the same `"status":
+"escalated"` shape, or finishes. A finished run returns the ordinary run payload
+with `session_id` added:
+
+```json
+{
+  "job_id": "180129ebe0864d7ea5f70c1de80b22af",
+  "workflow_id": "YOUR_WORKFLOW_ID",
+  "status": "completed",
+  "outputs": { "out": [] },
+  "error": null,
+  "message_count": 9,
+  "background": false,
+  "session_id": "8629a9bc-052f-4af9-96fd-56779be0d94e"
+}
+```
+
+Two more calls round out the session:
+
+```bash
+# Where is the run right now? Never blocks.
+curl "http://localhost:7777/api/debug/sessions/SESSION_ID" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+
+# Stop it. Returns the final report with status "cancelled".
+curl -X POST "http://localhost:7777/api/debug/sessions/SESSION_ID/cancel" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+Sessions belong to the user who started the run, so an unknown, foreign, or
+expired id answers `404` with `{"detail": "Debug session not found"}` rather
+than `403`. A verdict whose action is not one of the five is a `400`.
+
+Every boundary resolves as `fail`, including an escalation nobody answers: the
+decision timeout is ten minutes by default. Three optional fields in the run
+body move the bounds, each clamped server-side — `decision_timeout_ms` (up to 30
+minutes), `max_decisions` (default 10, up to 100), and `max_retries_per_node`
+(default 2, up to 20). A settled session stays readable for ten minutes.
+
+Agents reach the same machinery through the `run_workflow` and `debug_workflow`
+tools with `interactive: true`, answering with `resolve_workflow_escalation`.
+See [Workflow Debugging](workflow-debugging.md) and the
+[supervisor design](workflow-supervisor-design.md) for the verdict vocabulary.
 
 ### Chat API (OpenAI-Compatible)
 
