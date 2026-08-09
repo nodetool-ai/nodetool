@@ -124,6 +124,68 @@ Rules enforced at discovery time (`pack-loader.ts`):
 - WASM binaries get a header/section sanity parse; declared `exports` are
   checked against the binary's export section.
 
+### Config-only modules from npm packages
+
+A pack does not have to author sandbox code at all. A manifest entry can
+point at an npm package, and NodeTool produces the guest module from it —
+no glue code:
+
+```jsonc
+{
+  "name": "@acme/nodetool-validation",
+  "dependencies": { "zod": "^3.24.0" },
+  "nodetool": {
+    "apiVersion": 1,
+    "sandboxModules": [
+      { "name": "zod", "kind": "js", "npm": "zod" }
+      // "npm" replaces "file"; the version comes from the pack's own
+      // dependencies, so npm resolves and checksums it as usual
+    ]
+  }
+}
+```
+
+Mechanics, at pack discovery (still without executing any pack code):
+
+- NodeTool bundles the package once with esbuild (already a repo
+  dependency): entry = the package's ESM entry, `bundle: true`,
+  `platform: "neutral"`, `format: "esm"`, no externals. The whole
+  dependency subtree flattens into one file, so the guest resolver never
+  has to walk `node_modules`, honor `exports` maps, or convert CJS —
+  esbuild does all of that at build time.
+- An import of a Node builtin fails the bundle. That is the filter, not a
+  limitation to work around: a package that needs `fs`, `net`, or
+  `crypto` cannot run in the guest anyway, and this turns the failure into
+  a named skip at install time instead of a runtime surprise.
+- The bundle output goes through the same static scan as authored modules,
+  plus a forbidden-global check for names the guest deletes or blocks:
+  `process`, `Buffer`, `require`, `eval`, `Function`, `setTimeout` /
+  `setInterval`, `WebAssembly`, `document` / `window` / `XMLHttpRequest`.
+  Hard references are an error; references behind feature-detection
+  (`typeof process !== "undefined"`) are a warning, since such packages
+  usually take the portable path.
+- The output is cached at
+  `<userData>/sandbox-bundles/<pack>/<name>@<resolvedVersion>.mjs`, keyed
+  by the resolved version, and from there on behaves exactly like an
+  authored guest JS module — same mounting, limits, validation, and
+  browser-runner delivery. Bundled modules get a larger source cap (1 MB)
+  than authored ones.
+
+What fits: pure-computation ESM packages — schema validation (zod),
+functional utilities (lodash-es, remeda), date math (date-fns), parsers
+and formatters (marked, papaparse-style codecs). What cannot fit,
+regardless of tooling: packages needing Node builtins, the DOM, network,
+timers (blocked in the guest), `eval` (deleted), or WASM (no
+`WebAssembly` in quickjs-ng — such packages need the host-WASM path
+instead). The bundling step exists precisely to sort a package into one
+of these two buckets before anything runs.
+
+This also opens a later pack-less form: a user-level declaration (e.g.
+`sandboxNpm: ["zod@^3"]` in `packs.json`) that installs into the existing
+`optional-node` root and surfaces as an implicit pack. Deferred to
+Phase 3 — the pack-based form ships first because trust, listing, and
+delivery already exist for packs.
+
 ### Guest import surface
 
 User code in a Code node or CodeAct step imports a declared module by its
@@ -282,16 +344,18 @@ Nothing new is invented:
 - **Run WASM inside the guest.** Impossible on quickjs-ng (no
   `WebAssembly`). Swapping engines or compiling WASM→JS costs far more than
   a host bridge and would break the memory-limit story.
-- **Arbitrary npm imports in the guest.** Rejected. Most npm code assumes
-  Node builtins or the DOM and would fail confusingly; the audit surface
-  would be unbounded. A curated, declared, size-capped module set is the
-  point.
+- **Arbitrary npm imports in the guest at runtime.** Rejected. Most npm
+  code assumes Node builtins or the DOM and would fail confusingly; the
+  audit surface would be unbounded. The config-only npm form above is the
+  answer instead: a declared package, bundled and vetted once at install
+  time, size-capped — not a live resolver over `node_modules`.
 
 ## Limits summary
 
 | Bound | Value | Enforced |
 |---|---|---|
-| JS module source | 256 KB | pack discovery |
+| JS module source (authored) | 256 KB | pack discovery |
+| JS module source (npm-bundled) | 1 MB | pack discovery |
 | WASM binary | 4 MB | pack discovery |
 | Per-pack total | 8 MB | pack discovery |
 | Guest eval of modules | existing 64 MB / deadline / interrupt | engine |
@@ -314,9 +378,11 @@ Nothing new is invented:
    virtual-FS mount in `runInSandbox`, Code node `packages` property,
    validation changes, sandbox-manifest section, delivery route + browser
    runner, Electron bundle staging. Ships end-to-end value on its own.
-2. **Phase 2 — WASM host modules.** Binary validation, worker-pool call
-   path with timeouts, `__wasm` bridge + guest wrapper convention,
-   browser Web Worker path.
+2. **Phase 2 — config-only npm modules and WASM host modules.** The
+   esbuild bundling path with its forbidden-global scan and bundle cache;
+   WASM binary validation, worker-pool call path with timeouts, `__wasm`
+   bridge + guest wrapper convention, browser Web Worker path.
 3. **Phase 3 — ecosystem.** Registry-index summaries and Package Manager
    search/UI, per-file hashes in the manifest, `nodetool package init`
-   scaffolding for a sandbox-module pack, docs and an example pack.
+   scaffolding for a sandbox-module pack, the pack-less `sandboxNpm`
+   user declaration, docs and an example pack.
