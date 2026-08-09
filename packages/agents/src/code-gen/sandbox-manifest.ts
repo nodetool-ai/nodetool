@@ -105,7 +105,8 @@ export interface SandboxManifest {
   readonly blockedGlobals: readonly string[];
   /**
    * Globals the Code node injects per run, on top of what the guest has:
-   * the declared inputs arrive on `inputs`, and `state` persists across runs.
+   * the declared inputs arrive on `inputs`, `state` persists across runs, and
+   * the tool bridge preludes define `tools` and the `nodetool` object model.
    * Not in the guest snapshot — nothing puts them there until a node runs.
    */
   readonly nodeGlobals: readonly string[];
@@ -935,7 +936,7 @@ export function getSandboxManifest(): SandboxManifest {
     guestHelpers: GUEST_HELPER_DOCS,
     nativeGlobals: native,
     blockedGlobals: blocked,
-    nodeGlobals: [CODE_INPUTS_GLOBAL, "state"],
+    nodeGlobals: [CODE_INPUTS_GLOBAL, "state", "nodetool", "tools"],
     limits: [...overridableLimits(), ...fixedLimits()],
     notes: [
       {
@@ -959,6 +960,10 @@ export function getSandboxManifest(): SandboxManifest {
       },
       {
         text: "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
+      },
+      {
+        text: "The platform object model is available as `nodetool` (with the raw `tools` bridge under it): nodetool.capabilities() reports which namespaces are live in this environment; a method whose backing tool is missing throws naming that tool. Tool-backed calls can spend money (media generation, workflow runs) and reach the web — permission gating stays with the tools themselves.",
+        audience: "code-node"
       }
     ]
   };

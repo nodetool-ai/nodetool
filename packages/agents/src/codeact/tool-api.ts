@@ -24,6 +24,9 @@ import {
 } from "../tools/image-injection.js";
 import { GRAPH_MODEL_GLOBALS } from "./graph-model.js";
 import { NODETOOL_API_GLOBALS } from "./nodetool-api.js";
+import { TOOLS_PRELUDE } from "./tools-prelude.js";
+
+export { TOOLS_PRELUDE } from "./tools-prelude.js";
 
 /** Tool-call ceiling per code action; a runaway guest loop stops here. */
 export const DEFAULT_MAX_TOOL_CALLS_PER_ACTION = 50;
@@ -248,22 +251,11 @@ export function buildCoreProviderTools(options: {
 
 /**
  * Guest-side prelude prepended to every code action. Builds `tools.<name>()`
- * wrappers over `__callTool` and `finish()` over `__finish`.
+ * wrappers over `__callTool` (via {@link TOOLS_PRELUDE}) and `finish()` over
+ * `__finish`. Hosts without a `__finish` bridge — the Code node — prepend
+ * `TOOLS_PRELUDE` alone.
  */
-export const CODEACT_PRELUDE = `
-const tools = {};
-for (const __toolName of __toolNames) {
-  tools[__toolName] = async (args) => {
-    const __r = await __callTool(
-      __toolName,
-      JSON.stringify(args === undefined ? {} : args)
-    );
-    if (!__r || __r.ok !== true) {
-      throw new Error(__r && __r.error ? __r.error : "tool call failed: " + __toolName);
-    }
-    return __r.result;
-  };
-}
+export const CODEACT_PRELUDE = `${TOOLS_PRELUDE}
 async function finish(result) {
   const __r = await __finish(JSON.stringify(result === undefined ? null : result));
   if (!__r || __r.ok !== true) {

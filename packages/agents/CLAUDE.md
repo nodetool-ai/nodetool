@@ -642,9 +642,11 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a
   `run_subtask` child with a fresh context; fan out via
   `nodetool.batch(prompts, (p) => nodetool.agents.run(p))`), the single-node harness on `nodetool.nodes.run(type,
-  inputs)`, `nodetool.web` (one surface over every search/fetch tool:
-  `search(query, {provider})` picks the backend the belt carries — `"default"`,
-  `"openai"`, `"google"`, `"dataforseo"` pin one — plus `news`, `images`,
+  inputs)`, `nodetool.web` (the outside world:
+  `search(query, {provider})`, `news` and `images` call the routed search
+  tools — `web_search`/`google_news`/`google_images` pick the first configured
+  backend host-side, and `provider` pins one: `"default"`, `"openai"`,
+  `"google"`, `"dataforseo"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
@@ -670,12 +672,16 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
   `unit_conversion`) were deleted outright, MCP included; `run_code` and `js`
   remain for callers that want a code tool. `getAgentToolbelt()`
-  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific media
-  duplicates `image_generation`, `openai_image_generation`,
+  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific
+  duplicates: the media tools `image_generation`, `openai_image_generation`,
   `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
   covers them through the provider-agnostic `generate_image` /
-  `generate_speech`. `getBuiltinTools()` still returns them, so MCP clients,
-  which have no object model, keep them.
+  `generate_speech` — and the search backends `openai_web_search`,
+  `google_grounded_search`, `dataforseo_search`, `dataforseo_news` and
+  `dataforseo_images`, which `web_search`/`google_news`/`google_images` reach
+  by routing across the configured backends host-side (`backend` pins one).
+  `getBuiltinTools()` still returns them all, so MCP clients, which have no
+  object model, keep them.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface: 19 cases over two

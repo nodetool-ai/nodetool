@@ -174,6 +174,9 @@ function documentedGlobals(): Set<string> {
     [...sandboxManifestNames(manifest)].filter((n) => !n.includes("."))
   );
   for (const name of manifest.blockedGlobals) documented.add(name);
+  // Per-run injections (`inputs`, `state`, the tool bridge's `tools` and
+  // `nodetool`) are part of the surface the node-sdk validator must accept.
+  for (const name of manifest.nodeGlobals) documented.add(name);
   documented.delete("__maxIter");
   return documented;
 }

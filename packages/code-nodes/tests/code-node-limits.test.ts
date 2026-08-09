@@ -6,7 +6,9 @@ const runInSandbox = vi.fn(async () => ({
 }));
 
 vi.mock("@nodetool-ai/agents/js-sandbox", () => ({
-  runInSandbox
+  runInSandbox,
+  TOOLS_PRELUDE: "",
+  NODETOOL_API_PRELUDE_FULL: ""
 }));
 
 // Import the source module so vitest processes it and the mock above applies.

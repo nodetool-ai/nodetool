@@ -19,13 +19,8 @@ const toolDef = (name: string) => ({
 
 const WEB_TOOLS = [
   "web_search",
-  "openai_web_search",
-  "google_grounded_search",
   "google_news",
   "google_images",
-  "dataforseo_search",
-  "dataforseo_news",
-  "dataforseo_images",
   "http_request",
   "download_file",
   "browser",
@@ -100,129 +95,49 @@ describe("nodetool.web", () => {
     });
   });
 
-  it("pins a named provider and maps onto that tool's query field", async () => {
+  it("maps provider onto the tool's backend pin (old guest names included)", async () => {
     const { executeTool, calls } = createEchoRouter();
     const session = makeSession(WEB_TOOLS, executeTool);
     const obs = await runAction(
       session,
       `await nodetool.web.search("fox", { provider: "dataforseo", num_results: 3 });
        await nodetool.web.search("fox", { provider: "google" });
+       await nodetool.web.search("fox", { provider: "openai" });
+       await nodetool.web.news("fox", { provider: "google" });
+       await nodetool.web.images("fox", { provider: "dataforseo" });
        return true;`
     );
     expect(obs.ok).toBe(true);
     expect(calls[0]).toMatchObject({
-      name: "dataforseo_search",
-      args: { keyword: "fox", num_results: 3 }
+      name: "web_search",
+      args: { query: "fox", backend: "dataforseo", num_results: 3 }
     });
-    // `provider` selects the backend; it is never forwarded as an argument.
+    // `provider` becomes the backend pin; it is never forwarded as-is.
     expect(calls[0].args).not.toHaveProperty("provider");
     expect(calls[1]).toMatchObject({
-      name: "google_grounded_search",
-      args: { query: "fox" }
+      name: "web_search",
+      args: { query: "fox", backend: "gemini" }
+    });
+    expect(calls[2]).toMatchObject({
+      name: "web_search",
+      args: { query: "fox", backend: "openai" }
+    });
+    expect(calls[3]).toMatchObject({
+      name: "google_news",
+      args: { keyword: "fox", backend: "serpapi" }
+    });
+    expect(calls[4]).toMatchObject({
+      name: "google_images",
+      args: { keyword: "fox", backend: "dataforseo" }
     });
   });
 
-  it("falls back to the next available provider when the preferred one is absent", async () => {
-    const { executeTool, calls } = createEchoRouter();
-    const session = makeSession(
-      ["dataforseo_search", "dataforseo_news"].map(toolDef),
-      executeTool
-    );
-    const obs = await runAction(
-      session,
-      `await nodetool.web.search("fox");
-       await nodetool.web.news("fox");
-       return true;`
-    );
-    expect(obs.ok).toBe(true);
-    expect(calls.map((c) => c.name)).toEqual([
-      "dataforseo_search",
-      "dataforseo_news"
-    ]);
-  });
-
-  it("throws naming the tools it tried when nothing can serve the method", async () => {
+  it("throws naming the missing tool when the belt cannot serve the method", async () => {
     const { executeTool } = createEchoRouter();
     const session = makeSession(["http_request"].map(toolDef), executeTool);
     const obs = await runAction(session, `await nodetool.web.search("fox");`);
     expect(obs.ok).toBe(false);
-    expect(obs.error).toContain("nodetool.web.search");
     expect(obs.error).toContain("web_search");
-  });
-
-  it("throws when a pinned provider is not on the belt", async () => {
-    const { executeTool } = createEchoRouter();
-    const session = makeSession(["web_search"].map(toolDef), executeTool);
-    const obs = await runAction(
-      session,
-      `await nodetool.web.search("fox", { provider: "openai" });`
-    );
-    expect(obs.ok).toBe(false);
-    expect(obs.error).toContain('provider "openai"');
-  });
-
-  it("falls through to the next backend when one is unconfigured", async () => {
-    const calls: ChatCodeActToolCall[] = [];
-    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
-      calls.push(call);
-      if (call.name === "web_search") {
-        return { error: "SERPAPI_API_KEY is not configured" };
-      }
-      return JSON.stringify({ tool: call.name, args: call.args });
-    };
-    const session = makeSession(WEB_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `const r = await nodetool.web.search("fox");
-       return r.tool;`
-    );
-    expect(obs.ok).toBe(true);
-    expect(obs.result).toBe("openai_web_search");
-    expect(calls.map((c) => c.name)).toEqual([
-      "web_search",
-      "openai_web_search"
-    ]);
-  });
-
-  it("reports every backend's error once they are all unconfigured", async () => {
-    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => ({
-      error: `${call.name}: missing api key`
-    });
-    const session = makeSession(WEB_TOOLS, executeTool);
-    const obs = await runAction(session, `await nodetool.web.search("fox");`);
-    expect(obs.ok).toBe(false);
-    expect(obs.error).toContain("nodetool.web.search");
-    expect(obs.error).toContain("web_search");
-    expect(obs.error).toContain("dataforseo_search");
-  });
-
-  it("does not fall through on an ordinary backend failure", async () => {
-    const calls: ChatCodeActToolCall[] = [];
-    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
-      calls.push(call);
-      return { error: "upstream returned 500" };
-    };
-    const session = makeSession(WEB_TOOLS, executeTool);
-    const obs = await runAction(session, `await nodetool.web.search("fox");`);
-    expect(obs.ok).toBe(false);
-    expect(obs.error).toContain("upstream returned 500");
-    expect(calls.map((c) => c.name)).toEqual(["web_search"]);
-  });
-
-  it("never falls through when the caller pinned a provider", async () => {
-    const calls: ChatCodeActToolCall[] = [];
-    const executeTool = async (call: ChatCodeActToolCall): Promise<unknown> => {
-      calls.push(call);
-      return { error: "OPENAI_API_KEY is not configured" };
-    };
-    const session = makeSession(WEB_TOOLS, executeTool);
-    const obs = await runAction(
-      session,
-      `await nodetool.web.search("fox", { provider: "openai" });`
-    );
-    expect(obs.ok).toBe(false);
-    expect(obs.error).toContain("OPENAI_API_KEY");
-    expect(calls.map((c) => c.name)).toEqual(["openai_web_search"]);
   });
 
   it("maps images, fetch, browse, download and screenshot onto their tools", async () => {

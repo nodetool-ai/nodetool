@@ -279,17 +279,7 @@ describe("codeact nodetool API surface cases", () => {
     expect(second.accepted).toBe(true);
   });
 
-  it("nodetool.web.search falls through the unconfigured default backend", async () => {
-    const recorder = createCodeActRecorder();
-    const belt = createSurfaceApiTools(recorder);
-    const search = belt.find((tool) => tool.name === "web_search");
-    expect(search).toBeDefined();
-    await expect(
-      search?.process(
-        {} as unknown as Parameters<NonNullable<typeof search>["process"]>[0],
-        { query: "anything" }
-      )
-    ).rejects.toThrow(/api key not configured/i);
+  it("nodetool.web.search runs through the routed web_search tool", async () => {
     const result = await runOne("web-research-brief");
     expect(result.accepted, JSON.stringify(result.checks)).toBe(true);
   });

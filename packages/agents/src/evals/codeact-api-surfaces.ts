@@ -805,8 +805,9 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
 
 /**
  * Instrumented fakes for the data + creative belt tools, over a fresh world.
- * `web_search` is deliberately unconfigured, so `nodetool.web.search` has to
- * fall through to the next backend the way it does on a real half-keyed belt.
+ * `web_search` is the one search entry point — the real tool routes across
+ * its configured backends host-side, so the belt carries no per-provider
+ * search duplicates.
  */
 export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = createWorld();
@@ -991,18 +992,8 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     // -- web --------------------------------------------------------------
     tool(
       "web_search",
-      "Default web search backend.",
-      obj({ query: S }, ["query"]),
-      () => {
-        // The half-keyed belt: registered, unusable. `nodetool.web.search`
-        // reads this as a reason to try the next backend.
-        throw new Error("search provider api key not configured");
-      }
-    ),
-    tool(
-      "openai_web_search",
-      "Web search through the OpenAI backend.",
-      obj({ query: S, max_results: N }, ["query"]),
+      "Search the web (routes across configured backends host-side).",
+      obj({ query: S, backend: S, max_results: N }, ["query"]),
       (params) => {
         const query = str(params["query"]);
         const ranked = WEB_PAGES.map((page) => ({
@@ -1013,7 +1004,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
         }))
           .sort((a, b) => b.score - a.score || a.url.localeCompare(b.url))
           .slice(0, num(params["max_results"], 5));
-        return { provider: "openai", query, results: ranked };
+        return { query, results: ranked };
       }
     ),
     tool(
@@ -1918,7 +1909,7 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
       "sandbox"
     ]),
     expect: {
-      requiredTools: ["openai_web_search"],
+      requiredTools: ["web_search"],
       maxActions: 4,
       resultCheck: (r: unknown) =>
         asString(field(r, "url")) ===

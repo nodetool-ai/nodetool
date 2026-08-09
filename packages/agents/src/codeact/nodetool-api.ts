@@ -54,13 +54,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
   ],
   web: [
     "web_search",
-    "openai_web_search",
-    "google_grounded_search",
-    "google_images",
     "google_news",
-    "dataforseo_search",
-    "dataforseo_news",
-    "dataforseo_images",
+    "google_images",
     "http_request",
     "download_file",
     "browser",
@@ -182,53 +177,18 @@ const nodetool = (() => {
   const __graphJson = __graphJsonOf;
 
   /**
-   * A backend that is registered but unusable — no key, no configuration.
-   * The belt carries the tool, so \`__has\` says yes and only the call finds
-   * out; that is a reason to try the next backend, not to fail the search.
+   * Build the args for a routed web-search tool. The tool routes across the
+   * configured backends host-side; \`opts.provider\` maps onto its \`backend\`
+   * pin (\`aliases\` translates the old guest names — "default", "google" —
+   * onto the tool's backend enum; other values pass through).
    */
-  const __unconfigured = (message) =>
-    /api[_ -]?key|not configured|unconfigured|no credential|credentials|missing|unauthorized|forbidden|401|403/i
-      .test(String(message || ""));
-
-  /**
-   * Route a web query to one of several interchangeable backing tools.
-   * \`choices\` is [providerName, toolName, queryField][] in preference order.
-   * \`opts.provider\` pins one — it is then the only backend tried, and its
-   * failure is the call's failure. Otherwise backends are tried in order and
-   * an unconfigured one falls through to the next; exhausting them all throws
-   * with every error.
-   */
-  const __pickWeb = async (method, opts, choices, query) => {
-    const rest = __merge(opts);
-    const wanted = rest.provider;
-    delete rest.provider;
-    const text = String(query === undefined || query === null ? "" : query);
-    const failures = [];
-    for (const choice of choices) {
-      if (wanted !== undefined && wanted !== choice[0]) continue;
-      if (!__has(choice[1])) continue;
-      const args = __merge(rest);
-      args[choice[2]] = text;
-      try {
-        return await tools[choice[1]](args);
-      } catch (e) {
-        const message = e && e.message ? e.message : String(e);
-        if (wanted !== undefined) throw e;
-        if (!__unconfigured(message)) throw e;
-        failures.push(choice[0] + " (" + choice[1] + "): " + message);
-      }
-    }
-    if (failures.length > 0) {
-      throw new Error(
-        "nodetool.web." + method + ": every available backend is " +
-        "unconfigured — " + failures.join("; ")
-      );
-    }
-    throw new Error(
-      "nodetool.web." + method + ": no backing tool on this belt" +
-      (wanted !== undefined ? ' for provider "' + wanted + '"' : "") +
-      " (tried " + choices.map((c) => c[1]).join(", ") + ")."
-    );
+  const __webArgs = (opts, aliases, field, query) => {
+    const args = __merge(opts);
+    const provider = args.provider;
+    delete args.provider;
+    if (provider !== undefined) args.backend = aliases[provider] || provider;
+    args[field] = String(query === undefined || query === null ? "" : query);
+    return args;
   };
 
   /**
@@ -587,41 +547,21 @@ const nodetool = (() => {
 
     web: {
       /**
-       * Search the web. Providers in preference order: "default"
-       * (web_search), "openai", "google", "dataforseo". Naming one that is
-       * not on the belt throws and says so.
+       * Search the web. \`web_search\` routes across the configured backends
+       * host-side; \`opts.provider\` pins one — "default", "openai", "google"
+       * (grounded/Gemini), "dataforseo".
        */
       search: (query, opts) =>
-        __pickWeb(
-          "search",
-          opts,
-          [
-            ["default", "web_search", "query"],
-            ["openai", "openai_web_search", "query"],
-            ["google", "google_grounded_search", "query"],
-            ["dataforseo", "dataforseo_search", "keyword"]
-          ],
-          query
+        __need("web_search")(
+          __webArgs(opts, { google: "gemini" }, "query", query)
         ),
       news: (query, opts) =>
-        __pickWeb(
-          "news",
-          opts,
-          [
-            ["google", "google_news", "keyword"],
-            ["dataforseo", "dataforseo_news", "keyword"]
-          ],
-          query
+        __need("google_news")(
+          __webArgs(opts, { google: "serpapi" }, "keyword", query)
         ),
       images: (query, opts) =>
-        __pickWeb(
-          "images",
-          opts,
-          [
-            ["google", "google_images", "keyword"],
-            ["dataforseo", "dataforseo_images", "keyword"]
-          ],
-          query
+        __need("google_images")(
+          __webArgs(opts, { google: "serpapi" }, "keyword", query)
         ),
       /** One HTTP request; returns the response body as text. */
       fetch: (url, opts) => __need("http_request")(__merge(opts, { url: url })),
@@ -960,10 +900,10 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   },
   {
     namespace: "web",
-    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\` picks
-  the best search backend this belt carries (\`provider\` pins one:
-  \`"default"\`, \`"openai"\`, \`"google"\`, \`"dataforseo"\`), \`news(query)\` and
-  \`images(query)\` are the vertical searches. \`browse(url)\` returns a page's
+    doc: `- \`nodetool.web\` — the outside world. \`await search(query, {provider})\`,
+  \`news(query)\` and \`images(query)\` route across the configured search
+  backends host-side; \`provider\` pins one (\`"default"\`, \`"openai"\`,
+  \`"google"\`, \`"dataforseo"\`). \`browse(url)\` returns a page's
   readable text, \`fetch(url, {method, headers, body})\` is a raw HTTP request,
   \`download(url, outputFile)\` saves bytes into the workspace, and
   \`screenshot(url, outputFile)\` renders a page to PNG.`

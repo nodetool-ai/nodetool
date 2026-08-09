@@ -2894,3 +2894,18 @@ export default true;`,
     };
   }
 }
+
+// ---------------------------------------------------------------------------
+// Guest preludes for tool-bridged hosts
+// ---------------------------------------------------------------------------
+
+/**
+ * Re-exported here because `./js-sandbox` is the one browser-safe subpath
+ * export of this package: `nodetool.code.Code` (packages/code-nodes) is
+ * bundled for the in-browser runner and must reach these prelude strings
+ * without importing the package index, which drags the whole toolbelt —
+ * native canvas, IMAP, execution — into a web build. Both modules are pure
+ * strings over leaf imports.
+ */
+export { TOOLS_PRELUDE } from "./codeact/tools-prelude.js";
+export { NODETOOL_API_PRELUDE_FULL } from "./codeact/nodetool-api.js";
