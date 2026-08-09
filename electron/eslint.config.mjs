@@ -57,7 +57,8 @@ export default [
     },
 
     rules: {
-      "@typescript-eslint/no-explicit-any": "off",
+      // electron/src has met the "zero any" target (DEVELOPMENT_STANDARDS §1).
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
@@ -68,6 +69,8 @@ export default [
     files: ["**/__tests__/**/*.ts", "**/*.test.ts"],
     rules: {
       "@typescript-eslint/no-require-imports": "off",
+      // Mocks and partial fixtures still use `any`; the src rule is the gate.
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
   {

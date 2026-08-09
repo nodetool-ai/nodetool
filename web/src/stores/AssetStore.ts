@@ -516,42 +516,18 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ? disposition.split("filename=")[1]
         : "assets.zip";
 
-      type ElectronSaveFile = (
-        data: ArrayBuffer,
-        filename: string,
-        filters?: { name: string; extensions: string[] }[]
-      ) => Promise<{ success: boolean; canceled?: boolean; error?: string }>;
-
-      interface ElectronWindow {
-        electron?: { saveFile?: ElectronSaveFile };
-        api?: { saveFile?: ElectronSaveFile };
-      }
-
-      const win = window as unknown as ElectronWindow;
-      const electronApi = win.electron || win.api;
-
-      if (electronApi?.saveFile) {
-        const result = await electronApi.saveFile(data, filename, [
-          { name: "ZIP Files", extensions: ["zip"] }
-        ]);
-        if (!result.success && !result.canceled) {
-          throw new Error(result.error || "Failed to save file");
-        }
-      } else {
-        // Browser fallback
-        const contentType = response.headers.get("content-type") || "application/zip";
-        const blob = new Blob([data], { type: contentType });
-        const downloadUrl = window.URL.createObjectURL(blob);
-        const anchorElement = document.createElement("a");
-        anchorElement.href = downloadUrl;
-        anchorElement.download = filename;
-        document.body.appendChild(anchorElement);
-        anchorElement.click();
-        anchorElement.remove();
-        // Defer the revoke: releasing the blob synchronously cancels the
-        // download in Firefox and for large files (e.g. asset ZIP exports).
-        setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
-      }
+      const contentType = response.headers.get("content-type") || "application/zip";
+      const blob = new Blob([data], { type: contentType });
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const anchorElement = document.createElement("a");
+      anchorElement.href = downloadUrl;
+      anchorElement.download = filename;
+      document.body.appendChild(anchorElement);
+      anchorElement.click();
+      anchorElement.remove();
+      // Defer the revoke: releasing the blob synchronously cancels the
+      // download in Firefox and for large files (e.g. asset ZIP exports).
+      setTimeout(() => window.URL.revokeObjectURL(downloadUrl), 1000);
 
       get().invalidateQueries(["assets"]);
       return true;

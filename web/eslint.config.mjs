@@ -58,11 +58,9 @@ export default [
     },
 
     rules: {
-      // Surface remaining `any` for incremental cleanup toward the documented
-      // "zero any in web/src" target (DEVELOPMENT_STANDARDS §1). Warn, not
-      // error, so the legacy backlog and intentional generic-constraint idioms
-      // don't break lint.
-      "@typescript-eslint/no-explicit-any": "warn",
+      // The "zero any in web/src" target (DEVELOPMENT_STANDARDS §1) is met, so
+      // the rule that used to warn about the backlog now blocks new `any`.
+      "@typescript-eslint/no-explicit-any": "error",
       "@typescript-eslint/explicit-module-boundary-types": "off",
       "@typescript-eslint/no-unused-vars": "off",
       "no-console": "off",
@@ -79,6 +77,27 @@ export default [
       "no-restricted-imports": noRestrictedImports,
       "no-restricted-syntax": noRestrictedSyntax,
       "design-tokens/no-raw-mui": "error",
+    },
+  },
+  // The one `any` left in web/src: PropertyProps' default type argument, which
+  // the editor registry in PropertyInput.resolver depends on. The doc comment
+  // on the type says what removing it would take.
+  {
+    files: ["src/components/node/PropertyInput.types.ts"],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
+  // Mocks and partial fixtures still use `any`; the src rule above is the gate.
+  {
+    files: [
+      "**/__tests__/**/*.{ts,tsx}",
+      "**/__mocks__/**/*.{ts,tsx}",
+      "**/*.test.{ts,tsx}",
+      "src/setupTests.ts",
+    ],
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
     },
   },
 ];

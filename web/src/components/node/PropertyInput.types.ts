@@ -1,6 +1,14 @@
 import type React from "react";
 import type { Property } from "../../stores/ApiTypes";
 
+/**
+ * The default `V` stays `any` so PropertyInput.resolver can hold every editor
+ * in one `ComponentType<PropertyProps>` registry. `unknown` does not work
+ * there: `value` is covariant and `onChange` contravariant, so no single
+ * parameterization accepts both a `PropertyProps<boolean>` and a
+ * `PropertyProps<string>` component. Narrowing it means first giving each of
+ * the ~27 editors that take a bare `PropertyProps` its own value type.
+ */
 export type PropertyProps<V = any> = {
   property: Property;
   value: V;
