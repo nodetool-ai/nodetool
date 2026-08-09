@@ -127,9 +127,181 @@ function GrowingTextInput({ style, ...rest }: TextInputProps) {
   );
 }
 
+interface LineCardProps {
+  line: ScriptLine;
+  index: number;
+  isLast: boolean;
+  isSelected: boolean;
+  speakerName: string | undefined;
+  speakerColor: string | undefined;
+  onSelect: (lineId: string | null) => void;
+  onPatch: (lineId: string, patch: ScriptLineFields) => void;
+  onMove: (lineId: string, delta: number) => void;
+  onRemove: (lineId: string) => void;
+}
+
+/**
+ * `patchLine` rebuilds only the line it edits and hands back every other line
+ * object unchanged, so memoizing here turns a keystroke from a repaint of the
+ * whole script into a repaint of one card. That only holds while the handlers
+ * stay stable — bind them per line here, not at the call site.
+ */
+const LineCard = React.memo(function LineCard({
+  line,
+  index,
+  isLast,
+  isSelected,
+  speakerName,
+  speakerColor,
+  onSelect,
+  onPatch,
+  onMove,
+  onRemove,
+}: LineCardProps) {
+  const { colors, shadows } = useTheme();
+  const derived = lineStatus(line);
+
+  const handleSelect = useCallback(
+    () => onSelect(isSelected ? null : line.id),
+    [onSelect, isSelected, line.id]
+  );
+  const handleText = useCallback(
+    (text: string) => onPatch(line.id, { text }),
+    [onPatch, line.id]
+  );
+  const handleDirection = useCallback(
+    (direction: string) => onPatch(line.id, { direction }),
+    [onPatch, line.id]
+  );
+  const handleMoveUp = useCallback(() => onMove(line.id, -1), [onMove, line.id]);
+  const handleMoveDown = useCallback(() => onMove(line.id, 1), [onMove, line.id]);
+  const handleRemove = useCallback(() => onRemove(line.id), [onRemove, line.id]);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        shadows.small,
+        {
+          backgroundColor: colors.cardBg,
+          borderColor: isSelected ? colors.primary : colors.borderLight,
+        },
+      ]}
+    >
+      <TouchableOpacity
+        onPress={handleSelect}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={`Select line ${index + 1}`}
+        accessibilityState={{ selected: isSelected }}
+        style={styles.cardHeader}
+      >
+        <View
+          style={[
+            styles.colorChip,
+            { backgroundColor: speakerColor || colors.primaryMuted },
+          ]}
+        />
+        <Text style={[styles.speakerName, { color: colors.text }]} numberOfLines={1}>
+          {speakerName || 'Unassigned'}
+        </Text>
+        <View
+          style={[styles.statusPill, { backgroundColor: colors.accentMuted }]}
+          accessibilityLabel={`Line ${index + 1} status ${STATUS_LABELS[derived]}, ${line.takes.length} takes`}
+        >
+          <Text style={[styles.statusPillText, { color: colors.accent }]}>
+            {line.takes.length > 0
+              ? `${STATUS_LABELS[derived]} · ${line.takes.length}`
+              : STATUS_LABELS[derived]}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      <GrowingTextInput
+        style={[
+          styles.input,
+          styles.inputMulti,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={line.text}
+        onChangeText={handleText}
+        placeholder="What is said"
+        placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={`Line ${index + 1} text`}
+      />
+
+      <TextInput
+        style={[
+          styles.input,
+          {
+            backgroundColor: colors.inputBg,
+            borderColor: colors.borderLight,
+            color: colors.text,
+          },
+        ]}
+        value={line.direction ?? ''}
+        onChangeText={handleDirection}
+        placeholder="Direction, e.g. whispering, tired"
+        placeholderTextColor={colors.textTertiary}
+        accessibilityLabel={`Line ${index + 1} direction`}
+      />
+
+      <View style={styles.cardActions}>
+        <TouchableOpacity
+          onPress={handleMoveUp}
+          activeOpacity={0.7}
+          disabled={index === 0}
+          accessibilityRole="button"
+          accessibilityLabel={`Move line ${index + 1} up`}
+          accessibilityState={{ disabled: index === 0 }}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons
+            name="arrow-up-outline"
+            size={18}
+            color={index === 0 ? colors.textTertiary : colors.text}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={handleMoveDown}
+          activeOpacity={0.7}
+          disabled={isLast}
+          accessibilityRole="button"
+          accessibilityLabel={`Move line ${index + 1} down`}
+          accessibilityState={{ disabled: isLast }}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons
+            name="arrow-down-outline"
+            size={18}
+            color={isLast ? colors.textTertiary : colors.text}
+          />
+        </TouchableOpacity>
+        <View style={styles.spacer} />
+        <TouchableOpacity
+          onPress={handleRemove}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel={`Delete line ${index + 1}`}
+          hitSlop={ICON_HIT_SLOP}
+          style={styles.iconButton}
+        >
+          <Ionicons name="trash-outline" size={18} color={colors.error} />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+});
+
 export default function ScriptEditorScreen({ navigation, route }: Props) {
   const { id, name: initialName } = route.params;
-  const { colors, shadows } = useTheme();
+  const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
   const store = documentStore<ScriptDocument>('script', id);
@@ -691,6 +863,8 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
 
   const flat = flattenLines(doc);
   const lineNumber = new Map(flat.map((entry) => [entry.line.id, entry.index]));
+  // Looked up once per line below; a scan of the cast per line is O(lines × cast).
+  const castById = new Map(doc.cast.map((member) => [member.id, member]));
 
   return (
     // Every line is a text field, so the keyboard would otherwise cover
@@ -901,150 +1075,21 @@ export default function ScriptEditorScreen({ navigation, route }: Props) {
 
               {section.lines.map((line) => {
                 const index = lineNumber.get(line.id) ?? 0;
-                const isSelected = line.id === selectedLineId;
-                const speaker = doc.cast.find(
-                  (member) => member.id === line.speakerId
-                );
-                const derived = lineStatus(line);
+                const speaker = castById.get(line.speakerId ?? '');
                 return (
-                  <View
+                  <LineCard
                     key={line.id}
-                    style={[
-                      styles.card,
-                      shadows.small,
-                      {
-                        backgroundColor: colors.cardBg,
-                        borderColor: isSelected
-                          ? colors.primary
-                          : colors.borderLight,
-                      },
-                    ]}
-                  >
-                    <TouchableOpacity
-                      onPress={() => select(isSelected ? null : line.id)}
-                      activeOpacity={0.7}
-                      accessibilityRole="button"
-                      accessibilityLabel={`Select line ${index + 1}`}
-                      accessibilityState={{ selected: isSelected }}
-                      style={styles.cardHeader}
-                    >
-                      <View
-                        style={[
-                          styles.colorChip,
-                          {
-                            backgroundColor:
-                              speaker?.color || colors.primaryMuted,
-                          },
-                        ]}
-                      />
-                      <Text
-                        style={[styles.speakerName, { color: colors.text }]}
-                        numberOfLines={1}
-                      >
-                        {speaker?.name || 'Unassigned'}
-                      </Text>
-                      <View
-                        style={[
-                          styles.statusPill,
-                          { backgroundColor: colors.accentMuted },
-                        ]}
-                        accessibilityLabel={`Line ${index + 1} status ${STATUS_LABELS[derived]}, ${line.takes.length} takes`}
-                      >
-                        <Text
-                          style={[styles.statusPillText, { color: colors.accent }]}
-                        >
-                          {line.takes.length > 0
-                            ? `${STATUS_LABELS[derived]} · ${line.takes.length}`
-                            : STATUS_LABELS[derived]}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    <GrowingTextInput
-                      style={[
-                        styles.input,
-                        styles.inputMulti,
-                        {
-                          backgroundColor: colors.inputBg,
-                          borderColor: colors.borderLight,
-                          color: colors.text,
-                        },
-                      ]}
-                      value={line.text}
-                      onChangeText={(text) => patchLine(line.id, { text })}
-                      placeholder="What is said"
-                      placeholderTextColor={colors.textTertiary}
-                      accessibilityLabel={`Line ${index + 1} text`}
-                    />
-
-                    <TextInput
-                      style={[
-                        styles.input,
-                        {
-                          backgroundColor: colors.inputBg,
-                          borderColor: colors.borderLight,
-                          color: colors.text,
-                        },
-                      ]}
-                      value={line.direction ?? ''}
-                      onChangeText={(direction) =>
-                        patchLine(line.id, { direction })
-                      }
-                      placeholder="Direction, e.g. whispering, tired"
-                      placeholderTextColor={colors.textTertiary}
-                      accessibilityLabel={`Line ${index + 1} direction`}
-                    />
-
-                    <View style={styles.cardActions}>
-                      <TouchableOpacity
-                        onPress={() => moveLine(line.id, -1)}
-                        activeOpacity={0.7}
-                        disabled={index === 0}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Move line ${index + 1} up`}
-                        accessibilityState={{ disabled: index === 0 }}
-                        hitSlop={ICON_HIT_SLOP}
-                        style={styles.iconButton}
-                      >
-                        <Ionicons
-                          name="arrow-up-outline"
-                          size={18}
-                          color={index === 0 ? colors.textTertiary : colors.text}
-                        />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => moveLine(line.id, 1)}
-                        activeOpacity={0.7}
-                        disabled={index === flat.length - 1}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Move line ${index + 1} down`}
-                        accessibilityState={{ disabled: index === flat.length - 1 }}
-                        hitSlop={ICON_HIT_SLOP}
-                        style={styles.iconButton}
-                      >
-                        <Ionicons
-                          name="arrow-down-outline"
-                          size={18}
-                          color={
-                            index === flat.length - 1
-                              ? colors.textTertiary
-                              : colors.text
-                          }
-                        />
-                      </TouchableOpacity>
-                      <View style={styles.spacer} />
-                      <TouchableOpacity
-                        onPress={() => removeLine(line.id)}
-                        activeOpacity={0.7}
-                        accessibilityRole="button"
-                        accessibilityLabel={`Delete line ${index + 1}`}
-                        hitSlop={ICON_HIT_SLOP}
-                        style={styles.iconButton}
-                      >
-                        <Ionicons name="trash-outline" size={18} color={colors.error} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+                    line={line}
+                    index={index}
+                    isLast={index === flat.length - 1}
+                    isSelected={line.id === selectedLineId}
+                    speakerName={speaker?.name}
+                    speakerColor={speaker?.color}
+                    onSelect={select}
+                    onPatch={patchLine}
+                    onMove={moveLine}
+                    onRemove={removeLine}
+                  />
                 );
               })}
 

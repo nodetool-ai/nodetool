@@ -6,7 +6,7 @@
  * pair and at the end.
  */
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -26,6 +26,126 @@ import { ChainNodeCard } from "./ChainNodeCard";
 import { AddNodeButton } from "./AddNodeButton";
 import { NodePickerModal } from "./NodePickerModal";
 import type { NodeMetadata } from "../../types/ApiTypes";
+import type { ChainNode, InputSource } from "../../types/graphEditor";
+
+interface ChainRowProps {
+  node: ChainNode;
+  index: number;
+  totalNodes: number;
+  workflowId: string | null;
+  previousNodes: ChainNode[];
+  onRemove: (nodeId: string) => void;
+}
+
+/**
+ * `previousNodes` is a fresh slice every render, so the default memo comparison
+ * would never hit. Compare it by contents: `updateProperty` and friends rebuild
+ * only the node they touch, so the prefix of an untouched card holds the same
+ * node objects it did before.
+ */
+const chainRowPropsEqual = (a: ChainRowProps, b: ChainRowProps): boolean =>
+  a.node === b.node &&
+  a.index === b.index &&
+  a.totalNodes === b.totalNodes &&
+  a.workflowId === b.workflowId &&
+  a.onRemove === b.onRemove &&
+  a.previousNodes.length === b.previousNodes.length &&
+  a.previousNodes.every((prev, i) => prev === b.previousNodes[i]);
+
+/**
+ * Binding the card's handlers here rather than in the parent's map is what makes
+ * the memo hold. A card carries four runner subscriptions, two looping
+ * animations and a per-second timer, so an untouched card is expensive to
+ * repaint — and before this, every keystroke in one node's property, and every
+ * open of the node picker, repainted the whole chain.
+ */
+const ChainRow = React.memo(function ChainRow({
+  node,
+  index,
+  totalNodes,
+  workflowId,
+  previousNodes,
+  onRemove,
+}: ChainRowProps) {
+  const showNodePicker = useGraphEditorStore((s) => s.showNodePicker);
+  const toggleExpanded = useGraphEditorStore((s) => s.toggleExpanded);
+  const updateProperty = useGraphEditorStore((s) => s.updateProperty);
+  const setSelectedOutput = useGraphEditorStore((s) => s.setSelectedOutput);
+  const setInputMapping = useGraphEditorStore((s) => s.setInputMapping);
+  const addDynamicInput = useGraphEditorStore((s) => s.addDynamicInput);
+  const removeDynamicInput = useGraphEditorStore((s) => s.removeDynamicInput);
+  const duplicateNode = useGraphEditorStore((s) => s.duplicateNode);
+  const moveNode = useGraphEditorStore((s) => s.moveNode);
+
+  const nodeId = node.id;
+  const handleInsertAbove = useCallback(
+    () => showNodePicker(index),
+    [showNodePicker, index]
+  );
+  const handleToggleExpanded = useCallback(
+    () => toggleExpanded(nodeId),
+    [toggleExpanded, nodeId]
+  );
+  const handleUpdateProperty = useCallback(
+    (name: string, value: unknown) => updateProperty(nodeId, name, value),
+    [updateProperty, nodeId]
+  );
+  const handleSetOutput = useCallback(
+    (outputName: string) => setSelectedOutput(nodeId, outputName),
+    [setSelectedOutput, nodeId]
+  );
+  const handleSetInputMapping = useCallback(
+    (inputName: string, source: InputSource | null) =>
+      setInputMapping(nodeId, inputName, source),
+    [setInputMapping, nodeId]
+  );
+  const handleAddDynamicInput = useCallback(
+    (inputName: string) => addDynamicInput(nodeId, inputName),
+    [addDynamicInput, nodeId]
+  );
+  const handleRemoveDynamicInput = useCallback(
+    (inputName: string) => removeDynamicInput(nodeId, inputName),
+    [removeDynamicInput, nodeId]
+  );
+  const handleRemove = useCallback(() => onRemove(nodeId), [onRemove, nodeId]);
+  const handleDuplicate = useCallback(
+    () => duplicateNode(nodeId),
+    [duplicateNode, nodeId]
+  );
+  const handleMoveUp = useCallback(
+    () => moveNode(index, index - 1),
+    [moveNode, index]
+  );
+  const handleMoveDown = useCallback(
+    () => moveNode(index, index + 1),
+    [moveNode, index]
+  );
+
+  return (
+    <View>
+      {/* Insert point above this node */}
+      <AddNodeButton onPress={handleInsertAbove} />
+
+      <ChainNodeCard
+        node={node}
+        index={index}
+        totalNodes={totalNodes}
+        workflowId={workflowId}
+        previousNodes={previousNodes}
+        onToggleExpanded={handleToggleExpanded}
+        onUpdateProperty={handleUpdateProperty}
+        onSetOutput={handleSetOutput}
+        onSetInputMapping={handleSetInputMapping}
+        onAddDynamicInput={handleAddDynamicInput}
+        onRemoveDynamicInput={handleRemoveDynamicInput}
+        onRemove={handleRemove}
+        onDuplicate={handleDuplicate}
+        onMoveUp={handleMoveUp}
+        onMoveDown={handleMoveDown}
+      />
+    </View>
+  );
+}, chainRowPropsEqual);
 
 export const ChainEditor: React.FC = () => {
   const { colors } = useTheme();
@@ -43,16 +163,15 @@ export const ChainEditor: React.FC = () => {
   const fetchMetadata = useGraphEditorStore((s) => s.fetchMetadata);
   const addNode = useGraphEditorStore((s) => s.addNode);
   const removeNode = useGraphEditorStore((s) => s.removeNode);
-  const moveNode = useGraphEditorStore((s) => s.moveNode);
-  const duplicateNode = useGraphEditorStore((s) => s.duplicateNode);
-  const updateProperty = useGraphEditorStore((s) => s.updateProperty);
-  const setSelectedOutput = useGraphEditorStore((s) => s.setSelectedOutput);
-  const setInputMapping = useGraphEditorStore((s) => s.setInputMapping);
-  const addDynamicInput = useGraphEditorStore((s) => s.addDynamicInput);
-  const removeDynamicInput = useGraphEditorStore((s) => s.removeDynamicInput);
-  const toggleExpanded = useGraphEditorStore((s) => s.toggleExpanded);
   const showNodePicker = useGraphEditorStore((s) => s.showNodePicker);
   const hideNodePicker = useGraphEditorStore((s) => s.hideNodePicker);
+
+  // Built once per chain change instead of a fresh `chain.slice(0, index)` per
+  // card per render — the prefixes are what each row's memo compares against.
+  const previousNodesByIndex = useMemo(
+    () => chain.map((_, index) => chain.slice(0, index)),
+    [chain]
+  );
 
   // ── Fetch metadata on mount ────────────────────────────────────────
   useEffect(() => {
@@ -89,6 +208,7 @@ export const ChainEditor: React.FC = () => {
     [removeNode]
   );
 
+  const handleAppend = useCallback(() => showNodePicker(-1), [showNodePicker]);
 
   // ── Render ─────────────────────────────────────────────────────────
 
@@ -175,43 +295,19 @@ export const ChainEditor: React.FC = () => {
           ) : (
             <>
               {chain.map((node, index) => (
-                <View key={node.id}>
-                  {/* Insert point above this node */}
-                  <AddNodeButton onPress={() => showNodePicker(index)} />
-
-                  {/* The node card */}
-                  <ChainNodeCard
-                    node={node}
-                    index={index}
-                    totalNodes={chain.length}
-                    workflowId={workflowId}
-                    previousNodes={chain.slice(0, index)}
-                    onToggleExpanded={() => toggleExpanded(node.id)}
-                    onUpdateProperty={(name, value) =>
-                      updateProperty(node.id, name, value)
-                    }
-                    onSetOutput={(out) => setSelectedOutput(node.id, out)}
-                    onSetInputMapping={(inp, source) =>
-                      setInputMapping(node.id, inp, source)
-                    }
-                    onAddDynamicInput={(name) =>
-                      addDynamicInput(node.id, name)
-                    }
-                    onRemoveDynamicInput={(name) =>
-                      removeDynamicInput(node.id, name)
-                    }
-                    onRemove={() => handleRemove(node.id)}
-                    onDuplicate={() => duplicateNode(node.id)}
-                    onMoveUp={() => moveNode(index, index - 1)}
-                    onMoveDown={() => moveNode(index, index + 1)}
-                  />
-                </View>
+                <ChainRow
+                  key={node.id}
+                  node={node}
+                  index={index}
+                  totalNodes={chain.length}
+                  workflowId={workflowId}
+                  previousNodes={previousNodesByIndex[index]}
+                  onRemove={handleRemove}
+                />
               ))}
 
               {/* Add button at the end */}
-              <AddNodeButton
-                onPress={() => showNodePicker(-1)}
-              />
+              <AddNodeButton onPress={handleAppend} />
             </>
           )}
 
