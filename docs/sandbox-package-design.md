@@ -1,12 +1,15 @@
 # Sandbox Package System — JS/WASM packages for the QuickJS sandbox
 
 Design for letting NodeTool packs ship code that runs **inside** the QuickJS
-sandbox: pure-JS guest modules the Code node and CodeAct steps can `import`,
-and WASM modules bridged in from the host. Distribution rides the existing
+sandbox: JS guest modules the Code node and CodeAct steps can `import`, and
+WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design. Nothing in this document is implemented yet.
+> Status: design, revised after review. Nothing in this document is
+> implemented yet. The review killed four assumptions the first draft made;
+> the corrected facts are below and the milestones start with a proving
+> spike (M-1) rather than types.
 
 ## Problem
 
@@ -38,27 +41,46 @@ security contract or breaking surface parity across the three runtimes.
    the guest. "WASM in the sandbox" therefore means: WASM instantiated on
    the **host** (Node and browsers both have `WebAssembly`), reached from
    the guest through a bridge — the same pattern as every existing library.
-3. **There is no module loader today, on purpose.** `import`/`require` are
-   rejected statically (`packages/node-sdk/src/code-node-validation.ts`,
-   `code-analysis.ts`) and the prompts say so. But the machinery exists
-   unused: the wrapper exposes `RuntimeOptions.mountFs` / `nodeModules`
-   (a virtual FS the guest resolves imports against), backed by
-   `runtime.setModuleLoader` in quickjs-emscripten-core. User code is
-   already wrapped as an ES module (`wrapCode()`), so `import` statements
-   are one loader away from working.
-4. **The pack system already carries manifests.** Third-party packs are npm
+3. **`wrapCode()` cannot contain an `import`.** User code is emitted as the
+   body of an async IIFE inside the module
+   (`js-sandbox.ts:2194`: `export default await (async () => { ... })();`),
+   so an `import` statement in user code is a syntax error where it lands.
+   Supporting imports requires an AST transformation that hoists static
+   imports out of the IIFE — touching implicit returns, Code-node and
+   CodeAct preludes, streaming rewrites, source locations, and validation.
+   And because an ES module's dependencies evaluate **before** the entry
+   body, the timer-deletion hardening `wrapCode` emits would run *after*
+   imported modules execute. Hardening must be applied before any loaded
+   module evaluates, by the loader or an equivalent mechanism — not by the
+   entry module.
+4. **The wrapper's virtual FS is not empty.** `createVirtualFileSystem` in
+   `@sebastianwessel/quickjs` unconditionally mounts Node-compat modules
+   (`buffer`, `fs`, `path`, `process`, `timers`, `url`, …) into the guest's
+   `node_modules`, and its normalizer maps `node:*` specifiers onto them —
+   `await import("node:buffer")` succeeds under the wrapper's defaults.
+   Passing `nodeModules` does **not** mean "nothing else resolves". The
+   allowlist must therefore be enforced by a custom module loader and
+   normalizer at runtime; static validation alone cannot hold it, because a
+   computed dynamic import (`import("node:" + "buffer")`) bypasses any
+   declaration check.
+5. **The pack system already carries manifests.** Third-party packs are npm
    packages with a `nodetool` field in package.json, discovered by
-   `packages/node-sdk/src/pack-loader.ts`, gated by a trust allowlist
-   (`~/.config/nodetool/packs.json`), installed by Electron into
-   `<userData>/optional-node`, and listed in the registry index
-   (`nodetool-ai/nodetool-registry`). Today loading a pack means **running
-   its `register` export in-process with full server privileges** — which is
-   why untrusted packs are skipped entirely.
-5. **Host-side value marshaling is settled.** Typed arrays serialize
+   `packages/node-sdk/src/pack-loader.ts`, gated by a trust allowlist,
+   installed by Electron into `<userData>/optional-node`, and listed in the
+   registry index. Loading a pack with a `register` export means running it
+   in-process with full server privileges, which is why untrusted packs are
+   skipped.
+6. **`npm install` executes lifecycle scripts.** The Electron installer
+   (`electron/src/nodePackManager.ts:112`) runs `npm install <spec>` without
+   `--ignore-scripts`, so preinstall/install/postinstall run before
+   discovery ever reads a manifest. "Installing a sandbox-only pack runs no
+   pack code" is only true if sandbox-only installs pass
+   `--ignore-scripts`. This is part of the trust model, not later hardening.
+7. **Host-side value marshaling is settled.** Typed arrays serialize
    guest→host natively; host→guest bytes travel as tagged base64 revived by
    a guest prelude. Async bridge errors return tagged objects, never
    rejected promises. New bridges must follow these rules.
-6. **Packaged Electron flattens paths.** Data files a package loads at
+8. **Packaged Electron flattens paths.** Data files a package loads at
    runtime must be registered so `bundle-backend.mjs` stages them and
    `verify-backend-bundle.mjs` checks them.
 
@@ -68,17 +90,58 @@ security contract or breaking surface parity across the three runtimes.
 
 | Kind | Runs | Capability model | Risk |
 |---|---|---|---|
-| **Guest JS module** | inside QuickJS | none beyond what user code already has; every existing limit (memory, deadline, interrupt, output caps) applies automatically | CPU/memory inside the guest budget — already contained |
-| **Host WASM module** | on the host, behind a generated bridge | an empty import object: no I/O, no syscalls, no host references; memory capped at instantiation | host CPU and memory — needs its own bounds |
+| **JS guest module** | inside QuickJS, in the **same context as the node's code** | everything the node's code can reach: `fetch`, `workspace`, `getSecret`, asset bridges, injected globals; it can also mutate globals and prototypes for the rest of the invocation | cannot escape QuickJS, but shares the node's granted bridges — importing a module means trusting it with that node's capabilities |
+| **Host WASM module** | on the host, behind a bridge | no imports: no I/O, no syscalls, no host references; memory bounded by binary validation | host CPU and memory, bounded by worker budgets |
 
 A guest JS module is the default answer. WASM is for compute a JS module
 cannot do at acceptable speed. A pack can pair them: a WASM module plus a
 guest JS wrapper that gives it an ergonomic API.
 
-### Package unit: the `nodetool.sandboxModules` manifest
+### Trust model: explicit dependency consent
 
-Sandbox modules are **declared data, not executed code**. A pack lists them
-in the existing `nodetool` field:
+The first draft claimed guest modules are capability-free and need no
+trust. That was wrong — a malicious dependency can exfiltrate through
+`fetch`, read what `getSecret` grants the node, act at module
+initialization, and poison prototypes for the invocation. The corrected
+statement: **a guest module cannot escape QuickJS directly, but it shares
+the node's granted bridges.**
+
+v1 adopts **explicit dependency consent**:
+
+- Importing a module means trusting it with that node's sandbox
+  capabilities. The Package Manager and the Code node UI say this in those
+  words at install time and in the package picker.
+- Sandbox-only packs (no `register`) still clear a far lower bar than
+  register packs — no host execution, no lifecycle scripts (below), and
+  the sandbox's hard limits — so they install without the register-pack
+  allowlist. But the UI presents them as "runs inside your workflows with
+  the node's capabilities", never as "no trust needed".
+- Capability attenuation (packages in a separate QuickJS context with
+  data-only arguments) is the stronger model and stays on the table as a
+  later opt-in (`isolation: true` on a declaration); it is not v1 because
+  it abandons normal in-context ESM semantics.
+
+**Installation must not execute pack code.** Sandbox-only packs identified
+by the registry install with `--ignore-scripts`. Packs containing
+`register` keep the existing trusted install path. Direct-URL installs and
+packages whose manifest cannot be known before installation are treated as
+register-grade (scripts allowed only after the trust prompt). The install
+UI shows which mode applies before confirming. This lands in M0.
+
+**SKILL.md is third-party prompt content.** A filesystem skill is
+user-controlled; a pack's skill is not. Skills from packs are surfaced to
+agents as *quoted reference documentation* — clearly attributed, delimited,
+and never merged into the system prompt as instructions — unless the pack
+is on the trust allowlist. This closes the prompt-injection path the first
+draft opened.
+
+### Package unit: manifest + SKILL.md
+
+A pack's sandbox configuration is two declarative files: the
+`nodetool.sandboxModules` manifest in package.json and a `SKILL.md` at the
+package root. Neither is code. Manifest types are **Zod-backed
+discriminated unions** at the package boundary (per the repo's
+untrusted-input rules), not bare TypeScript interfaces.
 
 ```jsonc
 // package.json of @acme/nodetool-geo
@@ -87,466 +150,410 @@ in the existing `nodetool` field:
   "version": "1.2.0",
   "nodetool": {
     "apiVersion": 1,
-    // "register" is optional — a pack may ship ONLY sandbox modules
     "sandboxModules": [
       {
-        "name": "geo",                      // import specifier: "@acme/nodetool-geo/geo"
+        "name": ".",                        // root entry → specifier "@acme/nodetool-geo"
         "kind": "js",
-        "file": "sandbox/geo.js"            // relative to the package root
+        "file": "sandbox/geo.js"
+      },
+      {
+        "name": "extra",                    // subpath → "@acme/nodetool-geo/extra"
+        "kind": "js",
+        "file": "sandbox/extra.js"
       },
       {
         "name": "simplify-wasm",
         "kind": "wasm",
         "file": "sandbox/simplify.wasm",
-        "memoryPagesMax": 256,              // 16 MB cap, enforced at instantiation
-        "exports": ["simplify"]
+        "exports": ["simplify"]             // scalar-only in v1; see WASM section
       }
     ]
   }
 }
 ```
 
-A pack's configuration is two files: this manifest and a **`SKILL.md`**
-at the package root — the compressed docs page for the library (see "How
-agents learn a pack" below). The manifest declares what exists; the
-skill explains how to use it. Both are declarative; neither is code.
+**Specifier rule** (one rule, used everywhere): the import specifier is
+`<packageName>` when `name` is `"."`, else `<packageName>/<name>`. `name`
+is a single path segment (no separators, no `..`, no reserved forms),
+validated and normalized at discovery; duplicates are a discovery error.
+A single-module pack uses `"."`, which is what the migrated bridge packs
+do (`import Papa from "@nodetool-ai/sandbox-csv"`).
 
-Manifest types live in `@nodetool-ai/protocol` (`SandboxModuleManifest`).
-Rules enforced at discovery time (`pack-loader.ts`):
+Discovery-time rules (`pack-loader.ts`), enforced without executing pack
+code:
 
-- `file` must resolve inside the package directory (same containment guard
-  as the package-asset route).
-- Size caps: 256 KB per JS module source, 4 MB per WASM binary, 8 MB per
-  pack total. Oversize modules are skipped with a named reason, like the
-  existing `skip` reasons (`not-allowed`, `collision`, …).
-- JS modules are parsed with acorn at load time. Allowed: ES module syntax,
-  `export`s, and `import`s **only of sibling modules declared by the same
-  pack**. Rejected: `import` of anything else, `eval`/`Function` (they do
-  not exist in the guest anyway — reject early with a good message).
-- WASM binaries get a header/section sanity parse; declared `exports` are
-  checked against the binary's export section.
-
-### Config-only modules from npm packages
-
-A pack does not have to author sandbox code at all. A manifest entry can
-point at an npm package, and NodeTool produces the guest module from it —
-no glue code:
-
-```jsonc
-{
-  "name": "@acme/nodetool-validation",
-  "dependencies": { "zod": "^3.24.0" },
-  "nodetool": {
-    "apiVersion": 1,
-    "sandboxModules": [
-      { "name": "zod", "kind": "js", "npm": "zod" }
-      // "npm" replaces "file"; the version comes from the pack's own
-      // dependencies, so npm resolves and checksums it as usual
-    ]
-  }
-}
-```
-
-Mechanics, at pack discovery (still without executing any pack code):
-
-- NodeTool bundles the package once with esbuild (already a repo
-  dependency): entry = the package's ESM entry, `bundle: true`,
-  `platform: "neutral"`, `format: "esm"`, no externals. The whole
-  dependency subtree flattens into one file, so the guest resolver never
-  has to walk `node_modules`, honor `exports` maps, or convert CJS —
-  esbuild does all of that at build time.
-- An import of a Node builtin fails the bundle. That is the filter, not a
-  limitation to work around: a package that needs `fs`, `net`, or
-  `crypto` cannot run in the guest anyway, and this turns the failure into
-  a named skip at install time instead of a runtime surprise.
-- The bundle output goes through the same static scan as authored modules,
-  plus a forbidden-global check for names the guest deletes or blocks:
-  `process`, `Buffer`, `require`, `eval`, `Function`, `setTimeout` /
-  `setInterval`, `WebAssembly`, `document` / `window` / `XMLHttpRequest`.
-  Hard references are an error; references behind feature-detection
-  (`typeof process !== "undefined"`) are a warning, since such packages
-  usually take the portable path.
-- The output is cached at
-  `<userData>/sandbox-bundles/<pack>/<name>@<resolvedVersion>.mjs`, keyed
-  by the resolved version, and from there on behaves exactly like an
-  authored guest JS module — same mounting, limits, validation, and
-  browser-runner delivery. Bundled modules get a larger source cap (1 MB)
-  than authored ones.
-
-What fits: pure-computation ESM packages — schema validation (zod),
-functional utilities (lodash-es, remeda), date math (date-fns), parsers
-and formatters (marked, papaparse-style codecs). What cannot fit,
-regardless of tooling: packages needing Node builtins, the DOM, network,
-timers (blocked in the guest), `eval` (deleted), or WASM (no
-`WebAssembly` in quickjs-ng — such packages need the host-WASM path
-instead). The bundling step exists precisely to sort a package into one
-of these two buckets before anything runs.
-
-This also opens a later pack-less form: a user-level declaration (e.g.
-`sandboxNpm: ["zod@^3"]` in `packs.json`) that installs into the existing
-`optional-node` root and surfaces as an implicit pack. Deferred to
-Phase 3 — the pack-based form ships first because trust, listing, and
-delivery already exist for packs.
+- `file` resolves inside the package directory (containment + symlink
+  check).
+- Size caps: 256 KB per authored JS source, 4 MB per WASM binary, 8 MB per
+  pack; npm-bundled modules get 1 MB (below).
+- JS modules parse with acorn. Allowed: ES module syntax and static
+  `import` of sibling modules declared by the same pack. Rejected:
+  **all `ImportExpression` nodes** (dynamic import — in package and user
+  code alike, v1), `require`, and imports of anything outside the pack.
+- WASM binaries get a section-level parse; declared `exports` are checked
+  against the export section, and the memory rule below is validated
+  before compilation is ever attempted.
+- SKILL.md is validated (frontmatter, 16 KB cap) — but an invalid or
+  missing skill only disables agent discoverability with a warning. It
+  never disables the module: a frontmatter typo must not break a workflow
+  that imports working code.
 
 ### Guest import surface
 
-User code in a Code node or CodeAct step imports a declared module by its
-npm-style specifier:
+User code imports a declared module by its specifier:
 
 ```js
-import { haversine } from "@acme/nodetool-geo/geo";
+import { haversine } from "@acme/nodetool-geo";
 const km = haversine(a, b);
 return { km };
 ```
 
-Mechanics:
+Mechanics, in the order that matters:
 
-- `runInSandbox` gains `modules?: ResolvedSandboxModule[]`. When present,
-  the sources are mounted into the wrapper's virtual `node_modules`
-  (`RuntimeOptions.nodeModules`) so the engine's own resolver serves them.
-  Nothing else is mounted, so any other specifier fails at resolve with
-  "module not found — declare it in the node's packages list".
-- The static check (`code-node-validation.ts` / `code-analysis.ts`) stops
-  rejecting `import` wholesale. New rule: every import specifier must match
-  a module declared on the node (see below); `export` (other than the
-  wrapper's own) and `require` stay rejected. Unknown specifiers keep a
-  variant of today's `code_module` error naming the fix.
-- Guest modules are evaluated inside the same context, under the same
-  interrupt handler and memory limit as user code. No new budget knobs.
+- **AST transform, not string wrapping.** The entry is built by parsing
+  user code, hoisting static `ImportDeclaration`s to module top level, and
+  wrapping the remainder in the async IIFE that gives `return` and
+  top-level `await` their current meaning. Preludes, streaming rewrites,
+  and source maps ride the same transform. This is proven by the M-1 spike
+  before anything else is built.
+- **The loader is the authority.** `runInSandbox` installs a custom module
+  loader and normalizer (via the underlying `setModuleLoader`) that
+  resolve **only** the run's declared specifiers and their intra-pack
+  siblings. Everything else — `node:*`, the wrapper's compat modules,
+  absolute paths, encoded traversals, computed specifiers — fails at
+  resolve with an error naming the node's `packages` declaration. Static
+  validation is a courtesy layer for early errors; the loader holds the
+  boundary at runtime.
+- **Hardening precedes evaluation.** Timer deletion and global hardening
+  are applied before any loaded module evaluates — not by the entry
+  module's first statements. The M-1 spike proves the mechanism (loader
+  hook, per-module preamble, or engine-level init).
+- **Adversarial tests are part of the contract:** `node:*` in package and
+  user code, computed dynamic imports, absolute and encoded paths, sibling
+  escapes, and compat-module cache hits must all fail, on Node and in the
+  browser runner.
+- Guest modules evaluate under the same interrupt handler and memory limit
+  as user code. No new budget knobs.
 
 ### Declaring usage on the node
 
-Imports are explicit per node, not ambient. The Code node
-(`nodetool.code.Code`) gains a `packages` property: a list of module
-specifiers the code may import. CodeAct exposes the installed catalog in its
-prompt and mounts what the step's code actually imports (the executor
-already parses the code before running it).
+Imports are explicit per node. The Code node's `packages` property is a
+list of **declarations**, not bare strings:
 
-Why explicit: `nodetool validate` can check a workflow offline (specifier
-typos, module not installed, version drift) before anything runs; the
-sandbox mounts only what is declared, so the guest surface stays
-deterministic and the prompt stays small; and a shared workflow states its
-dependencies, so import on another machine can name exactly which packs to
-install.
+```ts
+interface SandboxModuleDeclaration {
+  specifier: string;               // "@acme/nodetool-geo" or ".../extra"
+  resolvedPackVersion?: string;    // stamped when the workflow is saved
+}
+```
+
+Resolution always uses the installed version; a mismatch between
+`resolvedPackVersion` and the installed pack is a **validation warning**
+(not a lock failure, not an auto-upgrade). Content hashes may later
+replace versions for local/linked packs, where a version string proves
+nothing. CodeAct declares per step: the executor already parses the step's
+code, extracts its imports, checks them against the installed catalog, and
+mounts exactly those.
+
+Why explicit: `nodetool validate` checks a workflow offline (typo,
+missing pack, version drift) before anything runs; the loader mounts only
+what is declared, so the guest surface stays deterministic; and a shared
+workflow names its dependencies, so importing it elsewhere says exactly
+which packs to install.
+
+### One catalog, injected everywhere
+
+The first draft left registry ownership implicit, which does not survive
+contact with the real wiring: `bootstrapNodeRegistry()` loads packs
+asynchronously, the CLI's `buildFullRegistry()` is synchronous and loads no
+installed packs, `validateGraph()` sees only a narrow registry interface,
+and soft reload/uninstall differ from startup. The design therefore names
+one deep module with an injected interface:
+
+```ts
+interface SandboxModuleCatalog {
+  list(): readonly SandboxModuleSummary[];
+  resolve(
+    declarations: readonly SandboxModuleDeclaration[]
+  ): SandboxModuleResolution;   // sources + skills + per-declaration status
+}
+```
+
+One catalog instance is constructed where packs are discovered and
+injected into every consumer: kernel execution (via ProcessingContext),
+validation, CodeAct prompt generation, the websocket delivery route, and
+the CLI (which constructs its own from the same discovery code). No
+second global snapshot next to `pack-snapshot.ts`; catalog statuses are
+their own set, separate from node-pack loading statuses. Soft reload
+swaps the catalog's contents; in-flight runs keep the resolution they
+started with.
+
+### Config-only modules from npm packages
+
+A pack does not have to author sandbox code. A manifest entry can point at
+an npm dependency, and NodeTool produces the guest module from it:
+
+```jsonc
+{
+  "name": "@nodetool-ai/sandbox-yaml",
+  "dependencies": { "js-yaml": "^4.1.0" },
+  "nodetool": {
+    "apiVersion": 1,
+    "sandboxModules": [{ "name": ".", "kind": "js", "npm": "js-yaml" }]
+  }
+}
+```
+
+Mechanics, at pack discovery, in a **dedicated compiler module** (not
+esbuild concerns spread through node-sdk):
+
+- esbuild bundles the package: `bundle: true`, `format: "esm"`,
+  `platform: "neutral"`, **explicit `conditions` and `mainFields`**
+  (neutral alone does not pin which conditional export is chosen), no
+  externals. An import of a Node builtin fails the bundle — that is the
+  filter, surfaced as a named skip at install time.
+- The output goes through the authored-module static checks plus a
+  **scope-aware** forbidden-global scan (`process`, `Buffer`, `require`,
+  `eval`, `Function`, timers, `WebAssembly`, DOM names). Hard references
+  error; feature-detected references warn.
+- **Bundling proves resolution, not compatibility.** Admission ends with a
+  probe: the bundle is imported in the actual QuickJS engine under
+  production limits, and a module that fails the probe is skipped with the
+  probe's error. Runtime loading stays authoritative even after admission.
+- **Cache keys are digests, not versions.** `pack/name@version` is wrong —
+  output changes under linked packs, transitive updates, lockfile changes,
+  esbuild upgrades, and option changes while the version stays put. The
+  cache key is a digest of package contents/resolution graph + esbuild
+  version + build options; writes are atomic; every path component is
+  sanitized. Bundled modules cap at 1 MB — and M-1 measures real
+  candidates (zod, date-fns, cheerio) before that number is promised
+  anywhere.
+
+What fits: pure-computation ESM (schema validation, functional utilities,
+date math, parsers). What cannot, regardless of tooling: Node builtins,
+DOM, network, timers, `eval`, WASM-shipping packages (no `WebAssembly` in
+the guest — those need the host-WASM path).
 
 ### Host WASM modules
 
-Instantiation and exposure:
+**v1 is scalar-only.** WebAssembly exports take and return numbers; an
+`exports: ["simplify"]` list says nothing about argument layout, element
+types, allocation, pointer/length pairs, ownership, or who calls `free` —
+and "exports malloc/free" is not a real convention across Emscripten and
+wasm-bindgen output. Byte-oriented calls arrive only after the M-1 spike
+has produced a reference module from a documented toolchain and a
+manifest-level ABI worth pinning (numeric args, input/output byte
+buffers, allocator exports, pointer/length results, ownership). Until
+then, a pack that needs typed arrays pairs a scalar WASM core with a JS
+guest wrapper that does its own packing, or waits.
 
-- The host compiles each WASM binary once per process
-  (`WebAssembly.compile`, cached by pack+version) and creates a **fresh
-  instance per sandbox invocation** — no state leaks between runs.
-- The import object is **empty** in v1. No WASI, no host functions, no
-  shared memory. A module that needs an allocator exports its own
-  (`malloc`/`free` convention, as Emscripten/wasm-bindgen standalone builds
-  do).
-- `memoryPagesMax` from the manifest is enforced by instantiating the
-  memory with that `maximum` (or validating the module's own declared max).
-- The guest reaches exports through one generated bridge per invocation:
-  `__wasm(pack, exportName, args)` — args and returns limited to numbers
-  and typed arrays, marshaled by the existing serializer/byte-tagging
-  rules. The pack's guest JS wrapper module turns that into a typed API, so
-  user code never calls `__wasm` directly.
+Memory: a host cannot cap a module-defined memory at instantiation — with
+an empty import object the binary's own limits rule. The v1 rule is
+therefore validation, not override: every declared or imported memory
+must have a `maximum`, `minimum`/`maximum` must fit the host cap, and
+shared memories are rejected — all checked in the binary before
+compilation. A module that imports its memory makes the import object
+non-empty and is rejected in v1.
 
-Bounding host CPU — the one real risk, since a WASM call cannot be
-interrupted by the guest's interrupt handler:
+Execution and budgets:
 
-- **Node:** WASM calls execute on a worker thread with a hard per-call
-  timeout (default 5 s, pack can declare lower, never higher); timeout
-  terminates the worker. Compiled modules are `postMessage`-transferable,
-  so the worker does not recompile.
-- **Browser runner:** a Web Worker, same contract, `Worker.terminate()` on
-  timeout.
-- The call is async from the guest's point of view (all bridges already
-  are), so the worker hop changes no guest-visible semantics.
-
-### Trust model
-
-The payoff of "declared data, not executed code": sandbox modules do not
-need the trust bar that `register` packs need.
-
-| Pack content | Untrusted (not on allowlist) | Trusted |
-|---|---|---|
-| `register` (in-process nodes) | skipped, as today | loaded |
-| Guest JS modules | **loaded** — they run inside the sandbox with zero added capability | loaded |
-| WASM modules | **loaded** — empty imports + memory cap + worker timeout bound them | loaded |
-
-A pack that ships only `sandboxModules` (no `register`) is therefore
-installable and usable without touching the allowlist. Discovery reads
-package.json and module files; it never imports pack code. The `packs`
-tRPC router reports sandbox modules in `list` with their own status so the
-Package Manager UI can show "sandbox-only, no trust needed".
-
-### Distribution and delivery
-
-Nothing new is invented:
-
-- **Install:** the existing Electron npm installer
-  (`electron/src/nodePackManager.ts`) — `sandboxModules` needs no changes
-  there. Server restart picks them up, same as node packs.
-- **Registry:** the index (`nodetool-ai/nodetool-registry/index.json`)
-  entries gain an optional `sandboxModules: string[]` summary so the
-  Package Manager can filter/search "packages for the Code node".
-  Integrity remains npm's (tarball checksums); a later phase can add
-  per-file `sha256` to the manifest for defense in depth.
-- **Builtin packs** may ship sandbox modules too (e.g. moving some current
-  host bridges' pure-JS parts into importable modules stays possible but is
-  a non-goal for now).
-- **Browser runner:** module sources reach the browser via a new
-  authenticated route, `GET /api/sandbox-modules/:pack/:name`, streaming
-  from the resolved pack directory with the same path-containment guards as
-  `/api/assets/packages/...`. The browser runner fetches and caches
-  sources/binaries keyed by pack version, then mounts/instantiates exactly
-  as Node does. Surface parity holds: same modules, same limits, same
-  errors.
-- **Packaged Electron:** sandbox module files of bundled packs are staged
-  by `bundle-backend.mjs` into `_sandbox/<pack>/<file>` (a per-pack
-  directory, avoiding the flat-basename constraint of
-  `PACKAGE_RUNTIME_ASSETS`) and checked by `verify-backend-bundle.mjs`.
-  Resolution order in `resolveSandboxModuleFile`: real package dir first,
-  `_sandbox/` fallback in the flattened layout.
+- Compile once per process, cached (`WebAssembly.Module` is
+  **structured-cloneable**, so it crosses to workers without recompiling);
+  fresh instance per sandbox invocation.
+- Calls run on workers (Node `worker_threads`, browser Web Worker) with a
+  hard per-call timeout; a timed-out worker is terminated **and
+  replaced**.
+- Per-call timeout alone does not bound aggregate use, so the budgets are
+  layered: process-wide worker concurrency, per-invocation call
+  concurrency, max calls per invocation, an aggregate WASM wall-clock
+  budget per invocation, input/output byte caps, and a conservative
+  default memory cap (raised per-module by manifest, never past the host
+  cap).
+- The guest reaches exports through one generated bridge per invocation;
+  args and returns marshal by the existing serializer/byte-tagging rules;
+  the pack's guest wrapper gives it a typed API.
 
 ### How agents learn a pack: SKILL.md, progressive disclosure
 
-Every pack that ships sandbox modules carries a `SKILL.md` at its root —
-the same format `packages/agents/src/agent.ts` already loads
-(`loadSkillFromFile`): YAML frontmatter with a validated `name` and
-one-line `description`, then a body. The body is a compressed docs page
-for using the library **inside the sandbox**: the import specifier, the
-main functions with one example each, and the gotchas that matter there
-(input size caps, the 64 MB guest memory limit, "no timers", byte
-marshaling for WASM).
+Every sandbox pack's SKILL.md is the compressed docs page for using the
+library inside the sandbox: the specifier, the main functions with one
+example each, and the gotchas that matter there (input caps, the 64 MB
+guest heap, no timers). Format and parser are the existing `AgentSkill`
+machinery (`packages/agents/src/agent.ts`), hoisted so node-sdk can call
+it.
 
-Disclosure happens in two steps, so prompt size stays flat as the pack
-count grows:
+Disclosure is two-tier so prompt size stays flat: one line per installed
+pack (specifier + frontmatter description) always; the full body on
+demand when the agent reaches for the pack. Per the trust model, an
+untrusted pack's skill body is delivered as quoted, attributed reference
+data — not as instructions. The Code node's package picker renders the
+same file for the human. A pack exposing several specifiers may carry
+one skill with a section per module; the one-line tier lists specifiers,
+not files.
 
-1. **Always in the prompt:** one line per installed pack — specifier +
-   frontmatter description. That is the whole ambient cost of a pack.
-2. **On demand:** the full SKILL.md body loads through the existing
-   skill machinery when the agent decides to use the pack — CodeAct and
-   the Code-node planner register pack skills exactly like filesystem
-   skills, and the editor renders the same SKILL.md in the Code node's
-   package picker. One document serves the model and the human.
+### Delivery and distribution
 
-Discovery validates SKILL.md with the existing frontmatter rules plus a
-size cap (16 KB) so an on-demand load stays cheap; a pack whose SKILL.md
-is missing or invalid is skipped with a named reason — an undocumented
-library is not usable by agents, which is the audience.
+- **Install:** the existing Electron npm installer, with the
+  `--ignore-scripts` split described under the trust model.
+- **Registry:** index entries gain a `sandboxModules: string[]` summary
+  for search; per-file hashes come with the ecosystem milestone.
+- **Browser runner:** module sources are fetched by **opaque module id** —
+  `GET /api/sandbox-modules/:moduleId` — never by path segments: scoped
+  names contain `/`, and encoded slashes behave inconsistently across
+  routers and proxies. The server resolves the id through the catalog (no
+  route-to-filesystem translation), responses carry a content digest the
+  client verifies, and the browser caches by digest. Whether private
+  packs' source may be delivered to a given browser client is an
+  entitlement question the route must answer through the catalog, not
+  assume from authentication alone.
+- **Packaged Electron:** installed packs arrive through the optional-node
+  root as today. Only if a bundled builtin ever ships sandbox modules does
+  `bundle-backend.mjs` stage them (under `_sandbox/<pack>/`), verified by
+  `verify-backend-bundle.mjs`.
 
-### Surfacing to agents and validation
+### Validation and harnesses
 
-- **Sandbox manifest** (`packages/agents/src/code-gen/sandbox-manifest.ts`)
-  gains a `packages` section generated from the installed registry — the
-  one-line-per-pack tier described above. It appears in prompts only when
-  modules are installed, and the drift test pins the shape.
-- **`nodetool validate` / `validate_workflow`:** new checks — a `packages`
-  entry naming a module no installed pack provides (error, names the pack
-  to install), an `import` in code of a specifier missing from `packages`
-  (error), a declared package the code never imports (warning).
-- **`nodetool node run` / `debug`:** work unchanged; the harness resolves
-  declared modules the same way the kernel does, so a failing import
-  reproduces headlessly.
-
-### Registry plumbing (where the code goes)
-
-- `@nodetool-ai/protocol`: `SandboxModuleManifest`, resolved-module types.
-- `packages/node-sdk/src/pack-loader.ts`: discovery + static validation of
-  `sandboxModules`, feeding a `SandboxModuleRegistry` (new file in
-  node-sdk) that maps specifier → `{pack, version, kind, file, doc}`.
-- `packages/agents/src/js-sandbox.ts`: `modules` option, virtual-FS mount,
-  the `__wasm` bridge, worker-pool call path.
-- `packages/websocket`: the delivery route; `packs.list` additions.
-- `web`: browser-runner fetch/cache; Package Manager UI additions; Code
-  node property editor with specifier autocomplete from `packs.list`.
+- `nodetool validate` / `validate_workflow`: unknown specifier (error,
+  names the pack), declared-but-unused (warning), version mismatch
+  (warning), import in code missing from `packages` (error).
+- `nodetool node run` / `debug`: resolve through the same catalog, so a
+  failing import reproduces headlessly.
+- The sandbox manifest's generated `packages` section and its drift test
+  pin the one-line disclosure tier.
+- Node and browser run the **same contract-test fixtures** for loading,
+  denial, hardening order, and WASM budgets.
 
 ## Alternatives considered
 
-- **Keep host bridges as the only extension point.** Safest, but it makes
-  every library a NodeTool core change and gives third parties nothing.
-  Bridges remain the right tool for anything needing real I/O or native
-  code with host access — this design does not replace them.
-- **Inject packages as globals instead of imports.** Avoids touching the
-  no-import invariant, but invents a second module system, breaks editor
-  tooling/typing, and still needs the same declaration, validation, and
-  delivery machinery. The static analyzer already parses ES modules;
-  imports are the smaller change.
-- **Run WASM inside the guest.** Impossible on quickjs-ng (no
-  `WebAssembly`). Swapping engines or compiling WASM→JS costs far more than
-  a host bridge and would break the memory-limit story.
-- **Arbitrary npm imports in the guest at runtime.** Rejected. Most npm
-  code assumes Node builtins or the DOM and would fail confusingly; the
-  audit surface would be unbounded. The config-only npm form above is the
-  answer instead: a declared package, bundled and vetted once at install
-  time, size-capped — not a live resolver over `node_modules`.
+- **Keep host bridges as the only extension point.** Safest, but every
+  library becomes a NodeTool core change. Bridges remain the right tool
+  for real I/O and native code — this design does not replace them.
+- **Inject packages as globals instead of imports.** Avoids the AST work,
+  but invents a second module system and still needs the same
+  declaration, validation, loader, and delivery machinery.
+- **Run WASM inside the guest.** Impossible on quickjs-ng.
+- **Arbitrary npm imports at runtime.** Rejected; the config-only form —
+  declared, bundled and vetted at install time, admission-probed — is the
+  answer, not a live resolver over `node_modules`.
+- **Trust-free guest modules.** The first draft's position; withdrawn.
+  Guest modules share the node's capabilities, so the model is explicit
+  consent (v1) with capability attenuation as a later opt-in.
 
 ## Limits summary
 
 | Bound | Value | Enforced |
 |---|---|---|
 | JS module source (authored) | 256 KB | pack discovery |
-| JS module source (npm-bundled) | 1 MB | pack discovery |
+| JS module source (npm-bundled) | 1 MB (validated in M-1) | compiler + admission probe |
 | WASM binary | 4 MB | pack discovery |
 | Per-pack total | 8 MB | pack discovery |
+| SKILL.md | 16 KB | pack discovery (warning-grade) |
 | Guest eval of modules | existing 64 MB / deadline / interrupt | engine |
-| WASM instance memory | `memoryPagesMax` (≤ 4096 pages / 256 MB) | instantiation |
-| WASM call wall clock | 5 s default, pack may lower | worker timeout |
-| WASM imports | none | instantiation |
+| WASM memory | binary-declared max, within host cap; no shared, no imported memory (v1) | binary validation |
+| WASM per-call wall clock | 5 s default, pack may lower | worker timeout + replacement |
+| WASM aggregate | worker pool size, per-invocation call count + concurrency + wall-clock budget, I/O byte caps | host bridge |
+| WASM imports | none | binary validation |
+| Dynamic `import()` | rejected everywhere | validation + loader |
 
 ## Non-goals
 
-- WASI, filesystem, network, or host-function imports for WASM modules.
-- `require`, Node builtins, or undeclared npm packages in the guest.
-- Per-workflow version pinning of modules (the workflow records the pack
-  version it was built with; `validate` warns on mismatch — resolution
-  always uses the installed version).
+- WASI, filesystem, network, host-function or memory imports for WASM.
+- `require`, Node builtins, the wrapper's compat modules, or undeclared
+  npm packages in the guest.
+- Typed-array WASM ABI in v1 (scalar-only until the reference-module spike
+  pins a contract).
+- Per-workflow version pinning (recorded versions warn on mismatch;
+  resolution uses the installed version).
 - Replacing existing host bridges.
 
-## Implementation plan
+## Milestones
 
-Each milestone is one or two PRs, lands green on its own, and the system
-works at every point in between.
+Revised order: prove the risky mechanics first, then build outward. Each
+milestone lands green on its own.
 
-### M0 — Types and discovery (no runtime change)
+### M-1 — Proof and threat model
 
-- `@nodetool-ai/protocol`: `SandboxModuleManifest`, `ResolvedSandboxModule`
-  types; extend the pack manifest type.
-- `packages/node-sdk`: parse `sandboxModules` in `pack-loader.ts`
-  discovery; static validation (containment, size caps, acorn parse,
-  intra-pack imports only); SKILL.md presence + frontmatter + size
-  validation (reusing the parser from `packages/agents/src/agent.ts`,
-  hoisted so node-sdk can use it); new skip reasons; a
-  `SandboxModuleRegistry` (specifier → resolved module + skill) populated
-  at pack load, with no consumer yet.
-- Tests: fixture packs (valid, oversize, escaping path, bad import) in
-  `packages/node-sdk/tests/`.
+- AST transform spike: static imports + IIFE body semantics (implicit
+  return, top-level await, streaming, source locations) on real Code/
+  CodeAct corpora.
+- Loader spike: custom loader/normalizer denying `node:*`, compat
+  modules, computed imports, path escapes — on Node and browser.
+- Hardening-order spike: prove globals are hardened before any module
+  evaluates.
+- One scalar WASM and one byte-oriented WASM reference module from a
+  documented toolchain (the byte one informs the future ABI, not v1).
+- Measure bundle sizes of the real npm candidates against the 1 MB cap.
+- Document exactly what capabilities imported code can reach; test npm
+  lifecycle-script behavior with and without `--ignore-scripts`.
 
-### M1 — Guest mounting in the sandbox
+### M0 — Catalog and safe discovery
 
-- `packages/agents/src/js-sandbox.ts`: `RunSandboxOptions.modules`;
-  build the wrapper's `nodeModules` virtual FS from resolved sources;
-  map resolve failures to a clear error naming the `packages`
-  declaration.
-- Sandbox manifest + drift test: a generated `packages` section that
-  appears only when modules are mounted.
-- Tests: import works, undeclared specifier fails at resolve, module code
-  hits the same memory/deadline limits, guest cannot reach undeclared
-  siblings.
+- Zod manifest schemas; the specifier + declaration model (versions
+  included).
+- `SandboxModuleCatalog` interface with injected ownership (kernel,
+  validation, prompts, delivery, CLI); statuses separate from node-pack
+  statuses.
+- Sandbox-only installation with `--ignore-scripts`, the install-mode
+  UI, and the direct-URL/unknown-manifest policy.
+- Discovery validation: containment, symlinks, sizes, import-expression
+  rejection, collisions; SKILL.md as warning-grade.
 
-### M2 — Code node, CodeAct, and validation
+### M1 — Guest JS end to end
 
-- `packages/code-nodes`: `packages` property on `nodetool.code.Code`;
-  resolve declared specifiers through the registry and pass `modules`
-  to `runInSandbox`.
-- `packages/node-sdk` (`code-analysis.ts`, `code-node-validation.ts`):
-  replace the blanket `import` rejection with "every specifier must be
-  declared and installed"; keep rejecting `require` and stray `export`s.
-- `nodetool validate` / `validate_workflow`: unknown-module error naming
-  the pack to install; declared-but-unused warning.
-- CodeAct (`codeact-executor.ts`): advertise the installed catalog in the
-  prompt; parse each step's imports and mount what it uses.
-- Update every "no module loader" prompt string and its drift test in the
-  same PR — the phrase becomes "imports are limited to declared sandbox
-  packages".
+Authored modules through Code node, CodeAct, validation, CLI, and server
+execution together — import support is not claimed until the user-facing
+execution and validation paths agree. Prompt strings ("no module loader")
+and their drift tests change here.
 
-### M3 — Delivery: browser runner and packaged Electron
+### M2 — Delivery parity
 
-- `packages/websocket`: `GET /api/sandbox-modules/:pack/:name` with the
-  package-asset containment guards; `packs.list` reports sandbox modules
-  and their status.
-- `web`: browser runner fetches and caches sources by pack version and
-  mounts them identically; Code node property editor with autocomplete
-  from `packs.list`.
-- `scripts/bundle-backend.mjs` / `verify-backend-bundle.mjs`: stage
-  builtin packs' module files under `_sandbox/<pack>/`; resolution
-  fallback in the flattened layout; covered by `npm run backend:smoke`.
+Browser delivery by opaque module id with digest verification; Electron
+staging for bundled builtins; the same loading/denial fixtures running on
+Node and browser.
 
-### M4 — Config-only npm modules
+### M3 — npm compilation
 
-- Bundler in `node-sdk` (esbuild, `platform: "neutral"`, no externals) run
-  at discovery for `npm`-sourced entries; forbidden-global scan on the
-  output; cache at `<userData>/sandbox-bundles/` keyed by resolved
-  version; new skip reasons for bundle failures.
-- Tests: fixture packs wrapping a pure package (bundles, imports, runs)
-  and a builtin-dependent package (skipped with the right reason).
+The dedicated compiler module: content-addressed cache, explicit resolver
+conditions, scope-aware scan, QuickJS admission probe.
 
-### M5 — WASM host modules
+### M4 — WASM (scalar-only)
 
-- Manifest `kind: "wasm"`; binary section parse + export check at
-  discovery.
-- `packages/agents`: compile cache; per-invocation instances; the
-  `__wasm` bridge with number/typed-array marshaling; worker execution
-  (Node `worker_threads`, browser Web Worker) with hard timeout and
-  terminate; memory cap at instantiation.
-- Guest wrapper convention documented; one reference pack used in tests.
+Binary validation including the memory rule, worker pool with global and
+per-invocation budgets, timeout-terminate-replace, the `__wasm` bridge.
+The typed-array ABI waits for the M-1 reference results.
 
-### M6 — Migrate existing host-bridge libraries into normal packs
+### M5 — Agent and UI disclosure
 
-The migrated libraries ship as **normal packs** — one small npm package
-per library, config-only: the `sandboxModules` manifest with an `npm`
-source and the `SKILL.md` — the compressed docs page for that library as
-it behaves inside the sandbox. No `register`, no glue code; the whole
-pack is configuration. Packs are listed in the registry index, installed
-and uninstalled through the ordinary flow. Nothing is compiled into NodeTool;
-these packs dogfood exactly the path a third party would use, including
-the trust rule (sandbox-only, so no allowlist entry needed).
+SKILL.md surfacing lands only after the quoted-content trust handling is
+settled: one-line tier, on-demand body, package-picker rendering,
+Package Manager consent language.
 
-| Bridge | Library | Disposition | Why |
-|---|---|---|---|
-| `data.parseCsv` / `toCsv` | papaparse | migrate → `@nodetool-ai/sandbox-csv` | pure JS |
-| `data.parseYaml` / `toYaml` | js-yaml | migrate → `@nodetool-ai/sandbox-yaml` | pure JS |
-| `data.parseXml` / `toXml` | fast-xml-parser | migrate → `@nodetool-ai/sandbox-xml` | pure JS |
-| `data.diff` | diff | migrate → `@nodetool-ai/sandbox-diff` | pure JS |
-| `data.zip` / `unzip` | fflate | migrate → `@nodetool-ai/sandbox-zip` | pure JS; the 50 MB host cap becomes the guest 64 MB memory limit |
-| `data.selectHtml` | cheerio | decided by the bundle: if it bundles neutral and fits the cap, migrate → `@nodetool-ai/sandbox-html`; else stays a bridge | large dependency tree |
-| `data.parseXlsx` | exceljs | stays a bridge | Node streams/Buffer |
-| `data.htmlToMarkdown` | turndown | stays a bridge | needs a DOM |
-| `format.*` | host `Intl` | stays a bridge | quickjs-ng ships no Intl |
-| `image.*`, `canvas.*` | @napi-rs/canvas | stays a bridge | native code |
-| `fetch`, `crypto`, `getSecret`, `workspace`, assets, `progress` | — | stays a bridge | capabilities, not libraries |
+### M6 — Bridge packs
 
-The packs live in the monorepo under `packages/sandbox-packs/<name>/` as
-publishable workspaces (versioned and released like the other
-`@nodetool-ai/*` packages) but are consumed only via install — dev
-environments get them through the normal optional-node root, not through
-the workspace build. The import specifier is the pack name:
-`import Papa from "@nodetool-ai/sandbox-csv"`.
+One config-only pack per migratable library — `@nodetool-ai/sandbox-csv`
+(papaparse), `-yaml` (js-yaml), `-xml` (fast-xml-parser), `-diff` (diff),
+`-zip` (fflate), `-html` (cheerio, if the bundle admits it) — living in
+the monorepo under `packages/sandbox-packs/`, consumed only via install.
+This is an **added import path, not a migration**: the `data.*` bridges
+stay, and bridge-specific safety limits stay with them — fflate's 50 MB
+decompression cap is a zip-bomb policy the 64 MB guest heap does not
+replicate, so the bridge remains the hardened route. Disposition of the
+rest is unchanged from the bridge table in the CLAUDE.md: exceljs (Node
+streams), turndown (DOM), `format.*` (no Intl in the guest), image/canvas
+(native), and every capability bridge stay host-side permanently.
 
-Consequences of "normal pack" instead of builtin:
+Presence is never assumed: a missing pack fails validation with "install
+<pack>", prompts advertise only installed packs, and the registry marks
+the bridge packs recommended.
 
-- **Presence is not guaranteed.** A Code node that imports
-  `@nodetool-ai/sandbox-csv` on a machine without it fails validation
-  with "install @nodetool-ai/sandbox-csv" — the same behaviour as any
-  third-party pack, surfaced before the run by `nodetool validate`.
-- The registry index marks them **recommended** and the Package Manager
-  shows them as a one-click group; the desktop app may offer them during
-  onboarding. But no code path assumes they exist.
-- CodeAct and the sandbox manifest advertise only **installed** packs, so
-  prompts stay truthful on every machine.
-- No Electron bundle staging is involved — they arrive through the
-  optional-node install root like every other pack. The `_sandbox/`
-  staging from M3 remains only for any builtin pack that ships modules.
+## What holds at every milestone
 
-Compatibility rules for the migration:
-
-- **No existing workflow breaks.** The `data.*` bridges stay, unchanged,
-  for at least one major release. Migration adds the import path; it does
-  not remove the bridge path — which also covers machines where the packs
-  are simply not installed.
-- The sandbox manifest marks migrated bridges "prefer
-  `import ... from "@nodetool-ai/sandbox-..."`" **when the pack is
-  installed**, so CodeAct and the Code-node planner steer new code to
-  imports while old code keeps running.
-- The `codeact` and `code-gen` eval suites run before and after the
-  prompt change; a regression blocks the switch, not the pack.
-- Bridge removal, if ever, is its own decision later — the bridges are
-  cheap to keep and heavy ones (`Intl`, canvas, xlsx) are permanent.
-
-### M7 — Ecosystem
-
-Registry-index `sandboxModules` summaries and Package Manager search/UI,
-per-file hashes in the manifest, `nodetool package init --sandbox`
-scaffolding, the pack-less `sandboxNpm` user declaration, docs and an
-example third-party pack.
-
-Dependency order: M0 → M1 → M2 → M3 ship in sequence; M4 and M5 are
-independent of each other after M3; M6 needs M4; M7 is last.
+- Explicit per-node declarations; no ambient npm resolution.
+- The loader, not static analysis, is the enforcement boundary.
+- Fresh guest context and fresh WASM instance per invocation.
+- Static size caps on everything a pack ships.
+- Empty WASI/network/filesystem surface for WASM.
+- Existing bridges retained; their safety limits not weakened by the
+  import path's existence.
+- The same fixtures and contract tests on Node and browser.
+- Validation before execution.
