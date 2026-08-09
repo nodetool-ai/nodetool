@@ -135,11 +135,19 @@ from sandbox-only to register between versions. The flow is therefore:
 2. The **installed** manifest — the exact resolved artifact — is
    inspected.
 3. Sandbox-only: done.
-4. A register pack needing lifecycle scripts: request trust, then
-   reinstall that exact resolved version with scripts enabled.
+4. A register pack needing lifecycle scripts: request trust, then run
+   scripts against **the artifact already on disk** (rebuild flow), or —
+   if a reinstall is unavoidable — record the lockfile's resolved URL
+   and integrity from step 1 and verify the refetched artifact's
+   integrity is identical **before** scripts run. A version number is
+   not integrity: a mutable private registry can serve a different
+   artifact for the same version.
 
-The install UI shows which mode applied. The security-sensitive decision
-never rests on a registry summary. This lands in M0.
+Note that `--ignore-scripts` also suppresses **dependency** lifecycle
+scripts, not only the top-level pack's — the rebuild flow must cover
+those too. The install UI shows which mode applied. The
+security-sensitive decision never rests on a registry summary. This
+lands in M0.
 
 **SKILL.md is third-party prompt content, and quoting is risk reduction,
 not isolation.** A model can follow malicious instructions inside quoted
@@ -216,12 +224,16 @@ code:
 - Size caps: 256 KB per authored JS source, 4 MB per WASM binary, 8 MB per
   pack; npm-bundled modules get 1 MB (below).
 - JS modules parse with acorn. Allowed: ES module syntax and static
-  `import` of sibling files of the same pack. Helpers a pack does not
-  want importable by user code are listed under `internal` in the
-  manifest — part of the pack's module graph and mounted, but not valid
-  in a node's `packages` declaration. Rejected: **all `ImportExpression`
-  nodes** (dynamic import — in package and user code alike, v1),
-  `require`, and imports of anything outside the pack.
+  `import` of sibling files of the same pack. Rejected: **all
+  `ImportExpression` nodes** (dynamic import — in package and user code
+  alike, v1), `require`, and imports of anything outside the pack.
+- Helpers not meant for user code go in a **pack-level `internal` list**
+  (`"internal": ["sandbox/util.js"]`): `.js` files, canonical id = the
+  normalized pack-relative path, duplicates and cycles rejected at
+  discovery. Internal files are mounted and importable by any public
+  entry of the same pack (sharing is allowed), never valid in a node's
+  `packages` declaration, and count toward the pack size caps and the
+  graph digest.
 - WASM binaries get a section-level parse; declared `exports` are checked
   against the export section, and the memory rule below is validated
   before compilation is ever attempted.
@@ -283,9 +295,13 @@ interface SandboxModuleDeclaration {
 Resolution always uses the installed version; a mismatch between
 `resolvedPackVersion` and the installed pack is a **validation warning**
 (not a lock failure, not an auto-upgrade). `contentDigest` is stamped
-alongside it from day one — delivery already computes digests, and a
-version string proves nothing for linked or republished packs; a digest
-mismatch warns with a distinct message. CodeAct parses each step's
+from day one, and it is a **module-graph digest**, not an entry-file
+hash: a canonical, sorted list of every transitive source with its
+normalized module id, generated facade source and generator version,
+compiler options and compiler version for npm modules, and WASM bytes
+where applicable. The workflow declaration, the delivery response, the
+bundle cache, and validation all use this same graph digest; a mismatch
+warns with a distinct message. CodeAct parses each step's
 imports and mounts exactly those — but only after checking them against
 the **session package allowlist** from the trust model, never against
 the whole installed catalog.
@@ -313,7 +329,12 @@ runtime-facing interface goes in `@nodetool-ai/runtime`; node-sdk
 provides the discovery **adapter** that implements it without owning it.
 
 The interface is split by consumer, so the general surface never hands
-out raw absolute paths or skill bodies:
+out raw absolute paths or skill bodies. Delivery is asynchronous —
+entitlement checks may need database or remote state — and
+authorization and retrieval are **one operation**: the resolved
+`AuthorizedSandboxModuleDelivery` carries browser-safe content, media
+type, the graph digest, and dependency module ids, never a filesystem
+path, so the two checks cannot drift apart:
 
 ```ts
 interface SandboxModuleCatalog {
@@ -322,7 +343,7 @@ interface SandboxModuleCatalog {
     declarations: readonly SandboxModuleDeclaration[]
   ): SandboxModuleResolution;                            // sources for the loader
   authorizeDelivery(moduleId: string, principal: DeliveryPrincipal):
-    DeliveryDecision;                                    // browser route
+    Promise<AuthorizedSandboxModuleDelivery>;            // browser route
   diagnostics(): readonly SandboxModuleStatus[];         // doctor / packs.list
 }
 ```
@@ -363,7 +384,9 @@ esbuild concerns spread through node-sdk):
 - The output goes through the authored-module static checks plus a
   **scope-aware** forbidden-global scan (`process`, `Buffer`, `require`,
   `eval`, `Function`, timers, `WebAssembly`, DOM names). Hard references
-  error; feature-detected references warn.
+  error; feature-detected references warn — and a warning is a heads-up,
+  not a compatibility guarantee. Only the QuickJS probe below
+  establishes that initialization actually works.
 - **Bundling proves resolution, not compatibility.** Admission ends with a
   probe: the bundle is imported in the actual QuickJS engine — and the
   probe context is **capability-free**, because importing executes
@@ -392,14 +415,26 @@ the guest — those need the host-WASM path).
 
 **v1 is scalar-only, with exact signatures.** The v1 call contract:
 arguments and returns are `i32`, `f32`, or `f64` only; exactly one scalar
-return (or none); argument count bounded (8). Binary validation rejects
-exports using `i64` (maps to `bigint`, not `number`), `v128`, reference
-types, multi-value returns, or excess arity — an export outside the
-contract is named in the skip reason, not silently dropped. Byte-oriented
-calls wait for a future ABI, informed by the M-1 reference module from a
-documented toolchain. There is no interim workaround: guest JS cannot
-reach the host instance's linear memory, so typed-array work is simply
-out of scope until that ABI exists.
+return (or none — a void export resolves to `undefined`); argument count
+bounded (8). Binary validation rejects exports using `i64` (maps to
+`bigint`, not `number`), `v128`, reference types, multi-value returns, or
+excess arity — an export outside the contract is named in the skip
+reason, not silently dropped — and verifies every named export is a
+**function**, not a memory, table, or global. Manifest export names must
+be valid, non-reserved JavaScript identifiers; a binary export that is
+not (`"foo-bar"`) is mapped explicitly:
+`{ "wasm": "foo-bar", "as": "fooBar" }`.
+
+Conversion is validated host-side before dispatch — never left to
+implicit WebAssembly coercion, so Node and browser behave identically:
+an `i32` argument must be a finite integer in int32 range (no wrapping —
+out-of-range rejects), `f32`/`f64` accept any JS number including `NaN`
+and infinities, and `f32` rounds by WebAssembly's normal rules.
+
+Byte-oriented calls wait for a future ABI, informed by the M-1 reference
+module from a documented toolchain. There is no interim workaround:
+guest JS cannot reach the host instance's linear memory, so typed-array
+work is simply out of scope until that ABI exists.
 
 Memory: a host cannot cap a module-defined memory at instantiation — with
 an empty import object the binary's own limits rule. The v1 rule is
@@ -424,11 +459,26 @@ guest JS and pass it in as scalars, or wait for the byte ABI.
 **The import surface is a generated facade.** For a WASM entry,
 `import { simplify } from "@acme/nodetool-geo/simplify-wasm"` resolves to
 an ESM facade the catalog generates: named async exports matching the
-manifest's `exports`, each closing over a **scoped, per-run bridge
-handle** captured at facade evaluation and not reachable any other way —
-there is no globally callable `__wasm` after user code starts. On every
-call the host validates the resolved module identity, the export
-allowlist, and argument count and scalar types before the worker runs.
+manifest's `exports`, calling into a per-run dispatcher. Authored JS in
+the same pack may import a sibling WASM entry by the same specifier
+rules; it resolves to the same facade.
+
+The security contract is enforceable behavior, not an unobservable
+handle — a facade needs *some* guest-visible binding to receive the host
+function, and other modules evaluate during dependency loading:
+
+- The dispatcher serves **only** WASM modules declared for the run.
+- Every call validates module identity, export allowlist, and argument
+  count and scalar types before the worker runs.
+- The static analyzer and the runtime loader both deny direct imports of
+  the private bridge module.
+- The dispatcher binding is removed before the user IIFE starts.
+- A module that discovers the temporary binding anyway gains nothing
+  beyond the run's declared WASM surface — the dispatcher checks, not
+  the hiding, are the boundary.
+
+M-1 proves the hiding mechanism before the design promises anything
+stronger.
 
 Execution and budgets:
 
@@ -439,18 +489,22 @@ Execution and budgets:
   hard per-call timeout; a timed-out worker is terminated **and
   replaced**.
 - Per-call timeout alone does not bound aggregate use, so the budgets are
-  layered: process-wide worker concurrency, per-invocation call
-  concurrency, max calls per invocation, and an aggregate WASM wall-clock
-  budget per invocation. Byte caps belong to the future byte ABI.
+  layered, with defaults fixed now rather than left open until M4:
+  process-wide worker pool of 4; per-invocation call concurrency of 2;
+  256 calls per invocation; an aggregate WASM wall-clock budget of 30 s
+  per invocation (matching the sandbox default timeout). A manifest may
+  lower these, never raise them. Byte caps belong to the future byte
+  ABI.
 
 ### How agents learn a pack: SKILL.md, progressive disclosure
 
-Every sandbox pack's SKILL.md is the compressed docs page for using the
-library inside the sandbox: the specifier, the main functions with one
-example each, and the gotchas that matter there (input caps, the 64 MB
-guest heap, no timers). Format and parser are the existing `AgentSkill`
-machinery (`packages/agents/src/agent.ts`), hoisted so node-sdk can call
-it.
+A sandbox pack **may** provide a SKILL.md — the compressed docs page for
+using the library inside the sandbox: the specifier, the main functions
+with one example each, and the gotchas that matter there (input caps,
+the 64 MB guest heap, no timers). A pack without one stays runnable;
+only agent discoverability suffers. Format and parser are the existing
+`AgentSkill` machinery (`packages/agents/src/agent.ts`), hoisted so
+node-sdk can call it.
 
 Disclosure is two-tier so prompt size stays flat: **one line per
 specifier** (specifier + a description derived from manifest fields
@@ -582,11 +636,24 @@ milestone lands green on its own.
 Authored modules through Code node, CodeAct, validation, CLI, and server
 execution together — import support is not claimed until the user-facing
 execution and validation paths agree. Prompt strings ("no module loader")
-and their drift tests change here. **Imports stay behind a feature flag
-until M2 lands**: without it, a Code node using imports would run on the
-server and fail in the browser runner, breaking the parity goal. While
-flagged, validation marks imported Code nodes server-only and the
-browser runner refuses them with that message.
+and their drift tests change here.
+
+Two things belong to M1 that earlier drafts deferred:
+
+- **The one-line catalog tier and the session allowlist.** CodeAct
+  cannot generate approved imports unless its prompt advertises the
+  session-allowed specifiers, so the strict manifest-derived one-liner
+  ships with import execution. M5 stays the documentation milestone
+  (full SKILL.md retrieval, package picker, Package Manager
+  presentation).
+- **The parity feature flag.** Without it, a Code node using imports
+  runs on the server and fails in the browser runner. While flagged,
+  validation reports a rollout issue — "Sandbox package imports are
+  unavailable in the browser runner until module delivery is enabled" —
+  and the browser runner refuses such nodes with the same message.
+  Nothing persistent is written: no node platform metadata is rewritten,
+  so a workflow saved during M1 carries no stale server-only
+  classification after M2.
 
 ### M2 — Delivery parity (removes the flag)
 
@@ -609,9 +676,10 @@ per-run bridge. The typed-array ABI waits for the M-1 reference results.
 
 ### M5 — Agent and UI disclosure
 
-SKILL.md surfacing lands only after the quoted-content trust handling is
-settled: one-line tier, on-demand body, package-picker rendering,
-Package Manager consent language.
+The one-line tier and session allowlist already shipped with M1; this
+milestone is the documentation layer, landing only after the
+untrusted-content trust handling is settled: on-demand SKILL.md
+retrieval, package-picker rendering, Package Manager consent language.
 
 ### M6 — Bridge packs
 
@@ -631,14 +699,18 @@ Presence is never assumed: a missing pack fails validation with "install
 <pack>", prompts advertise only installed packs, and the registry marks
 the bridge packs recommended.
 
-## What holds at every milestone
+## Release invariants
+
+Each invariant binds from the milestone that introduces its subject
+onward — WASM invariants from M4, browser parity from M2.
 
 - Explicit per-node declarations; no ambient npm resolution.
 - The loader, not static analysis, is the enforcement boundary.
-- Fresh guest context and fresh WASM instance per invocation.
+- Fresh guest context per invocation; fresh WASM instance per **call**.
 - Static size caps on everything a pack ships.
 - Empty WASI/network/filesystem surface for WASM.
 - Existing bridges retained; their safety limits not weakened by the
   import path's existence.
-- The same fixtures and contract tests on Node and browser.
+- The same fixtures and contract tests on Node and browser (once
+  browser delivery exists).
 - Validation before execution.
