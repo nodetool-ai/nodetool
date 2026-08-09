@@ -154,6 +154,7 @@ import type {
   ProviderStreamItem
 } from "./providers/types.js";
 import type { NodeExecutor } from "./node-executor.js";
+import type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 
 // ---------------------------------------------------------------------------
 // Cache interface
@@ -1122,6 +1123,8 @@ export class ProcessingContext {
   readonly environment: Record<string, string>;
   /** Bearer token for authenticated calls back to the owning NodeTool API. */
   readonly authToken: string | null;
+  /** Read-only sandbox module catalog supplied by the execution host. */
+  readonly sandboxModuleCatalog: SandboxModuleCatalog | null;
   /**
    * Run-level cancellation. Set by the kernel to the signal
    * `WorkflowRunner.cancel()` aborts, so long-running node work (agent loops,
@@ -1274,6 +1277,7 @@ export class ProcessingContext {
     variables?: Record<string, unknown>;
     environment?: Record<string, string>;
     authToken?: string | null;
+    sandboxModuleCatalog?: SandboxModuleCatalog | null;
     secretResolver?: (
       key: string,
       userId: string
@@ -1322,6 +1326,7 @@ export class ProcessingContext {
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this.authToken = opts.authToken ?? null;
+    this.sandboxModuleCatalog = opts.sandboxModuleCatalog ?? null;
     this._secretResolver = opts.secretResolver ?? null;
     this._fetch =
       opts.fetchFn ??
@@ -1368,6 +1373,7 @@ export class ProcessingContext {
       variables: { ...this._variables },
       environment: { ...this.environment },
       authToken: this.authToken,
+      sandboxModuleCatalog: this.sandboxModuleCatalog,
       fetchFn: this._fetch,
       secretResolver: this._secretResolver ?? undefined,
       tempUrlResolver: this._tempUrlResolver ?? undefined,

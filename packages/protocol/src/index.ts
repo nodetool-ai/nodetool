@@ -24,6 +24,7 @@ export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
+export * from "./sandbox-package.js";
 export {
   type Platform,
   type NodeEffect,

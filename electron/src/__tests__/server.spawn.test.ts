@@ -63,6 +63,7 @@ describe("backend utilityProcess spawn contract", () => {
       "STATIC_FOLDER",
       "NODETOOL_PYTHON",
       "NODE_ENV",
+      "NODETOOL_ENV",
       "NODE_OPTIONS",
       "NODE_PATH",
     ];
@@ -72,6 +73,7 @@ describe("backend utilityProcess spawn contract", () => {
       STATIC_FOLDER: "/mock/web",
       NODETOOL_PYTHON: "",
       NODE_ENV: "production",
+      NODETOOL_ENV: "production",
       NODE_OPTIONS: "--conditions=nodetool-dev",
       NODE_PATH: "/mock/backend/node_modules",
     };
@@ -108,6 +110,7 @@ describe("backend utilityProcess spawn contract", () => {
           PORT: "7777",
           HOST: "127.0.0.1",
           NODE_ENV: "production",
+          NODETOOL_ENV: "production",
         }),
       }),
     );

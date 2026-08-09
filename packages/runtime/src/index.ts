@@ -19,6 +19,7 @@ export {
   type S3Client,
   type StorageAdapter
 } from "./context.js";
+export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 export {
   AgentMemory,
   memoryKeys,

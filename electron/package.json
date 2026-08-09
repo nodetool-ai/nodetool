@@ -57,6 +57,7 @@
     "vite-plugin-electron": "^0.29.1"
   },
   "dependencies": {
+    "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@trpc/client": "^11.17.0",
     "better-sqlite3": "^12.11.1",

@@ -1,0 +1,204 @@
+import { z } from "zod";
+
+const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
+const MODULE_NAME = /^(?:\.|[A-Za-z0-9._-]+)$/;
+const PACKAGE_NAME = /^(?:@[a-z0-9._~-]+\/)?[a-z0-9._~-]+$/i;
+const SPECIFIER = /^(?:@[a-z0-9._~-]+\/)?[a-z0-9._~-]+(?:\/[A-Za-z0-9._-]+)?$/i;
+const RELATIVE_FILE = /^(?!\/)(?!.*(?:^|[\\/])\.\.(?:$|[\\/]))[^\\]*$/;
+const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
+const ENCODED_PATH_CHARACTER = /%(?:2e|2f|5c)/i;
+const contentDigestSchema = z.string().regex(/^[a-f0-9]{64}$/);
+const RESERVED_IDENTIFIERS = new Set([
+  "await", "break", "case", "catch", "class", "const", "continue", "debugger", "default", "delete",
+  "do", "else", "export", "extends", "false", "finally", "for", "function", "if", "import", "in",
+  "instanceof", "let", "new", "null", "return", "static", "super", "switch", "this", "throw", "true",
+  "try", "typeof", "var", "void", "while", "with", "yield", "enum", "implements", "interface",
+  "package", "private", "protected", "public"
+]);
+
+/** A public sandbox module's kind. */
+export const SandboxModuleKind = {
+  JS: "js",
+  WASM: "wasm"
+} as const;
+export type SandboxModuleKind = (typeof SandboxModuleKind)[keyof typeof SandboxModuleKind];
+
+const moduleNameSchema = z.string().regex(MODULE_NAME)
+  .refine((value) => value === "." || !value.includes("/"), "module name must be . or one path segment")
+  .refine((value) => value !== ".." && value !== "node_modules", "reserved module name")
+  .refine((value) => !CONTROL_CHARACTERS.test(value), "module name contains a control character");
+const fileSchema = z.string().min(1).regex(RELATIVE_FILE, "file must be a package-relative path")
+  .refine((value) => !CONTROL_CHARACTERS.test(value), "file contains a control character")
+  .refine((value) => !ENCODED_PATH_CHARACTER.test(value), "file contains encoded path traversal");
+const identifierSchema = z.string().regex(JS_IDENTIFIER, "must be a valid JavaScript identifier")
+  .refine((value) => !RESERVED_IDENTIFIERS.has(value), "reserved JavaScript identifier");
+const npmPackageSchema = z.string().regex(PACKAGE_NAME, "must be an npm package name")
+  .refine((value) => !CONTROL_CHARACTERS.test(value) && !ENCODED_PATH_CHARACTER.test(value), "invalid npm package name")
+  .refine((value) => value !== "." && value !== "..", "invalid npm package name");
+
+const wasmExportSchema = z.union([
+  identifierSchema,
+  z.object({ wasm: z.string().min(1).refine((value) => !CONTROL_CHARACTERS.test(value), "invalid WASM export name"), as: identifierSchema }).strict()
+]);
+
+const jsModuleSchema = z.object({
+  name: moduleNameSchema,
+  kind: z.literal(SandboxModuleKind.JS),
+  file: fileSchema.optional(),
+  npm: npmPackageSchema.optional()
+}).strict().superRefine((value, ctx) => {
+  if ((value.file === undefined) === (value.npm === undefined)) {
+    ctx.addIssue({ code: "custom", message: "a JS module must declare exactly one of file or npm" });
+  }
+});
+
+const wasmModuleSchema = z.object({
+  name: moduleNameSchema,
+  kind: z.literal(SandboxModuleKind.WASM),
+  file: fileSchema,
+  memoryPagesMax: z.number().int().min(0).max(4096),
+  exports: z.array(wasmExportSchema).min(1)
+}).strict().superRefine((value, ctx) => {
+  const aliases = new Set<string>();
+  const wasmNames = new Set<string>();
+  for (const exported of value.exports) {
+    const wasmName = typeof exported === "string" ? exported : exported.wasm;
+    const alias = typeof exported === "string" ? exported : exported.as;
+    if (wasmNames.has(wasmName)) {
+      ctx.addIssue({ code: "custom", path: ["exports"], message: `duplicate WASM export: ${wasmName}` });
+    }
+    if (aliases.has(alias)) {
+      ctx.addIssue({ code: "custom", path: ["exports"], message: `duplicate JavaScript export alias: ${alias}` });
+    }
+    wasmNames.add(wasmName);
+    aliases.add(alias);
+  }
+});
+
+/** A module declared by a pack. npm modules are compiled in the M3 compiler. */
+export const SandboxModuleManifestSchema = z.discriminatedUnion("kind", [
+  jsModuleSchema,
+  wasmModuleSchema
+]);
+
+export type SandboxModuleManifest = z.infer<typeof SandboxModuleManifestSchema>;
+
+/** The sandbox-specific portion of a pack's nodetool manifest. */
+export const SandboxPackManifestSchema = z.object({
+  apiVersion: z.literal(1).default(1),
+  sandboxModules: z.array(SandboxModuleManifestSchema).default([]),
+  internal: z.array(fileSchema).default([])
+}).strict().superRefine((value, ctx) => {
+  const names = new Set<string>();
+  for (const module of value.sandboxModules) {
+    if (names.has(module.name)) {
+      ctx.addIssue({ code: "custom", path: ["sandboxModules"], message: `duplicate module name: ${module.name}` });
+    }
+    names.add(module.name);
+  }
+  const publicFiles = new Set(value.sandboxModules.flatMap((module) =>
+    "file" in module ? [module.file] : []
+  ));
+  for (const file of value.internal) {
+    if (publicFiles.has(file)) {
+      ctx.addIssue({ code: "custom", path: ["internal"], message: `internal file is also public: ${file}` });
+    }
+  }
+  if (new Set(value.internal).size !== value.internal.length) {
+    ctx.addIssue({ code: "custom", path: ["internal"], message: "duplicate internal file" });
+  }
+});
+export type SandboxPackManifest = z.infer<typeof SandboxPackManifestSchema>;
+
+export const SandboxModuleDeclarationSchema = z.object({
+  specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
+  resolvedPackVersion: z.string().min(1).optional(),
+  contentDigest: contentDigestSchema.optional()
+}).strict();
+export type SandboxModuleDeclaration = z.infer<typeof SandboxModuleDeclarationSchema>;
+
+/** A catalog entry that can be listed without exposing module source. */
+export const SandboxModuleSummarySchema = z.object({
+  specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
+  packName: z.string().regex(PACKAGE_NAME),
+  packVersion: z.string().min(1).optional(),
+  kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM]),
+  description: z.string().max(160).optional()
+}).strict();
+export type SandboxModuleSummary = z.infer<typeof SandboxModuleSummarySchema>;
+
+/** A diagnostic emitted while discovering or resolving a sandbox module. */
+export const SandboxModuleStatusSchema = z.object({
+  packName: z.string().min(1),
+  specifier: z.string().regex(SPECIFIER).optional(),
+  status: z.enum(["ready", "warning", "skipped", "error"]),
+  code: z.string().min(1),
+  message: z.string().min(1)
+}).strict();
+export type SandboxModuleStatus = z.infer<typeof SandboxModuleStatusSchema>;
+
+/** A source file from a resolved module graph, with no host filesystem path. */
+export const SandboxModuleGraphFileSchema = z.discriminatedUnion("kind", [
+  z.object({
+    id: fileSchema,
+    kind: z.literal(SandboxModuleKind.JS),
+    source: z.string(),
+    dependencies: z.array(fileSchema),
+    internal: z.boolean()
+  }).strict(),
+  z.object({
+    id: fileSchema,
+    kind: z.literal(SandboxModuleKind.WASM),
+    bytes: z.instanceof(Uint8Array),
+    dependencies: z.array(fileSchema),
+    internal: z.boolean()
+  }).strict()
+]);
+export type SandboxModuleGraphFile = z.infer<typeof SandboxModuleGraphFileSchema>;
+
+/** A sandbox module resolved for one execution, including its validated source graph. */
+export const ResolvedSandboxModuleSchema = z.discriminatedUnion("kind", [
+  z.object({
+    specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
+    packName: z.string().regex(PACKAGE_NAME),
+    packVersion: z.string().min(1).optional(),
+    contentDigest: contentDigestSchema,
+    moduleId: z.string().min(1),
+    kind: z.literal(SandboxModuleKind.JS),
+    source: z.string(),
+    graph: z.array(SandboxModuleGraphFileSchema)
+  }).strict(),
+  z.object({
+    specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
+    packName: z.string().regex(PACKAGE_NAME),
+    packVersion: z.string().min(1).optional(),
+    contentDigest: contentDigestSchema,
+    moduleId: z.string().min(1),
+    kind: z.literal(SandboxModuleKind.WASM),
+    bytes: z.instanceof(Uint8Array),
+    graph: z.array(SandboxModuleGraphFileSchema)
+  }).strict()
+]);
+export type ResolvedSandboxModule = z.infer<typeof ResolvedSandboxModuleSchema>;
+
+/** The catalog result for a workflow's requested sandbox modules. */
+export const SandboxModuleResolutionSchema = z.object({
+  modules: z.array(ResolvedSandboxModuleSchema),
+  statuses: z.array(SandboxModuleStatusSchema)
+}).strict();
+export type SandboxModuleResolution = z.infer<typeof SandboxModuleResolutionSchema>;
+
+/** Parse only the sandbox-owned subset of a pack manifest. */
+export function parseSandboxPackManifest(value: unknown): SandboxPackManifest {
+  return SandboxPackManifestSchema.parse(value);
+}
+
+export function normalizeSandboxSpecifier(packName: string, moduleName: string): string {
+  if (!PACKAGE_NAME.test(packName) || !moduleNameSchema.safeParse(moduleName).success) {
+    throw new Error(`invalid sandbox module name: ${moduleName}`);
+  }
+  return moduleName === "." ? packName : `${packName}/${moduleName}`;
+}
+
+export type SandboxExportName = string | { wasm: string; as: string };
+export { RESERVED_IDENTIFIERS };

@@ -23,6 +23,7 @@ import type {
 } from "../src/providers/types.js";
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
+import type { SandboxModuleCatalog } from "../src/index.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -293,6 +294,21 @@ describe("ProcessingContext – Python model interfaces", () => {
 
     // A child that cannot see the parent's Stop keeps burning provider calls.
     expect(child.signal.aborted).toBe(true);
+  });
+
+  it("retains an injected sandbox module catalog in child contexts", () => {
+    const catalog: SandboxModuleCatalog = {
+      summaries: () => [],
+      resolveForExecution: () => ({ modules: [], statuses: [] }),
+      diagnostics: () => []
+    };
+    const ctx = new ProcessingContext({
+      jobId: "j1",
+      sandboxModuleCatalog: catalog
+    });
+
+    expect(ctx.sandboxModuleCatalog).toBe(catalog);
+    expect(ctx.copy().sandboxModuleCatalog).toBe(catalog);
   });
 
   it("isolates agent memory by default and shares it on request", () => {

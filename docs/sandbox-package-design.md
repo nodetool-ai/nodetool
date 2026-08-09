@@ -6,8 +6,13 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. Nothing in this
-> document is implemented yet. The first review killed four assumptions
+> Status: design, revised after two review rounds. M0 is partially
+> implemented. Protocol schemas, non-executing discovery, the initial catalog
+> contract, and the sandbox-only host-loader guard are implemented in the
+> current worktree. Electron's first-install path also skips lifecycle scripts
+> and returns the installed artifact identity. Catalog injection, explicit
+> trust/rebuild, and runtime loading are not. The first review killed four
+> assumptions
 > (corrected under "Facts"); the second pinned the contracts that were
 > still loose — CodeAct session consent, the untrusted-doc policy, exact
 > scalar WASM signatures and instance ownership, memory-manifest
@@ -75,12 +80,11 @@ security contract or breaking surface parity across the three runtimes.
    registry index. Loading a pack with a `register` export means running it
    in-process with full server privileges, which is why untrusted packs are
    skipped.
-6. **`npm install` executes lifecycle scripts.** The Electron installer
-   (`electron/src/nodePackManager.ts:112`) runs `npm install <spec>` without
-   `--ignore-scripts`, so preinstall/install/postinstall run before
-   discovery ever reads a manifest. "Installing a sandbox-only pack runs no
-   pack code" is only true if sandbox-only installs pass
-   `--ignore-scripts`. This is part of the trust model, not later hardening.
+6. **`npm install` executes lifecycle scripts unless disabled.** The Electron
+   installer must use `npm install --ignore-scripts <spec>` before discovery
+   reads the installed manifest. "Installing a sandbox-only pack runs no
+   pack code" depends on that flag. This is part of the trust model, not
+   later hardening.
 7. **Host-side value marshaling is settled.** Typed arrays serialize
    guest→host natively; host→guest bytes travel as tagged base64 revived by
    a guest prelude. Async bridge errors return tagged objects, never
@@ -216,8 +220,8 @@ validated and normalized at discovery; duplicates are a discovery error.
 A single-module pack uses `"."`, which is what the migrated bridge packs
 do (`import Papa from "@nodetool-ai/sandbox-csv"`).
 
-Discovery-time rules (`pack-loader.ts`), enforced without executing pack
-code:
+Discovery-time rules (`sandbox-pack-discovery.ts`), enforced without
+executing pack code:
 
 - `file` resolves inside the package directory (containment + symlink
   check).
@@ -630,6 +634,89 @@ milestone lands green on its own.
   UI, and the direct-URL/unknown-manifest policy.
 - Discovery validation: containment, symlinks, sizes, import-expression
   rejection, collisions; SKILL.md as warning-grade.
+
+#### M0 checkpoint — manifest and artifact discovery
+
+The first M0 slice is deliberately independent of pack execution. It is
+implemented by `SandboxPackManifestSchema` and
+`SandboxModuleDeclarationSchema` in
+`packages/protocol/src/sandbox-package.ts`, and by
+`discoverSandboxPack()` in
+`packages/node-sdk/src/sandbox-pack-discovery.ts`.
+
+It now provides:
+
+- normalized root and one-segment specifiers, with duplicate declarations
+  rejected at the manifest boundary. The sandbox schema covers only the
+  sandbox fields; discovery extracts those fields from the larger existing
+  `nodetool` manifest so `register`, `nodes`, and other pack metadata keep
+  their current ownership;
+- package-relative file checks with realpath containment and symlink
+  rejection;
+- authored-JS, WASM, per-pack, and `SKILL.md` size limits;
+- static JS dependency discovery, rejection of dynamic imports, host imports,
+  and undeclared helpers, internal-file cycle detection, and a complete source
+  graph;
+- section-level WASM checks for imports, memories, exports, and scalar
+  signatures; and
+- a stable graph digest for authored JS, internal JS, and WASM files. npm
+  entries are recorded as skipped until the M3 compiler supplies their
+  bundled source graph and compiler metadata.
+
+`@nodetool-ai/runtime` now owns the read-only `SandboxModuleCatalog`
+contract, and node-sdk provides `createSandboxModuleCatalog()` over the
+discovery results. Its execution resolution returns browser-safe module graphs
+without absolute paths, reporting missing modules as errors and version or
+digest drift as warnings. `ProcessingContext` accepts that catalog and keeps
+it when copied. This is a contract and adapter only: hosts do not yet
+construct or inject it for CLI or server runs.
+
+The host pack loader also treats `sandboxModules` without an explicit
+`register` export as a sandbox-only manifest and skips it before resolving or
+importing its entry point. A hybrid pack with an explicit `register` still
+uses the existing host-pack trust path.
+
+Electron's first-install path now passes `--ignore-scripts`, reads the
+requested package from the installed `node_modules` directory, and returns a
+structured classification: sandbox-only, register, hybrid, or unknown. It
+returns the lockfile's version, resolved URL, and integrity when present.
+Until the trusted rebuild flow exists, register, hybrid, and unknown packages
+are removed with scripts still disabled. This does not persist a trust decision
+or perform an integrity-bound rebuild; those remain separate work.
+
+The current `SKILL.md` check is also only a discovery warning. It verifies
+the size and minimal frontmatter shape; it does not register the file with
+the agent skill system. Full skill parsing and disclosure remain in M5.
+
+The discovery result is data for the future catalog. It does not import a
+pack, run lifecycle scripts, compile npm modules, authorize browser
+delivery, or make a module available to QuickJS. The remaining M0 work is
+therefore an explicit boundary:
+
+1. Construct and inject the discovery-backed catalog into CLI validation and
+   server contexts, keeping catalog diagnostics separate from the existing
+   node-pack snapshot.
+2. Add an explicit trust approval flow for register and hybrid packs, then
+   verify the recorded integrity before a script-enabled rebuild. The Package
+   Manager must show the installed mode rather than treating install as
+   authorization.
+3. Keep direct URLs rejected and report an unknown installed manifest without
+   granting trust or enabling lifecycle scripts.
+
+Discovery rejects duplicate package names across roots and collisions after
+path normalization (for example, two spellings of the same package-relative
+file). Catalog construction must preserve those failures rather than
+reintroducing order-dependent resolution.
+
+M0 exits only when a sandbox-only package can be installed without running
+pack code, appears in catalog diagnostics, resolves through the same catalog
+used by validation and execution, and is still unavailable to the guest
+until M1's loader is enabled. The discovery tests in
+`packages/node-sdk/tests/sandbox-pack-discovery.test.ts`, catalog tests in
+`packages/node-sdk/tests/sandbox-module-catalog.test.ts`, and host-loader
+tests in `packages/node-sdk/tests/pack-loader.test.ts` are the lowest-level
+regression suites for the implemented slices; each later boundary needs its
+own contract test before the milestone can close.
 
 ### M1 — Guest JS end to end (feature-flagged)
 

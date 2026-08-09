@@ -290,6 +290,7 @@ async function startServer(): Promise<void> {
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
     NODE_ENV: isDevMode() ? "development" : "production",
+    NODETOOL_ENV: isDevMode() ? "development" : "production",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,

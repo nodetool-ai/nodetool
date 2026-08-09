@@ -10,6 +10,7 @@ import {
 import fs from "fs/promises";
 import path from "path";
 import { randomUUID } from "node:crypto";
+import { z } from "zod";
 import {
   getServerState,
   openLogFile,
@@ -72,6 +73,9 @@ import {
   openPathInExplorer,
   openSystemDirectory,
 } from "./fileExplorer";
+
+const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
+const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
 
 function isRuntimePackageId(id: string): id is RuntimePackageId {
   return RUNTIME_PACKAGE_IDS.includes(id as RuntimePackageId);
@@ -886,12 +890,20 @@ export function initializeIpcHandlers(): void {
     return await listInstalledNodePacks();
   });
   createIpcMainHandler(IpcChannels.NODE_PACK_INSTALL, async (_event, req) => {
-    logMessage(`Installing node pack: ${req.spec}`);
-    return await installNodePack(req.spec);
+    const parsed = nodePackInstallRequestSchema.safeParse(req);
+    if (!parsed.success) {
+      return { success: false, message: "Invalid node-pack install request." };
+    }
+    logMessage(`Installing node pack: ${parsed.data.spec}`);
+    return await installNodePack(parsed.data.spec);
   });
   createIpcMainHandler(IpcChannels.NODE_PACK_UNINSTALL, async (_event, req) => {
-    logMessage(`Uninstalling node pack: ${req.name}`);
-    return await uninstallNodePack(req.name);
+    const parsed = nodePackUninstallRequestSchema.safeParse(req);
+    if (!parsed.success) {
+      return { success: false, message: "Invalid node-pack uninstall request." };
+    }
+    logMessage(`Uninstalling node pack: ${parsed.data.name}`);
+    return await uninstallNodePack(parsed.data.name);
   });
   createIpcMainHandler(IpcChannels.NODE_PACK_GET_INSTALL_DIR, async () => {
     return getNodePackInstallRoot();

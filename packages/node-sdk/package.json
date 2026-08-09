@@ -21,7 +21,8 @@
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "acorn": "^8.16.0"
+    "acorn": "^8.16.0",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

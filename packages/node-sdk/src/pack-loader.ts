@@ -40,6 +40,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import { z } from "zod";
 
 import type { NodeClass } from "./base-node.js";
 import type { NodeRegistry } from "./registry.js";
@@ -85,6 +86,8 @@ export interface PackManifest {
   apiVersion?: number;
   /** Name of the entry export to call with the registry. Defaults to `register`. */
   register?: string;
+  /** Sandbox modules declared for guest execution rather than host registration. */
+  sandboxModules?: unknown;
 }
 
 /** A registry-like target the loader registers nodes into. */
@@ -154,8 +157,14 @@ interface PackageJsonShape {
   version?: string;
   main?: string;
   exports?: unknown;
-  nodetool?: PackManifest;
+  nodetool?: unknown;
 }
+
+const packManifestSchema = z.object({
+  apiVersion: z.number().optional(),
+  register: z.string().optional(),
+  sandboxModules: z.unknown().optional()
+}).passthrough();
 
 /**
  * Walk up from `start` collecting each `node_modules` directory that exists.
@@ -553,7 +562,8 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
   } catch {
     return undefined;
   }
-  if (!pkg.nodetool || typeof pkg.nodetool !== "object") return undefined;
+  const manifest = parsePackManifest(pkg.nodetool);
+  if (!manifest || isSandboxOnlyManifest(manifest)) return undefined;
   if (!pkg.name) return undefined;
 
   const entryRel = resolveEntry(pkg);
@@ -567,9 +577,33 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
     version: pkg.version,
     dir: pkgDir,
     entry,
-    registerExport: pkg.nodetool.register ?? DEFAULT_REGISTER_EXPORT,
-    manifest: pkg.nodetool
+    registerExport: manifest.register ?? DEFAULT_REGISTER_EXPORT,
+    manifest
   };
+}
+
+function parsePackManifest(value: unknown): PackManifest | undefined {
+  const parsed = packManifestSchema.safeParse(value);
+  if (!parsed.success) return undefined;
+
+  const manifest: PackManifest = {};
+  if (parsed.data.apiVersion !== undefined) {
+    manifest.apiVersion = parsed.data.apiVersion;
+  }
+  if (parsed.data.register !== undefined) {
+    manifest.register = parsed.data.register;
+  }
+  if (Object.hasOwn(parsed.data, "sandboxModules")) {
+    manifest.sandboxModules = parsed.data.sandboxModules;
+  }
+  return manifest;
+}
+
+function isSandboxOnlyManifest(manifest: PackManifest): boolean {
+  return (
+    Object.hasOwn(manifest, "sandboxModules") &&
+    !Object.hasOwn(manifest, "register")
+  );
 }
 
 /** Resolve the entry module from `exports["."]` (import condition) or `main`. */

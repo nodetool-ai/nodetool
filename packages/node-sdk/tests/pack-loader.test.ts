@@ -1,5 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import {
+  existsSync,
+  mkdtempSync,
+  mkdirSync,
+  writeFileSync,
+  rmSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -115,6 +121,35 @@ describe("discoverPacks", () => {
 });
 
 describe("loadInstalledPacks", () => {
+  it("does not import a sandbox-only package", async () => {
+    const executedPath = join(root, "sandbox-only-imported");
+    writePack(
+      "sandbox-only",
+      {
+        name: "sandbox-only",
+        main: "index.js",
+        nodetool: {
+          sandboxModules: {
+            "acme.sandbox": { entry: "sandbox/index.js" }
+          }
+        }
+      },
+      `
+import { writeFileSync } from "node:fs";
+writeFileSync(${JSON.stringify(executedPath)}, "imported");
+export function register() {}
+`
+    );
+
+    const results = await loadInstalledPacks(new NodeRegistry(), {
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
+    });
+
+    expect(results).toEqual([]);
+    expect(existsSync(executedPath)).toBe(false);
+  });
+
   it("registers nodes from a discovered pack", async () => {
     writePack(
       "acme-nodes",
@@ -131,6 +166,33 @@ describe("loadInstalledPacks", () => {
     expect(results[0]!.registered).toEqual(["acme.Hello"]);
     expect(registry.getNodePackageId("acme.Hello")).toBe("acme-nodes");
     expect(registry.has("acme.Hello")).toBe(true);
+  });
+
+  it("loads a hybrid package with an explicit register export", async () => {
+    writePack(
+      "hybrid-pack",
+      {
+        name: "hybrid-pack",
+        main: "index.js",
+        nodetool: {
+          register: "register",
+          sandboxModules: {
+            "acme.sandbox": { entry: "sandbox/index.js" }
+          }
+        }
+      },
+      nodeSource("acme.Hybrid")
+    );
+
+    const registry = new NodeRegistry();
+    const results = await loadInstalledPacks(registry, {
+      searchPaths: [nodeModules],
+      trust: TRUST_ALL
+    });
+
+    expect(results).toHaveLength(1);
+    expect(results[0]!.status).toBe("loaded");
+    expect(registry.has("acme.Hybrid")).toBe(true);
   });
 
   it("calls a custom register export named in the manifest", async () => {

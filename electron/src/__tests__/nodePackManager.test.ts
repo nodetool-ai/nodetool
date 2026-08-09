@@ -16,6 +16,9 @@ jest.mock("../config", () => ({
     .mockReturnValue({ command: "npm", baseArgs: [] })
 }));
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
+jest.mock("@nodetool-ai/node-sdk", () => ({
+  discoverSandboxPack: jest.fn()
+}));
 jest.mock("fs/promises", () => ({
   mkdir: jest.fn().mockResolvedValue(undefined),
   access: jest.fn().mockResolvedValue(undefined),
@@ -26,6 +29,7 @@ jest.mock("fs/promises", () => ({
 
 const { spawn, spawnSync } = require("child_process");
 const fsp = require("fs/promises");
+const { discoverSandboxPack } = require("@nodetool-ai/node-sdk");
 
 import {
   getNodePackInstallRoot,
@@ -52,6 +56,43 @@ function stubNpmFound(): void {
 
 function stubNpmSpawn(proc: FakeProc): void {
   spawn.mockReturnValue(proc);
+}
+
+function stubSuccessfulNpmSpawns(): void {
+  spawn.mockImplementation(() => {
+    const proc = makeProc();
+    process.nextTick(() => proc.emit("exit", 0));
+    return proc;
+  });
+}
+
+function stubInstalledPackage(options: {
+  readonly name: string;
+  readonly version: string;
+  readonly nodetool: Record<string, unknown>;
+  readonly sandbox?: boolean;
+}): void {
+  fsp.readFile.mockImplementation((path: string) => {
+    if (path.endsWith("package-lock.json")) {
+      return Promise.resolve(JSON.stringify({
+        packages: {
+          [`node_modules/${options.name}`]: {
+            version: options.version,
+            resolved: `https://registry.example/${options.name}`,
+            integrity: "sha512-test"
+          }
+        }
+      }));
+    }
+    return Promise.resolve(JSON.stringify({
+      name: options.name,
+      version: options.version,
+      nodetool: options.nodetool
+    }));
+  });
+  discoverSandboxPack.mockReturnValue(options.sandbox === true
+    ? { name: options.name, version: options.version }
+    : undefined);
 }
 
 describe("nodePackManager", () => {
@@ -83,6 +124,12 @@ describe("nodePackManager", () => {
     it("succeeds with a valid spec and npm exit 0", async () => {
       const proc = makeProc();
       stubNpmSpawn(proc);
+      stubInstalledPackage({
+        name: "@acme/cool-nodes",
+        version: "1.0.0",
+        nodetool: { sandboxModules: [{ name: ".", kind: "js", file: "sandbox/index.js" }] },
+        sandbox: true
+      });
 
       const promise = installNodePack("@acme/cool-nodes");
       process.nextTick(() => proc.emit("exit", 0));
@@ -90,6 +137,20 @@ describe("nodePackManager", () => {
 
       expect(result.success).toBe(true);
       expect(result.message).toContain("Installed @acme/cool-nodes");
+      expect(result.installation).toMatchObject({
+        mode: "sandbox-only",
+        scripts: "skipped",
+        artifact: {
+          version: "1.0.0",
+          resolved: "https://registry.example/@acme/cool-nodes",
+          integrity: "sha512-test"
+        }
+      });
+      expect(spawn).toHaveBeenCalledWith(
+        "npm",
+        expect.arrayContaining(["install", "--ignore-scripts", "@acme/cool-nodes"]),
+        expect.any(Object)
+      );
     });
 
     it("fails when npm exits non-zero", async () => {
@@ -104,15 +165,50 @@ describe("nodePackManager", () => {
       expect(result.message).toContain("npm exited with code 1");
     });
 
-    it("accepts scoped packages with version", async () => {
-      const proc = makeProc();
-      stubNpmSpawn(proc);
+    it("removes register packs until the trusted rebuild flow exists", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: { register: "register" }
+      });
 
-      const promise = installNodePack("@scope/pkg@^2.0.0");
-      process.nextTick(() => proc.emit("exit", 0));
-      const result = await promise;
+      const result = await installNodePack("@scope/pkg@^2.0.0");
 
-      expect(result.success).toBe(true);
+      expect(result.success).toBe(false);
+      expect(result.installation).toMatchObject({
+        mode: "register",
+        scripts: "skipped"
+      });
+      expect(spawn).toHaveBeenNthCalledWith(
+        2,
+        "npm",
+        expect.arrayContaining(["uninstall", "--ignore-scripts", "@scope/pkg"]),
+        expect.any(Object)
+      );
+    });
+
+    it("reports an unknown installed manifest without enabling scripts", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "some-pack",
+        version: "1.0.0",
+        nodetool: {}
+      });
+
+      const result = await installNodePack("some-pack@1.0.0");
+
+      expect(result.success).toBe(false);
+      expect(result.installation).toMatchObject({
+        mode: "unknown",
+        scripts: "skipped"
+      });
+      expect(spawn).toHaveBeenNthCalledWith(
+        2,
+        "npm",
+        expect.arrayContaining(["uninstall", "--ignore-scripts", "some-pack"]),
+        expect.any(Object)
+      );
     });
   });
 
