@@ -255,7 +255,7 @@ describe("CodeBody", () => {
     );
     const editor = screen.getByTestId("monaco");
     fireEvent.change(editor, {
-      target: { value: "return { sum: a + b };" }
+      target: { value: "return { sum: inputs.a + inputs.b };" }
     });
 
     expect(mockUpdateNodeData).toHaveBeenCalledWith("node-1", {
