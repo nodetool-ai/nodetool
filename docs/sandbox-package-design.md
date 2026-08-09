@@ -92,22 +92,24 @@ in the existing `nodetool` field:
       {
         "name": "geo",                      // import specifier: "@acme/nodetool-geo/geo"
         "kind": "js",
-        "file": "sandbox/geo.js",           // relative to the package root
-        "doc": "Great-circle distance, point-in-polygon, geohash."
+        "file": "sandbox/geo.js"            // relative to the package root
       },
       {
         "name": "simplify-wasm",
         "kind": "wasm",
         "file": "sandbox/simplify.wasm",
         "memoryPagesMax": 256,              // 16 MB cap, enforced at instantiation
-        "exports": [
-          { "name": "simplify", "doc": "Douglas-Peucker on a Float64Array of [x,y] pairs." }
-        ]
+        "exports": ["simplify"]
       }
     ]
   }
 }
 ```
+
+Documentation is not in the manifest. Each pack that ships sandbox
+modules also ships a **`SKILL.md`** at its root — the compressed docs
+page for the library (see "How agents learn a pack" below). The manifest
+declares what exists; the skill explains how to use it.
 
 Manifest types live in `@nodetool-ai/protocol` (`SandboxModuleManifest`).
 Rules enforced at discovery time (`pack-loader.ts`):
@@ -304,12 +306,39 @@ Nothing new is invented:
   Resolution order in `resolveSandboxModuleFile`: real package dir first,
   `_sandbox/` fallback in the flattened layout.
 
+### How agents learn a pack: SKILL.md, progressive disclosure
+
+Every pack that ships sandbox modules carries a `SKILL.md` at its root —
+the same format `packages/agents/src/agent.ts` already loads
+(`loadSkillFromFile`): YAML frontmatter with a validated `name` and
+one-line `description`, then a body. The body is a compressed docs page
+for using the library **inside the sandbox**: the import specifier, the
+main functions with one example each, and the gotchas that matter there
+(input size caps, the 64 MB guest memory limit, "no timers", byte
+marshaling for WASM).
+
+Disclosure happens in two steps, so prompt size stays flat as the pack
+count grows:
+
+1. **Always in the prompt:** one line per installed pack — specifier +
+   frontmatter description. That is the whole ambient cost of a pack.
+2. **On demand:** the full SKILL.md body loads through the existing
+   skill machinery when the agent decides to use the pack — CodeAct and
+   the Code-node planner register pack skills exactly like filesystem
+   skills, and the editor renders the same SKILL.md in the Code node's
+   package picker. One document serves the model and the human.
+
+Discovery validates SKILL.md with the existing frontmatter rules plus a
+size cap (16 KB) so an on-demand load stays cheap; a pack whose SKILL.md
+is missing or invalid is skipped with a named reason — an undocumented
+library is not usable by agents, which is the audience.
+
 ### Surfacing to agents and validation
 
 - **Sandbox manifest** (`packages/agents/src/code-gen/sandbox-manifest.ts`)
-  gains a `packages` section generated from the installed registry — name,
-  specifier, `doc`, export docs. It appears in prompts only when modules
-  are installed, and the drift test pins the shape.
+  gains a `packages` section generated from the installed registry — the
+  one-line-per-pack tier described above. It appears in prompts only when
+  modules are installed, and the drift test pins the shape.
 - **`nodetool validate` / `validate_workflow`:** new checks — a `packages`
   entry naming a module no installed pack provides (error, names the pack
   to install), an `import` in code of a specifier missing from `packages`
@@ -383,9 +412,11 @@ works at every point in between.
   types; extend the pack manifest type.
 - `packages/node-sdk`: parse `sandboxModules` in `pack-loader.ts`
   discovery; static validation (containment, size caps, acorn parse,
-  intra-pack imports only); new skip reasons; a `SandboxModuleRegistry`
-  (specifier → resolved module) populated at pack load, with no consumer
-  yet.
+  intra-pack imports only); SKILL.md presence + frontmatter + size
+  validation (reusing the parser from `packages/agents/src/agent.ts`,
+  hoisted so node-sdk can use it); new skip reasons; a
+  `SandboxModuleRegistry` (specifier → resolved module + skill) populated
+  at pack load, with no consumer yet.
 - Tests: fixture packs (valid, oversize, escaping path, bad import) in
   `packages/node-sdk/tests/`.
 
@@ -452,8 +483,11 @@ works at every point in between.
 
 The migrated libraries ship as **normal packs** — one small npm package
 per library, config-only (`sandboxModules` with an `npm` source, no
-`register`, no glue code), listed in the registry index, installed and
-uninstalled through the ordinary flow. Nothing is compiled into NodeTool;
+`register`, no glue code) plus a hand-written `SKILL.md`: the compressed
+docs page for that library as it behaves inside the sandbox. The skill is
+the one thing a config-only pack authors, and it is documentation, not
+code. Packs are listed in the registry index, installed and uninstalled
+through the ordinary flow. Nothing is compiled into NodeTool;
 these packs dogfood exactly the path a third party would use, including
 the trust rule (sandbox-only, so no allowlist entry needed).
 
