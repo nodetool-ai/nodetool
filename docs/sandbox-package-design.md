@@ -448,34 +448,61 @@ works at every point in between.
   terminate; memory cap at instantiation.
 - Guest wrapper convention documented; one reference pack used in tests.
 
-### M6 — Migrate existing host-bridge libraries into a builtin pack
+### M6 — Migrate existing host-bridge libraries into normal packs
 
-A new builtin pack, `packages/sandbox-std` (`@nodetool-ai/sandbox-std`),
-dogfoods the npm config-only path. Disposition of every library the
-sandbox bridges today:
+The migrated libraries ship as **normal packs** — one small npm package
+per library, config-only (`sandboxModules` with an `npm` source, no
+`register`, no glue code), listed in the registry index, installed and
+uninstalled through the ordinary flow. Nothing is compiled into NodeTool;
+these packs dogfood exactly the path a third party would use, including
+the trust rule (sandbox-only, so no allowlist entry needed).
 
 | Bridge | Library | Disposition | Why |
 |---|---|---|---|
-| `data.parseCsv` / `toCsv` | papaparse | migrate → `sandbox-std/csv` | pure JS |
-| `data.parseYaml` / `toYaml` | js-yaml | migrate → `sandbox-std/yaml` | pure JS |
-| `data.parseXml` / `toXml` | fast-xml-parser | migrate → `sandbox-std/xml` | pure JS |
-| `data.diff` | diff | migrate → `sandbox-std/diff` | pure JS |
-| `data.zip` / `unzip` | fflate | migrate → `sandbox-std/zip` | pure JS; the 50 MB host cap becomes the guest 64 MB memory limit |
-| `data.selectHtml` | cheerio | decided by the bundle: if it bundles neutral and fits the cap, migrate; else stays a bridge | large dependency tree |
+| `data.parseCsv` / `toCsv` | papaparse | migrate → `@nodetool-ai/sandbox-csv` | pure JS |
+| `data.parseYaml` / `toYaml` | js-yaml | migrate → `@nodetool-ai/sandbox-yaml` | pure JS |
+| `data.parseXml` / `toXml` | fast-xml-parser | migrate → `@nodetool-ai/sandbox-xml` | pure JS |
+| `data.diff` | diff | migrate → `@nodetool-ai/sandbox-diff` | pure JS |
+| `data.zip` / `unzip` | fflate | migrate → `@nodetool-ai/sandbox-zip` | pure JS; the 50 MB host cap becomes the guest 64 MB memory limit |
+| `data.selectHtml` | cheerio | decided by the bundle: if it bundles neutral and fits the cap, migrate → `@nodetool-ai/sandbox-html`; else stays a bridge | large dependency tree |
 | `data.parseXlsx` | exceljs | stays a bridge | Node streams/Buffer |
 | `data.htmlToMarkdown` | turndown | stays a bridge | needs a DOM |
 | `format.*` | host `Intl` | stays a bridge | quickjs-ng ships no Intl |
 | `image.*`, `canvas.*` | @napi-rs/canvas | stays a bridge | native code |
 | `fetch`, `crypto`, `getSecret`, `workspace`, assets, `progress` | — | stays a bridge | capabilities, not libraries |
 
+The packs live in the monorepo under `packages/sandbox-packs/<name>/` as
+publishable workspaces (versioned and released like the other
+`@nodetool-ai/*` packages) but are consumed only via install — dev
+environments get them through the normal optional-node root, not through
+the workspace build. The import specifier is the pack name:
+`import Papa from "@nodetool-ai/sandbox-csv"`.
+
+Consequences of "normal pack" instead of builtin:
+
+- **Presence is not guaranteed.** A Code node that imports
+  `@nodetool-ai/sandbox-csv` on a machine without it fails validation
+  with "install @nodetool-ai/sandbox-csv" — the same behaviour as any
+  third-party pack, surfaced before the run by `nodetool validate`.
+- The registry index marks them **recommended** and the Package Manager
+  shows them as a one-click group; the desktop app may offer them during
+  onboarding. But no code path assumes they exist.
+- CodeAct and the sandbox manifest advertise only **installed** packs, so
+  prompts stay truthful on every machine.
+- No Electron bundle staging is involved — they arrive through the
+  optional-node install root like every other pack. The `_sandbox/`
+  staging from M3 remains only for any builtin pack that ships modules.
+
 Compatibility rules for the migration:
 
 - **No existing workflow breaks.** The `data.*` bridges stay, unchanged,
   for at least one major release. Migration adds the import path; it does
-  not remove the bridge path.
+  not remove the bridge path — which also covers machines where the packs
+  are simply not installed.
 - The sandbox manifest marks migrated bridges "prefer
-  `import ... from "sandbox-std/..."`", so CodeAct and the Code-node
-  planner steer new code to imports while old code keeps running.
+  `import ... from "@nodetool-ai/sandbox-..."`" **when the pack is
+  installed**, so CodeAct and the Code-node planner steer new code to
+  imports while old code keeps running.
 - The `codeact` and `code-gen` eval suites run before and after the
   prompt change; a regression blocks the switch, not the pack.
 - Bridge removal, if ever, is its own decision later — the bridges are
