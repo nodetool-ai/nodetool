@@ -12,10 +12,13 @@
  * Safe to re-run: a body already reading `inputs.*` has nothing to rewrite.
  */
 import { Workflow } from "@nodetool-ai/models";
+import {
+  migrateCodeBodyToInputs,
+  isJsCodeNodeType
+} from "@nodetool-ai/node-sdk";
 
 /** The CLI's local-mode user, matching `nodetool.ts`. */
 const LOCAL_USER_ID = "1";
-import { migrateCodeBodyToInputs, isJsCodeNodeType } from "@nodetool-ai/node-sdk";
 
 export interface MigrateCodeInputsOptions {
   dryRun?: boolean;
