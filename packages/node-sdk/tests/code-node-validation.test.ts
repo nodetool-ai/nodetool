@@ -69,6 +69,48 @@ describe("validateCodeNodeBody", () => {
     ).toEqual([]);
   });
 
+  it("accepts the tool bridge names `nodetool` and `tools`", () => {
+    expect(
+      codes(
+        body(
+          `const caps = nodetool.capabilities();
+           const wfs = await tools.list_workflows({});
+           return { caps, count: wfs.length };`,
+          [],
+          ["caps", "count"]
+        )
+      )
+    ).toEqual([]);
+  });
+
+  it("tells a body reading a removed guest name what replaced it", () => {
+    const issues = validateCodeNodeBody(
+      body("return { id: uuid(), bytes: utf8Encode(inputs.text) };", ["text"], [
+        "id",
+        "bytes"
+      ])
+    );
+    const absent = issues.find((i) => i.code === "code_undefined_name");
+    expect(absent?.severity).toBe("error");
+    expect(absent?.message).toContain("crypto.randomUUID()");
+    expect(absent?.message).toContain("TextEncoder");
+  });
+
+  it("flags the deleted quickjs stubs (Buffer, process, Headers)", () => {
+    const issues = validateCodeNodeBody(
+      body(
+        "return { b: Buffer.from(inputs.text), e: process.env.HOME, h: new Headers() };",
+        ["text"],
+        ["b", "e", "h"]
+      )
+    );
+    const absent = issues.find((i) => i.code === "code_undefined_name");
+    expect(absent?.severity).toBe("error");
+    expect(absent?.message).toContain('"Buffer"');
+    expect(absent?.message).toContain('"process"');
+    expect(absent?.message).toContain('"Headers"');
+  });
+
   it("does not flag a typeof guard or an implicit global", () => {
     expect(
       codes(

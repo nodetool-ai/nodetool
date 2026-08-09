@@ -45,30 +45,34 @@ export function isJsCodeNodeType(nodeType: string): boolean {
 export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Guest globals, as observed in the running QuickJS sandbox
   "AggregateError", "Array", "ArrayBuffer", "BigInt", "BigInt64Array",
-  "BigUint64Array", "Boolean", "Buffer", "DataView", "Date", "Error",
+  "BigUint64Array", "Boolean", "DataView", "Date", "Error",
   "EvalError", "FinalizationRegistry", "Float32Array", "Float64Array",
-  "Headers", "Infinity", "Int16Array", "Int32Array", "Int8Array",
+  "Infinity", "Int16Array", "Int32Array", "Int8Array",
   "InternalError", "JSON", "Map", "Math", "NaN", "Number", "Object",
   "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect", "RegExp",
-  "Request", "Response", "Set", "SharedArrayBuffer", "String", "Symbol",
+  "Set", "SharedArrayBuffer", "String", "Symbol",
   "SyntaxError", "TextDecoder", "TextEncoder", "TypeError", "URIError",
   "URL", "URLSearchParams", "Uint16Array", "Uint32Array", "Uint8Array",
   "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI",
-  "decodeURIComponent", "encodeURI", "encodeURIComponent", "env", "escape",
-  "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt", "performance",
-  "process", "queueMicrotask", "undefined", "unescape",
+  "decodeURIComponent", "encodeURI", "encodeURIComponent", "escape",
+  "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt",
+  "queueMicrotask", "undefined", "unescape",
   // Host bridges
-  "console", "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
+  "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
   "image", "canvas",
   // Pure guest helpers defined by the sandbox prelude
-  "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
+  "toBase64", "fromBase64", "toHex", "fromHex",
   "parallelMap", "createCanvas",
+  // The tool bridge preludes: `tools.<name>()` wrappers and the `nodetool`
+  // object model over them
+  "tools", "nodetool",
   // Absent from this guest, but not user inputs either
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",
   "setImmediate", "clearImmediate", "eval", "Function",
   "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
-  "FormData",
+  "FormData", "Buffer", "Headers", "Request", "Response", "env", "process",
+  "performance", "uuid", "utf8Encode", "utf8Decode",
   // JS literals that acorn parses as Identifier nodes
   "true", "false", "null",
   "this", "arguments", "self", "window", "document",
@@ -88,7 +92,10 @@ const ABSENT_GLOBALS: ReadonlySet<string> = new Set([
   "setTimeout", "clearTimeout", "setInterval", "clearInterval",
   "setImmediate", "clearImmediate", "eval", "Function",
   "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
-  "FormData"
+  "FormData",
+  // Removed guest names: deleted quickjs stubs and retired prelude aliases
+  "Buffer", "Headers", "Request", "Response", "env", "process",
+  "performance", "uuid", "utf8Encode", "utf8Decode"
 ]);
 
 export interface CodeNodeIssue {
@@ -191,7 +198,9 @@ export function validateCodeNodeBody(
         `The code reads ${formatNames(absentNames.sort())}, which other JavaScript runtimes ` +
         `have but this sandbox does not — ${absentNames.length > 1 ? "they throw" : "it throws"} ReferenceError. ` +
         "Use the sandbox equivalent: toBase64/fromBase64 for base64, format.* for Intl, " +
-        "sleep for timers, JSON round-trip for a deep copy."
+        "sleep for timers, JSON round-trip for a deep copy, crypto.randomUUID() for uuid, " +
+        "new TextEncoder()/new TextDecoder() for utf8Encode/utf8Decode, and plain " +
+        "fetch() objects instead of Headers/Request/Response."
     });
   }
   const undefinedNames = unbound.filter(

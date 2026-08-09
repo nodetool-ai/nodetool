@@ -101,7 +101,7 @@ QuickJS's memory limiter counts its own heap objects; string and typed-array
 payloads are not charged against it, so `memoryLimitBytes` bites on object
 allocation, not on `new Uint8Array(n)`.
 
-Exposed guest surface: `console`, `fetch`, `uuid`, `sleep`, `getSecret`,
+Exposed guest surface: `console`, `fetch`, `sleep`, `getSecret`,
 `crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
 and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
 returning a `Uint8Array`), `workspace.{read,write,list,readBytes,writeBytes,
@@ -111,11 +111,14 @@ source for read containment and the destination for write containment;
 `stat` returns `{exists, size, isDirectory, isFile, isSymlink, modifiedMs,
 createdMs, accessedMs}` and reports a missing path as `exists: false` rather
 than throwing), the pure guest-side helpers
-`toBase64`/`fromBase64`/`toHex`/`fromHex`/`utf8Encode`/`utf8Decode`/
-`parallelMap`/`createCanvas`,
+`toBase64`/`fromBase64`/`toHex`/`fromHex`/`parallelMap`/`createCanvas`
+(UUIDs come from `crypto.randomUUID` and UTF-8 from the native
+`TextEncoder`/`TextDecoder` — the old `uuid`/`utf8Encode`/`utf8Decode`
+aliases are gone),
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
 `image.{info,decode,encode,resize,crop,rotate,flip,adjust,composite,convert}`,
-`canvas.{render,measureText}`,
+`canvas.measureText` (plus `canvas.render`, the undocumented plumbing behind
+`createCanvas(...).toBytes()`),
 `data.{parseCsv,toCsv,selectHtml,htmlToMarkdown,parseXlsx,parseYaml,toYaml,
 parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
 `Uint8Array` body as raw bytes instead of JSON.
@@ -629,19 +632,21 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   semantics and guards — snake_case auto ids, `connect()` id checks, handles
   that throw when stringified — cannot drift between the two surfaces), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
-  one ranked model; `find`/`list` for the long form), `nodetool.providers`
-  (roster derived from the model catalog), and `nodetool.media`
+  one ranked model; `find`/`list` for the long form; `forProvider(provider)`
+  for one provider's own catalog), and `nodetool.media`
   (`generateImage/editImage/generateVideo/animateImage/speak/transcribe/embed`
   plus the judge loop `critique/compare/scoreAdherence`, each taking a
   pick/find result or `"provider/model_id"`), `nodetool.nodes`
   (`search/info/list` — the graph builder's discovery half),
   `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),
   `nodetool.apps` (`build/debug`), `nodetool.agents` (`run(prompt)` spawns a
-  `run_subtask` child with a fresh context; `fanout(prompts, {concurrency})`
-  batches them), the single-node harness on `nodetool.nodes.run(type,
-  inputs)`, `nodetool.web` (one surface over every search/fetch tool:
-  `search(query, {provider})` picks the backend the belt carries — `"default"`,
-  `"openai"`, `"google"`, `"dataforseo"` pin one — plus `news`, `images`,
+  `run_subtask` child with a fresh context; fan out via
+  `nodetool.batch(prompts, (p) => nodetool.agents.run(p))`), the single-node harness on `nodetool.nodes.run(type,
+  inputs)`, `nodetool.web` (the outside world:
+  `search(query, {provider})`, `news` and `images` call the routed search
+  tools — `web_search`/`google_news`/`google_images` pick the first configured
+  backend host-side, and `provider` pins one: `"default"`, `"openai"`,
+  `"google"`, `"dataforseo"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
   (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
@@ -650,8 +655,8 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `collections` (full RAG loop: `index/indexBatch/search/hybridSearch/query`),
   `timelines`, `sketches`, `scripts`, and `storyboards`. `workflows` also
   carries `resolve(sessionId, escalationId, action)` for interactive-run
-  escalations and `examples()`/`example("<package>/<name>")` feeding
-  `copyFrom`. Every method wraps a
+  escalations and `example("<package>/<name>")` feeding `copyFrom`
+  (`list({workflow_type: "example"})` enumerates the shipped examples). Every method wraps a
   belt tool, so gating and routing are untouched; a method whose backing tool
   is missing throws naming the tool, and the prompt section documents only the
   namespaces the belt can serve (`buildNodetoolApiPromptSection`). One surface
@@ -667,12 +672,16 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
   `unit_conversion`) were deleted outright, MCP included; `run_code` and `js`
   remain for callers that want a code tool. `getAgentToolbelt()`
-  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific media
-  duplicates `image_generation`, `openai_image_generation`,
+  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific
+  duplicates: the media tools `image_generation`, `openai_image_generation`,
   `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
   covers them through the provider-agnostic `generate_image` /
-  `generate_speech`. `getBuiltinTools()` still returns them, so MCP clients,
-  which have no object model, keep them.
+  `generate_speech` — and the search backends `openai_web_search`,
+  `google_grounded_search`, `dataforseo_search`, `dataforseo_news` and
+  `dataforseo_images`, which `web_search`/`google_news`/`google_images` reach
+  by routing across the configured backends host-side (`backend` pins one).
+  `getBuiltinTools()` still returns them all, so MCP clients, which have no
+  object model, keep them.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface: 19 cases over two

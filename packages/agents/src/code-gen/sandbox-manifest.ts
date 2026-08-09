@@ -53,6 +53,13 @@ export interface SandboxBridgeDoc {
   readonly kind: "function" | "namespace";
   readonly description: string;
   readonly members: readonly SandboxMemberDoc[];
+  /**
+   * Members that exist and work but are plumbing behind a guest helper
+   * (e.g. `canvas.render` behind `createCanvas(...).toBytes()`). They stay in
+   * `sandboxManifestNames` — a reference to one is not a phantom — but the
+   * prompt/doc renderers never advertise them.
+   */
+  readonly internalMembers?: readonly SandboxMemberDoc[];
   /** Sandbox plumbing, not part of the authoring surface. */
   readonly internal?: boolean;
 }
@@ -98,7 +105,8 @@ export interface SandboxManifest {
   readonly blockedGlobals: readonly string[];
   /**
    * Globals the Code node injects per run, on top of what the guest has:
-   * the declared inputs arrive on `inputs`, and `state` persists across runs.
+   * the declared inputs arrive on `inputs`, `state` persists across runs, and
+   * the tool bridge preludes define `tools` and the `nodetool` object model.
    * Not in the guest snapshot — nothing puts them there until a node runs.
    */
   readonly nodeGlobals: readonly string[];
@@ -188,19 +196,6 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         signature: "await crypto.hmac(algorithm, key, data) -> Uint8Array",
         description: "HMAC over a string or Uint8Array key and payload.",
         async: true
-      }
-    ]
-  },
-  uuid: {
-    name: "uuid",
-    kind: "function",
-    description: "Shorthand for crypto.randomUUID.",
-    members: [
-      {
-        name: "uuid",
-        signature: "uuid() -> string",
-        description: "Random UUID v4.",
-        async: false
       }
     ]
   },
@@ -469,7 +464,7 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
         name: "data.unzip",
         signature: "await data.unzip(bytes) -> {path: Uint8Array}",
         description:
-          "Extract a zip archive to a map of entry path to content bytes (utf8Decode for text entries).",
+          "Extract a zip archive to a map of entry path to content bytes (new TextDecoder().decode(...) for text entries).",
         async: true
       },
       {
@@ -580,23 +575,25 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
     name: "canvas",
     kind: "namespace",
     description:
-      "Draw with a real Canvas 2D context. Use createCanvas for the familiar " +
-      "API; these are the raw calls behind it.",
+      "Canvas 2D text metrics. Drawing itself goes through createCanvas, " +
+      "whose toBytes renders the recorded calls host-side.",
     members: [
-      {
-        name: "canvas.render",
-        signature:
-          "await canvas.render(spec) -> Uint8Array // spec: { width, height, background, format, quality, gradients, ops }",
-        description:
-          "Replay a recorded draw list and encode the result. createCanvas builds the spec for you.",
-        async: true
-      },
       {
         name: "canvas.measureText",
         signature:
           "await canvas.measureText(text, font?) -> { width, actualBoundingBoxAscent, actualBoundingBoxDescent, ... }",
         description:
           "Text metrics for a CSS font string, so text can be laid out before it is drawn.",
+        async: true
+      }
+    ],
+    internalMembers: [
+      {
+        name: "canvas.render",
+        signature:
+          "await canvas.render(spec) -> Uint8Array // spec: { width, height, background, format, quality, gradients, ops }",
+        description:
+          "The machinery behind createCanvas(...).toBytes(): replay a recorded draw list and encode the result.",
         async: true
       }
     ]
@@ -635,18 +632,6 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     description: "Decode hex to bytes.",
     async: false
   },
-  utf8Encode: {
-    name: "utf8Encode",
-    signature: "utf8Encode(text) -> Uint8Array",
-    description: "UTF-8 encode.",
-    async: false
-  },
-  utf8Decode: {
-    name: "utf8Decode",
-    signature: "utf8Decode(bytes) -> string",
-    description: "UTF-8 decode.",
-    async: false
-  },
   parallelMap: {
     name: "parallelMap",
     signature:
@@ -660,7 +645,7 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
     signature:
       "createCanvas(width, height) -> { width, height, getContext, toBytes, toSpec }",
     description:
-      "A Canvas 2D surface. getContext with \"2d\" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec hands the recorded draw list to canvas.render instead.",
+      "A Canvas 2D surface. getContext with \"2d\" returns a context taking the usual calls — fillRect, arc, fillText, drawImage, createLinearGradient, save, translate, rotate — synchronously; awaiting toBytes with an options object of format, quality and background renders them and returns the encoded image. drawImage takes image bytes, not an image object, and toSpec returns the recorded draw list.",
     async: false
   }
 };
@@ -808,7 +793,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "BigInt64Array",
   "BigUint64Array",
   "Boolean",
-  "Buffer",
   "DataView",
   "Date",
   "Error",
@@ -816,7 +800,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "FinalizationRegistry",
   "Float32Array",
   "Float64Array",
-  "Headers",
   "Infinity",
   "Int16Array",
   "Int32Array",
@@ -834,8 +817,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "ReferenceError",
   "Reflect",
   "RegExp",
-  "Request",
-  "Response",
   "Set",
   "SharedArrayBuffer",
   "String",
@@ -864,7 +845,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "decodeURIComponent",
   "encodeURI",
   "encodeURIComponent",
-  "env",
   "escape",
   "fetch",
   "format",
@@ -878,8 +858,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "parallelMap",
   "parseFloat",
   "parseInt",
-  "performance",
-  "process",
   "progress",
   "queueMicrotask",
   "sandboxToAsset",
@@ -888,9 +866,6 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "toHex",
   "undefined",
   "unescape",
-  "utf8Decode",
-  "utf8Encode",
-  "uuid",
   "workspace"
 ];
 
@@ -908,7 +883,12 @@ const ABSENT_GLOBALS = [
   "Intl",
   "atob",
   "btoa",
-  "structuredClone"
+  "structuredClone",
+  // Removed aliases: crypto.randomUUID replaces uuid(), and the native
+  // TextEncoder/TextDecoder replace the utf8 helpers.
+  "utf8Decode",
+  "utf8Encode",
+  "uuid"
 ] as const;
 
 /**
@@ -956,7 +936,7 @@ export function getSandboxManifest(): SandboxManifest {
     guestHelpers: GUEST_HELPER_DOCS,
     nativeGlobals: native,
     blockedGlobals: blocked,
-    nodeGlobals: [CODE_INPUTS_GLOBAL, "state"],
+    nodeGlobals: [CODE_INPUTS_GLOBAL, "state", "nodetool", "tools"],
     limits: [...overridableLimits(), ...fixedLimits()],
     notes: [
       {
@@ -982,7 +962,8 @@ export function getSandboxManifest(): SandboxManifest {
         text: "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
       },
       {
-        text: "`process`, `env` and `Buffer` exist but are the sandbox's own stubs, not Node's: `process.env` is empty and the working directory is \"/\". Nothing reaches the host through them."
+        text: "The platform object model is available as `nodetool` (with the raw `tools` bridge under it): nodetool.capabilities() reports which namespaces are live in this environment; a method whose backing tool is missing throws naming that tool. Tool-backed calls can spend money (media generation, workflow runs) and reach the web — permission gating stays with the tools themselves.",
+        audience: "code-node"
       }
     ]
   };
@@ -997,6 +978,7 @@ export function sandboxManifestNames(
   for (const bridge of Object.values(manifest.bridges)) {
     names.add(bridge.name);
     for (const member of bridge.members) names.add(member.name);
+    for (const member of bridge.internalMembers ?? []) names.add(member.name);
   }
   for (const helper of Object.values(manifest.guestHelpers)) {
     names.add(helper.name);

@@ -106,11 +106,10 @@ const one = await nodetool.agents.run(
   "What is the capital of France? Reply with ONLY the city name."
 );
 
-const many = await nodetool.agents.fanout([
+const many = await nodetool.batch([
   "What is the capital of Japan? Reply with ONLY the city name.",
-  { prompt: "What is the capital of Italy? Reply with ONLY the city name.",
-    description: "Italy capital" }
-], { concurrency: 2 });
+  "What is the capital of Italy? Reply with ONLY the city name."
+], (p) => nodetool.agents.run(p), { concurrency: 2 });
 
 return {
   slug: { ok: slug.ok, out: slug.chunks },

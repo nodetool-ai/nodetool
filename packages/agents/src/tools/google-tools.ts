@@ -22,6 +22,21 @@ async function getGeminiApiKey(context?: ProcessingContext): Promise<string> {
   return key;
 }
 
+/**
+ * Whether the Gemini grounded-search backend is usable: its API key is present
+ * in the secret store or the environment. Configuration is decided here,
+ * before any call — never by sniffing an error message afterwards.
+ */
+export async function geminiSearchConfigured(
+  context: ProcessingContext
+): Promise<boolean> {
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("GEMINI_API_KEY")
+      : null;
+  return Boolean(fromCtx ?? process.env["GEMINI_API_KEY"]);
+}
+
 export class GoogleGroundedSearchTool extends Tool {
   readonly name = "google_grounded_search";
   readonly description =

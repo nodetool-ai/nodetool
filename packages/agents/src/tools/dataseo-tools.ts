@@ -32,6 +32,22 @@ async function getDataForSEOCredentials(
   return { login, password };
 }
 
+/**
+ * Whether the DataForSEO backend is usable: both credentials are present in
+ * the secret store or the environment. Configuration is decided here, before
+ * any call — never by sniffing an error message afterwards.
+ */
+export async function dataForSeoConfigured(
+  context: ProcessingContext
+): Promise<boolean> {
+  try {
+    await getDataForSEOCredentials(context);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function makeAuthHeader(login: string, password: string): string {
   const encoded = Buffer.from(`${login}:${password}`).toString("base64");
   return `Basic ${encoded}`;

@@ -10,9 +10,30 @@ import {
   type SandboxManifest
 } from "../code-gen/sandbox-manifest.js";
 import { extractApiReferences } from "../code-gen/sandbox-prompt.js";
+import { NODETOOL_API_SECTION_HEADER } from "./nodetool-api.js";
 import { renderToolCatalog, type ToolSignatureSource } from "./tool-api.js";
 
-const ACTION_CONTRACT_BASE = `# CodeAct Execution
+/**
+ * The bounded fan-out primitive the concurrency bullet advertises. One per
+ * prompt: with the `nodetool` object model loaded, `nodetool.batch` is THE
+ * fan-out primitive and the bare-sandbox `parallelMap` helper is not also
+ * documented (it stays available). Without the object model, `parallelMap`
+ * is the only one there is.
+ */
+const BOUNDED_FANOUT_PARALLEL_MAP = `Use
+  \`await parallelMap(items, async (x) => …, 5)\` when the list is long enough
+  that unbounded fan-out would blow a rate limit or the per-action tool
+  budget; it preserves input order and keeps at most N in flight.`;
+
+const BOUNDED_FANOUT_NODETOOL_BATCH = `Use
+  \`await nodetool.batch(items, async (x) => …, {concurrency: 5})\` when the
+  list is long enough that unbounded fan-out would blow a rate limit or the
+  per-action tool budget; it keeps at most N in flight and settles each entry
+  as \`{ok, value | error}\` instead of rejecting.`;
+
+const actionContractBase = (
+  boundedFanout: string
+) => `# CodeAct Execution
 
 You act by writing JavaScript. Each turn, call the \`execute_code\` tool with a
 program; it runs in a sandbox and the observation (return value, console logs,
@@ -35,10 +56,7 @@ Rules:
   \`await\` is the most common way an action wastes wall-clock. A call starts
   its work when invoked, not when awaited, so
   \`await Promise.all(items.map(x => tools.foo(x)))\` fans out for real —
-  ten independent lookups take one round trip, not ten. Use
-  \`await parallelMap(items, async (x) => …, 5)\` when the list is long enough
-  that unbounded fan-out would blow a rate limit or the per-action tool
-  budget; it preserves input order and keeps at most N in flight.
+  ten independent lookups take one round trip, not ten. ${boundedFanout}
   \`Promise.allSettled\` when some are allowed to fail. Sequence only what
   genuinely depends on a previous result.
 - \`state\` is a plain object that persists across your actions in this step.
@@ -57,14 +75,19 @@ Rules:
 - A failed tool call throws; use try/catch when partial failure is acceptable.
 - Top-level \`await\` and \`return\` work.`;
 
-const ACTION_CONTRACT_STEP = `${ACTION_CONTRACT_BASE}
+const actionContractStep = (
+  boundedFanout: string
+) => `${actionContractBase(boundedFanout)}
 - For file work use the sandbox's own \`workspace.*\` API (\`read\`, \`write\`,
   \`list\`, \`readBytes\`, \`writeBytes\`, \`stat\`, \`copy\`, \`move\`, \`mkdir\`,
   \`remove\`) — it is in-process, so a read costs nothing a tool call would.
 - Do not ask the user questions. Choose a reasonable assumption and proceed.`;
 
-function actionContractChat(unavailable: readonly string[]): string {
-  return `${ACTION_CONTRACT_BASE}
+function actionContractChat(
+  unavailable: readonly string[],
+  boundedFanout: string
+): string {
+  return `${actionContractBase(boundedFanout)}
 - Network, secrets, files, and assets are available only through \`tools.*\`,
   so permission checks and approvals cannot be bypassed. Unusable here:
   ${unavailable.map((name) => `\`${name}\``).join(", ")} — a chat action runs
@@ -155,7 +178,8 @@ function relevantNotes(
 /** Compact, manifest-derived sandbox reference: signatures only. */
 function renderSandboxSummary(
   manifest: SandboxManifest,
-  variant: "step" | "chat"
+  variant: "step" | "chat",
+  nodetoolApiLoaded: boolean
 ): string {
   const unavailableInChat = new Set(chatUnavailableBridges(manifest));
   const lines: string[] = [];
@@ -167,6 +191,12 @@ function renderSandboxSummary(
     }
   }
   for (const helper of Object.values(manifest.guestHelpers)) {
+    // One fan-out primitive per prompt: with the `nodetool` object model
+    // loaded, `nodetool.batch` is the documented one and `parallelMap` is
+    // not also advertised (it stays available in the sandbox).
+    if (nodetoolApiLoaded && helper.signature.includes("parallelMap")) {
+      continue;
+    }
     lines.push(`- ${helper.signature}`);
   }
   const besides =
@@ -221,12 +251,18 @@ export function buildCodeActSystemPrompt(
 ): string {
   const manifest = options.manifest ?? getSandboxManifest();
   const variant = options.variant ?? "step";
+  const nodetoolApiLoaded = (options.extraSections ?? []).some((section) =>
+    section.includes(NODETOOL_API_SECTION_HEADER)
+  );
+  const boundedFanout = nodetoolApiLoaded
+    ? BOUNDED_FANOUT_NODETOOL_BATCH
+    : BOUNDED_FANOUT_PARALLEL_MAP;
   const sections: string[] = [];
   if (options.preamble?.trim()) sections.push(options.preamble.trim());
   sections.push(
     variant === "chat"
-      ? actionContractChat(chatUnavailableBridges(manifest))
-      : ACTION_CONTRACT_STEP
+      ? actionContractChat(chatUnavailableBridges(manifest), boundedFanout)
+      : actionContractStep(boundedFanout)
   );
   if (variant === "chat") {
     sections.push(CHAT_COMPLETION);
@@ -266,6 +302,6 @@ export function buildCodeActSystemPrompt(
   for (const section of options.extraSections ?? []) {
     if (section.trim()) sections.push(section.trim());
   }
-  sections.push(renderSandboxSummary(manifest, variant));
+  sections.push(renderSandboxSummary(manifest, variant, nodetoolApiLoaded));
   return sections.join("\n\n");
 }

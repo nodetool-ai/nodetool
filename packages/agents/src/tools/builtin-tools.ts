@@ -231,17 +231,25 @@ export function getBuiltinTools(): Tool[] {
 
 /**
  * Built-ins an agent's toolbelt leaves out. Every one is a provider-specific
- * duplicate of a capability the `nodetool.media.*` object model already covers
- * through the provider-agnostic `generate_image` / `generate_speech`: offering
- * both makes the model choose a provider before it has chosen a model. They
+ * duplicate of a capability a routed tool already covers: the media tools
+ * through the provider-agnostic `generate_image` / `generate_speech` (the
+ * `nodetool.media.*` object model), and the search backends through
+ * `web_search` / `google_news` / `google_images`, which route across the
+ * configured backends host-side (`backend` pins one). Offering the duplicates
+ * makes the model choose a provider before it has chosen a backend. They all
  * stay in {@link getBuiltinTools}, so MCP clients — which have no object model
- * and no `find_model` habit — keep them.
+ * and no routing habit — keep them.
  */
 export const AGENT_TOOLBELT_EXCLUDED: ReadonlySet<string> = new Set([
   "image_generation",
   "openai_image_generation",
   "google_image_generation",
-  "openai_text_to_speech"
+  "openai_text_to_speech",
+  "openai_web_search",
+  "google_grounded_search",
+  "dataforseo_search",
+  "dataforseo_news",
+  "dataforseo_images"
 ]);
 
 /**

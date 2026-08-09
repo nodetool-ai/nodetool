@@ -5,9 +5,48 @@ import {
   GoogleImagesTool
 } from "../src/tools/search-tools.js";
 
+vi.mock("openai", () => ({
+  OpenAI: class {
+    chat = {
+      completions: {
+        create: async () => ({
+          choices: [{ message: { content: "openai backend answer" } }]
+        })
+      }
+    };
+  }
+}));
+
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
 /* ------------------------------------------------------------------ */
+
+/**
+ * Routing reads real configuration (secrets/env), so ambient keys in the test
+ * process would change which backend is picked. Pin them all to absent.
+ */
+const BACKEND_ENV_KEYS = [
+  "SERPAPI_API_KEY",
+  "OPENAI_API_KEY",
+  "GEMINI_API_KEY",
+  "DATA_FOR_SEO_LOGIN",
+  "DATA_FOR_SEO_PASSWORD"
+] as const;
+const envStash: Record<string, string | undefined> = {};
+
+beforeEach(() => {
+  for (const key of BACKEND_ENV_KEYS) {
+    envStash[key] = process.env[key];
+    delete process.env[key];
+  }
+});
+
+afterEach(() => {
+  for (const key of BACKEND_ENV_KEYS) {
+    if (envStash[key] === undefined) delete process.env[key];
+    else process.env[key] = envStash[key];
+  }
+});
 
 /** Build a mock ProcessingContext whose getSecret returns the given map. */
 function makeContext(secrets: Record<string, string | null> = {}) {
@@ -347,5 +386,248 @@ describe("GoogleImagesTool", () => {
     const pt = tool.toProviderTool();
     expect(pt.name).toBe("google_images");
     expect(pt.inputSchema).toBeDefined();
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  Host-side backend routing                                         */
+/* ------------------------------------------------------------------ */
+
+describe("search backend routing", () => {
+  let fetchSpy: ReturnType<typeof vi.spyOn> | undefined;
+
+  afterEach(() => {
+    fetchSpy?.mockRestore();
+    fetchSpy = undefined;
+  });
+
+  it("web_search falls to the OpenAI backend when SerpAPI is unconfigured", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({ OPENAI_API_KEY: "ok" });
+    const result = await tool.process(ctx, { query: "fox" });
+    expect(result).toBe("openai backend answer");
+  });
+
+  it("web_search falls to DataForSEO when only its credentials exist", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({
+      DATA_FOR_SEO_LOGIN: "user",
+      DATA_FOR_SEO_PASSWORD: "pass"
+    });
+    fetchSpy = stubFetch({
+      status_code: 20000,
+      status_message: "Ok.",
+      tasks: [
+        {
+          result: [
+            {
+              items: [
+                {
+                  type: "organic",
+                  title: "Fox facts",
+                  url: "https://foxes.example",
+                  description: "All about foxes"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const result = (await tool.process(ctx, { query: "fox" })) as string;
+    expect(result).toContain("1. Fox facts");
+    expect(result).toContain("https://foxes.example");
+    const calledUrl = String(fetchSpy.mock.calls[0][0]);
+    expect(calledUrl).toContain("api.dataforseo.com");
+  });
+
+  it("web_search pinned to the Gemini backend formats text plus sources", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({
+      SERPAPI_API_KEY: "serp",
+      GEMINI_API_KEY: "gem"
+    });
+    fetchSpy = stubFetch({
+      candidates: [
+        {
+          content: { parts: [{ text: "Grounded answer." }] },
+          groundingMetadata: {
+            groundingChunks: [
+              { web: { title: "Source A", uri: "https://a.example" } }
+            ]
+          }
+        }
+      ]
+    });
+    const result = (await tool.process(ctx, {
+      query: "fox",
+      backend: "gemini"
+    })) as string;
+    expect(result).toContain("Grounded answer.");
+    expect(result).toContain("Sources:");
+    expect(result).toContain("https://a.example");
+    const calledUrl = String(fetchSpy.mock.calls[0][0]);
+    expect(calledUrl).toContain("generativelanguage.googleapis.com");
+  });
+
+  it("a pin overrides preference order even when earlier backends are configured", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({
+      SERPAPI_API_KEY: "serp",
+      DATA_FOR_SEO_LOGIN: "user",
+      DATA_FOR_SEO_PASSWORD: "pass"
+    });
+    fetchSpy = stubFetch({
+      status_code: 20000,
+      status_message: "Ok.",
+      tasks: [{ result: [{ items: [] }] }]
+    });
+    await tool.process(ctx, { query: "fox", backend: "dataforseo" });
+    const calledUrl = String(fetchSpy.mock.calls[0][0]);
+    expect(calledUrl).toContain("api.dataforseo.com");
+  });
+
+  it("a pinned unconfigured backend is an error naming the missing key", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
+    await expect(
+      tool.process(ctx, { query: "fox", backend: "openai" })
+    ).rejects.toThrow(/openai.*OPENAI_API_KEY/);
+    await expect(
+      new GoogleNewsTool().process(ctx, {
+        keyword: "fox",
+        backend: "dataforseo"
+      })
+    ).rejects.toThrow(/DATA_FOR_SEO_LOGIN and DATA_FOR_SEO_PASSWORD/);
+  });
+
+  it("an unknown backend pin is an error listing the valid ones", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
+    await expect(
+      tool.process(ctx, { query: "fox", backend: "bing" })
+    ).rejects.toThrow(/unknown backend "bing".*serpapi, openai, gemini, dataforseo/);
+  });
+
+  it('backend "default" means the tool\'s own first backend', async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
+    fetchSpy = stubFetch({ organic_results: [] });
+    const result = await tool.process(ctx, {
+      query: "fox",
+      backend: "default"
+    });
+    expect(result).toBe("No results.");
+    expect(String(fetchSpy.mock.calls[0][0])).toContain("serpapi.com");
+  });
+
+  it("a real error from a configured backend does not fall through", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({
+      SERPAPI_API_KEY: "serp",
+      DATA_FOR_SEO_LOGIN: "user",
+      DATA_FOR_SEO_PASSWORD: "pass"
+    });
+    fetchSpy = stubFetch({ error: "boom" }, 500);
+    await expect(tool.process(ctx, { query: "fox" })).rejects.toThrow(
+      "SerpAPI request failed (500)"
+    );
+    // Only the SerpAPI call happened — no DataForSEO fallthrough.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(String(fetchSpy.mock.calls[0][0])).toContain("serpapi.com");
+  });
+
+  it("google_news routes to DataForSEO and keeps its result shape", async () => {
+    const tool = new GoogleNewsTool();
+    const ctx = makeContext({
+      DATA_FOR_SEO_LOGIN: "user",
+      DATA_FOR_SEO_PASSWORD: "pass"
+    });
+    fetchSpy = stubFetch({
+      status_code: 20000,
+      status_message: "Ok.",
+      tasks: [
+        {
+          result: [
+            {
+              items: [
+                {
+                  type: "news_search",
+                  title: "Fox news item",
+                  url: "https://news.example/fox",
+                  source: "Example News",
+                  timestamp: "2026-08-01 10:00:00 +00:00",
+                  description: "A fox did something."
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const result = (await tool.process(ctx, { keyword: "fox" })) as Record<
+      string,
+      unknown
+    >;
+    expect(result.success).toBe(true);
+    expect(result.results).toEqual([
+      {
+        title: "Fox news item",
+        link: "https://news.example/fox",
+        snippet: "A fox did something.",
+        date: "2026-08-01",
+        source: "Example News"
+      }
+    ]);
+  });
+
+  it("google_images routes to DataForSEO and keeps its result shape", async () => {
+    const tool = new GoogleImagesTool();
+    const ctx = makeContext({
+      DATA_FOR_SEO_LOGIN: "user",
+      DATA_FOR_SEO_PASSWORD: "pass"
+    });
+    fetchSpy = stubFetch({
+      status_code: 20000,
+      status_message: "Ok.",
+      tasks: [
+        {
+          result: [
+            {
+              items: [
+                {
+                  type: "images_search",
+                  title: "A fox",
+                  image_url: "https://img.example/fox.jpg",
+                  source_url: "https://page.example/fox",
+                  alt: "fox"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    });
+    const result = (await tool.process(ctx, { keyword: "fox" })) as Record<
+      string,
+      unknown
+    >;
+    expect(result.success).toBe(true);
+    expect(result.results).toEqual([
+      {
+        title: "A fox",
+        link: "https://page.example/fox",
+        original: "https://img.example/fox.jpg",
+        thumbnail: null
+      }
+    ]);
+  });
+
+  it("no configured backend at all names every missing key", async () => {
+    const tool = new WebSearchTool();
+    const ctx = makeContext({});
+    await expect(tool.process(ctx, { query: "fox" })).rejects.toThrow(
+      /no search backend is configured.*SERPAPI_API_KEY.*OPENAI_API_KEY.*GEMINI_API_KEY.*DATA_FOR_SEO_LOGIN/
+    );
   });
 });

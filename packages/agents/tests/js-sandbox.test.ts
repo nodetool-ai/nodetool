@@ -2,7 +2,7 @@
  * Tests for js-sandbox.ts — sandboxed JavaScript execution.
  *
  * The sandbox is intentionally lib-free: only vanilla JS plus a handful of
- * bridge functions (fetch, workspace, getSecret, uuid, sleep, console).
+ * bridge functions (fetch, workspace, getSecret, sleep, console).
  * These tests lock that contract down so future refactors can't accidentally
  * re-introduce lodash / dayjs / cheerio / csv-parse / validator into the
  * user-code surface.
@@ -216,7 +216,6 @@ describe("buildSandbox", () => {
   it("exposes the bridge functions", () => {
     const { sandbox } = buildSandbox();
     expect(typeof sandbox.fetch).toBe("function");
-    expect(typeof sandbox.uuid).toBe("function");
     expect(typeof sandbox.sleep).toBe("function");
     expect(typeof sandbox.getSecret).toBe("function");
     expect(typeof sandbox.workspace).toBe("object");
@@ -564,12 +563,15 @@ describe("runInSandbox", () => {
     expect(r2.success).toBe(false);
   });
 
-  it("uuid() returns a valid v4 UUID", async () => {
-    const result = await runInSandbox({ code: "return uuid();" });
+  it("crypto.randomUUID() returns a valid v4 UUID and uuid() is gone", async () => {
+    const result = await runInSandbox({ code: "return crypto.randomUUID();" });
     expect(result.success).toBe(true);
     expect(result.result).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     );
+    const removed = await runInSandbox({ code: "return uuid();" });
+    expect(removed.success).toBe(false);
+    expect(removed.error).toMatch(/uuid/);
   });
 
   it("sleep(ms) pauses execution and is capped", async () => {
@@ -1113,7 +1115,7 @@ describe("runInSandbox crypto bridge", () => {
     const result = await runInSandbox({
       code: `
         const a = await crypto.digest("SHA-1", "abc");
-        const b = await crypto.digest("sha1", utf8Encode("abc"));
+        const b = await crypto.digest("sha1", new TextEncoder().encode("abc"));
         return { a: toHex(a), b: toHex(b) };
       `
     });
@@ -1172,7 +1174,7 @@ describe("runInSandbox crypto bridge", () => {
   it("accepts binary keys and data for hmac", async () => {
     const result = await runInSandbox({
       code: `
-        const mac = await crypto.hmac("SHA-256", utf8Encode("key"), utf8Encode("msg"));
+        const mac = await crypto.hmac("SHA-256", new TextEncoder().encode("key"), new TextEncoder().encode("msg"));
         const mac2 = await crypto.hmac("SHA-256", "key", "msg");
         return { same: toHex(mac) === toHex(mac2), len: mac.length };
       `
@@ -1220,7 +1222,7 @@ describe("runInSandbox binary helpers", () => {
       code: `
         const b64 = toBase64("hello world");
         const back = fromBase64(b64);
-        return { b64, text: utf8Decode(back), isBytes: back instanceof Uint8Array };
+        return { b64, text: new TextDecoder().decode(back), isBytes: back instanceof Uint8Array };
       `
     });
     expect(result.success).toBe(true);
@@ -1253,9 +1255,9 @@ describe("runInSandbox binary helpers", () => {
   it("round-trips hex", async () => {
     const result = await runInSandbox({
       code: `
-        const hex = toHex(utf8Encode("nodetool"));
+        const hex = toHex(new TextEncoder().encode("nodetool"));
         const back = fromHex(hex);
-        return { hex, text: utf8Decode(back) };
+        return { hex, text: new TextDecoder().decode(back) };
       `
     });
     expect(result.success).toBe(true);
@@ -1265,11 +1267,11 @@ describe("runInSandbox binary helpers", () => {
     });
   });
 
-  it("round-trips non-ASCII text through utf8Encode/utf8Decode", async () => {
+  it("round-trips non-ASCII text through TextEncoder/TextDecoder", async () => {
     const result = await runInSandbox({
       code: `
-        const bytes = utf8Encode("héllo — 世界");
-        return { len: bytes.length, text: utf8Decode(bytes) };
+        const bytes = new TextEncoder().encode("héllo — 世界");
+        return { len: bytes.length, text: new TextDecoder().decode(bytes) };
       `
     });
     expect(result.success).toBe(true);
@@ -1281,7 +1283,7 @@ describe("runInSandbox binary helpers", () => {
 
   it("accepts base64url input in fromBase64", async () => {
     const result = await runInSandbox({
-      code: `return utf8Decode(fromBase64("aGVsbG8_d29ybGQ-"));`
+      code: `return new TextDecoder().decode(fromBase64("aGVsbG8_d29ybGQ-"));`
     });
     expect(result.success).toBe(true);
     expect(result.result).toBe(

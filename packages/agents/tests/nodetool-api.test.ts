@@ -107,6 +107,12 @@ function createFakeRouter() {
             }
           ]
         });
+      case "list_provider_models":
+        return JSON.stringify({
+          provider: args["provider"],
+          total: 1,
+          results: [{ provider: args["provider"], id: "fal-ai/flux/schnell" }]
+        });
       case "list_models":
         return JSON.stringify({
           total: 3,
@@ -171,7 +177,6 @@ describe("nodetool object model", () => {
     expect(Object.keys(caps).sort()).toEqual([
       "graph",
       "models",
-      "providers",
       "workflows"
     ]);
     expect(caps["workflows"]).toContain("run_workflow");
@@ -234,20 +239,22 @@ describe("nodetool object model", () => {
     expect(String(obs.result)).toContain("nodetool.models.pick");
   });
 
-  it("derives the provider roster from the model catalog", async () => {
-    const { executeTool } = createFakeRouter();
-    const session = makeSession(MODEL_TOOLS, executeTool);
-    const obs = await runAction(session, `return nodetool.providers.list();`);
+  it("routes forProvider through list_provider_models", async () => {
+    const { executeTool, calls } = createFakeRouter();
+    const session = makeSession(
+      [...MODEL_TOOLS, toolDef("list_provider_models")],
+      executeTool
+    );
+    const obs = await runAction(
+      session,
+      `await nodetool.models.forProvider("fal_ai", { limit: 5 });
+       return true;`
+    );
     expect(obs.ok).toBe(true);
-    const providers = obs.result as Array<{
-      provider: string;
-      models: number;
-      types: string[];
-    }>;
-    expect(providers).toHaveLength(2);
-    const openai = providers.find((p) => p.provider === "openai");
-    expect(openai?.models).toBe(2);
-    expect(openai?.types.sort()).toEqual(["image", "language"]);
+    expect(calls[0]).toMatchObject({
+      name: "list_provider_models",
+      args: { provider: "fal_ai", limit: 5 }
+    });
   });
 
   it("wraps workflow CRUD and run with clean call shapes", async () => {
@@ -506,8 +513,9 @@ describe("nodetool object model", () => {
        const one = await nodetool.agents.run(
          "Summarize the release notes and reply as JSON with {summary}."
        );
-       const many = await nodetool.agents.fanout(
-         ["First topic", { prompt: "Second topic", description: "Topic two" }],
+       const many = await nodetool.batch(
+         ["First topic", "Topic two"],
+         (p) => nodetool.agents.run(p),
          { concurrency: 2 }
        );
        return { node, one, ok: many.filter((r) => r.ok).length };`
@@ -523,11 +531,11 @@ describe("nodetool object model", () => {
       "Summarize the release notes and reply"
     );
     expect(calls[1].args["prompt"]).toContain("reply as JSON");
-    const fanoutDescriptions = calls
+    const batchDescriptions = calls
       .slice(2)
       .map((c) => c.args["description"]);
-    expect(fanoutDescriptions).toContain("First topic");
-    expect(fanoutDescriptions).toContain("Topic two");
+    expect(batchDescriptions).toContain("First topic");
+    expect(batchDescriptions).toContain("Topic two");
     expect((obs.result as { ok: number }).ok).toBe(2);
   });
 

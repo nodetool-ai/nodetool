@@ -94,7 +94,8 @@ const SOLUTIONS: Record<string, string[]> = {
      await finish({ probe: probe.output, slug: run.result.outputs.slug });`
   ],
   "api-pick-model-and-batch-images": [
-    `const providers = await nodetool.providers.list();
+    `const catalog = await nodetool.models.list({ limit: 1000 });
+     const providers = [...new Set((catalog.results || []).map((m) => m.provider))];
      const model = await nodetool.models.pick("text_to_image");
      const shots = [
        "a red fox in snow",
@@ -193,7 +194,6 @@ const CORE_NAMESPACES = [
   "graph",
   "nodes",
   "models",
-  "providers",
   "media",
   "jobs",
   "assets",

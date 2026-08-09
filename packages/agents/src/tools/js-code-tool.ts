@@ -63,8 +63,9 @@ Locale-aware formatting (Intl-backed; defaults to en-US).
 ### crypto.randomUUID() / .getRandomValues(n) / .digest(algo, data) / .hmac(algo, key, data)
 SHA-1/256/384/512. \`digest\` and \`hmac\` are async and return a Uint8Array.
 
-### toBase64(x) / fromBase64(s) / toHex(bytes) / fromHex(s) / utf8Encode(s) / utf8Decode(bytes)
-Binary and text conversion helpers (synchronous, guest-side).
+### toBase64(x) / fromBase64(s) / toHex(bytes) / fromHex(s)
+Binary conversion helpers (synchronous, guest-side). UTF-8 goes through the
+native \`TextEncoder\` / \`TextDecoder\`.
 
 ### progress(percent, message?)
 Report progress to the caller (0–100). Fire-and-forget.
@@ -77,9 +78,6 @@ Persist a workspace file as an asset and return an AssetRef.
 
 ### getSecret(name) → string | undefined
 Read a secret by name (API keys, tokens, etc).
-
-### uuid() → string
-Generate a random UUID v4.
 
 ### sleep(ms)
 Pause execution (max 5s per call). The only timer — \`setTimeout\`/\`setInterval\` do not exist.

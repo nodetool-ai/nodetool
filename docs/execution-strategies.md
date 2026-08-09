@@ -144,7 +144,7 @@ workflow, and runs the same way in the browser and on the server: no Docker, no
 subprocess, no host interpreter.
 
 The guest gets standard JavaScript plus a fixed set of bridges — `fetch()`,
-workspace file access, `getSecret()`, `uuid()`, `sleep()`, `progress()`,
+workspace file access, `getSecret()`, `sleep()`, `progress()`,
 `crypto`, `format`, and CSV/HTML `data` helpers. Dynamic inputs arrive as
 globals; the keys of the returned object become the node's outputs.
 

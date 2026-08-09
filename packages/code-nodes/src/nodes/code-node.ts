@@ -4,25 +4,36 @@
  * Runs user code in an isolated QuickJS WebAssembly guest (see
  * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus the bridge
  * APIs: fetch(), workspace (text/bytes/stat/mkdir/remove/copy/move/root),
- * getSecret(), uuid(), sleep(), progress(), crypto, format, data (CSV/HTML
- * parsing) and the base64/hex helpers. Dynamic inputs are injected as global
- * variables in the sandbox.
+ * getSecret(), sleep(), progress(), crypto (randomUUID/digest/hmac), format,
+ * data (CSV/HTML parsing) and the base64/hex helpers. Dynamic inputs arrive
+ * on the `inputs` object.
+ *
+ * On a server host the code also gets the `nodetool` object model — the
+ * platform as objects (`nodetool.workflows`, `nodetool.assets`, …), backed by
+ * the agent toolbelt through a `tools.<name>()` bridge. The belt is loaded
+ * lazily and only on Node: the in-browser runner bundles this module, so the
+ * toolbelt (native canvas, IMAP, execution) must never sit in its static
+ * import graph. Without a belt, `nodetool.capabilities()` reports `{}` and
+ * every method throws naming its missing tool instead of a ReferenceError.
  *
  * Example:
  *   // inputs: { x: 5, text: "hello" }
  *   // code:
- *   const sum = x + 10;
- *   const upper = text.toUpperCase();
+ *   const sum = inputs.x + 10;
+ *   const upper = inputs.text.toUpperCase();
  *   return { sum, upper };
  *   // outputs: { sum: 15, upper: "HELLO" }
  */
 
-import { BaseNode, prop, CODE_INPUTS_GLOBAL } from "@nodetool-ai/node-sdk";
+import { BaseNode, prop, CODE_INPUTS_GLOBAL, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
+  TOOLS_PRELUDE,
+  NODETOOL_API_PRELUDE_FULL,
   type SandboxLimits
 } from "@nodetool-ai/agents/js-sandbox";
+import { importHidden } from "@nodetool-ai/config";
 import { ALL_PLATFORMS } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
@@ -98,6 +109,100 @@ const JS_RESERVED = new Set([
 const STATEMENT_KEYWORDS =
   /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
 
+// ---------------------------------------------------------------------------
+// The `nodetool` object model — toolbelt bridge
+// ---------------------------------------------------------------------------
+
+/**
+ * The guest prelude every run gets: `tools.<name>()` wrappers over the
+ * `__callTool` bridge, then the `nodetool` object model on top of them. Both
+ * are plain strings, so prepending them costs nothing even where no belt
+ * exists — the object model degrades per namespace by design.
+ */
+const NODETOOL_PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
+
+/** Type-only view of the agents package index; erased at compile time. */
+type AgentsModule = typeof import("@nodetool-ai/agents");
+type AgentTool = InstanceType<AgentsModule["Tool"]>;
+
+/**
+ * Bridge globals for a host with no toolbelt (browser runner, no context):
+ * the prelude builds zero wrappers, `nodetool.capabilities()` returns `{}`,
+ * and every `nodetool.*` method throws naming its missing tool.
+ */
+const NO_TOOLS_GLOBALS: Record<string, unknown> = {
+  __toolNames: [] as string[],
+  __callTool: async () => ({
+    ok: false as const,
+    error: "no tools in this environment"
+  })
+};
+
+let agentsModulePromise: Promise<AgentsModule | null> | null = null;
+
+/**
+ * The agents package index, loaded lazily and hidden from bundlers.
+ * `importHidden` answers `null` off Node, so a browser bundle never resolves
+ * the toolbelt's server-only dependencies. Hosts where the bare specifier is
+ * not resolvable at runtime (the packaged Electron backend inlines workspace
+ * packages instead of staging them in `_modules/`) degrade the same way the
+ * browser does unless they inject a belt via {@link setCodeNodeTools}.
+ */
+function loadAgentsModule(): Promise<AgentsModule | null> {
+  if (!agentsModulePromise) {
+    agentsModulePromise = importHidden<AgentsModule>(
+      "@nodetool-ai/agents"
+    ).catch(() => null);
+  }
+  return agentsModulePromise;
+}
+
+let toolOverride: AgentTool[] | null = null;
+
+/**
+ * Test/host injection point: replace the assembled toolbelt with a fixed set
+ * (`[]` simulates a beltless host). Pass `null` to restore the default
+ * assembly.
+ */
+export function setCodeNodeTools(tools: AgentTool[] | null): void {
+  toolOverride = tools;
+}
+
+/**
+ * Assemble the belt the way an agent loop would: `getAgentToolbelt()` plus
+ * the in-process core API tools. Only the node registry is constructible
+ * here (`NodeRegistry.global` — populated in any process that registered
+ * node packages); the example catalog, DSL exporter and provider set live
+ * above this package, so their tools stay dark and the `nodetool` prelude
+ * reports the difference via `capabilities()`.
+ */
+function assembleToolbelt(mod: AgentsModule): AgentTool[] {
+  const byName = new Map<string, AgentTool>();
+  const registry = NodeRegistry.global;
+  for (const tool of [
+    ...mod.getAgentToolbelt(),
+    ...mod.getAllMcpTools({ registry })
+  ]) {
+    byName.set(tool.name, tool);
+  }
+  return [...byName.values()];
+}
+
+/**
+ * Globals wiring the `tools`/`nodetool` preludes to a real tool bridge, or
+ * the inert stub when no belt is constructible. Tool execution needs a
+ * ProcessingContext; without one the stub keeps the prelude harmless.
+ */
+async function toolBridgeGlobals(
+  context: ProcessingContext | undefined
+): Promise<Record<string, unknown>> {
+  if (!context) return NO_TOOLS_GLOBALS;
+  const mod = await loadAgentsModule();
+  if (!mod) return NO_TOOLS_GLOBALS;
+  const tools = toolOverride ?? assembleToolbelt(mod);
+  return mod.buildToolBridge({ tools, context }).globals;
+}
+
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly platforms = ALL_PLATFORMS;
@@ -105,10 +210,14 @@ export class CodeNode extends BaseNode {
   static readonly description =
     "Execute vanilla JavaScript in a sandboxed environment. " +
     "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root(), " +
-    "getSecret(), uuid(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
+    "getSecret(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
     "format.number/date/relativeTime/list, data.parseCsv/selectHtml, " +
-    "toBase64/fromBase64/toHex/fromHex, parallelMap. " +
-    "Dynamic inputs become global variables; return an object to define outputs." +
+    "toBase64/fromBase64/toHex/fromHex, parallelMap, plus the `nodetool` object model " +
+    "(workflows, assets, jobs, …) backed by platform tools on server hosts — " +
+    "nodetool.capabilities() reports what is live. Tool-backed calls can spend money " +
+    "(media generation, workflow runs) and reach the web; each tool applies its own " +
+    "permission gating. " +
+    "Dynamic inputs arrive on the `inputs` object; return an object to define outputs." +
     "\n    code, javascript, function, script, dynamic";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
@@ -124,10 +233,10 @@ export class CodeNode extends BaseNode {
     title: "Code",
     description:
       "JavaScript code to execute. " +
-      "Dynamic inputs are available as variables. " +
+      "Dynamic inputs arrive on the `inputs` object. " +
       "APIs: fetch(url, options), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root, " +
       "workspace.stat(path) returns {exists, size, isDirectory, isFile, isSymlink, modifiedMs, createdMs, accessedMs}, " +
-      "getSecret(name), uuid(), sleep(ms), progress(percent, message), " +
+      "getSecret(name), sleep(ms), progress(percent, message), " +
       "crypto.randomUUID/getRandomValues/digest/hmac, " +
       "format.number/date/relativeTime/list, " +
       "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
@@ -135,6 +244,9 @@ export class CodeNode extends BaseNode {
       "data and crypto.digest/hmac; the rest are synchronous. " +
       "Concurrent calls run in parallel: use Promise.all or " +
       "parallelMap(items, fn, concurrency) to fan out fetches. " +
+      "The `nodetool` object model exposes platform tools (nodetool.workflows, " +
+      "nodetool.assets, …) where the host carries them — nodetool.capabilities() " +
+      "reports live namespaces; elsewhere a method throws naming its missing tool. " +
       "A persistent `state` object survives across streaming invocations. " +
       "Return an object — its keys become output handles."
   })
@@ -247,11 +359,12 @@ export class CodeNode extends BaseNode {
     // State stays a direct reference so mutations persist across calls.
     const globals = {
       [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
-      state: this._state
+      state: this._state,
+      ...(await toolBridgeGlobals(context))
     };
 
     const sandboxResult = await runInSandbox({
-      code: body,
+      code: `${NODETOOL_PRELUDE}\n${body}`,
       context,
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
       globals,
@@ -285,7 +398,8 @@ export class CodeNode extends BaseNode {
     };
     const dynamicInputs = extractDynamicInputs(allInputs);
 
-    const wrappedBody = `
+    // The prelude sits outside the yield_ rewrite: only user code streams.
+    const wrappedBody = `${NODETOOL_PRELUDE}
       const __yielded = [];
       function yield_(value) { __yielded.push(value); }
       ${code.replace(/\byield\b/g, "yield_")}
@@ -299,7 +413,8 @@ export class CodeNode extends BaseNode {
     // State stays a direct reference so mutations persist across calls.
     const globals = {
       [CODE_INPUTS_GLOBAL]: deepCopyInputs(dynamicInputs),
-      state: this._state
+      state: this._state,
+      ...(await toolBridgeGlobals(context))
     };
 
     const sandboxResult = await runInSandbox({

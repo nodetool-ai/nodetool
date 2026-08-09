@@ -868,7 +868,7 @@ return {
     title: "Generate UUID v4",
     description: "Generate a random UUID v4",
     category: "UUID",
-    code: "return { output: uuid() };",
+    code: "return { output: crypto.randomUUID() };",
     tags: ["uuid", "v4", "random", "generate", "id"],
   },
   {

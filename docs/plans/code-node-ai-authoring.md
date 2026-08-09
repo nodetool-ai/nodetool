@@ -30,8 +30,8 @@ changes removed most of what the earlier draft of this plan had to build:
 - **The sandbox grew a real standard library.** `js-sandbox.ts` now bridges
   `format.*` (Intl number/date/relative-time/list), `data.parseCsv`
   (papaparse), `data.selectHtml` (cheerio), `crypto.*` (WebCrypto),
-  `progress()`, binary helpers (`toBase64`/`fromBase64`/`toHex`/`fromHex`,
-  `utf8Encode`/`utf8Decode`), extended `workspace`
+  `progress()`, binary helpers (`toBase64`/`fromBase64`/`toHex`/`fromHex`),
+  extended `workspace`
   (bytes/stat/mkdir/remove), and per-run limit overrides. The old gap —
   prompts advertising libraries the sandbox lacked — is now mostly a prompt
   bug, not a missing capability.

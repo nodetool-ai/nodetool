@@ -380,6 +380,26 @@ describe("CodeAct progressive tool disclosure", () => {
     }
   });
 
+  it("documents nodetool.batch as THE fan-out primitive when the object model loads", async () => {
+    const { buildCodeActSystemPrompt } = await import("../src/codeact/prompt.js");
+    const { buildNodetoolApiPromptSection } = await import(
+      "../src/codeact/nodetool-api.js"
+    );
+    const apiSection = buildNodetoolApiPromptSection(["run_workflow"]);
+    expect(apiSection).not.toBe("");
+    for (const variant of ["step", "chat"] as const) {
+      const prompt = buildCodeActSystemPrompt({
+        tools: bigBelt(),
+        variant,
+        extraSections: [apiSection]
+      });
+      expect(prompt, variant).toContain("nodetool.batch(items");
+      expect(prompt, variant).not.toContain("parallelMap");
+      // The unbounded form stays documented.
+      expect(prompt, variant).toContain("Promise.all");
+    }
+  });
+
   it("discovers a deferred tool via searchTools and calls it", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);
     const context = createMockContext();

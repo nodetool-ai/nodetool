@@ -23,6 +23,21 @@ async function getOpenAIClient(context?: ProcessingContext) {
   return new OpenAI({ apiKey });
 }
 
+/**
+ * Whether the OpenAI web-search backend is usable: its API key is present in
+ * the secret store or the environment. Configuration is decided here, before
+ * any call — never by sniffing an error message afterwards.
+ */
+export async function openAiSearchConfigured(
+  context: ProcessingContext
+): Promise<boolean> {
+  const fromCtx =
+    typeof context?.getSecret === "function"
+      ? await context.getSecret("OPENAI_API_KEY")
+      : null;
+  return Boolean(fromCtx ?? process.env["OPENAI_API_KEY"]);
+}
+
 export class OpenAIWebSearchTool extends Tool {
   readonly name = "openai_web_search";
   readonly description = "Search the web using OpenAI's web search API";
