@@ -42,7 +42,7 @@ web/src/
 ├── lib/           # Third-party integrations (WebSocket, Supabase, frontend tools)
 ├── config/        # Constants, shortcuts, model definitions, data types
 ├── utils/         # Pure utility functions
-└── api.ts         # Generated OpenAPI client
+└── trpc/          # tRPC client and provider for the backend router
 ```
 
 ## Specialized Guides

@@ -225,7 +225,7 @@ feature coverage. Seed set, mapped to the recent bug classes:
     the staged bundle's `server.mjs` (extending `backend:smoke` from
     "boots and serves /health" to "runs real workflows").
 
-Each shipped example workflow that `example-smoke-debug.mjs` curates is a
+Each shipped example workflow that `scripts/smoke-examples.mjs` curates is a
 candidate for promotion; journeys should prefer shipped examples so the
 suite doubles as product validation.
 

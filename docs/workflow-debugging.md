@@ -180,7 +180,7 @@ NODETOOL_LOG_FILE=/tmp/nodetool.log nodetool serve
 ```
 Error: Type mismatch - cannot connect 'List[String]' to 'String'
 ```
-→ Use a node to extract a single item from the list (e.g., `GetElement`)
+→ Use a node to extract a single item from the list (e.g. a `nodetool.code.Code` node that returns one item)
 
 ```
 Error: Required input 'prompt' is not connected
