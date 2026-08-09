@@ -869,7 +869,7 @@ describe("Code nodes", () => {
   it("passes a well-formed Code node", () => {
     const report = validateGraph(
       graph({
-        properties: { code: "return { out: String(text) };" },
+        properties: { code: "return { out: String(inputs.text) };" },
         dynamic_inputs: { text: { type: { type: "str" } } },
         dynamic_outputs: { out: { type: "str" } }
       }),
@@ -913,7 +913,7 @@ describe("Code nodes", () => {
           {
             id: "c",
             type: CODE,
-            properties: { code: "return { out: text };" },
+            properties: { code: "return { out: inputs.text };" },
             dynamic_outputs: { out: { type: "str" } }
           }
         ],

@@ -148,6 +148,7 @@ export function unknownApiReferences(
   const known = new Set<string>([
     ...manifest.nativeGlobals,
     ...manifest.blockedGlobals,
+    ...manifest.nodeGlobals,
     ...Object.keys(manifest.bridges),
     ...Object.keys(manifest.guestHelpers)
   ]);

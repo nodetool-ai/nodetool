@@ -1,9 +1,9 @@
 /**
  * Static checks for a Code node (`nodetool.code.Code`) inside a workflow graph.
  *
- * The node's `code` property is the body of one async function whose globals
- * are the node's dynamic inputs and whose returned object's keys are its output
- * handles. Nothing about that contract is enforced until the node runs, so a
+ * The node's `code` property is the body of one async function that reads the
+ * node's dynamic inputs off an `inputs` object and whose returned object's keys
+ * are its output handles. Nothing about that contract is enforced until the node runs, so a
  * body that does not parse, reads an input the node does not have, or forgets
  * an output handle that downstream nodes are wired to costs a whole run to
  * discover. Everything here is decidable from the graph alone.
@@ -13,7 +13,9 @@
  */
 import {
   analyzeCodeBody,
+  CODE_INPUTS_GLOBAL,
   freeIdentifiers,
+  inputsMemberReads,
   moduleDeclarationKinds,
   parseCodeBody,
   returnShapes,
@@ -70,8 +72,8 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // JS literals that acorn parses as Identifier nodes
   "true", "false", "null",
   "this", "arguments", "self", "window", "document",
-  // Code node reserved props
-  "code", "timeout", "state",
+  // Code node reserved props and the object its declared inputs arrive on
+  "code", "timeout", "state", "inputs",
   // Sandbox internals
   "__maxIter"
 ]);
@@ -94,7 +96,7 @@ export interface CodeNodeIssue {
   /**
    * Stable category: "code_syntax" | "code_module" | "code_no_return" |
    * "code_return_shape" | "code_missing_output" | "code_undeclared_output" |
-   * "code_undefined_name" | "code_unused_input".
+   * "code_undefined_name" | "code_undefined_input" | "code_unused_input".
    */
   code: string;
   message: string;
@@ -171,12 +173,13 @@ export function validateCodeNodeBody(
   }
 
   // ── Names the body reads but nothing puts in scope ───────────────────────
+  // Declared inputs are deliberately NOT bare-name scope: they arrive on the
+  // `inputs` object, so reading one as a bare name is the ReferenceError the
+  // split below reports with the rewrite.
   const inScope = new Set(input.availableInputs);
   const free = freeIdentifiers(parsed.statements);
   const guarded = typeofGuardedNames(parsed.statements);
-  const unbound = free.filter(
-    (name) => !inScope.has(name) && !guarded.has(name)
-  );
+  const unbound = free.filter((name) => !guarded.has(name));
   const absentNames = [
     ...new Set(unbound.filter((name) => ABSENT_GLOBALS.has(name)))
   ];
@@ -194,21 +197,61 @@ export function validateCodeNodeBody(
   const undefinedNames = unbound.filter(
     (name) => !SANDBOX_GLOBALS.has(name) && !ABSENT_GLOBALS.has(name)
   );
+  // A declared input read as a bare name: the pre-`inputs` form. It is a
+  // reference to that input, so the unused check below must not also complain.
+  const bareInputReads = undefinedNames.filter((name) => inScope.has(name));
   if (undefinedNames.length > 0) {
+    const asInputs = [...new Set(bareInputReads)].sort();
+    // An input name reads as a bare identifier only in the pre-`inputs` form,
+    // which is now a ReferenceError. Naming the rewrite beats "fix the name"
+    // for the one mistake every migrated body makes.
+    const rest = undefinedNames.filter((name) => !inScope.has(name)).sort();
+    if (asInputs.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "code_undefined_name",
+        message:
+          `The code reads ${formatNames(asInputs)} as ${asInputs.length > 1 ? "bare names" : "a bare name"}, but ` +
+          `${asInputs.length > 1 ? "they are inputs" : "it is an input"} of this node — inputs arrive on the \`${CODE_INPUTS_GLOBAL}\` ` +
+          `object. Use ${asInputs.map((n) => `\`${CODE_INPUTS_GLOBAL}.${n}\``).join(", ")}.`
+      });
+    }
+    if (rest.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "code_undefined_name",
+        message:
+          `The code reads ${formatNames(rest)}, which ${rest.length > 1 ? "are" : "is"} neither a sandbox API ` +
+          `nor an input of this node — the sandbox throws ReferenceError. Declare ` +
+          `${rest.length > 1 ? "them" : "it"} as ${rest.length > 1 ? "dynamic inputs and read them" : "a dynamic input and read it"} off ` +
+          `\`${CODE_INPUTS_GLOBAL}\`, or fix the name.`
+      });
+    }
+  }
+
+  const { names: inputsRead, opaque: inputsOpaque } = inputsMemberReads(
+    parsed.statements
+  );
+  const unknownInputs = [
+    ...new Set(inputsRead.filter((name) => !inScope.has(name)))
+  ].sort();
+  if (unknownInputs.length > 0) {
     issues.push({
       severity: "error",
-      code: "code_undefined_name",
+      code: "code_undefined_input",
       message:
-        `The code reads ${formatNames(undefinedNames.sort())}, which ${undefinedNames.length > 1 ? "are" : "is"} neither a sandbox API ` +
-        `nor an input of this node — the sandbox throws ReferenceError. Add ${undefinedNames.length > 1 ? "them" : "it"} as ` +
-        "dynamic input(s), or fix the name."
+        `The code reads ${unknownInputs.map((n) => `\`${CODE_INPUTS_GLOBAL}.${n}\``).join(", ")}, which ` +
+        `${unknownInputs.length > 1 ? "are not inputs" : "is not an input"} of this node — the value is undefined at run time. ` +
+        `Declare ${unknownInputs.length > 1 ? "them" : "it"} as ${unknownInputs.length > 1 ? "dynamic inputs" : "a dynamic input"}, or fix the name.`
     });
   }
 
-  const read = new Set(free);
-  const declaredInputsUnused = [
-    ...new Set(input.availableInputs.filter((name) => !read.has(name)))
-  ];
+  // An unresolvable read (`inputs[key]`, a spread) could touch any slot, so
+  // nothing is provably unused.
+  const read = new Set([...inputsRead, ...bareInputReads]);
+  const declaredInputsUnused = inputsOpaque
+    ? []
+    : [...new Set(input.availableInputs.filter((name) => !read.has(name)))];
 
   // ── Outputs, against every return path the parser can see ────────────────
   const { returns, fallsThrough } = analyzeCodeBody(parsed.statements);

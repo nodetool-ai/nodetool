@@ -38,8 +38,9 @@ it with the submit_code tool. The submitted arguments are the only thing that
 counts: text you write outside the tool call, including fenced code blocks, is
 discarded.
 
-Each declared input arrives as a global variable of that name. The function ends
-by returning an object whose keys are exactly the declared outputs.
+Declared inputs arrive on one \`inputs\` object — read \`inputs.<name>\`, never a
+bare \`<name>\`. The function ends by returning an object whose keys are exactly
+the declared outputs.
 
 # Rules
 

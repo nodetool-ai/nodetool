@@ -88,7 +88,7 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
     title: "Conditional Switch",
     description: "Return one of two values based on a condition",
     category: "Boolean & Logic",
-    code: "return { output: condition ? if_true : if_false };",
+    code: "return { output: inputs.condition ? inputs.if_true : inputs.if_false };",
     tags: ["conditional", "switch", "ternary", "if", "else"],
   },
   {
@@ -96,7 +96,7 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
     title: "Logical AND",
     description: "Logical AND of two booleans",
     category: "Boolean & Logic",
-    code: "return { output: a && b };",
+    code: "return { output: inputs.a && inputs.b };",
     tags: ["and", "logical", "&&"],
   },
   {
@@ -104,7 +104,7 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
     title: "Logical OR",
     description: "Logical OR of two booleans",
     category: "Boolean & Logic",
-    code: "return { output: a || b };",
+    code: "return { output: inputs.a || inputs.b };",
     tags: ["or", "logical", "||"],
   },
   {
@@ -112,7 +112,7 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
     title: "Not",
     description: "Negate a boolean value",
     category: "Boolean & Logic",
-    code: "return { output: !value };",
+    code: "return { output: !inputs.value };",
     tags: ["not", "negate", "invert", "!"],
   },
   {
@@ -121,7 +121,7 @@ export const CODE_SNIPPETS: CodeSnippet[] = [
     description: "Compare two values (==, !=, >, <, >=, <=)",
     category: "Boolean & Logic",
     code: `// Change the operator as needed: ==, !=, >, <, >=, <=
-return { output: a > b };`,
+return { output: inputs.a > inputs.b };`,
     tags: ["compare", "equal", "greater", "less", "operator"],
   },
   {
@@ -129,7 +129,7 @@ return { output: a > b };`,
     title: "Is None",
     description: "Check if a value is null or undefined",
     category: "Boolean & Logic",
-    code: "return { output: value === null || value === undefined };",
+    code: "return { output: inputs.value === null || inputs.value === undefined };",
     tags: ["none", "null", "undefined", "empty", "check"],
   },
   {
@@ -137,7 +137,7 @@ return { output: a > b };`,
     title: "Is In",
     description: "Check if a value is in a list",
     category: "Boolean & Logic",
-    code: "return { output: list.includes(value) };",
+    code: "return { output: inputs.list.includes(inputs.value) };",
     tags: ["in", "includes", "contains", "member"],
   },
   {
@@ -145,7 +145,7 @@ return { output: a > b };`,
     title: "All",
     description: "Check if all values are truthy",
     category: "Boolean & Logic",
-    code: "return { output: values.every(Boolean) };",
+    code: "return { output: inputs.values.every(Boolean) };",
     tags: ["all", "every", "truthy"],
   },
   {
@@ -153,7 +153,7 @@ return { output: a > b };`,
     title: "Some",
     description: "Check if any value is truthy",
     category: "Boolean & Logic",
-    code: "return { output: values.some(Boolean) };",
+    code: "return { output: inputs.values.some(Boolean) };",
     tags: ["some", "any", "truthy"],
   },
 
@@ -165,7 +165,7 @@ return { output: a > b };`,
     title: "Add",
     description: "Add two numbers",
     category: "Math",
-    code: "return { output: a + b };",
+    code: "return { output: inputs.a + inputs.b };",
     tags: ["add", "plus", "sum", "+"],
   },
   {
@@ -173,7 +173,7 @@ return { output: a > b };`,
     title: "Subtract",
     description: "Subtract b from a",
     category: "Math",
-    code: "return { output: a - b };",
+    code: "return { output: inputs.a - inputs.b };",
     tags: ["subtract", "minus", "difference", "-"],
   },
   {
@@ -181,7 +181,7 @@ return { output: a > b };`,
     title: "Multiply",
     description: "Multiply two numbers",
     category: "Math",
-    code: "return { output: a * b };",
+    code: "return { output: inputs.a * inputs.b };",
     tags: ["multiply", "product", "times", "*"],
   },
   {
@@ -189,7 +189,7 @@ return { output: a > b };`,
     title: "Divide",
     description: "Divide a by b",
     category: "Math",
-    code: "return { output: a / b };",
+    code: "return { output: inputs.a / inputs.b };",
     tags: ["divide", "quotient", "/"],
   },
   {
@@ -197,7 +197,7 @@ return { output: a > b };`,
     title: "Modulus",
     description: "Remainder of a divided by b",
     category: "Math",
-    code: "return { output: a % b };",
+    code: "return { output: inputs.a % inputs.b };",
     tags: ["modulus", "remainder", "mod", "%"],
   },
   {
@@ -205,7 +205,7 @@ return { output: a > b };`,
     title: "Power",
     description: "Raise base to the power of exponent",
     category: "Math",
-    code: "return { output: Math.pow(base, exponent) };",
+    code: "return { output: Math.pow(inputs.base, inputs.exponent) };",
     tags: ["power", "exponent", "pow", "**"],
   },
   {
@@ -213,7 +213,7 @@ return { output: a > b };`,
     title: "Square Root",
     description: "Calculate the square root",
     category: "Math",
-    code: "return { output: Math.sqrt(value) };",
+    code: "return { output: Math.sqrt(inputs.value) };",
     tags: ["sqrt", "square root", "root"],
   },
   {
@@ -221,7 +221,7 @@ return { output: a > b };`,
     title: "Absolute Value",
     description: "Get the absolute value",
     category: "Math",
-    code: "return { output: Math.abs(value) };",
+    code: "return { output: Math.abs(inputs.value) };",
     tags: ["abs", "absolute"],
   },
   {
@@ -231,7 +231,7 @@ return { output: a > b };`,
     category: "Math",
     code: `// Round to N decimal places (0 for integer)
 const places = 0;
-return { output: Math.round(value * 10**places) / 10**places };`,
+return { output: Math.round(inputs.value * 10**places) / 10**places };`,
     tags: ["round", "ceil", "floor", "decimal"],
   },
   {
@@ -240,8 +240,8 @@ return { output: Math.round(value * 10**places) / 10**places };`,
     description: "Find the minimum or maximum of values",
     category: "Math",
     code: `return {
-  min: Math.min(a, b),
-  max: Math.max(a, b)
+  min: Math.min(inputs.a, inputs.b),
+  max: Math.max(inputs.a, inputs.b)
 };`,
     tags: ["min", "max", "minimum", "maximum", "clamp"],
   },
@@ -250,7 +250,7 @@ return { output: Math.round(value * 10**places) / 10**places };`,
     title: "Clamp",
     description: "Clamp a value between min and max",
     category: "Math",
-    code: "return { output: Math.min(Math.max(value, min), max) };",
+    code: "return { output: Math.min(Math.max(inputs.value, inputs.min), inputs.max) };",
     tags: ["clamp", "constrain", "limit", "bound"],
   },
   {
@@ -259,9 +259,9 @@ return { output: Math.round(value * 10**places) / 10**places };`,
     description: "sin, cos, tan and their inverses",
     category: "Math",
     code: `return {
-  sin: Math.sin(angle),
-  cos: Math.cos(angle),
-  tan: Math.tan(angle)
+  sin: Math.sin(inputs.angle),
+  cos: Math.cos(inputs.angle),
+  tan: Math.tan(inputs.angle)
 };`,
     tags: ["sin", "cos", "tan", "trig", "angle", "radians"],
   },
@@ -283,7 +283,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Join Array",
     description: "Join array of strings with a separator",
     category: "Text",
-    code: `return { output: items.join(", ") };`,
+    code: `return { output: inputs.items.join(", ") };`,
     tags: ["join", "implode", "separator", "array"],
   },
   {
@@ -291,7 +291,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Replace",
     description: "Replace all occurrences of a substring",
     category: "Text",
-    code: `return { output: text.replaceAll(search, replacement) };`,
+    code: `return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };`,
     tags: ["replace", "substitute", "swap"],
   },
   {
@@ -299,7 +299,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Split",
     description: "Split a string into an array",
     category: "Text",
-    code: `return { output: text.split(", ") };`,
+    code: `return { output: inputs.text.split(", ") };`,
     tags: ["split", "explode", "tokenize", "array"],
   },
   {
@@ -308,8 +308,8 @@ return { output: Math.random() * (max - min) + min };`,
     description: "Convert text to upper or lower case",
     category: "Text",
     code: `return {
-  upper: text.toUpperCase(),
-  lower: text.toLowerCase()
+  upper: inputs.text.toUpperCase(),
+  lower: inputs.text.toLowerCase()
 };`,
     tags: ["upper", "lower", "case", "capitalize"],
   },
@@ -318,7 +318,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Trim",
     description: "Remove whitespace from start and end",
     category: "Text",
-    code: "return { output: text.trim() };",
+    code: "return { output: inputs.text.trim() };",
     tags: ["trim", "strip", "whitespace"],
   },
   {
@@ -326,7 +326,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Template String",
     description: "Format a string with variables",
     category: "Text",
-    code: "return { output: `Hello ${name}, you have ${count} items.` };",
+    code: "return { output: `Hello ${inputs.name}, you have ${inputs.count} items.` };",
     tags: ["template", "format", "interpolate", "string"],
   },
   {
@@ -334,7 +334,7 @@ return { output: Math.random() * (max - min) + min };`,
     title: "Regex Match",
     description: "Match text against a regular expression",
     category: "Text",
-    code: `const matches = text.match(/pattern/g) || [];
+    code: `const matches = inputs.text.match(/pattern/g) || [];
 return { output: matches, found: matches.length > 0 };`,
     tags: ["regex", "match", "pattern", "regular expression"],
   },
@@ -343,7 +343,7 @@ return { output: matches, found: matches.length > 0 };`,
     title: "To String",
     description: "Convert any value to a string representation",
     category: "Text",
-    code: "return { output: JSON.stringify(value, null, 2) };",
+    code: "return { output: JSON.stringify(inputs.value, null, 2) };",
     tags: ["toString", "stringify", "convert", "repr"],
   },
   {
@@ -352,8 +352,8 @@ return { output: matches, found: matches.length > 0 };`,
     description: "Pad a string to a fixed length",
     category: "Text",
     code: `return {
-  padStart: String(value).padStart(length, "0"),
-  padEnd: String(value).padEnd(length, " ")
+  padStart: String(inputs.value).padStart(inputs.length, "0"),
+  padEnd: String(inputs.value).padEnd(inputs.length, " ")
 };`,
     tags: ["pad", "padding", "fixed", "width"],
   },
@@ -366,7 +366,7 @@ return { output: matches, found: matches.length > 0 };`,
     title: "List Length",
     description: "Get the number of items in a list",
     category: "List",
-    code: "return { output: list.length };",
+    code: "return { output: inputs.list.length };",
     tags: ["length", "count", "size"],
   },
   {
@@ -374,8 +374,8 @@ return { output: matches, found: matches.length > 0 };`,
     title: "Get Element",
     description: "Get an element by index (supports negative indexing)",
     category: "List",
-    code: `const i = index < 0 ? list.length + index : index;
-return { output: list[i] };`,
+    code: `const i = inputs.index < 0 ? inputs.list.length + inputs.index : inputs.index;
+return { output: inputs.list[i] };`,
     tags: ["get", "index", "element", "access", "at"],
   },
   {
@@ -383,7 +383,7 @@ return { output: list[i] };`,
     title: "Append",
     description: "Add an item to the end of a list",
     category: "List",
-    code: "return { output: [...list, item] };",
+    code: "return { output: [...inputs.list, inputs.item] };",
     tags: ["append", "push", "add"],
   },
   {
@@ -391,7 +391,7 @@ return { output: list[i] };`,
     title: "Extend / Merge",
     description: "Combine two lists",
     category: "List",
-    code: "return { output: [...a, ...b] };",
+    code: "return { output: [...inputs.a, ...inputs.b] };",
     tags: ["extend", "merge", "combine", "concat"],
   },
   {
@@ -399,7 +399,7 @@ return { output: list[i] };`,
     title: "Slice",
     description: "Extract a portion of a list",
     category: "List",
-    code: "return { output: list.slice(start, end) };",
+    code: "return { output: inputs.list.slice(inputs.start, inputs.end) };",
     tags: ["slice", "substring", "subarray", "range"],
   },
   {
@@ -407,7 +407,7 @@ return { output: list[i] };`,
     title: "Filter",
     description: "Filter items matching a condition",
     category: "List",
-    code: "return { output: items.filter(x => x > threshold) };",
+    code: "return { output: inputs.items.filter(x => x > inputs.threshold) };",
     tags: ["filter", "select", "where", "condition"],
   },
   {
@@ -415,7 +415,7 @@ return { output: list[i] };`,
     title: "Map / Transform",
     description: "Transform each item in a list",
     category: "List",
-    code: "return { output: items.map(x => x * 2) };",
+    code: "return { output: inputs.items.map(x => x * 2) };",
     tags: ["map", "transform", "each", "apply"],
   },
   {
@@ -424,7 +424,7 @@ return { output: list[i] };`,
     description: "Sort a list (ascending or custom)",
     category: "List",
     code: `// Ascending number sort; for strings use: [...list].sort()
-return { output: [...list].sort((a, b) => a - b) };`,
+return { output: [...inputs.list].sort((a, b) => a - b) };`,
     tags: ["sort", "order", "ascending", "descending"],
   },
   {
@@ -432,7 +432,7 @@ return { output: [...list].sort((a, b) => a - b) };`,
     title: "Reverse",
     description: "Reverse the order of a list",
     category: "List",
-    code: "return { output: [...list].reverse() };",
+    code: "return { output: [...inputs.list].reverse() };",
     tags: ["reverse", "flip"],
   },
   {
@@ -440,7 +440,7 @@ return { output: [...list].sort((a, b) => a - b) };`,
     title: "Unique / Dedupe",
     description: "Remove duplicate values",
     category: "List",
-    code: "return { output: [...new Set(list)] };",
+    code: "return { output: [...new Set(inputs.list)] };",
     tags: ["unique", "dedupe", "distinct", "set"],
   },
   {
@@ -449,7 +449,7 @@ return { output: [...list].sort((a, b) => a - b) };`,
     description: "Flatten nested arrays",
     category: "List",
     code: `// depth: Infinity for full flatten, or a number
-return { output: list.flat(Infinity) };`,
+return { output: inputs.list.flat(Infinity) };`,
     tags: ["flatten", "flat", "nested", "depth"],
   },
   {
@@ -458,8 +458,8 @@ return { output: list.flat(Infinity) };`,
     description: "Split a list into chunks of a given size",
     category: "List",
     code: `const chunks = [];
-for (let i = 0; i < list.length; i += size) {
-  chunks.push(list.slice(i, i + size));
+for (let i = 0; i < inputs.list.length; i += inputs.size) {
+  chunks.push(inputs.list.slice(i, i + inputs.size));
 }
 return { output: chunks };`,
     tags: ["chunk", "batch", "partition", "group"],
@@ -469,7 +469,7 @@ return { output: chunks };`,
     title: "Sum",
     description: "Sum all numbers in a list",
     category: "List",
-    code: "return { output: list.reduce((a, b) => a + b, 0) };",
+    code: "return { output: inputs.list.reduce((a, b) => a + b, 0) };",
     tags: ["sum", "total", "add"],
   },
   {
@@ -477,7 +477,7 @@ return { output: chunks };`,
     title: "Average",
     description: "Calculate the average of a list",
     category: "List",
-    code: `return { output: list.reduce((a, b) => a + b, 0) / list.length };`,
+    code: `return { output: inputs.list.reduce((a, b) => a + b, 0) / inputs.list.length };`,
     tags: ["average", "mean", "avg"],
   },
   {
@@ -486,8 +486,8 @@ return { output: chunks };`,
     description: "Find the minimum and maximum values in a list",
     category: "List",
     code: `return {
-  min: Math.min(...list),
-  max: Math.max(...list)
+  min: Math.min(...inputs.list),
+  max: Math.max(...inputs.list)
 };`,
     tags: ["min", "max", "minimum", "maximum"],
   },
@@ -507,7 +507,7 @@ return { output: result };`,
     title: "Shuffle",
     description: "Randomly shuffle a list (Fisher-Yates)",
     category: "List",
-    code: `const arr = [...list];
+    code: `const arr = [...inputs.list];
 for (let i = arr.length - 1; i > 0; i--) {
   const j = Math.floor(Math.random() * (i + 1));
   [arr[i], arr[j]] = [arr[j], arr[i]];
@@ -520,8 +520,8 @@ return { output: arr };`,
     title: "Intersection",
     description: "Find common elements between two lists",
     category: "List",
-    code: `const setB = new Set(b);
-return { output: a.filter(x => setB.has(x)) };`,
+    code: `const setB = new Set(inputs.b);
+return { output: inputs.a.filter(x => setB.has(x)) };`,
     tags: ["intersection", "common", "shared", "overlap"],
   },
   {
@@ -529,7 +529,7 @@ return { output: a.filter(x => setB.has(x)) };`,
     title: "Union",
     description: "Combine two lists, removing duplicates",
     category: "List",
-    code: "return { output: [...new Set([...a, ...b])] };",
+    code: "return { output: [...new Set([...inputs.a, ...inputs.b])] };",
     tags: ["union", "merge", "combine", "unique"],
   },
   {
@@ -537,8 +537,8 @@ return { output: a.filter(x => setB.has(x)) };`,
     title: "Difference",
     description: "Find elements in a that are not in b",
     category: "List",
-    code: `const setB = new Set(b);
-return { output: a.filter(x => !setB.has(x)) };`,
+    code: `const setB = new Set(inputs.b);
+return { output: inputs.a.filter(x => !setB.has(x)) };`,
     tags: ["difference", "subtract", "exclude", "except"],
   },
   {
@@ -547,8 +547,8 @@ return { output: a.filter(x => !setB.has(x)) };`,
     description: "Group items by a key",
     category: "List",
     code: `const groups = {};
-for (const item of items) {
-  const k = item[key];
+for (const item of inputs.items) {
+  const k = item[inputs.key];
   (groups[k] ||= []).push(item);
 }
 return { output: groups };`,
@@ -559,7 +559,7 @@ return { output: groups };`,
     title: "Reduce",
     description: "Reduce a list to a single value",
     category: "List",
-    code: `return { output: list.reduce((acc, item) => acc + item, 0) };`,
+    code: `return { output: inputs.list.reduce((acc, item) => acc + item, 0) };`,
     tags: ["reduce", "fold", "accumulate", "aggregate"],
   },
   {
@@ -568,7 +568,7 @@ return { output: groups };`,
     description: "Repeat each list item consecutively N times: [A,B] x 2 → [A,A,B,B]",
     category: "List",
     code: `const times = 2;
-return { output: list.flatMap(item => Array(times).fill(item)) };`,
+return { output: inputs.list.flatMap(item => Array(times).fill(item)) };`,
     tags: ["repeat", "each", "duplicate", "interleave", "expand", "multiply"],
   },
   {
@@ -577,7 +577,7 @@ return { output: list.flatMap(item => Array(times).fill(item)) };`,
     description: "Duplicate a single value into a list N times",
     category: "List",
     code: `const times = 3;
-return { output: Array(times).fill(value) };`,
+return { output: Array(times).fill(inputs.value) };`,
     tags: ["repeat", "duplicate", "fill", "scalar", "constant", "expand"],
   },
   {
@@ -587,7 +587,7 @@ return { output: Array(times).fill(value) };`,
     category: "List",
     code: `const times = 3;
 const output = [];
-for (let t = 0; t < times; t++) output.push(...list);
+for (let t = 0; t < times; t++) output.push(...inputs.list);
 return { output };`,
     tags: ["tile", "repeat", "cycle", "loop", "concatenate", "duplicate"],
   },
@@ -600,9 +600,9 @@ return { output };`,
     title: "Get Value",
     description: "Get a value from a dictionary by key (supports dot paths like 'a.b.c')",
     category: "Dictionary",
-    code: `const value = String(key).split(".").reduce(
+    code: `const value = String(inputs.key).split(".").reduce(
   (acc, k) => (acc == null ? acc : acc[k]),
-  dict
+  inputs.dict
 );
 return { output: value };`,
     tags: ["get", "access", "key", "value", "path"],
@@ -612,7 +612,7 @@ return { output: value };`,
     title: "Set / Update",
     description: "Set or update a key in a dictionary",
     category: "Dictionary",
-    code: "return { output: { ...dict, [key]: value } };",
+    code: "return { output: { ...inputs.dict, [inputs.key]: inputs.value } };",
     tags: ["set", "update", "put", "assign"],
   },
   {
@@ -620,7 +620,7 @@ return { output: value };`,
     title: "Remove Key",
     description: "Remove a key from a dictionary",
     category: "Dictionary",
-    code: `const { [key]: _, ...rest } = dict;
+    code: `const { [inputs.key]: _, ...rest } = inputs.dict;
 return { output: rest };`,
     tags: ["remove", "delete", "omit", "key"],
   },
@@ -630,8 +630,8 @@ return { output: rest };`,
     description: "Get all keys or values from a dictionary",
     category: "Dictionary",
     code: `return {
-  keys: Object.keys(dict),
-  values: Object.values(dict)
+  keys: Object.keys(inputs.dict),
+  values: Object.values(inputs.dict)
 };`,
     tags: ["keys", "values", "entries"],
   },
@@ -640,7 +640,7 @@ return { output: rest };`,
     title: "Merge Dictionaries",
     description: "Merge two or more dictionaries",
     category: "Dictionary",
-    code: "return { output: { ...a, ...b } };",
+    code: "return { output: { ...inputs.a, ...inputs.b } };",
     tags: ["merge", "combine", "spread", "assign"],
   },
   {
@@ -649,7 +649,7 @@ return { output: rest };`,
     description: "Filter entries by a condition",
     category: "Dictionary",
     code: `return { output: Object.fromEntries(
-  Object.entries(dict).filter(([k, v]) => v !== null)
+  Object.entries(inputs.dict).filter(([k, v]) => v !== null)
 ) };`,
     tags: ["filter", "select", "where"],
   },
@@ -659,7 +659,7 @@ return { output: rest };`,
     description: "Create a dictionary from parallel key and value arrays",
     category: "Dictionary",
     code: `return { output: Object.fromEntries(
-  keys.map((k, i) => [k, values[i]])
+  inputs.keys.map((k, i) => [k, inputs.values[i]])
 ) };`,
     tags: ["zip", "fromEntries", "create", "build"],
   },
@@ -670,7 +670,7 @@ return { output: rest };`,
     category: "Dictionary",
     code: `const picked = ['key1', 'key2'];
 return { output: Object.fromEntries(
-  Object.entries(dict).filter(([k]) => picked.includes(k))
+  Object.entries(inputs.dict).filter(([k]) => picked.includes(k))
 ) };`,
     tags: ["pick", "select", "subset", "pluck"],
   },
@@ -681,7 +681,7 @@ return { output: Object.fromEntries(
     category: "Dictionary",
     code: `const omitted = ['key1', 'key2'];
 return { output: Object.fromEntries(
-  Object.entries(dict).filter(([k]) => !omitted.includes(k))
+  Object.entries(inputs.dict).filter(([k]) => !omitted.includes(k))
 ) };`,
     tags: ["omit", "exclude", "remove", "without"],
   },
@@ -690,7 +690,7 @@ return { output: Object.fromEntries(
     title: "To JSON",
     description: "Serialize a dictionary to JSON string",
     category: "Dictionary",
-    code: "return { output: JSON.stringify(dict, null, 2) };",
+    code: "return { output: JSON.stringify(inputs.dict, null, 2) };",
     tags: ["json", "stringify", "serialize"],
   },
   {
@@ -698,7 +698,7 @@ return { output: Object.fromEntries(
     title: "Arg Max",
     description: "Find the key with the highest value",
     category: "Dictionary",
-    code: `const entries = Object.entries(dict);
+    code: `const entries = Object.entries(inputs.dict);
 const [maxKey] = entries.reduce((a, b) => a[1] > b[1] ? a : b);
 return { output: maxKey };`,
     tags: ["argmax", "max", "key", "highest"],
@@ -709,7 +709,7 @@ return { output: maxKey };`,
     description: "Transform all values in a dictionary",
     category: "Dictionary",
     code: `return { output: Object.fromEntries(
-  Object.entries(dict).map(([k, v]) => [k, v * 2])
+  Object.entries(inputs.dict).map(([k, v]) => [k, v * 2])
 ) };`,
     tags: ["map", "transform", "values"],
   },
@@ -735,7 +735,7 @@ return {
     title: "Parse Date",
     description: "Parse a date string",
     category: "Date & Time",
-    code: `const d = new Date(dateString);
+    code: `const d = new Date(inputs.dateString);
 return { output: d.toISOString() };`,
     tags: ["parse", "convert", "string", "date"],
   },
@@ -744,7 +744,7 @@ return { output: d.toISOString() };`,
     title: "Format Date",
     description: "Format a date into a readable string",
     category: "Date & Time",
-    code: `const d = new Date(dateString);
+    code: `const d = new Date(inputs.dateString);
 return {
   iso: d.toISOString(),
   local: d.toLocaleDateString(),
@@ -758,8 +758,8 @@ return {
     title: "Add Time",
     description: "Add days, hours, or minutes to a date",
     category: "Date & Time",
-    code: `const d = new Date(dateString);
-d.setDate(d.getDate() + days);
+    code: `const d = new Date(inputs.dateString);
+d.setDate(d.getDate() + inputs.days);
 // d.setHours(d.getHours() + hours);
 // d.setMinutes(d.getMinutes() + minutes);
 return { output: d.toISOString() };`,
@@ -770,7 +770,7 @@ return { output: d.toISOString() };`,
     title: "Date Difference",
     description: "Calculate the difference between two dates",
     category: "Date & Time",
-    code: `const a = new Date(dateA), b = new Date(dateB);
+    code: `const a = new Date(inputs.dateA), b = new Date(inputs.dateB);
 const ms = Math.abs(a - b);
 return {
   days: Math.floor(ms / 86400000),
@@ -785,7 +785,7 @@ return {
     description: "Get the day of the week",
     category: "Date & Time",
     code: `const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-const d = new Date(dateString);
+const d = new Date(inputs.dateString);
 return { output: days[d.getDay()], index: d.getDay() };`,
     tags: ["weekday", "day", "week", "name"],
   },
@@ -795,8 +795,8 @@ return { output: days[d.getDay()], index: d.getDay() };`,
     description: "Generate a list of dates between start and end",
     category: "Date & Time",
     code: `const dates = [];
-const d = new Date(start);
-const e = new Date(end);
+const d = new Date(inputs.start);
+const e = new Date(inputs.end);
 while (d <= e) {
   dates.push(d.toISOString().split("T")[0]);
   d.setDate(d.getDate() + 1);
@@ -811,7 +811,7 @@ return { output: dates };`,
     category: "Date & Time",
     code: `// unit: "day" | "week" | "month" | "year" — the week starts on Sunday
 const unit = "week";
-const start = new Date(date);
+const start = new Date(inputs.date);
 if (unit === "year") start.setMonth(0, 1);
 if (unit === "month") start.setDate(1);
 if (unit === "week") start.setDate(start.getDate() - start.getDay());
@@ -835,7 +835,7 @@ return {
     description: "Build a date object from year, month, and day numbers",
     category: "Date & Time",
     code: `// month is 1-12, day is 1-31
-return { output: { year, month, day } };`,
+return { output: { year: inputs.year, month: inputs.month, day: inputs.day } };`,
     tags: ["date", "make", "create", "constant", "year", "month", "day"],
   },
   {
@@ -846,12 +846,12 @@ return { output: { year, month, day } };`,
     code: `// utc_offset is in seconds and describes the wall-clock fields above
 return {
   output: {
-    year,
-    month,
-    day,
-    hour,
-    minute,
-    second,
+    year: inputs.year,
+    month: inputs.month,
+    day: inputs.day,
+    hour: inputs.hour,
+    minute: inputs.minute,
+    second: inputs.second,
     microsecond: 0,
     tzinfo: "UTC",
     utc_offset: 0
@@ -877,7 +877,7 @@ return {
     description: "Check if a string is a valid UUID",
     category: "UUID",
     code: `const re = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-return { output: re.test(value) };`,
+return { output: re.test(inputs.value) };`,
     tags: ["uuid", "validate", "check", "valid"],
   },
 
@@ -894,7 +894,7 @@ return { output: re.test(value) };`,
     title: "Parse JSON",
     description: "Parse a JSON string into an object",
     category: "JSON",
-    code: "return { output: JSON.parse(text) };",
+    code: "return { output: JSON.parse(inputs.text) };",
     tags: ["json", "parse", "decode", "string"],
   },
   {
@@ -910,7 +910,7 @@ return { output: re.test(value) };`,
     title: "Get JSON Path",
     description: "Extract a value using dot-path notation (e.g. 'user.address.city')",
     category: "JSON",
-    code: `const value = String(path).split(".").reduce(
+    code: `const value = String(inputs.path).split(".").reduce(
   (acc, k) => (acc == null ? acc : acc[k]),
   data
 );
@@ -922,7 +922,7 @@ return { output: value };`,
     title: "Filter JSON Array",
     description: "Filter an array of objects by a key-value match",
     category: "JSON",
-    code: `return { output: data.filter(item => item[key] === value) };`,
+    code: `return { output: data.filter(item => item[inputs.key] === inputs.value) };`,
     tags: ["json", "filter", "array", "query", "search"],
   },
   {
@@ -930,7 +930,7 @@ return { output: value };`,
     title: "Parse CSV",
     description: "Parse CSV text into an array of objects",
     category: "JSON",
-    code: `const lines = text.trim().split("\\n");
+    code: `const lines = inputs.text.trim().split("\\n");
 const headers = lines[0].split(",").map(h => h.trim());
 const rows = lines.slice(1).map(line => {
   const values = line.split(",");
@@ -958,7 +958,7 @@ return { output: rows };`,
     title: "Collect Items",
     description: "Accumulate streaming items into a list",
     category: "Streaming",
-    code: `state.items = [...(state.items || []), input];
+    code: `state.items = [...(state.items || []), inputs.input];
 return { output: [...state.items] };`,
     tags: ["collect", "accumulate", "gather", "aggregate", "stream"],
   },
@@ -968,7 +968,7 @@ return { output: [...state.items] };`,
     description: "Filter a stream — return {} to drop an item",
     category: "Streaming",
     code: `// Return {} to drop the item, or { output: value } to pass it through
-return value > threshold ? { output: value } : {};`,
+return inputs.value > inputs.threshold ? { output: inputs.value } : {};`,
     tags: ["stream", "filter", "drop", "pass", "gate"],
   },
   {
@@ -977,7 +977,7 @@ return value > threshold ? { output: value } : {};`,
     description: "Count items passing through a stream",
     category: "Streaming",
     code: `state.count = (state.count || 0) + 1;
-return { output: input, count: state.count };`,
+return { output: inputs.input, count: state.count };`,
     tags: ["count", "counter", "stream", "tally", "increment"],
   },
   {
@@ -986,7 +986,7 @@ return { output: input, count: state.count };`,
     description: "Collect N items then emit as a batch",
     category: "Streaming",
     code: `const batchSize = 5;
-state.items = [...(state.items || []), input];
+state.items = [...(state.items || []), inputs.input];
 if (state.items.length >= batchSize) {
   const batch = [...state.items];
   state.items = [];
@@ -1004,7 +1004,7 @@ return {};`,
     title: "Read File",
     description: "Read a text file from the workspace",
     category: "Files",
-    code: `const content = await workspace.read(path);
+    code: `const content = await workspace.read(inputs.path);
 return { output: content };`,
     tags: ["file", "read", "workspace", "load", "text"],
     inputs: { path: { type: "str", description: "Path relative to the workspace" } },
@@ -1015,8 +1015,8 @@ return { output: content };`,
     title: "Write File",
     description: "Write text content to a workspace file, creating parent directories",
     category: "Files",
-    code: `await workspace.write(path, content);
-return { output: path };`,
+    code: `await workspace.write(inputs.path, inputs.content);
+return { output: inputs.path };`,
     tags: ["file", "write", "save", "workspace", "export"],
     inputs: {
       path: { type: "str", description: "Path relative to the workspace" },
@@ -1029,10 +1029,10 @@ return { output: path };`,
     title: "Append To File",
     description: "Append text to a workspace file, creating it when missing",
     category: "Files",
-    code: `const info = await workspace.stat(path);
-const existing = info.exists ? await workspace.read(path) : "";
-await workspace.write(path, existing + content);
-return { output: path };`,
+    code: `const info = await workspace.stat(inputs.path);
+const existing = info.exists ? await workspace.read(inputs.path) : "";
+await workspace.write(inputs.path, existing + inputs.content);
+return { output: inputs.path };`,
     tags: ["file", "append", "write", "log", "workspace"],
     inputs: {
       path: { type: "str", description: "Path relative to the workspace" },
@@ -1045,7 +1045,7 @@ return { output: path };`,
     title: "List Files",
     description: "List the entry names of a workspace directory",
     category: "Files",
-    code: `const files = await workspace.list(path);
+    code: `const files = await workspace.list(inputs.path);
 return { output: files };`,
     tags: ["file", "list", "directory", "ls", "workspace"],
     inputs: { path: { type: "str", default: "." } },
@@ -1080,7 +1080,7 @@ const scan = async (dir) => {
     }
   }
 };
-await scan(folder);
+await scan(inputs.folder);
 return { output: found, file: found[0] ?? "" };`,
     tags: ["file", "find", "glob", "pattern", "recursive", "walk", "directory"],
     inputs: {
@@ -1093,7 +1093,7 @@ return { output: found, file: found[0] ?? "" };`,
     title: "Read Binary File",
     description: "Read a workspace file as a base64 string",
     category: "Files",
-    code: `const bytes = await workspace.readBytes(path);
+    code: `const bytes = await workspace.readBytes(inputs.path);
 return { output: toBase64(bytes) };`,
     tags: ["file", "binary", "read", "base64", "bytes"],
     inputs: { path: { type: "str", description: "Path relative to the workspace" } },
@@ -1104,8 +1104,8 @@ return { output: toBase64(bytes) };`,
     title: "Write Binary File",
     description: "Write base64 content to a workspace file as raw bytes",
     category: "Files",
-    code: `await workspace.writeBytes(path, fromBase64(content));
-return { output: path };`,
+    code: `await workspace.writeBytes(inputs.path, fromBase64(inputs.content));
+return { output: inputs.path };`,
     tags: ["file", "binary", "write", "base64", "bytes", "save"],
     inputs: {
       path: { type: "str", description: "Path relative to the workspace" },
@@ -1119,7 +1119,7 @@ return { output: path };`,
     description:
       "Check whether a path exists; paths outside the workspace need Allow Host Filesystem",
     category: "Files",
-    code: `return { output: (await workspace.stat(path)).exists };`,
+    code: `return { output: (await workspace.stat(inputs.path)).exists };`,
     tags: ["file", "exists", "check", "missing", "branch"],
     inputs: { path: { type: "str" } },
     outputs: { output: "bool" },
@@ -1130,7 +1130,7 @@ return { output: path };`,
     description:
       "Size, kind and timestamps of a path in one call; paths outside the workspace need Allow Host Filesystem",
     category: "Files",
-    code: `const info = await workspace.stat(path);
+    code: `const info = await workspace.stat(inputs.path);
 return {
   exists: info.exists,
   size: info.size,
@@ -1169,8 +1169,8 @@ return {
     description:
       "Create a directory and its parents; paths outside the workspace need Allow Host Filesystem",
     category: "Files",
-    code: `await workspace.mkdir(path);
-return { output: path };`,
+    code: `await workspace.mkdir(inputs.path);
+return { output: inputs.path };`,
     tags: ["directory", "folder", "create", "mkdir"],
     inputs: { path: { type: "str" } },
     outputs: { output: "str" },
@@ -1181,8 +1181,8 @@ return { output: path };`,
     description:
       "Copy a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
     category: "Files",
-    code: `await workspace.copy(source, destination);
-return { output: destination };`,
+    code: `await workspace.copy(inputs.source, inputs.destination);
+return { output: inputs.destination };`,
     tags: ["file", "copy", "duplicate", "backup"],
     inputs: {
       source: { type: "str" },
@@ -1196,8 +1196,8 @@ return { output: destination };`,
     description:
       "Move or rename a file, creating the destination directory; paths outside the workspace need Allow Host Filesystem",
     category: "Files",
-    code: `await workspace.move(source, destination);
-return { output: destination };`,
+    code: `await workspace.move(inputs.source, inputs.destination);
+return { output: inputs.destination };`,
     tags: ["file", "move", "rename", "archive", "organize"],
     inputs: {
       source: { type: "str" },
@@ -1223,7 +1223,7 @@ return { output: destination };`,
     title: "Extract Substring",
     description: "Extract a portion of text by start/end index",
     category: "Text",
-    code: `return { output: text.slice(start, end) };`,
+    code: `return { output: inputs.text.slice(inputs.start, inputs.end) };`,
     tags: ["extract", "substring", "slice", "range"],
   },
   {
@@ -1232,7 +1232,7 @@ return { output: destination };`,
     description: "Split text into word-based chunks with optional overlap",
     category: "Text",
     code: `const chunkSize = 100, overlap = 0;
-const words = text.split(" ");
+const words = inputs.text.split(" ");
 const step = chunkSize - overlap;
 const chunks = [];
 for (let i = 0; i < words.length; i += step) {
@@ -1246,7 +1246,7 @@ return { output: chunks };`,
     title: "Title Case",
     description: "Convert text to title case (capitalize each word)",
     category: "Text",
-    code: `return { output: text.replace(/\\w\\S*/g, w =>
+    code: `return { output: inputs.text.replace(/\\w\\S*/g, w =>
   w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
 ) };`,
     tags: ["title", "case", "capitalize", "words"],
@@ -1256,7 +1256,7 @@ return { output: chunks };`,
     title: "Capitalize",
     description: "Capitalize only the first character",
     category: "Text",
-    code: `return { output: text.charAt(0).toUpperCase() + text.slice(1).toLowerCase() };`,
+    code: `return { output: inputs.text.charAt(0).toUpperCase() + inputs.text.slice(1).toLowerCase() };`,
     tags: ["capitalize", "first", "letter", "sentence"],
   },
   {
@@ -1264,7 +1264,7 @@ return { output: chunks };`,
     title: "Starts With",
     description: "Check if text starts with a prefix",
     category: "Text",
-    code: `return { output: text.startsWith(prefix) };`,
+    code: `return { output: inputs.text.startsWith(inputs.prefix) };`,
     tags: ["starts", "prefix", "check", "begins"],
   },
   {
@@ -1272,7 +1272,7 @@ return { output: chunks };`,
     title: "Ends With",
     description: "Check if text ends with a suffix",
     category: "Text",
-    code: `return { output: text.endsWith(suffix) };`,
+    code: `return { output: inputs.text.endsWith(inputs.suffix) };`,
     tags: ["ends", "suffix", "check", "extension"],
   },
   {
@@ -1281,7 +1281,7 @@ return { output: chunks };`,
     description: "Check if text contains a substring (case-insensitive option)",
     category: "Text",
     code: `// case insensitive: text.toLowerCase().includes(sub.toLowerCase())
-return { output: text.includes(substring) };`,
+return { output: inputs.text.includes(inputs.substring) };`,
     tags: ["contains", "includes", "search", "find"],
   },
   {
@@ -1289,7 +1289,7 @@ return { output: text.includes(substring) };`,
     title: "Is Empty",
     description: "Check if text is empty or only whitespace",
     category: "Text",
-    code: `return { output: text.trim().length === 0 };`,
+    code: `return { output: inputs.text.trim().length === 0 };`,
     tags: ["empty", "blank", "whitespace", "check"],
   },
   {
@@ -1297,7 +1297,7 @@ return { output: text.includes(substring) };`,
     title: "Collapse Whitespace",
     description: "Replace runs of whitespace with a single space",
     category: "Text",
-    code: `return { output: text.trim().replace(/\\s+/g, " ") };`,
+    code: `return { output: inputs.text.trim().replace(/\\s+/g, " ") };`,
     tags: ["whitespace", "collapse", "normalize", "clean"],
   },
   {
@@ -1305,7 +1305,7 @@ return { output: text.includes(substring) };`,
     title: "Remove Punctuation",
     description: "Remove punctuation characters from text",
     category: "Text",
-    code: `return { output: text.replace(/[!"#$%&'()*+,\\-./:;<=>?@[\\\\\\]^_\`{|}~]/g, "") };`,
+    code: `return { output: inputs.text.replace(/[!"#$%&'()*+,\\-./:;<=>?@[\\\\\\]^_\`{|}~]/g, "") };`,
     tags: ["punctuation", "remove", "clean", "strip"],
   },
   {
@@ -1313,7 +1313,7 @@ return { output: text.includes(substring) };`,
     title: "Strip Accents",
     description: "Remove accent marks, keeping base characters",
     category: "Text",
-    code: `return { output: text.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "") };`,
+    code: `return { output: inputs.text.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "") };`,
     tags: ["accents", "diacritics", "normalize", "unicode"],
   },
   {
@@ -1321,7 +1321,7 @@ return { output: text.includes(substring) };`,
     title: "Slugify",
     description: "Convert text to a URL-safe slug",
     category: "Text",
-    code: `return { output: text
+    code: `return { output: inputs.text
   .normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "")
   .replace(/[^\\w\\s-]/g, "")
   .replace(/[\\s_-]+/g, "-")
@@ -1336,9 +1336,9 @@ return { output: text.includes(substring) };`,
     description: "Count characters, words, or lines in text",
     category: "Text",
     code: `return {
-  chars: text.length,
-  words: text.split(/\\s+/).filter(Boolean).length,
-  lines: text.split(/\\r?\\n/).length
+  chars: inputs.text.length,
+  words: inputs.text.split(/\\s+/).filter(Boolean).length,
+  lines: inputs.text.split(/\\r?\\n/).length
 };`,
     tags: ["length", "count", "words", "lines", "characters"],
   },
@@ -1347,7 +1347,7 @@ return { output: text.includes(substring) };`,
     title: "Index Of",
     description: "Find the position of a substring",
     category: "Text",
-    code: `return { output: text.indexOf(substring) };`,
+    code: `return { output: inputs.text.indexOf(inputs.substring) };`,
     tags: ["index", "find", "position", "search", "indexOf"],
   },
   {
@@ -1355,7 +1355,7 @@ return { output: text.includes(substring) };`,
     title: "Surround / Wrap",
     description: "Wrap text with a prefix and suffix",
     category: "Text",
-    code: `return { output: prefix + text + suffix };`,
+    code: `return { output: inputs.prefix + inputs.text + inputs.suffix };`,
     tags: ["surround", "wrap", "prefix", "suffix", "bracket"],
   },
   {
@@ -1364,8 +1364,8 @@ return { output: text.includes(substring) };`,
     description: "Truncate text to a max length with optional ellipsis",
     category: "Text",
     code: `const maxLen = 100, ellipsis = "...";
-if (text.length <= maxLen) return { output: text };
-return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
+if (inputs.text.length <= maxLen) return { output: inputs.text };
+return { output: inputs.text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
     tags: ["truncate", "clip", "shorten", "ellipsis"],
   },
   {
@@ -1373,8 +1373,8 @@ return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
     title: "Compare Text",
     description: "Compare two strings (equal, less, greater)",
     category: "Text",
-    code: `const result = a < b ? "less" : a > b ? "greater" : "equal";
-return { output: result, equal: a === b };`,
+    code: `const result = inputs.a < inputs.b ? "less" : inputs.a > inputs.b ? "greater" : "equal";
+return { output: result, equal: inputs.a === inputs.b };`,
     tags: ["compare", "sort", "order", "equal", "lexical"],
   },
   {
@@ -1384,7 +1384,7 @@ return { output: result, equal: a === b };`,
     category: "Text",
     code: `// 0 means unset; an exact length wins over min/max
 const minLength = 3, maxLength = 10, exactLength = 0;
-const len = text.length;
+const len = inputs.text.length;
 if (exactLength > 0) return { output: len === exactLength };
 if (minLength > 0 && len < minLength) return { output: false };
 if (maxLength > 0 && len > maxLength) return { output: false };
@@ -1400,7 +1400,7 @@ return { output: true };`,
     title: "Extract Regex Groups",
     description: "Extract capture groups from the first match",
     category: "Regex",
-    code: `const match = new RegExp(pattern).exec(text);
+    code: `const match = new RegExp(inputs.pattern).exec(inputs.text);
 return { output: match ? match.slice(1) : [] };`,
     tags: ["regex", "extract", "groups", "capture"],
   },
@@ -1409,7 +1409,7 @@ return { output: match ? match.slice(1) : [] };`,
     title: "Find All Matches",
     description: "Find all occurrences of a pattern",
     category: "Regex",
-    code: `const matches = [...text.matchAll(new RegExp(pattern, "g"))].map(m => m[0]);
+    code: `const matches = [...inputs.text.matchAll(new RegExp(inputs.pattern, "g"))].map(m => m[0]);
 return { output: matches };`,
     tags: ["regex", "find", "all", "matchAll", "global"],
   },
@@ -1418,7 +1418,7 @@ return { output: matches };`,
     title: "Regex Replace",
     description: "Replace text matching a regex pattern",
     category: "Regex",
-    code: `return { output: text.replace(new RegExp(pattern, "g"), replacement) };`,
+    code: `return { output: inputs.text.replace(new RegExp(inputs.pattern, "g"), inputs.replacement) };`,
     tags: ["regex", "replace", "substitute", "gsub"],
   },
   {
@@ -1426,7 +1426,7 @@ return { output: matches };`,
     title: "Regex Split",
     description: "Split text using a regex delimiter",
     category: "Regex",
-    code: `return { output: text.split(new RegExp(pattern)) };`,
+    code: `return { output: inputs.text.split(new RegExp(inputs.pattern)) };`,
     tags: ["regex", "split", "tokenize", "delimiter"],
   },
   {
@@ -1434,7 +1434,7 @@ return { output: matches };`,
     title: "Regex Validate",
     description: "Check if text matches a regex pattern",
     category: "Regex",
-    code: `return { output: new RegExp(pattern).test(text) };`,
+    code: `return { output: new RegExp(inputs.pattern).test(inputs.text) };`,
     tags: ["regex", "validate", "test", "check", "match"],
   },
   {
@@ -1443,7 +1443,7 @@ return { output: matches };`,
     description: "Find all matches and extract a specific capture group",
     category: "Regex",
     code: `const group = 1; // 0 = full match, 1+ = capture group
-const matches = [...text.matchAll(new RegExp(pattern, "g"))]
+const matches = [...inputs.text.matchAll(new RegExp(inputs.pattern, "g"))]
   .map(m => m[group])
   .filter(v => v !== undefined);
 return { output: matches };`,
@@ -1456,10 +1456,10 @@ return { output: matches };`,
     category: "Regex",
     code: `let count = 0;
 const maxReplacements = 2;
-const result = text.replace(new RegExp(pattern, "g"), (match) => {
+const result = inputs.text.replace(new RegExp(inputs.pattern, "g"), (match) => {
   if (count >= maxReplacements) return match;
   count++;
-  return replacement;
+  return inputs.replacement;
 });
 return { output: result };`,
     tags: ["regex", "replace", "count", "limit", "first"],
@@ -1474,7 +1474,7 @@ return { output: result };`,
     description: "Extract values using dot-path with wildcard support",
     category: "JSON",
     code: `// Supports: $.store.book[0].title, $.store.*, $.items[*].name
-const tokens = path.replace(/^\\$\\.?/, "").replace(/\\[(\\d+)\\]/g, ".$1").split(".").filter(Boolean);
+const tokens = inputs.path.replace(/^\\$\\.?/, "").replace(/\\[(\\d+)\\]/g, ".$1").split(".").filter(Boolean);
 let current = [data];
 for (const t of tokens) {
   const next = [];
@@ -1499,7 +1499,7 @@ return { output: current.length === 1 ? current[0] : current };`,
     title: "Basename / File Name",
     description: "Get the file name from a path, with and without extension",
     category: "Path",
-    code: `const p = String(path).replace(/\\/+$/, "");
+    code: `const p = String(inputs.path).replace(/\\/+$/, "");
 const base = p.slice(p.lastIndexOf("/") + 1);
 const dot = base.lastIndexOf(".");
 const ext = dot > 0 && base !== ".." ? base.slice(dot) : "";
@@ -1519,7 +1519,7 @@ return { output: base, stem: ext ? base.slice(0, -ext.length) : base };`,
     title: "Dirname / Get Directory",
     description: "Get the directory containing a path",
     category: "Path",
-    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+    code: `const p = String(inputs.path).replace(/(?!^)\\/+$/, "");
 const i = p.lastIndexOf("/");
 return { output: i < 0 ? "." : i === 0 ? "/" : p.slice(0, i) };`,
     tags: [
@@ -1536,7 +1536,7 @@ return { output: i < 0 ? "." : i === 0 ? "/" : p.slice(0, i) };`,
     title: "Split Path",
     description: "Split a path into directory and file name",
     category: "Path",
-    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+    code: `const p = String(inputs.path).replace(/(?!^)\\/+$/, "");
 const i = p.lastIndexOf("/");
 return {
   dirname: i < 0 ? "." : i === 0 ? "/" : p.slice(0, i),
@@ -1550,7 +1550,7 @@ return {
     description:
       "Split a path into root and extension (dotfiles have no extension)",
     category: "Path",
-    code: `const p = String(path).replace(/(?!^)\\/+$/, "");
+    code: `const p = String(inputs.path).replace(/(?!^)\\/+$/, "");
 const base = p.slice(p.lastIndexOf("/") + 1);
 const dot = base.lastIndexOf(".");
 const extension = dot > 0 && base !== ".." ? base.slice(dot) : "";
@@ -1570,7 +1570,7 @@ return { root: extension ? p.slice(0, -extension.length) : p, extension };`,
     title: "Join Paths",
     description: "Join path components into one normalized path",
     category: "Path",
-    code: `const joined = paths.map(String).filter(Boolean).join("/");
+    code: `const joined = inputs.paths.map(String).filter(Boolean).join("/");
 const abs = joined.startsWith("/");
 const trail = joined.length > 1 && joined.endsWith("/");
 const out = [];
@@ -1589,7 +1589,7 @@ return { output: trail && !result.endsWith("/") ? result + "/" : result };`,
     title: "Normalize Path",
     description: "Collapse redundant separators, '.' and '..' segments",
     category: "Path",
-    code: `const p = String(path);
+    code: `const p = String(inputs.path);
 const abs = p.startsWith("/");
 const trail = p.length > 1 && p.endsWith("/");
 const out = [];
@@ -1609,7 +1609,7 @@ return { output: trail && !result.endsWith("/") ? result + "/" : result };`,
     description: "Resolve a path against a base directory",
     category: "Path",
     code: `const base = "/workspace"; // directory relative paths resolve against
-const p = String(path);
+const p = String(inputs.path);
 const joined = p.startsWith("/") ? p : base.replace(/\\/+$/, "") + "/" + p;
 const out = [];
 for (const seg of joined.split("/")) {
@@ -1635,8 +1635,8 @@ return { output: "/" + out.join("/") };`,
   }
   return out;
 };
-const from = segs(start_path);
-const to = segs(target_path);
+const from = segs(inputs.start_path);
+const to = segs(inputs.target_path);
 let i = 0;
 while (i < from.length && i < to.length && from[i] === to[i]) i++;
 const up = new Array(from.length - i).fill("..");
@@ -1649,7 +1649,7 @@ return { output: [...up, ...to.slice(i)].join("/") };`,
     description: "All components of a path in one dictionary",
     category: "Path",
     code: `const base_dir = "/workspace"; // directory relative paths resolve against
-const p = String(path);
+const p = String(inputs.path);
 const trimmed = p.replace(/(?!^)\\/+$/, "");
 const i = trimmed.lastIndexOf("/");
 const basename = trimmed.slice(i + 1);
@@ -1690,7 +1690,7 @@ return {
     description: "Get the raw string from a file path value",
     category: "Path",
     code: `return {
-  output: typeof file_path === "string" ? file_path : String(file_path?.path ?? "")
+  output: typeof inputs.file_path === "string" ? inputs.file_path : String(inputs.file_path?.path ?? "")
 };`,
     tags: ["path to string", "string", "convert", "file path", "path", "raw"],
   },
@@ -1703,14 +1703,14 @@ return {
 // Wildcards: * matches any run of characters, ? matches one
 const rx = new RegExp(
   "^" +
-    String(pattern)
+    String(inputs.pattern)
       .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
       .replace(/\\*/g, ".*")
       .replace(/\\?/g, ".") +
     "$",
   case_sensitive ? "" : "i"
 );
-return { output: rx.test(String(filename)) };`,
+return { output: rx.test(String(inputs.filename)) };`,
     tags: [
       "match",
       "file name match",
@@ -1730,14 +1730,14 @@ return { output: rx.test(String(filename)) };`,
 // Wildcards: * matches any run of characters, ? matches one
 const rx = new RegExp(
   "^" +
-    String(pattern)
+    String(inputs.pattern)
       .replace(/[.+^\${}()|[\\]\\\\]/g, "\\\\$&")
       .replace(/\\*/g, ".*")
       .replace(/\\?/g, ".") +
     "$",
   case_sensitive ? "" : "i"
 );
-return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
+return { output: inputs.filenames.map(String).filter((name) => rx.test(name)) };`,
     tags: [
       "filter",
       "filter file names",
@@ -1765,10 +1765,10 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   output: {
     name: "rect",
     attributes: {
-      x, y, width, height,
-      fill,
-      stroke,
-      "stroke-width": stroke_width
+      x: inputs.x, y: inputs.y, width: inputs.width, height: inputs.height,
+      fill: inputs.fill,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1793,11 +1793,11 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   output: {
     name: "circle",
     attributes: {
-      cx, cy,
-      r: radius,
-      fill,
-      stroke,
-      "stroke-width": stroke_width
+      cx: inputs.cx, cy: inputs.cy,
+      r: inputs.radius,
+      fill: inputs.fill,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1821,10 +1821,10 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   output: {
     name: "ellipse",
     attributes: {
-      cx, cy, rx, ry,
-      fill,
-      stroke,
-      "stroke-width": stroke_width
+      cx: inputs.cx, cy: inputs.cy, rx: inputs.rx, ry: inputs.ry,
+      fill: inputs.fill,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1849,9 +1849,9 @@ return { output: filenames.map(String).filter((name) => rx.test(name)) };`,
   output: {
     name: "line",
     attributes: {
-      x1, y1, x2, y2,
-      stroke,
-      "stroke-width": stroke_width
+      x1: inputs.x1, y1: inputs.y1, x2: inputs.x2, y2: inputs.y2,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1876,10 +1876,10 @@ return {
   output: {
     name: "polygon",
     attributes: {
-      points,
-      fill,
-      stroke,
-      "stroke-width": stroke_width
+      points: inputs.points,
+      fill: inputs.fill,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1914,10 +1914,10 @@ return {
   output: {
     name: "path",
     attributes: {
-      d: path_data,
-      fill,
-      stroke,
-      "stroke-width": stroke_width
+      d: inputs.path_data,
+      fill: inputs.fill,
+      stroke: inputs.stroke,
+      "stroke-width": inputs.stroke_width
     }
   }
 };`,
@@ -1945,13 +1945,13 @@ return {
   output: {
     name: "text",
     attributes: {
-      x, y,
-      "font-family": font_family,
-      "font-size": font_size,
-      fill,
-      "text-anchor": text_anchor
+      x: inputs.x, y: inputs.y,
+      "font-family": inputs.font_family,
+      "font-size": inputs.font_size,
+      fill: inputs.fill,
+      "text-anchor": inputs.text_anchor
     },
-    content: text
+    content: inputs.text
   }
 };`,
     tags: ["text", "label", "typography", "font", "caption", "vector", "svg"],
@@ -1981,7 +1981,7 @@ return {
     name: "filter",
     attributes: { id },
     children: [
-      { name: "feGaussianBlur", attributes: { stdDeviation: std_deviation } }
+      { name: "feGaussianBlur", attributes: { stdDeviation: inputs.std_deviation } }
     ]
   }
 };`,
@@ -2004,10 +2004,10 @@ return {
     children: [
       {
         name: "feGaussianBlur",
-        attributes: { in: "SourceAlpha", stdDeviation: std_deviation }
+        attributes: { in: "SourceAlpha", stdDeviation: inputs.std_deviation }
       },
-      { name: "feOffset", attributes: { dx, dy } },
-      { name: "feFlood", attributes: { "flood-color": color } },
+      { name: "feOffset", attributes: { dx: inputs.dx, dy: inputs.dy } },
+      { name: "feFlood", attributes: { "flood-color": inputs.color } },
       { name: "feComposite", attributes: { operator: "in", in2: "SourceAlpha" } },
       {
         name: "feMerge",
@@ -2048,21 +2048,21 @@ return {
   output: {
     name: radial ? "radialGradient" : "linearGradient",
     attributes: radial
-      ? { id, cx: x1 + "%", cy: y1 + "%", r: x2 + "%" }
-      : { id, x1: x1 + "%", y1: y1 + "%", x2: x2 + "%", y2: y2 + "%" },
+      ? { id, cx: inputs.x1 + "%", cy: inputs.y1 + "%", r: inputs.x2 + "%" }
+      : { id, x1: inputs.x1 + "%", y1: inputs.y1 + "%", x2: inputs.x2 + "%", y2: inputs.y2 + "%" },
     children: [
       {
         name: "stop",
         attributes: {
           offset: "0%",
-          style: "stop-color:" + color1 + ";stop-opacity:1"
+          style: "stop-color:" + inputs.color1 + ";stop-opacity:1"
         }
       },
       {
         name: "stop",
         attributes: {
           offset: "100%",
-          style: "stop-color:" + color2 + ";stop-opacity:1"
+          style: "stop-color:" + inputs.color2 + ";stop-opacity:1"
         }
       }
     ]
@@ -2094,16 +2094,16 @@ return {
     description: "Translate, rotate, and scale an SVG element",
     category: "SVG",
     code: `const parts = [];
-if (translate_x || translate_y) {
-  parts.push("translate(" + translate_x + "," + translate_y + ")");
+if (inputs.translate_x || inputs.translate_y) {
+  parts.push("translate(" + inputs.translate_x + "," + inputs.translate_y + ")");
 }
-if (rotate) parts.push("rotate(" + rotate + ")");
-if (scale_x !== 1 || scale_y !== 1) {
-  parts.push("scale(" + scale_x + "," + scale_y + ")");
+if (inputs.rotate) parts.push("rotate(" + inputs.rotate + ")");
+if (inputs.scale_x !== 1 || inputs.scale_y !== 1) {
+  parts.push("scale(" + inputs.scale_x + "," + inputs.scale_y + ")");
 }
-const attributes = { ...content.attributes };
+const attributes = { ...inputs.content.attributes };
 if (parts.length) attributes.transform = parts.join(" ");
-return { output: { ...content, attributes } };`,
+return { output: { ...inputs.content, attributes } };`,
     tags: [
       "transform",
       "translate",
@@ -2133,10 +2133,10 @@ return {
   output: {
     name: "g",
     children: [
-      { name: "clipPath", attributes: { id }, children: [clip_content] },
+      { name: "clipPath", attributes: { id }, children: [inputs.clip_content] },
       {
-        ...content,
-        attributes: { ...content.attributes, "clip-path": "url(#" + id + ")" }
+        ...inputs.content,
+        attributes: { ...inputs.content.attributes, "clip-path": "url(#" + id + ")" }
       }
     ]
   }
@@ -2160,7 +2160,7 @@ return {
     title: "GET Text",
     description: "Fetch text content from a URL",
     category: "HTTP",
-    code: `const res = await fetch(url, { headers: { ...headers } });
+    code: `const res = await fetch(inputs.url, { headers: { ...inputs.headers } });
 return { output: await res.text(), status: res.status };`,
     tags: ["http", "get", "text", "fetch", "request", "api", "url", "download"],
   },
@@ -2169,7 +2169,7 @@ return { output: await res.text(), status: res.status };`,
     title: "GET JSON",
     description: "Fetch and parse JSON from a URL",
     category: "HTTP",
-    code: `const res = await fetch(url, { headers: { Accept: "application/json", ...headers } });
+    code: `const res = await fetch(inputs.url, { headers: { Accept: "application/json", ...inputs.headers } });
 if (res.json === undefined) throw new Error("Response is not JSON (status " + res.status + ")");
 return { output: res.json, status: res.status };`,
     tags: ["http", "get", "json", "fetch", "request", "api", "rest", "parse"],
@@ -2179,7 +2179,7 @@ return { output: res.json, status: res.status };`,
     title: "GET Bytes",
     description: "Download binary data from a URL as a Uint8Array",
     category: "HTTP",
-    code: `const res = await fetch(url, { headers: { ...headers } });
+    code: `const res = await fetch(inputs.url, { headers: { ...inputs.headers } });
 return { output: await res.bytes(), status: res.status };`,
     tags: ["http", "get", "bytes", "binary", "download", "fetch", "request", "api"],
   },
@@ -2188,10 +2188,10 @@ return { output: await res.bytes(), status: res.status };`,
     title: "POST JSON",
     description: "Send a POST request with a JSON body",
     category: "HTTP",
-    code: `const res = await fetch(url, {
+    code: `const res = await fetch(inputs.url, {
   method: "POST",
-  headers: { "Content-Type": "application/json", ...headers },
-  body: JSON.stringify(body)
+  headers: { "Content-Type": "application/json", ...inputs.headers },
+  body: JSON.stringify(inputs.body)
 });
 return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
     tags: ["http", "post", "json", "send", "request", "api", "rest", "submit"],
@@ -2201,10 +2201,10 @@ return { output: res.json === undefined ? res.body : res.json, status: res.statu
     title: "PUT JSON",
     description: "Send a PUT request with a JSON body",
     category: "HTTP",
-    code: `const res = await fetch(url, {
+    code: `const res = await fetch(inputs.url, {
   method: "PUT",
-  headers: { "Content-Type": "application/json", ...headers },
-  body: JSON.stringify(body)
+  headers: { "Content-Type": "application/json", ...inputs.headers },
+  body: JSON.stringify(inputs.body)
 });
 return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
     tags: ["http", "put", "update", "replace", "request", "api", "rest", "json"],
@@ -2214,10 +2214,10 @@ return { output: res.json === undefined ? res.body : res.json, status: res.statu
     title: "PATCH JSON",
     description: "Send a PATCH request with a JSON body",
     category: "HTTP",
-    code: `const res = await fetch(url, {
+    code: `const res = await fetch(inputs.url, {
   method: "PATCH",
-  headers: { "Content-Type": "application/json", ...headers },
-  body: JSON.stringify(body)
+  headers: { "Content-Type": "application/json", ...inputs.headers },
+  body: JSON.stringify(inputs.body)
 });
 return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
     tags: ["http", "patch", "update", "modify", "request", "api", "rest", "json"],
@@ -2227,7 +2227,7 @@ return { output: res.json === undefined ? res.body : res.json, status: res.statu
     title: "DELETE",
     description: "Send a DELETE request and report whether it succeeded",
     category: "HTTP",
-    code: `const res = await fetch(url, { method: "DELETE", headers: { ...headers } });
+    code: `const res = await fetch(inputs.url, { method: "DELETE", headers: { ...inputs.headers } });
 return { output: res.ok, status: res.status };`,
     tags: ["http", "delete", "remove", "destroy", "request", "api", "rest"],
   },
@@ -2238,7 +2238,7 @@ return { output: res.ok, status: res.status };`,
     category: "HTTP",
     code: `// Rename the secret to whatever you stored under Settings -> Secrets
 const token = await getSecret("API_TOKEN");
-const res = await fetch(url, {
+const res = await fetch(inputs.url, {
   headers: { Accept: "application/json", Authorization: "Bearer " + token }
 });
 return { output: res.json === undefined ? res.body : res.json, status: res.status };`,
@@ -2250,10 +2250,10 @@ return { output: res.json === undefined ? res.body : res.json, status: res.statu
     description: "Run a GraphQL query or mutation against any endpoint",
     category: "HTTP",
     code: `// Add operationName here for multi-operation documents
-const res = await fetch(url, {
+const res = await fetch(inputs.url, {
   method: "POST",
   headers: { "Content-Type": "application/json", Accept: "application/json" },
-  body: JSON.stringify({ query, variables })
+  body: JSON.stringify({ query: inputs.query, variables: inputs.variables })
 });
 const json = res.json ?? {};
 return { data: json.data ?? null, errors: json.errors ?? [], status: res.status };`,
@@ -2267,10 +2267,10 @@ return { data: json.data ?? null, errors: json.errors ?? [], status: res.status 
     code: `const reqHeaders = { "Content-Type": "application/json", Accept: "application/json" };
 const token = await getSecret("GRAPHQL_AUTH_TOKEN");
 if (token) reqHeaders.Authorization = "Bearer " + token;
-const res = await fetch(url, {
+const res = await fetch(inputs.url, {
   method: "POST",
   headers: reqHeaders,
-  body: JSON.stringify({ query, variables })
+  body: JSON.stringify({ query: inputs.query, variables: inputs.variables })
 });
 const json = res.json ?? {};
 return { data: json.data ?? null, errors: json.errors ?? [], status: res.status };`,
@@ -2282,10 +2282,10 @@ return { data: json.data ?? null, errors: json.errors ?? [], status: res.status 
     description: "Send several GraphQL operations in one batched request",
     category: "HTTP",
     code: `// queries: [{ query, variables?, operationName? }, ...]
-const res = await fetch(url, {
+const res = await fetch(inputs.url, {
   method: "POST",
   headers: { "Content-Type": "application/json", Accept: "application/json" },
-  body: JSON.stringify(queries)
+  body: JSON.stringify(inputs.queries)
 });
 const json = res.json ?? [];
 return { output: Array.isArray(json) ? json : [json], status: res.status };`,
@@ -2298,7 +2298,7 @@ return { output: Array.isArray(json) ? json : [json], status: res.status };`,
     category: "HTTP",
     code: `const query = "{ __schema { queryType { name } mutationType { name } subscriptionType { name } " +
   "types { name kind fields { name type { name kind ofType { name kind } } } } } }";
-const res = await fetch(url, {
+const res = await fetch(inputs.url, {
   method: "POST",
   headers: { "Content-Type": "application/json", Accept: "application/json" },
   body: JSON.stringify({ query })
@@ -2318,7 +2318,7 @@ return { output: res.json ?? {}, types: schema ? schema.types.map(t => t.name) :
     category: "Markdown",
     code: `const maxLevel = 6; // deepest header level to keep (1-6)
 const headers = [];
-for (const line of String(markdown).split("\\n")) {
+for (const line of String(inputs.markdown).split("\\n")) {
   const m = line.match(/^(#{1,6})\\s+(.+)$/);
   if (m && m[1].length <= maxLevel) {
     headers.push({ level: m[1].length, text: m[2].trim(), index: headers.length });
@@ -2345,7 +2345,7 @@ return { output: headers };`,
 const links = [];
 // Autolinks need a scheme so inline HTML like <div> is not read as a link.
 const pattern = /\\[([^\\]]+)\\]\\(([^)]+)\\)|<([a-zA-Z][a-zA-Z0-9+.-]*:[^>\\s]+)>/g;
-for (const m of String(markdown).matchAll(pattern)) {
+for (const m of String(inputs.markdown).matchAll(pattern)) {
   if (m[1] && m[2]) links.push({ url: m[2], title: includeTitles ? m[1] : "" });
   else if (m[3]) links.push({ url: m[3], title: "" });
 }
@@ -2365,7 +2365,7 @@ return { output: links };`,
     description: "Extract fenced code blocks and their languages from markdown",
     category: "Markdown",
     code: `const blocks = [];
-for (const m of String(markdown).matchAll(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g)) {
+for (const m of String(inputs.markdown).matchAll(/\`\`\`(\\w*)\\n([\\s\\S]*?)\\n\`\`\`/g)) {
   blocks.push({ language: m[1] || "text", code: m[2].trim() });
 }
 return { output: blocks };`,
@@ -2386,7 +2386,7 @@ return { output: blocks };`,
     category: "Markdown",
     code: `const lists = [];
 let current = [];
-for (const line of String(markdown).split("\\n")) {
+for (const line of String(inputs.markdown).split("\\n")) {
   const m = line.match(/^\\s*[-*+]\\s+(.+)$/);
   if (m) current.push({ text: m[1].trim() });
   else if (current.length) { lists.push(current); current = []; }
@@ -2410,7 +2410,7 @@ return { output: lists };`,
     category: "Markdown",
     code: `const lists = [];
 let current = [];
-for (const line of String(markdown).split("\\n")) {
+for (const line of String(inputs.markdown).split("\\n")) {
   const m = line.match(/^\\s*\\d+\\.\\s+(.+)$/);
   if (m) current.push(m[1].trim());
   else if (current.length) { lists.push(current); current = []; }
@@ -2433,7 +2433,7 @@ return { output: lists };`,
     description: "Convert the first markdown table into dataframe rows",
     category: "Markdown",
     code: `const table = [];
-for (const line of String(markdown).split("\\n")) {
+for (const line of String(inputs.markdown).split("\\n")) {
   if (line.includes("|")) {
     table.push(line.split("|").slice(1, -1).map(c => c.trim()));
   } else if (table.length) break;
@@ -2466,7 +2466,7 @@ return { output: { rows } };`,
     title: "Base URL",
     description: "Extract scheme + host (the site root) from a full URL",
     category: "HTML",
-    code: `const parsed = new URL(url);
+    code: `const parsed = new URL(inputs.url);
 return { output: parsed.protocol + "//" + parsed.host };`,
     tags: [
       "base url",
@@ -2486,8 +2486,8 @@ return { output: parsed.protocol + "//" + parsed.host };`,
       "Extract every <a href> with its text, classified internal or external",
     category: "HTML",
     code: `const baseUrl = ""; // page URL — decides internal vs external
-const hrefs = await data.selectHtml(html, "a[href]", { attr: "href", limit: 1000 });
-const texts = await data.selectHtml(html, "a[href]", { limit: 1000 });
+const hrefs = await data.selectHtml(inputs.html, "a[href]", { attr: "href", limit: 1000 });
+const texts = await data.selectHtml(inputs.html, "a[href]", { limit: 1000 });
 const isInternal = (href) => {
   if (!href || href.startsWith("#")) return true;
   if (/^(mailto|tel|javascript):/i.test(href)) return false;
@@ -2524,7 +2524,7 @@ return { links, href: links[0]?.href ?? "", text: links[0]?.text ?? "" };`,
     description: "Collect every <img src> from HTML, resolved against a base URL",
     category: "HTML",
     code: `const baseUrl = ""; // page URL — resolves relative src values
-const srcs = await data.selectHtml(html, "img[src]", { attr: "src", limit: 1000 });
+const srcs = await data.selectHtml(inputs.html, "img[src]", { attr: "src", limit: 1000 });
 const resolve = (s) => {
   try { return new URL(s, baseUrl || undefined).href; } catch { return s; }
 };
@@ -2547,7 +2547,7 @@ return { images, image: images[0] ?? { uri: "", type: "image" } };`,
     description: "Collect <audio> and <audio><source> sources from HTML",
     category: "HTML",
     code: `const baseUrl = ""; // page URL — resolves relative src values
-const srcs = await data.selectHtml(html, "audio[src], audio source[src]", {
+const srcs = await data.selectHtml(inputs.html, "audio[src], audio source[src]", {
   attr: "src",
   limit: 1000
 });
@@ -2574,7 +2574,7 @@ return { audios, audio: audios[0] ?? { uri: "", type: "audio" } };`,
     category: "HTML",
     code: `const baseUrl = ""; // page URL — resolves relative src values
 const srcs = await data.selectHtml(
-  html,
+  inputs.html,
   "video[src], video source[src], iframe[src]",
   { attr: "src", limit: 1000 }
 );
@@ -2601,7 +2601,7 @@ return { videos, video: videos[0] ?? { uri: "", type: "video" } };`,
     description: "Read the page title and the description / keywords meta tags",
     category: "HTML",
     code: `const first = async (selector, attr) =>
-  (await data.selectHtml(html, selector, attr ? { attr, limit: 1 } : { limit: 1 }))[0] ?? null;
+  (await data.selectHtml(inputs.html, selector, attr ? { attr, limit: 1 } : { limit: 1 }))[0] ?? null;
 return {
   title: (await first("title")) || null,
   description: await first('meta[name="description"]', "content"),
@@ -2628,7 +2628,7 @@ return {
     title: "Validate Email",
     description: "Check whether a value is a syntactically valid email address",
     category: "Validation",
-    code: `return { output: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(String(value).trim()) };`,
+    code: `return { output: /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(String(inputs.value).trim()) };`,
     tags: ["validate", "email", "check", "address", "valid"],
   },
   {
@@ -2638,8 +2638,8 @@ return {
     category: "Validation",
     code: `let ok = false;
 try {
-  const u = new URL(value);
-  ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(value) && u.host.length > 0;
+  const u = new URL(inputs.value);
+  ok = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(inputs.value) && u.host.length > 0;
 } catch (e) {
   ok = false;
 }
@@ -2651,7 +2651,7 @@ return { output: ok };`,
     title: "Validate IP Address",
     description: "Check whether a value is a valid IPv4 or IPv6 address",
     category: "Validation",
-    code: `const v = String(value);
+    code: `const v = String(inputs.value);
 const SEG = /^(25[0-5]|2[0-4]\\d|1\\d\\d|\\d{1,2})$/;
 const isIPv4 = (s) => {
   const parts = s.split(".");
@@ -2685,7 +2685,7 @@ return { is_ip: v4 || v6, is_ipv4: v4, is_ipv6: v6 };`,
     title: "Validate String",
     description: "Run common string checks at once and return one bool per check",
     category: "Validation",
-    code: `const v = String(value);
+    code: `const v = String(inputs.value);
 let isUrl = false;
 try {
   isUrl = /^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(v) && new URL(v).host.length > 0;
@@ -2714,7 +2714,7 @@ return {
     title: "Sanitize String",
     description: "HTML-escape and trim a string, plus the normalized email when applicable",
     category: "Validation",
-    code: `const v = String(value);
+    code: `const v = String(inputs.value);
 const trimmed = v.trim();
 const lowered = trimmed.toLowerCase();
 const isEmail = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z][A-Za-z0-9-]*$/.test(lowered);

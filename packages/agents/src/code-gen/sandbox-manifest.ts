@@ -25,6 +25,7 @@ import {
   type ExposedBridgeName,
   type GuestHelperName
 } from "../js-sandbox.js";
+import { CODE_INPUTS_GLOBAL } from "@nodetool-ai/node-sdk";
 import {
   MAX_CANVAS_OPS,
   MAX_DECODE_PIXELS,
@@ -95,6 +96,12 @@ export interface SandboxManifest {
   readonly nativeGlobals: readonly string[];
   /** Names that exist in other JS runtimes but not here. */
   readonly blockedGlobals: readonly string[];
+  /**
+   * Globals the Code node injects per run, on top of what the guest has:
+   * the declared inputs arrive on `inputs`, and `state` persists across runs.
+   * Not in the guest snapshot — nothing puts them there until a node runs.
+   */
+  readonly nodeGlobals: readonly string[];
   readonly limits: readonly SandboxLimitDoc[];
   readonly notes: readonly SandboxNote[];
 }
@@ -949,6 +956,7 @@ export function getSandboxManifest(): SandboxManifest {
     guestHelpers: GUEST_HELPER_DOCS,
     nativeGlobals: native,
     blockedGlobals: blocked,
+    nodeGlobals: [CODE_INPUTS_GLOBAL, "state"],
     limits: [...overridableLimits(), ...fixedLimits()],
     notes: [
       {
@@ -960,6 +968,10 @@ export function getSandboxManifest(): SandboxManifest {
       },
       {
         text: "Return an object whose keys are the node's outputs. Emit every declared output on every return path.",
+        audience: "code-node"
+      },
+      {
+        text: "Declared inputs arrive on the `inputs` object: read `inputs.name`. A bare `name` is a ReferenceError.",
         audience: "code-node"
       },
       { text: "Media and asset values are reference objects. Pass them through unchanged." },

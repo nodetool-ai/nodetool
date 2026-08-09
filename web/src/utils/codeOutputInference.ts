@@ -3,8 +3,7 @@
  *
  * Uses acorn to parse the code into an AST, then walks it to find:
  * - Outputs: keys of the object literal in the last `return { ... }` statement
- * - Inputs: identifiers that are referenced but never declared in the code
- *           and are not sandbox-provided globals
+ * - Inputs: names read off the `inputs` object
  */
 import * as acorn from "acorn";
 
@@ -96,63 +95,16 @@ function extractObjectKeys(objExpr: acorn.ObjectExpression): string[] {
 // ---------------------------------------------------------------------------
 
 /**
- * Identifiers provided by the sandbox or the Code node itself.
+ * Infer input names from JavaScript code.
  *
- * Mirrors the sandbox manifest in `@nodetool-ai/agents`
- * (`src/code-gen/sandbox-manifest.ts`), which web cannot import — the package
- * is not a web dependency and pulls in the QuickJS WASM runtime. A name that
- * does not exist in the sandbox keeps a real undefined variable from becoming
- * an input handle; a missing bridge name grows a bogus one. The pinning test
- * lives in `packages/agents/tests/sandbox-manifest-drift.test.ts`.
- */
-const SANDBOX_GLOBALS = new Set([
-  // Guest globals, as observed in the running QuickJS sandbox
-  "AggregateError", "Array", "ArrayBuffer", "BigInt", "BigInt64Array",
-  "BigUint64Array", "Boolean", "Buffer", "DataView", "Date", "Error",
-  "EvalError", "FinalizationRegistry", "Float32Array", "Float64Array",
-  "Headers", "Infinity", "Int16Array", "Int32Array", "Int8Array",
-  "InternalError", "JSON", "Map", "Math", "NaN", "Number", "Object",
-  "Promise", "Proxy", "RangeError", "ReferenceError", "Reflect", "RegExp",
-  "Request", "Response", "Set", "SharedArrayBuffer", "String", "Symbol",
-  "SyntaxError", "TextDecoder", "TextEncoder", "TypeError", "URIError",
-  "URL", "URLSearchParams", "Uint16Array", "Uint32Array", "Uint8Array",
-  "Uint8ClampedArray", "WeakMap", "WeakRef", "WeakSet", "decodeURI",
-  "decodeURIComponent", "encodeURI", "encodeURIComponent", "escape",
-  "globalThis", "isFinite", "isNaN", "parseFloat", "parseInt", "performance",
-  "process", "queueMicrotask", "undefined", "unescape",
-  // `env` is deliberately absent, though the guest has it. Dynamic inputs are
-  // exposed after the sandbox's stubs and shadow them, so a Code node with an
-  // input named `env` works — listing it here would drop that handle on
-  // re-inference and leave the code silently reading the empty stub. The
-  // node-sdk validator still accepts `env` as a resolvable name; the two lists
-  // answer different questions. Pinned by INTENTIONAL_OMISSIONS in
-  // packages/agents/tests/sandbox-manifest-drift.test.ts.
-  // Host bridges
-  "console", "fetch", "crypto", "uuid", "sleep", "getSecret", "workspace",
-  "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
-  "image", "canvas",
-  // Pure guest helpers defined by the sandbox prelude
-  "toBase64", "fromBase64", "toHex", "fromHex", "utf8Encode", "utf8Decode",
-  "parallelMap", "createCanvas",
-  // Absent from this guest, but not user inputs either
-  "setTimeout", "clearTimeout", "setInterval", "clearInterval",
-  "setImmediate", "clearImmediate", "eval", "Function",
-  "btoa", "atob", "structuredClone", "Intl", "AbortController", "Blob",
-  "FormData",
-  // JS literals that acorn parses as Identifier nodes
-  "true", "false", "null",
-  "this", "arguments", "self", "window", "document",
-  // Code node reserved props
-  "code", "timeout", "state",
-  // Sandbox internals
-  "__maxIter",
-]);
-
-/**
- * Infer input variable names from JavaScript code.
+ * Declared inputs arrive on the `inputs` object, so inference is a scan for
+ * `inputs.name` / `inputs["name"]` rather than a guess at which undeclared
+ * identifier is a slot. That guess needed the full list of sandbox globals to
+ * subtract, and every name missing from it invented a phantom input.
  *
- * Finds identifiers that are referenced but not declared in the code
- * and not part of the sandbox globals.
+ * A body that shadows `inputs` with its own binding, or reaches for it
+ * dynamically (`inputs[key]`, `{...inputs}`), yields no names — there is
+ * nothing to enumerate.
  *
  * Returns an array of input names, or null if none found.
  */
@@ -160,109 +112,40 @@ export function inferInputKeysFromCode(code: string): string[] | null {
   const ast = tryParse(code);
   if (!ast) return null;
 
-  const declared = new Set<string>();
-  const referenced = new Set<string>();
-
-  // Collect all declarations
+  const shadowed = new Set<string>();
   walkAst(ast, (node) => {
     switch (node.type) {
       case "VariableDeclarator":
-        collectBindingNames(node.id, declared);
+        collectBindingNames(node.id, shadowed);
         break;
       case "FunctionDeclaration":
       case "FunctionExpression":
-        if (node.id?.name) declared.add(node.id.name);
-        for (const param of node.params) {
-          collectBindingNames(param, declared);
-        }
-        break;
       case "ArrowFunctionExpression":
-        for (const param of node.params) {
-          collectBindingNames(param, declared);
-        }
-        break;
-      case "ClassDeclaration":
-        if (node.id?.name) declared.add(node.id.name);
-        break;
-      case "CatchClause":
-        if (node.param) collectBindingNames(node.param, declared);
-        break;
-      case "ImportDeclaration":
-        for (const spec of node.specifiers) {
-          if (spec.local.name) declared.add(spec.local.name);
-        }
+        for (const param of node.params) collectBindingNames(param, shadowed);
         break;
     }
   });
+  if (shadowed.has("inputs")) return null;
 
-  // Collect all referenced identifiers (excluding property access and object keys)
+  const names = new Set<string>();
   walkAst(ast, (node, ancestors) => {
-    if (node.type !== "Identifier") return;
+    if (node.type !== "Identifier" || node.name !== "inputs") return;
     const parent = ancestors[ancestors.length - 2];
-    if (!parent) return;
-
-    // Skip if this is a property access (obj.prop — skip prop)
-    if (parent.type === "MemberExpression" && parent.property === node && !parent.computed) {
-      return;
-    }
-    // Skip if this is an object key in an object literal
-    if (parent.type === "Property" && parent.key === node && !parent.computed) {
-      return;
-    }
-    // Skip if this is a class member key (class A { foo() {} })
-    if (
-      (parent.type === "MethodDefinition" || parent.type === "PropertyDefinition") &&
-      parent.key === node &&
-      !parent.computed
-    ) {
-      return;
-    }
-    // Skip labels (declaration and break/continue references)
-    if (parent.type === "LabeledStatement" && parent.label === node) {
+    if (parent?.type !== "MemberExpression" || parent.object !== node) return;
+    if (!parent.computed && parent.property.type === "Identifier") {
+      names.add(parent.property.name);
       return;
     }
     if (
-      (parent.type === "BreakStatement" || parent.type === "ContinueStatement") &&
-      parent.label === node
+      parent.computed &&
+      parent.property.type === "Literal" &&
+      typeof parent.property.value === "string"
     ) {
-      return;
+      names.add(parent.property.value);
     }
-    // Skip meta properties (import.meta, new.target)
-    if (parent.type === "MetaProperty") {
-      return;
-    }
-    // Skip import/export specifier names (locals are collected as declared)
-    if (
-      parent.type === "ImportSpecifier" ||
-      parent.type === "ImportDefaultSpecifier" ||
-      parent.type === "ImportNamespaceSpecifier" ||
-      parent.type === "ExportSpecifier"
-    ) {
-      return;
-    }
-    // Skip declaration sites (already collected)
-    if (parent.type === "VariableDeclarator" && parent.id === node) {
-      return;
-    }
-    if (
-      (parent.type === "FunctionDeclaration" || parent.type === "FunctionExpression" ||
-       parent.type === "ClassDeclaration" || parent.type === "ClassExpression") &&
-      parent.id === node
-    ) {
-      return;
-    }
-
-    referenced.add(node.name);
   });
 
-  const inputs: string[] = [];
-  for (const ref of referenced) {
-    if (declared.has(ref)) continue;
-    if (SANDBOX_GLOBALS.has(ref)) continue;
-    inputs.push(ref);
-  }
-
-  return inputs.length > 0 ? inputs : null;
+  return names.size > 0 ? [...names] : null;
 }
 
 // ---------------------------------------------------------------------------

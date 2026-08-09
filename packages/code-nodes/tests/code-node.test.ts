@@ -11,13 +11,13 @@ function run(code: string, inputs: Record<string, unknown> = {}) {
 // ---------------------------------------------------------------------------
 
 describe("CodeNode — dynamic inputs", () => {
-  it("passes dynamic inputs as local variables", async () => {
-    const r = await run("return { sum: x + y }", { x: 3, y: 7 });
+  it("passes dynamic inputs on the inputs object", async () => {
+    const r = await run("return { sum: inputs.x + inputs.y }", { x: 3, y: 7 });
     expect(r).toEqual({ sum: 10 });
   });
 
   it("handles string inputs", async () => {
-    const r = await run("return { upper: text.toUpperCase() }", {
+    const r = await run("return { upper: inputs.text.toUpperCase() }", {
       text: "hello"
     });
     expect(r).toEqual({ upper: "HELLO" });
@@ -25,7 +25,7 @@ describe("CodeNode — dynamic inputs", () => {
 
   it("handles many input types", async () => {
     const r = await run(
-      "return { a: typeof n, b: typeof s, c: typeof b, d: Array.isArray(arr), e: typeof obj }",
+      "return { a: typeof inputs.n, b: typeof inputs.s, c: typeof inputs.b, d: Array.isArray(inputs.arr), e: typeof inputs.obj }",
       { n: 42, s: "hi", b: true, arr: [1, 2], obj: { k: 1 } }
     );
     expect(r).toEqual({
@@ -125,7 +125,7 @@ describe("CodeNode — implicit return", () => {
   });
 
   it("wraps simple identifier expression", async () => {
-    const r = await run("x * 2", { x: 21 });
+    const r = await run("inputs.x * 2", { x: 21 });
     expect(r).toEqual({ output: 42 });
   });
 
@@ -145,7 +145,7 @@ describe("CodeNode — implicit return", () => {
   });
 
   it("wraps template literal", async () => {
-    const r = await run("`hello ${name}`", { name: "world" });
+    const r = await run("`hello ${inputs.name}`", { name: "world" });
     expect(r).toEqual({ output: "hello world" });
   });
 
@@ -276,7 +276,7 @@ describe("CodeNode — real-world patterns", () => {
   it("data transformation pipeline", async () => {
     const r = await run(
       `
-      const words = text.split(" ");
+      const words = inputs.text.split(" ");
       const lengths = words.map(w => w.length);
       const total = lengths.reduce((a, b) => a + b, 0);
       return { wordCount: words.length, avgLength: total / words.length };
@@ -290,7 +290,7 @@ describe("CodeNode — real-world patterns", () => {
   it("JSON processing", async () => {
     const r = await run(
       `
-      const parsed = JSON.parse(jsonStr);
+      const parsed = JSON.parse(inputs.jsonStr);
       const names = parsed.map(p => p.name);
       return { names, count: names.length };
       `,
@@ -301,7 +301,7 @@ describe("CodeNode — real-world patterns", () => {
 
   it("math operations", async () => {
     const r = await run(
-      "return { hyp: Math.sqrt(a*a + b*b), rounded: Math.round(a/b * 100) / 100 }",
+      "return { hyp: Math.sqrt(inputs.a*inputs.a + inputs.b*inputs.b), rounded: Math.round(inputs.a/inputs.b * 100) / 100 }",
       { a: 3, b: 4 }
     );
     expect(r).toEqual({ hyp: 5, rounded: 0.75 });
@@ -309,7 +309,7 @@ describe("CodeNode — real-world patterns", () => {
 
   it("string formatting with template literals", async () => {
     const r = await run(
-      "return { greeting: `Hello, ${name}! You have ${count} items.` }",
+      "return { greeting: `Hello, ${inputs.name}! You have ${inputs.count} items.` }",
       { name: "Alice", count: 5 }
     );
     expect(r).toEqual({ greeting: "Hello, Alice! You have 5 items." });
@@ -318,7 +318,7 @@ describe("CodeNode — real-world patterns", () => {
   it("pure JS string manipulation", async () => {
     const r = await run(
       `
-      const reversed = text.split("").reverse().join("");
+      const reversed = inputs.text.split("").reverse().join("");
       return { reversed };
     `,
       { text: "hello" }
@@ -422,7 +422,7 @@ describe("CodeNode — genProcess streaming", () => {
 
   it("passes dynamic inputs to generator", async () => {
     const results = await collect(
-      "yield({ sum: x + y }); yield({ product: x * y });",
+      "yield({ sum: inputs.x + inputs.y }); yield({ product: inputs.x * inputs.y });",
       { x: 3, y: 7 }
     );
     expect(results).toEqual([{ sum: 10 }, { product: 21 }]);
@@ -562,84 +562,84 @@ describe("CodeNode — genProcess yield detection", () => {
 describe("CodeNode — input type coverage", () => {
   // Numbers
   it("handles integer input", async () => {
-    const r = await run("return { v: n }", { n: 42 });
+    const r = await run("return { v: inputs.n }", { n: 42 });
     expect(r).toEqual({ v: 42 });
   });
 
   it("handles float input", async () => {
-    const r = await run("return { v: n }", { n: 3.14 });
+    const r = await run("return { v: inputs.n }", { n: 3.14 });
     expect(r).toEqual({ v: 3.14 });
   });
 
   it("handles negative number input", async () => {
-    const r = await run("return { v: n }", { n: -7 });
+    const r = await run("return { v: inputs.n }", { n: -7 });
     expect(r).toEqual({ v: -7 });
   });
 
   it("handles zero input", async () => {
-    const r = await run("return { v: n }", { n: 0 });
+    const r = await run("return { v: inputs.n }", { n: 0 });
     expect(r).toEqual({ v: 0 });
   });
 
   it("handles Infinity input (becomes null via JSON)", async () => {
-    const r = await run("return { v: n }", { n: Infinity });
+    const r = await run("return { v: inputs.n }", { n: Infinity });
     expect(r.v).toBeNull();
   });
 
   it("handles NaN input (becomes null via JSON)", async () => {
-    const r = await run("return { v: n }", { n: NaN });
+    const r = await run("return { v: inputs.n }", { n: NaN });
     expect(r.v).toBeNull();
   });
 
   // Strings
   it("handles empty string input", async () => {
-    const r = await run("return { v: s }", { s: "" });
+    const r = await run("return { v: inputs.s }", { s: "" });
     expect(r).toEqual({ v: "" });
   });
 
   it("handles unicode string input", async () => {
-    const r = await run("return { v: s }", {
+    const r = await run("return { v: inputs.s }", {
       s: "Hello \u{1F600} \u00E9\u00E8"
     });
     expect(r).toEqual({ v: "Hello \u{1F600} \u00E9\u00E8" });
   });
 
   it("handles multiline string input", async () => {
-    const r = await run("return { v: s }", { s: "line1\nline2\nline3" });
+    const r = await run("return { v: inputs.s }", { s: "line1\nline2\nline3" });
     expect(r).toEqual({ v: "line1\nline2\nline3" });
   });
 
   // Booleans
   it("handles true input", async () => {
-    const r = await run("return { v: b }", { b: true });
+    const r = await run("return { v: inputs.b }", { b: true });
     expect(r).toEqual({ v: true });
   });
 
   it("handles false input", async () => {
-    const r = await run("return { v: b }", { b: false });
+    const r = await run("return { v: inputs.b }", { b: false });
     expect(r).toEqual({ v: false });
   });
 
   // null
   it("handles null input", async () => {
-    const r = await run("return { v: n === null }", { n: null });
+    const r = await run("return { v: inputs.n === null }", { n: null });
     expect(r).toEqual({ v: true });
   });
 
   // undefined
   it("handles undefined input", async () => {
-    const r = await run("return { v: u === undefined }", { u: undefined });
+    const r = await run("return { v: inputs.u === undefined }", { u: undefined });
     expect(r).toEqual({ v: true });
   });
 
   // Arrays
   it("handles empty array input", async () => {
-    const r = await run("return { v: arr, len: arr.length }", { arr: [] });
+    const r = await run("return { v: inputs.arr, len: inputs.arr.length }", { arr: [] });
     expect(r).toEqual({ v: [], len: 0 });
   });
 
   it("handles nested array input", async () => {
-    const r = await run("return { v: arr[1][0] }", {
+    const r = await run("return { v: inputs.arr[1][0] }", {
       arr: [
         [1, 2],
         [3, 4]
@@ -650,19 +650,19 @@ describe("CodeNode — input type coverage", () => {
 
   it("handles typed array input (Uint8Array becomes plain object via JSON)", async () => {
     const ta = new Uint8Array([10, 20, 30]);
-    const r = await run("return { v: arr, type: typeof arr }", { arr: ta });
+    const r = await run("return { v: inputs.arr, type: typeof inputs.arr }", { arr: ta });
     expect(r.v).toEqual({ "0": 10, "1": 20, "2": 30 });
     expect(r.type).toBe("object");
   });
 
   // Objects
   it("handles empty object input", async () => {
-    const r = await run("return { v: Object.keys(obj).length }", { obj: {} });
+    const r = await run("return { v: Object.keys(inputs.obj).length }", { obj: {} });
     expect(r).toEqual({ v: 0 });
   });
 
   it("handles nested object input", async () => {
-    const r = await run("return { v: obj.a.b.c }", {
+    const r = await run("return { v: inputs.obj.a.b.c }", {
       obj: { a: { b: { c: 42 } } }
     });
     expect(r).toEqual({ v: 42 });
@@ -675,16 +675,14 @@ describe("CodeNode — input type coverage", () => {
         return this.x * 2;
       }
     };
-    const r = await run("return { v: obj.x, hasDouble: typeof obj.double }", {
-      obj
-    });
+    const r = await run("return { v: inputs.obj.x, hasDouble: typeof inputs.obj.double }", { obj });
     expect(r).toEqual({ v: 10, hasDouble: "undefined" });
   });
 
   // Date
   it("handles Date input (becomes ISO string via JSON)", async () => {
     const d = new Date("2024-06-15T12:00:00Z");
-    const r = await run("return { v: d, type: typeof d }", { d });
+    const r = await run("return { v: inputs.d, type: typeof inputs.d }", { d });
     expect(r.v).toBe("2024-06-15T12:00:00.000Z");
     expect(r.type).toBe("string");
   });
@@ -692,7 +690,7 @@ describe("CodeNode — input type coverage", () => {
   // Buffer
   it("handles Buffer input (becomes object with type/data via JSON)", async () => {
     const buf = Buffer.from("hello");
-    const r = await run("return { v: buf }", { buf });
+    const r = await run("return { v: inputs.buf }", { buf });
     expect(r.v).toEqual({ type: "Buffer", data: [104, 101, 108, 108, 111] });
   });
 
@@ -702,49 +700,49 @@ describe("CodeNode — input type coverage", () => {
       ["a", 1],
       ["b", 2]
     ]);
-    const r = await run("return { v: m }", { m });
+    const r = await run("return { v: inputs.m }", { m });
     expect(r.v).toEqual({});
   });
 
   // Set
   it("handles Set input (becomes {} via JSON)", async () => {
     const s = new Set([1, 2, 3]);
-    const r = await run("return { v: s }", { s });
+    const r = await run("return { v: inputs.s }", { s });
     expect(r.v).toEqual({});
   });
 
   // RegExp
   it("handles RegExp input (becomes {} via JSON)", async () => {
     const re = /foo(\d+)/g;
-    const r = await run("return { v: re }", { re });
+    const r = await run("return { v: inputs.re }", { re });
     expect(r.v).toEqual({});
   });
 
   // Error
   it("handles Error input (becomes {} via JSON)", async () => {
     const err = new Error("test error");
-    const r = await run("return { v: err }", { err });
+    const r = await run("return { v: inputs.err }", { err });
     expect(r.v).toEqual({});
   });
 
   // BigInt
   it("handles BigInt input (becomes null — JSON.stringify throws)", async () => {
     const big = BigInt(999999999999999999n);
-    const r = await run("return { v: big }", { big });
+    const r = await run("return { v: inputs.big }", { big });
     expect(r.v).toBeNull();
   });
 
   // Function (callback)
   it("handles function input (becomes null via JSON)", async () => {
     const fn = (x: number) => x * 3;
-    const r = await run("return { v: fn }", { fn });
+    const r = await run("return { v: inputs.fn }", { fn });
     expect(r.v).toBeNull();
   });
 
   // Symbol (as a value)
   it("handles Symbol as an input value (becomes null via JSON)", async () => {
     const sym = Symbol("test");
-    const r = await run("return { v: sym }", { sym });
+    const r = await run("return { v: inputs.sym }", { sym });
     expect(r.v).toBeNull();
   });
 });
@@ -853,7 +851,7 @@ describe("CodeNode — edge cases", () => {
 
   it("returns input object (deep copy, not same reference)", async () => {
     const complex = { a: [1, 2], b: { c: "d" }, e: true };
-    const r = await run("return { x }", { x: complex });
+    const r = await run("return { x: inputs.x }", { x: complex });
     expect(r).toEqual({ x: complex });
     // Inputs are deep-copied via JSON round-trip
     expect(r.x).not.toBe(complex);
@@ -862,7 +860,7 @@ describe("CodeNode — edge cases", () => {
 
   it("modifying input array inside code does not affect original", async () => {
     const arr = [1, 2, 3];
-    const r = await run("arr.push(4); return { arr }", { arr });
+    const r = await run("inputs.arr.push(4); return { arr: inputs.arr }", { arr });
     expect(r).toEqual({ arr: [1, 2, 3, 4] });
     // Original array is NOT mutated (inputs are deep-copied)
     expect(arr).toEqual([1, 2, 3]);
@@ -870,7 +868,7 @@ describe("CodeNode — edge cases", () => {
 
   it("destructures input objects", async () => {
     const obj = { a: 1, b: 2 };
-    const r = await run("const { a, b } = obj; return { a, b }", { obj });
+    const r = await run("const { a, b } = inputs.obj; return { a, b }", { obj });
     expect(r).toEqual({ a: 1, b: 2 });
   });
 });
@@ -968,14 +966,14 @@ describe("CodeNode — binary output", () => {
 
 describe("CodeNode — fetch policy props", () => {
   it("does not leak max_response_mb into the guest as a global", async () => {
-    const r = await run("return { a: typeof max_response_mb }", {
+    const r = await run("return { a: typeof inputs.max_response_mb }", {
       max_response_mb: 5
     });
     expect(r).toEqual({ a: "undefined" });
   });
 
   it("lets user variables of other names through unchanged", async () => {
-    const r = await run("return { v: max_response }", { max_response: 7 });
+    const r = await run("return { v: inputs.max_response }", { max_response: 7 });
     expect(r).toEqual({ v: 7 });
   });
 });
