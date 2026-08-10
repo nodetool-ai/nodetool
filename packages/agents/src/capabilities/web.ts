@@ -688,6 +688,28 @@ const ENTITY_RE = new RegExp(Object.keys(ENTITY_MAP).join("|"), "gi");
 // Numeric character references: &#123; or &#x1a;
 const NUMERIC_ENTITY_RE = /&#(?:x([0-9a-fA-F]+)|(\d+));/g;
 
+// Unrolled-loop forms ("[^<]*(?:<(?!…)[^<]*)*") stay linear on adversarial
+// inputs where a lazy "[\s\S]*?" backtracks polynomially, and both accept
+// whitespace before the closing ">" ("</script >").
+const SCRIPT_BLOCK_RE =
+  /<script\b[^>]*>[^<]*(?:<(?!\/script\s*>)[^<]*)*<\/script\s*>/gi;
+const STYLE_BLOCK_RE =
+  /<style\b[^>]*>[^<]*(?:<(?!\/style\s*>)[^<]*)*<\/style\s*>/gi;
+const TAG_RE = /<[^>]*>/g;
+
+/**
+ * Replace until a pass changes nothing, so removed fragments cannot
+ * reassemble into a new match ("<scr<script>ipt>" → "<script>").
+ */
+function replaceToFixpoint(input: string, re: RegExp): string {
+  let out = input;
+  for (;;) {
+    const next = out.replace(re, "");
+    if (next === out) return out;
+    out = next;
+  }
+}
+
 /**
  * Convert raw HTML to readable plain text.
  *
@@ -700,13 +722,13 @@ const NUMERIC_ENTITY_RE = /&#(?:x([0-9a-fA-F]+)|(\d+));/g;
 export function htmlToText(html: string, maxLength = 50_000): string {
   let text = html;
 
-  text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
-  text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
+  text = replaceToFixpoint(text, SCRIPT_BLOCK_RE);
+  text = replaceToFixpoint(text, STYLE_BLOCK_RE);
 
   // Turn block boundaries into newlines before stripping tags.
   text = text.replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])\s*\/?>/gi, "\n");
 
-  text = text.replace(/<[^>]+>/g, "");
+  text = replaceToFixpoint(text, TAG_RE);
 
   text = text.replace(
     ENTITY_RE,

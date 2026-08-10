@@ -19,19 +19,29 @@ import type { ImapFlow } from "imapflow";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 
 function stripHtml(html: string): string {
-  return html
+  let text = html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
-    .replace(/<\/div>/gi, "\n")
-    .replace(/<[^>]+>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+    .replace(/<\/div>/gi, "\n");
+  // Strip tags until a pass removes nothing, so removed fragments cannot
+  // reassemble into a new tag ("<scr<script>ipt>" → "<script>").
+  for (;;) {
+    const next = text.replace(/<[^>]*>/g, "");
+    if (next === text) break;
+    text = next;
+  }
+  return (
+    text
+      .replace(/&nbsp;/g, " ")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      // Last, so "&amp;lt;" decodes once — to "&lt;", not to "<".
+      .replace(/&amp;/g, "&")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim()
+  );
 }
 
 async function createGmailConnection(
