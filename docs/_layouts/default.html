@@ -11,6 +11,15 @@
 
   {% seo %}
 
+  {%- comment -%}
+    Internal engineering docs (PRDs, designs, implementation plans, audits) set
+    `noindex: true` via the _config.yml defaults. They stay reachable by URL for
+    the team and for agents, but they are not search destinations — see
+    SEO_STRATEGY.md § 0.10 finding 7. jekyll-seo-tag has no noindex support of
+    its own, so the tag is emitted here.
+  {%- endcomment -%}
+  {% if page.noindex %}<meta name="robots" content="noindex, follow">{% endif %}
+
   <link rel="icon" type="image/png" href="{{ '/assets/logo.png' | relative_url }}">
   <link rel="apple-touch-icon" href="{{ '/assets/logo.png' | relative_url }}">
 

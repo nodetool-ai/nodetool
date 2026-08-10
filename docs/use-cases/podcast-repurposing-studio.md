@@ -2,6 +2,12 @@
 layout: page
 title: "Podcast Repurposing Studio"
 description: "Drop in one podcast episode and ship the whole content pack: titles and show notes, a newsletter edition, five social posts, and quote cards rendered as square images. Transcribed once, written four ways."
+# This page mirrors the marketing site's version of the same use case, so the
+# two competed for one query set across domains (docs/SEO_STRATEGY.md § 0.10,
+# finding 4). The marketing page is the search destination — it carries the
+# video, the shot gallery, and the HowTo schema — so it takes the canonical and
+# this page stays for docs readers who browse the use-case index.
+canonical_url: "https://nodetool.ai/templates/podcast-repurposing-studio"
 ---
 
 <p class="usecase-eyebrow">Use case · Creators</p>

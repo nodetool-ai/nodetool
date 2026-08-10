@@ -54,6 +54,86 @@ defaults:
       path: "nodes"
     values:
       render_with_liquid: false
+  # Internal engineering documents — PRDs, technical designs, implementation
+  # plans, audits, and the SEO strategy itself. The 2026-08-10 Search Console
+  # audit found 32 of them indexed, taking 306 impressions at zero clicks while
+  # diluting the docs domain's 0.38% CTR (docs/SEO_STRATEGY.md § 0.10,
+  # finding 7). `noindex` keeps them out of search; `sitemap: false` drops them
+  # from sitemap.xml.
+  #
+  # Why noindex here and `exclude:` further down for the other internal docs:
+  # excluding a page unpublishes it, which breaks every link pointing at it —
+  # and these are cross-linked from published pages and from CLAUDE.md, so
+  # Docs CI's html-proofer step would fail. The ones under `exclude:` have no
+  # such inbound links. Prefer `exclude:` when a doc is genuinely unreferenced;
+  # use this list when it must stay reachable. Do not add a path to both — an
+  # excluded page never becomes a page object, so its defaults never apply.
+  #
+  # Add a new plan/PRD/design/audit doc here in the same PR that adds the doc.
+  # Anything a *user* would search for belongs in the indexed set instead.
+  - scope:
+      path: "plans"
+    values:
+      noindex: true
+      sitemap: false
+  - scope:
+      path: "sdk"
+    values:
+      noindex: true
+      sitemap: false
+  - scope:
+      path: "KERNEL_PARITY_GAPS.md"
+    values: &noindex
+      noindex: true
+      sitemap: false
+  - scope: { path: "KERNEL_RUNNER_ANALYSIS.md" }
+    values: *noindex
+  - scope: { path: "RELIABILITY_ARCHITECTURE.md" }
+    values: *noindex
+  - scope: { path: "RELIABILITY_TASKS.md" }
+    values: *noindex
+  - scope: { path: "SEO_PROGRAMMATIC.md" }
+    values: *noindex
+  - scope: { path: "SEO_STRATEGY.md" }
+    values: *noindex
+  - scope: { path: "agent-resource-links-design.md" }
+    values: *noindex
+  - scope: { path: "codeact-design.md" }
+    values: *noindex
+  - scope: { path: "mini-app-build-harness-design.md" }
+    values: *noindex
+  - scope: { path: "mini-app-build-harness-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "mini-app-build-harness-prd.md" }
+    values: *noindex
+  - scope: { path: "multiplayer-design.md" }
+    values: *noindex
+  - scope: { path: "multiplayer-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "sandbox-package-design.md" }
+    values: *noindex
+  - scope: { path: "timeline-editor-performance-audit.md" }
+    values: *noindex
+  - scope: { path: "triggers-design.md" }
+    values: *noindex
+  - scope: { path: "triggers-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "triggers-prd.md" }
+    values: *noindex
+  - scope: { path: "workflow-supervisor-design.md" }
+    values: *noindex
+  - scope: { path: "workflow-supervisor-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "workflow-supervisor-prd.md" }
+    values: *noindex
+  - scope: { path: "workflow-supervisor-provider-retry-audit.md" }
+    values: *noindex
+  - scope: { path: "app-builder-assistant-harness-integration.md" }
+    values: *noindex
+  - scope: { path: "developer/node-editor-performance-audit.md" }
+    values: *noindex
+  - scope: { path: "rfc-generation-events.md" }
+    values: *noindex
 
 # Plugin settings
 relative_links:

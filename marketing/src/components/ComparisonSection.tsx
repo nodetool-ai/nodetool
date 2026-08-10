@@ -14,7 +14,7 @@ interface ComparisonRow {
   weave: string;
 }
 
-/** Cells match the per-competitor tables on /vs/comfyui and /vs/figma-weave. */
+/** Cells match the per-competitor tables on the /alternatives/* pages. */
 const comparisonRows: ComparisonRow[] = [
   {
     label: "Media on one canvas",
