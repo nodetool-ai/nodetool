@@ -27,41 +27,40 @@ export interface ShortcutHintProps extends BoxProps {
   size?: "small" | "medium";
 }
 
+const symbolMap: Record<string, string> = {
+  "ctrl": "Ctrl",
+  "control": "Ctrl",
+  "meta": "⌘",
+  "cmd": "⌘",
+  "command": "⌘",
+  "alt": "Alt",
+  "option": "⌥",
+  "opt": "⌥",
+  "shift": "⇧",
+  "enter": "↵",
+  "return": "↵",
+  "escape": "⎋",
+  "esc": "⎋",
+  "backspace": "⌫",
+  "delete": "⌦",
+  "del": "⌦",
+  "tab": "⇥",
+  "space": "␣",
+  "arrowup": "↑",
+  "arrowdown": "↓",
+  "arrowleft": "←",
+  "arrowright": "→",
+  "up": "↑",
+  "down": "↓",
+  "left": "←",
+  "right": "→",
+};
+
 /**
  * Convert common key names to their display symbols
  */
 const formatKey = (key: string): string => {
   const normalized = key.toLowerCase();
-
-  const symbolMap: Record<string, string> = {
-    "ctrl": "Ctrl",
-    "control": "Ctrl",
-    "meta": "⌘",
-    "cmd": "⌘",
-    "command": "⌘",
-    "alt": "Alt",
-    "option": "⌥",
-    "opt": "⌥",
-    "shift": "⇧",
-    "enter": "↵",
-    "return": "↵",
-    "escape": "⎋",
-    "esc": "⎋",
-    "backspace": "⌫",
-    "delete": "⌦",
-    "del": "⌦",
-    "tab": "⇥",
-    "space": "␣",
-    "arrowup": "↑",
-    "arrowdown": "↓",
-    "arrowleft": "←",
-    "arrowright": "→",
-    "up": "↑",
-    "down": "↓",
-    "left": "←",
-    "right": "→",
-  };
-
   return symbolMap[normalized] || key.charAt(0).toUpperCase() + key.slice(1);
 };
 

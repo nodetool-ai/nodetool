@@ -325,161 +325,161 @@ const providerIconMap: Record<string, string> = {
   voyage: voyageColorIcon,
 };
 
+// Map of HuggingFace sub-provider names to their icons
+const subProviderIcons: Record<string, string> = {
+  // Cloud providers
+  fireworks: fireworksColorIcon,
+  "fireworks-ai": fireworksColorIcon,
+  "fireworks_ai": fireworksColorIcon,
+  featherless: featherlessColorIcon,
+  "featherless-ai": featherlessColorIcon,
+  "featherless_ai": featherlessColorIcon,
+  zai: zaiIcon,
+  // No icons available yet - will fall back to HuggingFace
+  // nscale: nscaleIcon,
+  // scaleway: scalewayIcon,
+  replicate: replicateIcon,
+  fal: falColorIcon,
+  "fal-ai": falColorIcon,
+  together: togetherColorIcon,
+  "together-ai": togetherColorIcon,
+  groq: groqIcon,
+  cerebras: cerebrasColorIcon,
+  sambanova: sambanovaColorIcon,
+  novita: novitaColorIcon,
+  hyperbolic: hyperbolicColorIcon,
+  deepinfra: deepinfraColorIcon,
+  baseten: basetenIcon,
+  friendli: friendliIcon,
+  cloudflare: cloudflareColorIcon,
+  workersai: workersaiColorIcon,
+  "workers-ai": workersaiColorIcon,
+  siliconcloud: siliconcloudColorIcon,
+  // AI21
+  ai21: ai21Icon,
+  // Frameworks
+  langchain: langchainColorIcon,
+  llamaindex: llamaindexColorIcon,
+  // Chinese providers
+  alibaba: alibabacloudColorIcon,
+  alibabacloud: alibabacloudColorIcon,
+  bailian: bailianColorIcon,
+  qwen: qwenColorIcon,
+  zhipu: zhipuColorIcon,
+  chatglm: chatglmColorIcon,
+  baidu: baiduColorIcon,
+  bytedance: bytedanceColorIcon,
+  doubao: doubaoColorIcon,
+  stepfun: stepfunColorIcon,
+  sensenova: sensenovaColorIcon,
+  minimax: minimaxColorIcon,
+  tencent: tencentColorIcon,
+  hunyuan: hunyuanColorIcon,
+  // Other providers
+  openai: openaiIcon,
+  anthropic: anthropicIcon,
+  claude: claudeColorIcon,
+  gemini: geminiColorIcon,
+  google: geminiColorIcon,
+  azure: azureColorIcon,
+  azureai: azureaiColorIcon,
+  aws: awsColorIcon,
+  bedrock: bedrockColorIcon,
+  meta: metaColorIcon,
+  metaai: metaaiColorIcon,
+  mistral: mistralColorIcon,
+  cohere: cohereColorIcon,
+  perplexity: perplexityColorIcon,
+  // Image generation
+  stability: stabilityColorIcon,
+  "stable-diffusion": stabilityColorIcon,
+  flux: fluxIcon,
+  luma: lumaColorIcon,
+  ideogram: ideogramIcon,
+  runway: runwayIcon,
+  recraft: recraftIcon,
+  elevenlabs: elevenlabsIcon,
+};
+
+// Substring fallbacks, scanned in order. Kept as entries so the lookup below
+// doesn't rebuild the pair array on every call.
+const partialMatches: ReadonlyArray<readonly [string, string]> = Object.entries({
+  openai: openaiIcon,
+  anthropic: anthropicIcon,
+  claude: claudeColorIcon,
+  gemini: geminiColorIcon,
+  google: geminiColorIcon,
+  huggingface: huggingfaceColorIcon,
+  ollama: ollamaIcon,
+  llama: ollamaIcon,
+  mistral: mistralColorIcon,
+  groq: groqIcon,
+  together: togetherColorIcon,
+  deepseek: deepseekColorIcon,
+  replicate: replicateIcon,
+  fal: falColorIcon,
+  elevenlabs: elevenlabsIcon,
+  stability: stabilityColorIcon,
+  luma: lumaColorIcon,
+  flux: fluxIcon,
+  bfl: bflIcon,
+  ideogram: ideogramIcon,
+  runway: runwayIcon,
+  pika: pikaIcon,
+  kling: klingColorIcon,
+  hunyuan: hunyuanColorIcon,
+  qwen: qwenColorIcon,
+  baidu: baiduColorIcon,
+  stepfun: stepfunColorIcon,
+  cohere: cohereColorIcon,
+  azure: azureColorIcon,
+  aws: awsColorIcon,
+  bedrock: bedrockColorIcon,
+  vertex: vertexaiColorIcon,
+  cerebras: cerebrasColorIcon,
+  gmi: gmiIcon,
+  fireworks: fireworksColorIcon,
+  cloudflare: cloudflareColorIcon,
+  moonshot: moonshotIcon,
+  alibaba: alibabacloudColorIcon,
+  perplexity: perplexityColorIcon,
+  ai21: ai21Icon,
+  meta: metaColorIcon,
+  nvidia: nvidiaColorIcon,
+});
+
 const getProviderIconUrl = (provider: string): string | null => {
   if (!provider) {
     return null;
   }
-  
+
   // Direct match
   const normalized = provider.toLowerCase().trim();
   if (providerIconMap[normalized]) {
     return providerIconMap[normalized];
   }
-  
+
   // Check for HuggingFace sub-providers - use the actual provider's logo
   if (isHuggingFaceProvider(provider)) {
     // Extract the sub-provider name (e.g., "huggingface_fireworks" -> "fireworks")
     const subProviderMatch = normalized.match(/^huggingface[_\-/]?(.*)$/);
     if (subProviderMatch && subProviderMatch[1]) {
       const subProvider = subProviderMatch[1].toLowerCase();
-      
-      // Map of sub-provider names to their icons
-      const subProviderIcons: Record<string, string> = {
-        // Cloud providers
-        fireworks: fireworksColorIcon,
-        "fireworks-ai": fireworksColorIcon,
-        "fireworks_ai": fireworksColorIcon,
-        featherless: featherlessColorIcon,
-        "featherless-ai": featherlessColorIcon,
-        "featherless_ai": featherlessColorIcon,
-        zai: zaiIcon,
-        // No icons available yet - will fall back to HuggingFace
-        // nscale: nscaleIcon,
-        // scaleway: scalewayIcon,
-        replicate: replicateIcon,
-        fal: falColorIcon,
-        "fal-ai": falColorIcon,
-        together: togetherColorIcon,
-        "together-ai": togetherColorIcon,
-        groq: groqIcon,
-        cerebras: cerebrasColorIcon,
-        sambanova: sambanovaColorIcon,
-        novita: novitaColorIcon,
-        hyperbolic: hyperbolicColorIcon,
-        deepinfra: deepinfraColorIcon,
-        baseten: basetenIcon,
-        friendli: friendliIcon,
-        cloudflare: cloudflareColorIcon,
-        workersai: workersaiColorIcon,
-        "workers-ai": workersaiColorIcon,
-        siliconcloud: siliconcloudColorIcon,
-        // AI21
-        ai21: ai21Icon,
-        // Frameworks
-        langchain: langchainColorIcon,
-        llamaindex: llamaindexColorIcon,
-        // Chinese providers
-        alibaba: alibabacloudColorIcon,
-        alibabacloud: alibabacloudColorIcon,
-        bailian: bailianColorIcon,
-        qwen: qwenColorIcon,
-        zhipu: zhipuColorIcon,
-        chatglm: chatglmColorIcon,
-        baidu: baiduColorIcon,
-        bytedance: bytedanceColorIcon,
-        doubao: doubaoColorIcon,
-        stepfun: stepfunColorIcon,
-        sensenova: sensenovaColorIcon,
-        minimax: minimaxColorIcon,
-        tencent: tencentColorIcon,
-        hunyuan: hunyuanColorIcon,
-        // Other providers
-        openai: openaiIcon,
-        anthropic: anthropicIcon,
-        claude: claudeColorIcon,
-        gemini: geminiColorIcon,
-        google: geminiColorIcon,
-        azure: azureColorIcon,
-        azureai: azureaiColorIcon,
-        aws: awsColorIcon,
-        bedrock: bedrockColorIcon,
-        meta: metaColorIcon,
-        metaai: metaaiColorIcon,
-        mistral: mistralColorIcon,
-        cohere: cohereColorIcon,
-        perplexity: perplexityColorIcon,
-        // Image generation
-        stability: stabilityColorIcon,
-        "stable-diffusion": stabilityColorIcon,
-        flux: fluxIcon,
-        luma: lumaColorIcon,
-        ideogram: ideogramIcon,
-        runway: runwayIcon,
-        recraft: recraftIcon,
-        elevenlabs: elevenlabsIcon,
-      };
-      
       if (subProviderIcons[subProvider]) {
         return subProviderIcons[subProvider];
       }
     }
-    
+
     // No matching sub-provider found - use HF logo
     return huggingfaceColorIcon;
   }
-  
-  // Try to match partial names
-  const partialMatches: Record<string, string> = {
-    openai: openaiIcon,
-    anthropic: anthropicIcon,
-    claude: claudeColorIcon,
-    gemini: geminiColorIcon,
-    google: geminiColorIcon,
-    huggingface: huggingfaceColorIcon,
-    ollama: ollamaIcon,
-    llama: ollamaIcon,
-    mistral: mistralColorIcon,
-    groq: groqIcon,
-    together: togetherColorIcon,
-    deepseek: deepseekColorIcon,
-    replicate: replicateIcon,
-    fal: falColorIcon,
-    elevenlabs: elevenlabsIcon,
-    stability: stabilityColorIcon,
-    luma: lumaColorIcon,
-    flux: fluxIcon,
-    bfl: bflIcon,
-    ideogram: ideogramIcon,
-    runway: runwayIcon,
-    pika: pikaIcon,
-    kling: klingColorIcon,
-    hunyuan: hunyuanColorIcon,
-    qwen: qwenColorIcon,
-    baidu: baiduColorIcon,
-    stepfun: stepfunColorIcon,
-    cohere: cohereColorIcon,
-    azure: azureColorIcon,
-    aws: awsColorIcon,
-    bedrock: bedrockColorIcon,
-    vertex: vertexaiColorIcon,
-    cerebras: cerebrasColorIcon,
-    gmi: gmiIcon,
-    fireworks: fireworksColorIcon,
-    cloudflare: cloudflareColorIcon,
-    moonshot: moonshotIcon,
-    alibaba: alibabacloudColorIcon,
-    perplexity: perplexityColorIcon,
-    ai21: ai21Icon,
-    meta: metaColorIcon,
-    nvidia: nvidiaColorIcon,
-  };
-  
-  for (const [key, value] of Object.entries(partialMatches)) {
+
+  for (const [key, value] of partialMatches) {
     if (normalized.includes(key)) {
       return value;
     }
   }
-  
+
   return null;
 };
 
@@ -530,7 +530,10 @@ export interface ProviderListProps {
   orientation?: "vertical" | "horizontal";
 }
 
-const ProviderList: React.FC<ProviderListProps> = ({
+// Memoized: the model menu re-renders on every keystroke in its search box and
+// every arrow-key move through the model list, none of which changes these props.
+// Provider selection is read from the store here, so selecting one still re-renders.
+const ProviderList: React.FC<ProviderListProps> = React.memo(({
   providers,
   isLoading,
   isError,
@@ -558,26 +561,30 @@ const ProviderList: React.FC<ProviderListProps> = ({
   const tooltipPlacement = isHorizontal ? "bottom" : "right";
   const itemMinWidth = isHorizontal ? 76 : undefined;
 
-  // Sort providers: enabled first (alphabetical), then disabled (alphabetical)
-  const sortedProviders = React.useMemo(() => {
+  // Sort providers: enabled first (alphabetical), then disabled (alphabetical).
+  // The label and icon URL are resolved here as well: both are pure functions of
+  // the provider id, and resolving them inside the render loop re-ran a
+  // substring scan over ~45 icon names per provider on every re-render.
+  const { orderedProviders, enabledCount, disabledCount } = React.useMemo(() => {
     // Use enabledProviders map directly to avoid expensive re-computation via selector functions
     const map = enabledProviders || {};
-    const withLabels = providers.map((p) => {
-      const label = isHuggingFaceProvider(p)
+    const withLabels = providers.map((p) => ({
+      p,
+      label: isHuggingFaceProvider(p)
         ? getProviderBaseName(p)
-        : formatGenericProviderName(p);
-      const enabled = map[p] !== false; // default enabled
-      return { p, label, enabled };
-    });
-    const enabledList = withLabels
-      .filter((x) => x.enabled)
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map((x) => x.p);
-    const disabledList = withLabels
-      .filter((x) => !x.enabled)
-      .sort((a, b) => a.label.localeCompare(b.label))
-      .map((x) => x.p);
-    return { enabledList, disabledList };
+        : formatGenericProviderName(p),
+      iconUrl: getProviderIconUrl(p),
+      enabled: map[p] !== false // default enabled
+    }));
+    const byLabel = (a: { label: string }, b: { label: string }) =>
+      a.label.localeCompare(b.label);
+    const enabledList = withLabels.filter((x) => x.enabled).sort(byLabel);
+    const disabledList = withLabels.filter((x) => !x.enabled).sort(byLabel);
+    return {
+      orderedProviders: [...enabledList, ...disabledList],
+      enabledCount: enabledList.length,
+      disabledCount: disabledList.length
+    };
   }, [providers, enabledProviders]);
 
   const handleSelectNull = useCallback(() => {
@@ -705,21 +712,16 @@ const ProviderList: React.FC<ProviderListProps> = ({
           />
         )}
       </ListItemButton>
-      {[...sortedProviders.enabledList, ...sortedProviders.disabledList]
-        .map(
-        (p, idx) => {
+      {orderedProviders.map(
+        ({ p, label: providerLabel, iconUrl }, idx) => {
           const enabled = isProviderEnabled(p);
-          const showDivider =
-            idx === sortedProviders.enabledList.length &&
-            sortedProviders.disabledList.length > 0;
+          const showDivider = idx === enabledCount && disabledCount > 0;
           const normKey = /gemini|google/i.test(p) ? "gemini" : p;
           const providerEnabled = (enabledProviders || {})[normKey] !== false;
           const available = providerEnabled;
           const env = requiredSecretForProvider(p);
           const hasKey = env ? isApiKeySet(env) : true;
-          const providerLabel = isHuggingFaceProvider(p)
-            ? getProviderBaseName(p)
-            : formatGenericProviderName(p);
+          const isHFLogo = iconUrl === huggingfaceColorIcon;
           const renderBadges = () => {
             const badges: Array<{ label: string }> = [];
             const isHF = isHuggingFaceProvider(p);
@@ -836,30 +838,25 @@ const ProviderList: React.FC<ProviderListProps> = ({
                           flexShrink: 0
                         }}
                       >
-                        {(() => {
-                          const iconUrl = getProviderIconUrl(p);
-                          if (iconUrl) {
-                            const isHFLogo = iconUrl === huggingfaceColorIcon;
-                            return (
-                              <img
-                                className="model-menu__provider-icon-image"
-                                src={iconUrl}
-                                alt=""
-                                style={{
-                                  width: 24,
-                                  height: 24,
-                                  objectFit: "contain",
-                                  filter: selected === p
-                                    ? "brightness(0) invert(1)"
-                                    : isDarkMode && !isHFLogo
-                                      ? "invert(1) brightness(1.1) contrast(0.9)"
-                                      : "none"
-                                }}
-                              />
-                            );
-                          }
-                          return getProviderFallbackLabel(p);
-                        })()}
+                        {iconUrl ? (
+                          <img
+                            className="model-menu__provider-icon-image"
+                            src={iconUrl}
+                            alt=""
+                            style={{
+                              width: 24,
+                              height: 24,
+                              objectFit: "contain",
+                              filter: selected === p
+                                ? "brightness(0) invert(1)"
+                                : isDarkMode && !isHFLogo
+                                  ? "invert(1) brightness(1.1) contrast(0.9)"
+                                  : "none"
+                            }}
+                          />
+                        ) : (
+                          getProviderFallbackLabel(p)
+                        )}
                       </FlexRow>
                       <Caption
                         sx={{
@@ -884,48 +881,42 @@ const ProviderList: React.FC<ProviderListProps> = ({
                       className="model-menu__provider-label"
                       primary={
                         <FlexRow className="model-menu__provider-label-content" gap={1} align="center">
-                          {(() => {
-                            const iconUrl = getProviderIconUrl(p);
-                            // Check if using HuggingFace logo (either base HF or unknown sub-provider)
-                            // In this case, don't invert in dark mode since HF logo has good contrast
-                            const isHFLogo = iconUrl === huggingfaceColorIcon;
-                            return (
-                              <FlexRow className="model-menu__provider-inline-icon" align="center" justify="center" sx={{
-                                width: 28,
-                                height: 28,
-                                flexShrink: 0,
-                                borderRadius: BORDER_RADIUS.sm,
-                                bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
-                                opacity: available ? 1 : 0.5,
-                              }}>
-                                {iconUrl ? (
-                                  <img
-                                    className="model-menu__provider-inline-icon-image"
-                                    src={iconUrl} 
-                                    alt="" 
-                                    style={{ 
-                                      width: 22, 
-                                      height: 22, 
-                                      objectFit: 'contain',
-                                      filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
-                                    }} 
-                                  />
-                                ) : (
-                                  <Box
-                                    component="span"
-                                    sx={{
-                                      fontWeight: 600,
-                                      fontSize: theme.vars.fontSizeSmall,
-                                      color: theme.vars.palette.text.primary,
-                                      lineHeight: 1
-                                    }}
-                                  >
-                                    {getProviderFallbackLabel(p)}
-                                  </Box>
-                                )}
-                              </FlexRow>
-                            );
-                          })()}
+                          {/* The HuggingFace logo has good contrast on its own, so it
+                              is the one icon not inverted in dark mode. */}
+                          <FlexRow className="model-menu__provider-inline-icon" align="center" justify="center" sx={{
+                            width: 28,
+                            height: 28,
+                            flexShrink: 0,
+                            borderRadius: BORDER_RADIUS.sm,
+                            bgcolor: isDarkMode && !isHFLogo ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+                            opacity: available ? 1 : 0.5,
+                          }}>
+                            {iconUrl ? (
+                              <img
+                                className="model-menu__provider-inline-icon-image"
+                                src={iconUrl}
+                                alt=""
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  objectFit: 'contain',
+                                  filter: (isDarkMode && !isHFLogo) ? 'invert(1) brightness(1.1) contrast(0.9)' : 'none'
+                                }}
+                              />
+                            ) : (
+                              <Box
+                                component="span"
+                                sx={{
+                                  fontWeight: 600,
+                                  fontSize: theme.vars.fontSizeSmall,
+                                  color: theme.vars.palette.text.primary,
+                                  lineHeight: 1
+                                }}
+                              >
+                                {getProviderFallbackLabel(p)}
+                              </Box>
+                            )}
+                          </FlexRow>
                           <span className="model-menu__provider-name">
                             {providerLabel}
                           </span>
@@ -1039,6 +1030,8 @@ const ProviderList: React.FC<ProviderListProps> = ({
       </EditorMenu>
     </List>
   );
-};
+});
+
+ProviderList.displayName = "ProviderList";
 
 export default ProviderList;

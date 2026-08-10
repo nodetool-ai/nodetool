@@ -82,40 +82,41 @@ export const getProviderBaseName = (provider?: string): string => {
   return toTitleCase(remainder);
 };
 
+const PROVIDER_ALIAS_NAMES: Record<string, string> = {
+  openai: "OpenAI",
+  hunyuan3d: "Hunyuan3D",
+  hunyuan3d_v2: "Hunyuan3D V2",
+  hunyuan3d_v3: "Hunyuan3D 3.0",
+  "hunyuan3d-v2": "Hunyuan3D V2",
+  "hunyuan3d-3.0": "Hunyuan3D 3.0",
+  "hunyuan3d-30": "Hunyuan3D 3.0",
+  "hunyuan3d_3_0": "Hunyuan3D 3.0",
+  trellis: "Trellis",
+  "trellis-2": "Trellis 2",
+  trellis_2: "Trellis 2",
+  trellis2: "Trellis 2",
+  triposr: "TripoSR",
+  tripo_sr: "TripoSR",
+  shap_e: "Shap-E",
+  "shap-e": "Shap-E",
+  point_e: "Point-E",
+  "point-e": "Point-E",
+  meshy: "Meshy AI",
+  "meshy-ai": "Meshy AI",
+  nodetool: "NodeTool",
+  rodin: "Rodin AI",
+  "rodin-ai": "Rodin AI",
+  mlx: "MLX"
+};
+
 // Fallback formatter for arbitrary provider strings
 export const formatGenericProviderName = (provider?: string): string => {
   if (!provider) {return "";}
   // Normalize common aliases for display
   const providerLower = provider.toLowerCase();
-  const providerAliasNames: Record<string, string> = {
-    openai: "OpenAI",
-    hunyuan3d: "Hunyuan3D",
-    hunyuan3d_v2: "Hunyuan3D V2",
-    hunyuan3d_v3: "Hunyuan3D 3.0",
-    "hunyuan3d-v2": "Hunyuan3D V2",
-    "hunyuan3d-3.0": "Hunyuan3D 3.0",
-    "hunyuan3d-30": "Hunyuan3D 3.0",
-    "hunyuan3d_3_0": "Hunyuan3D 3.0",
-    trellis: "Trellis",
-    "trellis-2": "Trellis 2",
-    trellis_2: "Trellis 2",
-    trellis2: "Trellis 2",
-    triposr: "TripoSR",
-    tripo_sr: "TripoSR",
-    shap_e: "Shap-E",
-    "shap-e": "Shap-E",
-    point_e: "Point-E",
-    "point-e": "Point-E",
-    meshy: "Meshy AI",
-    "meshy-ai": "Meshy AI",
-    nodetool: "NodeTool",
-    rodin: "Rodin AI",
-    "rodin-ai": "Rodin AI",
-    mlx: "MLX"
-  };
 
-  if (providerAliasNames[providerLower]) {
-    return providerAliasNames[providerLower];
+  if (PROVIDER_ALIAS_NAMES[providerLower]) {
+    return PROVIDER_ALIAS_NAMES[providerLower];
   }
   if (providerLower === "node_llama_cpp" || providerLower === "node-llama-cpp")
     {return "Llama.cpp (local)";}
@@ -138,6 +139,12 @@ export const formatGenericProviderName = (provider?: string): string => {
   return toTitleCase(withSpaces.trim());
 };
 
+// Known HF org aliases
+const HF_ORG_ALIAS: Record<string, string> = {
+  together: "togethercomputer",
+  sambanova: "sambanovasystems"
+};
+
 // Returns the Hugging Face org slug derived from a provider string
 // e.g. "huggingface/fireworks-ai" -> "fireworks-ai"
 //      "huggingface_cerebras" -> "cerebras"
@@ -155,45 +162,41 @@ const getHuggingFaceSlug = (provider?: string): string | null => {
   if (!remainder) {return null;}
   // Normalize to URL-friendly slug
   let slug = remainder.replace(/\s+/g, "-").replace(/_/g, "-").toLowerCase();
-  // Known HF org aliases
-  const HF_ORG_ALIAS: Record<string, string> = {
-    together: "togethercomputer",
-    sambanova: "sambanovasystems"
-  };
   if (HF_ORG_ALIAS[slug]) {slug = HF_ORG_ALIAS[slug];}
   return slug || null;
+};
+
+const PROVIDER_URLS: Record<string, string> = {
+  meshy: "https://www.meshy.ai",
+  "meshy-ai": "https://www.meshy.ai",
+  rodin: "https://rodin.ai",
+  "rodin-ai": "https://rodin.ai",
+  triposr: "https://triposr.github.io",
+  tripo_sr: "https://triposr.github.io",
+  trellis: "https://trellis3d.github.io",
+  "trellis-2": "https://trellis3d.github.io",
+  trellis_2: "https://trellis3d.github.io",
+  trellis2: "https://trellis3d.github.io",
+  shap_e: "https://github.com/openai/shap-e",
+  "shap-e": "https://github.com/openai/shap-e",
+  point_e: "https://github.com/openai/point-e",
+  "point-e": "https://github.com/openai/point-e",
+  hunyuan3d: "https://github.com/Tencent/Hunyuan3D",
+  hunyuan3d_v2: "https://github.com/Tencent/Hunyuan3D",
+  hunyuan3d_v3: "https://github.com/Tencent/Hunyuan3D",
+  "hunyuan3d-v2": "https://github.com/Tencent/Hunyuan3D",
+  "hunyuan3d-3.0": "https://github.com/Tencent/Hunyuan3D",
+  "hunyuan3d-30": "https://github.com/Tencent/Hunyuan3D",
+  "hunyuan3d_3_0": "https://github.com/Tencent/Hunyuan3D"
 };
 
 /** Returns an external URL for a given provider name when known; otherwise null. */
 export const getProviderUrl = (provider?: string): string | null => {
   if (!provider) {return null;}
   const providerLower = provider.toLowerCase();
-  const providerUrls: Record<string, string> = {
-    meshy: "https://www.meshy.ai",
-    "meshy-ai": "https://www.meshy.ai",
-    rodin: "https://rodin.ai",
-    "rodin-ai": "https://rodin.ai",
-    triposr: "https://triposr.github.io",
-    tripo_sr: "https://triposr.github.io",
-    trellis: "https://trellis3d.github.io",
-    "trellis-2": "https://trellis3d.github.io",
-    trellis_2: "https://trellis3d.github.io",
-    trellis2: "https://trellis3d.github.io",
-    shap_e: "https://github.com/openai/shap-e",
-    "shap-e": "https://github.com/openai/shap-e",
-    point_e: "https://github.com/openai/point-e",
-    "point-e": "https://github.com/openai/point-e",
-    hunyuan3d: "https://github.com/Tencent/Hunyuan3D",
-    hunyuan3d_v2: "https://github.com/Tencent/Hunyuan3D",
-    hunyuan3d_v3: "https://github.com/Tencent/Hunyuan3D",
-    "hunyuan3d-v2": "https://github.com/Tencent/Hunyuan3D",
-    "hunyuan3d-3.0": "https://github.com/Tencent/Hunyuan3D",
-    "hunyuan3d-30": "https://github.com/Tencent/Hunyuan3D",
-    "hunyuan3d_3_0": "https://github.com/Tencent/Hunyuan3D"
-  };
 
-  if (providerUrls[providerLower]) {
-    return providerUrls[providerLower];
+  if (PROVIDER_URLS[providerLower]) {
+    return PROVIDER_URLS[providerLower];
   }
   if (isHuggingFaceProvider(provider)) {
     const slug = getHuggingFaceSlug(provider);
