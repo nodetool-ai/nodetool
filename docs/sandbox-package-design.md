@@ -6,14 +6,17 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0, M1, M2 and M3 are
+> Status: design, revised after two review rounds. M0 through M5 are
 > implemented. A declared sandbox module is importable in Code nodes, CodeAct
 > actions, the CLI, the server **and the browser runner** — M2 delivered module
 > source to the browser over `GET /api/sandbox-modules/*`, ran the same
 > loading/denial contract there, and removed the `NODETOOL_SANDBOX_MODULES_V1`
 > parity flag along with the browser refusal it covered. M3 adds the npm
 > compiler: a config-only `npm` manifest entry is bundled, scanned,
-> admission-probed, and cached by content. M0 provides:
+> admission-probed, and cached by content. M4 adds scalar WASM modules behind
+> generated facades. M5 adds trust-scoped disclosure: a pack's SKILL.md reaches
+> agents as a skill or a docs tool, and the package picker in the editor.
+> M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
 > sandbox-only host-loader guard, scripts-disabled installation with an
@@ -736,7 +739,8 @@ before it registers nodes.
 
 The current `SKILL.md` check is also only a discovery warning. It verifies
 the size and minimal frontmatter shape; it does not register the file with
-the agent skill system. Full skill parsing and disclosure remain in M5.
+the agent skill system. Full parsing and disclosure land in M5 (see the M5
+checkpoint).
 
 Settings → Packages shows this rather than treating install as
 authorization: each pack installed by NodeTool carries its mode, an
@@ -846,6 +850,46 @@ Regression suites: `packages/agents/tests/js-sandbox-modules.test.ts`,
 `packages/node-sdk/tests/code-node-validation.test.ts`,
 `graph-validation.test.ts`; `packages/code-nodes/tests/code-node-packages.test.ts`;
 and `web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
+
+#### M5 checkpoint — trust-scoped disclosure
+
+M5 is implemented: a pack's SKILL.md is parsed where packs are discovered and
+reaches an agent only under the trust rule above.
+
+- **One parser.** `parseSkillDocument` / `skillSections`
+  (`packages/protocol/src/skill-document.ts`) is the agent skill parser, moved
+  down the dependency order so discovery and the skill system read one format.
+  Discovery attaches the parsed skill (name, description, body, `##` sections)
+  to `SandboxPackDiscovery`; a broken frontmatter is still only a
+  `skill-invalid` warning and never withholds a module.
+- **Trust at the catalog.** `createSandboxModuleCatalog` stamps each pack's
+  skill with `trusted` from `isPackTrusted` (`packages/node-sdk/src/pack-loader.ts`)
+  — the allowlist, not `allowUnlisted` — and serves it through
+  `catalog.packSkill(packName)`. Summaries carry the sanitized, capped
+  description and the module's `contentDigest`; a body never rides in a
+  summary.
+- **Disclosure to the agent.** `get_sandbox_package_docs`
+  (`packages/agents/src/codeact/sandbox-package-docs.ts`) refuses a specifier
+  the session never allowed, returns a trusted pack's body plainly, and wraps
+  an untrusted pack's body in `<untrusted-package-docs>` with the
+  do-not-follow warning and escaped angle brackets. A trusted pack's skill also
+  registers as an ordinary `AgentSkill`, but only for a session whose
+  allowlist names the pack.
+- **UI.** The Code node's `packages` property renders the picker
+  (`web/src/components/properties/SandboxPackagesProperty.tsx`), which writes
+  declarations stamped with `resolvedPackVersion` and `contentDigest` and
+  states the consent sentence; Settings → Packages adds the same sentence, the
+  per-module one-liners and the SKILL.md view for sandbox-only and hybrid packs
+  (`web/src/components/packages/SandboxPackDisclosure.tsx`). Both read
+  `packs.sandboxModules` and the new `packs.sandboxPackageDocs` procedure,
+  which serves a body only when asked for that pack by name.
+
+Regression suites: `packages/protocol/tests/skill-document.test.ts`;
+`packages/node-sdk/tests/sandbox-pack-skill.test.ts`;
+`packages/agents/tests/sandbox-package-docs.test.ts` and
+`codeact-prompt-drift.test.ts`;
+`web/src/components/properties/__tests__/SandboxPackagesProperty.test.tsx` and
+`web/src/components/packages/__tests__/SandboxPackDisclosure.test.tsx`.
 
 ### M2 — Delivery parity (removes the flag)
 

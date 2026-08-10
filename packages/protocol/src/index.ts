@@ -26,6 +26,7 @@ export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
 export * from "./sandbox-package.js";
 export * from "./sandbox-wasm.js";
+export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export {
   type Platform,

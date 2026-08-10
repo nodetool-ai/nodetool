@@ -10,6 +10,9 @@ wired exactly as designed — quoting is risk reduction, not isolation,
 so the policy is about *when* the agent sees pack docs, not how they
 are delimited.
 
+> **Landed.** All five tasks shipped together; see the M5 checkpoint in
+> [sandbox-package-design.md](sandbox-package-design.md) for what is where.
+
 ## Task 1 — Full SKILL.md parsing at discovery
 
 M0 validates only size and minimal frontmatter shape. Hoist the

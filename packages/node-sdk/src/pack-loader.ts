@@ -355,9 +355,25 @@ function isAllowed(
   name: string,
   trust: Required<PackTrustOptions>
 ): boolean {
-  if (trust.allowlist.includes("*")) return true;
-  if (trust.allowlist.includes(name)) return true;
+  if (isPackTrusted(name, trust)) return true;
   return trust.allowUnlisted;
+}
+
+/**
+ * Whether the operator put this pack on the allowlist.
+ *
+ * Distinct from {@link isAllowed}: `allowUnlisted` lets a pack *load* (it
+ * defaults to true outside production, so a dev box runs what is installed),
+ * which is not a statement that anyone vouched for it. Only a name — or `*` —
+ * written on the allowlist is, and that is the line the SKILL.md disclosure
+ * policy draws between "registers as a skill" and "reaches the agent only as
+ * untrusted tool output".
+ */
+export function isPackTrusted(
+  name: string,
+  trust: Required<PackTrustOptions> = resolvePackTrust()
+): boolean {
+  return trust.allowlist.includes("*") || trust.allowlist.includes(name);
 }
 
 /**

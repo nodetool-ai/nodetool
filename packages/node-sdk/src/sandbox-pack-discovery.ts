@@ -5,7 +5,9 @@ import { parse } from "acorn";
 import {
   generateSandboxWasmFacade,
   normalizeSandboxSpecifier,
+  parseSkillDocument,
   parseWasmBinary,
+  skillSections,
   RESERVED_IDENTIFIERS,
   SANDBOX_WASM_FACADE_VERSION,
   SandboxModuleManifestSchema,
@@ -15,6 +17,7 @@ import {
   type ParsedWasmBinary,
   type SandboxModuleManifest,
   type SandboxPackManifest,
+  type SandboxPackSkill,
   type SandboxModuleStatus,
   type SandboxWasmContract
 } from "@nodetool-ai/protocol";
@@ -87,6 +90,12 @@ export interface SandboxPackDiscovery {
   readonly internal: readonly string[];
   readonly digest: string;
   readonly statuses: readonly SandboxModuleStatus[];
+  /**
+   * The pack's parsed SKILL.md, absent when it is missing or does not parse.
+   * A skill is documentation: a frontmatter typo is a warning, never a reason
+   * to withhold modules that are otherwise valid.
+   */
+  readonly skill?: SandboxPackSkill;
 }
 
 /** Raised when a sandbox package's static artifacts violate the discovery contract. */
@@ -308,18 +317,20 @@ export function discoverSandboxPack(
   })).sort(compareById);
 
   const skillCandidate = join(dir, "SKILL.md");
+  let skill: SandboxPackSkill | undefined;
   if (!existsSync(skillCandidate)) {
     statuses.push({ packName: packageName, status: "warning", code: "skill-missing", message: "SKILL.md is missing; agent discoverability is disabled" });
   } else {
-    let skill: Buffer | undefined;
+    let source: Buffer | undefined;
     try {
       const skillPath = resolveContainedFile(dir, "SKILL.md");
-      skill = readFileWithinLimit(skillPath, SANDBOX_PACKAGE_LIMITS.skillBytes);
+      source = readFileWithinLimit(skillPath, SANDBOX_PACKAGE_LIMITS.skillBytes);
     } catch {
       // SKILL.md is optional; read and containment failures only disable discoverability.
-      skill = undefined;
+      source = undefined;
     }
-    if (skill === undefined || !isValidSkill(skill.toString("utf8"))) {
+    skill = source === undefined ? undefined : parseSandboxPackSkill(source.toString("utf8"));
+    if (skill === undefined) {
       statuses.push({ packName: packageName, status: "warning", code: "skill-invalid", message: "SKILL.md is invalid, unavailable, or exceeds the 16 KB cap; agent discoverability is disabled" });
     }
   }
@@ -332,7 +343,20 @@ export function discoverSandboxPack(
     graph,
     internal: [...internalIds].sort(compareStrings),
     digest: computeDigest(resolvedModules, files, internalIds, manifest, packageName, version, npmArtifacts),
-    statuses
+    statuses,
+    ...(skill === undefined ? {} : { skill })
+  };
+}
+
+/** Parse a pack's SKILL.md with the skill system's own rules. */
+function parseSandboxPackSkill(source: string): SandboxPackSkill | undefined {
+  const document = parseSkillDocument(source);
+  if (document === null) return undefined;
+  return {
+    name: document.name,
+    description: document.description,
+    body: document.instructions,
+    sections: skillSections(document.instructions)
   };
 }
 
@@ -726,7 +750,6 @@ function readJson(path: string): Record<string, unknown> {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> { return typeof value === "object" && value !== null && !Array.isArray(value); }
-function isValidSkill(source: string): boolean { if (!source.startsWith("---\n")) return false; const end = source.indexOf("\n---", 4); if (end < 0) return false; return source.slice(4, end).split("\n").every((line) => line.length === 0 || /^[A-Za-z][A-Za-z0-9_-]*:\s*[^\n]*$/.test(line)); }
 function compareStrings(left: string, right: string): number { return left < right ? -1 : left > right ? 1 : 0; }
 function compareExportNames(left: string | { wasm: string; as: string }, right: string | { wasm: string; as: string }): number {
   const leftName = typeof left === "string" ? left : left.wasm;

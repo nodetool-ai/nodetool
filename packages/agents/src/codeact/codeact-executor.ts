@@ -65,6 +65,10 @@ import {
   sessionAllowedPackages
 } from "./sandbox-packages.js";
 import {
+  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
+  SandboxPackageDocsTool
+} from "./sandbox-package-docs.js";
+import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
   GRAPH_MODEL_TOOL_NAMES,
@@ -347,6 +351,19 @@ export class CodeActExecutor {
       if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
     }
 
+    // A session that allows packages can read what they document. The prompt
+    // carries one line per package; the body is fetched, never injected.
+    if (this.sandboxPackages.length > 0) {
+      const docsTool = new SandboxPackageDocsTool(
+        this.sandboxPackages,
+        this.context.sandboxModuleCatalog
+      );
+      if (!existing.has(docsTool.name)) this.tools.push(docsTool);
+    }
+    const hasPackageDocsTool = this.tools.some(
+      (t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME
+    );
+
     // The core set is offered to the provider as ordinary tools as well.
     this.coreTools = splitCoreTools(this.tools).core;
 
@@ -380,6 +397,9 @@ export class CodeActExecutor {
     const residentNames = new Set(
       opts.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
     );
+    // The package section names this call, so its signature belongs in the
+    // catalog rather than behind a searchTools() round trip.
+    if (hasPackageDocsTool) residentNames.add(SANDBOX_PACKAGE_DOCS_TOOL_NAME);
     if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
       this.residentTools = [...catalogTools];
       this.deferredTools = [];
@@ -414,7 +434,8 @@ export class CodeActExecutor {
       packageLines: packagePromptLines(
         this.sandboxPackages,
         this.context.sandboxModuleCatalog
-      )
+      ),
+      packageDocsTool: hasPackageDocsTool
     });
   }
 

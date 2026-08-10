@@ -383,6 +383,13 @@ export {
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
 export {
+  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
+  SandboxPackageDocsTool,
+  sandboxPackageSkills,
+  wrapUntrustedPackageDocs
+} from "./codeact/sandbox-package-docs.js";
+export type { SandboxPackageDocs } from "./codeact/sandbox-package-docs.js";
+export {
   buildToolBridge,
   renderToolCatalog,
   renderToolSignature,

@@ -4,7 +4,8 @@ import {
   type SandboxModuleDeliveryResult,
   type SandboxModuleResolution,
   type SandboxModuleStatus,
-  type SandboxModuleSummary
+  type SandboxModuleSummary,
+  type SandboxPackSkillDisclosure
 } from "@nodetool-ai/protocol";
 
 /**
@@ -17,6 +18,13 @@ export interface SandboxModuleCatalog {
     declarations: readonly SandboxModuleDeclaration[]
   ): SandboxModuleResolution;
   diagnostics(): readonly SandboxModuleStatus[];
+  /**
+   * A pack's SKILL.md with the trust decision attached, when the host read one.
+   * Optional: a catalog assembled somewhere without pack documentation (a
+   * browser host, a fixture) answers nothing, and every caller must handle
+   * that anyway — a pack may simply ship no skill.
+   */
+  packSkill?(packName: string): SandboxPackSkillDisclosure | undefined;
   /**
    * Authorize and retrieve one module's browser-safe content by opaque id.
    *

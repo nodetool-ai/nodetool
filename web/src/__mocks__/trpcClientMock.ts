@@ -142,7 +142,11 @@ export const trpcClient = {
     list: { query: emptyQuery() },
     listBuiltins: { query: emptyQuery() },
     getTrust: { query: emptyQuery() },
-    runtimeStatuses: { query: jest.fn(async () => ({ statuses: [] })) }
+    runtimeStatuses: { query: jest.fn(async () => ({ statuses: [] })) },
+    sandboxModules: {
+      query: jest.fn(async () => ({ modules: [], diagnostics: [] }))
+    },
+    sandboxPackageDocs: { query: jest.fn(async () => null) }
   },
   users: {
     list: { query: emptyQuery() },
