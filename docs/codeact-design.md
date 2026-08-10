@@ -44,12 +44,13 @@ The research this follows:
 | Tool base class + registry | `src/tools/base-tool.ts`, `tool-registry.ts` | The toolbelt is the same `Tool[]` a step has always been given — codeact adds no capability of its own. |
 | Provider loop | `BaseProvider.generateLoop` | Drives the turn loop; codeact presents exactly one provider tool. |
 | Result-schema validation | `src/utils/json-schema-validate.ts` | `finish(result)` validates host-side with the same checker `finish_step` uses. |
-| Never-reject bridge convention | `js-sandbox.ts` / `script-runner.ts` | Host bridges resolve `{ok, ...}` envelopes; a guest prelude re-throws. Required by the QuickJS handle-leak workaround. |
+| Never-reject bridge convention | `js-sandbox.ts` | Host bridges resolve `{ok, ...}` envelopes; a guest prelude re-throws. Required by the QuickJS handle-leak workaround. |
 | Agent memory | `context.memory` | Step/task results land under the same keys; memory tools are in the toolbelt as functions like everything else. |
 
-CodeAct is *not* script mode. `ScriptRunner` orchestrates **sub-agents**
-(`agent()` spawns a `CodeActExecutor`); codeact is what a single step does.
-The two compose: a script-mode run's sub-steps are codeact steps.
+CodeAct replaced script mode. `ScriptRunner` had an LLM-authored orchestration
+script spawn sub-agents through `agent()`; an action does the same thing with
+ordinary control flow and `nodetool.agents.run(prompt)`, in the same sandbox,
+without a second planner or a second set of budget knobs.
 
 ## The action protocol
 
@@ -162,9 +163,8 @@ The action executes with the same privileges tool mode already grants:
 ## Integration surface
 
 - Every step executor is a `CodeActExecutor`: `Agent` →
-  `ParallelTaskExecutor` → `TaskExecutor` construct one per step, script mode
-  builds one per `agent()` sub-agent, and `run_subtask` / `run_search` spawn
-  their children the same way. There is no option, setting, or flag selecting
+  `ParallelTaskExecutor` → `TaskExecutor` construct one per step, and
+  `run_subtask` / `run_search` spawn their children the same way. There is no option, setting, or flag selecting
   an action space.
 - Two callers stay on `StepExecutor`, the older JSON-tool-call loop, and it is
   no longer exported from the package: `SupervisorAgent` and the app-build
@@ -257,15 +257,16 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
 
 - The pure-computation tools (`calculate`, `geometry`, `trigonometry`,
   `statistics`, `unit_conversion`) are gone everywhere, MCP included. Anything
-  a model can do by writing code is not a tool; `run_code` and `js` remain the
-  code path for callers that want one.
+  a model can do by writing code is not a tool. The code tools `run_code` and
+  `js` went with them: `execute_code` is the code path, and a second one only
+  offered the model a sandbox without the `nodetool.*` API or `state`.
 - `getAgentToolbelt()` (`src/tools/builtin-tools.ts`) drops the
   provider-specific media duplicates — `image_generation`,
   `openai_image_generation`, `google_image_generation`,
   `openai_text_to_speech` — because `nodetool.media` already covers them
   through the provider-agnostic `generate_image` / `generate_speech`. They stay
-  in `getBuiltinTools()`, so MCP clients, which have no object model, keep
-  them.
+  in `getBuiltinTools()` as the full inventory for registration and audits;
+  no surface a model reasons over offers them.
 
 ## Evaluation
 
@@ -287,5 +288,5 @@ finalization — no network, no model.
 
 - Python actions. The sandbox is JS; the CodeAct result is about code as the
   action space, not about Python specifically.
-- Replacing planners. GraphPlanner/ScriptPlanner/CodePlanner already use
-  code-shaped *artifacts*; this changes the step execution loop only.
+- Replacing planners. GraphPlanner/CodePlanner already use code-shaped
+  *artifacts*; this changes the step execution loop only.

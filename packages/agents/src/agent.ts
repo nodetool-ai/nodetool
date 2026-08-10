@@ -41,8 +41,6 @@ import { ParallelTaskExecutor } from "./parallel-task-executor.js";
 import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner, applyRunPolicy } from "./agent-workflow-runner.js";
-import { ScriptPlanner } from "./script-planner.js";
-import { ScriptRunner } from "./script-runner.js";
 import type { Tool } from "./tools/base-tool.js";
 import { gateTools } from "./tools/tool-permissions.js";
 import {
@@ -242,20 +240,6 @@ export interface AgentOptions {
    */
   useGraphPlanner?: boolean;
   /**
-   * Use the script planner: the LLM authors a JavaScript orchestration
-   * script (loops, conditionals, budget-scaled fan-out) instead of a
-   * TaskPlan, and {@link ScriptRunner} executes it deterministically in the
-   * QuickJS sandbox — every `agent()` call in the script runs a real
-   * sub-agent. Takes precedence over {@link useGraphPlanner}.
-   */
-  useScriptPlanner?: boolean;
-  /**
-   * Pre-authored orchestration script. Skips planning entirely and runs the
-   * script directly (implies script mode). See {@link ScriptRunner} for the
-   * script API.
-   */
-  script?: string;
-  /**
    * Run an existing workflow as this agent: an inline graph, or
    * `{ workflowId }` to hydrate one from the workflow table. There is no
    * planning phase — the graph is the plan — and the agent supervises the run
@@ -277,10 +261,12 @@ export interface AgentOptions {
   supervisorBounds?: SupervisorBounds;
   /** Dollar ceiling on supervision for the whole run. */
   maxSupervisorCostUsd?: number;
-  /** Script mode: concurrent `agent()` calls beyond this queue. Default 8. */
+  /**
+   * Concurrent sub-agent dispatch beyond this queues. Bounds task fan-out in
+   * {@link ParallelTaskExecutor} and step fan-out in {@link TaskExecutor}.
+   * Default 8.
+   */
   maxConcurrentAgents?: number;
-  /** Script mode: lifetime `agent()` call cap per run. Default 100. */
-  maxAgentCalls?: number;
   /** Node registry required when {@link useGraphPlanner} is true. */
   registry?: NodeRegistry;
   /**
@@ -365,8 +351,6 @@ export class Agent {
   private readonly autoPersistMemory: boolean;
   private readonly synthesizeRecall: boolean;
   private readonly useGraphPlanner: boolean;
-  private readonly useScriptPlanner: boolean;
-  private readonly script?: string;
   private readonly graphSource?: AgentGraphSource;
   private readonly supervise: boolean;
   private readonly supervisorBounds?: SupervisorBounds;
@@ -396,8 +380,6 @@ export class Agent {
       maxSteps: opts.maxSteps,
       maxStepIterations: opts.maxStepIterations,
       maxTokens: opts.maxTokens,
-      maxConcurrentAgents: opts.maxConcurrentAgents,
-      maxAgentCalls: opts.maxAgentCalls
     });
     this.outputFormat = opts.outputFormat ?? "structured";
     // Non-structured formats imply a string result; outputSchema is ignored.
@@ -412,8 +394,6 @@ export class Agent {
     this.autoPersistMemory = opts.autoPersistMemory === true;
     this.synthesizeRecall = opts.synthesizeRecall ?? true;
     this.useGraphPlanner = opts.useGraphPlanner === true;
-    this.useScriptPlanner = opts.useScriptPlanner === true;
-    this.script = opts.script;
     this.graphSource = opts.graph;
     this.supervise = opts.supervise === true;
     this.supervisorBounds = opts.supervisorBounds;
@@ -714,17 +694,6 @@ export class Agent {
       return;
     }
 
-    // Script mode: LLM-authored (or pre-authored) orchestration script,
-    // executed deterministically by ScriptRunner.
-    if (this.script || this.useScriptPlanner) {
-      yield* this.executeScriptPlan(
-        context,
-        mergedSystemPrompt,
-        effectiveObjective
-      );
-      return;
-    }
-
     if (this.useGraphPlanner && this.registry) {
       yield* this.executeGraphPlan(context, mergedSystemPrompt);
       return;
@@ -918,7 +887,7 @@ export class Agent {
    * The approval callback for this run, from the constructor option or the
    * ProcessingContext variable. Every planning mode reads it through here —
    * approval is a property of the run, not of the mode that happened to plan
-   * it, and the script and graph branches used to skip the gate entirely.
+   * it, and the graph branch used to skip the gate entirely.
    */
   private resolveApprovalCallback(
     context: ProcessingContext
@@ -930,14 +899,14 @@ export class Agent {
   }
 
   /**
-   * Present a non-TaskPlan artifact (an orchestration script, a planned graph)
-   * for approval using the same gate the multi-task path uses. The artifact is
-   * rendered as a one-task plan so the existing approval surfaces — websocket
-   * message, chat card — can show it without a second protocol.
+   * Present a non-TaskPlan artifact (a planned graph) for approval using the
+   * same gate the multi-task path uses. The artifact is rendered as a one-task
+   * plan so the existing approval surfaces — websocket message, chat card —
+   * can show it without a second protocol.
    *
-   * Unlike the TaskPlan gate this does not replan on feedback: the script and
-   * graph planners have their own revision loops and no feedback entry point
-   * here. Any rejection ends the run.
+   * Unlike the TaskPlan gate this does not replan on feedback: the graph
+   * planner has its own revision loop and no feedback entry point here. Any
+   * rejection ends the run.
    */
   private async *awaitArtifactApproval(
     requestApproval: RequestPlanApproval,
@@ -1083,97 +1052,6 @@ export class Agent {
       }
       plan = next.value;
     }
-  }
-
-  /**
-   * Script mode: obtain an orchestration script (pre-authored via the
-   * `script` option, otherwise written by ScriptPlanner) and execute it with
-   * ScriptRunner. The script's return value becomes the agent result.
-   */
-  private async *executeScriptPlan(
-    context: ProcessingContext,
-    systemPrompt: string | undefined,
-    objective: string
-  ): AsyncGenerator<ProcessingMessage> {
-    let script = this.script ?? null;
-
-    if (!script) {
-      log.info("Script planning phase started", { name: this.name });
-      const planner = new ScriptPlanner({
-        provider: this.provider,
-        model: this.planningModel,
-        tools: this.tools,
-        systemPrompt,
-        outputSchema: this.outputSchema,
-        inputs: this.inputs,
-        signal: this.signal
-      });
-      const planGen = planner.plan(objective, context);
-      let planResult = await planGen.next();
-      while (!planResult.done) {
-        yield planResult.value;
-        planResult = await planGen.next();
-      }
-      script = planResult.value;
-      if (!script) {
-        throw new Error(
-          "ScriptPlanner failed to produce an orchestration script."
-        );
-      }
-    }
-
-    const requestApproval = this.resolveApprovalCallback(context);
-    if (requestApproval) {
-      const approved = yield* this.awaitArtifactApproval(requestApproval, {
-        title: `Orchestration script for: ${this.objective.slice(0, 80)}`,
-        tasks: [
-          {
-            id: "script",
-            title: "Run orchestration script",
-            steps: [
-              {
-                id: "script_body",
-                instructions: script,
-                completed: false,
-                dependsOn: [],
-                logs: []
-              }
-            ]
-          }
-        ]
-      });
-      if (!approved) {
-        log.info("Script rejected by user — execution aborted", {
-          name: this.name
-        });
-        return;
-      }
-    }
-
-    const runner = new ScriptRunner({
-      provider: this.provider,
-      model: this.model,
-      context,
-      tools: this.buildExecutorTools(),
-      systemPrompt,
-      inputs: this.inputs,
-      maxStepIterations: this.policy.maxStepIterations,
-      maxTokens: this.policy.maxTokens,
-      maxConcurrentAgents: this.policy.maxConcurrentAgents,
-      maxAgentCalls: this.policy.maxAgentCalls,
-      signal: this.signal
-    });
-
-    const runGen = runner.execute(script);
-    let next = await runGen.next();
-    while (!next.done) {
-      yield next.value;
-      next = await runGen.next();
-    }
-    this.results = next.value ?? null;
-
-    log.info("Agent completed", { name: this.name });
-    this.persistAgentRunMemory();
   }
 
   /**

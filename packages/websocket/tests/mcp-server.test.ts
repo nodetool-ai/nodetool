@@ -111,7 +111,11 @@ describe("MCP Server", () => {
     expect(tools).toHaveProperty("run_workflow");
   });
 
-  it("registers persisted workflow document tools for a scoped session", () => {
+  it("serves persisted workflow document tools to a scoped session in the sandbox", async () => {
+    // A scoped session gets the CodeAct surface: `execute_code` plus the core
+    // set. The document tools are on the sandbox belt, not registered as MCP
+    // tools — mcp-server.ts skips the renderer bridge for scoped sessions, and
+    // the bridge no longer re-registers them flat.
     const server = createMcpServer({
       agentToolsScope: { userId: "user-1", source: "stdio-local" }
     });
@@ -119,8 +123,17 @@ describe("MCP Server", () => {
       server as unknown as { _registeredTools: Record<string, unknown> }
     )._registeredTools;
 
-    expect(tools).toHaveProperty("ui_get_graph");
-    expect(tools).toHaveProperty("ui_add_node");
+    expect(tools).toHaveProperty("execute_code");
+    expect(tools).not.toHaveProperty("ui_get_graph");
+
+    const response = await callTool(server, "execute_code", {
+      title: "check belt",
+      code: "return Object.keys(tools).filter((n) => n.startsWith('ui_')).length > 0;"
+    });
+    expect(JSON.parse(response.content[0].text)).toMatchObject({
+      ok: true,
+      result: true
+    });
   });
 
   it("registers all expected tools", () => {
@@ -382,10 +395,16 @@ describe("MCP frontend renderer routing", () => {
       const server = createMcpServer({
         agentToolsScope: { userId: "user-1", source: "stdio-local" }
       });
-      const response = await callTool(server, "ui_get_graph", {});
+      // The live-editor preference lives in the bridged-tool runner, which an
+      // action reaches through `tools.ui_get_graph()`.
+      const response = await callTool(server, "execute_code", {
+        title: "read the graph",
+        code: "return await tools.ui_get_graph({});"
+      });
       expect(response.isError).not.toBe(true);
       expect(JSON.parse(response.content[0].text)).toMatchObject({
-        workflow_id: "live-workflow"
+        ok: true,
+        result: { workflow_id: "live-workflow" }
       });
     } finally {
       unregisterMcpFrontendTransport(transport);

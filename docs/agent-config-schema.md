@@ -223,9 +223,6 @@ planning_agent:
 - `browser` — Browse URLs and extract web content
 - `download_file`, `http_request`
 
-**Code Execution:**
-- `run_code` — Run code in a sandbox
-
 **Media Generation:**
 - `generate_image`, `edit_image`, `animate_image`
 - `generate_speech`, `transcribe_audio`
@@ -236,7 +233,8 @@ planning_agent:
 - `extract_pdf_text`, `convert_pdf_to_markdown`, `convert_document`
 - NodeTool MCP tools (workflows, nodes, jobs, assets, models)
 
-> There is no `delete_file` or `terminal` tool. Unknown tool names are ignored at run time with a warning;
+> There is no `run_code`, `delete_file` or `terminal` tool — an agent step runs
+> code by writing a CodeAct action, not by calling a code tool. Unknown tool names are ignored at run time with a warning;
 > `nodetool agent test <file>` reports them.
 
 **Examples:**
@@ -258,7 +256,6 @@ tools:
   - read_file
   - write_file
   - edit_file
-  - run_code
   - grep
 ```
 

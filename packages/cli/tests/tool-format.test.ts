@@ -8,7 +8,7 @@ import {
 } from "../src/tool-format.js";
 
 describe("isBasicTool / friendlyToolName", () => {
-  it("recognizes the builtin file/search/run tools", () => {
+  it("recognizes the builtin file/search tools", () => {
     for (const name of [
       "read_file",
       "write_file",
@@ -16,8 +16,6 @@ describe("isBasicTool / friendlyToolName", () => {
       "list_directory",
       "glob",
       "grep",
-      "run_code",
-      "js",
     ]) {
       expect(isBasicTool(name)).toBe(true);
     }
@@ -32,7 +30,6 @@ describe("isBasicTool / friendlyToolName", () => {
   it("maps names to friendly verbs", () => {
     expect(friendlyToolName("read_file")).toBe("Read");
     expect(friendlyToolName("glob")).toBe("Search");
-    expect(friendlyToolName("run_code")).toBe("Run");
   });
 });
 
@@ -58,12 +55,6 @@ describe("formatToolParams", () => {
 
   it("list_directory defaults to the workspace root", () => {
     expect(formatToolParams("list_directory", {})).toBe(".");
-  });
-
-  it("run_code shows a truncated first line of code", () => {
-    expect(formatToolParams("run_code", { code: "console.log(1)\nmore()" })).toBe(
-      "console.log(1)"
-    );
   });
 
   it("falls back to key: value for unknown tools", () => {
@@ -151,30 +142,6 @@ describe("formatToolResult", () => {
     expect(
       formatToolResult("grep", undefined, { success: true, match_count: 1 })
     ).toBe("Found 1 match");
-  });
-
-  it("run_code reports output and exit status", () => {
-    expect(
-      formatToolResult("run_code", undefined, {
-        stdout: "42\nmore",
-        stderr: "",
-        exitCode: 0,
-      })
-    ).toBe("42");
-    expect(
-      formatToolResult("run_code", undefined, {
-        stdout: "",
-        stderr: "",
-        exitCode: 0,
-      })
-    ).toBe("Ran (no output)");
-    expect(
-      formatToolResult("run_code", undefined, {
-        stdout: "",
-        stderr: "ReferenceError: x is not defined",
-        exitCode: 1,
-      })
-    ).toBe("Error: ReferenceError: x is not defined");
   });
 
   it("groups large counts with thousands separators", () => {

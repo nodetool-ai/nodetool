@@ -52,7 +52,6 @@ tools:
   - browser
   - write_file
   - read_file
-  - run_code
   - grep
 
 max_tokens: 8192                   # response/token budget (maxTokenLimit)
@@ -139,14 +138,14 @@ tools configured on the machine are also auto-registered by name.
 |----------|-------|
 | Files | `read_file`, `write_file`, `edit_file`, `list_directory`, `glob`, `grep`, `download_file` |
 | Web | `google_search`, `google_news`, `google_images`, `browser`, `screenshot`, `http_request`, `openai_web_search`, `dataseo_search`, `dataseo_news` |
-| Code & math | `run_code`, `calculator`, `statistics`, `geometry`, `conversion` |
 | Documents | `extract_pdf_text`, `convert_pdf_to_markdown`, `convert_document` |
 | Media | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `transcribe_audio`, `embed_text`, `openai_image_generation`, `openai_text_to_speech` |
 | Models | `find_model` (ranks models by capability; honors `preferred_providers`/`preferred_models`) |
 | Email | `search_email`, `archive_email` |
 
-> Note: there is no `terminal`, `execute_code`, `take_screenshot`, or `vec_*` tool.
-> Use `run_code` for code execution and `screenshot` for screenshots.
+> Note: there is no `terminal`, `run_code`, `take_screenshot`, or `vec_*` tool.
+> An agent step already acts by writing sandboxed JavaScript, so code execution
+> needs no tool; use `screenshot` for screenshots.
 
 # Model Recommendations
 
@@ -230,7 +229,7 @@ system_prompt: |
   You are a senior developer. Write clean, tested code.
   Always read existing code before modifying. Run tests after changes.
 model: { provider: anthropic, id: claude-sonnet-4-6 }
-tools: [read_file, write_file, edit_file, run_code, grep, glob]
+tools: [read_file, write_file, edit_file, grep, glob]
 max_steps: 20
 ```
 

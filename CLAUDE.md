@@ -868,15 +868,12 @@ post-repair.
 npm run dev:nodetool -- eval code-gen -p anthropic -m claude-sonnet-5
 ```
 
-The other two planning modes have a suite each, scoring the plan without
-running it: **`task-planner`** (multi-task DAG quality — parallel width,
-decomposition size, tool routing, no synthesis task) and **`script-planner`**
-(orchestration-script authoring — concurrency primitives, real loops, budget
-guards, no prelude shadowing).
+The task planner has a suite of its own, scoring the plan without running it:
+**`task-planner`** (multi-task DAG quality — parallel width, decomposition
+size, tool routing, no synthesis task).
 
 ```bash
 npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
-npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini
 ```
 
 A **`codeact`** suite scores the CodeAct execution mode (steps act by writing

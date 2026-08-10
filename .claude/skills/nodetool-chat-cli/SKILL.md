@@ -96,7 +96,6 @@ Because the agent loop is always active, the chat can:
 | `google_search` | Web search |
 | `browser` | Browse and extract web content |
 | `read_file` / `write_file` / `edit_file` | Workspace file ops |
-| `run_code` | Run code snippets |
 | `grep` / `glob` | Search files |
 | `screenshot` | Capture a page screenshot |
 | `find_model` | Pick a model by capability |
@@ -141,7 +140,7 @@ nodetool chat --tools google_search,browser,write_file
 
 ## Code Generation
 ```bash
-nodetool chat -p anthropic -m claude-sonnet-4-6 --tools write_file,read_file,run_code
+nodetool chat -p anthropic -m claude-sonnet-4-6 --tools write_file,read_file,grep
 > Create a Python script that processes CSV files and generates summary statistics
 ```
 

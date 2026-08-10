@@ -176,9 +176,6 @@ Tool names in the `tools:` list must match the agent's tool registry. Common too
 - `browser` — Browse and extract web content
 - `download_file`, `http_request`
 
-**Code Execution:**
-- `run_code` — Run code in a sandbox
-
 **Media Generation:**
 - `generate_image`, `edit_image`, `animate_image`
 - `generate_speech`, `transcribe_audio`
@@ -197,7 +194,6 @@ tools:
   - browser
   - write_file
   - read_file
-  - run_code
 ```
 
 ### Workspace Configuration

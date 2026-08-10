@@ -18,8 +18,6 @@ const FRIENDLY_NAMES: Record<string, string> = {
   list_directory: "List",
   glob: "Search",
   grep: "Grep",
-  run_code: "Run",
-  js: "Run",
 };
 
 /** True when the tool gets the compact Claude-Code-style treatment. */
@@ -106,9 +104,6 @@ export function formatToolParams(
       if (path) s += ` in ${path}`;
       return s;
     }
-    case "run_code":
-    case "js":
-      return truncate(firstLine(str(args.code).trim()), 50);
     default:
       return Object.entries(args)
         .map(([k, v]) => `${k}: ${JSON.stringify(v)}`)
@@ -187,19 +182,6 @@ export function formatToolResult(
         return `Found ${plural(n, "match", "matches")}${
           result.truncated ? " (truncated)" : ""
         }`;
-      }
-      break;
-    case "run_code":
-    case "js":
-      if (isObj(result)) {
-        if (result.exitCode === 0) {
-          const out = str(result.stdout).trim();
-          return out ? truncate(firstLine(out), 200) : "Ran (no output)";
-        }
-        const err = str(result.stderr).trim();
-        return err
-          ? truncate(`Error: ${firstLine(err)}`, 200)
-          : `Exited with code ${str(result.exitCode)}`;
       }
       break;
   }

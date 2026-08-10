@@ -1,7 +1,7 @@
 /**
  * Shared sandboxed JavaScript execution engine.
  *
- * Used by both the MiniJSAgentTool (agent tool) and the CodeNode (workflow node).
+ * Used by the CodeAct executor (agent actions) and the CodeNode (workflow node).
  * Runs user code in an isolated QuickJS WebAssembly context — the guest has its
  * own heap inside the WASM instance, so there is a real memory/CPU boundary
  * between host and guest (unlike Node's `node:vm`, which shares the V8 heap).
@@ -395,7 +395,7 @@ async function loadNodePath(): Promise<typeof import("node:path")> {
  * does not close it — a full fix needs fd-based ops (O_NOFOLLOW / openat), which
  * node:fs/promises does not expose. Accepted as low-risk: it needs a local
  * attacker racing a symlink swap inside the workspace, and both surfaces here
- * (Code node, MiniJSAgentTool) run first-party or already-trusted code.
+ * (Code node, CodeAct actions) run first-party or already-trusted code.
  */
 async function assertWorkspaceContained(
   context: { resolveWorkspacePath: (p: string) => string },
@@ -2272,9 +2272,9 @@ export async function runInSandbox(
               dispatcher.call(moduleKey, exportName, args)
           );
         }
-        // Caller-injected globals (ScriptRunner's __runAgent/__log/…) are host
-        // functions too — guard the async ones or a cancelled script keeps
-        // driving real work through them after runInSandbox has returned.
+        // Caller-injected globals are host functions too — guard the async
+        // ones or a cancelled run keeps driving real work through them after
+        // runInSandbox has returned.
         for (const [name, value] of Object.entries(userGlobals)) {
           bridges[name] =
             typeof value === "function"

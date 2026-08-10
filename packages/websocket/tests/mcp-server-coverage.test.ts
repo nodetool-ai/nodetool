@@ -12,7 +12,7 @@ import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
-import { getBuiltinTools, getAllMcpTools } from "@nodetool-ai/agents";
+import { getAgentToolbelt, getAllMcpTools } from "@nodetool-ai/agents";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { AgentTransport } from "../src/agent/transport.js";
 
@@ -508,7 +508,7 @@ describe("getLocalMcpServerUrl", () => {
   });
 });
 
-describe("bridged agent tools (the full agent toolbelt)", () => {
+describe("bridged agent tools (the CodeAct surface)", () => {
   function toolNames(server: ReturnType<typeof createMcpServer>): string[] {
     const tools = (
       server as unknown as {
@@ -539,74 +539,121 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
     rmSync(dataDir, { recursive: true, force: true });
   });
 
-  it("registers the workflow-building and creative tools alongside native ones", () => {
+  /** Run one code action and return its observation envelope. */
+  async function act(
+    server: ReturnType<typeof createMcpServer>,
+    code: string
+  ): Promise<{
+    ok: boolean;
+    result?: unknown;
+    error?: string;
+    logs?: string[];
+  }> {
+    const res = await callTool(server, "execute_code", {
+      title: "test action",
+      code
+    });
+    return JSON.parse(res.content[0].text!) as {
+      ok: boolean;
+      result?: unknown;
+      error?: string;
+      logs?: string[];
+    };
+  }
+
+  it("exposes one action tool plus the core set, not the whole catalog", () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const names = new Set(toolNames(server));
-    // Workflow-building tools bridged from @nodetool-ai/agents.
+    const native = new Set(toolNames(createMcpServer()));
+    const added = toolNames(server).filter((n) => !native.has(n));
+
+    // The action tool, the core set, and view_image — nothing else. The chat
+    // runner offers exactly this shape; MCP used to offer ~95 flat tools.
+    expect(added).toContain("execute_code");
+    expect(added).toContain("view_image");
+    for (const core of ["read_file", "write_file", "grep", "web_search"]) {
+      expect(added).toContain(core);
+    }
+    expect(added.length).toBeLessThan(20);
+
+    // The bridged catalog is NOT the MCP surface any more.
     for (const t of [
       "create_workflow",
       "debug_workflow",
-      "resolve_workflow_escalation",
       "build_app",
-      "debug_app",
-      "validate_workflow",
       "validate_timeline",
-      "validate_sketch",
-      "list_models",
-      "get_example_workflow",
-      "export_workflow_digraph",
-      "get_job_logs",
-      "start_background_job",
-      "save_asset",
-      "read_asset",
+      "generate_image",
       "find_model"
     ]) {
-      expect(names.has(t)).toBe(true);
+      expect(added).not.toContain(t);
     }
-    // Creative media tools.
-    for (const t of [
-      "generate_image",
-      "edit_image",
-      "generate_video",
-      "animate_image",
-      "generate_speech",
-      "transcribe_audio",
-      "embed_text"
-    ]) {
-      expect(names.has(t)).toBe(true);
-    }
-    // Native tools remain registered (not shadowed by the bridge).
+
+    // Native tools remain registered.
     for (const t of ["run_workflow", "list_workflows", "list_nodes", "get_job"]) {
-      expect(names.has(t)).toBe(true);
+      expect(toolNames(server)).toContain(t);
     }
   });
 
-  it("exposes every built-in agent tool, except names a native tool owns", () => {
+  it("carries the action contract and catalog in the execute_code description", () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const names = new Set(toolNames(server));
-    const native = new Set(toolNames(createMcpServer()));
-    for (const tool of getBuiltinTools()) {
-      if (native.has(tool.name)) continue;
-      expect(names.has(tool.name)).toBe(true);
-    }
+    const tools = (
+      server as unknown as {
+        _registeredTools: Record<string, { description?: string }>;
+      }
+    )._registeredTools;
+    // MCP has no system prompt, so the description is the only place the
+    // contract can reach the model. Without it the tool is unusable.
+    const description = tools["execute_code"].description ?? "";
+    expect(description).toContain("searchTools");
+    expect(description).toContain("nodetool");
   });
 
-  it("exposes the agent MCP catalog, except names a native tool owns", () => {
+  it("keeps every catalog tool reachable inside an action", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const names = new Set(toolNames(server));
-    const native = new Set(toolNames(createMcpServer()));
-    for (const tool of getAllMcpTools({})) {
-      if (native.has(tool.name)) continue;
-      expect(names.has(tool.name)).toBe(true);
+    const expected = new Set(
+      [...getAgentToolbelt(), ...getAllMcpTools({})]
+        .map((t) => t.name)
+        .filter((n) => n !== "view_image")
+    );
+    const observed = await act(
+      server,
+      "return Object.keys(tools).filter((n) => typeof tools[n] === 'function');"
+    );
+    expect(observed.ok).toBe(true);
+    const names = new Set(observed.result as string[]);
+    const missing = [...expected].filter((n) => !names.has(n));
+    expect(missing).toEqual([]);
+
+    // The belt is the agent's, not the full inventory: the provider-specific
+    // duplicates stay off it, because `nodetool.media` and the routed search
+    // tools cover them and this surface has the object model.
+    for (const excluded of [
+      "image_generation",
+      "openai_image_generation",
+      "openai_web_search",
+      "dataforseo_search"
+    ]) {
+      expect(names.has(excluded)).toBe(false);
     }
   });
 
-  it("lets the native tool win every name the bridge also offers", () => {
+  it("runs a catalog tool through an action", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observed = await act(
+      server,
+      "return await tools.validate_timeline({ document: { tracks: [], clips: [], markers: [] } });"
+    );
+    expect(observed.ok).toBe(true);
+    const body = observed.result as { ok: boolean; summary: string };
+    expect(body.ok).toBe(true);
+    expect(body.summary).toBe("No issues found.");
+  });
+
+  it("lets the native tool win every name it shares with the catalog", () => {
     // The native list_workflows / get_asset / list_nodes render thumbnails and
-    // MCP Apps; the agent catalog offers plain-JSON tools under the same names.
-    // The bridge must skip those rather than shadow them or throw.
+    // MCP Apps. Those names must keep the native handler; the catalog's plain
+    // version of the same capability lives on the sandbox belt instead.
     const bridgedNames = new Set(
-      [...getBuiltinTools(), ...getAllMcpTools({})].map((t) => t.name)
+      [...getAgentToolbelt(), ...getAllMcpTools({})].map((t) => t.name)
     );
     const native = new Set(toolNames(createMcpServer()));
     const overlap = [...bridgedNames].filter((n) => native.has(n));
@@ -623,9 +670,31 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
         _registeredTools: Record<string, { description?: string }>;
       }
     )._registeredTools;
+    let compared = 0;
     for (const name of overlap) {
+      // A scoped session drops the `ui_*` renderer bridge (mcp-server.ts skips
+      // it deliberately); those live on the sandbox belt instead.
+      if (!tools[name]) continue;
       expect(tools[name].description).toBe(nativeServer[name].description);
+      compared += 1;
     }
+    expect(compared).toBeGreaterThan(0);
+  });
+
+  it("moves the workflow document tools into the sandbox for a scoped session", async () => {
+    // mcp-server.ts skips the `ui_*` renderer bridge when the session is
+    // scoped, because a scoped caller edits persisted documents rather than a
+    // connected editor. Those tools are reachable in an action — and the graph
+    // object model (`openWorkflow`) is the documented form.
+    const server = createMcpServer({ agentToolsScope: scope });
+    expect(toolNames(server)).not.toContain("ui_add_node");
+
+    const observed = await act(
+      server,
+      "return typeof tools.ui_add_node === 'function' && typeof openWorkflow === 'function';"
+    );
+    expect(observed.ok).toBe(true);
+    expect(observed.result).toBe(true);
   });
 
   it("roots file tools in a per-user workspace directory", async () => {
@@ -655,7 +724,7 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
   it("does NOT register bridged tools on a session without a user scope", () => {
     const server = createMcpServer();
     const names = new Set(toolNames(server));
-    for (const t of ["generate_image", "save_asset", "create_workflow"]) {
+    for (const t of ["execute_code", "generate_image", "create_workflow"]) {
       expect(names.has(t)).toBe(false);
     }
     // Native tools are unaffected — they take user_id per call.
@@ -674,80 +743,70 @@ describe("bridged agent tools (the full agent toolbelt)", () => {
     expect(ctxB.userId).toBe("user-b");
   });
 
-  it("validate_workflow returns an actionable error when given no graph", async () => {
-    const server = createMcpServer({ registry: fakeRegistry([]), agentToolsScope: scope });
-    const res = await callTool(server, "validate_workflow", {});
-    expect(res.isError).toBe(true);
-    const body = JSON.parse(res.content[0].text!) as { error: string };
-    expect(body.error).toContain("No graph to validate");
-  });
-
-  it("validate_timeline validates an inline document", async () => {
-    const server = createMcpServer({ agentToolsScope: scope });
-    const res = await callTool(server, "validate_timeline", {
-      document: { tracks: [], clips: [], markers: [] }
+  it("validate_workflow reports an actionable error when given no graph", async () => {
+    const server = createMcpServer({
+      registry: fakeRegistry([]),
+      agentToolsScope: scope
     });
-    const body = JSON.parse(res.content[0].text!) as {
-      ok: boolean;
-      summary: string;
-    };
-    expect(body.ok).toBe(true);
-    expect(body.summary).toBe("No issues found.");
+    const observed = await act(server, "return await tools.validate_workflow({});");
+    expect(observed.ok).toBe(false);
+    expect(observed.error).toContain("No graph to validate");
   });
 
   it("validate_sketch validates an inline document", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const res = await callTool(server, "validate_sketch", {
-      document: {
-        sketch: {
-          version: 3,
-          canvas: { width: 1024, height: 768, backgroundColor: "#ffffff" },
-          layers: [
-            {
-              id: "layer-1",
-              name: "Background",
-              type: "raster",
-              visible: true,
-              locked: false,
-              opacity: 1,
-              blendMode: "normal",
-              data: null
-            }
-          ],
-          activeLayerId: "layer-1",
-          maskLayerId: null
-        },
-        layerBindings: []
-      }
-    });
-    const body = JSON.parse(res.content[0].text!) as {
-      ok: boolean;
-      summary: string;
+    const document = {
+      sketch: {
+        version: 3,
+        canvas: { width: 1024, height: 768, backgroundColor: "#ffffff" },
+        layers: [
+          {
+            id: "layer-1",
+            name: "Background",
+            type: "raster",
+            visible: true,
+            locked: false,
+            opacity: 1,
+            blendMode: "normal",
+            data: null
+          }
+        ],
+        activeLayerId: "layer-1",
+        maskLayerId: null
+      },
+      layerBindings: []
     };
+    const observed = await act(
+      server,
+      `return await tools.validate_sketch({ document: ${JSON.stringify(document)} });`
+    );
+    expect(observed.ok).toBe(true);
+    const body = observed.result as { ok: boolean; summary: string };
     expect(body.ok).toBe(true);
     expect(body.summary).toBe("No issues found.");
   });
 
   it("validate_sketch reads a saved sketch through the bridged loader", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const res = await callTool(server, "validate_sketch", {
-      image_document_id: "no-such-sketch"
-    });
-    const body = JSON.parse(res.content[0].text!) as {
-      error: string;
-      validated: boolean;
-    };
+    const observed = await act(
+      server,
+      'return await tools.validate_sketch({ image_document_id: "no-such-sketch" });'
+    );
+    // A tool result carrying an `error` key becomes a guest throw, so code can
+    // try/catch it — the CodeAct bridge convention, not a loader failure.
+    expect(observed.ok).toBe(false);
     // The loader is wired (no "no sketch loader" error) and reports the miss.
-    expect(body.error).toContain("was not found");
-    expect(body.validated).toBe(false);
+    expect(observed.error).toContain("was not found");
   });
 
   it("save_asset reports an actionable error when nothing to save", async () => {
     const server = createMcpServer({ agentToolsScope: scope });
-    const res = await callTool(server, "save_asset", { name: "x.txt" });
-    expect(res.isError).toBe(true);
-    const body = JSON.parse(res.content[0].text!) as { error: string };
-    expect(body.error).toContain("content");
+    const observed = await act(
+      server,
+      'return await tools.save_asset({ name: "x.txt" });'
+    );
+    expect(observed.ok).toBe(false);
+    expect(observed.error).toContain("content");
   });
 });
 

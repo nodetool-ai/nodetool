@@ -1,21 +1,33 @@
 /**
- * Bridges the canonical agent tools (`@nodetool-ai/agents`) onto the MCP
- * server so external agents (Claude Code, ChatGPT, …) get the same toolbelt
- * the in-app chat agent runs on — not just the read/render tools defined
- * natively in `mcp-server.ts`.
+ * Bridges the canonical agent tools (`@nodetool-ai/agents`) onto the MCP server
+ * so external agents (Claude Code, ChatGPT, …) get the same surface the in-app
+ * chat agent runs on — not just the read/render tools defined natively in
+ * `mcp-server.ts`.
  *
- * The bridged set is *derived*, not hand-listed: `getBuiltinTools()` plus
+ * That surface is CodeAct, not a flat catalog. A chat turn exposes one action
+ * tool, `execute_code`, plus the core set every model is trained on; the other
+ * ~90 tools live inside the sandbox as `tools.<name>()` and the `nodetool.*`
+ * object model, found with `searchTools()`. This module registers the same
+ * shape, through the very same {@link createChatCodeActSession} the runner
+ * uses, so the two cannot drift.
+ *
+ * It used to register all ~95 bridged tools flat. That predated CodeAct and
+ * became the largest surface NodeTool exposes anywhere — ~16k tokens of tool
+ * schema before a caller had done anything — while asserting parity with a
+ * chat turn that had long since stopped working that way.
+ *
+ * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
  * `getAllMcpTools()` plus the Google Workspace tools are exactly what
  * `unified-websocket-runner` assembles for a chat turn, so a tool added to
- * either catalog reaches MCP with no edit here. Only tools whose constructor
- * needs something the catalogs can't supply (a timeline loader, the lazily
- * probed provider map) are named individually below.
+ * either catalog reaches the sandbox belt with no edit here. Only tools whose
+ * constructor needs something the catalogs can't supply (a timeline loader, the
+ * lazily probed provider map) are named individually below.
  *
- * Each bridged tool reuses its agent `Tool.process()` handler verbatim; this
- * module only adapts the tool's JSON-Schema into the Zod shape the MCP SDK
- * expects and wraps the result in an MCP tool response. Names the native
- * registration already owns (run_workflow, list_workflows, list_nodes, …) are
- * skipped — the native versions render thumbnails and Apps.
+ * Each bridged tool reuses its agent `Tool.process()` handler verbatim. Native
+ * registrations (`run_workflow`, `get_asset`, the `ui_*` renderer bridge, …)
+ * keep their MCP-level names: they render thumbnails and Apps into the tool
+ * response, which a sandbox action's JSON observation envelope cannot carry.
+ * The plain version of the same tool stays reachable inside an action.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -24,6 +36,9 @@ import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
 import { ProcessingContext as ProcessingContextImpl } from "@nodetool-ai/runtime";
 import {
   Tool,
+  CODEACT_RESIDENT_TOOL_NAMES,
+  createChatCodeActSession,
+  type ChatCodeActToolCall,
   ValidateTimelineTool,
   ValidateSketchTool,
   FindModelTool,
@@ -35,11 +50,11 @@ import {
   GenerateSpeechTool,
   TranscribeAudioTool,
   EmbedTextTool,
-  getBuiltinTools,
+  getAgentToolbelt,
   getAllMcpTools,
   getGoogleWorkspaceTools
 } from "@nodetool-ai/agents";
-import { FileStorageAdapter } from "@nodetool-ai/runtime";
+import { CORE_TOOL_NAMES, FileStorageAdapter } from "@nodetool-ai/runtime";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { mcpToolHostDeps } from "./mcp-tool-deps.js";
 import type { SketchLoader, TimelineLoader } from "@nodetool-ai/agents";
@@ -296,9 +311,12 @@ function collectBridgedTools(
   providers: Record<string, BaseProvider>
 ): Tool[] {
   return [
-    // The chat agent's built-ins: files, search, browser, code, PDF, math,
-    // vision, critique, thread memory, asset library, todo.
-    ...getBuiltinTools(),
+    // The chat agent's built-ins: files, search, browser, PDF, vision,
+    // critique, thread memory, asset library, todo. `getAgentToolbelt()`, not
+    // `getBuiltinTools()`: the provider-specific media and search duplicates
+    // are dropped because `nodetool.media` / `web_search` route across
+    // backends, and this surface now has the object model that does it.
+    ...getAgentToolbelt(),
     // Workflow / node / job / asset / app tools, plus the ui_* workflow
     // document tools. The read tools among them (list_workflows, get_asset, …)
     // collide with the native registrations and are skipped by the caller.
@@ -340,12 +358,19 @@ function collectBridgedTools(
 }
 
 /**
- * Register the agent toolbelt on `server`.
+ * Register the agent surface on `server`: one `execute_code` action tool, the
+ * core set as ordinary tools, and `view_image`.
  *
  * Called from `createMcpServer` after the native tools are registered.
- * `reservedNames` carries the names those registrations took; a bridged tool
- * whose name is already spoken for is skipped rather than shadowing the native
- * version (which renders thumbnails and Apps).
+ * `reservedNames` carries the names those registrations took; a tool whose name
+ * is already spoken for is skipped rather than shadowing the native version
+ * (which renders thumbnails and Apps).
+ *
+ * Everything else the catalogs offer becomes the sandbox belt instead of an MCP
+ * tool. It stays fully reachable — `tools.<name>()`, the `nodetool.*` object
+ * model, `await searchTools("query")` — and the `execute_code` description
+ * carries the same contract and catalog the chat runner puts in its system
+ * prompt, because MCP has no system prompt to put it in.
  */
 export function registerAgentMcpTools(
   server: McpServer,
@@ -379,29 +404,37 @@ export function registerAgentMcpTools(
   const workflowDocumentToolNames = new Set<string>(
     WORKFLOW_DOCUMENT_TOOL_NAMES
   );
-  const register = (tool: Tool, before?: () => Promise<void>): void => {
+  /**
+   * Run one bridged tool. The single execution path for both surfaces — a
+   * direct MCP call and a `tools.<name>()` call inside an action — so a
+   * capability cannot behave differently depending on how it was reached.
+   */
+  const runBridgedTool = async (
+    tool: Tool,
+    args: Record<string, unknown>
+  ): Promise<unknown> => {
+    // find_model and list_models read the configured-providers map at call
+    // time, so populate it before either handler runs.
+    if (tool instanceof FindModelTool || tool instanceof ListModelsTool) {
+      await ensureProviders();
+    }
+    if (executeFrontendDocumentTool && workflowDocumentToolNames.has(tool.name)) {
+      const frontend = await executeFrontendDocumentTool(tool.name, args);
+      if (frontend.handled) return frontend.result;
+    }
+    return tool.process(context, args);
+  };
+
+  const register = (tool: Tool): void => {
     server.tool(
       tool.name,
       tool.description,
       jsonSchemaToZodShape(tool.inputSchema),
       async (args) => {
         try {
-          if (before) await before();
-          if (
-            executeFrontendDocumentTool &&
-            workflowDocumentToolNames.has(tool.name)
-          ) {
-            const frontend = await executeFrontendDocumentTool(
-              tool.name,
-              (args ?? {}) as Record<string, unknown>
-            );
-            if (frontend.handled) return toToolResponse(frontend.result);
-          }
-          const result = await tool.process(
-            context,
-            (args ?? {}) as Record<string, unknown>
+          return toToolResponse(
+            await runBridgedTool(tool, (args ?? {}) as Record<string, unknown>)
           );
-          return toToolResponse(result);
         } catch (err) {
           return errorResponse(err);
         }
@@ -409,29 +442,93 @@ export function registerAgentMcpTools(
     );
   };
 
+  // The belt the sandbox sees. Deduped by name, because the two catalogs
+  // overlap and a session must not offer one tool under two instances.
+  const belt: Tool[] = [];
+  const beltNames = new Set<string>();
+  for (const tool of collectBridgedTools(options, sharedProviders)) {
+    if (beltNames.has(tool.name)) continue;
+    beltNames.add(tool.name);
+    belt.push(tool);
+  }
+  const byName = new Map(belt.map((tool) => [tool.name, tool]));
+
+  // `view_image` is the one channel that puts pixels into a caller's context,
+  // and pixels cannot ride the sandbox's JSON observation envelope — so it is a
+  // direct tool and is kept off the belt, exactly as the chat runner does.
+  const beltForSandbox = belt.filter((tool) => tool.name !== "view_image");
+  const directTools = beltForSandbox.filter((tool) =>
+    CORE_TOOL_NAMES.has(tool.name)
+  );
+
+  const session = createChatCodeActSession({
+    tools: beltForSandbox.map((tool) => ({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema
+    })),
+    directToolNames: directTools.map((tool) => tool.name),
+    residentToolNames: CODEACT_RESIDENT_TOOL_NAMES,
+    executeTool: async (call: ChatCodeActToolCall) => {
+      const tool = byName.get(call.name);
+      if (!tool) throw new Error(`Unknown tool: ${call.name}`);
+      return runBridgedTool(tool, call.args);
+    }
+  });
+
   const taken = new Set<string>(reservedNames ?? []);
   const skipped: string[] = [];
-  let registered = 0;
-  for (const tool of collectBridgedTools(options, sharedProviders)) {
+  const registeredNames: string[] = [];
+
+  // The action tool. MCP has no system prompt, so the contract, the tool
+  // catalog and the sandbox summary ride in the description — the only field
+  // every MCP client is guaranteed to show the model.
+  if (taken.has(session.providerTool.name)) {
+    skipped.push(session.providerTool.name);
+  } else {
+    taken.add(session.providerTool.name);
+    registeredNames.push(session.providerTool.name);
+    server.tool(
+      session.providerTool.name,
+      `${session.providerTool.description}\n\n${session.systemPromptSection}`,
+      jsonSchemaToZodShape(session.providerTool.inputSchema),
+      async (args) => {
+        try {
+          // The session already returns the observation envelope as JSON text.
+          // Passing it through `toToolResponse` would encode it a second time
+          // and hand the caller a quoted string instead of an object.
+          const observation = await session.executeAction(
+            (args ?? {}) as Record<string, unknown>
+          );
+          return {
+            content: [{ type: "text" as const, text: observation }]
+          };
+        } catch (err) {
+          return errorResponse(err);
+        }
+      }
+    );
+  }
+
+  // The core set plus `view_image` stay ordinary tool calls: those are the
+  // shapes every model is trained on, so routing them through a sandbox action
+  // buys nothing. They remain on the belt too, so code can still compose them.
+  const viewImage = byName.get("view_image");
+  for (const tool of [...directTools, ...(viewImage ? [viewImage] : [])]) {
     if (taken.has(tool.name)) {
       skipped.push(tool.name);
       continue;
     }
     taken.add(tool.name);
-    // find_model and list_models read the configured-providers map at call
-    // time, so populate it before either handler runs.
-    register(
-      tool,
-      tool instanceof FindModelTool || tool instanceof ListModelsTool
-        ? ensureProviders
-        : undefined
-    );
-    registered += 1;
+    registeredNames.push(tool.name);
+    register(tool);
   }
+
   log.info("Registered agent MCP tools", {
     userId: scope.userId,
     source: scope.source,
-    registered,
+    registered: registeredNames,
+    beltSize: belt.length,
     skipped
   });
 }

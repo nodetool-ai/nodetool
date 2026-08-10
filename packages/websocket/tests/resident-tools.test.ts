@@ -8,11 +8,7 @@ import {
 
 describe("resident toolbelt", () => {
   it("keeps the tools with no `nodetool.*` form resident", () => {
-    for (const name of [
-      "plan_workflow_graph",
-      "plan_orchestration_script",
-      "run_search"
-    ]) {
+    for (const name of ["plan_workflow_graph", "run_search"]) {
       expect(RESIDENT_TOOL_NAMES.has(name)).toBe(true);
     }
   });

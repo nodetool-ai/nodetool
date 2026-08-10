@@ -10,8 +10,7 @@ description: "How NodeTool runs untrusted JavaScript in a QuickJS WebAssembly gu
 Every piece of JavaScript NodeTool did not write itself runs in one place: a
 QuickJS WebAssembly guest built by `runInSandbox`
 (`packages/agents/src/js-sandbox.ts`). A workflow's Code node, an agent's code
-action, a planner's graph program and the `run_code` tool all enter through that
-function, and they all get the same engine, the same limits, and the same
+action and a planner's graph program all enter through that function, and they all get the same engine, the same limits, and the same
 marshaling rules.
 
 The guest has its own heap inside the WASM instance, so a runaway or hostile
@@ -25,10 +24,7 @@ caller granted for that run.
 |---|---|---|
 | `nodetool.code.Code` | `packages/code-nodes/src/nodes/code-node.ts` | A user's node body, with dynamic inputs on `inputs` |
 | CodeAct step / chat turn | `packages/agents/src/codeact/` | One model-written action per `execute_code` call |
-| Script mode | `packages/agents/src/script-runner.ts` | An LLM-authored orchestration script whose `agent()` calls spawn sub-agents |
 | GraphPlanner `submit_graph` | `packages/agents/src/graph-dsl.ts` | A graph DSL program with no host access at all |
-| `run_code` tool | `packages/agents/src/tools/code-tools.ts` | A one-shot snippet, no packages declared |
-| `js` tool (`MiniJSAgentTool`) | `packages/agents/src/tools/js-code-tool.ts` | Same, with the bridge surface documented in the tool description |
 | Browser runner | `packages/workflow-runner/` | The same Code nodes, in the page, fetching modules over HTTP |
 
 One engine (`loadQuickJs`, the `quickjs-ng` release variant) is loaded once per
@@ -369,15 +365,13 @@ it around every tool- and plan-approval round trip.
 
 ### Other agent surfaces
 
-- **Script mode** (`ScriptRunner`) executes an LLM-authored orchestration script
-  in the sandbox, where `agent()`, `parallel()`, `pipeline()`, `log()` and
-  `budget` bridge to real sub-agents on the host.
 - **GraphPlanner** runs each `submit_graph` program in the sandbox with *no*
   host access — only `node()` and `graph()` — so a malformed or hostile program
   cannot reach anything.
-- **`run_code` and `js`** are the plain code tools. Neither declares packages,
-  so nothing is importable in them; library-backed work goes through a Code node
-  with the package declared.
+- **The plain code tools `run_code` and `js` are gone.** `execute_code` is the
+  one code path an agent has; it declares the session's sandbox packages, and
+  library-backed work outside an agent goes through a Code node with the
+  package declared.
 
 ## Failure modes
 

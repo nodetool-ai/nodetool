@@ -43,8 +43,8 @@ AI coding assistant for development tasks, debugging, and code review.
 - Explaining complex code
 
 > **Note:** this example's `tools:` list includes `execute_code` and `terminal`, which are **not** wired into the agent
-> CLI's tool registry — they are ignored at run time with a warning. For code execution use `run_code`; there is no
-> shell/terminal tool. Update the file to `run_code` (and remove `terminal`) before relying on code execution.
+> CLI's tool registry — they are ignored at run time with a warning. There is no code or shell/terminal tool: an agent
+> step already acts by writing sandboxed JavaScript. Remove both entries from the file.
 
 **Example:**
 ```bash
@@ -142,7 +142,7 @@ max_steps: 10
 
 **Tool Configuration:**
 - Start minimal (read_file, write_file)
-- Add tools progressively based on needs (e.g. `run_code`, `grep`, `web_search`, `browser`)
+- Add tools progressively based on needs (e.g. `grep`, `web_search`, `browser`)
 - Document tool usage in the system_prompt
 
 **Parameters:**

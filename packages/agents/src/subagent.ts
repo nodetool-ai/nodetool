@@ -5,11 +5,10 @@
  * Before this module, every spawn site hand-rolled the same machinery:
  * `run_subtask` and `run_search` each carried a depth guard, a context copy,
  * a single-step Task, a `CodeActExecutor`, event tagging, forwarding, and
- * result/error extraction; `ScriptRunner`'s `agent()` bridge duplicated the
- * executor half; `plan_workflow_graph` re-implemented the streaming half for
- * a non-CodeAct producer. Four copies of one concept meant every fix (the
- * nested-`{error}` detection, the broken-forwarder guard) had to land four
- * times — or didn't.
+ * result/error extraction; `plan_workflow_graph` re-implemented the streaming
+ * half for a non-CodeAct producer. Three copies of one concept meant every fix
+ * (the nested-`{error}` detection, the broken-forwarder guard) had to land
+ * three times — or didn't.
  *
  * The concept, stated once: a sub-agent is an async generator of
  * `ProcessingMessage` events with a settled outcome as its return value.
@@ -60,7 +59,7 @@ export interface SubAgentRunOptions {
    * Context the child runs in. Callers that need recursion accounting copy
    * the parent context and bump the depth first — see
    * {@link enterSubAgentDepth}; callers that run at the parent's own level
-   * (ScriptRunner's `agent()`) pass the context as-is.
+   * pass the context as-is.
    */
   context: ProcessingContext;
   provider: BaseProvider;
@@ -165,7 +164,7 @@ export async function* runSubAgent(
 
   // A child that settled without a value is not a failure — callers decide
   // whether a null result is an error (`run_subtask` reports it as
-  // `subtask_no_result`; ScriptRunner throws its own message).
+  // `subtask_no_result`).
   return outcome ?? { ok: true, result: null };
 }
 

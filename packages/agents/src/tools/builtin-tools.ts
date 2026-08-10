@@ -22,8 +22,6 @@
 import type { Tool } from "./base-tool.js";
 import { registerTool } from "./tool-registry.js";
 
-import { RunCodeTool } from "./code-tools.js";
-import { MiniJSAgentTool } from "./js-code-tool.js";
 import { BrowserTool, ScreenshotTool } from "./browser-tools.js";
 import { DownloadFileTool, HttpRequestTool } from "./http-tools.js";
 import {
@@ -208,10 +206,6 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   SearchEmailTool,
   ArchiveEmailTool,
   AddLabelToEmailTool,
-
-  // Compute
-  RunCodeTool,
-  MiniJSAgentTool,
 
   // Documents
   ExtractPDFTextTool,

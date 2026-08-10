@@ -109,10 +109,9 @@ describe("chatProtocol", () => {
     });
   });
 
-  // Server-side planners (plan_workflow_graph, plan_orchestration_script)
-  // forward progress as bare events, not agent_execution messages. Without a
-  // dispatch branch they were dropped and the user saw a silent "Thinking…"
-  // for the whole plan.
+  // The server-side planner (plan_workflow_graph) forwards progress as bare
+  // events, not agent_execution messages. Without a dispatch branch they were
+  // dropped and the user saw a silent "Thinking…" for the whole plan.
   describe("planner progress events", () => {
     const makeState = (): GlobalChatState =>
       partialChatState({
