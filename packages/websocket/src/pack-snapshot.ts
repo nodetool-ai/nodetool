@@ -43,6 +43,6 @@ export async function reloadPacks(
 ): Promise<readonly LoadedPackResult[]> {
   const results = await loadInstalledPacks(registry, options);
   setPackSnapshot(results);
-  refreshSandboxCatalog(options.searchPaths);
+  await refreshSandboxCatalog(options.searchPaths);
   return results;
 }

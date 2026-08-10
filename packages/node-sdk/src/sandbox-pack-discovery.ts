@@ -10,7 +10,20 @@ import {
   type SandboxPackManifest,
   type SandboxModuleStatus
 } from "@nodetool-ai/protocol";
+import {
+  npmModuleId,
+  type SandboxCompiledNpmArtifact,
+  type SandboxCompiledNpmLookup
+} from "./sandbox-npm-artifacts.js";
 export { normalizeSandboxSpecifier } from "@nodetool-ai/protocol";
+export {
+  npmModuleId,
+  isNpmModuleId,
+  type SandboxCompiledNpmArtifact,
+  type SandboxCompiledNpmLookup,
+  type SandboxNpmCompileOutcome,
+  type SandboxNpmCompileRequest
+} from "./sandbox-npm-artifacts.js";
 
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 const ENCODED_PATH_CHARACTER = /%(?:2e|2f|5c)/i;
@@ -82,14 +95,29 @@ type AstNode = {
 };
 
 type StoredFile = {
-  readonly path: string;
+  readonly path?: string;
   readonly bytes: Buffer;
   readonly kind: "js" | "wasm";
   readonly specifier?: string;
 };
 
+/** Host-supplied input discovery cannot produce on its own. */
+export interface SandboxPackDiscoveryOptions {
+  /**
+   * Compiled npm artifacts, keyed by pack and dependency name.
+   *
+   * Discovery stays synchronous and engine-free: it never runs esbuild and
+   * never starts QuickJS. A host that already compiled injects the results
+   * here; without them an npm entry is reported as `pending-compile`.
+   */
+  readonly compiled?: SandboxCompiledNpmLookup;
+}
+
 /** Discover a single installed pack without importing or executing pack code. */
-export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | undefined {
+export function discoverSandboxPack(
+  packDir: string,
+  options: SandboxPackDiscoveryOptions = {}
+): SandboxPackDiscovery | undefined {
   const dir = realpathOrThrow(packDir);
   const packageJsonPath = join(dir, "package.json");
   if (!existsSync(packageJsonPath) || !isRegularFile(packageJsonPath)) return undefined;
@@ -128,17 +156,71 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
   }
 
   const publicModules: UndigestedSandboxModule[] = [];
+  const npmArtifacts = new Map<string, SandboxCompiledNpmArtifact>();
   for (const module of manifest.sandboxModules) {
     const specifier = normalizeSandboxSpecifier(packageName, module.name);
     if (module.kind === "js" && module.npm !== undefined) {
+      const id = npmModuleId(module.npm);
+      const outcome = options.compiled?.({
+        packName: packageName,
+        packDir: dir,
+        specifier,
+        npmName: module.npm
+      });
+      const pending: UndigestedSandboxModule = {
+        specifier, kind: "js", id, npm: module.npm, dependencies: [], declaration: module
+      };
+      if (outcome === undefined) {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: "pending-compile",
+          message: `npm module ${module.npm} is not compiled yet; run \`nodetool packs compile\` to build it`
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      if (outcome.status === "skipped") {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: outcome.code,
+          message: outcome.message
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      const source = outcome.artifact.source;
+      const bytes = Buffer.from(source, "utf8");
+      if (bytes.byteLength > SANDBOX_PACKAGE_LIMITS.npmBundledJsBytes) {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: "npm-module-too-large",
+          message: `npm module ${module.npm} compiles to ${bytes.byteLength} bytes, over the ${SANDBOX_PACKAGE_LIMITS.npmBundledJsBytes} byte cap`
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      if (files.has(id)) {
+        throw new SandboxPackDiscoveryError(`${packageName}: duplicate npm module ${module.npm}`);
+      }
+      files.set(id, { bytes, kind: "js", specifier });
+      npmArtifacts.set(id, outcome.artifact);
+      for (const warning of outcome.warnings ?? []) {
+        statuses.push({ packName: packageName, specifier, status: "warning", code: "npm-module-warning", message: warning });
+      }
       statuses.push({
         packName: packageName,
         specifier,
-        status: "skipped",
-        code: "npm-module-unsupported",
-        message: `npm module ${module.npm} is validated but requires the M3 compiler`
+        status: "ready",
+        code: "npm-module-compiled",
+        message: `npm module ${module.npm} compiled to ${bytes.byteLength} bytes`
       });
-      publicModules.push({ specifier, kind: "js", id: `npm:${module.npm}`, npm: module.npm, dependencies: [], declaration: module });
+      publicModules.push({ ...pending, source });
       continue;
     }
     const moduleFile = module.file;
@@ -171,7 +253,10 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     if (id === undefined || dependenciesById.has(id)) continue;
     const artifact = files.get(id);
     if (artifact === undefined) throw new SandboxPackDiscoveryError(`${packageName}: missing module ${id}`);
-    if (artifact.kind !== "js") {
+    // A compiled npm bundle is a self-contained leaf: the compiler already
+    // proved it resolves nothing, with a stricter scope-aware analysis than the
+    // authored-file scan below.
+    if (artifact.kind !== "js" || npmArtifacts.has(id)) {
       dependenciesById.set(id, []);
       continue;
     }
@@ -188,13 +273,18 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
   assertAcyclic(dependenciesById, packageName);
 
   const version = typeof packageJson.version === "string" ? packageJson.version : undefined;
-  const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(({ declaration, ...module }) => ({
-    ...module,
-    dependencies: dependenciesById.get(module.id) ?? [],
-    digest: module.npm === undefined
-      ? computeModuleDigest({ ...module, declaration }, files, dependenciesById, packageName, version)
-      : computeNpmPlaceholderDigest({ ...module, declaration }, packageName, version)
-  }));
+  const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(({ declaration, ...module }) => {
+    const artifact = npmArtifacts.get(module.id);
+    return {
+      ...module,
+      dependencies: dependenciesById.get(module.id) ?? [],
+      digest: module.npm === undefined
+        ? computeModuleDigest({ ...module, declaration }, files, dependenciesById, packageName, version)
+        : artifact === undefined
+          ? computeNpmPlaceholderDigest({ ...module, declaration }, packageName, version)
+          : computeNpmCompiledDigest({ ...module, declaration }, artifact, packageName, version)
+    };
+  });
   const graph = [...files.entries()].map(([id, file]) => ({
     id,
     kind: file.kind,
@@ -227,16 +317,19 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     modules: resolvedModules,
     graph,
     internal: [...internalIds].sort(compareStrings),
-    digest: computeDigest(resolvedModules, files, internalIds, manifest, packageName, version),
+    digest: computeDigest(resolvedModules, files, internalIds, manifest, packageName, version, npmArtifacts),
     statuses
   };
 }
 
 /** Discover sandbox modules from package directories without ambiguous pack ownership. */
-export function discoverSandboxPacks(packageDirs: readonly string[]): SandboxPackDiscovery[] {
+export function discoverSandboxPacks(
+  packageDirs: readonly string[],
+  options: SandboxPackDiscoveryOptions = {}
+): SandboxPackDiscovery[] {
   const found = new Map<string, SandboxPackDiscovery>();
   for (const packageDir of packageDirs) {
-    const discovery = discoverSandboxPack(packageDir);
+    const discovery = discoverSandboxPack(packageDir, options);
     if (discovery === undefined) continue;
     if (found.has(discovery.name)) {
       throw new SandboxPackDiscoveryError(
@@ -253,9 +346,23 @@ export function computeSandboxModuleGraphDigest(
   modules: readonly SandboxDiscoveredModule[],
   files: ReadonlyMap<string, { bytes: Uint8Array; kind?: "js" | "wasm" }>,
   internal: ReadonlySet<string>,
-  metadata?: { manifest?: SandboxPackManifest; packageName?: string; packageVersion?: string }
+  metadata?: {
+    manifest?: SandboxPackManifest;
+    packageName?: string;
+    packageVersion?: string;
+    /** Compiler identity per compiled npm module id, keyed by graph id. */
+    npmArtifacts?: ReadonlyMap<string, SandboxCompiledNpmArtifact>;
+  }
 ): string {
-  return computeDigest(modules, files, internal, metadata?.manifest, metadata?.packageName, metadata?.packageVersion);
+  return computeDigest(
+    modules,
+    files,
+    internal,
+    metadata?.manifest,
+    metadata?.packageName,
+    metadata?.packageVersion,
+    metadata?.npmArtifacts
+  );
 }
 
 function computeDigest(
@@ -264,9 +371,20 @@ function computeDigest(
   internal: ReadonlySet<string>,
   manifest: SandboxPackManifest | undefined,
   packageName: string | undefined,
-  packageVersion: string | undefined
+  packageVersion: string | undefined,
+  npmArtifacts?: ReadonlyMap<string, SandboxCompiledNpmArtifact>
 ): string {
-  const publicById = new Map(modules.filter((module) => !module.id.startsWith("npm:")).map((module) => [module.id, module]));
+  // An npm module without a compiled artifact has no file in the graph, so it
+  // cannot contribute an entry; one with an artifact is a file like any other.
+  const publicById = new Map(modules.filter((module) => files.has(module.id)).map((module) => [module.id, module]));
+  const compiled = [...(npmArtifacts?.entries() ?? [])]
+    .map(([id, artifact]) => ({
+      id,
+      compilerVersion: artifact.compilerVersion,
+      optionsDigest: artifact.optionsDigest,
+      inputsDigest: artifact.inputsDigest
+    }))
+    .sort(compareById);
   const entries = [...files.entries()].map(([id, file]) => {
     const module = publicById.get(id);
     return {
@@ -287,7 +405,7 @@ function computeDigest(
         : { name: module.name, kind: module.kind, file: module.file, memoryPagesMax: module.memoryPagesMax, exports: [...module.exports].sort(compareExportNames) }
     )
   };
-  return createHash("sha256").update(JSON.stringify({ packageName, packageVersion, manifest: manifestMetadata, entries })).digest("hex");
+  return createHash("sha256").update(JSON.stringify({ packageName, packageVersion, manifest: manifestMetadata, entries, compiled })).digest("hex");
 }
 
 function computeModuleDigest(
@@ -325,6 +443,35 @@ function computeModuleDigest(
     kind: module.kind,
     declaration: moduleDigestDeclaration(module.declaration),
     entries
+  })).digest("hex");
+}
+
+/**
+ * Digest for an npm module that has a compiled artifact.
+ *
+ * The bundled source is what the guest evaluates, so it is what the digest is
+ * over — plus the compiler's version and options digest, because the same
+ * package version compiled under different resolver conditions is a different
+ * module. A saved workflow whose pack was recompiled therefore reports drift
+ * instead of quietly running different code.
+ */
+function computeNpmCompiledDigest(
+  module: UndigestedSandboxModule,
+  artifact: SandboxCompiledNpmArtifact,
+  packageName: string,
+  packageVersion: string | undefined
+): string {
+  return createHash("sha256").update(JSON.stringify({
+    packageName,
+    packageVersion,
+    specifier: module.specifier,
+    moduleId: module.id,
+    npm: module.npm,
+    declaration: moduleDigestDeclaration(module.declaration),
+    compilerVersion: artifact.compilerVersion,
+    optionsDigest: artifact.optionsDigest,
+    inputsDigest: artifact.inputsDigest,
+    source: createHash("sha256").update(artifact.source).digest("hex")
   })).digest("hex");
 }
 

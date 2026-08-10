@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import {
   getNodetoolDataDir,
+  getNodetoolCacheDir,
   getDefaultDbPath,
   getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
@@ -43,6 +44,42 @@ describe("getNodetoolDataDir", () => {
     const dir = getNodetoolDataDir();
     expect(dir).not.toContain("Library/Application Support");
     expect(dir).toContain(".local/share/nodetool");
+  });
+});
+
+describe("getNodetoolCacheDir", () => {
+  const saved: Record<string, string | undefined> = {};
+
+  afterEach(() => {
+    for (const [key, val] of Object.entries(saved)) {
+      if (val === undefined) delete process.env[key];
+      else process.env[key] = val;
+    }
+  });
+
+  it("prefers NODETOOL_CACHE_DIR", () => {
+    saved.NODETOOL_CACHE_DIR = process.env.NODETOOL_CACHE_DIR;
+    process.env.NODETOOL_CACHE_DIR = "/custom/cache";
+    expect(getNodetoolCacheDir()).toBe("/custom/cache");
+  });
+
+  it("uses XDG_CACHE_HOME when set (non-Windows)", () => {
+    if (process.platform === "win32") return;
+    saved.NODETOOL_CACHE_DIR = process.env.NODETOOL_CACHE_DIR;
+    saved.XDG_CACHE_HOME = process.env.XDG_CACHE_HOME;
+    delete process.env.NODETOOL_CACHE_DIR;
+    process.env.XDG_CACHE_HOME = "/custom/cache-home";
+    expect(getNodetoolCacheDir()).toBe("/custom/cache-home/nodetool");
+  });
+
+  it("stays out of the data directory, which is not disposable", () => {
+    if (process.platform === "win32") return;
+    saved.NODETOOL_CACHE_DIR = process.env.NODETOOL_CACHE_DIR;
+    saved.XDG_CACHE_HOME = process.env.XDG_CACHE_HOME;
+    delete process.env.NODETOOL_CACHE_DIR;
+    delete process.env.XDG_CACHE_HOME;
+    expect(getNodetoolCacheDir()).toBe(join(homedir(), ".cache", "nodetool"));
+    expect(getNodetoolCacheDir()).not.toContain(getNodetoolDataDir());
   });
 });
 

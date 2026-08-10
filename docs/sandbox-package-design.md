@@ -6,7 +6,8 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0 and M1 are implemented.
+> Status: design, revised after two review rounds. M0, M1, and M3 are
+> implemented.
 > M1 ships behind `NODETOOL_SANDBOX_MODULES_V1`, off by default: with the flag
 > on, a declared sandbox module is importable in Code nodes, CodeAct actions,
 > the CLI and the server; with it off, every surface refuses a `packages`
@@ -671,9 +672,9 @@ It now provides:
   graph;
 - section-level WASM checks for imports, memories, exports, and scalar
   signatures; and
-- a stable graph digest for authored JS, internal JS, and WASM files. npm
-  entries are recorded as skipped until the M3 compiler supplies their
-  bundled source graph and compiler metadata.
+- a stable graph digest for authored JS, internal JS, and WASM files. An npm
+  entry joins that graph once a host injects its compiled artifact (M3); one
+  nothing has compiled yet is recorded as `pending-compile`.
 
 `@nodetool-ai/runtime` now owns the read-only `SandboxModuleCatalog`
 contract, and node-sdk provides `createSandboxModuleCatalog()` over the
@@ -858,6 +859,56 @@ is the exit criterion.
 
 The dedicated compiler module: content-addressed cache, explicit resolver
 conditions, scope-aware scan, QuickJS admission probe.
+
+#### M3 checkpoint — the compiler ships
+
+M3 is implemented in `packages/sandbox-compiler`
+(`@nodetool-ai/sandbox-compiler`), a workspace of its own because node-sdk
+must not depend on esbuild or a JavaScript engine.
+
+- `compileNpmModule({ packDir, npmName })` runs the pipeline in order:
+  esbuild with `bundle`, `format: "esm"`, `platform: "neutral"`, pinned
+  `conditions` (`import`, `module`, `default`) and `mainFields`
+  (`module`, `main`), no externals and no minification; the scope-aware
+  scan; the capability-free probe. Each way it can end short of admission
+  is a named skip — `npm-module-builtin-import`,
+  `npm-module-unresolved`, `npm-module-too-large`,
+  `npm-module-forbidden-global`, `npm-module-scan-rejected`,
+  `npm-module-probe-failed`.
+- The scan (`scan.ts`) resolves every identifier against the real scope
+  chain, so a shadowed `process` is not a hit. A free reference errors; a
+  reference the module feature-detects — the argument of a `typeof`, or
+  one in a branch a `typeof` on the same name guards — warns.
+- The probe (`probe.ts`) instantiates quickjs-ng directly with
+  `allowFetch: false`, `allowFs: false`, no env, no bridges, a 5 s
+  deadline, a 64 MB heap and capped console output. Only the bundle
+  resolves; every other specifier is denied by name.
+- The cache (`cache.ts`) keys on a digest over every input file's content
+  hash from esbuild's metafile, the esbuild version, the compiler's
+  contract version, and the normalized options. Entries are written
+  temp-file-plus-rename, keys are validated against `^[a-f0-9]{64}$`
+  before they reach a path, and the cache root is
+  `getNodetoolCacheDir()/sandbox-modules`. A pointer per
+  `(pack directory, dependency)` lets a synchronous host read an entry
+  back; it re-hashes every recorded input first, so content still decides.
+- Discovery stays synchronous and engine-free. `discoverSandboxPack` takes
+  an injected `compiled` lookup: an entry with an artifact joins the source
+  graph as `npm:<name>`, one without becomes `pending-compile` naming
+  `nodetool packs compile`. A compiled module's digest is over the bundled
+  source plus the compiler version and options digest, so recompiling under
+  different conditions reports drift rather than silently running different
+  code.
+- Compilation runs where the host is already async: the server's
+  `refreshSandboxCatalog` (which imports the compiler lazily and degrades to
+  a named `compiler-unavailable` warning), Electron's install hook, and
+  `nodetool packs compile`. The CLI's synchronous `buildFullRegistry` only
+  reads the cache.
+
+The measured candidate table and the cap decision are in
+[m3-implementation-plan.md](m3-implementation-plan.md). Regression suites:
+`packages/sandbox-compiler/tests/`, `packages/node-sdk/tests/sandbox-npm-discovery.test.ts`,
+`packages/websocket/tests/sandbox-catalog.test.ts`,
+`packages/cli/tests/packs-command.test.ts`.
 
 ### M4 — WASM (scalar-only)
 

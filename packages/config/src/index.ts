@@ -60,6 +60,7 @@ export {
 
 export {
   getNodetoolDataDir,
+  getNodetoolCacheDir,
   getDefaultDbPath,
   getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,

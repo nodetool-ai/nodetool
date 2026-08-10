@@ -149,6 +149,9 @@ export async function installNodePack(
     const name = packageNameFromSpec(spec);
     const record = await classifyInstalledNodePack(name);
     await writeLedgerRecord(record);
+    if (record.mode === "sandbox-only" || record.mode === "hybrid") {
+      await compileSandboxModules(name);
+    }
     const installation = nodePackInstallStatus(record);
     if (record.mode === "unknown") {
       return {
@@ -244,6 +247,39 @@ export async function trustNodePack(name: string): Promise<NodePackActionResult>
     const message = error instanceof Error ? error.message : String(error);
     logMessage(`trustNodePack failed for ${name}: ${message}`, "warn");
     return { success: false, message };
+  }
+}
+
+/**
+ * Warm the compiled-module cache for a pack that just landed.
+ *
+ * Install is the one moment the pack's dependencies are known to be on disk and
+ * the process is already async, so it is where bundling, scanning and probing
+ * belong — the server then finds the cache warm instead of compiling during
+ * bootstrap. Every outcome is logged and none of them fails the install: an npm
+ * module that does not compile is a skip the Package Manager shows, and a
+ * compiler that cannot even load leaves the module `pending-compile`.
+ */
+async function compileSandboxModules(name: string): Promise<void> {
+  const packageDir = packageDirectory(name);
+  try {
+    const { compileDiscoveries } = await import("@nodetool-ai/sandbox-compiler");
+    const discovery = discoverSandboxPack(packageDir);
+    if (discovery === undefined) return;
+    const reports = await compileDiscoveries([discovery]);
+    for (const report of reports) {
+      logMessage(
+        report.outcome.status === "compiled"
+          ? `Compiled sandbox module ${report.specifier} from ${report.npmName}.`
+          : `Skipped sandbox module ${report.specifier}: ${report.outcome.message}`,
+        report.outcome.status === "compiled" ? "info" : "warn"
+      );
+    }
+  } catch (error) {
+    logMessage(
+      `Could not compile sandbox modules for ${name}: ${error instanceof Error ? error.message : String(error)}`,
+      "warn"
+    );
   }
 }
 

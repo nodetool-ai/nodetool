@@ -48,6 +48,7 @@
     "packages/together-nodes",
     "packages/sandbox",
     "packages/sandbox-agent",
+    "packages/sandbox-compiler",
     "packages/sandbox-tools",
     "packages/workflow-runner",
     "packages/nodes-utils",

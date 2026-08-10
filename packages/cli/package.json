@@ -46,6 +46,7 @@
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/reliability-harness": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox-compiler": "*",
     "@nodetool-ai/sandbox": "*",
     "@nodetool-ai/sandbox-tools": "*",
     "@nodetool-ai/security": "*",

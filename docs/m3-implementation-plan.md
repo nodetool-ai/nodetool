@@ -31,6 +31,43 @@ is the expected casualty (the design already hedges "if the bundle
 admits it"); a candidate that fails is recorded as out of scope for the
 bridge-pack milestone, not silently dropped.
 
+### Measured candidates
+
+esbuild 0.28.1, conditions `["import","module","default"]`, mainFields
+`["module","main"]`, `platform: "neutral"`, `format: "esm"`, `target:
+"es2022"`, no externals, no minification — the exact Task 2 options.
+Bundled from the versions installed in this tree.
+
+| candidate | version | bundle | inputs | verdict |
+|---|---|---:|---:|---|
+| zod | 4.4.3 | 483.3 KB | 80 | scan error — `const F = Function` (×2); warns on `navigator` |
+| date-fns | 4.4.0 | 175.6 KB | 305 | **admitted** — 250 exports through the probe |
+| js-yaml | 4.3.0 | 101.4 KB | 2 | **admitted** — 15 exports through the probe |
+| papaparse | 5.5.3 | — | — | bundle failed — imports `node:stream` |
+| fast-xml-parser | 5.7.3 | 142.1 KB | 27 | scan error — `window && window.parseInt` (×3) |
+| diff | 4.0.4 | 35.1 KB | 2 | scan error — `setTimeout` (×2) |
+| fflate | 0.8.3 | 60.8 KB | 2 | **admitted** — 49 exports; warns on `queueMicrotask`, `setTimeout` |
+| cheerio | 1.2.0 | — | — | bundle failed — imports 25 Node builtins |
+
+Every rejection is a real one rather than a tooling artifact: zod reaches
+the `Function` constructor for its compiled validators, fast-xml-parser
+reads a bare `window` with no `typeof` guard, diff schedules with
+`setTimeout`. Each would throw in the guest at the line the scan names.
+cheerio is the expected casualty and papaparse joins it — both need the
+host bridge path, so both are out of scope for the bridge-pack milestone.
+
+**Cap decision: keep 1 MB.** The largest bundle measured is zod at 483 KB;
+the largest *admitted* one is date-fns at 176 KB. The cap is about 2× the
+worst candidate and 6× the worst realistic one, no candidate fails on size,
+and nothing measured argues for moving the number either way. It lives in
+`NPM_BUNDLE_MAX_BYTES` (`packages/sandbox-compiler`) and is re-checked
+against `SANDBOX_PACKAGE_LIMITS.npmBundledJsBytes` in node-sdk, so an
+artifact that grew past it after compilation is still refused at discovery.
+
+Reproduce with `nodetool packs compile --json` against a pack declaring the
+candidate, or drive `bundleNpmModule` / `scanBundle` / `probeBundle` from
+`@nodetool-ai/sandbox-compiler` directly.
+
 ## Task 2 — The compiler package
 
 New workspace package `packages/sandbox-compiler`, the dedicated
