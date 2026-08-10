@@ -12,7 +12,7 @@ prefilled.
 
 ## The mechanism already exists
 
-Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 172
+Snippets are already virtual nodes. `web/src/config/codeSnippets.ts` holds 182
 of them; `snippetMetadata.ts` turns each into a `NodeMetadata` under
 `nodetool.<category>.<snippet_id>`, `useMetadata.ts` merges them into the
 catalog the node menu reads, and `instantiatePaletteNode.ts` drops a Code node
@@ -33,9 +33,9 @@ one has left to run.
 
 ## Status
 
-Tier 2 is authored: **60 snippets in six new categories** — Path, SVG, HTTP,
-Markdown, HTML, Validation — bringing `codeSnippets.ts` from 112 to 172. Every
-one was executed in the real QuickJS sandbox before landing
+Tier 2 is authored: **70 snippets across seven new categories** — Files, Path,
+SVG, HTTP, Markdown, HTML, Validation — bringing `codeSnippets.ts` from 112 to
+182. Every one was executed in the real QuickJS sandbox before landing
 (`scripts/verify-snippets.mts`); the SVG set was additionally diffed
 byte-for-byte against `process()` on the real node classes.
 
@@ -331,7 +331,7 @@ and the change reads as a regression.
 
 ## Related
 
-- `web/src/config/codeSnippets.ts` — the 172 snippets, and where new ones go.
+- `web/src/config/codeSnippets.ts` — the 182 snippets, and where new ones go.
 - `scripts/verify-snippets.mts` — runs snippet code through the real sandbox.
 - `web/src/config/snippetMetadata.ts` — snippet → `NodeMetadata`, and where
   per-snippet output typing would go.

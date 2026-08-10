@@ -113,7 +113,6 @@ tools:
   - read_file
 
 # Execution parameters
-max_tokens: 128000     # per-step context token budget (default 128000)
 max_steps: 10          # maximum number of steps in the task
 
 # Model preferences (optional)

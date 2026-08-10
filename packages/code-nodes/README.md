@@ -16,7 +16,8 @@ npm install @nodetool-ai/code-nodes
 
 **Code execution** — `nodetool.code.Code` runs JavaScript in a QuickJS WASM
 sandbox with `fetch()`, workspace file access, secrets, and data helpers.
-Dynamic inputs arrive as globals; the returned object becomes the outputs.
+Dynamic inputs arrive on the `inputs` object; the returned object becomes the
+outputs.
 
 **Sandbox** (`nodetool.sandbox.*`) — `SandboxShell`, `SandboxFile`.
 

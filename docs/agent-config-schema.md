@@ -15,16 +15,15 @@ system_prompt: string           # Agent behavior instructions
 objective: string               # Default objective (if no --objective/stdin)
 planning_agent: PlanningConfig  # Planning agent (enabled: false → use main model)
 tools: list[string]             # Available tool names
-max_tokens: integer             # Per-step context token budget (default 128000)
 max_steps: integer              # Maximum number of steps in the task
 preferred_providers: list[string]            # Provider ids to prefer for find_model
 preferred_models: map[string, string|list]   # capability → preferred model id(s)
 workspace: WorkspaceConfig      # Workspace configuration
 ```
 
-> The runner accepts only the fields above. `context_window`, `temperature`, and `max_iterations` are **not** used —
-> earlier versions of this doc listed them, but they are ignored. Use `max_steps` to bound the number of steps and
-> `max_tokens` for the per-step context budget.
+> The runner accepts only the fields above. `context_window`, `max_tokens`, `temperature`, and `max_iterations` are
+> **not** used — earlier versions of this doc listed them, but they are ignored. Use `max_steps` to bound the number
+> of steps.
 
 `provider`, `model`, and `objective` can be supplied or overridden from the command line
 (`--provider`, `--model`, `--objective`); the objective also falls back to piped stdin.
@@ -408,7 +407,6 @@ tools:
   - read_file
   - list_directory
 
-max_tokens: 128000
 max_steps: 15
 
 workspace:
