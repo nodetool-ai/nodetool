@@ -88,6 +88,36 @@ function snapshotLayersForHistory(
   return hasSnapshot ? out : undefined;
 }
 
+export interface UseTransformActionsReturn {
+  /** The pre-gesture transform, restored by cancel/reset. */
+  transformOriginalRef: RefObject<LayerTransform | null>;
+  saveTransformOriginal: () => void;
+  /** False when the selection carries no pixels to free-transform. */
+  prepareSelectionFreeTransform: () => boolean;
+  handleTransformCommit: () => void;
+  handleTransformCancel: () => void;
+  handleTransformReset: () => void;
+  handleCommitLayerTransform: (
+    layerId: string,
+    transform: LayerTransform
+  ) => void;
+  handleNudgeLayer: (
+    dx: number,
+    dy: number,
+    options?: { recordHistory?: boolean; syncOutputs?: boolean }
+  ) => void;
+  pushTransformHistory: (label: string) => void;
+  bakeLayerTransformIntoDocumentSpace: (layerId: string) => void;
+  reconcileAllLayerTransforms: () => void;
+  handleTransformUndo: () => void;
+  handleTransformRedo: () => void;
+  handleTransformRotate: (angleRad: number) => void;
+  handleTransformFlipH: () => void;
+  handleTransformFlipV: () => void;
+  handleRepeatLastTransform: () => void;
+  handleRepeatLastTransformOnCopy: () => void;
+}
+
 export function useTransformActions({
   canvasRef,
   document,
@@ -98,7 +128,7 @@ export function useTransformActions({
   setLayerTransform,
   setLayerContentBounds,
   syncSketchOutputsNow
-}: UseTransformActionsParams) {
+}: UseTransformActionsParams): UseTransformActionsReturn {
   /** Original transform saved when the transform tool activates. */
   const transformOriginalRef = useRef<LayerTransform | null>(null);
   const multiTransformOriginalRef = useRef<Record<

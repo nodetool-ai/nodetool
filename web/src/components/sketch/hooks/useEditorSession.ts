@@ -20,7 +20,7 @@
  * - Transform display/action model → useTransformAdapter
  */
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useMemo, useRef, type RefObject } from "react";
 import { useSketchStore } from "../state";
 import type { SketchDocument, SketchTool } from "../types";
 import type { SketchCanvasRef } from "../SketchCanvas";
@@ -38,6 +38,19 @@ import {
   useColorStoreActions,
   useSessionStoreActions
 } from "./index";
+import type {
+  CanvasStoreActions,
+  ColorStoreActions,
+  HistoryStoreActions,
+  LayerStoreActions,
+  SessionStoreActions
+} from "./useEditorStoreActions";
+import type { EditorLifecycleResult } from "./useEditorLifecycle";
+import type { UseHistoryActionsReturn } from "./useHistoryActions";
+import type { UseLayerActionsReturn } from "./useLayerActions";
+import type { UseCanvasActionsReturn } from "./useCanvasActions";
+import type { UseColorActionsReturn } from "./useColorActions";
+import type { UseSegmentationReturn } from "./useSegmentation";
 
 export interface UseEditorSessionParams {
   initialDocument?: SketchDocument;
@@ -49,6 +62,26 @@ export interface UseEditorSessionParams {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
+/** Everything SketchEditor needs for one editing session. */
+export interface UseEditorSessionReturn
+  extends EditorLifecycleResult,
+    UseHistoryActionsReturn {
+  canvasRef: RefObject<SketchCanvasRef | null>;
+  historyStore: HistoryStoreActions;
+  layerStore: LayerStoreActions;
+  canvasStore: CanvasStoreActions;
+  colorStore: ColorStoreActions;
+  sessionStore: SessionStoreActions;
+  document: SketchDocument;
+  activeTool: SketchTool;
+  /** Effective gesture tool — "move" while the spring-loaded modifier is held. */
+  interactionTool: SketchTool;
+  layerActions: UseLayerActionsReturn;
+  canvasActions: UseCanvasActionsReturn;
+  colorActions: UseColorActionsReturn;
+  segmentation: UseSegmentationReturn;
+}
+
 export function useEditorSession({
   initialDocument,
   initialEditorState,
@@ -56,7 +89,7 @@ export function useEditorSession({
   onDocumentChange,
   onExportImage,
   onExportMask
-}: UseEditorSessionParams) {
+}: UseEditorSessionParams): UseEditorSessionReturn {
   // ─── Canvas ref ─────────────────────────────────────────────────────
   const canvasRef = useRef<SketchCanvasRef>(null);
 
