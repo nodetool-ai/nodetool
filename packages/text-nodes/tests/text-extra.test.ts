@@ -179,41 +179,6 @@ describe("CountTokensNode", () => {
   });
 });
 
-describe("HtmlToTextNode", () => {
-  it("keeps absolute link URLs without a base_url", async () => {
-    const { HtmlToTextNode } = await import("@nodetool-ai/text-nodes");
-    const node = new HtmlToTextNode();
-    node.assign({ html: '<a href="https://example.com/page">Docs</a>' });
-    expect((await node.process()).output).toBe(
-      "Docs (https://example.com/page)"
-    );
-  });
-
-  it("drops mailto links by default but keeps the text", async () => {
-    const { HtmlToTextNode } = await import("@nodetool-ai/text-nodes");
-    const node = new HtmlToTextNode();
-    node.assign({ html: '<a href="mailto:a@b.com">Mail me</a>' });
-    expect((await node.process()).output).toBe("Mail me");
-  });
-
-  it("renders images as markdown when ignore_images is false", async () => {
-    const { HtmlToTextNode } = await import("@nodetool-ai/text-nodes");
-    const node = new HtmlToTextNode();
-    node.assign({
-      html: '<img src="/cat.png" alt="cat">',
-      ignore_images: false
-    });
-    expect((await node.process()).output).toBe("![cat](/cat.png)");
-  });
-
-  it("decodes astral numeric entities", async () => {
-    const { HtmlToTextNode } = await import("@nodetool-ai/text-nodes");
-    const node = new HtmlToTextNode();
-    node.assign({ html: "<p>&#128512;</p>" });
-    expect((await node.process()).output).toBe("\u{1F600}");
-  });
-});
-
 describe("SliceTextNode unicode", () => {
   it("slices code points consistently for step=1", async () => {
     const node = new SliceTextNode();

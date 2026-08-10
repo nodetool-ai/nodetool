@@ -157,12 +157,13 @@ equivalent code; the node class is a second implementation of the same thing.
 `HasLength` is the one text node in this class without a snippet; **Measure
 Length** returns chars/words/lines and the comparison is one more expression.
 
-The 15 that stay as classes: `Prompt` and `Template` (variable editors,
+The 14 that stay as classes: `Prompt` and `Template` (variable editors,
 `{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
 fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
-`HtmlToText` (html-to-text), `SaveText`, `SaveTextFile`, `LoadTextAssets`,
+`SaveText`, `SaveTextFile`, `LoadTextAssets`,
 `LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
-operators).
+operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`
+sandbox pack's `toText` export.
 
 ### `nodetool.list` — 1 of 4
 

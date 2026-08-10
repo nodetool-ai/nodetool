@@ -1,23 +1,22 @@
 {
-  "name": "@nodetool-ai/sandbox-html",
+  "name": "@nodetool-ai/sandbox-markdown",
   "version": "0.7.0-rc.34",
-  "description": "CSS selection, HTML-to-markdown/text, and link/media/metadata extraction inside the NodeTool sandbox, from cheerio and turndown running on the host",
+  "description": "Markdown parsing inside the NodeTool sandbox, from marked's lexer running in the guest",
   "license": "MIT",
+  "dependencies": {
+    "marked": "^12.0.2"
+  },
   "nodetool": {
     "apiVersion": 1,
     "recommended": true,
     "sandboxModules": [
-      {
-        "name": ".",
-        "kind": "host",
-        "host": "html"
-      }
+      { "name": ".", "kind": "js", "npm": "marked" }
     ]
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/sandbox-packs/sandbox-html"
+    "directory": "packages/sandbox-packs/sandbox-markdown"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
@@ -33,8 +32,6 @@
     "nodetool",
     "nodetool-sandbox-pack",
     "sandbox",
-    "html",
-    "scraping",
     "markdown"
   ]
 }

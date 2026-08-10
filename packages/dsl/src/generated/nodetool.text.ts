@@ -515,23 +515,6 @@ export function countTokens(inputs: CountTokensInputs): DslNode<CountTokensOutpu
   return createNode("nodetool.text.CountTokens", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
 }
 
-// HTML to Text — nodetool.text.HtmlToText
-export interface HtmlToTextInputs {
-  html?: Connectable<string>;
-  base_url?: Connectable<string>;
-  body_width?: Connectable<number>;
-  ignore_images?: Connectable<boolean>;
-  ignore_mailto_links?: Connectable<boolean>;
-}
-
-export interface HtmlToTextOutputs {
-  output: string;
-}
-
-export function htmlToText(inputs: HtmlToTextInputs): DslNode<HtmlToTextOutputs, "output"> {
-  return createNode("nodetool.text.HtmlToText", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}
-
 // Automatic Speech Recognition — nodetool.text.AutomaticSpeechRecognition
 export interface AutomaticSpeechRecognitionInputs {
   model?: Connectable<unknown>;

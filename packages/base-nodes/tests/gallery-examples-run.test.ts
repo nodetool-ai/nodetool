@@ -9,10 +9,7 @@
  *  - `nodetool.text.Chunk` counts `length`/`overlap` in WORDS. A value of 90
  *    on a 38-word passage returned one chunk, so an example titled "chunk a
  *    transcript" shipped a single unsplit chunk.
- *  - `lib.html.ExtractLinks` does not rewrite relative hrefs against
- *    `base_url`; it classifies each link internal or external. The example's
- *    prose claimed resolution the node never performs.
- *  - An output wired to a stream shows only the last value that passed, so
+ - An output wired to a stream shows only the last value that passed, so
  *    "keep only the long lines" displayed one line out of two until
  *    `nodetool.control.Collect` gathered the stream back into a list.
  *
@@ -76,18 +73,6 @@ describe("shipped gallery examples produce what they claim", () => {
     expect(out["is_ipv4"]).toEqual([false]);
   });
 
-  it("Map a README's Structure returns the outline with heading levels", async () => {
-    const out = await run("Map a README's Structure");
-    expect(out["headers"]?.[0]).toEqual([
-      { level: 1, text: "NodeTool", index: 0 },
-      { level: 2, text: "Install", index: 1 },
-      { level: 3, text: "Notes", index: 2 }
-    ]);
-    expect(out["code"]?.[0]).toEqual([
-      { language: "bash", code: "npm install" }
-    ]);
-  });
-
   it("Keep Only the Long Lines gathers every survivor, not just the last", async () => {
     const out = await run("Keep Only the Long Lines");
     // Without Collect this was ["another long enough line"] — one of two.
@@ -119,17 +104,4 @@ describe("shipped gallery examples produce what they claim", () => {
     expect(out["numbers"]?.[0]).toEqual(["2026", "08", "02", "3"]);
   });
 
-  it("Read the Links Out of a Page classifies rather than resolves", async () => {
-    const out = await run("Read the Links Out of a Page");
-    expect(out["base"]).toEqual(["https://nodetool.ai"]);
-    // href stays exactly as authored; base_url only decides internal/external.
-    expect(out["links"]?.[0]).toEqual([
-      { href: "/docs", text: "Docs", type: "internal" },
-      {
-        href: "https://github.com/nodetool-ai/nodetool",
-        text: "Source",
-        type: "external"
-      }
-    ]);
-  });
 });

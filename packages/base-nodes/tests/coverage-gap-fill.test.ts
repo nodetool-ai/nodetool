@@ -36,15 +36,6 @@ import {
   AddPageBreakLibNode,
   SetDocumentPropertiesLibNode,
   SaveDocumentLibNode,
-  // lib-beautifulsoup
-  BaseUrlLibNode,
-  ExtractLinksLibNode,
-  ExtractImagesLibNode,
-  ExtractAudioLibNode,
-  ExtractVideosLibNode,
-  ExtractMetadataLibNode,
-  HTMLToTextLibNode,
-  WebsiteContentExtractorLibNode,
   // lib-seaborn
   ChartRendererLibNode,
   // lib-pedalboard-extra
@@ -1558,125 +1549,6 @@ describe("lib-docx gaps", () => {
 });
 
 // ============================================================================
-// lib-beautifulsoup.ts gaps
-// ============================================================================
-
-describe("lib-beautifulsoup gaps", () => {
-  const html = `
-    <html>
-    <head><title>Test</title><meta name="description" content="desc"><meta name="keywords" content="kw"></head>
-    <body>
-      <a href="/internal">Internal</a>
-      <a href="https://ext.com">External</a>
-      <img src="img.png"/>
-      <audio><source src="a.mp3"/></audio>
-      <video src="v.mp4"></video>
-      <iframe src="https://yt.com/embed/x"></iframe>
-    </body></html>`;
-
-  it("BaseUrl", async () => {
-    const __n104 = new BaseUrlLibNode();
-    __n104.assign({ url: "https://example.com/foo/bar" });
-    const res = await __n104.process();
-    expect(res.output).toBe("https://example.com");
-  });
-
-  it("BaseUrl empty throws", async () => {
-    const __n105 = new BaseUrlLibNode();
-    __n105.assign({ url: "" });
-    await expect(__n105.process()).rejects.toThrow();
-  });
-
-  it("ExtractLinks", async () => {
-    const __n106 = new ExtractLinksLibNode();
-    __n106.assign({ html, base_url: "https://example.com" });
-    const res = await __n106.process();
-    expect((res.links as any[]).length).toBe(2);
-  });
-
-  it("ExtractImages", async () => {
-    const __n107 = new ExtractImagesLibNode();
-    __n107.assign({ html, base_url: "https://example.com" });
-    const res = await __n107.process();
-    expect((res.images as any[]).length).toBe(1);
-  });
-
-  it("ExtractAudio", async () => {
-    const __n108 = new ExtractAudioLibNode();
-    __n108.assign({ html, base_url: "https://example.com" });
-    const res = await __n108.process();
-    expect((res.audios as any[]).length).toBeGreaterThan(0);
-  });
-
-  it("ExtractVideos", async () => {
-    const __n109 = new ExtractVideosLibNode();
-    __n109.assign({ html, base_url: "https://example.com" });
-    const res = await __n109.process();
-    expect((res.videos as any[]).length).toBe(2);
-  });
-
-  it("ExtractMetadata", async () => {
-    const __n110 = new ExtractMetadataLibNode();
-    __n110.assign({ html });
-    const res = await __n110.process();
-    expect(res.title).toBe("Test");
-    expect(res.description).toBe("desc");
-    expect(res.keywords).toBe("kw");
-  });
-
-  it("HTMLToText", async () => {
-    const __n111 = new HTMLToTextLibNode();
-    __n111.assign({ text: "<p>Hello <b>World</b></p>" });
-    const res = await __n111.process();
-    expect((res.output as string).includes("Hello")).toBe(true);
-    expect((res.output as string).includes("World")).toBe(true);
-  });
-
-  it("HTMLToText no linebreaks", async () => {
-    const __n112 = new HTMLToTextLibNode();
-    __n112.assign({
-      text: "<p>Hello</p>",
-      preserve_linebreaks: false
-    });
-    const res = await __n112.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("WebsiteContentExtractor with readable content", async () => {
-    const rich = `<html><head><title>Article</title></head><body>
-      <article><p>${"word ".repeat(200)}</p></article>
-    </body></html>`;
-    const __n113 = new WebsiteContentExtractorLibNode();
-    __n113.assign({ html_content: rich });
-    const res = await __n113.process();
-    expect((res.output as string).length).toBeGreaterThan(0);
-  });
-
-  it("WebsiteContentExtractor fallback path", async () => {
-    // Minimal HTML without enough content for Readability
-    const __n114 = new WebsiteContentExtractorLibNode();
-    __n114.assign({ html_content: "<body>Hello</body>" });
-    const res = await __n114.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("defaults for all bs nodes", () => {
-    expect(new BaseUrlLibNode().serialize()).toHaveProperty("url");
-    expect(new ExtractLinksLibNode().serialize()).toHaveProperty("html");
-    expect(new ExtractImagesLibNode().serialize()).toHaveProperty("base_url");
-    expect(new ExtractAudioLibNode().serialize()).toHaveProperty("html");
-    expect(new ExtractVideosLibNode().serialize()).toHaveProperty("html");
-    expect(new ExtractMetadataLibNode().serialize()).toHaveProperty("html");
-    expect(new HTMLToTextLibNode().serialize()).toHaveProperty(
-      "preserve_linebreaks"
-    );
-    expect(new WebsiteContentExtractorLibNode().serialize()).toHaveProperty(
-      "html_content"
-    );
-  });
-});
-
-// ============================================================================
 // lib-seaborn.ts gaps
 // ============================================================================
 
@@ -2887,20 +2759,6 @@ describe("lib-docx round 2", () => {
   });
 });
 
-describe("lib-beautifulsoup round 2", () => {
-  it("WebsiteContentExtractor fallback path", async () => {
-    // HTML that Readability can't parse → fallback to cheerio stripping
-    const html =
-      "<html><body><script>bad()</script><div id='content'>Real content here</div></body></html>";
-    const __n235 = new WebsiteContentExtractorLibNode();
-    __n235.assign({
-      html_content: html
-    });
-    const res = await __n235.process();
-    expect(typeof res.output).toBe("string");
-    expect(String(res.output).length).toBeGreaterThan(0);
-  });
-});
 
 describe("data.ts round 2", () => {
   it("LoadCSVFile reads from path", async () => {
