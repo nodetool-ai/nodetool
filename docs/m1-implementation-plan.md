@@ -6,8 +6,8 @@ catalog, discovery, and install trust flow; M1 makes a declared sandbox
 module importable in guest code, on every execution path, behind a parity
 flag. Each task lands green on its own and carries its tests.
 
-> **Landed.** Tasks 1 and 2 in `d7d0b47`, task 3 in `8ac8ebe`, tasks 4 and 5 in
-> the commit that added this note. M1 is complete behind
+> **Landed.** Tasks 1 and 2 in `d7d0b47`, task 3 in `8ac8ebe`, tasks 4 and 5
+> in `1142c8f`. M1 is complete behind
 > `NODETOOL_SANDBOX_MODULES_V1`; see the M1 checkpoint in
 > [sandbox-package-design.md](sandbox-package-design.md).
 
@@ -78,7 +78,7 @@ Tests: `code-node-validation.test.ts`, `code-node.test.ts` end-to-end with
 a fixture pack, `context.test.ts` untouched (injection default already
 covered).
 
-## Task 4 — CodeAct session allowlist + one-line prompt tier (landed)
+## Task 4 — CodeAct session allowlist + one-line prompt tier (landed, `1142c8f`)
 
 - `CodeActExecutorOptions` and `ChatCodeActSessionOptions` gain a session
   package allowlist (default: trusted packs only, per the design's trust
@@ -99,7 +99,7 @@ Tests: `codeact-executor.test.ts` (allowlisted import mounts, undeclared
 import fails as observation), drift tests, `chat-codeact.test.ts` (chat
 sessions default to no packages).
 
-## Task 5 — Parity flag, browser refusal, docs (landed)
+## Task 5 — Parity flag, browser refusal, docs (landed, `1142c8f`)
 
 - A `NODETOOL_SANDBOX_MODULES_V1` opt-in flag, placed where server, CLI,
   and validation can all read it (not in `websocket` — the existing SDK
