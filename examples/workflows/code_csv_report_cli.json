@@ -1,0 +1,139 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "csv",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "order_id,region,product,amount_eur\nNT-1001,EMEA,Studio,120.00\nNT-1002,AMER,Runner,80.50\nNT-1003,EMEA,Cloud,240.25\nNT-1004,APAC,Studio,60.00\nNT-1005,AMER,Studio,199.50\nNT-1006,EMEA,Runner,45.25\n"
+        }
+      },
+      {
+        "id": "aggregate",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "import { parse, stringify } from \"@nodetool-ai/sandbox-csv\";\n\nconst orders = await parse(inputs.csv);\nconst byRegion = new Map();\nfor (const order of orders) {\n  const bucket = byRegion.get(order.region) ?? { region: order.region, orders: 0, revenue_eur: 0 };\n  bucket.orders += 1;\n  bucket.revenue_eur += Number(order.amount_eur);\n  byRegion.set(order.region, bucket);\n}\nconst segments = [...byRegion.values()]\n  .map((b) => ({ ...b, revenue_eur: Math.round(b.revenue_eur * 100) / 100 }))\n  .sort((a, b) => b.revenue_eur - a.revenue_eur);\n\nreturn {\n  order_count: orders.length,\n  segments,\n  summary_csv: (await stringify(segments)).trim()\n};\n",
+          "packages": [
+            {
+              "specifier": "@nodetool-ai/sandbox-csv"
+            }
+          ],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Aggregate orders by region"
+        },
+        "dynamic_properties": {
+          "csv": ""
+        },
+        "dynamic_outputs": {
+          "order_count": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "segments": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "summary_csv": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "render",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const lines = inputs.segments.map(\n  (s) => `${s.region}: ${s.orders} orders, EUR ${s.revenue_eur.toFixed(2)}`\n);\nreturn { report: lines.join(\"\\n\") };\n",
+          "packages": [],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Render a text report"
+        },
+        "dynamic_properties": {
+          "segments": ""
+        },
+        "dynamic_outputs": {
+          "report": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "out_count",
+        "type": "nodetool.output.Output",
+        "name": "order_count",
+        "data": {
+          "name": "order_count"
+        }
+      },
+      {
+        "id": "out_summary",
+        "type": "nodetool.output.Output",
+        "name": "summary_csv",
+        "data": {
+          "name": "summary_csv"
+        }
+      },
+      {
+        "id": "out_report",
+        "type": "nodetool.output.Output",
+        "name": "report",
+        "data": {
+          "name": "report"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_csv_output_aggregate_csv",
+        "source": "csv",
+        "sourceHandle": "output",
+        "target": "aggregate",
+        "targetHandle": "csv"
+      },
+      {
+        "id": "e_aggregate_segments_render_segments",
+        "source": "aggregate",
+        "sourceHandle": "segments",
+        "target": "render",
+        "targetHandle": "segments"
+      },
+      {
+        "id": "e_aggregate_order_count_out_count_value",
+        "source": "aggregate",
+        "sourceHandle": "order_count",
+        "target": "out_count",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_aggregate_summary_csv_out_summary_value",
+        "source": "aggregate",
+        "sourceHandle": "summary_csv",
+        "target": "out_summary",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_render_report_out_report_value",
+        "source": "render",
+        "sourceHandle": "report",
+        "target": "out_report",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

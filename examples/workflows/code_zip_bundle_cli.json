@@ -1,0 +1,115 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "csv",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "order_id,region,product,amount_eur\nNT-1001,EMEA,Studio,120.00\nNT-1002,AMER,Runner,80.50\nNT-1003,EMEA,Cloud,240.25\nNT-1004,APAC,Studio,60.00\nNT-1005,AMER,Studio,199.50\nNT-1006,EMEA,Runner,45.25\n"
+        }
+      },
+      {
+        "id": "bundle",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "import { zip, unzip } from \"@nodetool-ai/sandbox-zip\";\nimport { parse } from \"@nodetool-ai/sandbox-csv\";\n\nconst archive = await zip({\n  \"orders/sales.csv\": inputs.csv,\n  \"README.md\": \"# Export\\n\"\n});\nconst files = await unzip(archive);\nconst decoder = new TextDecoder();\nconst rows = await parse(decoder.decode(files[\"orders/sales.csv\"]));\n\nreturn {\n  entry_names: Object.keys(files).sort(),\n  row_count: rows.length,\n  columns: Object.keys(rows[0] ?? {}),\n  readme: decoder.decode(files[\"README.md\"]).trim()\n};\n",
+          "packages": [
+            {
+              "specifier": "@nodetool-ai/sandbox-zip"
+            },
+            {
+              "specifier": "@nodetool-ai/sandbox-csv"
+            }
+          ],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Zip, read back, and parse"
+        },
+        "dynamic_properties": {
+          "csv": ""
+        },
+        "dynamic_outputs": {
+          "entry_names": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "row_count": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "columns": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "readme": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "out_entries",
+        "type": "nodetool.output.Output",
+        "name": "entry_names",
+        "data": {
+          "name": "entry_names"
+        }
+      },
+      {
+        "id": "out_rows",
+        "type": "nodetool.output.Output",
+        "name": "row_count",
+        "data": {
+          "name": "row_count"
+        }
+      },
+      {
+        "id": "out_columns",
+        "type": "nodetool.output.Output",
+        "name": "columns",
+        "data": {
+          "name": "columns"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_csv_output_bundle_csv",
+        "source": "csv",
+        "sourceHandle": "output",
+        "target": "bundle",
+        "targetHandle": "csv"
+      },
+      {
+        "id": "e_bundle_entry_names_out_entries_value",
+        "source": "bundle",
+        "sourceHandle": "entry_names",
+        "target": "out_entries",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_bundle_row_count_out_rows_value",
+        "source": "bundle",
+        "sourceHandle": "row_count",
+        "target": "out_rows",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_bundle_columns_out_columns_value",
+        "source": "bundle",
+        "sourceHandle": "columns",
+        "target": "out_columns",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}
