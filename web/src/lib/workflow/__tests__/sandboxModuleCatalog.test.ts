@@ -66,26 +66,41 @@ async function jsResponse(
   });
 }
 
-type FetchStub = jest.Mock<Promise<Response>, [unknown]>;
+type FetchStub = jest.Mock<Promise<Response>, [unknown, RequestInit?]>;
 
 /** jsdom has no `fetch`, so install one rather than spy on a missing global. */
-function installFetch(impl: (input: unknown) => Promise<Response>): FetchStub {
+function installFetch(
+  impl: (input: unknown, init?: RequestInit) => Promise<Response>
+): FetchStub {
   const mock = jest.fn(impl) as FetchStub;
   (globalThis as { fetch?: unknown }).fetch = mock;
   return mock;
 }
 
-/** The two-file graph the server serves for `@acme/geo`. */
-function serveGeoGraph(): FetchStub {
-  return installFetch(async (input) => {
+/** The `If-None-Match` validator a conditional request carries, if any. */
+function validatorOf(init?: RequestInit): string | null {
+  return new Headers(init?.headers).get("If-None-Match");
+}
+
+/**
+ * The two-file graph the server serves for `@acme/geo`, honoring
+ * `If-None-Match` the way the delivery route does — the route answers
+ * `Cache-Control: private, no-cache`, so a conditional request is what the
+ * client sends for anything it already holds.
+ */
+function serveGeoGraph(digest: string = DIGEST): FetchStub {
+  return installFetch(async (input, init) => {
+    if (validatorOf(init) === `"${digest}"`) return fakeResponse(304, "");
     const url = String(input);
     if (url.includes(encodeURIComponent(HELPER_ID))) {
       return jsResponse(HELPER_SOURCE, {
+        "X-Content-Digest": digest,
         "X-Sandbox-File-Id": "sandbox/internal/round.js",
         "X-Sandbox-Internal": "1"
       });
     }
     return jsResponse(ENTRY_SOURCE, {
+      "X-Content-Digest": digest,
       "X-Sandbox-Module-Dependencies": JSON.stringify([HELPER_ID])
     });
   });
@@ -170,13 +185,65 @@ describe("fetchSandboxModuleClosure", () => {
     expect(records.find((r) => r.moduleId === HELPER_ID)?.internal).toBe(true);
   });
 
-  it("serves a second run from the cache", async () => {
+  it("revalidates the root on a second run and keeps the cache on a 304", async () => {
+    // Nothing tells the browser a pack was upgraded, so a cached root is never
+    // simply accepted: the second run asks, conditionally, and the 304 is what
+    // makes reusing the closure safe rather than hopeful.
     const fetchMock = serveGeoGraph();
 
-    await fetchSandboxModuleClosure(["@acme/geo"]);
-    await fetchSandboxModuleClosure(["@acme/geo"]);
+    const first = await fetchSandboxModuleClosure(["@acme/geo"]);
+    const second = await fetchSandboxModuleClosure(["@acme/geo"]);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    const [, revalidation] = fetchMock.mock.calls[2] ?? [];
+    expect(validatorOf(revalidation)).toBe(`"${DIGEST}"`);
+    // The 304 costs a round trip, not a re-download: the records are the ones
+    // already verified, dependencies included.
+    expect(second).toEqual(first);
+  });
+
+  it("replaces the whole closure when the revalidated root moved", async () => {
+    serveGeoGraph();
+    const warm = await fetchSandboxModuleClosure(["@acme/geo"]);
+    expect(warm.every((record) => record.contentDigest === DIGEST)).toBe(true);
+
+    // v2: same ids, new digest, new source. The conditional request no longer
+    // matches, so the root comes back 200 and the cached helper — whose digest
+    // is now stale against it — is fetched again.
+    const V2_ENTRY = `${ENTRY_SOURCE}export const version = 2;\n`;
+    const V2_HELPER = "export const round = (n) => Math.round(n);\n";
+    const fetchMock = installFetch(async (input, init) => {
+      if (validatorOf(init) === `"${OTHER_DIGEST}"`) return fakeResponse(304, "");
+      const url = String(input);
+      if (url.includes(encodeURIComponent(HELPER_ID))) {
+        return jsResponse(V2_HELPER, {
+          "X-Content-Digest": OTHER_DIGEST,
+          "X-Sandbox-File-Id": "sandbox/internal/round.js",
+          "X-Sandbox-Internal": "1"
+        });
+      }
+      return jsResponse(V2_ENTRY, {
+        "X-Content-Digest": OTHER_DIGEST,
+        "X-Sandbox-Module-Dependencies": JSON.stringify([HELPER_ID])
+      });
+    });
+
+    const upgraded = await fetchSandboxModuleClosure(["@acme/geo"]);
 
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(upgraded.every((record) => record.contentDigest === OTHER_DIGEST)).toBe(
+      true
+    );
+    const entry = upgraded.find((record) => record.moduleId === "@acme/geo");
+    const helper = upgraded.find((record) => record.moduleId === HELPER_ID);
+    expect(entry).toMatchObject({ kind: "js", source: V2_ENTRY });
+    expect(helper).toMatchObject({ kind: "js", source: V2_HELPER });
+
+    // And v2 is what the cache now holds: the next run revalidates against the
+    // new digest and is answered 304.
+    const again = await fetchSandboxModuleClosure(["@acme/geo"]);
+    expect(again).toEqual(upgraded);
+    expect(validatorOf(fetchMock.mock.calls[2]?.[1])).toBe(`"${OTHER_DIGEST}"`);
   });
 
   it("re-fetches a dependency left over from another pack version", async () => {
@@ -199,9 +266,11 @@ describe("fetchSandboxModuleClosure", () => {
     const fetchMock = serveGeoGraph();
     await fetchSandboxModuleClosure(["@acme/geo"]);
 
-    // The entry is cached; the stale-digest helper is fetched again.
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+    // The root is revalidated and answers 304; the stale-digest helper is
+    // fetched again.
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(validatorOf(fetchMock.mock.calls[0]?.[1])).toBe(`"${DIGEST}"`);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain(
       encodeURIComponent(HELPER_ID)
     );
   });

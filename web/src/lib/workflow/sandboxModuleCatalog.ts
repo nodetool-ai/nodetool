@@ -18,10 +18,14 @@
  * The records are plain, structured-cloneable data, so the prefetch happens once
  * on the main thread and the same records seed a catalog inside the Web Worker.
  *
- * The cache is keyed by module id with the module-graph digest as its version:
- * a pack upgrade moves the digest, so the stale entry misses naturally. The
- * digest is *not* a hash of any one response — every file of a graph shares it —
- * which is why verification uses the per-file `contentSha256` instead.
+ * The cache is keyed by module id with the module-graph digest as its version.
+ * Nothing in the browser announces a pack upgrade, so the digest has to be
+ * asked for: each prefetch revalidates the declared roots conditionally
+ * (`If-None-Match` against the cached digest, 304 when nothing moved), and a
+ * root that comes back changed invalidates every cached file whose digest no
+ * longer matches it. The digest is *not* a hash of any one response — every
+ * file of a graph shares it — which is why verification uses the per-file
+ * `contentSha256` instead.
  */
 
 // Type-only: the contract lives in runtime, but nothing of runtime's
@@ -198,17 +202,31 @@ function parseWasmContract(
   return contract.data;
 }
 
+/** What a conditional fetch answers when the server's copy has not moved. */
+const NOT_MODIFIED = Symbol("not-modified");
+
 /**
  * Fetch one module by opaque id and verify its body before returning it.
  *
  * A body that does not hash to the header's `contentSha256` is not cached and
  * not returned: the point of the check is that nothing unverified reaches the
  * guest, and a poisoned cache would defeat it on the next run.
+ *
+ * `cachedDigest` makes the request conditional: the route's ETag is the
+ * module-graph digest, so a client holding that digest gets a 304 and pays one
+ * cheap round trip instead of re-downloading a module that has not changed.
  */
-async function fetchModule(moduleId: string): Promise<SandboxModuleRecord> {
+async function fetchModule(
+  moduleId: string,
+  cachedDigest?: string
+): Promise<SandboxModuleRecord | typeof NOT_MODIFIED> {
   const response = await restFetch(
-    `${ROUTE_PREFIX}${encodeURIComponent(moduleId)}`
+    `${ROUTE_PREFIX}${encodeURIComponent(moduleId)}`,
+    cachedDigest === undefined
+      ? {}
+      : { headers: { "If-None-Match": `"${cachedDigest}"` } }
   );
+  if (response.status === 304) return NOT_MODIFIED;
   if (!response.ok) {
     if (response.status === 404) {
       throw deliveryError(moduleId, "is not available on this server.");
@@ -270,14 +288,42 @@ async function fetchModule(moduleId: string): Promise<SandboxModuleRecord> {
   return record;
 }
 
+/** Fetch a module unconditionally — the caller has no version to revalidate. */
+async function fetchFresh(moduleId: string): Promise<SandboxModuleRecord> {
+  const record = await fetchModule(moduleId);
+  // Unreachable: only a conditional request can be answered 304.
+  if (record === NOT_MODIFIED) {
+    throw deliveryError(moduleId, "was answered 304 for a request that set no validator.");
+  }
+  return record;
+}
+
+/**
+ * The current record for a root specifier, revalidated against the server.
+ *
+ * A root's id is stable across pack versions, so a cached record can never be
+ * *assumed* current: a pack upgrade changes the digest and the source behind
+ * the same id, and accepting the cached copy would run last version's closure
+ * until the page is reloaded. The route answers `no-cache` with a strong ETag,
+ * so asking costs a 304 when nothing moved and returns the new module when it
+ * did.
+ */
+async function revalidateRoot(moduleId: string): Promise<SandboxModuleRecord> {
+  const cached = cache.get(moduleId);
+  if (cached === undefined) return fetchFresh(moduleId);
+  const fresh = await fetchModule(moduleId, cached.contentDigest);
+  return fresh === NOT_MODIFIED ? cached : fresh;
+}
+
 /**
  * Fetch `moduleIds` and everything they import, transitively.
  *
- * The cache is consulted first, and the module-graph digest is what makes it
- * safe: a dependency's id (`<pack>::<file>`) is stable across pack versions, so
- * a cached entry from an older pack would otherwise be served forever. Every
- * file reached from one root must carry that root's digest; one that does not
- * is a leftover from a previous version and is re-fetched.
+ * Every root is revalidated; the closure below it is served from cache by
+ * digest. A dependency's id (`<pack>::<file>`) is stable across pack versions
+ * too, so what makes a cached dependency safe is that it carries the digest of
+ * the root just revalidated. One that does not is a leftover from a previous
+ * version and is re-fetched — which is also how an upgrade replaces the whole
+ * closure, not only its entry.
  *
  * Any failure rejects — a half-fetched closure only fails later inside the
  * guest, where the message says far less about what went wrong.
@@ -287,7 +333,7 @@ export async function fetchSandboxModuleClosure(
 ): Promise<SandboxModuleRecord[]> {
   const collected = new Map<string, SandboxModuleRecord>();
   for (const root of moduleIds) {
-    const rootRecord = cache.get(root) ?? (await fetchModule(root));
+    const rootRecord = await revalidateRoot(root);
     const pending = [rootRecord];
     for (let index = 0; index < pending.length; index += 1) {
       const record = pending[index];
@@ -299,7 +345,7 @@ export async function fetchSandboxModuleClosure(
           cached !== undefined &&
             cached.contentDigest === rootRecord.contentDigest
             ? cached
-            : await fetchModule(moduleId)
+            : await fetchFresh(moduleId)
         );
       }
     }
