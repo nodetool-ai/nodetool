@@ -49,6 +49,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
 | Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
+| Providers | `/api/fal/pricing/estimate`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
 | Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
 | Providers | `/api/kie/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
 | Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
@@ -592,6 +593,45 @@ tiers are not billed by the same unit.
 
 An id with no published price is absent from the map rather than an error, so a
 request for five models can come back with three.
+
+### Estimating a fal.ai Call's Cost
+
+`GET /api/fal/pricing` gives the price of one unit; `POST
+/api/fal/pricing/estimate` turns that into a total for a quantity you name, so
+you can price a batch before running it. `endpoint_id` is required — without it
+the route answers `400` — and `estimate_type` picks how the quantity is read:
+
+- `historical_api_price` (the default) counts whole calls, from
+  `call_quantity` (default `1`, values below `1` are ignored).
+- `unit_price` counts billing units — megapixels, seconds — from
+  `unit_quantity` (default `1`, floor `0.000001`).
+
+```bash
+curl -X POST "http://localhost:7777/api/fal/pricing/estimate" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"endpoint_id": "fal-ai/flux/schnell", "call_quantity": 250}'
+```
+
+```json
+{
+  "endpoint_id": "fal-ai/flux/schnell",
+  "estimate_type": "historical_api_price",
+  "total_cost": 0.75,
+  "currency": "USD",
+  "fetched_at": "2026-08-10T09:14:02.118Z",
+  "cached": false
+}
+```
+
+The key comes from the secret store, falling back to the `FAL_API_KEY`
+environment variable; with neither the route answers `204` and the SPA shows no
+estimate. A fal.ai call that fails or answers with an unusable body is a `502`.
+
+Answers are cached for an hour per endpoint and estimate type — the quantity is
+not part of the cache key, so a second request that changes only the quantity
+returns the first one's total with `cached: true`. Vary the endpoint or the
+estimate type to get a fresh number inside that hour.
 
 ### Resolving a KIE Model's Schema
 

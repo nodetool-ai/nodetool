@@ -161,6 +161,54 @@ The three `NODETOOL_PYTHON_*_TIMEOUT_MS` variables bound how long the server
 waits on the worker. Raise `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` past its
 12-minute default for nodes that legitimately run longer.
 
+`NODETOOL_WORKER_NAMESPACES` narrows which Python node namespaces the worker
+loads. Its value is passed through unchanged as `--namespaces <value>` when the
+worker is spawned, and the worker parses it; unset, the flag is not passed and
+the worker loads everything installed.
+
+```bash
+NODETOOL_WORKER_NAMESPACES=nodetool.image nodetool serve
+```
+
+## Protocol Validation
+
+Two settings schema-check messages in flight. Both accept `1`/`true` to force
+validation on and `0`/`false` to force it off; unset, both default to **on**
+under `NODE_ENV=test` or Vitest and **off** everywhere else — a malformed frame
+should fail the test that produced it rather than throw mid-stream on a
+production connection.
+
+- `NODETOOL_VALIDATE_OUTBOUND_WS` — every server→client WebSocket frame whose
+  `type` matches a known message schema is parsed against it before it goes on
+  the wire. Frames with an unrecognized or absent `type` are left alone. A
+  failure throws where the frame was sent.
+- `NODETOOL_VALIDATE_BRIDGE_FRAMES` — the same check on frames arriving from the
+  Python worker. A frame that fails is rejected with a structured, non-fatal
+  error instead of being dispatched as malformed data.
+
+Turn one on outside tests when you are chasing a protocol bug and want it to
+surface at its source:
+
+```bash
+NODETOOL_VALIDATE_OUTBOUND_WS=1 nodetool serve
+```
+
+## Development-Only Settings
+
+Two settings exist for local development and are off unless set:
+
+- `NODETOOL_ENABLE_TEST_TOPUP=1` allows the credits top-up mutation to mint
+  credits with no payment behind it. Without it the mutation is refused. Minted
+  credits unlock spend on platform-owned keys, so leave this unset on anything
+  reachable by someone else.
+- `NODETOOL_SEED_DEMO_COSTS=1` seeds ~90 days of plausible spend, plus the demo
+  workflows whose names it references, so the Costs dashboard has something to
+  show. The seed is idempotent — a marker row stops it re-running.
+
+```bash
+NODETOOL_SEED_DEMO_COSTS=1 nodetool serve
+```
+
 ## Chat Turn Replay
 
 A chat or agent turn outlives the WebSocket connection that started it. Every
@@ -233,6 +281,12 @@ the client refetches thread history over REST.
 | `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` | How long one Python node invocation may run | no | Default `720000` (12 minutes) |
 | `NODETOOL_PYTHON_STATUS_TIMEOUT_MS` | How long a worker status request waits | no | Default `30000` |
 | `NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS` | Silence from a worker-side model download before it is abandoned | no | Default `300000` (5 minutes). Idle time, not total — a slow download that keeps reporting progress is not cut off |
+| `NODETOOL_WORKER_NAMESPACES` | Narrow which Python node namespaces the worker loads | no | Passed through unchanged as `--namespaces <value>`. Unset, the flag is not passed and the worker loads everything installed. See [Python Nodes](#python-nodes) |
+| `NODETOOL_VALIDATE_OUTBOUND_WS` | Schema-check every server→client WebSocket frame before sending | no | `1`/`true` on, `0`/`false` off. Unset, on under `NODE_ENV=test`/Vitest and off elsewhere. See [Protocol validation](#protocol-validation) |
+| `NODETOOL_VALIDATE_BRIDGE_FRAMES` | Schema-check every frame arriving from the Python worker | no | Same values and default as `NODETOOL_VALIDATE_OUTBOUND_WS`. A failing frame is rejected, not dispatched |
+| `NODETOOL_SEARCH_PROVIDER` | Web-search provider the sandbox agent's search tool uses | no | `tavily` (default), `brave`, or `serper`; an unrecognized value falls back to `tavily`. Each reads its own key — `TAVILY_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY` — and throws when it is missing. `mock` returns no results, for a sandbox that must not reach the network |
+| `NODETOOL_ENABLE_TEST_TOPUP` | Allow the credits top-up that mints credits with no payment | no | `1`/`true` only; off otherwise and the mutation is refused. Development servers only. See [Development-only settings](#development-only-settings) |
+| `NODETOOL_SEED_DEMO_COSTS` | Seed demo spend for the Costs dashboard at startup | no | `1` only. Idempotent — a marker row stops it re-running |
 | `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
 | `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
 | `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |
