@@ -168,7 +168,7 @@ const seeds: FaqSeed[] = [
     answerMd:
       "ComfyUI is an editor for image models. NodeTool is the studio around it: image, video, music, and words on one canvas, every major model a click away, and editing tools such as masks, inpaint, relight, and layers built in. Both are open source and both work by connecting blocks on a canvas.",
     category: "comparison",
-    relatedRoute: "/vs/comfyui",
+    relatedRoute: "/alternatives/comfyui",
     surfaces: ["comparison"],
   },
   {
@@ -178,7 +178,7 @@ const seeds: FaqSeed[] = [
     answerMd:
       "Closed tools tie you to a credit system and a hand-picked list of models. NodeTool is open source and runs on your own provider keys. Your workflows, files, and keys belong to you, and you can switch providers the moment a better model appears.",
     category: "comparison",
-    relatedRoute: "/vs/weavy",
+    relatedRoute: "/alternatives/weavy",
     surfaces: ["comparison"],
   },
   {
@@ -187,7 +187,7 @@ const seeds: FaqSeed[] = [
     answerMd:
       "n8n connects business apps and Flowise builds chatbots that answer from your documents; in both, generating an image, a video, or a soundtrack means an HTTP node you configure by hand. NodeTool makes that work native: image, video, music, and text models, agents, and editing tools on one canvas, with an agent that can author the pipeline. NodeTool is **AGPL-3.0** open source rather than fair-code, runs as a desktop app, and calls every provider on your own keys.",
     category: "comparison",
-    relatedRoute: "/vs/n8n",
+    relatedRoute: "/alternatives/n8n",
     surfaces: ["comparison"],
   },
   {
@@ -196,7 +196,7 @@ const seeds: FaqSeed[] = [
     answerMd:
       "Yes. Figma Weave (formerly Weavy, acquired by Figma in October 2025) is closed source, hosted only, and billed in its own AI credits. NodeTool covers the same kind of media work as an **AGPL-3.0** open-source workspace: image, video, audio, and text on one canvas, run with your own keys at provider prices, as a desktop app, in the browser, or on your own server.",
     category: "comparison",
-    relatedRoute: "/vs/figma-weave",
+    relatedRoute: "/alternatives/figma-weave",
     surfaces: ["comparison"],
   },
   // --- Glossary (search-demand terms only; not a copy of the docs glossary) ---
