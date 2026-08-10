@@ -5,7 +5,7 @@ permalink: /javascript-sandbox
 description: "How NodeTool runs untrusted JavaScript in a QuickJS WebAssembly guest — the capability surface, the limits, the module system, and how the Code node and CodeAct agents use it."
 ---
 
-**Navigation**: [Architecture](architecture.md) | [Agents](AGENTS.md) | [CodeAct design](codeact-design.md) | [Sandbox packages](sandbox-package-design.md)
+**Navigation**: [Architecture](architecture.md) | [Chat &amp; Agents](global-chat-agents.md) | [CodeAct design](codeact-design.md) | [Sandbox packages](sandbox-package-design.md)
 
 Every piece of JavaScript NodeTool did not write itself runs in one place: a
 QuickJS WebAssembly guest built by `runInSandbox`
@@ -416,5 +416,5 @@ every shipped pack through the real install path.
 
 - [CodeAct design](codeact-design.md) — the action protocol and its research
 - [Sandbox packages](sandbox-package-design.md) — the pack system, trust model, milestones
-- [Agents](AGENTS.md) — planning, execution, tools, skills
+- [Chat &amp; Agents](global-chat-agents.md) — the agent surfaces whose actions run here
 - [Execution strategies](execution-strategies.md) — where sandboxed work sits among the run modes
