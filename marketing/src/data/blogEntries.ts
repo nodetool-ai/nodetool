@@ -88,14 +88,14 @@ const comparison: BlogPost = {
     },
   ],
   related: [
-    { label: "NodeTool vs ComfyUI", href: "/vs/comfyui", note: "The head-to-head, feature by feature." },
-    { label: "NodeTool vs n8n", href: "/vs/n8n", note: "Where automation ends and generation starts." },
-    { label: "NodeTool vs Flowise", href: "/vs/flowise", note: "Chatbot plus the media pipeline around it." },
+    { label: "NodeTool vs ComfyUI", href: "/alternatives/comfyui", note: "The head-to-head, feature by feature." },
+    { label: "NodeTool vs n8n", href: "/alternatives/n8n", note: "Where automation ends and generation starts." },
+    { label: "NodeTool vs Flowise", href: "/alternatives/flowise", note: "Chatbot plus the media pipeline around it." },
     { label: "Pricing", href: "/pricing", note: "Free Studio, your keys, provider prices." },
   ],
   bodyMd: `Four tools, one shape. ComfyUI, n8n, Flowise, and NodeTool all show you a canvas, boxes with typed ports, and arrows between them. The shape is where the similarity stops. Each was built to make a different job easy, and picking the wrong one shows up two weeks in, when the thing you actually need turns out to live outside the graph.
 
-This post is the short, honest version. The [full comparison pages](/vs/comfyui) go deeper on each tool; here we put all four next to each other.
+This post is the short, honest version. The [full comparison pages](/alternatives/comfyui) go deeper on each tool; here we put all four next to each other.
 
 ## The one-line version
 
