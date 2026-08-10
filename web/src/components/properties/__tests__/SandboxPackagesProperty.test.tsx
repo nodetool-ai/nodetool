@@ -119,6 +119,52 @@ describe("SandboxPackagesProperty", () => {
     );
   });
 
+  it("shows a saved declaration no installed pack answers", async () => {
+    renderPicker({
+      value: [
+        { specifier: "@acme/geo", contentDigest: MODULE.contentDigest },
+        { specifier: "@gone/pack", contentDigest: "b".repeat(64) }
+      ]
+    });
+    expect(await screen.findByText("@gone/pack")).toBeInTheDocument();
+    expect(screen.getByText("unavailable")).toBeInTheDocument();
+    expect(
+      screen.getByText(/no installed pack declares it/)
+    ).toBeInTheDocument();
+    // The installed entry is untouched by its neighbour.
+    expect(await screen.findByLabelText("@acme/geo")).toBeChecked();
+  });
+
+  it("removes a missing declaration and keeps the installed ones", async () => {
+    const onChange = jest.fn();
+    const stale = { specifier: "@gone/pack", contentDigest: "b".repeat(64) };
+    const kept = { specifier: "@acme/geo", contentDigest: MODULE.contentDigest };
+    renderPicker({ onChange, value: [kept, stale] });
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Remove" })
+    );
+    expect(onChange).toHaveBeenCalledWith([kept]);
+  });
+
+  it("removes a missing declaration by unchecking it", async () => {
+    const onChange = jest.fn();
+    const stale = { specifier: "@gone/pack", contentDigest: "b".repeat(64) };
+    renderPicker({ onChange, value: [stale] });
+    await userEvent.click(await screen.findByLabelText("@gone/pack"));
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it("reports nothing missing until the module list actually loads", async () => {
+    // A pending or failed query is not evidence a pack is gone, so nothing is
+    // reported missing until the list actually arrives.
+    modulesQuery.mockRejectedValue(new Error("nope"));
+    renderPicker({ value: [{ specifier: "@gone/pack" }] });
+    expect(
+      await screen.findByText("Installed sandbox packages could not be read.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText("unavailable")).not.toBeInTheDocument();
+  });
+
   it("says so when no sandbox package is installed", async () => {
     modulesQuery.mockResolvedValue({ modules: [], diagnostics: [] });
     renderPicker();

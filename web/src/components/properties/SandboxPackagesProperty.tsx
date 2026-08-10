@@ -95,7 +95,33 @@ const SandboxPackagesProperty = (props: PropertyProps) => {
       } | null
   });
 
-  const modules = modulesQuery.data?.modules ?? [];
+  const modules = useMemo(
+    () => modulesQuery.data?.modules ?? [],
+    [modulesQuery.data]
+  );
+
+  /**
+   * Saved declarations no installed module answers — the pack was removed, or
+   * its discovery failed. They stay in `value` and the run fails on them, so
+   * the picker has to show them: an entry nobody can see is an entry nobody
+   * can remove.
+   */
+  const missing = useMemo(() => {
+    if (!modulesQuery.isSuccess) return [];
+    const installed = new Set(modules.map((entry) => entry.specifier));
+    return selected.filter((specifier) => !installed.has(specifier));
+  }, [modules, modulesQuery.isSuccess, selected]);
+
+  const removeMissing = useCallback(
+    (specifier: string) => {
+      onChange(
+        (Array.isArray(value) ? value : []).filter(
+          (declared) => declaredSpecifier(declared) !== specifier
+        )
+      );
+    },
+    [onChange, value]
+  );
 
   const toggle = useCallback(
     (entry: SandboxModuleEntry, checked: boolean) => {
@@ -137,7 +163,7 @@ const SandboxPackagesProperty = (props: PropertyProps) => {
           Installed sandbox packages could not be read.
         </AlertBanner>
       )}
-      {!modulesQuery.isLoading && modules.length === 0 && (
+      {!modulesQuery.isLoading && modules.length === 0 && missing.length === 0 && (
         <Text size="small" color="secondary">
           No sandbox packages are installed.
         </Text>
@@ -222,6 +248,43 @@ const SandboxPackagesProperty = (props: PropertyProps) => {
             </FlexColumn>
           );
         })}
+
+        {missing.map((specifier) => (
+          <FlexColumn
+            key={`missing-${specifier}`}
+            gap={0.5}
+            sx={(theme) => ({
+              px: 1,
+              py: 1,
+              borderRadius: BORDER_RADIUS.md,
+              border: `1px solid ${theme.vars.palette.warning.main}`
+            })}
+          >
+            <FlexRow gap={1} align="center">
+              <Checkbox
+                checked
+                inputProps={{ "aria-label": specifier }}
+                onChange={() => removeMissing(specifier)}
+              />
+              <Text size="small" weight={600} truncate>
+                {specifier}
+              </Text>
+              <Chip label="unavailable" color="warning" compact />
+              <Box sx={{ flex: 1 }} />
+              <EditorButton
+                density="compact"
+                onClick={() => removeMissing(specifier)}
+              >
+                Remove
+              </EditorButton>
+            </FlexRow>
+            <Text size="small" color="secondary">
+              Saved with this node, but no installed pack declares it. The node
+              fails to run until the pack is reinstalled or this entry is
+              removed.
+            </Text>
+          </FlexColumn>
+        ))}
       </FlexColumn>
     </FlexColumn>
   );

@@ -112,6 +112,16 @@ describe("get_sandbox_package_docs", () => {
       await tool.process(context, { specifier: "@acme/geo" })
     ).toMatchObject({ error: "package_docs_unavailable" });
   });
+
+  it("answers structurally when the host has no catalog at all", async () => {
+    // A chat session installs the tool off the allowlist alone, so it must
+    // still answer where no catalog resolves — the prompt advertises the call
+    // and the model gets a named error instead of a missing tool.
+    const tool = new SandboxPackageDocsTool(["@acme/geo"], null);
+    expect(
+      await tool.process(context, { specifier: "@acme/geo" })
+    ).toMatchObject({ error: "package_docs_unavailable" });
+  });
 });
 
 describe("wrapUntrustedPackageDocs", () => {

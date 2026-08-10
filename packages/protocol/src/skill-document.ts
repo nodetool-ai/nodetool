@@ -11,7 +11,24 @@
 const INVALID_SKILL_NAME_RE = /[^a-z0-9-]/;
 const XML_TAG_RE = /<[^>]+>/;
 const SKILL_RESERVED_TERMS = ["anthropic", "claude"];
-const SECTION_HEADING_RE = /^##\s+(.+?)\s*$/;
+/**
+ * `## ` heading text, or `null` for any other line.
+ *
+ * Deliberately not a regex. The pattern this replaces —
+ * `/^##\s+(.+?)\s*$/` — put `\s+`, a lazy `.+?` and `\s*$` next to each
+ * other, which backtracks polynomially on a heading followed by a long run of
+ * spaces (CodeQL alert 311). SKILL.md bodies are third-party text, so the scan
+ * is a single linear pass instead: match the marker, require one whitespace
+ * after it, trim the rest.
+ */
+function sectionHeading(line: string): string | null {
+  if (!line.startsWith("##")) return null;
+  const rest = line.slice(2);
+  const first = rest.charAt(0);
+  if (first !== " " && first !== "\t") return null;
+  const text = rest.trim();
+  return text.length > 0 ? text : null;
+}
 
 /** A parsed SKILL.md: its frontmatter identity and its instruction body. */
 export interface SkillDocument {
@@ -98,13 +115,13 @@ export function skillSections(instructions: string): Record<string, string> {
     if (body) sections[heading] = body;
   };
   for (const line of instructions.split("\n")) {
-    const match = SECTION_HEADING_RE.exec(line);
-    if (match === null) {
+    const found = sectionHeading(line);
+    if (found === null) {
       lines.push(line);
       continue;
     }
     flush();
-    heading = (match[1] ?? "").toLowerCase();
+    heading = found.toLowerCase();
     lines = [];
   }
   flush();
