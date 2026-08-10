@@ -261,7 +261,7 @@ graph TD
 - `GmailSearch` (`lib.mail.GmailSearch`): Search Gmail with queries
 - `Template`: Format email fields into text (lib.mail also provides `AddLabel`, `MoveToArchive`, `SendEmail`)
 - `FetchRSSFeed`: Get RSS feed entries
-- `WebFetch` (`lib.browser.WebFetch`): Fetch web content
+- `Code` (`nodetool.code.Code`): Fetch web content with `fetch` and turn it into markdown with `@nodetool-ai/sandbox-html`
 
 ______________________________________________________________________
 

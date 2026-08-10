@@ -43,7 +43,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "lib.markdown.ExtractLinks",
   "nodetool.data.Filter",
   "nodetool.control.ForEach",
-  "lib.browser.DownloadFile",
   "nodetool.control.Collect",
 ]);
 

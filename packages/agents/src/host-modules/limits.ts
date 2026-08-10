@@ -7,6 +7,8 @@
  * give, and there is no second route around it.
  */
 
+import { importOptionalModule } from "@nodetool-ai/config";
+
 /** Largest text payload a host module accepts, in characters. */
 export const MAX_HOST_INPUT_CHARS = 5 * 1024 * 1024;
 
@@ -80,4 +82,27 @@ export function unwrapLibrary<T>(
     );
   }
   return candidate as T;
+}
+
+/**
+ * Import a library that is not guaranteed to be present, and report its absence
+ * the way {@link unwrapLibrary} reports a wrong shape.
+ *
+ * `importOptionalModule` hides the specifier from every bundler and falls back
+ * to a user-managed `node_modules`, which is what the on-demand libraries need
+ * — a native addon (better-sqlite3) that must not enter a browser graph, and
+ * the model packages a slim server image does not ship. Its failure is a
+ * resolver error naming a path, so it is restated here in the caller's terms.
+ */
+export async function importOptionalLibrary<T>(
+  where: string,
+  specifier: string
+): Promise<T> {
+  try {
+    return await importOptionalModule<T>(specifier);
+  } catch {
+    throw new Error(
+      `${where}: the "${specifier}" library is not available in this runtime`
+    );
+  }
 }

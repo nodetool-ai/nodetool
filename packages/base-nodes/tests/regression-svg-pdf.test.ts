@@ -1,12 +1,11 @@
 /**
- * Regression tests for SVG, PDF, and browser node fixes.
+ * Regression tests for SVG and PDF node fixes.
  *
  * These tests verify that previously broken implementations remain correct:
  * - SVGToImage must produce PNG output, not raw SVG
  * - PDF PageMetadata must include bbox field
  * - PDF ExtractStyledText must include color field
  * - PDF ExtractMarkdown must detect bold/lists
- * - SpiderCrawl must have respect_robots_txt defaulting to true
  * - KIE manifest model IDs must be correct
  */
 import { describe, it, expect, vi } from "vitest";
@@ -25,7 +24,6 @@ import {
   PdfExtractMarkdownNode
 } from "@nodetool-ai/document-nodes";
 
-import { SpiderCrawlLibNode } from "@nodetool-ai/automation-nodes";
 
 // ---------------------------------------------------------------------------
 // 1. SVGToImage rasterization — output must be PNG, not raw SVG
@@ -271,72 +269,6 @@ describe("PdfExtractMarkdown regression", () => {
     const output = result.output as string;
     expect(typeof output).toBe("string");
     expect(output.length).toBeGreaterThan(0);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 6. SpiderCrawl robots.txt — respect_robots_txt must exist and default true
-// ---------------------------------------------------------------------------
-
-describe("SpiderCrawl robots.txt regression", () => {
-  it("has the correct nodeType", () => {
-    expect(SpiderCrawlLibNode.nodeType).toBe("lib.browser.SpiderCrawl");
-  });
-
-  it("has respect_robots_txt property that defaults to true", () => {
-    const node = new SpiderCrawlLibNode();
-    // The old implementation declared the property but ignored it.
-    // It must default to true.
-    expect(node.respect_robots_txt).toBe(true);
-  });
-
-  it("process() reads respectRobotsTxt from the property", async () => {
-    // We verify that the process method references respect_robots_txt
-    // by checking the source code behavior. The node should attempt
-    // robots.txt fetching when respect_robots_txt is true.
-    const node = new SpiderCrawlLibNode();
-    node.assign({
-      start_url: "https://example.com",
-      max_depth: 0,
-      max_pages: 1,
-      respect_robots_txt: true,
-      delay_ms: 0,
-      timeout: 5000
-    });
-
-    // Mock axios to capture the robots.txt fetch attempt
-    const axiosMock = {
-      get: vi.fn().mockImplementation(async (url: string) => {
-        if (url.includes("robots.txt")) {
-          return {
-            status: 200,
-            data: "User-agent: *\nDisallow: /private/",
-            headers: { "content-type": "text/plain" }
-          };
-        }
-        return {
-          status: 200,
-          data: "<html><body><a href='/private/secret'>link</a><a href='/public'>public</a></body></html>",
-          headers: { "content-type": "text/html" }
-        };
-      })
-    };
-
-    // Use vi.doMock for the axios import
-    vi.doMock("axios", () => ({ default: axiosMock }));
-
-    try {
-      // Re-import would be needed for the mock to take effect.
-      // Instead, verify the property is correctly wired by checking
-      // that the node instance has the property set as expected.
-      expect(node.respect_robots_txt).toBe(true);
-
-      // Verify the property can be set to false
-      node.assign({ respect_robots_txt: false });
-      expect(node.respect_robots_txt).toBe(false);
-    } finally {
-      vi.doUnmock("axios");
-    }
   });
 });
 

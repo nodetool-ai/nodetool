@@ -20,6 +20,9 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-xlsx` | exceljs | host | Node streams |
 | `@nodetool-ai/sandbox-diff` | diff | host | schedules with `setTimeout` |
 | `@nodetool-ai/sandbox-zip` | fflate | host | the 50 MB inflation cap (below) |
+| `@nodetool-ai/sandbox-sqlite` | better-sqlite3 | host | a native addon |
+| `@nodetool-ai/sandbox-ocr` | tesseract.js | host | WASM engine, workers, downloads its language data |
+| `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host | model weights outlive a run and outsize the guest heap |
 
 **Guest** means the M3 compiler bundles the library into the QuickJS guest and
 the pack ships that manifest entry (`{"kind": "js", "npm": "…"}`). **Host**

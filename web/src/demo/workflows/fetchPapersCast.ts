@@ -1,11 +1,12 @@
 /**
  * Workflow gallery — Fetch Papers.
  *
- *   Get Text → Extract Links → Filter → For Each → Download File → Collect
+ *   Get Text (Code) → Extract Links → Filter → For Each → Download (Code) → Collect
  *
  * Scrape a README, pull out the paper links, keep the PDFs, and download each
- * one. Fully synthetic — canned markdown, a fixed link table, and streamed
- * downloads stand in for the run, so it replays with no network.
+ * one — both fetches are Code nodes. Fully synthetic — canned markdown, a fixed
+ * link table, and streamed downloads stand in for the run, so it replays with
+ * no network.
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
 import { castMessages, prop } from "../castHelpers";
@@ -19,11 +20,10 @@ import {
 } from "../cookbook/builders";
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 
-const GET_TEXT = "nodetool.code.Code";
+const CODE = "nodetool.code.Code";
 const EXTRACT_LINKS = "lib.markdown.ExtractLinks";
 const FILTER = "nodetool.data.Filter";
 const FOR_EACH = "nodetool.control.ForEach";
-const DOWNLOAD = "lib.browser.DownloadFile";
 const COLLECT = "nodetool.control.Collect";
 
 const WF = "wf-workflow-fetch-papers";
@@ -55,11 +55,18 @@ const FILTERED = {
 };
 
 const nodes = [
-  node("get", GET_TEXT, 0, 170, 280, "Get Text", { url: "https://github.com/.../README.md" }),
+  node("get", CODE, 0, 170, 280, "Get Text", {
+    code: 'const res = await fetch(inputs.url);\nreturn { output: await res.text() };',
+  }),
   node("links", EXTRACT_LINKS, 360, 170, 300, "Extract Links", {}),
   node("filter", FILTER, 740, 170, 300, "Keep PDFs", { condition: "href.endswith('.pdf')" }),
   node("foreach", FOR_EACH, 1120, 170, 260, "For Each", {}),
-  node("download", DOWNLOAD, 1440, 20, 280, "Download File", {}),
+  node("download", CODE, 1440, 20, 280, "Download File", {
+    code:
+      'const res = await fetch(inputs.url);\n' +
+      'await workspace.writeBytes(inputs.url.split("/").pop(), await res.bytes());\n' +
+      "return { output: inputs.url };",
+  }),
   node("collect", COLLECT, 1440, 320, 260, "Collect", {}),
   node("preview", PREVIEW_NODE_TYPE, 1800, 320, 300, "Papers", {}),
 ];
@@ -84,9 +91,9 @@ const streamDownloads = (start: number, span: number): CastEvent[] =>
 const events: CastEvent[] = [
   m.jobUpdate(0, "running"),
 
-  m.nodeUpdate(300, "get", "Get Text", GET_TEXT, "running"),
+  m.nodeUpdate(300, "get", "Get Text", CODE, "running"),
   ...m.progress("get", 5, 700, 1400),
-  m.nodeUpdate(2400, "get", "Get Text", GET_TEXT, "completed", { output: README }),
+  m.nodeUpdate(2400, "get", "Get Text", CODE, "completed", { output: README }),
   m.edgeUpdate(2600, "e1", "active"),
 
   m.nodeUpdate(3200, "links", "Extract Links", EXTRACT_LINKS, "running"),
@@ -100,10 +107,10 @@ const events: CastEvent[] = [
   m.edgeUpdate(6600, "e3", "active"),
 
   m.nodeUpdate(7200, "foreach", "For Each", FOR_EACH, "running"),
-  m.nodeUpdate(7400, "download", "Download File", DOWNLOAD, "running"),
+  m.nodeUpdate(7400, "download", "Download File", CODE, "running"),
   m.edgeUpdate(7600, "e4", "active"),
   ...streamDownloads(7800, 4400),
-  m.nodeUpdate(12600, "download", "Download File", DOWNLOAD, "completed", { output: "llama.pdf" }),
+  m.nodeUpdate(12600, "download", "Download File", CODE, "completed", { output: "llama.pdf" }),
   m.nodeUpdate(12800, "foreach", "For Each", FOR_EACH, "completed", { output: PAPERS }),
   m.edgeUpdate(13000, "e3", "completed"),
   m.edgeUpdate(13100, "e4", "completed"),
@@ -137,9 +144,10 @@ export const fetchPapersCast: DemoCast = {
     edges
   ),
   metadata: {
-    [GET_TEXT]: simpleMeta(GET_TEXT, "Get Text", "str", {
-      inline: ["url"],
-      properties: [prop("url", "str")],
+    [CODE]: simpleMeta(CODE, "Code", "str", {
+      inputs: ["url"],
+      inline: ["code"],
+      properties: [prop("code", "str"), prop("url", "str")],
     }),
     [EXTRACT_LINKS]: simpleMeta(EXTRACT_LINKS, "Extract Links", "dataframe", {
       inputs: ["markdown"],
@@ -154,10 +162,6 @@ export const fetchPapersCast: DemoCast = {
       inputs: ["input_list"],
       properties: [prop("input_list", "list")],
       streaming: true,
-    }),
-    [DOWNLOAD]: simpleMeta(DOWNLOAD, "Download File", "str", {
-      inputs: ["url"],
-      properties: [prop("url", "str")],
     }),
     [COLLECT]: simpleMeta(COLLECT, "Collect", "list", {
       inputs: ["input_item"],

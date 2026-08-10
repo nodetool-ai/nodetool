@@ -279,10 +279,10 @@ Data nodes that stay regardless: `Describe` (content card), `ForEachRow` and
 | `nodetool.control.*` (22) | actor-model stream semantics: fan-out, per-item emission, back-pressure. The sandbox runs once and returns once. The five Streaming snippets cover the generator patterns one node can express; the rest is kernel-level. |
 | `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
-| `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.excel` `lib.convert` `lib.ocr` `lib.charts` | native/binary document tooling |
+| `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.convert` `lib.charts` | native/binary document tooling |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.mail` `lib.twilio` `lib.google` `lib.apple` `apify.*` `search.*` `messaging.*` | credential pickers and non-trivial protocol handling; `fetch()` alone is not the same offer |
 | `lib.rss` (2) | XML parsing, which the sandbox has no parser for |
-| `lib.browser` `lib.sqlite` `lib.tensorflow` | CDP, better-sqlite3, tfjs |
+| `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |
 | all provider/model namespaces | model pickers, streamed output, cost tracking |
 
 ## Totals

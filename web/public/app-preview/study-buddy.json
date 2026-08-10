@@ -305,6 +305,27 @@
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
+          },
+          {
+            "id": "deck_output",
+            "parent_id": null,
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "saved_deck"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1516,
+                "y": 470
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "6️⃣ Deck in the database"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           }
         ],
         "edges": []

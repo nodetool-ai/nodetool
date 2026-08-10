@@ -70,8 +70,30 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     id: "xlsx",
     packName: "@nodetool-ai/sandbox-xlsx",
     library: "exceljs",
-    description: "Read an Excel workbook's sheets as records.",
-    exports: ["parse"]
+    description: "Read and write Excel workbooks.",
+    exports: ["parse", "write"]
+  },
+  sqlite: {
+    id: "sqlite",
+    packName: "@nodetool-ai/sandbox-sqlite",
+    library: "better-sqlite3",
+    description: "Query and update a SQLite database held as bytes.",
+    exports: ["query", "run"]
+  },
+  ocr: {
+    id: "ocr",
+    packName: "@nodetool-ai/sandbox-ocr",
+    library: "tesseract.js",
+    description: "Read text out of an image, with per-word boxes.",
+    exports: ["recognize"]
+  },
+  tfjs: {
+    id: "tfjs",
+    packName: "@nodetool-ai/sandbox-tfjs",
+    library: "@tensorflow/tfjs + the tfjs model zoo",
+    description:
+      "Classify and embed images, detect objects, answer from a passage.",
+    exports: ["classify", "embed", "detect", "answer"]
   },
   zip: {
     id: "zip",
@@ -127,7 +149,7 @@ export function sandboxHostModuleViolation(
  * {@link generateSandboxHostFacade} or {@link SANDBOX_HOST_BRIDGE_SOURCE}
  * changes what the guest sees.
  */
-export const SANDBOX_HOST_FACADE_VERSION = 1;
+export const SANDBOX_HOST_FACADE_VERSION = 2;
 
 /**
  * The guest-visible name the host parks the dispatcher on.

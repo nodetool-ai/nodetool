@@ -43,16 +43,14 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
     id: "documents",
     label: "Documents",
     description:
-      "Read, write, and convert PDF, Word, Excel, PowerPoint, EPUB, Markdown, HTML, and OCR.",
+      "Read, write, and convert PDF, Word, PowerPoint, EPUB, Markdown, and HTML.",
     namespaces: [
       "lib.pdf",
       "lib.docx",
-      "lib.excel",
       "lib.pptx",
       "lib.epub",
       "lib.markdown",
       "lib.html",
-      "lib.ocr",
       "lib.convert"
     ]
   },
@@ -72,8 +70,7 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "web",
     label: "Web & Scraping",
-    description:
-      "Headless browser, RSS, media download, and Apify scraping.",
+    description: "Headless browser, RSS, media download, and Apify scraping.",
     namespaces: [
       "lib.browser",
       "lib.rss",
@@ -97,14 +94,8 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
     id: "text_data",
     label: "Text & Data Utilities",
     description:
-      "NLP, date / time math, validation, grids, and TensorFlow helpers.",
-    namespaces: [
-      "lib.nlp",
-      "lib.datetime",
-      "lib.validate",
-      "lib.grid",
-      "lib.tensorflow"
-    ]
+      "NLP, date / time math, validation, and grids.",
+    namespaces: ["lib.nlp", "lib.datetime", "lib.validate", "lib.grid"]
   },
   {
     id: "developer",

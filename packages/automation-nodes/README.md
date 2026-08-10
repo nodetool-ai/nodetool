@@ -2,10 +2,8 @@
 
 Browser, OS, filesystem, and automation nodes for [NodeTool](https://nodetool.ai).
 
-Automate the local system from visual AI workflows: fetch and crawl web pages,
-read and write files, run SQLite queries, read and write Excel workbooks, OCR
-images, classify and detect objects with TensorFlow.js, schedule triggers, and
-drive macOS apps via AppleScript.
+Automate the local system from visual AI workflows: screenshot web pages, read
+and write files, schedule triggers, and drive macOS apps via AppleScript.
 
 ## Install
 
@@ -15,19 +13,9 @@ npm install @nodetool-ai/automation-nodes
 
 ## Nodes
 
-**Browser** (`lib.browser.*`) — `WebFetch`, `DownloadFile`, `Browser`,
-`Screenshot`, `SpiderCrawl`.
+**Browser** (`lib.browser.*`) — `Screenshot`, which drives a real page over CDP.
 
-**SQLite** (`lib.sqlite.*`) — `CreateTable`, `Insert`, `Query`, `Update`,
-`Delete`, `ExecuteSQL`, `GetDatabasePath`.
-
-**Excel** (`lib.excel.*`) — `CreateWorkbook`, `ExcelToDataFrame`,
-`DataFrameToExcel`, `FormatCells`, `AutoFitColumns`, `SaveWorkbook`.
-
-**OCR** (`lib.ocr.*`) — Tesseract-backed `ExtractText`, `ExtractData`.
-
-**TensorFlow.js** (`lib.tensorflow.*`) — `MobileNetClassify`,
-`MobileNetEmbedding`, `CocoSsdDetect`, `Qna`.
+**SQLite** (`lib.sqlite.*`) — `GetDatabasePath`.
 
 **Triggers** (`nodetool.triggers.*`) — `Wait`, `ManualTrigger`,
 `IntervalTrigger`, `WebhookTrigger`, `FileWatchTrigger`.
@@ -36,6 +24,14 @@ npm install @nodetool-ai/automation-nodes
 Reminders, Messages, Mail, Contacts, Safari control, clipboard, and
 notifications (`CreateCalendarEvent`, `CreateNote`, `SendMessage`,
 `SearchContacts`, `OpenSafariURL`, `SetClipboardText`, `SayText`, …).
+
+## What moved to the sandbox
+
+Fetching and crawling pages, SQLite CRUD, Excel, OCR, and the TensorFlow.js
+models are no longer nodes. Each is a sandbox pack a `nodetool.code.Code` node
+imports — `fetch` plus `@nodetool-ai/sandbox-html`, `-sqlite`, `-xlsx`, `-ocr`
+and `-tfjs` — which is one script instead of a chain of near-identical nodes.
+See [packages/sandbox-packs](../sandbox-packs/README.md).
 
 ## Links
 

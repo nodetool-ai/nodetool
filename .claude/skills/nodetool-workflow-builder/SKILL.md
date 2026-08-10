@@ -73,7 +73,7 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 
 ## Library Namespaces (`lib.*`)
 
-`lib.pdf` (extract text/images), `lib.http` (web requests), `lib.sqlite` (database ops), `lib.browser` (web browsing, screenshots), `lib.os` (file system), `lib.datetime` (dates/times), `lib.svg` (vector graphics), `lib.markdown` (parsing), `lib.ocr` (text recognition), `lib.excel` (spreadsheets), `lib.docx` (Word docs), `lib.charts` (charts)
+`lib.pdf` (extract text/images), `lib.http` (web requests), `lib.browser` (screenshots), `lib.os` (file system), `lib.datetime` (dates/times), `lib.svg` (vector graphics), `lib.markdown` (parsing), `lib.docx` (Word docs), `lib.charts` (charts)
 
 > **Note:** `lib.json`, `lib.math`, `lib.uuid`, `nodetool.boolean`, `nodetool.dictionary`, `nodetool.numbers`, and all `skills.*` nodes have been removed — use the **Code node** (`nodetool.code.Code`) with its built-in snippet library for JSON/math/uuid logic. (`lib.http` and `nodetool.list` — `Range`, `RepeatEach`, `RepeatValue`, `Tile` — still exist; date/time is now `lib.datetime`.)
 

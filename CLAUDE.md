@@ -959,7 +959,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships eight packs in
+global — the `data.*` namespace is gone. NodeTool ships eleven packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
 installed like any third-party pack and never a workspace:
 
@@ -973,6 +973,9 @@ installed like any third-party pack and never a workspace:
 | `@nodetool-ai/sandbox-xlsx` | exceljs | host |
 | `@nodetool-ai/sandbox-diff` | diff | host |
 | `@nodetool-ai/sandbox-zip` | fflate | host |
+| `@nodetool-ai/sandbox-sqlite` | better-sqlite3 | host |
+| `@nodetool-ai/sandbox-ocr` | tesseract.js | host |
+| `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host |
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
 runs where the sandbox runs — needed when the library wants Node builtins or a
@@ -982,6 +985,13 @@ DOM, or when it carries a limit the guest could not enforce on itself (zip's
 own `SANDBOX_HOST_MODULES` table, which pins the one package allowed to declare
 it — a third-party pack can never bring host code. The implementations live in
 `packages/agents/src/host-modules/`, with every safety limit inside them.
+
+The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
+`DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
+`-html`; `lib.excel.*` is `-xlsx`; the `lib.sqlite.*` CRUD nodes are `-sqlite`;
+`lib.ocr.*` is `-ocr`; and `lib.tensorflow.*` is `-tfjs`. Each was a chain of
+near-identical nodes that one script now expresses; only `lib.browser.Screenshot`
+(a real page over CDP) and `lib.sqlite.GetDatabasePath` stayed nodes.
 
 Declaring a specifier NodeTool ships but nobody installed fails validation with
 "Install `<pack>`". See

@@ -231,7 +231,7 @@
     {
       "key": "cards",
       "name": "Flashcard Generator",
-      "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+      "description": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
       "sourceId": "nodetool-base/Flashcard Generator",
       "graph": {
         "nodes": [
@@ -279,51 +279,6 @@
               "width": 280,
               "selectable": true,
               "title": "2️⃣ Card count"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "create_table",
-            "parent_id": null,
-            "type": "lib.sqlite.CreateTable",
-            "data": {
-              "database_name": "flashcards.db",
-              "table_name": "study_cards",
-              "columns": {
-                "type": "record_type",
-                "columns": [
-                  {
-                    "name": "id",
-                    "data_type": "int"
-                  },
-                  {
-                    "name": "front",
-                    "data_type": "string"
-                  },
-                  {
-                    "name": "back",
-                    "data_type": "string"
-                  },
-                  {
-                    "name": "category",
-                    "data_type": "string"
-                  }
-                ]
-              },
-              "add_primary_key": true,
-              "if_not_exists": true
-            },
-            "ui_properties": {
-              "selected": false,
-              "position": {
-                "x": 696,
-                "y": 522
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "title": "🗄️ Create card table"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -399,53 +354,50 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "insert_flashcard",
+            "id": "store_cards",
             "parent_id": null,
-            "type": "lib.sqlite.Insert",
-            "data": {},
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const file = \"flashcards.json\";\nconst before = await workspace.stat(file);\nconst deck = before.exists ? JSON.parse(await workspace.read(file)) : [];\n\nconst added = (inputs.cards?.rows ?? []).map((card) => ({\n  front: card.front,\n  back: card.back,\n  category: card.category\n}));\ndeck.push(...added);\nawait workspace.write(file, JSON.stringify(deck, null, 2));\n\nreturn { saved: added.length, deck: deck.slice(-10).reverse() };\n",
+              "packages": [],
+              "timeout": 30,
+              "max_response_mb": 8,
+              "allow_local_network": false,
+              "allow_host_filesystem": false
+            },
             "ui_properties": {
               "selected": false,
               "position": {
                 "x": 1126,
-                "y": 220
+                "y": 400
               },
               "zIndex": 0,
-              "width": 280,
+              "width": 320,
               "selectable": true,
-              "title": "5️⃣ Save to database"
+              "title": "5️⃣ Save the deck and read it back"
             },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "query_all",
-            "parent_id": null,
-            "type": "lib.sqlite.Query",
-            "data": {
-              "where": "",
-              "order_by": "id DESC",
-              "limit": 10
+            "dynamic_properties": {
+              "cards": ""
             },
-            "ui_properties": {
-              "selected": false,
-              "position": {
-                "x": 1206,
-                "y": 630
+            "dynamic_outputs": {
+              "saved": {
+                "type": "any",
+                "type_args": [],
+                "optional": false
               },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "title": "6️⃣ Read all cards"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+              "deck": {
+                "type": "any",
+                "type_args": [],
+                "optional": false
+              }
+            }
           },
           {
             "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
             "parent_id": null,
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob), so downstream steps can store, query, and render them as real data — then saves the deck to SQLite and reads it back for review.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → insert into SQLite → query all\n\n**Try this:** change the topic or card count. Cards persist across runs — rerun to add more to the same deck."
+              "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob), so downstream steps can store, query, and render them as real data — then a Code node appends the deck to a workspace file and reads the most recent cards back for review.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that saves and re-reads\n\n**Try this:** change the topic or card count. Cards persist across runs — rerun to add more to the same deck."
             },
             "ui_properties": {
               "selected": false,
@@ -480,6 +432,27 @@
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
+          },
+          {
+            "id": "deck_output",
+            "parent_id": null,
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "saved_deck"
+            },
+            "ui_properties": {
+              "selected": false,
+              "position": {
+                "x": 1516,
+                "y": 470
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "6️⃣ Deck in the database"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           }
         ],
         "edges": [
@@ -508,64 +481,6 @@
             "ui_properties": null
           },
           {
-            "id": "a39fe817-b16a-43b3-ae96-2788a8a023ee",
-            "source": "generate_flashcards",
-            "sourceHandle": "record",
-            "target": "insert_flashcard",
-            "targetHandle": "data",
-            "ui_properties": null
-          },
-          {
-            "id": "0a0e761d-50bf-432d-a346-922a503b370c",
-            "source": "create_table",
-            "sourceHandle": "database_name",
-            "target": "query_all",
-            "targetHandle": "database_name",
-            "ui_properties": {
-              "className": "str"
-            }
-          },
-          {
-            "id": "c07f93c7-6adf-4e34-a79f-971f39d264b9",
-            "source": "create_table",
-            "sourceHandle": "table_name",
-            "target": "query_all",
-            "targetHandle": "table_name",
-            "ui_properties": {
-              "className": "str"
-            }
-          },
-          {
-            "id": "6d344c9b-d47e-42a7-90c1-4e2471efae7e",
-            "source": "create_table",
-            "sourceHandle": "database_name",
-            "target": "insert_flashcard",
-            "targetHandle": "database_name",
-            "ui_properties": {
-              "className": "str"
-            }
-          },
-          {
-            "id": "510c3a40-032a-406f-a592-12e5c8fc1c79",
-            "source": "create_table",
-            "sourceHandle": "table_name",
-            "target": "insert_flashcard",
-            "targetHandle": "table_name",
-            "ui_properties": {
-              "className": "str"
-            }
-          },
-          {
-            "id": "922eb1a6-d8d8-4211-addf-92b198ebb22b",
-            "source": "create_table",
-            "sourceHandle": "columns",
-            "target": "query_all",
-            "targetHandle": "columns",
-            "ui_properties": {
-              "className": "record_type"
-            }
-          },
-          {
             "id": "e_flashcards_out",
             "source": "generate_flashcards",
             "sourceHandle": "dataframe",
@@ -575,6 +490,22 @@
               "className": "dataframe"
             },
             "edge_type": "data"
+          },
+          {
+            "id": "edge_store_1",
+            "source": "generate_flashcards",
+            "sourceHandle": "dataframe",
+            "target": "store_cards",
+            "targetHandle": "cards",
+            "ui_properties": null
+          },
+          {
+            "id": "edge_store_2",
+            "source": "store_cards",
+            "sourceHandle": "deck",
+            "target": "deck_output",
+            "targetHandle": "value",
+            "ui_properties": null
           }
         ]
       },

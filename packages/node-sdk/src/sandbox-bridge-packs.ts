@@ -53,6 +53,24 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-ocr",
+    packName: "@nodetool-ai/sandbox-ocr",
+    library: "tesseract.js",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-sqlite",
+    packName: "@nodetool-ai/sandbox-sqlite",
+    library: "better-sqlite3",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-tfjs",
+    packName: "@nodetool-ai/sandbox-tfjs",
+    library: "@tensorflow/tfjs",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-xlsx",
     packName: "@nodetool-ai/sandbox-xlsx",
     library: "exceljs",

@@ -455,11 +455,7 @@ export const LIB_PILLOW_NODES = [
   ..._LIB_IMAGE_COLOR_GRADING_NODES
 ];
 export {
-  WebFetchLibNode,
-  DownloadFileLibNode,
-  BrowserLibNode,
   ScreenshotLibNode,
-  SpiderCrawlLibNode,
   LIB_BROWSER_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 export {
@@ -508,12 +504,6 @@ export {
   LIB_AUDIO_DSP_NODES
 } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 export {
-  CreateTableLibNode,
-  InsertLibNode as SqliteInsertLibNode,
-  QueryLibNode,
-  UpdateLibNode as SqliteUpdateLibNode,
-  DeleteLibNode as SqliteDeleteLibNode,
-  ExecuteSQLLibNode,
   GetDatabasePathLibNode,
   LIB_SQLITE_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
@@ -563,15 +553,6 @@ export {
   LIB_S3_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-s3";
 export {
-  CreateWorkbookLibNode,
-  ExcelToDataFrameLibNode,
-  DataFrameToExcelLibNode,
-  FormatCellsLibNode,
-  AutoFitColumnsLibNode,
-  SaveWorkbookLibNode,
-  LIB_EXCEL_NODES
-} from "@nodetool-ai/automation-nodes/nodes/lib-excel";
-export {
   CreateDocumentLibNode,
   LoadWordDocumentLibNode,
   AddHeadingLibNode,
@@ -620,18 +601,6 @@ export {
   PptxExtractSlidesLibNode,
   LIB_PPTX_NODES
 } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
-export {
-  OcrExtractTextLibNode,
-  OcrExtractDataLibNode,
-  LIB_OCR_NODES
-} from "@nodetool-ai/automation-nodes/nodes/lib-ocr";
-export {
-  TensorflowMobileNetClassifyNode,
-  TensorflowMobileNetEmbeddingNode,
-  TensorflowCocoSsdDetectNode,
-  TensorflowQnaNode,
-  LIB_TENSORFLOW_NODES
-} from "@nodetool-ai/automation-nodes/nodes/lib-tensorflow";
 export {
   KieAINode,
   KIE_DYNAMIC_NODES,
@@ -730,7 +699,6 @@ import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-ds
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 import { LIB_SUPABASE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-supabase";
 import { LIB_S3_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-s3";
-import { LIB_EXCEL_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-excel";
 import { LIB_DOCX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-docx";
 import { LIB_BEAUTIFULSOUP_NODES } from "@nodetool-ai/text-nodes/nodes/lib-html-parse";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
@@ -742,8 +710,6 @@ import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-a
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
 import { LIB_EPUB_NODES } from "@nodetool-ai/document-nodes/nodes/lib-epub";
 import { LIB_PPTX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
-import { LIB_OCR_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-ocr";
-import { LIB_TENSORFLOW_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-tensorflow";
 import { LIB_NOTION_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-notion";
 import { LIB_GOOGLE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
@@ -819,7 +785,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_SQLITE_NODES,
   ...LIB_SUPABASE_NODES,
   ...LIB_S3_NODES,
-  ...LIB_EXCEL_NODES,
   ...LIB_DOCX_NODES,
   ...LIB_BEAUTIFULSOUP_NODES,
   ...LIB_BROWSER_NODES,
@@ -831,8 +796,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_PDF_NODES,
   ...LIB_EPUB_NODES,
   ...LIB_PPTX_NODES,
-  ...LIB_OCR_NODES,
-  ...LIB_TENSORFLOW_NODES,
   ...LIB_NOTION_NODES,
   ...LIB_GOOGLE_NODES,
   ...KIE_DYNAMIC_NODES,
