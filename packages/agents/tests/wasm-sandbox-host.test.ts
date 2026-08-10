@@ -37,6 +37,8 @@ class FakeFactory implements WasmWorkerFactory {
   terminated = 0;
   inFlight = 0;
   peak = 0;
+  /** Calls that reached a worker, so a test can prove one never was sent. */
+  dispatched = 0;
   constructor(private readonly delayMs = 0) {}
   create(): Promise<WasmCallWorker> {
     this.created += 1;
@@ -44,6 +46,7 @@ class FakeFactory implements WasmWorkerFactory {
     let dead = false;
     return Promise.resolve({
       async call(request: WasmCallRequest) {
+        factory.dispatched += 1;
         factory.inFlight += 1;
         if (factory.inFlight > factory.peak) factory.peak = factory.inFlight;
         try {
@@ -73,13 +76,29 @@ const hangingFactory: WasmWorkerFactory = {
     })
 };
 
+/** A hanging worker that records the terminations aimed at it. */
+class HangingFactory implements WasmWorkerFactory {
+  terminated = 0;
+  create(): Promise<WasmCallWorker> {
+    const factory = this;
+    return Promise.resolve({
+      call: () => new Promise<{ value: number | undefined }>(() => {}),
+      terminate() {
+        factory.terminated += 1;
+      }
+    });
+  }
+}
+
 function dispatcherFor(
   options: Parameters<typeof referenceWasmModule>[0] = {},
-  factory: WasmWorkerFactory = new FakeFactory()
+  factory: WasmWorkerFactory = new FakeFactory(),
+  signal?: AbortSignal
 ) {
   const pool = new WasmWorkerPool(4, factory);
   const dispatcher = createSandboxWasmDispatcher([referenceWasmModule(options)], {
-    pool
+    pool,
+    ...(signal === undefined ? {} : { signal })
   });
   if (dispatcher === undefined) throw new Error("expected a dispatcher");
   return { dispatcher, pool };
@@ -259,6 +278,58 @@ describe("WASM worker pool", () => {
       /per-call timeout/
     );
     expect(pool.replacements).toBe(2);
+    pool.dispose();
+  });
+
+  it("terminates the worker of a call cancelled while it runs", async () => {
+    // The guest export has no yield point, so abandoning the promise would
+    // leave the worker spinning for the whole 5 s timeout. Cancellation has to
+    // reach the thread, and the caller must not wait for that timeout to hear
+    // about it.
+    const factory = new HangingFactory();
+    const controller = new AbortController();
+    const { dispatcher, pool } = dispatcherFor(
+      { limits: { callTimeoutMs: 5_000, wallClockMs: 5_000 } },
+      factory,
+      controller.signal
+    );
+
+    const call = dispatcher.call(REFERENCE_SPECIFIER, "spin", []);
+    setTimeout(() => controller.abort(), 5);
+    await expect(call).rejects.toThrow(/the run was cancelled/);
+    expect(factory.terminated).toBe(1);
+    pool.dispose();
+  });
+
+  it("drops a call cancelled while it waits for a slot, without waiting for one", async () => {
+    // Concurrency is two, so the third call is parked in the queue behind two
+    // 300 ms calls. It must leave the queue when the run is cancelled — not be
+    // admitted 300 ms later only to be turned away, and never dispatched.
+    const factory = new FakeFactory(300);
+    const controller = new AbortController();
+    const { dispatcher, pool } = dispatcherFor(
+      { limits: { callTimeoutMs: 2_000, wallClockMs: 5_000 } },
+      factory,
+      controller.signal
+    );
+
+    const startedAt = Date.now();
+    let queuedElapsed = Number.POSITIVE_INFINITY;
+    const calls = Array.from({ length: 3 }, () =>
+      dispatcher.call(REFERENCE_SPECIFIER, "bump", [])
+    );
+    void calls[2]?.catch(() => {
+      queuedElapsed = Date.now() - startedAt;
+    });
+    setTimeout(() => controller.abort(), 5);
+    const settled = await Promise.allSettled(calls);
+
+    expect(settled[2]?.status).toBe("rejected");
+    expect(
+      String((settled[2] as PromiseRejectedResult).reason?.message ?? "")
+    ).toMatch(/the run was cancelled/);
+    expect(queuedElapsed).toBeLessThan(250);
+    expect(factory.dispatched).toBe(2);
     pool.dispose();
   });
 

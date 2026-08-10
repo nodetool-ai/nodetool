@@ -252,6 +252,13 @@ completion the reservation is replaced by the real duration — a fast call
 refunds, one cut at its timeout keeps the charge — so the budget stays the sum
 of call durations it documents.
 
+Cancelling the run reaches the worker, not just the caller. The signal is
+rechecked after every await on the way to dispatch — compiling a module and
+waiting for a concurrency slot both outlive an abort — and it is passed into
+the pool, where it terminates the worker the way a timeout does. A guest export
+has no yield point, so abandoning the promise would leave the thread spinning
+for the rest of its timeout on work nobody wants.
+
 The dispatcher is the boundary, not the hiding: it serves only the run's
 declared WASM modules and validates module identity, export allowlist, argument
 count, and argument type before any worker runs — `i32` rejects out of range

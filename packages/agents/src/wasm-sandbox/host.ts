@@ -88,6 +88,21 @@ interface PooledWorker {
   dead: boolean;
 }
 
+/** The one error a cancelled run raises, wherever it is noticed. */
+function cancelled(): SandboxWasmError {
+  return new SandboxWasmError("the run was cancelled");
+}
+
+/**
+ * Read the abort flag through a call.
+ *
+ * The point of these checks is that the answer changes across an await, which
+ * is exactly what narrowing an inline `signal.aborted` would deny.
+ */
+function isAborted(signal: AbortSignal | undefined): boolean {
+  return signal?.aborted === true;
+}
+
 /** A fixed set of workers shared by every invocation in the process. */
 export class WasmWorkerPool {
   private readonly idle: PooledWorker[] = [];
@@ -143,16 +158,40 @@ export class WasmWorkerPool {
     this.idle.push(slot);
   }
 
-  /** Run one call, killing and replacing the worker if it overruns. */
+  /**
+   * Run one call, killing and replacing the worker if it overruns or is
+   * cancelled.
+   *
+   * Cancellation has to reach the worker, not just the caller. A guest export
+   * is a scalar function with no yield point, so abandoning the promise would
+   * leave the thread spinning for the whole timeout on work nobody wants —
+   * the same reason a timeout terminates rather than waits.
+   */
   async run(
     module: WebAssembly.Module,
     exportName: string,
     args: readonly number[],
-    timeoutMs: number
+    timeoutMs: number,
+    signal?: AbortSignal
   ): Promise<number | undefined> {
+    if (isAborted(signal)) throw cancelled();
     const slot = await this.acquire();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let onAbort: (() => void) | undefined;
     try {
+      if (isAborted(signal)) throw cancelled();
+      const cancellation = new Promise<never>((_resolve, reject) => {
+        if (signal === undefined) return;
+        onAbort = () => {
+          slot.dead = true;
+          // Reject before terminating, for the reason the timeout does: the
+          // worker's own rejection would otherwise win the race and report a
+          // generic message instead of the cancellation.
+          reject(cancelled());
+          slot.worker.terminate();
+        };
+        signal.addEventListener("abort", onAbort, { once: true });
+      });
       const timeout = new Promise<never>((_resolve, reject) => {
         timer = setTimeout(() => {
           slot.dead = true;
@@ -170,11 +209,13 @@ export class WasmWorkerPool {
       });
       const result = await Promise.race([
         slot.worker.call({ module, exportName, args }),
-        timeout
+        timeout,
+        cancellation
       ]);
       return result.value;
     } finally {
       if (timer !== undefined) clearTimeout(timer);
+      if (onAbort !== undefined) signal?.removeEventListener("abort", onAbort);
       this.release(slot);
     }
   }
@@ -326,9 +367,8 @@ export function createSandboxWasmDispatcher(
       return peakConcurrency;
     },
     async call(moduleKey, exportName, args) {
-      if (options.signal?.aborted === true) {
-        throw new SandboxWasmError("the run was cancelled");
-      }
+      const signal = options.signal;
+      if (isAborted(signal)) throw cancelled();
       const runModule = typeof moduleKey === "string" ? byKey.get(moduleKey) : undefined;
       if (runModule === undefined) {
         throw new SandboxWasmError(
@@ -357,7 +397,18 @@ export function createSandboxWasmDispatcher(
       callsUsed += 1;
 
       const compiled = await compileSandboxWasm(runModule.contentDigest, runModule.bytes);
+      // Every await between the entry check and the dispatch is rechecked:
+      // compiling a large module and queueing behind a busy slot both take
+      // long enough for the run to be cancelled underneath them. The queue
+      // needs no cancellation of its own — the calls holding the slots share
+      // this signal, so their own aborts release them and this one is turned
+      // away as soon as it is admitted.
+      if (isAborted(signal)) throw cancelled();
       await enter();
+      if (isAborted(signal)) {
+        leave();
+        throw cancelled();
+      }
 
       // The wall clock is *reserved* here, not merely read: charging only on
       // completion let every concurrently admitted call see the whole
@@ -380,7 +431,7 @@ export function createSandboxWasmDispatcher(
       try {
         // The effective timeout is the reservation, so the call cannot outrun
         // what it was actually admitted for.
-        return await pool.run(compiled, exported.wasmName, converted, reserved);
+        return await pool.run(compiled, exported.wasmName, converted, reserved, signal);
       } finally {
         // Replace the reservation with what the call really cost: a fast call
         // refunds the difference, one that ran to its timeout charges what it

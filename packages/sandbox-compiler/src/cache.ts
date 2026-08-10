@@ -2,11 +2,12 @@
  * Content-addressed cache for compiled npm modules.
  *
  * The key is never `pack/name@version`. A linked pack, a transitive update, a
- * lockfile change, and an esbuild upgrade all change the bundle while the
- * version stays exactly where it was, so the key is a digest over what actually
+ * re-install, and an esbuild upgrade all change the bundle while the version
+ * stays exactly where it was, so the key is a digest over what actually
  * determines the output: every input file's content hash from esbuild's
- * metafile, the esbuild version, this compiler's contract version, and the
- * normalized build options.
+ * metafile, the resolution inputs that decided which files those were, the
+ * esbuild version, this compiler's contract version, and the normalized build
+ * options.
  *
  * The value carries the scan report and the probe verdict alongside the source,
  * so a warm cache skips the probe too — the expensive half of admission.
@@ -25,7 +26,7 @@ import { join, resolve } from "node:path";
 
 import { getNodetoolCacheDir } from "@nodetool-ai/config";
 
-import type { InputDigest } from "./bundle.js";
+import { ABSENT, type InputDigest, type ResolutionDigest } from "./bundle.js";
 import { normalizedCompileOptions, SANDBOX_COMPILER_VERSION } from "./options.js";
 
 /** One free reference the scan flagged. Mirrored here so the cache stays engine-free. */
@@ -50,6 +51,8 @@ export interface CachedCompilation {
   readonly bytes: number;
   /** Every input's content hash, kept so a synchronous reader can re-verify. */
   readonly inputDigests: readonly InputDigest[];
+  /** Every resolution input's hash, re-verified alongside the inputs. */
+  readonly resolutionDigests: readonly ResolutionDigest[];
   readonly scanWarnings: readonly CachedScanFinding[];
   readonly probeOk: boolean;
   readonly probeExports: readonly string[];
@@ -61,6 +64,8 @@ export interface CacheKeyInput {
   readonly esbuildVersion: string;
   /** Every input's content hash, from esbuild's metafile. */
   readonly inputDigests: readonly InputDigest[];
+  /** Every file that decided which inputs those were. */
+  readonly resolutionDigests: readonly ResolutionDigest[];
 }
 
 /** Compute the digest a compilation is stored under. */
@@ -72,12 +77,15 @@ export function computeCacheKey(input: CacheKeyInput): string {
         esbuildVersion: input.esbuildVersion,
         options: normalizedCompileOptions(),
         npmName: input.npmName,
-        inputs: [...input.inputDigests].sort((left, right) =>
-          left.path < right.path ? -1 : left.path > right.path ? 1 : 0
-        )
+        inputs: [...input.inputDigests].sort(byPath),
+        resolution: [...input.resolutionDigests].sort(byPath)
       })
     )
     .digest("hex");
+}
+
+function byPath(left: { path: string }, right: { path: string }): number {
+  return left.path < right.path ? -1 : left.path > right.path ? 1 : 0;
 }
 
 /** Default cache root: `<user cache>/sandbox-modules`. */
@@ -129,6 +137,7 @@ export class CompiledModuleCache {
       source: entry.source,
       bytes: entry.bytes ?? Buffer.byteLength(entry.source, "utf8"),
       inputDigests: entry.inputDigests ?? [],
+      resolutionDigests: entry.resolutionDigests ?? [],
       scanWarnings: entry.scanWarnings ?? [],
       probeOk: entry.probeOk,
       probeExports: entry.probeExports ?? []
@@ -144,6 +153,13 @@ export class CompiledModuleCache {
    * this reader then re-hashes every input the entry recorded before trusting
    * it. Content still decides: an entry whose inputs moved is a miss, and a
    * miss is `pending-compile`, never a stale hit.
+   *
+   * The inputs alone are not enough to decide that. Resolution metadata never
+   * appears among them, so a `package.json` that starts pointing `exports` at
+   * a different file, or a nearer copy of the dependency that shadows the one
+   * that won, leaves every input untouched while making the bundle wrong.
+   * Those files are re-hashed here too — an absent one that has appeared
+   * counts as changed.
    */
   readForPack(packDir: string, npmName: string): CachedCompilation | undefined {
     const pointerPath = this.pointerPathFor(packDir, npmName);
@@ -158,7 +174,8 @@ export class CompiledModuleCache {
     if (typeof key !== "string") return undefined;
     const entry = this.read(key);
     if (entry === undefined) return undefined;
-    return inputsUnchanged(packDir, entry.inputDigests) ? entry : undefined;
+    if (!inputsUnchanged(packDir, entry.inputDigests)) return undefined;
+    return resolutionUnchanged(packDir, entry.resolutionDigests) ? entry : undefined;
   }
 
   /** Record where a pack's dependency compiled to, for {@link readForPack}. */
@@ -247,6 +264,32 @@ function inputsUnchanged(packDir: string, inputDigests: readonly InputDigest[]):
       return false;
     }
     if (createHash("sha256").update(bytes).digest("hex") !== record.sha256) return false;
+  }
+  return true;
+}
+
+/**
+ * Re-hash every recorded resolution input and report whether all still match.
+ *
+ * A record whose file is gone must hash to {@link ABSENT}, and one recorded as
+ * absent must still be absent — an appearing `package.json` is a dependency
+ * that now resolves somewhere else.
+ */
+function resolutionUnchanged(
+  packDir: string,
+  resolutionDigests: readonly ResolutionDigest[]
+): boolean {
+  if (resolutionDigests.length === 0) return false;
+  for (const record of resolutionDigests) {
+    let current: string;
+    try {
+      current = createHash("sha256")
+        .update(readFileSync(resolve(packDir, record.path)))
+        .digest("hex");
+    } catch {
+      current = ABSENT;
+    }
+    if (current !== record.sha256) return false;
   }
   return true;
 }

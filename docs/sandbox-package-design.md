@@ -437,8 +437,11 @@ esbuild concerns spread through node-sdk):
   output changes under linked packs, transitive updates, lockfile changes,
   esbuild upgrades, and option changes while the version stays put. The
   cache key is concrete: a hash over esbuild's **metafile input list**
-  (every input file's content hash), the esbuild version, and the
-  normalized build options. Writes are atomic; every path component is
+  (every input file's content hash), the **resolution inputs** that decided
+  which files those were (the `package.json` manifests governing each input,
+  and the places a nearer copy of the dependency could shadow it — recorded
+  present-with-hash or absent), the esbuild version, and the normalized
+  build options. Writes are atomic; every path component is
   sanitized. Bundled modules cap at 1 MB — and M-1 measures real
   candidates (zod, date-fns, cheerio) before that number is promised
   anywhere.
@@ -1000,13 +1003,21 @@ must not depend on esbuild or a JavaScript engine.
   deadline, a 64 MB heap and capped console output. Only the bundle
   resolves; every other specifier is denied by name.
 - The cache (`cache.ts`) keys on a digest over every input file's content
-  hash from esbuild's metafile, the esbuild version, the compiler's
-  contract version, and the normalized options. Entries are written
+  hash from esbuild's metafile, the resolution inputs that selected those
+  files, the esbuild version, the compiler's contract version, and the
+  normalized options. Entries are written
   temp-file-plus-rename, keys are validated against `^[a-f0-9]{64}$`
   before they reach a path, and the cache root is
   `getNodetoolCacheDir()/sandbox-modules`. A pointer per
   `(pack directory, dependency)` lets a synchronous host read an entry
-  back; it re-hashes every recorded input first, so content still decides.
+  back; it re-hashes every recorded input *and* every resolution input
+  first, so content still decides. Inputs alone cannot: a manifest that
+  re-points `exports` at another file, or a nearer install that shadows the
+  copy which won, leaves every input untouched and the bundle wrong.
+  Lockfiles are deliberately not hashed — a lockfile says what *should* be
+  installed, so hashing one thrashes every pack's cache on an unrelated
+  dependency edit while saying nothing about the tree on disk. The install
+  that follows moves an input or a manifest, which is what is watched.
 - Discovery stays synchronous and engine-free. `discoverSandboxPack` takes
   an injected `compiled` lookup: an entry with an artifact joins the source
   graph as `npm:<name>`, one without becomes `pending-compile` naming
