@@ -59,6 +59,7 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 ### Advanced
 
 - [Suspendable Nodes](suspendable-nodes.md) -- Build nodes that can pause and resume workflows.
+- [JavaScript Sandbox](../javascript-sandbox.md) -- The QuickJS guest behind the Code node and agent code actions: capabilities, limits, imports, security model.
 
 ### Programmatic Workflows
 
