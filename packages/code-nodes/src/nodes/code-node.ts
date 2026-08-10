@@ -39,11 +39,7 @@ import {
   NODETOOL_API_PRELUDE_FULL,
   type SandboxLimits
 } from "@nodetool-ai/agents/js-sandbox";
-import {
-  importHidden,
-  isSandboxModulesV1Enabled,
-  SANDBOX_MODULES_DISABLED_MESSAGE
-} from "@nodetool-ai/config";
+import { importHidden } from "@nodetool-ai/config";
 import { ALL_PLATFORMS, type SandboxModuleResolution } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
@@ -382,13 +378,6 @@ export class CodeNode extends BaseNode {
       );
     }
     if (declarations.length === 0) return undefined;
-    if (!isSandboxModulesV1Enabled()) {
-      throw new Error(
-        `${SANDBOX_MODULES_DISABLED_MESSAGE} The node declares ${declarations
-          .map((declaration) => `"${declaration.specifier}"`)
-          .join(", ")}.`
-      );
-    }
 
     const catalog = context?.sandboxModuleCatalog;
     if (!catalog) {

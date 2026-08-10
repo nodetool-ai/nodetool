@@ -57,6 +57,26 @@ function writeStagedPackage(
   );
 }
 
+/** Stage a scoped sandbox pack, optionally leaving its internal helper out. */
+function writeSandboxPack(dir: string, { helper }: { helper: boolean }): void {
+  const packDir = path.join(dir, "_sandbox", "@acme", "geo", "sandbox");
+  fs.mkdirSync(packDir, { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, "_sandbox", "@acme", "geo", "package.json"),
+    JSON.stringify({
+      name: "@acme/geo",
+      nodetool: {
+        sandboxModules: [{ name: ".", kind: "js", file: "sandbox/geo.js" }],
+        internal: ["sandbox/helper.js"],
+      },
+    })
+  );
+  fs.writeFileSync(path.join(packDir, "geo.js"), "export const distance = () => 0;");
+  if (helper) {
+    fs.writeFileSync(path.join(packDir, "helper.js"), "export const helper = 1;");
+  }
+}
+
 function runVerify(dir: string) {
   const result = spawnSync(process.execPath, [SCRIPT, dir], {
     encoding: "utf8",
@@ -154,6 +174,35 @@ describe("verify-backend-bundle", () => {
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(1);
     expect(output).toContain("mismatched libvips");
+  });
+
+  it("passes when no builtin pack stages sandbox modules", () => {
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(0);
+    expect(output).not.toContain("sandbox pack");
+  });
+
+  it("accepts a complete staged sandbox pack, scoped name and all", () => {
+    writeSandboxPack(tempDir, { helper: true });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(0);
+    expect(output).toContain("sandbox pack @acme/geo staged with 2 file(s)");
+  });
+
+  it("fails when a staged sandbox pack is missing a declared file", () => {
+    writeSandboxPack(tempDir, { helper: false });
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("_sandbox/@acme/geo declares file(s) that are not staged");
+    expect(output).toContain("sandbox/helper.js");
+  });
+
+  it("fails when a staged sandbox pack carries no manifest", () => {
+    fs.mkdirSync(path.join(tempDir, "_sandbox", "geo"), { recursive: true });
+    fs.writeFileSync(path.join(tempDir, "_sandbox", "geo", "geo.js"), "export {};");
+    const { status, output } = runVerify(tempDir);
+    expect(status).toBe(1);
+    expect(output).toContain("nodetool.sandboxModules");
   });
 
   it("fails when server.mjs itself is missing", () => {

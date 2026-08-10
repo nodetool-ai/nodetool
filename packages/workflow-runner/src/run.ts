@@ -22,6 +22,7 @@ import {
 import {
   ProcessingContext,
   type CacheAdapter,
+  type SandboxModuleCatalog,
   type StorageAdapter
 } from "@nodetool-ai/runtime/context";
 import type {
@@ -55,6 +56,13 @@ export interface RunWorkflowOptions {
     key: string,
     userId: string
   ) => Promise<string | null | undefined> | string | null | undefined;
+
+  /**
+   * Catalog the run's Code nodes resolve their `packages` declarations through.
+   * A host with no process-wide catalog — every browser — passes one here or
+   * the declarations cannot be served.
+   */
+  sandboxModuleCatalog?: SandboxModuleCatalog | null;
 
   /** Abort the run when this signal fires. */
   signal?: AbortSignal;
@@ -110,6 +118,9 @@ export async function* runWorkflow(
       cache: opts.cache,
       environment: opts.environment,
       secretResolver: opts.secretResolver,
+      ...(opts.sandboxModuleCatalog === undefined
+        ? {}
+        : { sandboxModuleCatalog: opts.sandboxModuleCatalog }),
       // This path streams via the message listener below and never drains
       // the pull queue — retaining it would pin every streamed chunk.
       retainMessageQueue: false

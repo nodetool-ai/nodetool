@@ -62,6 +62,25 @@ function listFiles(dir) {
 }
 
 /**
+ * Pack names staged under `_sandbox/`, with scoped packs read one level deeper.
+ * An absent directory is the normal case: no builtin ships sandbox modules.
+ */
+function listStagedSandboxPacks(bundleDir) {
+  const root = path.join(bundleDir, "_sandbox");
+  const packs = [];
+  for (const entry of listFiles(root) ?? []) {
+    if (entry.startsWith("@")) {
+      for (const name of listFiles(path.join(root, entry)) ?? []) {
+        packs.push(`${entry}/${name}`);
+      }
+    } else {
+      packs.push(entry);
+    }
+  }
+  return packs;
+}
+
+/**
  * Verify the staged bundle layout. Returns human-readable summary lines on
  * success; throws an Error listing every failed check otherwise.
  * `requireWebgpu` is true for the desktop profile; the server profile does no
@@ -154,6 +173,37 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
       summary.push(
         `webgpu staged with ${dawnFiles.length} dawn.node binary(ies)`
       );
+    }
+  }
+
+  // 3b. Sandbox packs staged under _sandbox/ must be complete: the pack
+  //     manifest that travels with them is what discovery reads, so every file
+  //     it declares has to be there. A pack whose sources are half-staged
+  //     resolves in dev and fails at import time in the packaged app.
+  for (const pack of listStagedSandboxPacks(bundleDir)) {
+    const packDir = path.join(bundleDir, "_sandbox", ...pack.split("/"));
+    const pkgJson = readPackageJson(packDir);
+    const declared = pkgJson?.nodetool?.sandboxModules;
+    if (!Array.isArray(declared) || declared.length === 0) {
+      errors.push(
+        `_sandbox/${pack} has no package.json declaring nodetool.sandboxModules — ` +
+          "staged sandbox packs carry their manifest, which is what discovery reads."
+      );
+      continue;
+    }
+    const files = [
+      ...declared.map((module) => module?.file).filter(Boolean),
+      ...(Array.isArray(pkgJson.nodetool.internal) ? pkgJson.nodetool.internal : []),
+    ];
+    const absent = [...new Set(files)].filter(
+      (file) => !existsSync(path.join(packDir, ...file.split("/")))
+    );
+    if (absent.length > 0) {
+      errors.push(
+        `_sandbox/${pack} declares file(s) that are not staged: ${absent.join(", ")}.`
+      );
+    } else {
+      summary.push(`sandbox pack ${pack} staged with ${new Set(files).size} file(s)`);
     }
   }
 
