@@ -15,8 +15,18 @@ import type { FastifyPluginAsync } from "fastify";
 import { getSandboxCatalog } from "../sandbox-catalog.js";
 import { getHttpRateLimitConfig } from "../lib/http-rate-limit.js";
 
-/** A year, in seconds: responses are immutable because the ETag is a digest. */
-const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
+/**
+ * The URL is the *stable* module id, not the digest, so the body behind it
+ * changes whenever the pack is upgraded. `immutable` would let a browser or a
+ * proxy keep serving the old source without ever revalidating — the ETag below
+ * would never be consulted. `no-cache` still lets the client store the
+ * response; it just has to ask before reusing it, and the strong ETag turns
+ * that question into a 304 whenever nothing moved.
+ *
+ * `private` because delivery is authorized per client: a shared cache must not
+ * hold a private pack's source and hand it to the next requester.
+ */
+const REVALIDATE_CACHE_CONTROL = "private, no-cache";
 
 const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
   // The server registers @fastify/rate-limit globally, which already covers
@@ -69,7 +79,7 @@ const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
       .header("X-Sandbox-File-Id", delivery.fileId)
       .header("X-Sandbox-Internal", delivery.internal ? "1" : "0")
       .header("ETag", etag)
-      .header("Cache-Control", IMMUTABLE_CACHE_CONTROL);
+      .header("Cache-Control", REVALIDATE_CACHE_CONTROL);
     if (delivery.packVersion !== undefined) {
       reply.header("X-Sandbox-Pack-Version", delivery.packVersion);
     }

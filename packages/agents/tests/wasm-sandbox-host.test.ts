@@ -163,6 +163,62 @@ describe("WASM budgets", () => {
     );
   });
 
+  it("never admits more wall clock than the cap, however many calls run at once", async () => {
+    // Two calls run concurrently under the default concurrency of 2. Each is
+    // admitted against what is left *after* the other reserved, so the budget
+    // the two are handed sums to the cap rather than to twice it. The worker
+    // never answers, so each call spends exactly the timeout it was admitted
+    // with, and the error names that number.
+    const { dispatcher, pool } = dispatcherFor(
+      { limits: { wallClockMs: 60, callTimeoutMs: 50 } },
+      hangingFactory
+    );
+
+    const settled = await Promise.allSettled([
+      dispatcher.call(REFERENCE_SPECIFIER, "spin", []),
+      dispatcher.call(REFERENCE_SPECIFIER, "spin", [])
+    ]);
+
+    const admitted = settled.map((outcome) => {
+      expect(outcome.status).toBe("rejected");
+      const message = String(
+        (outcome as PromiseRejectedResult).reason?.message ?? ""
+      );
+      const timeout = /exceeded its (\d+) ms per-call timeout/.exec(message);
+      // A call refused outright admits nothing — that is the other legal
+      // answer for the second call.
+      if (timeout === null) {
+        expect(message).toMatch(/budget of 60 ms of WASM wall clock/);
+        return 0;
+      }
+      return Number(timeout[1]);
+    });
+
+    expect(admitted[0]).toBe(50);
+    expect(admitted.reduce((sum, ms) => sum + ms, 0)).toBeLessThanOrEqual(60);
+    // And the cap is spent: nothing further is admitted.
+    await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
+      /budget of 60 ms of WASM wall clock/
+    );
+    pool.dispose();
+  });
+
+  it("refunds a reservation a fast call did not spend", async () => {
+    // Each call reserves its whole per-call timeout up front. Without the
+    // refund on completion, three 80 ms reservations would exhaust a 200 ms
+    // budget even though the calls take no time at all.
+    const { dispatcher } = dispatcherFor(
+      { limits: { wallClockMs: 200, callTimeoutMs: 80 } },
+      new FakeFactory()
+    );
+
+    for (let call = 0; call < 5; call += 1) {
+      await expect(
+        dispatcher.call(REFERENCE_SPECIFIER, "add", [7, 0])
+      ).resolves.toBe(7);
+    }
+  });
+
   it("holds the per-invocation call concurrency at two", async () => {
     const factory = new FakeFactory(15);
     const { dispatcher } = dispatcherFor({}, factory);
