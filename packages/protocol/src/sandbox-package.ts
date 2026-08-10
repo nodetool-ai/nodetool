@@ -23,6 +23,14 @@ export const SandboxModuleKind = {
 } as const;
 export type SandboxModuleKind = (typeof SandboxModuleKind)[keyof typeof SandboxModuleKind];
 
+/** The host-owned portion of a NodeTool pack manifest. */
+export const NodePackHostManifestSchema = z.object({
+  apiVersion: z.number().optional(),
+  register: z.string().optional(),
+  sandboxModules: z.unknown().optional()
+}).passthrough();
+export type NodePackHostManifest = z.infer<typeof NodePackHostManifestSchema>;
+
 const moduleNameSchema = z.string().regex(MODULE_NAME)
   .refine((value) => value === "." || !value.includes("/"), "module name must be . or one path segment")
   .refine((value) => value !== ".." && value !== "node_modules", "reserved module name")
@@ -187,6 +195,36 @@ export const SandboxModuleResolutionSchema = z.object({
   statuses: z.array(SandboxModuleStatusSchema)
 }).strict();
 export type SandboxModuleResolution = z.infer<typeof SandboxModuleResolutionSchema>;
+
+/** Install modes returned by Electron before package lifecycle scripts run. */
+export const NodePackInstallModeSchema = z.enum(["sandbox-only", "register", "hybrid", "unknown"]);
+export type NodePackInstallMode = z.infer<typeof NodePackInstallModeSchema>;
+
+/** Immutable identity for the artifact npm wrote into the install root. */
+export const NodePackArtifactIdentitySchema = z.object({
+  name: z.string().min(1),
+  version: z.string().min(1).optional(),
+  resolved: z.string().min(1).optional(),
+  integrity: z.string().min(1).optional()
+}).strict();
+export type NodePackArtifactIdentity = z.infer<typeof NodePackArtifactIdentitySchema>;
+
+/** Classification returned after an initial scripts-disabled node-pack install. */
+export const NodePackInstallStatusSchema = z.object({
+  mode: NodePackInstallModeSchema,
+  scripts: z.literal("skipped"),
+  artifact: NodePackArtifactIdentitySchema.optional(),
+  reason: z.string().min(1).optional()
+}).strict();
+export type NodePackInstallStatus = z.infer<typeof NodePackInstallStatusSchema>;
+
+/** Result returned across the Electron IPC boundary for node-pack mutations. */
+export const NodePackActionResultSchema = z.object({
+  success: z.boolean(),
+  message: z.string(),
+  installation: NodePackInstallStatusSchema.optional()
+}).strict();
+export type NodePackActionResult = z.infer<typeof NodePackActionResultSchema>;
 
 /** Parse only the sandbox-owned subset of a pack manifest. */
 export function parseSandboxPackManifest(value: unknown): SandboxPackManifest {

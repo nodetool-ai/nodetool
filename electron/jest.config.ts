@@ -14,6 +14,8 @@ export default {
     '^@nodetool-ai/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
     '^@nodetool-ai/protocol/bridge-protocol$': '<rootDir>/../packages/protocol/src/bridge-protocol.ts',
     '^@nodetool-ai/protocol/builtin-packs$': '<rootDir>/../packages/protocol/src/builtin-packs.ts',
+    '^@nodetool-ai/protocol/sandbox-package$': '<rootDir>/../packages/protocol/src/sandbox-package.ts',
+    '^@nodetool-ai/node-sdk/sandbox-pack-discovery$': '<rootDir>/../packages/node-sdk/src/sandbox-pack-discovery.ts',
     '^@nodetool-ai/websocket/trpc$': '<rootDir>/src/__mocks__/websocket-trpc.ts',
     '^@nodetool-ai/config$': '<rootDir>/../packages/config/src/index.ts',
     '^@nodetool-ai/config/(.*)$': '<rootDir>/../packages/config/src/$1',

@@ -1,3 +1,17 @@
+import type {
+  NodePackActionResult,
+  NodePackArtifactIdentity,
+  NodePackInstallMode,
+  NodePackInstallStatus
+} from "@nodetool-ai/protocol/sandbox-package";
+
+export type {
+  NodePackActionResult,
+  NodePackArtifactIdentity,
+  NodePackInstallMode,
+  NodePackInstallStatus
+} from "@nodetool-ai/protocol/sandbox-package";
+
 type ClipboardType = "clipboard" | "selection";
 export type FrontendLogLevel = "info" | "warn" | "error";
 
@@ -992,30 +1006,6 @@ export interface PackageUninstallRequest {
 export interface NodePackInfo {
   name: string;
   version?: string;
-}
-
-export type NodePackInstallMode = "sandbox-only" | "register" | "hybrid" | "unknown";
-
-/** Immutable identity of the artifact npm wrote to the Electron install root. */
-export interface NodePackArtifactIdentity {
-  name: string;
-  version?: string;
-  resolved?: string;
-  integrity?: string;
-}
-
-/** Install classification before any package lifecycle script is allowed to run. */
-export interface NodePackInstallStatus {
-  mode: NodePackInstallMode;
-  scripts: "skipped";
-  artifact?: NodePackArtifactIdentity;
-}
-
-/** Result of a node-pack install or uninstall. `message` carries error text or success info. */
-export interface NodePackActionResult {
-  success: boolean;
-  message: string;
-  installation?: NodePackInstallStatus;
 }
 
 /** A first-party node pack shipped with NodeTool, plus its enabled state. */

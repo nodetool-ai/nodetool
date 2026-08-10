@@ -203,14 +203,20 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     internal: internalIds.has(id)
   })).sort(compareById);
 
-  const skillPath = join(dir, "SKILL.md");
-  if (!existsSync(skillPath)) {
+  const skillCandidate = join(dir, "SKILL.md");
+  if (!existsSync(skillCandidate)) {
     statuses.push({ packName: packageName, status: "warning", code: "skill-missing", message: "SKILL.md is missing; agent discoverability is disabled" });
   } else {
-    const skillPath = resolveContainedFile(dir, "SKILL.md");
-    const skill = readFileWithinLimit(skillPath, SANDBOX_PACKAGE_LIMITS.skillBytes, "SKILL.md");
+    let skill: Buffer | undefined;
+    try {
+      const skillPath = resolveContainedFile(dir, "SKILL.md");
+      skill = readFileWithinLimit(skillPath, SANDBOX_PACKAGE_LIMITS.skillBytes);
+    } catch {
+      // SKILL.md is optional; read and containment failures only disable discoverability.
+      skill = undefined;
+    }
     if (skill === undefined || !isValidSkill(skill.toString("utf8"))) {
-      statuses.push({ packName: packageName, status: "warning", code: "skill-invalid", message: "SKILL.md is invalid or exceeds the 16 KB cap; agent discoverability is disabled" });
+      statuses.push({ packName: packageName, status: "warning", code: "skill-invalid", message: "SKILL.md is invalid, unavailable, or exceeds the 16 KB cap; agent discoverability is disabled" });
     }
   }
 
@@ -587,7 +593,14 @@ function readRequiredFileWithinLimit(path: string, limit: number, description: s
   return bytes;
 }
 
-function isRegularFile(path: string): boolean { try { return statSync(path).isFile(); } catch { return false; } }
+function isRegularFile(path: string): boolean {
+  try {
+    return statSync(path).isFile();
+  } catch {
+    // An unreadable or missing candidate is not a package file.
+    return false;
+  }
+}
 
 function readJson(path: string): Record<string, unknown> {
   try { const value: unknown = JSON.parse(readFileSync(path, "utf8")); if (!isRecord(value)) throw new Error("package.json must be an object"); return value; } catch (error) { throw new SandboxPackDiscoveryError(`invalid package.json: ${error instanceof Error ? error.message : String(error)}`, { cause: error }); }

@@ -16,7 +16,7 @@ jest.mock("../config", () => ({
     .mockReturnValue({ command: "npm", baseArgs: [] })
 }));
 jest.mock("../logger", () => ({ logMessage: jest.fn() }));
-jest.mock("@nodetool-ai/node-sdk", () => ({
+jest.mock("@nodetool-ai/node-sdk/sandbox-pack-discovery", () => ({
   discoverSandboxPack: jest.fn()
 }));
 jest.mock("fs/promises", () => ({
@@ -29,7 +29,7 @@ jest.mock("fs/promises", () => ({
 
 const { spawn, spawnSync } = require("child_process");
 const fsp = require("fs/promises");
-const { discoverSandboxPack } = require("@nodetool-ai/node-sdk");
+const { discoverSandboxPack } = require("@nodetool-ai/node-sdk/sandbox-pack-discovery");
 
 import {
   getNodePackInstallRoot,
@@ -165,7 +165,7 @@ describe("nodePackManager", () => {
       expect(result.message).toContain("npm exited with code 1");
     });
 
-    it("removes register packs until the trusted rebuild flow exists", async () => {
+    it("keeps register packs inactive until the trusted rebuild flow exists", async () => {
       stubSuccessfulNpmSpawns();
       stubInstalledPackage({
         name: "@scope/pkg",
@@ -180,12 +180,7 @@ describe("nodePackManager", () => {
         mode: "register",
         scripts: "skipped"
       });
-      expect(spawn).toHaveBeenNthCalledWith(
-        2,
-        "npm",
-        expect.arrayContaining(["uninstall", "--ignore-scripts", "@scope/pkg"]),
-        expect.any(Object)
-      );
+      expect(spawn).toHaveBeenCalledTimes(1);
     });
 
     it("reports an unknown installed manifest without enabling scripts", async () => {
@@ -203,12 +198,7 @@ describe("nodePackManager", () => {
         mode: "unknown",
         scripts: "skipped"
       });
-      expect(spawn).toHaveBeenNthCalledWith(
-        2,
-        "npm",
-        expect.arrayContaining(["uninstall", "--ignore-scripts", "some-pack"]),
-        expect.any(Object)
-      );
+      expect(spawn).toHaveBeenCalledTimes(1);
     });
   });
 

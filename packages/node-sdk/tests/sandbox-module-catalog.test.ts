@@ -93,6 +93,29 @@ describe("createSandboxModuleCatalog", () => {
     }
   });
 
+  it("resolves each declared specifier only once", () => {
+    const dir = createPack();
+    try {
+      const discovery = discoverSandboxPack(dir);
+      if (discovery === undefined) throw new Error("expected sandbox pack discovery");
+
+      const resolution = createSandboxModuleCatalog([discovery])
+        .resolveForExecution([
+          { specifier: "@acme/math" },
+          { specifier: "@acme/math" },
+          { specifier: "@acme/missing" },
+          { specifier: "@acme/missing" }
+        ]);
+
+      expect(resolution.modules).toHaveLength(1);
+      expect(resolution.statuses).toEqual([
+        expect.objectContaining({ code: "module-not-found", status: "error" })
+      ]);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
   it("returns only the declared module's transitive graph", () => {
     const dir = mkdtempSync(join(tmpdir(), "sandbox-catalog-graph-"));
     try {

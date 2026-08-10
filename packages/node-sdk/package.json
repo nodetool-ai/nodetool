@@ -41,6 +41,12 @@
       "types": "./dist/cost-estimate.d.ts",
       "import": "./dist/cost-estimate.js",
       "default": "./dist/cost-estimate.js"
+    },
+    "./sandbox-pack-discovery": {
+      "nodetool-dev": "./src/sandbox-pack-discovery.ts",
+      "types": "./dist/sandbox-pack-discovery.d.ts",
+      "import": "./dist/sandbox-pack-discovery.js",
+      "default": "./dist/sandbox-pack-discovery.js"
     }
   },
   "license": "MIT",

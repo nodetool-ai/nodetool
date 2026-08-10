@@ -57,7 +57,10 @@ export function createSandboxModuleCatalog(
     resolveForExecution: (declarations) => {
       const modules: ResolvedSandboxModule[] = [];
       const resolutionStatuses: SandboxModuleStatus[] = [];
+      const resolvedSpecifiers = new Set<string>();
       for (const declaration of declarations) {
+        if (resolvedSpecifiers.has(declaration.specifier)) continue;
+        resolvedSpecifiers.add(declaration.specifier);
         const found = discoveredBySpecifier.get(declaration.specifier);
         if (found === undefined) {
           resolutionStatuses.push({

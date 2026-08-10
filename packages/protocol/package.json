@@ -45,6 +45,12 @@
       "import": "./dist/bridge-protocol.js",
       "default": "./dist/bridge-protocol.js"
     },
+    "./sandbox-package": {
+      "nodetool-dev": "./src/sandbox-package.ts",
+      "types": "./dist/sandbox-package.d.ts",
+      "import": "./dist/sandbox-package.js",
+      "default": "./dist/sandbox-package.js"
+    },
     "./api-schemas": {
       "nodetool-dev": "./src/api-schemas/index.ts",
       "types": "./dist/api-schemas/index.d.ts",

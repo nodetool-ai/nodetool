@@ -12,16 +12,19 @@ import { spawn } from "child_process";
 import * as path from "path";
 import * as fsp from "fs/promises";
 import { app } from "electron";
-import { discoverSandboxPack } from "@nodetool-ai/node-sdk";
+import { discoverSandboxPack } from "@nodetool-ai/node-sdk/sandbox-pack-discovery";
+import {
+  NodePackHostManifestSchema,
+  type NodePackActionResult,
+  type NodePackInstallMode,
+  type NodePackInstallStatus
+} from "@nodetool-ai/protocol/sandbox-package";
 import { z } from "zod";
 
 import { logMessage } from "./logger";
 import { getProcessEnv, resolveNpmInvocation } from "./config";
 import type {
-  NodePackActionResult,
-  NodePackInfo,
-  NodePackInstallMode,
-  NodePackInstallStatus
+  NodePackInfo
 } from "./types";
 
 /** The directory `npm install` runs in (parent of `node_modules`). */
@@ -44,11 +47,6 @@ const installedPackageSchema = z.object({
   name: z.string().min(1),
   version: z.string().min(1).optional(),
   nodetool: z.unknown().optional()
-}).passthrough();
-const nodetoolManifestSchema = z.object({
-  apiVersion: z.number().optional(),
-  register: z.string().optional(),
-  sandboxModules: z.unknown().optional()
 }).passthrough();
 const lockfileEntrySchema = z.object({
   version: z.string().min(1).optional(),
@@ -140,12 +138,11 @@ export async function installNodePack(
     await runNpm(["install", "--ignore-scripts", spec]);
     const installation = await classifyInstalledNodePack(spec);
     if (installation.mode !== "sandbox-only") {
-      await runNpm(["uninstall", "--ignore-scripts", packageNameFromSpec(spec)]);
       return {
         success: false,
         message: installation.mode === "unknown"
-          ? `Removed ${spec}: its installed manifest is not a supported sandbox-only NodeTool pack.`
-          : `Removed ${spec}: trusted host-pack rebuild is not available yet.`,
+          ? `Installed ${spec} with lifecycle scripts disabled, but its manifest is not a supported sandbox-only NodeTool pack.`
+          : `Installed ${spec} with lifecycle scripts disabled. Trust approval and an integrity-checked rebuild are required before host registration can run.`,
         installation
       };
     }
@@ -169,6 +166,7 @@ async function classifyInstalledNodePack(spec: string): Promise<NodePackInstallS
   try {
     rawPackage = await fsp.readFile(path.join(packageDir, "package.json"), "utf8");
   } catch {
+    // A missing installed manifest is classified as untrusted rather than retried.
     return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
   }
   const parsedPackage = installedPackageSchema.safeParse(parseJson(rawPackage));
@@ -176,7 +174,7 @@ async function classifyInstalledNodePack(spec: string): Promise<NodePackInstallS
     return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
   }
   const rawManifest = parsedPackage.data.nodetool;
-  const manifest = nodetoolManifestSchema.safeParse(rawManifest);
+  const manifest = NodePackHostManifestSchema.safeParse(rawManifest);
   if (!manifest.success || !isRecord(rawManifest)) {
     return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
   }
@@ -188,8 +186,8 @@ async function classifyInstalledNodePack(spec: string): Promise<NodePackInstallS
       if (discoverSandboxPack(packageDir) === undefined) {
         return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
       }
-    } catch {
-      return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+    } catch (error) {
+      return unknownInstallation(artifact, error);
     }
   }
   if (!hasSandboxModules && !hasHostDeclaration) {
@@ -226,6 +224,7 @@ async function readArtifactIdentity(name: string): Promise<NodePackInstallStatus
       ...(entry?.integrity === undefined ? {} : { integrity: entry.integrity })
     };
   } catch {
+    // The lockfile may not exist after a failed or interrupted npm install.
     return { name };
   }
 }
@@ -234,8 +233,22 @@ function parseJson(value: string): unknown {
   try {
     return JSON.parse(value);
   } catch {
+    // Invalid package metadata is classified as unknown rather than trusted.
     return undefined;
   }
+}
+
+function unknownInstallation(
+  artifact: NodePackInstallStatus["artifact"],
+  error?: unknown
+): NodePackInstallStatus {
+  const reason = error instanceof Error ? error.message : undefined;
+  return {
+    mode: "unknown",
+    scripts: "skipped",
+    ...(artifact === undefined ? {} : { artifact }),
+    ...(reason === undefined ? {} : { reason })
+  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

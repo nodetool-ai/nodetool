@@ -189,7 +189,7 @@ describe("sandbox package discovery", () => {
     rmSync(dir, { recursive: true, force: true });
   });
 
-  it("treats missing and malformed SKILL.md as warnings", () => {
+  it("treats missing, malformed, unavailable, and oversized SKILL.md as warnings", () => {
     const missing = pack(jsManifest(), { "sandbox/index.js": "export default 1" });
     expect(discoverSandboxPack(missing)?.statuses).toEqual([expect.objectContaining({ code: "skill-missing", status: "warning" })]);
     rmSync(missing, { recursive: true, force: true });
@@ -200,8 +200,15 @@ describe("sandbox package discovery", () => {
 
     const linked = pack(jsManifest(), { "sandbox/index.js": "export default 1", "outside.md": "---\ntitle: Test\n---\n" });
     symlinkSync(join(linked, "outside.md"), join(linked, "SKILL.md"));
-    expectDiscoveryError(() => discoverSandboxPack(linked), "symlinks");
+    expect(discoverSandboxPack(linked)?.statuses).toEqual([expect.objectContaining({ code: "skill-invalid", status: "warning" })]);
     rmSync(linked, { recursive: true, force: true });
+
+    const oversized = pack(jsManifest(), {
+      "sandbox/index.js": "export default 1",
+      "SKILL.md": "x".repeat(SANDBOX_PACKAGE_LIMITS.skillBytes + 1)
+    });
+    expect(discoverSandboxPack(oversized)?.statuses).toEqual([expect.objectContaining({ code: "skill-invalid", status: "warning" })]);
+    rmSync(oversized, { recursive: true, force: true });
   });
 
   it("computes a stable graph digest independent of manifest ordering", () => {

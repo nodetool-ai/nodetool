@@ -4,7 +4,7 @@
  * the guarded-registry reserved-namespace / collision / api-version gates,
  * env-driven search paths, and entry/register-export resolution.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, delimiter, join } from "node:path";
@@ -296,6 +296,24 @@ describe("discoverPacks error and edge paths", () => {
   it("skips a package whose nodetool field is not an object", () => {
     writeManifest("strfield", { name: "strfield", main: "index.js", nodetool: "yes" });
     expect(discoverPacks([nodeModules])).toEqual([]);
+  });
+
+  it("reports a malformed nodetool manifest before skipping the pack", () => {
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    try {
+      writeManifest("invalid-manifest", {
+        name: "invalid-manifest",
+        main: "index.js",
+        nodetool: { apiVersion: "1" }
+      });
+
+      expect(discoverPacks([nodeModules])).toEqual([]);
+      expect(warning).toHaveBeenCalledWith(
+        expect.stringContaining("Skipping invalid-manifest: invalid nodetool manifest")
+      );
+    } finally {
+      warning.mockRestore();
+    }
   });
 
   it("defaults the entry to index.js when no main or exports are given", () => {

@@ -40,7 +40,10 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSy
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
-import { z } from "zod";
+import {
+  NodePackHostManifestSchema,
+  type NodePackHostManifest
+} from "@nodetool-ai/protocol";
 
 import type { NodeClass } from "./base-node.js";
 import type { NodeRegistry } from "./registry.js";
@@ -81,14 +84,8 @@ export const DEFAULT_RESERVED_NAMESPACES: readonly string[] = [
 ];
 
 /** The `nodetool` field in a pack's package.json. */
-export interface PackManifest {
-  /** Pack API version the pack was built against. Defaults to {@link PACK_API_VERSION}. */
-  apiVersion?: number;
-  /** Name of the entry export to call with the registry. Defaults to `register`. */
-  register?: string;
-  /** Sandbox modules declared for guest execution rather than host registration. */
-  sandboxModules?: unknown;
-}
+/** Host-owned pack fields read from the protocol-owned manifest schema. */
+export type PackManifest = NodePackHostManifest;
 
 /** A registry-like target the loader registers nodes into. */
 export interface PackRegistry {
@@ -159,12 +156,6 @@ interface PackageJsonShape {
   exports?: unknown;
   nodetool?: unknown;
 }
-
-const packManifestSchema = z.object({
-  apiVersion: z.number().optional(),
-  register: z.string().optional(),
-  sandboxModules: z.unknown().optional()
-}).passthrough();
 
 /**
  * Walk up from `start` collecting each `node_modules` directory that exists.
@@ -562,7 +553,7 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
   } catch {
     return undefined;
   }
-  const manifest = parsePackManifest(pkg.nodetool);
+  const manifest = parsePackManifest(pkg.nodetool, pkg.name ?? pkgJsonPath);
   if (!manifest || isSandboxOnlyManifest(manifest)) return undefined;
   if (!pkg.name) return undefined;
 
@@ -582,9 +573,14 @@ function readPack(pkgDir: string): DiscoveredPack | undefined {
   };
 }
 
-function parsePackManifest(value: unknown): PackManifest | undefined {
-  const parsed = packManifestSchema.safeParse(value);
-  if (!parsed.success) return undefined;
+function parsePackManifest(value: unknown, packageLabel: string): PackManifest | undefined {
+  const parsed = NodePackHostManifestSchema.safeParse(value);
+  if (!parsed.success) {
+    if (value !== undefined) {
+      console.warn(`Skipping ${packageLabel}: invalid nodetool manifest: ${parsed.error.message}`);
+    }
+    return undefined;
+  }
 
   const manifest: PackManifest = {};
   if (parsed.data.apiVersion !== undefined) {

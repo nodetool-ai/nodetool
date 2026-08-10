@@ -681,8 +681,8 @@ requested package from the installed `node_modules` directory, and returns a
 structured classification: sandbox-only, register, hybrid, or unknown. It
 returns the lockfile's version, resolved URL, and integrity when present.
 Until the trusted rebuild flow exists, register, hybrid, and unknown packages
-are removed with scripts still disabled. This does not persist a trust decision
-or perform an integrity-bound rebuild; those remain separate work.
+remain inactive with scripts still disabled. This does not persist a trust
+decision or perform an integrity-bound rebuild; those remain separate work.
 
 The current `SKILL.md` check is also only a discovery warning. It verifies
 the size and minimal frontmatter shape; it does not register the file with

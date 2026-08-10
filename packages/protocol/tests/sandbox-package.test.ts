@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
+  NodePackActionResultSchema,
+  NodePackHostManifestSchema,
   ResolvedSandboxModuleSchema,
   SandboxModuleResolutionSchema
 } from "../src/index.js";
@@ -53,5 +55,19 @@ describe("sandbox module resolution protocol", () => {
     });
 
     expect(result.statuses[0]).toMatchObject({ code: "version-mismatch" });
+  });
+
+  it("defines the shared host-pack manifest and IPC result shapes", () => {
+    expect(NodePackHostManifestSchema.parse({ register: "register" }))
+      .toMatchObject({ register: "register" });
+    expect(NodePackActionResultSchema.parse({
+      success: false,
+      message: "Trust is required.",
+      installation: {
+        mode: "register",
+        scripts: "skipped",
+        artifact: { name: "@acme/nodes", integrity: "sha512-test" }
+      }
+    })).toMatchObject({ installation: { mode: "register" } });
   });
 });

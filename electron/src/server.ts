@@ -290,7 +290,9 @@ async function startServer(): Promise<void> {
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
     NODE_ENV: isDevMode() ? "development" : "production",
-    NODETOOL_ENV: isDevMode() ? "development" : "production",
+    // Electron's optional-node directory holds user-installed code in every
+    // build mode; host packs need an explicit allowlist even during app development.
+    NODETOOL_ENV: "production",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,
