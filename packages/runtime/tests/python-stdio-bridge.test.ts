@@ -120,10 +120,13 @@ describe("PythonStdioBridge against the faithful stdio fake", () => {
     // enough and the bridge keeps a dedicated stdin 'error' listener (see its
     // comment) to reject in-flight requests instead of crashing the process.
     const bridge = track(
-      makeBridge({
-        FAKE_WORKER_CLOSE_STDIN_AFTER_MS: "0",
-        FAKE_WORKER_READY_DELAY_MS: "400"
-      })
+      makeBridge(
+        {
+          FAKE_WORKER_CLOSE_STDIN_AFTER_MS: "0",
+          FAKE_WORKER_READY_DELAY_MS: "400"
+        },
+        { startupTimeoutMs: 30000 }
+      )
     );
     await expect(bridge.connect()).rejects.toThrow(/stdin error.*EPIPE/i);
     expect(bridge.isConnected).toBe(false);
