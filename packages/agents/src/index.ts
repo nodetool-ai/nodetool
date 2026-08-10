@@ -165,6 +165,34 @@ export type {
   PermissionGateOptions
 } from "./tools/tool-permissions.js";
 export {
+  PERMISSION_CATEGORIES,
+  loadCapabilityModule,
+  listCapabilityModules,
+  loadAllCapabilityModules,
+  findCapability,
+  capabilityCategorySnapshot,
+  capabilityModuleIssues,
+  capabilityModuleDrift,
+  DECLARED_CAPABILITY_MODULES,
+  toolFromCapability,
+  capabilityFromTool,
+  createCapabilityRun,
+  resolveCapabilityMessage
+} from "./capabilities/index.js";
+export type {
+  CapabilitySpec,
+  CapabilityImpl,
+  CapabilityRun,
+  CapabilityModule,
+  CapabilityExport,
+  CapabilityGate,
+  CapabilityLoaders,
+  ClientToolRouter,
+  SubAgentRuntime,
+  CapabilityRunSource,
+  CreateCapabilityRunOptions
+} from "./capabilities/index.js";
+export {
   SecurityMonitor,
   createSecurityMonitorConsult
 } from "./security-monitor.js";
