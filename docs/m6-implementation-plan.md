@@ -1,5 +1,45 @@
 # M6 implementation plan — bridge packs
 
+> **Landed.** Three packs ship in `packages/sandbox-packs/`; four
+> libraries stay on the host bridge. The table below is what M3's
+> measurement decided, not what this plan originally listed.
+
+## Disposition
+
+| Pack | Library | Outcome |
+|---|---|---|
+| `@nodetool-ai/sandbox-yaml` | js-yaml | ships — 101 KB bundle, 15 exports through the probe |
+| `@nodetool-ai/sandbox-zip` | fflate | ships — 61 KB, 49 exports; warns on `queueMicrotask`/`setTimeout`, which only the async API touches |
+| `@nodetool-ai/sandbox-dates` | date-fns | ships — 176 KB, 250 exports; added here because it is admitted |
+| `@nodetool-ai/sandbox-csv` | papaparse | stays host-side — imports `node:stream`, so the bundle fails |
+| `@nodetool-ai/sandbox-xml` | fast-xml-parser | stays host-side — reads a bare `window` with no `typeof` guard |
+| `@nodetool-ai/sandbox-diff` | diff | stays host-side — schedules with `setTimeout` |
+| `@nodetool-ai/sandbox-html` | cheerio | stays host-side — imports 25 Node builtins |
+
+The four unshipped libraries keep `data.parseCsv`, `data.parseXml`,
+`data.diff`, and `data.selectHtml` as their only route until the library
+drops what the guest lacks, or a byte ABI makes the host call cheap enough
+that the import path stops mattering. An authored `kind: "js"` pack is the
+design's alternative for exactly this case, and `diff` was the one
+candidate worth attempting — its `setTimeout` sits in the async API, so a
+sync-only core could pass the scan. It was not attempted: the compiler is
+the only npm path, so an authored pack means vendoring a fork of the
+library into this repo and owning its updates and its licence trail
+forever. That is a larger commitment than one import path is worth.
+
+What landed against the tasks below: Task 1 as three pack directories plus
+`packages/sandbox-packs/README.md` (they are **not** root workspaces —
+the `workspaces` array is an explicit path list, so leaving them out makes
+host-side import impossible rather than merely discouraged); Task 2 as one
+SKILL.md per pack; Task 3 as a drift pin on `MAX_UNZIP_TOTAL_BYTES` plus
+the steering language in `sandbox-zip`'s SKILL.md and package description;
+Task 4 as `sandbox-bridge-packs.ts` in node-sdk (the install hint) and the
+`nodetool.recommended` mark the external registry index reads; Task 5 as
+`packages/sandbox-compiler/tests/packs.test.ts` and the extended
+`sandbox-packages` surface in the harness registry.
+
+---
+
 Task breakdown for milestone M6 of
 [sandbox-package-design.md](sandbox-package-design.md): one config-only
 pack per migratable bridge library, living in the monorepo, consumed

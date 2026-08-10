@@ -1,0 +1,38 @@
+{
+  "name": "@nodetool-ai/sandbox-zip",
+  "version": "0.7.0-rc.34",
+  "description": "Deflate, gzip and zip of data you produced, inside the NodeTool sandbox, from fflate. Untrusted archives belong on the data.unzip bridge, which caps decompression",
+  "license": "MIT",
+  "dependencies": {
+    "fflate": "^0.8.2"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "fflate" }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-zip"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "zip",
+    "gzip"
+  ]
+}

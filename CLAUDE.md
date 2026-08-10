@@ -90,6 +90,8 @@ packages/           # 59 npm workspace packages (TypeScript backend)
   model-pricing/    # Unit price for a selected FAL/kie/GenSpend model (web + runner)
   sandbox-compiler/ # Compiles a pack's npm dependency into a guest module
                     # (esbuild bundle, scope-aware scan, QuickJS admission probe)
+  sandbox-packs/    # Shipped bridge packs — config-only manifest + SKILL.md each,
+                    # NOT workspaces: installed and imported by the guest only
   ...
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
@@ -958,6 +960,18 @@ every recorded input first, and a miss surfaces as `pending-compile` naming this
 command. Compiler: `packages/sandbox-compiler`. Design:
 [docs/sandbox-package-design.md](docs/sandbox-package-design.md) § Config-only
 modules from npm packages.
+
+NodeTool ships three such packs in `packages/sandbox-packs/` —
+`@nodetool-ai/sandbox-yaml` (js-yaml), `-zip` (fflate), `-dates` (date-fns) —
+each a package.json manifest plus a SKILL.md, installed like any third-party
+pack and never a workspace. They add an import path; every `data.*` bridge
+stays, and `data.unzip`'s 50 MB inflation cap remains the route for an archive
+you did not create. papaparse, fast-xml-parser, diff, and cheerio have no pack:
+the compiler rejects them as-is, so `data.parseCsv`, `data.parseXml`,
+`data.diff`, and `data.selectHtml` are still their only route. Declaring a
+specifier NodeTool ships but nobody installed fails validation with
+"Install `<pack>`". See
+[packages/sandbox-packs/README.md](packages/sandbox-packs/README.md).
 
 ### nodetool affected (Changed-File → Workspace Mapping)
 

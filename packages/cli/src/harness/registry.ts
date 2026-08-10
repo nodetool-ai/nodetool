@@ -255,7 +255,7 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "packs-compile",
-    title: "Sandbox npm module compiler (bundle, scan, probe, cache)",
+    title: "Sandbox npm module compiler (bundle, scan, probe, cache) and the shipped bridge packs",
     command: "nodetool packs compile [--json] [--force]",
     kind: "static",
     capabilities: ["json", "no-db"],
@@ -349,6 +349,8 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["packs-compile", "validate"],
     paths: [
       "packages/sandbox-compiler/",
+      "packages/sandbox-packs/",
+      "packages/node-sdk/src/sandbox-bridge-packs.ts",
       "packages/node-sdk/src/sandbox-pack-discovery.ts",
       "packages/node-sdk/src/sandbox-module-catalog.ts",
       "packages/node-sdk/src/sandbox-catalog-host.ts",

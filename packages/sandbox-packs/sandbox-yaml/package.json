@@ -1,0 +1,37 @@
+{
+  "name": "@nodetool-ai/sandbox-yaml",
+  "version": "0.7.0-rc.34",
+  "description": "YAML parsing and dumping inside the NodeTool sandbox, from js-yaml",
+  "license": "MIT",
+  "dependencies": {
+    "js-yaml": "^4.3.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "js-yaml" }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-yaml"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "yaml"
+  ]
+}

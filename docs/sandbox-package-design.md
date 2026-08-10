@@ -942,6 +942,46 @@ Presence is never assumed: a missing pack fails validation with "install
 <pack>", prompts advertise only installed packs, and the registry marks
 the bridge packs recommended.
 
+#### M6 checkpoint — three packs ship, four libraries stay host-side
+
+The list above was written before M3 measured the candidates. A
+config-only pack exists only for a library the compiler admits, so what
+shipped in `packages/sandbox-packs/` is the admitted set:
+
+| Pack | Library | State |
+|---|---|---|
+| `@nodetool-ai/sandbox-yaml` | js-yaml | ships |
+| `@nodetool-ai/sandbox-zip` | fflate | ships |
+| `@nodetool-ai/sandbox-dates` | date-fns | ships — not in the original list; admitted, so it earns a pack |
+| `@nodetool-ai/sandbox-csv` | papaparse | not shipped — imports `node:stream` |
+| `@nodetool-ai/sandbox-xml` | fast-xml-parser | not shipped — reads a bare `window` |
+| `@nodetool-ai/sandbox-diff` | diff | not shipped — schedules with `setTimeout` |
+| `@nodetool-ai/sandbox-html` | cheerio | not shipped — imports 25 Node builtins |
+
+The four unshipped libraries stay on `data.parseCsv`, `data.parseXml`,
+`data.diff`, and `data.selectHtml` until the library drops what the guest
+lacks or a byte ABI makes the host call cheap enough not to care. The
+design's alternative for them — an authored `kind: "js"` module — would
+mean vendoring a fork of each library into the repo, which buys an import
+path at the cost of owning someone else's code; M6 declined it rather than
+ship a pack that is a maintenance liability.
+
+Each pack is a package.json and a SKILL.md, nothing else. They are
+deliberately **not** root workspaces (the `workspaces` array names every
+path explicitly), so no host code can resolve `@nodetool-ai/sandbox-yaml`
+in-process — the specifier exists only for the guest, through install and
+the catalog. `nodetool.recommended` and the `sandboxModules` manifest are
+the metadata the external registry index reads.
+
+The zip-bomb boundary held: `MAX_UNZIP_TOTAL_BYTES` is untouched at 50 MB
+and pinned by a drift test, and `sandbox-zip`'s SKILL.md and package
+description both steer untrusted archives to `data.unzip`. Validation now
+appends "Install `<pack>`" when an unresolved specifier is one NodeTool
+ships (`sandbox-bridge-packs.ts` in node-sdk), and nothing else. The
+end-to-end proof is `packages/sandbox-compiler/tests/packs.test.ts`:
+discovery of the real pack directory, compilation, catalog resolution, and
+`import yaml from "@nodetool-ai/sandbox-yaml"` running in the M1 loader.
+
 ## Release invariants
 
 Each invariant binds from the milestone that introduces its subject

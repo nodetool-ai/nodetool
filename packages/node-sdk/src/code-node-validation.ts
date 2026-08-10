@@ -30,6 +30,7 @@ import {
   staticImportSpecifiers,
   typeofGuardedNames
 } from "./code-analysis.js";
+import { installHintFor } from "./sandbox-bridge-packs.js";
 
 /** Node types whose `code` property is a JavaScript sandbox body. */
 export const JS_CODE_NODE_TYPES: ReadonlySet<string> = new Set([
@@ -445,6 +446,10 @@ export function validateCodeNodeBody(
  * offers (error, naming the pack the specifier claims), and a pack version or
  * content digest that moved since the workflow was saved (warning — resolution
  * always uses what is installed).
+ *
+ * When the missing specifier is one NodeTool ships, the error also says which
+ * package to install. Every other unknown specifier gets no hint: guessing a
+ * package name for a workflow author is worse than saying nothing.
  */
 function catalogIssues(
   catalog: SandboxModuleCatalog | null | undefined,
@@ -454,14 +459,18 @@ function catalogIssues(
   const { statuses } = catalog.resolveForExecution(declarations);
   return statuses
     .filter((status) => status.status === "error" || status.status === "warning")
-    .map((status) => ({
-      severity: status.status === "error" ? ("error" as const) : ("warning" as const),
-      code:
-        status.status === "error"
-          ? "code_package_unavailable"
-          : "code_package_mismatch",
-      message: `${status.message} (pack "${status.packName}")`
-    }));
+    .map((status) => {
+      const hint =
+        status.code === "module-not-found" ? installHintFor(status.specifier ?? "") : undefined;
+      return {
+        severity: status.status === "error" ? ("error" as const) : ("warning" as const),
+        code:
+          status.status === "error"
+            ? "code_package_unavailable"
+            : "code_package_mismatch",
+        message: `${status.message} (pack "${status.packName}")${hint === undefined ? "" : ` ${hint}`}`
+      };
+    });
 }
 
 function withUnusedInputs(
