@@ -90,7 +90,7 @@ packages/           # 59 npm workspace packages (TypeScript backend)
   model-pricing/    # Unit price for a selected FAL/kie/GenSpend model (web + runner)
   sandbox-compiler/ # Compiles a pack's npm dependency into a guest module
                     # (esbuild bundle, scope-aware scan, QuickJS admission probe)
-  sandbox-packs/    # Shipped bridge packs — config-only manifest + SKILL.md each,
+  sandbox-packs/    # Shipped library packs — config-only manifest + SKILL.md each,
                     # NOT workspaces: installed and imported by the guest only
   ...
 
@@ -961,15 +961,32 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 [docs/sandbox-package-design.md](docs/sandbox-package-design.md) § Config-only
 modules from npm packages.
 
-NodeTool ships three such packs in `packages/sandbox-packs/` —
-`@nodetool-ai/sandbox-yaml` (js-yaml), `-zip` (fflate), `-dates` (date-fns) —
-each a package.json manifest plus a SKILL.md, installed like any third-party
-pack and never a workspace. They add an import path; every `data.*` bridge
-stays, and `data.unzip`'s 50 MB inflation cap remains the route for an archive
-you did not create. papaparse, fast-xml-parser, diff, and cheerio have no pack:
-the compiler rejects them as-is, so `data.parseCsv`, `data.parseXml`,
-`data.diff`, and `data.selectHtml` are still their only route. Declaring a
-specifier NodeTool ships but nobody installed fails validation with
+**Every library the sandbox offers is an importable pack.** There is no library
+global — the `data.*` namespace is gone. NodeTool ships eight packs in
+`packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
+installed like any third-party pack and never a workspace:
+
+| Pack | Library | Runs |
+|---|---|---|
+| `@nodetool-ai/sandbox-dates` | date-fns | guest |
+| `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
+| `@nodetool-ai/sandbox-csv` | papaparse | host |
+| `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
+| `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
+| `@nodetool-ai/sandbox-xlsx` | exceljs | host |
+| `@nodetool-ai/sandbox-diff` | diff | host |
+| `@nodetool-ai/sandbox-zip` | fflate | host |
+
+**guest** means the compiler bundles the library into QuickJS. **host** means it
+runs where the sandbox runs — needed when the library wants Node builtins or a
+DOM, or when it carries a limit the guest could not enforce on itself (zip's
+50 MB inflation cap). A host pack's manifest entry is
+`{"kind": "host", "host": "<id>"}`, and the id resolves only through NodeTool's
+own `SANDBOX_HOST_MODULES` table, which pins the one package allowed to declare
+it — a third-party pack can never bring host code. The implementations live in
+`packages/agents/src/host-modules/`, with every safety limit inside them.
+
+Declaring a specifier NodeTool ships but nobody installed fails validation with
 "Install `<pack>`". See
 [packages/sandbox-packs/README.md](packages/sandbox-packs/README.md).
 

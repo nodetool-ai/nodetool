@@ -14,8 +14,9 @@ install flow, and the registry index.
 > `NODETOOL_SANDBOX_MODULES_V1` parity flag along with the browser refusal it
 > covered. M3 adds the npm compiler: a config-only `npm` manifest entry is
 > bundled, scanned, admission-probed, and cached by content. M4 adds scalar
-> WASM modules behind generated facades. M6 ships three bridge packs built on
-> that compiler. M0 provides:
+> WASM modules behind generated facades. M6 makes `import` the only way to
+> reach a library: eight packs, host-facade modules for the libraries the guest
+> cannot hold, and no `data.*` globals. M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
 > sandbox-only host-loader guard, scripts-disabled installation with an
@@ -31,19 +32,23 @@ install flow, and the registry index.
 
 ## Problem
 
-Every library the sandbox offers today is a **host bridge**: papaparse,
-cheerio, exceljs, fflate and friends run on the host, lazily imported inside
-their bridge in `packages/agents/src/js-sandbox.ts`, and the guest sees only
-plain-data functions. That keeps the guest surface identical across dev,
-packaged Electron, and the in-browser runner — but it has a hard ceiling:
+Every library the sandbox offered was a **host bridge on a global**:
+papaparse, cheerio, exceljs, fflate and friends ran on the host, lazily
+imported inside their bridge in `packages/agents/src/js-sandbox.ts`, and the
+guest reached them through a `data.*` namespace it did not ask for. That kept
+the guest surface identical across dev, packaged Electron, and the in-browser
+runner — but it had a hard ceiling:
 
-- Adding a library means editing `js-sandbox.ts`, the sandbox manifest, and
-  the drift tests, then shipping a NodeTool release. Third parties cannot
+- Adding a library meant editing `js-sandbox.ts`, the sandbox manifest, and
+  the drift tests, then shipping a NodeTool release. Third parties could not
   extend the sandbox at all.
-- A pack that ships nodes has no way to ship helper code for Code nodes in
+- A pack that ships nodes had no way to ship helper code for Code nodes in
   its example workflows.
 - Compute-heavy pure functions (parsers, codecs, geometry, hashing) are
-  exactly what WASM is for, and there is no way to bring one.
+  exactly what WASM is for, and there was no way to bring one.
+- And the surface was two surfaces: some libraries were globals, some were
+  imports, and which one a given library was depended on nothing a user could
+  see.
 
 The goal: a pack installs through the normal package manager and its sandbox
 modules become importable in the guest — without weakening the sandbox's
@@ -103,16 +108,27 @@ security contract or breaking surface parity across the three runtimes.
 
 ## Design
 
-### Two module kinds
+### One import surface, three module kinds
+
+**Every library the sandbox offers is an importable module.** There is no
+second route and no library global. What differs between kinds is where the
+code runs, not how the guest reaches it.
 
 | Kind | Runs | Capability model | Risk |
 |---|---|---|---|
-| **JS guest module** | inside QuickJS, in the **same context as the node's code** | everything the node's code can reach: `fetch`, `workspace`, `getSecret`, asset bridges, injected globals; it can also mutate globals and prototypes for the rest of the invocation | cannot escape QuickJS, but shares the node's granted bridges — importing a module means trusting it with that node's capabilities |
-| **Host WASM module** | on the host, behind a bridge | no imports: no I/O, no syscalls, no host references; memory bounded by binary validation | host CPU and memory, bounded by worker budgets |
+| **JS guest module** (`kind: "js"`) | inside QuickJS, in the **same context as the node's code** | everything the node's code can reach: `fetch`, `workspace`, `getSecret`, asset bridges, injected globals; it can also mutate globals and prototypes for the rest of the invocation | cannot escape QuickJS, but shares the node's granted bridges — importing a module means trusting it with that node's capabilities |
+| **Host WASM module** (`kind: "wasm"`) | on the host, behind a generated facade | no imports: no I/O, no syscalls, no host references; memory bounded by binary validation | host CPU and memory, bounded by worker budgets |
+| **Host JS module** (`kind: "host"`) | on the host, behind a generated facade | a **NodeTool-implemented** function set, named by id. A pack declares the id; it never supplies the code | host CPU and memory, bounded by the implementation's own caps |
 
 A guest JS module is the default answer. WASM is for compute a JS module
-cannot do at acceptable speed. A pack can pair them: a WASM module plus a
-guest JS wrapper that gives it an ergonomic API.
+cannot do at acceptable speed. A host JS module is for a library the guest
+cannot hold — one that needs Node builtins, a DOM, or a limit the guest could
+not enforce on itself. A pack can pair kinds: a WASM module plus a guest JS
+wrapper that gives it an ergonomic API.
+
+Capability globals are a different thing and stay as they are: `fetch`,
+`workspace`, `getSecret`, the asset bridges, `format.*`, `image.*`, `canvas.*`
+and `crypto.*` are what the node granted this run, not libraries it chose.
 
 ### Trust model: explicit dependency consent
 
@@ -569,9 +585,11 @@ skill with a section per module.
 
 ## Alternatives considered
 
-- **Keep host bridges as the only extension point.** Safest, but every
-  library becomes a NodeTool core change. Bridges remain the right tool
-  for real I/O and native code — this design does not replace them.
+- **Keep host bridges on globals as the only extension point.** Safest, but
+  every library becomes a NodeTool core change, and it leaves two surfaces
+  where there should be one. Host *execution* remains the right answer for
+  libraries the guest cannot hold — this design keeps it and changes only how
+  the guest reaches it, from a `data.*` global to an `import`.
 - **Inject packages as globals instead of imports.** Avoids the AST work,
   but invents a second module system and still needs the same
   declaration, validation, loader, and delivery machinery.
@@ -600,6 +618,11 @@ skill with a section per module.
 | WASM imports | none | binary validation |
 | WASM state | none across calls (instance per call) | execution model |
 | Dynamic `import()` | rejected everywhere | validation + loader |
+| Host module text input | 5 MB | the host implementation |
+| Host module byte input | 10 MB | the host implementation |
+| Zip inflation (`sandbox-zip`) | 50 MB total | the host implementation |
+| HTML matches (`sandbox-html`) | 100 default, 1000 ceiling | the host implementation |
+| Host module identity | id in NodeTool's registry, declared by the pack that registry pins to it | discovery + dispatcher |
 
 ## Non-goals
 
@@ -610,7 +633,8 @@ skill with a section per module.
   pins a contract).
 - Per-workflow version pinning (recorded versions warn on mismatch;
   resolution uses the installed version).
-- Replacing existing host bridges.
+- Third-party host modules. `kind: "host"` names an id NodeTool implements;
+  a pack can never supply the code behind one.
 
 ## Milestones
 
@@ -973,63 +997,106 @@ milestone is the documentation layer, landing only after the
 untrusted-content trust handling is settled: on-demand SKILL.md
 retrieval, package-picker rendering, Package Manager consent language.
 
-### M6 — Bridge packs
+### M6 — Library packs, and the end of `data.*`
 
-One config-only pack per migratable library — `@nodetool-ai/sandbox-csv`
-(papaparse), `-yaml` (js-yaml), `-xml` (fast-xml-parser), `-diff` (diff),
-`-zip` (fflate), `-html` (cheerio, if the bundle admits it) — living in
-the monorepo under `packages/sandbox-packs/`, consumed only via install.
-This is an **added import path, not a migration**: the `data.*` bridges
-stay, and bridge-specific safety limits stay with them — fflate's 50 MB
-decompression cap is a zip-bomb policy the 64 MB guest heap does not
-replicate, so the bridge remains the hardened route. Disposition of the
-rest is unchanged from the bridge table in the CLAUDE.md: exceljs (Node
-streams), turndown (DOM), `format.*` (no Intl in the guest), image/canvas
-(native), and every capability bridge stay host-side permanently.
+One pack per library the sandbox offers, living in the monorepo under
+`packages/sandbox-packs/` and consumed only via install. The first draft called
+this "an added import path, not a migration" and kept the `data.*` bridges
+beside it. That was wrong, and M6 was reworked: two surfaces for one question
+is a surface a user has to learn twice, and which one a library landed on
+depended on nothing they could see. **`data.*` is removed.** Every library is
+an `import`.
 
-Presence is never assumed: a missing pack fails validation with "install
-<pack>", prompts advertise only installed packs, and the registry marks
-the bridge packs recommended.
+#### M6 checkpoint — the uniform import surface
 
-#### M6 checkpoint — three packs ship, four libraries stay host-side
+**Host-facade modules.** The manifest gains a third kind:
 
-The list above was written before M3 measured the candidates. A
-config-only pack exists only for a library the compiler admits, so what
-shipped in `packages/sandbox-packs/` is the admitted set:
+```jsonc
+{ "name": ".", "kind": "host", "host": "csv" }
+```
 
-| Pack | Library | State |
-|---|---|---|
-| `@nodetool-ai/sandbox-yaml` | js-yaml | ships |
-| `@nodetool-ai/sandbox-zip` | fflate | ships |
-| `@nodetool-ai/sandbox-dates` | date-fns | ships — not in the original list; admitted, so it earns a pack |
-| `@nodetool-ai/sandbox-csv` | papaparse | not shipped — imports `node:stream` |
-| `@nodetool-ai/sandbox-xml` | fast-xml-parser | not shipped — reads a bare `window` |
-| `@nodetool-ai/sandbox-diff` | diff | not shipped — schedules with `setTimeout` |
-| `@nodetool-ai/sandbox-html` | cheerio | not shipped — imports 25 Node builtins |
+`host` is an **id**, never an implementation. The pack ships no code for it.
+The id resolves through `SANDBOX_HOST_MODULES`
+(`packages/protocol/src/sandbox-host.ts`) — NodeTool's own table, which also
+pins the one package name allowed to declare each id. The specifier resolves to
+a generated ESM facade (`generateSandboxHostFacade`) with one async export per
+registry export plus a default namespace, calling a **per-run dispatcher**
+through a private bridge module (`nodetool:host-bridge`). It is the same
+mechanism M4 built for WASM, applied to host JavaScript: facade → private
+specifier resolved only for generated facades → dispatcher validating per call
+→ binding deleted before the user IIFE starts.
 
-The four unshipped libraries stay on `data.parseCsv`, `data.parseXml`,
-`data.diff`, and `data.selectHtml` until the library drops what the guest
-lacks or a byte ABI makes the host call cheap enough not to care. The
-design's alternative for them — an authored `kind: "js"` module — would
-mean vendoring a fork of each library into the repo, which buys an import
-path at the cost of owning someone else's code; M6 declined it rather than
-ship a pack that is a maintenance liability.
+**The trust rule, enforced twice.** Discovery refuses a `host` entry whose id
+is not in the registry, and refuses one whose id belongs to another package —
+so `@evil/x` declaring `{"host": "csv"}` never becomes a module. The dispatcher
+repeats both checks when it is built, because a resolution can reach it from a
+catalog this process did not build (the browser fetches one over HTTP), and
+then validates the module key, the export name and the argument list on every
+call. A third-party pack cannot reach host execution through this path;
+adding a host module is a NodeTool change — a row in the protocol table and a
+loader in `packages/agents/src/host-modules/registry.ts`.
 
-Each pack is a package.json and a SKILL.md, nothing else. They are
-deliberately **not** root workspaces (the `workspaces` array names every
-path explicitly), so no host code can resolve `@nodetool-ai/sandbox-yaml`
-in-process — the specifier exists only for the guest, through install and
-the catalog. `nodetool.recommended` and the `sandboxModules` manifest are
-the metadata the external registry index reads.
+**Limits moved into the implementations.** They are not sandbox limits any
+more; they are the library's own, in the code that owns it:
+`MAX_UNZIP_TOTAL_BYTES` (50 MB) in `host-modules/zip.ts`,
+`DEFAULT_SELECT_HTML_LIMIT`/`MAX_SELECT_HTML_LIMIT` in `host-modules/html.ts`,
+and the shared `MAX_HOST_INPUT_CHARS`/`MAX_HOST_INPUT_BYTES` (5 MB / 10 MB) in
+`host-modules/limits.ts`. Each keeps its test.
 
-The zip-bomb boundary held: `MAX_UNZIP_TOTAL_BYTES` is untouched at 50 MB
-and pinned by a drift test, and `sandbox-zip`'s SKILL.md and package
-description both steer untrusted archives to `data.unzip`. Validation now
-appends "Install `<pack>`" when an unresolved specifier is one NodeTool
-ships (`sandbox-bridge-packs.ts` in node-sdk), and nothing else. The
-end-to-end proof is `packages/sandbox-compiler/tests/packs.test.ts`:
-discovery of the real pack directory, compilation, catalog resolution, and
-`import yaml from "@nodetool-ai/sandbox-yaml"` running in the M1 loader.
+**Marshaling** follows Fact 7 unchanged: plain data in and out, typed arrays
+native guest→host, bytes host→guest as tagged base64 (the dispatcher applies
+`toGuestBytesDeep` at the boundary, so an implementation returns ordinary
+`Uint8Array`s), errors as tagged objects rather than rejected promises.
+
+**Browser parity** holds because the implementations are pure-JS libraries and
+the "host" in the browser runner is the page, which can run them. The
+lazy-import pattern the bridges used is kept, so nothing enters an entry graph
+and bundling is unchanged. Delivery carries the generated facade as the body,
+verified against `contentSha256` like any other module, plus an
+`X-Sandbox-Host-Module` header the browser catalog rebuilds the resolution
+from — the export list and the dispatcher's allowlist still come from the
+protocol registry, so a delivery cannot widen what an id means.
+
+The shipped set:
+
+| Pack | Library | Runs | Why |
+|---|---|---|---|
+| `@nodetool-ai/sandbox-dates` | date-fns | guest | compiler admits it |
+| `@nodetool-ai/sandbox-yaml` | js-yaml | guest | compiler admits it |
+| `@nodetool-ai/sandbox-csv` | papaparse | host | imports `node:stream` |
+| `@nodetool-ai/sandbox-html` | cheerio + turndown | host | 25 Node builtins; turndown wants a DOM |
+| `@nodetool-ai/sandbox-xml` | fast-xml-parser | host | reads a bare `window` |
+| `@nodetool-ai/sandbox-xlsx` | exceljs | host | Node streams |
+| `@nodetool-ai/sandbox-diff` | diff | host | schedules with `setTimeout` |
+| `@nodetool-ai/sandbox-zip` | fflate | host | the inflation cap (below) |
+
+**Why zip moved off the guest.** M3 admitted fflate, and M6 shipped it as a
+guest pack. That is now a host pack, and the reason is the cap: a zip bomb is a
+policy question, and a policy enforced inside the guest is enforced by code the
+guest can decline to call. The 64 MB guest heap does not replicate it either —
+fflate inflates into host memory first. There is no byte-transfer boundary
+below the guest to cap instead, because a guest module *is* the guest. So the
+library runs on the host, where the 50 MB ceiling sits between the archive and
+the guest with nothing around it. This is the one place where "the compiler
+admits it" was not the deciding question.
+
+Presence is never assumed: a missing pack fails validation with
+"Install `<pack>`" (`sandbox-bridge-packs.ts`, now eight rows), prompts
+advertise only installed and session-allowed packs, and the registry marks them
+recommended. Removing `data.*` therefore has a real cost — a workflow that
+parsed CSV now needs a pack installed — and that cost is the point: what a node
+uses is declared on the node.
+
+Regression suites: `packages/agents/tests/host-modules.test.ts` (the moved
+library cases, the dispatcher's refusals, the forged-manifest cases, and every
+limit), `sandbox-bridge-packs.test.ts` (presence), and
+`packages/sandbox-compiler/tests/packs.test.ts` (every shipped pack discovered,
+compiled where it compiles, resolved, and imported in the real loader — plus
+two adversarial manifests refused at discovery).
+
+Disposition of what has no pack is unchanged: `format.*`, `image.*`,
+`canvas.*`, `crypto.*` and every capability bridge stay host-side globals
+permanently, because they are capabilities rather than libraries.
 
 ## Release invariants
 
@@ -1041,8 +1108,10 @@ onward — WASM invariants from M4, browser parity from M2.
 - Fresh guest context per invocation; fresh WASM instance per **call**.
 - Static size caps on everything a pack ships.
 - Empty WASI/network/filesystem surface for WASM.
-- Existing bridges retained; their safety limits not weakened by the
-  import path's existence.
+- One import surface: every library is an importable module, and a library
+  safety limit lives in the implementation the guest cannot bypass.
+- A host module's implementation is NodeTool's; a pack declares an id and
+  nothing else.
 - The same fixtures and contract tests on Node and browser (once
   browser delivery exists).
 - Validation before execution.
