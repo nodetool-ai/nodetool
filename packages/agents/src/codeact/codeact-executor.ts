@@ -64,6 +64,7 @@ import {
   packagePromptLines,
   sessionAllowedPackages
 } from "./sandbox-packages.js";
+import { SandboxPackageDocsTool } from "./sandbox-package-docs.js";
 import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
@@ -346,6 +347,16 @@ export class CodeActExecutor {
     const existing = new Set(this.tools.map((t) => t.name));
     for (const memoryTool of getMemoryTools()) {
       if (!existing.has(memoryTool.name)) this.tools.push(memoryTool);
+    }
+
+    // A session that allows packages can read what they document. The prompt
+    // carries one line per package; the body is fetched, never injected.
+    if (this.sandboxPackages.length > 0) {
+      const docsTool = new SandboxPackageDocsTool(
+        this.sandboxPackages,
+        this.context.sandboxModuleCatalog
+      );
+      if (!existing.has(docsTool.name)) this.tools.push(docsTool);
     }
 
     // The core set is offered to the provider as ordinary tools as well.

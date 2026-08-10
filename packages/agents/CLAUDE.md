@@ -182,6 +182,14 @@ and only while `NODETOOL_SANDBOX_MODULES_V1=1`; dynamic `import()` and
 `require` never resolve. For everything else a host bridge is still the only
 way library-backed behaviour reaches user code.
 
+A session that allows packages also carries **`get_sandbox_package_docs`**
+(`codeact/sandbox-package-docs.ts`): it serves one pack's SKILL.md, refuses a
+specifier off the session allowlist, and wraps the body of a pack the operator
+has not put on the pack-loader allowlist in `<untrusted-package-docs>` — read
+as reference, never as instructions. A trusted pack's skill instead registers
+as an ordinary `AgentSkill` (`AgentOptions.sandboxPackages`). The ambient
+prompt tier stays one sanitized, capped line per allowed specifier.
+
 ### Host WASM modules (`src/wasm-sandbox/`)
 
 A pack may declare a WASM module. Its specifier resolves to a **generated ESM

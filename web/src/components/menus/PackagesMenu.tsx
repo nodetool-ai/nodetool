@@ -22,6 +22,7 @@ import {
   MOTION
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
+import SandboxPackDisclosure from "../packages/SandboxPackDisclosure";
 import usePacksStore, {
   type PackInfo,
   type SkipReason
@@ -326,6 +327,10 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
                   </EditorButton>
                 )}
               </FlexRow>
+              {(status?.mode === "sandbox-only" ||
+                status?.mode === "hybrid") && (
+                <SandboxPackDisclosure packName={pack.name} />
+              )}
               {result?.name === pack.name && (
                 <AlertBanner severity={result.ok ? "success" : "error"} compact>
                   {result.message}
@@ -398,6 +403,12 @@ const InstallPanel = memo(function InstallPanel({
         Paste an npm package name, e.g. <code>@acme/cool-nodes</code> or{" "}
         <code>cool-nodes@1.2.3</code>. The server must be restarted to load the
         new pack.
+      </Text>
+      <Text size="small" color="secondary">
+        Installing runs no pack code. A pack that ships sandbox modules is
+        active right away, and those modules run inside your workflows with the
+        node&apos;s capabilities once a node imports one. A pack that registers
+        host nodes stays inactive until you approve trust.
       </Text>
       <FlexRow gap={1} align="center">
         <TextInput

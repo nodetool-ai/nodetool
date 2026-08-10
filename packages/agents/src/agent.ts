@@ -25,9 +25,11 @@ import type {
   TaskUpdate,
   Chunk
 } from "@nodetool-ai/protocol";
-import { TaskUpdateEvent } from "@nodetool-ai/protocol";
+import { parseSkillDocument, TaskUpdateEvent } from "@nodetool-ai/protocol";
 import { BoundedHandle, type SupervisorBounds } from "@nodetool-ai/kernel";
 import { TaskPlanner } from "./task-planner.js";
+import { sessionAllowedPackages } from "./codeact/sandbox-packages.js";
+import { sandboxPackageSkills } from "./codeact/sandbox-package-docs.js";
 import {
   resolveAgentGraph,
   runWorkflowAsAgent,
@@ -77,45 +79,15 @@ export interface AgentSkill {
   path: string;
 }
 
-const INVALID_SKILL_NAME_RE = /[^a-z0-9-]/;
-const XML_TAG_RE = /<[^>]+>/;
-const SKILL_RESERVED_TERMS = ["anthropic", "claude"];
 const SKILL_WORD_RE = /[a-z0-9]+/g;
 
 /**
  * Parse minimal YAML frontmatter (key: value pairs).
+ *
+ * Re-exported from protocol, where the SKILL.md parser lives so sandbox pack
+ * discovery reads the same format the skill system does.
  */
-export function parseFrontmatter(frontmatter: string): Record<string, string> {
-  const parsed: Record<string, string> = {};
-  for (const rawLine of frontmatter.split("\n")) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) continue;
-    const colonIdx = line.indexOf(":");
-    if (colonIdx === -1) continue;
-    const key = line.slice(0, colonIdx).trim();
-    let value = line.slice(colonIdx + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    parsed[key] = value;
-  }
-  return parsed;
-}
-
-function isValidSkillName(name: string): boolean {
-  if (!name || name.length > 64) return false;
-  if (INVALID_SKILL_NAME_RE.test(name)) return false;
-  const lowered = name.toLowerCase();
-  return !SKILL_RESERVED_TERMS.some((term) => lowered.includes(term));
-}
-
-function isValidSkillDescription(description: string): boolean {
-  if (!description || description.length > 1024) return false;
-  return !XML_TAG_RE.test(description);
-}
+export { parseFrontmatter } from "@nodetool-ai/protocol";
 
 /**
  * Load a single skill from a SKILL.md file.
@@ -130,25 +102,9 @@ async function loadSkillFromFile(
   } catch {
     return null;
   }
-
-  if (!content.startsWith("---")) return null;
-
-  // Frontmatter is delimited by the first two `---` fences. Rejoin everything
-  // after the second fence so a `---` horizontal rule inside the skill body is
-  // preserved rather than truncated (a limited `split` would discard the tail).
-  const parts = content.split("---");
-  if (parts.length < 3) return null;
-
-  const metadata = parseFrontmatter(parts[1]);
-  const name = (metadata["name"] ?? "").trim();
-  const description = (metadata["description"] ?? "").trim();
-  const instructions = parts.slice(2).join("---").trim();
-
-  if (!isValidSkillName(name)) return null;
-  if (!isValidSkillDescription(description)) return null;
-  if (!instructions) return null;
-
-  return { name, description, instructions, path: skillFile };
+  const document = parseSkillDocument(content);
+  if (document === null) return null;
+  return { ...document, path: skillFile };
 }
 
 /**
@@ -243,6 +199,13 @@ export interface AgentOptions {
   task?: Task;
   skills?: string[];
   skillDirs?: string[];
+  /**
+   * Sandbox package specifiers this session consents to. A step's CodeAct
+   * action may import exactly these, and a trusted pack among them registers
+   * its SKILL.md as an ordinary skill. Nothing is allowed by default:
+   * installing a pack is not choosing it.
+   */
+  sandboxPackages?: readonly string[];
   /**
    * Optional long-term memory. When provided, items relevant to the agent's
    * objective are recalled before planning and folded into the system prompt
@@ -396,6 +359,7 @@ export class Agent {
   private readonly workspace?: string;
   private readonly requestedSkills?: string[];
   private readonly skillDirs: string[];
+  private readonly sandboxPackages: string[];
   private readonly initialTask?: Task;
   private readonly longTermMemory: LongTermMemory | null;
   private readonly autoPersistMemory: boolean;
@@ -442,6 +406,7 @@ export class Agent {
     this.workspace = opts.workspace;
     this.requestedSkills = opts.skills;
     this.skillDirs = opts.skillDirs ?? [];
+    this.sandboxPackages = sessionAllowedPackages(opts.sandboxPackages);
     this.initialTask = opts.task;
     this.longTermMemory = opts.longTermMemory ?? null;
     this.autoPersistMemory = opts.autoPersistMemory === true;
@@ -683,6 +648,15 @@ export class Agent {
     });
 
     const availableSkills = await this.discoverSkills();
+    // A trusted pack the session allows contributes its SKILL.md like any other
+    // skill. An untrusted pack contributes nothing here — its body reaches the
+    // model only through `get_sandbox_package_docs`, wrapped as untrusted.
+    for (const skill of sandboxPackageSkills(
+      this.sandboxPackages,
+      context.sandboxModuleCatalog
+    )) {
+      if (!availableSkills.has(skill.name)) availableSkills.set(skill.name, skill);
+    }
     const activeSkills = this.resolveActiveSkills(
       availableSkills,
       this.requestedSkills
@@ -862,7 +836,8 @@ export class Agent {
       checkpointStore: this.checkpointStore,
       runId: this.runId,
       planTools: this.tools.map((t) => t.name),
-      signal: this.signal
+      signal: this.signal,
+      sandboxPackages: this.sandboxPackages
     });
 
     for await (const item of executor.execute()) {
@@ -1441,7 +1416,8 @@ export class Agent {
       maxTokens: this.policy.maxTokens,
       maxConcurrentAgents: this.policy.maxConcurrentAgents,
       parallelExecution: true,
-      signal: this.signal
+      signal: this.signal,
+      sandboxPackages: this.sandboxPackages
     });
 
     for await (const item of executor.executeTasks()) {

@@ -18,6 +18,28 @@ const RESERVED_IDENTIFIERS = new Set([
   "package", "private", "protected", "public"
 ]);
 
+/** Longest pack-authored description any always-on prompt tier may carry. */
+export const MAX_SANDBOX_DESCRIPTION = 160;
+
+/**
+ * Flatten pack-authored text to one short line.
+ *
+ * Whatever a pack writes here reaches every prompt of a session that allows the
+ * pack, so the limits are the defense: control characters and line breaks go,
+ * whitespace collapses, and the result is cut at
+ * {@link MAX_SANDBOX_DESCRIPTION}. Nothing about the wording is judged — a
+ * sentence that reads like an instruction is still just one capped line.
+ */
+export function sanitizeSandboxDescription(text: string): string {
+  const flat = text
+    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return flat.length > MAX_SANDBOX_DESCRIPTION
+    ? `${flat.slice(0, MAX_SANDBOX_DESCRIPTION - 1).trimEnd()}…`
+    : flat;
+}
+
 /** A public sandbox module's kind. */
 export const SandboxModuleKind = {
   JS: "js",
@@ -158,9 +180,29 @@ export const SandboxModuleSummarySchema = z.object({
   packName: z.string().regex(PACKAGE_NAME),
   packVersion: z.string().min(1).optional(),
   kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM]),
-  description: z.string().max(160).optional()
+  description: z.string().max(MAX_SANDBOX_DESCRIPTION).optional(),
+  /** The module's content digest, so a picker can stamp what it declares. */
+  contentDigest: contentDigestSchema.optional()
 }).strict();
 export type SandboxModuleSummary = z.infer<typeof SandboxModuleSummarySchema>;
+
+/** A pack's parsed SKILL.md, kept out of every always-on prompt tier. */
+export interface SandboxPackSkill {
+  readonly name: string;
+  readonly description: string;
+  /** The full instruction body — third-party prompt content, never ambient. */
+  readonly body: string;
+  /** `##` sections of the body, keyed by lowercased heading text. */
+  readonly sections: Readonly<Record<string, string>>;
+}
+
+/** A pack's documentation with the trust decision that governs how it is used. */
+export interface SandboxPackSkillDisclosure extends SandboxPackSkill {
+  readonly packName: string;
+  readonly packVersion?: string;
+  /** True only when the operator put this pack on the pack-loader allowlist. */
+  readonly trusted: boolean;
+}
 
 /** A diagnostic emitted while discovering or resolving a sandbox module. */
 export const SandboxModuleStatusSchema = z.object({

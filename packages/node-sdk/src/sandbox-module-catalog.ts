@@ -1,10 +1,14 @@
-import type {
-  ResolvedSandboxModule,
-  SandboxModuleGraphFile,
-  SandboxModuleStatus,
-  SandboxModuleSummary
+import {
+  sanitizeSandboxDescription,
+  type ResolvedSandboxModule,
+  type SandboxModuleGraphFile,
+  type SandboxModuleStatus,
+  type SandboxModuleSummary,
+  type SandboxPackSkillDisclosure
 } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
+
+import { isPackTrusted, resolvePackTrust } from "./pack-loader.js";
 
 import type {
   SandboxDiscoveredFile,
@@ -21,8 +25,12 @@ import type {
  */
 export function createSandboxModuleCatalog(
   discoveries: readonly SandboxPackDiscovery[],
-  hostStatuses: readonly SandboxModuleStatus[] = []
+  hostStatuses: readonly SandboxModuleStatus[] = [],
+  options: { isTrusted?: (packName: string) => boolean } = {}
 ): SandboxModuleCatalog {
+  // Trust is the operator's pack-loader allowlist, resolved once per catalog so
+  // one build cannot disagree with itself about a pack.
+  const isTrusted = options.isTrusted ?? trustFromConfig();
   const discoveredBySpecifier = new Map<string, {
     readonly discovery: SandboxPackDiscovery;
     readonly module: SandboxDiscoveredModule;
@@ -50,17 +58,38 @@ export function createSandboxModuleCatalog(
   }
 
   const summaries = [...discoveredBySpecifier.values()]
-    .map(({ discovery, module }): SandboxModuleSummary => ({
-      specifier: module.specifier,
+    .map(({ discovery, module }): SandboxModuleSummary => {
+      // The one-line tier: the skill's own description, flattened and capped.
+      // The body never travels with a summary — that is the tool's job.
+      const description = discovery.skill === undefined
+        ? ""
+        : sanitizeSandboxDescription(discovery.skill.description);
+      return {
+        specifier: module.specifier,
+        packName: discovery.name,
+        ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
+        kind: module.kind,
+        ...(description === "" ? {} : { description }),
+        contentDigest: module.digest
+      };
+    })
+    .sort((left, right) => left.specifier.localeCompare(right.specifier));
+
+  const skillsByPack = new Map<string, SandboxPackSkillDisclosure>();
+  for (const discovery of discoveries) {
+    if (discovery.skill === undefined) continue;
+    skillsByPack.set(discovery.name, {
+      ...discovery.skill,
       packName: discovery.name,
       ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
-      kind: module.kind
-    }))
-    .sort((left, right) => left.specifier.localeCompare(right.specifier));
+      trusted: isTrusted(discovery.name)
+    });
+  }
 
   return {
     summaries: () => summaries,
     diagnostics: () => statuses,
+    packSkill: (packName) => skillsByPack.get(packName),
     resolveForExecution: (declarations) => {
       const modules: ResolvedSandboxModule[] = [];
       const resolutionStatuses: SandboxModuleStatus[] = [];
@@ -113,6 +142,11 @@ export function createSandboxModuleCatalog(
       return { modules, statuses: resolutionStatuses };
     }
   };
+}
+
+function trustFromConfig(): (packName: string) => boolean {
+  const trust = resolvePackTrust();
+  return (packName) => isPackTrusted(packName, trust);
 }
 
 function toResolvedModule(

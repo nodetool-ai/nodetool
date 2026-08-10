@@ -13,12 +13,16 @@
  * observation the model can correct.
  */
 import { isSandboxModulesV1Enabled } from "@nodetool-ai/config";
-import type { SandboxModuleResolution } from "@nodetool-ai/protocol";
+import {
+  MAX_SANDBOX_DESCRIPTION,
+  sanitizeSandboxDescription,
+  type SandboxModuleResolution
+} from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
 
 /** Longest description the one-line tier prints (the summary schema caps at 160). */
-export const MAX_PACKAGE_DESCRIPTION = 160;
+export const MAX_PACKAGE_DESCRIPTION = MAX_SANDBOX_DESCRIPTION;
 
 /**
  * The specifiers an action may import: the session's allowlist, or nothing at
@@ -35,15 +39,11 @@ export function sessionAllowedPackages(
 /**
  * Pack-authored text reaches every prompt of the session, so it is stripped to
  * a single short line: no control characters, no newlines, no runaway length.
+ * The rule lives in protocol, where the catalog that fills a summary's
+ * description applies it too — one limit, enforced at both ends.
  */
 export function sanitizePackageDescription(text: string): string {
-  const flat = text
-    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return flat.length > MAX_PACKAGE_DESCRIPTION
-    ? `${flat.slice(0, MAX_PACKAGE_DESCRIPTION - 1).trimEnd()}…`
-    : flat;
+  return sanitizeSandboxDescription(text);
 }
 
 /**
