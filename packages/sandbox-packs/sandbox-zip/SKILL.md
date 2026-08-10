@@ -1,63 +1,55 @@
 ---
 name: sandbox-zip
-description: Deflate, gzip and zip data you produced, inside a Code node or CodeAct action, with fflate running in the guest. Untrusted archives belong on the data.unzip bridge
+description: Read and write zip archives in a Code node or CodeAct action, with fflate running on the host under a 50 MB inflation cap
 ---
 
-# Compression in the sandbox
+# Zip archives in the sandbox
 
-Specifier: `@nodetool-ai/sandbox-zip`. One module, the fflate root export.
-Declare it in the node's `packages` property and import it at the top of the
-body.
+Specifier: `@nodetool-ai/sandbox-zip`. Declare it in the node's `packages`
+property and import it at the top of the body.
 
-Use the synchronous entry points. The streaming and callback APIs schedule
-work, and the guest has no timers to schedule it with.
+## Why this one runs on the host
 
-## zipSync — pack bytes you hold
+fflate is pure JavaScript and the sandbox compiler admits it, so this pack
+*could* have shipped as a guest module — and an earlier version did. It does
+not, because of the cap: a zip bomb is a policy question, and a policy enforced
+inside the guest is enforced by code the guest can simply not call. The guest's
+64 MB heap does not replicate it either — fflate inflates into host memory
+first. So the library stays on the host, with `unzip` refusing anything that
+inflates past **50 MB**, and there is no second route around that number.
+
+## unzip — extract an archive
 
 ```js
-import { zipSync, strToU8 } from "@nodetool-ai/sandbox-zip";
+import { unzip } from "@nodetool-ai/sandbox-zip";
 
-const archive = zipSync({
-  "report.md": strToU8(inputs.markdown),
-  "data.json": strToU8(JSON.stringify(inputs.rows))
+const files = await unzip(inputs.archive);          // { "a/b.txt": Uint8Array }
+const readme = new TextDecoder().decode(files["README.md"]);
+return { names: Object.keys(files), readme };
+```
+
+Entry values arrive as real `Uint8Array`s. Decode text with `TextDecoder`.
+
+## zip — build one
+
+```js
+import { zip } from "@nodetool-ai/sandbox-zip";
+
+const archive = await zip({
+  "report.md": inputs.markdown,                     // strings are UTF-8 encoded
+  "data.json": JSON.stringify(inputs.rows)
 });
-return { archive };
+await workspace.writeBytes("out.zip", archive);
+return { bytes: archive.length };
 ```
 
-## gzipSync / gunzipSync — one payload
-
-```js
-import { gzipSync, gunzipSync, strToU8, strFromU8 } from "@nodetool-ai/sandbox-zip";
-
-const packed = gzipSync(strToU8(inputs.text), { level: 6 });
-return { bytes: packed, roundTrip: strFromU8(gunzipSync(packed)) };
-```
-
-`strToU8` and `strFromU8` are the UTF-8 converters; there is no `Buffer` and no
-`TextEncoder` in the guest.
-
-## Decompressing an archive you did not create
-
-Use `data.unzip`, not this pack.
-
-```js
-const files = await data.unzip(inputs.archive);
-```
-
-The bridge refuses an archive that inflates past 50 MB. The guest heap does
-**not** replicate that limit: 64 MB of heap does not bound what a decompressor
-can be told to produce, and a zip bomb sized to fit the heap still costs you the
-whole run. `unzipSync` inside the guest has no such ceiling, so reach for it
-only on bytes you produced or bytes whose provenance you control.
+Entry values are `Uint8Array` or `string`.
 
 ## Gotchas
 
-- **Bytes only.** Every fflate entry point takes and returns `Uint8Array`.
-  Convert with `strToU8` / `strFromU8`.
-- **Input and output share the heap.** Compressing a 30 MB payload holds the
-  input, the output, and fflate's window at once, inside 64 MB.
-- **No timers, no workers.** `zip`, `unzip`, `gzip` (the async forms) and
-  `AsyncZipDeflate` need a scheduler the guest does not have. The `*Sync`
-  names are the whole usable surface.
-- **`data.zip` and `data.unzip` stay** and stay hardened. Nothing in this pack
-  changes their 10 MB input cap or their 50 MB total-inflation cap.
+- **Both exports are async.**
+- **10 MB in, 50 MB out.** The archive itself is capped at 10 MB; the sum of the
+  entries `unzip` produces — and the sum of what `zip` is handed — is capped at
+  50 MB, checked as the entries are walked so a bomb stops part way.
+- **No streaming.** The whole archive is materialized. For a payload near the
+  cap, write entries to the workspace as you go instead.

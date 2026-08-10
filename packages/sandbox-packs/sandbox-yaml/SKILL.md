@@ -44,8 +44,6 @@ a value it cannot represent (a function, a symbol).
 - **The safe schema is not the default.** `yaml.load` uses `DEFAULT_SCHEMA`,
   which resolves tags such as `!!timestamp`. For input from a stranger, pass
   `{ schema: yaml.FAILSAFE_SCHEMA }` and get strings, arrays, and objects only.
-- **`data.parseYaml` is still there** and is the shorter route when you only
-  need to parse: it runs js-yaml on the host, caps input at 5 M characters, and
-  costs you no guest heap. Import this pack when you need `dump`, `loadAll`,
-  schemas, or the parse result inside a larger computation the guest is already
-  doing.
+- **This pack is the only route to YAML.** There is no `data.parseYaml` global
+  any more; every library the sandbox offers is an importable module, and this
+  is the one for YAML. A node that needs it declares it.

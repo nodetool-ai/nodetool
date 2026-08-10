@@ -1,19 +1,19 @@
 /**
- * What the bridge packs (M6) must not change about the host.
+ * Presence rules for the shipped library packs.
  *
- * A pack is an added import path. `@nodetool-ai/sandbox-zip` puts fflate in the
- * guest, and the guest heap is not a decompression policy — so `data.unzip`'s
- * cap has to stay exactly where it was, and an uninstalled pack has to stay out
- * of the prompt tier a model reads.
+ * Every library the sandbox offers is now an importable pack, so "installed"
+ * is load-bearing in a way it was not while `data.*` existed: a pack nobody
+ * installed must stay out of the prompt tier a model reads, and an action that
+ * imports it anyway must be refused by name rather than resolve to nothing.
  */
 import { describe, it, expect } from "vitest";
-import { MAX_UNZIP_TOTAL_BYTES } from "../src/js-sandbox.js";
+import { SANDBOX_HOST_MODULES } from "@nodetool-ai/protocol";
 import {
   mountActionModules,
   packagePromptLines,
   sessionAllowedPackages
 } from "../src/codeact/sandbox-packages.js";
-import { BRIDGE_PACKS } from "@nodetool-ai/node-sdk";
+import { BRIDGE_PACKS, bridgePackFor, installHintFor } from "@nodetool-ai/node-sdk";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 const ZIP = "@nodetool-ai/sandbox-zip";
@@ -36,16 +36,7 @@ function emptyCatalog(): SandboxModuleCatalog {
   };
 }
 
-describe("the fflate bridge's zip-bomb cap", () => {
-  it("is still 50 MB", () => {
-    // Drift pin. `sandbox-zip` steers untrusted archives to `data.unzip`
-    // precisely because this limit exists; moving it is a policy change, not a
-    // refactor, and it belongs in its own commit with its own reasoning.
-    expect(MAX_UNZIP_TOTAL_BYTES).toBe(50 * 1024 * 1024);
-  });
-});
-
-describe("an uninstalled bridge pack in a CodeAct session", () => {
+describe("an uninstalled pack in a CodeAct session", () => {
   it("gets no line in the one-liner tier", () => {
     const allowed = sessionAllowedPackages(undefined, true);
     expect(packagePromptLines(allowed, emptyCatalog())).toEqual([]);
@@ -58,7 +49,7 @@ describe("an uninstalled bridge pack in a CodeAct session", () => {
 
   it("refuses an action that imports it anyway", () => {
     const mount = mountActionModules(
-      `import { zipSync } from "${ZIP}";\nreturn zipSync({});`,
+      `import { unzip } from "${ZIP}";\nreturn unzip(new Uint8Array());`,
       [],
       emptyCatalog()
     );
@@ -70,7 +61,7 @@ describe("an uninstalled bridge pack in a CodeAct session", () => {
 
   it("is refused by the catalog even once a session allows the specifier", () => {
     const mount = mountActionModules(
-      `import { zipSync } from "${ZIP}";\nreturn zipSync({});`,
+      `import { unzip } from "${ZIP}";\nreturn unzip(new Uint8Array());`,
       [ZIP],
       emptyCatalog()
     );
@@ -78,11 +69,26 @@ describe("an uninstalled bridge pack in a CodeAct session", () => {
   });
 });
 
-describe("the shipped bridge-pack table", () => {
+describe("the shipped pack table", () => {
   it("names every pack by its own package name", () => {
     for (const pack of BRIDGE_PACKS) {
       expect(pack.specifier).toBe(pack.packName);
       expect(pack.specifier.startsWith("@nodetool-ai/sandbox-")).toBe(true);
     }
+  });
+
+  it("covers every host module the protocol registry declares", () => {
+    // A host module whose pack is missing from this table is a specifier that
+    // resolves for nobody and hints at nothing.
+    for (const spec of Object.values(SANDBOX_HOST_MODULES)) {
+      const pack = bridgePackFor(spec.packName);
+      expect(pack, `no pack row for host module ${spec.id}`).toBeDefined();
+      expect(pack?.runs).toBe("host");
+    }
+  });
+
+  it("hints an install for a shipped specifier and stays silent otherwise", () => {
+    expect(installHintFor(ZIP)).toContain(ZIP);
+    expect(installHintFor("@acme/whatever")).toBeUndefined();
   });
 });

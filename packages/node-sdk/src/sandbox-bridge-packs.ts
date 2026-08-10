@@ -1,5 +1,5 @@
 /**
- * The bridge packs NodeTool ships, by specifier.
+ * The library packs NodeTool ships, by specifier.
  *
  * Presence is never assumed. A workflow can declare `@nodetool-ai/sandbox-yaml`
  * on a machine where nobody installed it, and the catalog answers "not
@@ -14,25 +14,67 @@ export interface BridgePack {
   readonly specifier: string;
   /** The npm package to install, which for a single-module pack is the same string. */
   readonly packName: string;
-  /** The npm library the module is compiled from. */
+  /** The npm library behind the module. */
   readonly library: string;
+  /**
+   * Where the library runs.
+   *
+   * `guest` — compiled into the QuickJS guest by the sandbox compiler.
+   * `host` — a NodeTool-implemented host function set behind a generated
+   * facade, because the library needs what the guest lacks, or carries a limit
+   * the guest could not enforce.
+   */
+  readonly runs: "guest" | "host";
 }
 
 export const BRIDGE_PACKS: readonly BridgePack[] = [
   {
+    specifier: "@nodetool-ai/sandbox-csv",
+    packName: "@nodetool-ai/sandbox-csv",
+    library: "papaparse",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-dates",
     packName: "@nodetool-ai/sandbox-dates",
-    library: "date-fns"
+    library: "date-fns",
+    runs: "guest"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-diff",
+    packName: "@nodetool-ai/sandbox-diff",
+    library: "diff",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-html",
+    packName: "@nodetool-ai/sandbox-html",
+    library: "cheerio + turndown",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-xlsx",
+    packName: "@nodetool-ai/sandbox-xlsx",
+    library: "exceljs",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-xml",
+    packName: "@nodetool-ai/sandbox-xml",
+    library: "fast-xml-parser",
+    runs: "host"
   },
   {
     specifier: "@nodetool-ai/sandbox-yaml",
     packName: "@nodetool-ai/sandbox-yaml",
-    library: "js-yaml"
+    library: "js-yaml",
+    runs: "guest"
   },
   {
     specifier: "@nodetool-ai/sandbox-zip",
     packName: "@nodetool-ai/sandbox-zip",
-    library: "fflate"
+    library: "fflate",
+    runs: "host"
   }
 ];
 

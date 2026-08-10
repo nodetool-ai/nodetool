@@ -9,7 +9,7 @@
  * The exposed surface is a small curated one: vanilla JavaScript plus a handful
  * of bridge functions (`fetch`, `workspace`, `getSecret`, `sleep`,
  * `assetToSandbox`, `sandboxToAsset`, `crypto`, `console`, `progress`,
- * `format`, `data`, `image`, `canvas`) and a few pure guest-side helpers
+ * `format`, `image`, `canvas`) and a few pure guest-side helpers
  * (`toBase64`, `fromBase64`, `toHex`, `fromHex`,
  * `parallelMap`, `createCanvas`). `crypto`
  * covers `randomUUID`, `getRandomValues`, `digest`, and `hmac`
@@ -25,15 +25,18 @@
  * there is no loader at all, so user code cannot `import`/`require` anything.
  * With it, the run's declared sandbox packages and their intra-pack siblings
  * are the only importable modules (see {@link createGuestModuleHost}), and
- * dynamic `import()` stays denied. Library-backed capabilities reach it only
- * through narrow host bridges that take and return plain data:
- * `data.parseCsv` (papaparse), `data.selectHtml` (cheerio), `format.*` (Intl),
- * `crypto.*` (WebCrypto), and `image.*`/`canvas.*` (a real 2D canvas —
- * `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser runner; see
- * `sandbox-media.ts`). The libraries run host-side, are imported lazily
- * on first use, and are never handed to the guest — so the snippet surface is
- * the same string-in/plain-data-out contract in dev, in packaged Electron, and
- * in the browser runner, which bundles this module too.
+ * dynamic `import()` stays denied.
+ *
+ * **Every library the sandbox offers is an importable module.** Some are guest
+ * modules the compiler admitted (js-yaml, date-fns); the rest are *host
+ * modules* — papaparse, cheerio, exceljs, fflate and friends — which run on the
+ * host behind a generated ESM facade over a per-run dispatcher
+ * (`host-modules/`), because they need Node builtins the guest lacks or carry a
+ * limit the guest could not enforce. Either way the guest writes `import`, and
+ * the pack has to be installed and declared. The remaining globals — `fetch`,
+ * `workspace`, `getSecret`, the asset bridges, `format.*` (Intl), `crypto.*`
+ * (WebCrypto), `image.*`/`canvas.*` — are not libraries: they are the
+ * capabilities the node granted this run.
  *
  * The sandbox is fully asynchronous. Every host bridge call returns a real
  * promise, and a bridge call starts its host-side work the moment it is
@@ -55,13 +58,28 @@ import {
 } from "@sebastianwessel/quickjs";
 import * as acorn from "acorn";
 import {
+  generateSandboxHostFacade,
   generateSandboxWasmFacade,
+  sandboxHostModule,
+  SANDBOX_HOST_BRIDGE_SOURCE,
+  SANDBOX_HOST_BRIDGE_SPECIFIER,
+  SANDBOX_HOST_DISPATCH_GLOBAL,
   SANDBOX_WASM_BRIDGE_SOURCE,
   SANDBOX_WASM_BRIDGE_SPECIFIER,
   SANDBOX_WASM_DISPATCH_GLOBAL,
   type SandboxModuleResolution
 } from "@nodetool-ai/protocol";
 
+import {
+  createSandboxHostDispatcher,
+  type SandboxHostDispatcher
+} from "./host-modules/dispatcher.js";
+import {
+  BASE64_ALPHABET,
+  SANDBOX_BYTES_MARKER,
+  toGuestBytes,
+  toGuestBytesDeep
+} from "./sandbox-bytes.js";
 import {
   createSandboxWasmDispatcher,
   type SandboxWasmDispatcher,
@@ -112,12 +130,6 @@ export const MAX_PROGRESS_CALLS = 1000;
 export const PROGRESS_MIN_INTERVAL_MS = 100;
 /** Longest progress message forwarded to the host. */
 export const MAX_PROGRESS_MESSAGE_CHARS = 500;
-/** Largest CSV/HTML payload the `data` bridges accept, in characters. */
-export const MAX_DATA_INPUT_CHARS = 5 * 1024 * 1024;
-
-/** Byte ceiling for binary `data.*` inputs (xlsx workbooks, zip archives). */
-export const MAX_DATA_INPUT_BYTES = 10 * 1024 * 1024;
-
 /**
  * Headroom added to the engine's own wall-clock abort when a {@link SandboxClock}
  * is in play. The clock only stops the *guest's* budget; this bounds how long a
@@ -125,12 +137,6 @@ export const MAX_DATA_INPUT_BYTES = 10 * 1024 * 1024;
  */
 export const DEFAULT_SUSPEND_ALLOWANCE_MS = 30 * 60 * 1000;
 
-/** Total uncompressed size `data.unzip` will inflate before refusing. */
-export const MAX_UNZIP_TOTAL_BYTES = 50 * 1024 * 1024;
-/** Default number of `data.selectHtml` matches returned. */
-export const DEFAULT_SELECT_HTML_LIMIT = 100;
-/** Ceiling for `data.selectHtml`'s `limit` option. */
-export const MAX_SELECT_HTML_LIMIT = 1000;
 
 /** Host sink for guest `progress()` calls. */
 export type SandboxProgressCallback = (
@@ -300,60 +306,6 @@ function getEngine(): ReturnType<typeof loadQuickJs> {
  */
 const SANDBOX_ERROR_MARKER = "__nodetool_sandbox_error__";
 
-/**
- * Marker key carrying base64 bytes from host to guest. Host→guest is the
- * asymmetric direction: a guest `Uint8Array` reaches the host as a native one
- * (see the typed-array serializers), but a host `Uint8Array` returned through
- * `expose` arrives in the guest as a plain numeric-keyed object — indexable,
- * yet not a real typed array. Bridges that produce binary therefore return
- * `{ [SANDBOX_BYTES_MARKER]: "<base64>" }` and the guest prelude reconstructs a
- * genuine `Uint8Array`, so the guest-visible API is binary all the way through.
- */
-const SANDBOX_BYTES_MARKER = "__nodetool_sandbox_bytes__";
-
-const BASE64_ALPHABET =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-function encodeBase64(bytes: Uint8Array): string {
-  let out = "";
-  for (let i = 0; i < bytes.length; i += 3) {
-    const c =
-      (bytes[i] << 16) | ((bytes[i + 1] ?? 0) << 8) | (bytes[i + 2] ?? 0);
-    out +=
-      BASE64_ALPHABET[(c >> 18) & 63] +
-      BASE64_ALPHABET[(c >> 12) & 63] +
-      (i + 1 < bytes.length ? BASE64_ALPHABET[(c >> 6) & 63] : "=") +
-      (i + 2 < bytes.length ? BASE64_ALPHABET[c & 63] : "=");
-  }
-  return out;
-}
-
-/** Tag bytes for the guest prelude to turn back into a real `Uint8Array`. */
-function toGuestBytes(bytes: Uint8Array): Record<string, string> {
-  return { [SANDBOX_BYTES_MARKER]: encodeBase64(bytes) };
-}
-
-/**
- * Same tagging, applied at any depth. A bridge that returns bytes inside a
- * record (`image.decode`'s `{width, height, pixels}`) hands its result through
- * this; the guest side pairs it with `__wrapDeep`, which revives every marker.
- */
-function toGuestBytesDeep(value: unknown, depth = 0): unknown {
-  if (value instanceof Uint8Array) return toGuestBytes(value);
-  if (depth >= SERIALIZE_MAX_DEPTH) return value;
-  if (Array.isArray(value)) {
-    return value.map((v) => toGuestBytesDeep(v, depth + 1));
-  }
-  if (value !== null && typeof value === "object") {
-    const out: Record<string, unknown> = {};
-    for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-      out[k] = toGuestBytesDeep(v, depth + 1);
-    }
-    return out;
-  }
-  return value;
-}
-
 function neverReject<Args extends unknown[], R>(
   fn: (...args: Args) => Promise<R>
 ): (...args: Args) => Promise<R | Record<string, unknown>> {
@@ -496,213 +448,11 @@ async function assertWorkspaceContained(
   throw new Error(`workspace path resolves outside the workspace: ${fullPath}`);
 }
 
-/**
- * Minimal structural views of papaparse and cheerio — only the members the
- * `data` bridges call. Declaring them here keeps the packages out of the type
- * graph, so a consumer that never installs them (the browser runner) still
- * typechecks.
- */
-interface PapaparseLike {
-  parse: (
-    input: string,
-    config: Record<string, unknown>
-  ) => { data?: unknown; errors?: { message?: string }[] };
-}
-
-interface CheerioSelection {
-  length: number;
-  eq: (index: number) => CheerioSelection;
-  text: () => string;
-  attr: (name: string) => string | undefined;
-}
-
-interface CheerioLike {
-  load: (html: string) => (selector: string) => CheerioSelection;
-}
-
-/**
- * Resolve the module object a bridge needs from a lazily imported package,
- * unwrapping a CJS `default` interop wrapper. Throws a bridge-named Error when
- * the library isn't usable, which `neverReject` turns into a guest-side throw.
- *
- * The imports below are deliberately dynamic and inside the bridge functions:
- * nothing is loaded until guest code calls one, and neither library reaches a
- * bundle's entry graph. They are NOT hidden from the bundler (unlike
- * `loadFsPromises`) — esbuild must inline them into the packaged backend's
- * single-file `server.mjs`, and Vite must pick cheerio's `browser` build for
- * the in-browser runner. Both packages resolve on every target we ship.
- */
-function unwrapLibrary<T>(
-  mod: unknown,
-  bridge: string,
-  specifier: string,
-  isModule: (value: unknown) => boolean
-): T {
-  const candidate =
-    mod && !isModule(mod) ? (mod as { default?: unknown }).default : mod;
-  if (!isModule(candidate)) {
-    throw new Error(
-      `${bridge}: the "${specifier}" library is not available in this runtime`
-    );
-  }
-  return candidate as T;
-}
-
-async function loadPapaparse(): Promise<PapaparseLike> {
-  const mod: unknown = await import("papaparse");
-  return unwrapLibrary<PapaparseLike>(
-    mod,
-    "data.parseCsv",
-    "papaparse",
-    (v) => typeof (v as PapaparseLike | undefined)?.parse === "function"
-  );
-}
-
-async function loadCheerio(): Promise<CheerioLike> {
-  const mod: unknown = await import("cheerio");
-  return unwrapLibrary<CheerioLike>(
-    mod,
-    "data.selectHtml",
-    "cheerio",
-    (v) => typeof (v as CheerioLike | undefined)?.load === "function"
-  );
-}
-
-interface PapaUnparseLike {
-  unparse: (input: unknown, config?: Record<string, unknown>) => string;
-}
-
-async function loadPapaUnparse(): Promise<PapaUnparseLike> {
-  const mod: unknown = await import("papaparse");
-  return unwrapLibrary<PapaUnparseLike>(
-    mod,
-    "data.toCsv",
-    "papaparse",
-    (v) => typeof (v as PapaUnparseLike | undefined)?.unparse === "function"
-  );
-}
-
-interface ExcelCellLike {
-  value: unknown;
-}
-interface ExcelRowLike {
-  eachCell: (
-    opts: { includeEmpty: boolean },
-    cb: (cell: ExcelCellLike, col: number) => void
-  ) => void;
-}
-interface ExcelWorksheetLike {
-  name: string;
-  eachRow: (
-    opts: { includeEmpty: boolean },
-    cb: (row: ExcelRowLike, rowNumber: number) => void
-  ) => void;
-}
-interface ExcelWorkbookLike {
-  xlsx: { load: (buffer: ArrayBuffer) => Promise<unknown> };
-  eachSheet: (cb: (sheet: ExcelWorksheetLike, id: number) => void) => void;
-}
-interface ExcelJsLike {
-  Workbook: new () => ExcelWorkbookLike;
-}
-
-async function loadExcelJs(): Promise<ExcelJsLike> {
-  const mod: unknown = await import("exceljs");
-  return unwrapLibrary<ExcelJsLike>(
-    mod,
-    "data.parseXlsx",
-    "exceljs",
-    (v) => typeof (v as ExcelJsLike | undefined)?.Workbook === "function"
-  );
-}
-
-interface JsYamlLike {
-  load: (text: string) => unknown;
-  dump: (value: unknown, opts?: Record<string, unknown>) => string;
-}
-
-async function loadJsYaml(): Promise<JsYamlLike> {
-  const mod: unknown = await import("js-yaml");
-  return unwrapLibrary<JsYamlLike>(
-    mod,
-    "data.parseYaml",
-    "js-yaml",
-    (v) => typeof (v as JsYamlLike | undefined)?.load === "function"
-  );
-}
-
-interface FxpLike {
-  XMLParser: new (opts?: Record<string, unknown>) => { parse: (xml: string) => unknown };
-  XMLValidator: { validate: (xml: string) => true | { err: { msg: string } } };
-}
-
-async function loadFastXmlParser(): Promise<FxpLike> {
-  const mod: unknown = await import("fast-xml-parser");
-  return unwrapLibrary<FxpLike>(
-    mod,
-    "data.parseXml",
-    "fast-xml-parser",
-    (v) => typeof (v as FxpLike | undefined)?.XMLParser === "function"
-  );
-}
-
-interface TurndownLike {
-  new (opts?: Record<string, unknown>): { turndown: (html: string) => string };
-}
-
-async function loadTurndown(): Promise<TurndownLike> {
-  const mod: unknown = await import("turndown");
-  return unwrapLibrary<TurndownLike>(
-    mod,
-    "data.htmlToMarkdown",
-    "turndown",
-    (v) => typeof v === "function"
-  );
-}
-
-interface FflateLike {
-  unzipSync: (data: Uint8Array) => Record<string, Uint8Array>;
-  zipSync: (data: Record<string, Uint8Array>) => Uint8Array;
-}
-
-async function loadFflate(): Promise<FflateLike> {
-  const mod: unknown = await import("fflate");
-  return unwrapLibrary<FflateLike>(
-    mod,
-    "data.unzip",
-    "fflate",
-    (v) => typeof (v as FflateLike | undefined)?.unzipSync === "function"
-  );
-}
-
-interface DiffLike {
-  createTwoFilesPatch: (
-    oldName: string,
-    newName: string,
-    oldStr: string,
-    newStr: string,
-    oldHeader?: string,
-    newHeader?: string,
-    options?: { context?: number }
-  ) => string;
-}
-
-async function loadDiff(): Promise<DiffLike> {
-  const mod: unknown = await import("diff");
-  return unwrapLibrary<DiffLike>(
-    mod,
-    "data.diff",
-    "diff",
-    (v) =>
-      typeof (v as DiffLike | undefined)?.createTwoFilesPatch === "function"
-  );
-}
-
 export type SandboxMediaModule = typeof import("./sandbox-media.js");
 
 /**
  * The media engine behind the `image` and `canvas` bridges. Loaded on first
- * use like the data libraries, and for the same reasons — the canvas backend
+ * use like the host modules, and for the same reasons — the canvas backend
  * (Skia on Node) is heavy, and nothing that never draws should pay for it.
  * Unlike those, the import is intra-package, so every bundler resolves it.
  */
@@ -1725,360 +1475,6 @@ export function buildSandbox(
     }
   };
 
-  // Narrow structured-data bridges. The libraries stay host-side: the guest
-  // hands over text and gets plain arrays back, so nothing library-shaped
-  // crosses the boundary. Both are async and never-reject-wrapped like the
-  // rest, and both cap their input so a huge string can't pin the host heap.
-  const data = {
-    parseCsv: async (
-      text: string,
-      options?: Record<string, unknown>
-    ): Promise<unknown[]> => {
-      if (typeof text !== "string") {
-        throw new Error("data.parseCsv: text must be a string");
-      }
-      if (text.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.parseCsv: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      const opts = options ?? {};
-      const header = opts.header === undefined ? true : Boolean(opts.header);
-      // papaparse treats "" as auto-detect.
-      const delimiter =
-        opts.delimiter === undefined || opts.delimiter === null
-          ? ""
-          : String(opts.delimiter);
-      if (delimiter.length > 1) {
-        throw new Error("data.parseCsv: delimiter must be a single character");
-      }
-      const papa = await loadPapaparse();
-      // Values stay strings so a column never changes shape between runs;
-      // guest code converts what it needs with Number()/Date.
-      const parsed = papa.parse(text, {
-        header,
-        delimiter,
-        dynamicTyping: false,
-        skipEmptyLines: true
-      });
-      const rows = Array.isArray(parsed.data) ? parsed.data : [];
-      return header
-        ? rows.filter((row) => row !== null && typeof row === "object")
-        : rows.filter((row) => Array.isArray(row));
-    },
-    selectHtml: async (
-      html: string,
-      selector: string,
-      options?: Record<string, unknown>
-    ): Promise<string[]> => {
-      if (typeof html !== "string") {
-        throw new Error("data.selectHtml: html must be a string");
-      }
-      if (html.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.selectHtml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      if (typeof selector !== "string" || !selector.trim()) {
-        throw new Error("data.selectHtml: selector must be a non-empty string");
-      }
-      const opts = options ?? {};
-      const attr =
-        opts.attr === undefined || opts.attr === null
-          ? undefined
-          : String(opts.attr);
-      const rawLimit = Number(opts.limit ?? DEFAULT_SELECT_HTML_LIMIT);
-      const limit = Number.isFinite(rawLimit)
-        ? Math.min(Math.max(Math.floor(rawLimit), 0), MAX_SELECT_HTML_LIMIT)
-        : DEFAULT_SELECT_HTML_LIMIT;
-      const cheerio = await loadCheerio();
-      const $ = cheerio.load(html);
-      let matches: CheerioSelection;
-      try {
-        matches = $(selector);
-      } catch (e) {
-        throw new Error(
-          `data.selectHtml: invalid selector "${selector}" (${
-            e instanceof Error ? e.message : String(e)
-          })`
-        );
-      }
-      const out: string[] = [];
-      for (let i = 0; i < matches.length && out.length < limit; i++) {
-        const el = matches.eq(i);
-        if (attr) {
-          const value = el.attr(attr);
-          if (value !== undefined && value !== null) out.push(String(value));
-        } else {
-          out.push(el.text().trim());
-        }
-      }
-      return out;
-    },
-    toCsv: async (
-      rows: unknown,
-      options?: Record<string, unknown>
-    ): Promise<string> => {
-      if (!Array.isArray(rows)) {
-        throw new Error(
-          "data.toCsv: rows must be an array of records or arrays"
-        );
-      }
-      const opts = options ?? {};
-      const delimiter =
-        opts.delimiter === undefined || opts.delimiter === null
-          ? ","
-          : String(opts.delimiter);
-      if (delimiter.length !== 1) {
-        throw new Error("data.toCsv: delimiter must be a single character");
-      }
-      const papa = await loadPapaUnparse();
-      return papa.unparse(rows, {
-        delimiter,
-        header: opts.header === undefined ? true : Boolean(opts.header),
-        newline: "\n"
-      });
-    },
-    parseXlsx: async (
-      bytes: unknown,
-      options?: Record<string, unknown>
-    ): Promise<unknown> => {
-      if (!(bytes instanceof Uint8Array)) {
-        throw new Error(
-          "data.parseXlsx: bytes must be a Uint8Array (e.g. from workspace.readBytes or response.bytes())"
-        );
-      }
-      if (bytes.length > MAX_DATA_INPUT_BYTES) {
-        throw new Error(
-          `data.parseXlsx: input exceeds the ${MAX_DATA_INPUT_BYTES} byte limit`
-        );
-      }
-      const opts = options ?? {};
-      const header = opts.header === undefined ? true : Boolean(opts.header);
-      const wantedSheet =
-        opts.sheet === undefined || opts.sheet === null
-          ? undefined
-          : String(opts.sheet);
-      const excel = await loadExcelJs();
-      const workbook = new excel.Workbook();
-      const copy = new Uint8Array(bytes);
-      await workbook.xlsx.load(copy.buffer);
-
-      const cellValue = (cell: ExcelCellLike): unknown => {
-        const v = cell.value;
-        if (v === null || v === undefined) return null;
-        if (v instanceof Date) return v.toISOString();
-        if (typeof v === "object") {
-          const rec = v as Record<string, unknown>;
-          // exceljs rich values: formulas carry `result`, rich text `richText`,
-          // hyperlinks `text`.
-          if (rec.result !== undefined) return rec.result;
-          if (typeof rec.text === "string") return rec.text;
-          if (Array.isArray(rec.richText)) {
-            return (rec.richText as Array<{ text?: unknown }>)
-              .map((part) => String(part.text ?? ""))
-              .join("");
-          }
-          return String(v);
-        }
-        return v;
-      };
-
-      const sheetRows = (sheet: ExcelWorksheetLike): unknown[] => {
-        const raw: unknown[][] = [];
-        sheet.eachRow({ includeEmpty: false }, (row) => {
-          const cells: unknown[] = [];
-          row.eachCell({ includeEmpty: true }, (cell, col) => {
-            cells[col - 1] = cellValue(cell);
-          });
-          raw.push(cells);
-        });
-        if (!header) return raw;
-        const [head, ...rest] = raw;
-        if (!head) return [];
-        const keys = head.map((h, i) => (h === null ? `col_${i + 1}` : String(h)));
-        return rest.map((cells) => {
-          const record: Record<string, unknown> = {};
-          keys.forEach((key, i) => {
-            record[key] = cells[i] ?? null;
-          });
-          return record;
-        });
-      };
-
-      const sheets: Record<string, unknown[]> = {};
-      workbook.eachSheet((sheet) => {
-        sheets[sheet.name] = sheetRows(sheet);
-      });
-      if (wantedSheet !== undefined) {
-        const match = sheets[wantedSheet];
-        if (match === undefined) {
-          throw new Error(
-            `data.parseXlsx: no sheet named "${wantedSheet}". Sheets: ${Object.keys(sheets).join(", ")}`
-          );
-        }
-        return match;
-      }
-      return sheets;
-    },
-    parseYaml: async (text: unknown): Promise<unknown> => {
-      if (typeof text !== "string") {
-        throw new Error("data.parseYaml: text must be a string");
-      }
-      if (text.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.parseYaml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      const yaml = await loadJsYaml();
-      return yaml.load(text) ?? null;
-    },
-    toYaml: async (value: unknown): Promise<string> => {
-      const yaml = await loadJsYaml();
-      return yaml.dump(value ?? null, { noRefs: true, lineWidth: 120 });
-    },
-    parseXml: async (
-      text: unknown,
-      options?: Record<string, unknown>
-    ): Promise<unknown> => {
-      if (typeof text !== "string") {
-        throw new Error("data.parseXml: text must be a string");
-      }
-      if (text.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.parseXml: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      const opts = options ?? {};
-      const fxp = await loadFastXmlParser();
-      const valid = fxp.XMLValidator.validate(text);
-      if (valid !== true) {
-        throw new Error(`data.parseXml: invalid XML (${valid.err.msg})`);
-      }
-      const parser = new fxp.XMLParser({
-        // Attributes matter in feeds/sitemaps; keep them, prefixed so they
-        // never collide with child-element keys.
-        ignoreAttributes: opts.attributes === false,
-        attributeNamePrefix: "@_",
-        // Text stays text — a numeric-looking id must not change shape.
-        parseTagValue: false,
-        parseAttributeValue: false,
-        trimValues: true
-      });
-      return parser.parse(text);
-    },
-    htmlToMarkdown: async (
-      html: unknown,
-      options?: Record<string, unknown>
-    ): Promise<string> => {
-      if (typeof html !== "string") {
-        throw new Error("data.htmlToMarkdown: html must be a string");
-      }
-      if (html.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.htmlToMarkdown: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      const opts = options ?? {};
-      const Turndown = await loadTurndown();
-      const service = new Turndown({
-        headingStyle: "atx",
-        codeBlockStyle: "fenced",
-        bulletListMarker: "-",
-        ...(typeof opts.turndown === "object" && opts.turndown !== null
-          ? (opts.turndown as Record<string, unknown>)
-          : {})
-      });
-      return service.turndown(html);
-    },
-    unzip: async (bytes: unknown): Promise<Record<string, unknown>> => {
-      if (!(bytes instanceof Uint8Array)) {
-        throw new Error("data.unzip: bytes must be a Uint8Array");
-      }
-      if (bytes.length > MAX_DATA_INPUT_BYTES) {
-        throw new Error(
-          `data.unzip: input exceeds the ${MAX_DATA_INPUT_BYTES} byte limit`
-        );
-      }
-      const fflate = await loadFflate();
-      const entries = fflate.unzipSync(bytes);
-      let total = 0;
-      const out: Record<string, unknown> = {};
-      for (const [name, content] of Object.entries(entries)) {
-        total += content.length;
-        if (total > MAX_UNZIP_TOTAL_BYTES) {
-          throw new Error(
-            `data.unzip: archive inflates past the ${MAX_UNZIP_TOTAL_BYTES} byte limit`
-          );
-        }
-        out[name] = toGuestBytes(content);
-      }
-      return out;
-    },
-    zip: async (
-      files: unknown
-    ): Promise<Record<string, string>> => {
-      if (files === null || typeof files !== "object" || Array.isArray(files)) {
-        throw new Error(
-          "data.zip: files must be an object mapping names to Uint8Array or string content"
-        );
-      }
-      const fflate = await loadFflate();
-      const input: Record<string, Uint8Array> = {};
-      let total = 0;
-      for (const [name, content] of Object.entries(files)) {
-        const bytes =
-          content instanceof Uint8Array
-            ? content
-            : typeof content === "string"
-              ? new TextEncoder().encode(content)
-              : null;
-        if (bytes === null) {
-          throw new Error(
-            `data.zip: entry "${name}" must be a Uint8Array or string`
-          );
-        }
-        total += bytes.length;
-        if (total > MAX_UNZIP_TOTAL_BYTES) {
-          throw new Error(
-            `data.zip: entries exceed the ${MAX_UNZIP_TOTAL_BYTES} byte limit`
-          );
-        }
-        input[name] = bytes;
-      }
-      return toGuestBytes(fflate.zipSync(input));
-    },
-    diff: async (
-      a: unknown,
-      b: unknown,
-      options?: Record<string, unknown>
-    ): Promise<string> => {
-      if (typeof a !== "string" || typeof b !== "string") {
-        throw new Error("data.diff: both inputs must be strings");
-      }
-      if (a.length > MAX_DATA_INPUT_CHARS || b.length > MAX_DATA_INPUT_CHARS) {
-        throw new Error(
-          `data.diff: input exceeds the ${MAX_DATA_INPUT_CHARS} character limit`
-        );
-      }
-      const opts = options ?? {};
-      const rawContext = Number(opts.context ?? 3);
-      const context = Number.isFinite(rawContext)
-        ? Math.min(Math.max(Math.floor(rawContext), 0), 100)
-        : 3;
-      const diffLib = await loadDiff();
-      return diffLib.createTwoFilesPatch(
-        String(opts.oldName ?? "a"),
-        String(opts.newName ?? "b"),
-        a,
-        b,
-        undefined,
-        undefined,
-        { context }
-      );
-    }
-  };
-
   // Media bridges. The engine (`sandbox-media.ts`) is imported on first use
   // like every other library-backed bridge, and picks its canvas backend from
   // the runtime — `@napi-rs/canvas` on Node, `OffscreenCanvas` in the browser
@@ -2173,7 +1569,6 @@ export function buildSandbox(
     sandboxToAsset,
     progress,
     format,
-    data,
     image,
     canvas,
     __maxIter: MAX_LOOP_ITERATIONS
@@ -2312,6 +1707,19 @@ const WASM_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}wasm-bridge`;
 /** Name the host parks the raw (never-rejecting) dispatcher bridge on. */
 export const SANDBOX_WASM_BRIDGE_BINDING = "__wasmCall";
 
+/**
+ * The private host-bridge module's guest id.
+ *
+ * Only a generated host facade may import it, decided by the importing module —
+ * so neither user code nor a pack's authored JavaScript can reach it by name.
+ * A module that reaches the dispatcher some other way gains nothing beyond the
+ * run's declared host surface, because the dispatcher's checks are the boundary.
+ */
+const HOST_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}host-bridge`;
+
+/** Name the host parks the raw (never-rejecting) host dispatcher bridge on. */
+export const SANDBOX_HOST_BRIDGE_BINDING = "__hostCall";
+
 function guestModuleId(packName: string, fileId: string): string {
   return `${GUEST_MODULE_PREFIX}${packName}${GUEST_MODULE_SEPARATOR}${fileId}`;
 }
@@ -2380,8 +1788,24 @@ export function createGuestModuleHost(
   const sources = new Map<string, string>();
   const specifiers = new Map<string, string>();
   const facades = new Set<string>();
+  const hostFacades = new Set<string>();
   for (const module of modules.modules) {
     const entryId = guestModuleId(module.packName, module.moduleId);
+    if (module.kind === "host") {
+      // A host entry has no guest source of its own either: its specifier
+      // resolves to a facade generated from the protocol registry, so the guest
+      // surface of a host module is decided by NodeTool, never by the pack.
+      const spec = sandboxHostModule(module.hostId);
+      if (spec === undefined) {
+        throw new Error(
+          `${module.specifier}: "${module.hostId}" is not a host module NodeTool implements`
+        );
+      }
+      specifiers.set(module.specifier, entryId);
+      sources.set(entryId, generateSandboxHostFacade(module.specifier, spec));
+      hostFacades.add(entryId);
+      continue;
+    }
     if (module.kind === "wasm") {
       // A WASM entry has no guest source of its own: its specifier resolves to
       // a generated facade over the per-run dispatcher. An authored sibling
@@ -2401,6 +1825,9 @@ export function createGuestModuleHost(
   }
   if (sources.size === 0) return undefined;
   if (facades.size > 0) sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
+  if (hostFacades.size > 0) {
+    sources.set(HOST_BRIDGE_MODULE_ID, SANDBOX_HOST_BRIDGE_SOURCE);
+  }
 
   const hardening = dropTimersStatement();
   let phase: "bootstrap" | "guest" = "bootstrap";
@@ -2416,6 +1843,12 @@ export function createGuestModuleHost(
     if (locked) {
       return deny(
         `dynamic import() is not allowed in the sandbox (requested "${requested}")`
+      );
+    }
+    if (requested === SANDBOX_HOST_BRIDGE_SPECIFIER) {
+      if (hostFacades.has(baseName)) return HOST_BRIDGE_MODULE_ID;
+      return deny(
+        `"${SANDBOX_HOST_BRIDGE_SPECIFIER}" is private to the sandbox's generated host facades and cannot be imported`
       );
     }
     if (requested === SANDBOX_WASM_BRIDGE_SPECIFIER) {
@@ -2619,7 +2052,6 @@ export const EXPOSED_BRIDGE_NAMES = [
   "sandboxToAsset",
   "progress",
   "format",
-  "data",
   "image",
   "canvas",
   "__maxIter"
@@ -2702,11 +2134,17 @@ export async function runInSandbox(
   // module the catalog could not honour is reported here rather than as a
   // broken facade the guest imports.
   let wasm: SandboxWasmDispatcher | undefined;
+  let hostModules: SandboxHostDispatcher | undefined;
   let moduleHost: GuestModuleHost | undefined;
   try {
     wasm = modules
       ? createSandboxWasmDispatcher(modules.modules, {
           ...(wasmPool === undefined ? {} : { pool: wasmPool }),
+          ...(signal === undefined ? {} : { signal })
+        })
+      : undefined;
+    hostModules = modules
+      ? createSandboxHostDispatcher(modules.modules, {
           ...(signal === undefined ? {} : { signal })
         })
       : undefined;
@@ -2799,7 +2237,6 @@ export async function runInSandbox(
         };
         bridges.workspace = wrapAllMembers(bridges.workspace);
         bridges.format = wrapAllMembers(bridges.format);
-        bridges.data = wrapAllMembers(bridges.data);
         bridges.image = wrapAllMembers(bridges.image);
         bridges.canvas = wrapAllMembers(bridges.canvas);
         const hostCrypto = bridges.crypto as {
@@ -2822,6 +2259,15 @@ export async function runInSandbox(
         if (wasm !== undefined) {
           const dispatcher = wasm;
           bridges[SANDBOX_WASM_BRIDGE_BINDING] = wrap(
+            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
+              dispatcher.call(moduleKey, exportName, args)
+          );
+        }
+        // Same treatment for host modules, exposed only when the run declares
+        // one, so a run without them has no such binding at any point.
+        if (hostModules !== undefined) {
+          const dispatcher = hostModules;
+          bridges[SANDBOX_HOST_BRIDGE_BINDING] = wrap(
             async (moduleKey: unknown, exportName: unknown, args: unknown) =>
               dispatcher.call(moduleKey, exportName, args)
           );
@@ -2972,20 +2418,6 @@ const __wrapDeep = (fn) => {
   const wrapped = __wrap(fn);
   return async (...args) => __reviveDeep(await wrapped(...args));
 };
-const __data = globalThis.data;
-globalThis.data = {
-  parseCsv: __wrap(__data.parseCsv),
-  toCsv: __wrap(__data.toCsv),
-  selectHtml: __wrap(__data.selectHtml),
-  parseXlsx: __wrap(__data.parseXlsx),
-  parseYaml: __wrap(__data.parseYaml),
-  toYaml: __wrap(__data.toYaml),
-  parseXml: __wrap(__data.parseXml),
-  htmlToMarkdown: __wrap(__data.htmlToMarkdown),
-  unzip: __wrapDeep(__data.unzip),
-  zip: __wrap(__data.zip),
-  diff: __wrap(__data.diff)
-};
 const __image = globalThis.image;
 globalThis.image = {
   info: __wrapDeep(__image.info),
@@ -3096,6 +2528,12 @@ ${
     : `globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL} = __wrap(globalThis.${SANDBOX_WASM_BRIDGE_BINDING});
 delete globalThis.${SANDBOX_WASM_BRIDGE_BINDING};`
 }
+${
+  hostModules === undefined
+    ? ""
+    : `globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL} = __wrapDeep(globalThis.${SANDBOX_HOST_BRIDGE_BINDING});
+delete globalThis.${SANDBOX_HOST_BRIDGE_BINDING};`
+}
 export default true;`,
           "sandbox-init"
         );
@@ -3110,9 +2548,15 @@ export default true;`,
         const pendingUserResult = evalCode(
           buildEntryModule(
             code,
-            wasm === undefined
-              ? ""
-              : ` delete globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL};`
+            `${
+              wasm === undefined
+                ? ""
+                : ` delete globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL};`
+            }${
+              hostModules === undefined
+                ? ""
+                : ` delete globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL};`
+            }`
           ),
           "user-code"
         );

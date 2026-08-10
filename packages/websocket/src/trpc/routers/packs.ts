@@ -83,7 +83,7 @@ const sandboxModulesOutput = z.object({
       specifier: z.string(),
       packName: z.string(),
       packVersion: z.string().optional(),
-      kind: z.enum(["js", "wasm"])
+      kind: z.enum(["js", "wasm", "host"])
     })
   ),
   diagnostics: z.array(

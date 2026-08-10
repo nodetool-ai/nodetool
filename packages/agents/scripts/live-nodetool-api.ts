@@ -6,7 +6,7 @@
  *
  *   npx tsx packages/agents/scripts/live-nodetool-api.ts [use-case ...]
  *
- * Use cases: discover-build-run, csv-batch, example-copy, media-pick.
+ * Use cases: discover-build-run, rows-batch, example-copy, media-pick.
  * No args runs all four. Needs the API server on :7777 (`npm run dev:server`).
  * `media-pick` spends real money (one image) only when a t2i provider is
  * configured; it reports and skips otherwise.
@@ -63,11 +63,14 @@ return {
 };`
   },
   {
-    // 2. CSV → batch: one saved workflow, run once per row.
-    name: "csv-batch",
+    // 2. Rows → batch: one saved workflow, run once per row.
+    name: "rows-batch",
     code: `
-const csv = "product,price\\nLamp,49\\nChair,129\\nDesk,349";
-const rows = await data.parseCsv(csv);
+const rows = [
+  { product: "Lamp", price: "49" },
+  { product: "Chair", price: "129" },
+  { product: "Desk", price: "349" }
+];
 const wfId = state.wfId;
 if (!wfId) throw new Error("run discover-build-run first (state.wfId)");
 const runs = await nodetool.batch(rows, (row) =>
@@ -152,18 +155,17 @@ const image = await nodetool.media.generateImage(
 await assetToSandbox(image.asset_uri, "in/generated.png");
 const bytes = await workspace.readBytes("in/generated.png");
 
-const archive = await data.zip({
-  "generated.png": bytes,
-  "manifest.yaml": await data.toYaml({ source: image.asset_uri, bytes: bytes.length })
-});
-await workspace.writeBytes("out/bundle.zip", archive);
-const ref = await sandboxToAsset("out/bundle.zip");
+await workspace.writeBytes("out/bundle.png", bytes);
+await workspace.write(
+  "out/manifest.json",
+  JSON.stringify({ source: image.asset_uri, bytes: bytes.length })
+);
+const ref = await sandboxToAsset("out/bundle.png");
 
 return {
   sourceAsset: image.asset_uri,
   imageBytes: bytes.length,
   pngMagicOk: bytes[0] === 137 && bytes[1] === 80,
-  zipBytes: archive.length,
   newAsset: { id: ref.id || ref.asset_id || ref, type: ref.type || null }
 };`
   }

@@ -65,7 +65,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   "queueMicrotask", "undefined", "unescape",
   // Host bridges
   "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
-  "assetToSandbox", "sandboxToAsset", "progress", "format", "data",
+  "assetToSandbox", "sandboxToAsset", "progress", "format",
   "image", "canvas",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",

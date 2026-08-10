@@ -21,7 +21,9 @@ const RESERVED_IDENTIFIERS = new Set([
 /** A public sandbox module's kind. */
 export const SandboxModuleKind = {
   JS: "js",
-  WASM: "wasm"
+  WASM: "wasm",
+  /** A NodeTool-implemented host function set, reached through a generated facade. */
+  HOST: "host"
 } as const;
 export type SandboxModuleKind = (typeof SandboxModuleKind)[keyof typeof SandboxModuleKind];
 
@@ -110,10 +112,26 @@ const wasmModuleSchema = z.object({
   }
 });
 
+/**
+ * A host module entry.
+ *
+ * `host` is an **id**, never an implementation: the pack ships no code for it,
+ * and discovery admits the entry only when the id is in NodeTool's own registry
+ * *and* the declaring package is the one that registry pins to it
+ * ({@link sandboxHostModuleViolation}). The schema alone cannot decide that —
+ * it does not know the package name — so it only pins the shape.
+ */
+const hostModuleSchema = z.object({
+  name: moduleNameSchema,
+  kind: z.literal(SandboxModuleKind.HOST),
+  host: z.string().min(1).max(64).regex(/^[a-z][a-z0-9-]*$/, "invalid host module id")
+}).strict();
+
 /** A module declared by a pack. npm modules are compiled in the M3 compiler. */
 export const SandboxModuleManifestSchema = z.discriminatedUnion("kind", [
   jsModuleSchema,
-  wasmModuleSchema
+  wasmModuleSchema,
+  hostModuleSchema
 ]);
 
 export type SandboxModuleManifest = z.infer<typeof SandboxModuleManifestSchema>;
@@ -157,7 +175,7 @@ export const SandboxModuleSummarySchema = z.object({
   specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
   packName: z.string().regex(PACKAGE_NAME),
   packVersion: z.string().min(1).optional(),
-  kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM]),
+  kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM, SandboxModuleKind.HOST]),
   description: z.string().max(160).optional()
 }).strict();
 export type SandboxModuleSummary = z.infer<typeof SandboxModuleSummarySchema>;
@@ -213,6 +231,23 @@ export const ResolvedSandboxModuleSchema = z.discriminatedUnion("kind", [
     bytes: z.instanceof(Uint8Array),
     /** The manifest's call contract, normalized: every export as `{wasm, as}`. */
     wasm: SandboxWasmContractSchema,
+    graph: z.array(SandboxModuleGraphFileSchema)
+  }).strict(),
+  z.object({
+    specifier: z.string().regex(SPECIFIER, "invalid sandbox module specifier"),
+    packName: z.string().regex(PACKAGE_NAME),
+    packVersion: z.string().min(1).optional(),
+    contentDigest: contentDigestSchema,
+    moduleId: z.string().min(1),
+    kind: z.literal(SandboxModuleKind.HOST),
+    /**
+     * The registry id of the host implementation.
+     *
+     * Everything else the guest and the dispatcher need — the export list, the
+     * facade — derives from `SANDBOX_HOST_MODULES`, so a resolution can never
+     * widen the surface an id names.
+     */
+    hostId: z.string().min(1),
     graph: z.array(SandboxModuleGraphFileSchema)
   }).strict()
 ]);
@@ -312,6 +347,21 @@ export const AuthorizedSandboxModuleDeliverySchema = z.discriminatedUnion("kind"
      * is bytes a facade already names, so it carries none.
      */
     wasm: SandboxWasmContractSchema.optional()
+  }).strict(),
+  /**
+   * A host module.
+   *
+   * The body is the generated facade — the only guest-visible artifact a host
+   * module has — so a client verifies and caches it like any other JavaScript.
+   * `hostId` rides along because the client rebuilds the resolved module from
+   * it, and the registry supplies the rest.
+   */
+  z.object({
+    ...deliveryCommon,
+    kind: z.literal(SandboxModuleKind.HOST),
+    mediaType: z.literal(SandboxDeliveryMediaType.JS),
+    hostId: z.string().min(1),
+    source: z.string()
   }).strict()
 ]);
 export type AuthorizedSandboxModuleDelivery = z.infer<

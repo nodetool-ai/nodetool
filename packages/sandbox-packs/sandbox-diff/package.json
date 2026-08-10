@@ -1,7 +1,7 @@
 {
-  "name": "@nodetool-ai/sandbox-zip",
+  "name": "@nodetool-ai/sandbox-diff",
   "version": "0.7.0-rc.34",
-  "description": "Read and write zip archives inside the NodeTool sandbox, from fflate running on the host with a 50 MB inflation cap",
+  "description": "Unified text diffs inside the NodeTool sandbox, from the diff library running on the host",
   "license": "MIT",
   "nodetool": {
     "apiVersion": 1,
@@ -10,14 +10,14 @@
       {
         "name": ".",
         "kind": "host",
-        "host": "zip"
+        "host": "diff"
       }
     ]
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/nodetool-ai/nodetool.git",
-    "directory": "packages/sandbox-packs/sandbox-zip"
+    "directory": "packages/sandbox-packs/sandbox-diff"
   },
   "homepage": "https://nodetool.ai",
   "bugs": {
@@ -33,8 +33,7 @@
     "nodetool",
     "nodetool-sandbox-pack",
     "sandbox",
-    "zip",
-    "archive",
-    "compression"
+    "diff",
+    "patch"
   ]
 }

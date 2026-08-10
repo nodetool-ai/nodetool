@@ -345,11 +345,13 @@ export const SURFACES: SurfaceEntry[] = [
   },
   {
     id: "sandbox-packages",
-    title: "Sandbox packages (guest modules, npm compilation, catalog)",
+    title: "Sandbox packages (guest modules, host modules, npm compilation, catalog)",
     harnesses: ["packs-compile", "validate"],
     paths: [
       "packages/sandbox-compiler/",
       "packages/sandbox-packs/",
+      "packages/agents/src/host-modules/",
+      "packages/protocol/src/sandbox-host.ts",
       "packages/node-sdk/src/sandbox-bridge-packs.ts",
       "packages/node-sdk/src/sandbox-pack-discovery.ts",
       "packages/node-sdk/src/sandbox-module-catalog.ts",

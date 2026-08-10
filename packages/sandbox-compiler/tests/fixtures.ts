@@ -81,3 +81,24 @@ export function materializeOversizedPack(bytes: number, into?: string): string {
 export function cleanup(path: string): void {
   rmSync(path, { recursive: true, force: true });
 }
+
+/**
+ * Write a config-only pack from a package.json object.
+ *
+ * For manifests a test wants to *reject*: nothing to compile, nothing to copy,
+ * just the two files discovery reads.
+ */
+export function writeFixturePack(
+  root: string,
+  name: string,
+  packageJson: Record<string, unknown>
+): string {
+  const target = join(root, name);
+  mkdirSync(target, { recursive: true });
+  writeFileSync(join(target, "package.json"), JSON.stringify(packageJson, null, 2));
+  writeFileSync(
+    join(target, "SKILL.md"),
+    `---\nname: ${name}\ndescription: fixture\n---\n\nfixture\n`
+  );
+  return target;
+}

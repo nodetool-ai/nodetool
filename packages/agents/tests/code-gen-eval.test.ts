@@ -223,7 +223,7 @@ describe("checkCodeGenExpectations", () => {
     const checks = checkCodeGenExpectations(
       submission({
         code:
-          `const rows = await data.parseCsv(text);\n` +
+          `const rows = JSON.parse(text);\n` +
           `const words = rows.map((row) => JSON.stringify(row));\n` +
           `return { words, count: words.length };`
       }) as CodeGenSubmission,

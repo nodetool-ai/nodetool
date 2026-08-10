@@ -72,7 +72,16 @@ export function instantiatePaletteNode(
   if (snippet) {
     const codeMetadata = useMetadataStore.getState().getMetadata(CODE_NODE_TYPE);
     if (codeMetadata) {
-      const node = createNode(codeMetadata, position, { code: snippet.code });
+      const node = createNode(codeMetadata, position, {
+        code: snippet.code,
+        // A snippet that imports a library seeds the declaration with it —
+        // the loader mounts only what the node declares.
+        ...(snippet.packages === undefined
+          ? {}
+          : {
+              packages: snippet.packages.map((specifier) => ({ specifier }))
+            })
+      });
       node.data.title = snippet.title;
       node.data.codeNodeMode = "snippet";
 

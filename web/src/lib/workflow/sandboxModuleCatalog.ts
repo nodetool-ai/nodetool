@@ -72,6 +72,14 @@ export type SandboxModuleRecord =
       kind: "wasm";
       bytes: Uint8Array<ArrayBuffer>;
       wasm?: SandboxWasmContract;
+    })
+  // A host module. The body is the generated facade — verified and cached like
+  // any other JavaScript — and `hostId` is what the resolution carries; the
+  // export list and the dispatcher's checks come from the protocol registry.
+  | (DeliveredSandboxFile & {
+      kind: "host";
+      hostId: string;
+      source: string;
     });
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
@@ -258,6 +266,7 @@ async function fetchModule(moduleId: string): Promise<SandboxModuleRecord> {
   const contract = isWasm
     ? parseWasmContract(moduleId, headers.get("X-Sandbox-Wasm-Contract"))
     : undefined;
+  const hostId = headers.get("X-Sandbox-Host-Module");
   const record: SandboxModuleRecord = isWasm
     ? {
         ...common,
@@ -265,7 +274,14 @@ async function fetchModule(moduleId: string): Promise<SandboxModuleRecord> {
         bytes,
         ...(contract === undefined ? {} : { wasm: contract })
       }
-    : { ...common, kind: "js", source: new TextDecoder().decode(bytes) };
+    : hostId
+      ? {
+          ...common,
+          kind: "host",
+          hostId,
+          source: new TextDecoder().decode(bytes)
+        }
+      : { ...common, kind: "js", source: new TextDecoder().decode(bytes) };
   cache.set(moduleId, record);
   return record;
 }
@@ -324,7 +340,7 @@ function toGraphFile(record: SandboxModuleRecord): SandboxModuleGraphFile {
   const dependencies = record.dependencies.map(
     (id) => parseSandboxGraphFileModuleId(id)?.fileId ?? id
   );
-  return record.kind === "js"
+  return record.kind !== "wasm"
     ? {
         id: record.fileId,
         kind: "js",
@@ -450,6 +466,13 @@ export function createSeededSandboxModuleCatalog(
         };
         if (entry.kind === "js") {
           modules.push({ ...common, kind: "js", source: entry.source });
+          continue;
+        }
+        // A host entry resolves to its id. Nothing else travels: the guest
+        // facade and the dispatcher's allowlist both come from the protocol
+        // registry, so a delivery cannot widen what an id means.
+        if (entry.kind === "host") {
+          modules.push({ ...common, kind: "host", hostId: entry.hostId, graph: [] });
           continue;
         }
         // A WASM entry without its call contract has nothing to build a facade
