@@ -31,6 +31,13 @@ export function findMissingModelNodes(
 ): MissingModelNode[] {
   const missing: MissingModelNode[] = [];
 
+  const connectedInputs = new Set<string>();
+  for (const edge of edges) {
+    if (edge.target && edge.targetHandle) {
+      connectedInputs.add(`${edge.target}::${edge.targetHandle}`);
+    }
+  }
+
   for (const node of nodes) {
     if (node.data?.bypassed) continue;
     if (!node.type) continue;
@@ -44,9 +51,7 @@ export function findMissingModelNodes(
       const modelType = prop.type?.type;
       if (!modelType || !PROVIDER_MODEL_TYPES.has(modelType)) continue;
 
-      const isConnected = edges.some(
-        (edge) => edge.target === node.id && edge.targetHandle === prop.name
-      );
+      const isConnected = connectedInputs.has(`${node.id}::${prop.name}`);
       if (isConnected) continue;
 
       if (isModelEmpty(properties[prop.name])) {

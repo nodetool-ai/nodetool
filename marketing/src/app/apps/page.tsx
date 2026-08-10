@@ -79,7 +79,7 @@ export default function AppsHub() {
               Mini Apps
             </div>
             <h1 className="mt-5 max-w-3xl text-4xl font-bold leading-[1.05] tracking-tight md:text-6xl">
-              AI apps anyone can use
+              AI mini apps anyone can use
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-slate-400">
               A mini app is a simple screen with a few fields and a Run button.

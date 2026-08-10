@@ -3,6 +3,12 @@ layout: page
 title: "Ad Creative Factory"
 description: "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, and every cell becomes a spoken hook, a staged product scene, an animated 9:16 clip, and a voiceover."
 image: /assets/use-cases/smartwatch.png
+# This page mirrors the marketing site's version of the same use case, so the
+# two competed for one query set across domains (docs/SEO_STRATEGY.md § 0.10,
+# finding 4). The marketing page is the search destination — it carries the
+# video, the shot gallery, and the HowTo schema — so it takes the canonical and
+# this page stays for docs readers who browse the use-case index.
+canonical_url: "https://nodetool.ai/templates/ad-creative-factory"
 ---
 
 <p class="usecase-eyebrow">Use case · Advertising</p>
