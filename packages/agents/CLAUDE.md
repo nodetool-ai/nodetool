@@ -69,6 +69,9 @@ For the full API reference, tool schemas, propagation flow, design decisions, an
 
 ## JavaScript Sandbox (`src/js-sandbox.ts`)
 
+Reader-facing reference for this whole section:
+[docs/javascript-sandbox.md](../../docs/javascript-sandbox.md).
+
 User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
 **QuickJS WebAssembly sandbox** via `@sebastianwessel/quickjs`. The guest lives
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8

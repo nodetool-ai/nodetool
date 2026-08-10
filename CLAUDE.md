@@ -1266,6 +1266,7 @@ Area-specific overlays:
 - [Web UI](web/src/AGENTS.md) — Components, stores, hooks, contexts, server state
 - [Electron](electron/src/AGENTS.md) — Security, IPC, platform code
 - [Agent system](docs/AGENTS.md) — Planning, execution, tools, skills, workflow nodes
+- [JavaScript Sandbox](docs/javascript-sandbox.md) — The QuickJS guest: capabilities, limits, imports, security model, and how the Code node and CodeAct use it
 - [UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md) — Primitives-first policy, decision tree, migration rules
 - [Design System](docs/DESIGN.md) — Token reference: SPACING, TYPOGRAPHY, BORDER_RADIUS, MOTION, Z_INDEX; migration checklist
 - [Writing Style](docs/WRITING_STYLE.md) — Anti-slop prose rules and the forbidden-expressions list for all docs and Markdown

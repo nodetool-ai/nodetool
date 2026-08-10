@@ -2,6 +2,7 @@
 
 Status: the only agent execution mode. There is no switch.
 Code: `packages/agents/src/codeact/`.
+The engine every action runs on: [JavaScript Sandbox](javascript-sandbox.md).
 
 ## What this is
 
