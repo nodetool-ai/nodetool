@@ -1,7 +1,5 @@
 /** @jsxImportSource @emotion/react */
 import React, { memo } from "react";
-import { useTheme } from "@mui/material/styles";
-import type { Theme } from "@mui/material/styles";
 import isEqual from "../utils/isEqual";
 import { Tooltip, BORDER_RADIUS } from "../components/ui_primitives";
 import { TOOLTIP_ENTER_DELAY } from "../config/constants";
@@ -120,7 +118,9 @@ const ICON_SIZE_MAP: Record<IconSizeOption, number> = {
   large: 40
 };
 
-const iconStyles = (_theme: Theme) => ({
+// Theme-independent, so it lives at module scope: one instance renders per node
+// handle on the canvas, and a fresh object per render missed emotion's cache.
+const iconStyles = {
   "&": {
     display: "flex",
     justifyContent: "center",
@@ -138,7 +138,7 @@ const iconStyles = (_theme: Theme) => ({
     width: "100%",
     height: "100%"
   }
-});
+};
 
 /** SVG React icon key — supports tjs.* → tjs.cached. */
 function svgIconComponentKey(normalizedBaseName: string): string {
@@ -163,7 +163,6 @@ export const IconForType = memo(function IconForType({
   showTooltip = true,
   iconSize = "normal"
 }: IconForTypeProps) {
-  const theme = useTheme();
   const name = iconName?.replace("nodetool.", "") || "notype";
   const normalizedName = normalizeTypeName(name);
   const dataType = datatypeByName(normalizedName);
@@ -186,7 +185,7 @@ export const IconForType = memo(function IconForType({
   if (!showTooltip) {
     return (
       <div
-        css={iconStyles(theme)}
+        css={iconStyles}
         style={{
           width: resolvedSize,
           height: resolvedSize,
@@ -201,7 +200,7 @@ export const IconForType = memo(function IconForType({
 
   return (
     <div
-      css={iconStyles(theme)}
+      css={iconStyles}
       style={{
         width: resolvedSize,
         height: resolvedSize,

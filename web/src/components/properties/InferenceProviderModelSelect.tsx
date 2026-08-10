@@ -29,6 +29,25 @@ const fetchModelsForProvider = async (provider: InferenceProvider, pipelineTag: 
   return response.json();
 };
 
+const providerOptions = [
+    { label: "Cerebras", value: "cerebras" },
+    { label: "Cohere", value: "cohere" },
+    { label: "Fal AI", value: "fal-ai" },
+    { label: "Featherless AI", value: "featherless-ai" },
+    { label: "Fireworks AI", value: "fireworks-ai" },
+    { label: "Groq", value: "groq" },
+    { label: "HF Inference", value: "hf-inference" },
+    { label: "Hyperbolic", value: "hyperbolic" },
+    { label: "Nebius", value: "nebius" },
+    { label: "Novita", value: "novita" },
+    { label: "Nscale", value: "nscale" },
+    { label: "OpenAI", value: "openai" },
+    { label: "Replicate", value: "replicate" },
+    { label: "Sambanova", value: "sambanova" },
+    { label: "Together", value: "together" },
+    { label: "Z.AI", value: "zai-org" }
+];
+
 const InferenceProviderModelSelect = ({
   property,
   onChange,
@@ -36,72 +55,6 @@ const InferenceProviderModelSelect = ({
 }: PropertyProps) => {
     const value = rawValue as { provider: InferenceProvider; model_id: string };
     const [provider, setProvider] = useState<InferenceProvider>(value.provider);
-    const providerOptions = [
-        {
-            label: "Cerebras",
-            value: "cerebras"
-        },
-        {
-            label: "Cohere",
-            value: "cohere"
-        },
-        {
-            label: "Fal AI",
-            value: "fal-ai"
-        },
-        {
-            label: "Featherless AI",
-            value: "featherless-ai"
-        },
-        {
-            label: "Fireworks AI",
-            value: "fireworks-ai"
-        },
-        {
-            label: "Groq",
-            value: "groq"
-        },
-        {
-            label: "HF Inference",
-            value: "hf-inference"
-        },
-        {
-            label: "Hyperbolic",
-            value: "hyperbolic"
-        },
-        {
-            label: "Nebius",
-            value: "nebius"
-        },
-        {
-            label: "Novita",
-            value: "novita"
-        },
-        {
-            label: "Nscale",
-            value: "nscale"
-        },
-        {
-            label: "OpenAI",
-            value: "openai"
-        },
-        {
-            label: "Replicate",
-            value: "replicate"
-        },
-        {
-            label: "Sambanova",
-            value: "sambanova"
-        },
-        {
-            label: "Together",
-            value: "together"
-        },
-        {
-            label: "Z.AI",
-            value: "zai-org"
-        }
-    ];
     const pipelineTag = useMemo(() => {
         switch (property.type.type) {
         case "inference_provider_automatic_speech_recognition_model":
