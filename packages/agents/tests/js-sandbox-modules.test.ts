@@ -128,7 +128,7 @@ describe("guest module contract (shared fixtures)", () => {
 // ---------------------------------------------------------------------------
 
 describe("guest module kinds", () => {
-  it("refuses a WASM module with the M4 message", async () => {
+  it("refuses a WASM module whose binary cannot be read", async () => {
     const result = await runInSandbox({
       code: "return 1;",
       modules: {
@@ -140,6 +140,7 @@ describe("guest module kinds", () => {
             moduleId: "sandbox/fast.wasm",
             kind: "wasm",
             bytes: new Uint8Array([0, 97, 115, 109]),
+            wasm: { memoryPagesMax: 1, exports: [{ wasm: "run", as: "run" }] },
             graph: []
           }
         ],
@@ -147,7 +148,6 @@ describe("guest module kinds", () => {
       }
     });
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not supported yet (M4)");
-    expect(result.error).toContain("@acme/fast");
+    expect(result.error).toContain("truncated WASM binary");
   });
 });

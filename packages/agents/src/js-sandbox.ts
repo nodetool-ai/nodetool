@@ -54,7 +54,19 @@ import {
   modulePathNormalizer as defaultModulePathNormalizer
 } from "@sebastianwessel/quickjs";
 import * as acorn from "acorn";
-import type { SandboxModuleResolution } from "@nodetool-ai/protocol";
+import {
+  generateSandboxWasmFacade,
+  SANDBOX_WASM_BRIDGE_SOURCE,
+  SANDBOX_WASM_BRIDGE_SPECIFIER,
+  SANDBOX_WASM_DISPATCH_GLOBAL,
+  type SandboxModuleResolution
+} from "@nodetool-ai/protocol";
+
+import {
+  createSandboxWasmDispatcher,
+  type SandboxWasmDispatcher,
+  type WasmWorkerPool
+} from "./wasm-sandbox/host.js";
 // The variant package uses a `default` export. With `esModuleInterop` this
 // typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
@@ -2202,8 +2214,8 @@ export const BLOCKED_TIMER_GLOBALS = [
  * the timer globals the engine re-installs per evaluation (see
  * {@link BLOCKED_TIMER_GLOBALS}).
  */
-export function wrapCode(code: string): string {
-  return `${dropTimersStatement()}
+export function wrapCode(code: string, prelude = ""): string {
+  return `${dropTimersStatement()}${prelude}
 export default await (async () => {
 ${code}
 })();`;
@@ -2232,7 +2244,7 @@ function dropTimersStatement(): string {
  * denies them at runtime (see {@link createGuestModuleHost}); rewriting them
  * here would only move a runtime denial into a confusing compile-time one.
  */
-export function buildEntryModule(code: string): string {
+export function buildEntryModule(code: string, prelude = ""): string {
   let program: acorn.Program;
   try {
     program = acorn.parse(code, {
@@ -2242,13 +2254,13 @@ export function buildEntryModule(code: string): string {
       allowReturnOutsideFunction: true
     });
   } catch {
-    return wrapCode(code);
+    return wrapCode(code, prelude);
   }
 
   const imports = program.body.filter(
     (node): node is acorn.ImportDeclaration => node.type === "ImportDeclaration"
   );
-  if (imports.length === 0) return wrapCode(code);
+  if (imports.length === 0) return wrapCode(code, prelude);
 
   const hoisted: string[] = [];
   let body = "";
@@ -2263,7 +2275,7 @@ export function buildEntryModule(code: string): string {
   body += code.slice(cursor);
 
   return `${hoisted.join(" ")}
-${dropTimersStatement()}
+${dropTimersStatement()}${prelude}
 export default await (async () => {
 ${body}
 })();`;
@@ -2285,6 +2297,20 @@ const DENIED_MODULE_ID = `${GUEST_MODULE_PREFIX}denied`;
 
 /** Separator between a pack name and a file id inside a module id. */
 const GUEST_MODULE_SEPARATOR = "|";
+
+/**
+ * The private bridge module's guest id.
+ *
+ * Only a generated WASM facade may import it. The denial is decided by the
+ * importing module, so neither user code nor a pack's authored JavaScript can
+ * reach it by name — and a module that reaches the dispatcher some other way
+ * gains nothing beyond the run's declared WASM surface, because the
+ * dispatcher's own checks are the boundary.
+ */
+const WASM_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}wasm-bridge`;
+
+/** Name the host parks the raw (never-rejecting) dispatcher bridge on. */
+export const SANDBOX_WASM_BRIDGE_BINDING = "__wasmCall";
 
 function guestModuleId(packName: string, fileId: string): string {
   return `${GUEST_MODULE_PREFIX}${packName}${GUEST_MODULE_SEPARATOR}${fileId}`;
@@ -2353,9 +2379,19 @@ export function createGuestModuleHost(
 ): GuestModuleHost | undefined {
   const sources = new Map<string, string>();
   const specifiers = new Map<string, string>();
+  const facades = new Set<string>();
   for (const module of modules.modules) {
-    if (module.kind !== "js") continue;
     const entryId = guestModuleId(module.packName, module.moduleId);
+    if (module.kind === "wasm") {
+      // A WASM entry has no guest source of its own: its specifier resolves to
+      // a generated facade over the per-run dispatcher. An authored sibling
+      // importing "./thing.wasm" lands on the same id, so it gets the same
+      // facade.
+      specifiers.set(module.specifier, entryId);
+      sources.set(entryId, generateSandboxWasmFacade(module.specifier, module.wasm));
+      facades.add(entryId);
+      continue;
+    }
     specifiers.set(module.specifier, entryId);
     sources.set(entryId, module.source);
     for (const file of module.graph) {
@@ -2364,6 +2400,7 @@ export function createGuestModuleHost(
     }
   }
   if (sources.size === 0) return undefined;
+  if (facades.size > 0) sources.set(WASM_BRIDGE_MODULE_ID, SANDBOX_WASM_BRIDGE_SOURCE);
 
   const hardening = dropTimersStatement();
   let phase: "bootstrap" | "guest" = "bootstrap";
@@ -2379,6 +2416,12 @@ export function createGuestModuleHost(
     if (locked) {
       return deny(
         `dynamic import() is not allowed in the sandbox (requested "${requested}")`
+      );
+    }
+    if (requested === SANDBOX_WASM_BRIDGE_SPECIFIER) {
+      if (facades.has(baseName)) return WASM_BRIDGE_MODULE_ID;
+      return deny(
+        `"${SANDBOX_WASM_BRIDGE_SPECIFIER}" is private to the sandbox's generated WASM facades and cannot be imported`
       );
     }
     const declared = specifiers.get(requested);
@@ -2521,6 +2564,12 @@ export interface RunSandboxOptions {
    * siblings are the only importable ones — see {@link createGuestModuleHost}.
    */
   modules?: SandboxModuleResolution;
+  /**
+   * Worker pool for host WASM calls. Defaults to the process-wide pool of
+   * four, which is what production wants; a test passes its own to observe
+   * the pool without sharing it with every other test in the file.
+   */
+  wasmPool?: WasmWorkerPool;
 }
 
 export interface RunSandboxResult {
@@ -2616,7 +2665,9 @@ export const DELETED_GUEST_GLOBALS = [
 /** Names that should never be reassigned via `globals` — core sandbox APIs. */
 export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
   ...EXPOSED_BRIDGE_NAMES,
-  ...GUEST_HELPER_NAMES
+  ...GUEST_HELPER_NAMES,
+  SANDBOX_WASM_BRIDGE_BINDING,
+  SANDBOX_WASM_DISPATCH_GLOBAL
 ]);
 
 /**
@@ -2638,7 +2689,8 @@ export async function runInSandbox(
     onProgress,
     clock,
     suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS,
-    modules
+    modules,
+    wasmPool
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
 
@@ -2646,15 +2698,26 @@ export async function runInSandbox(
     return { success: false, error: "No code provided", logs: [] };
   }
 
-  const unsupported = modules?.modules.find((m) => m.kind === "wasm");
-  if (unsupported) {
+  // The dispatcher is built first: it reads every declared WASM binary, so a
+  // module the catalog could not honour is reported here rather than as a
+  // broken facade the guest imports.
+  let wasm: SandboxWasmDispatcher | undefined;
+  let moduleHost: GuestModuleHost | undefined;
+  try {
+    wasm = modules
+      ? createSandboxWasmDispatcher(modules.modules, {
+          ...(wasmPool === undefined ? {} : { pool: wasmPool }),
+          ...(signal === undefined ? {} : { signal })
+        })
+      : undefined;
+    moduleHost = modules ? createGuestModuleHost(modules) : undefined;
+  } catch (error) {
     return {
       success: false,
-      error: `WASM sandbox modules are not supported yet (M4): ${unsupported.specifier}`,
+      error: error instanceof Error ? error.message : String(error),
       logs: []
     };
   }
-  const moduleHost = modules ? createGuestModuleHost(modules) : undefined;
 
   if (signal?.aborted) {
     return { success: false, error: "Execution cancelled", logs: [] };
@@ -2753,6 +2816,16 @@ export async function runInSandbox(
           digest: wrap(hostCrypto.digest),
           hmac: wrap(hostCrypto.hmac)
         };
+        // The WASM dispatcher rides the same never-reject convention as every
+        // other async bridge. It is exposed only when the run declares WASM
+        // modules, so a run without them has no such binding at any point.
+        if (wasm !== undefined) {
+          const dispatcher = wasm;
+          bridges[SANDBOX_WASM_BRIDGE_BINDING] = wrap(
+            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
+              dispatcher.call(moduleKey, exportName, args)
+          );
+        }
         // Caller-injected globals (ScriptRunner's __runAgent/__log/…) are host
         // functions too — guard the async ones or a cancelled script keeps
         // driving real work through them after runInSandbox has returned.
@@ -3017,6 +3090,12 @@ globalThis.crypto = {
   hmac: __wrap(__crypto.hmac)
 };
 ${DELETED_GUEST_GLOBALS.map((n) => `delete globalThis.${n};`).join("\n")}
+${
+  wasm === undefined
+    ? ""
+    : `globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL} = __wrap(globalThis.${SANDBOX_WASM_BRIDGE_BINDING});
+delete globalThis.${SANDBOX_WASM_BRIDGE_BINDING};`
+}
 export default true;`,
           "sandbox-init"
         );
@@ -3024,7 +3103,19 @@ export default true;`,
         // `evalCode` compiles and links the module — resolving its whole static
         // import graph — before its first await, so a resolution that arrives
         // after this call has returned can only come from a dynamic `import()`.
-        const pendingUserResult = evalCode(buildEntryModule(code), "user-code");
+        // The dispatcher binding lives only long enough for the bridge module
+        // to capture it while the entry's static graph links. This deletion is
+        // the entry module's first statement, so it runs after every imported
+        // module has evaluated and before the user IIFE starts.
+        const pendingUserResult = evalCode(
+          buildEntryModule(
+            code,
+            wasm === undefined
+              ? ""
+              : ` delete globalThis.${SANDBOX_WASM_DISPATCH_GLOBAL};`
+          ),
+          "user-code"
+        );
         moduleHost?.lockStaticGraph();
         const userResult = await pendingUserResult;
 

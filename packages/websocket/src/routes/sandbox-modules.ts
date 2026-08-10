@@ -73,6 +73,11 @@ const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
     if (delivery.packVersion !== undefined) {
       reply.header("X-Sandbox-Pack-Version", delivery.packVersion);
     }
+    // The WASM call contract, on a public entry only: the client builds the
+    // facade it imports from this, and an internal file has none.
+    if (delivery.kind === "wasm" && delivery.wasm !== undefined) {
+      reply.header("X-Sandbox-Wasm-Contract", JSON.stringify(delivery.wasm));
+    }
 
     if (req.headers["if-none-match"] === etag) {
       return reply.status(304).send();
