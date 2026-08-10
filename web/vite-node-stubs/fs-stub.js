@@ -12,6 +12,8 @@ export const mkdirSync = notInBrowser("mkdirSync");
 export const readdirSync = notInBrowser("readdirSync");
 export const readFileSync = notInBrowser("readFileSync");
 export const statSync = notInBrowser("statSync");
+export const lstatSync = notInBrowser("lstatSync");
+export const realpathSync = notInBrowser("realpathSync");
 export const writeFileSync = notInBrowser("writeFileSync");
 export const openSync = notInBrowser("openSync");
 export const writeSync = notInBrowser("writeSync");
@@ -42,6 +44,8 @@ export default {
   readdirSync,
   readFileSync,
   statSync,
+  lstatSync,
+  realpathSync,
   writeFileSync,
   openSync,
   writeSync,
