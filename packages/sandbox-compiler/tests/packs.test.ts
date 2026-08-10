@@ -150,6 +150,30 @@ describe("sandbox-yaml end to end, in the guest", () => {
   });
 });
 
+describe("sandbox-markdown end to end, in the guest", () => {
+  it("lexes headers, links, and code blocks through the M1 loader", async () => {
+    const { resolution } = await resolveOne("@nodetool-ai/sandbox-markdown");
+    const result = await runInSandbox({
+      code: `
+        import { marked } from "@nodetool-ai/sandbox-markdown";
+        const md = "# Title\\n\\nSee [docs](https://x.test).\\n\\n\`\`\`js\\ncode();\\n\`\`\`\\n";
+        const tokens = marked.lexer(md);
+        const headers = tokens.filter((t) => t.type === "heading")
+          .map((t) => ({ level: t.depth, text: t.text }));
+        const codeBlocks = tokens.filter((t) => t.type === "code")
+          .map((t) => ({ language: t.lang, code: t.text }));
+        return { headers, codeBlocks };
+      `,
+      modules: resolution
+    });
+    expect(result.error).toBeUndefined();
+    expect(result.result).toEqual({
+      headers: [{ level: 1, text: "Title" }],
+      codeBlocks: [{ language: "js", code: "code();" }]
+    });
+  });
+});
+
 describe("a host pack end to end, in the guest", () => {
   it("runs papaparse on the host behind the generated facade", async () => {
     const { resolution } = await resolveOne("@nodetool-ai/sandbox-csv");

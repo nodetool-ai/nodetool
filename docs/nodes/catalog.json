@@ -64,7 +64,7 @@
       "type": "apify.scraping.ApifyGoogleSearchScraper",
       "title": "Apify Google Search Scraper",
       "namespace": "apify.scraping",
-      "description": "Scrape Google Search results using Apify — organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo",
+      "description": "Scrape Google Search results using Apify \u2014 organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo",
       "inputs": [
         {
           "name": "queries",
@@ -122,7 +122,7 @@
       "type": "apify.scraping.ApifyInstagramScraper",
       "title": "Apify Instagram Scraper",
       "namespace": "apify.scraping",
-      "description": "Scrape Instagram profiles, posts, comments, and hashtags — user data, post details, and engagement metrics.\n    apify, instagram, social, media, scraping, posts, profiles",
+      "description": "Scrape Instagram profiles, posts, comments, and hashtags \u2014 user data, post details, and engagement metrics.\n    apify, instagram, social, media, scraping, posts, profiles",
       "inputs": [
         {
           "name": "usernames",
@@ -180,7 +180,7 @@
       "type": "apify.scraping.ApifyLinkedInScraper",
       "title": "Apify Linked In Scraper",
       "namespace": "apify.scraping",
-      "description": "Scrape LinkedIn profiles, company pages, and job postings — professional info, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs",
+      "description": "Scrape LinkedIn profiles, company pages, and job postings \u2014 professional info, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs",
       "inputs": [
         {
           "name": "profile_urls",
@@ -231,7 +231,7 @@
       "type": "apify.scraping.ApifyTwitterScraper",
       "title": "Apify Twitter Scraper",
       "namespace": "apify.scraping",
-      "description": "Scrape Twitter/X posts, profiles, and followers — tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts",
+      "description": "Scrape Twitter/X posts, profiles, and followers \u2014 tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts",
       "inputs": [
         {
           "name": "search_terms",
@@ -333,7 +333,7 @@
       "type": "apify.scraping.ApifyYouTubeScraper",
       "title": "Apify You Tube Scraper",
       "namespace": "apify.scraping",
-      "description": "Scrape YouTube videos, channels, and playlists — metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels",
+      "description": "Scrape YouTube videos, channels, and playlists \u2014 metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels",
       "inputs": [
         {
           "name": "search_queries",
@@ -3742,7 +3742,7 @@
       "type": "lib.convert.ConvertToMarkdown",
       "title": "Convert To Markdown",
       "namespace": "lib.convert",
-      "description": "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input — document ref, raw bytes, or HTML string.",
+      "description": "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input \u2014 document ref, raw bytes, or HTML string.",
       "inputs": [
         {
           "name": "document",
@@ -3921,7 +3921,7 @@
       "type": "lib.datetime.Diff",
       "title": "Date Difference",
       "namespace": "lib.datetime",
-      "description": "Difference between two dates (date_a − date_b) expressed in the given unit.\n    date, diff, difference, between, duration",
+      "description": "Difference between two dates (date_a \u2212 date_b) expressed in the given unit.\n    date, diff, difference, between, duration",
       "inputs": [
         {
           "name": "date_a",
@@ -4853,257 +4853,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/grid/sliceimagegrid.md"
     },
     {
-      "type": "lib.html.BaseUrl",
-      "title": "Base Url",
-      "namespace": "lib.html",
-      "description": "Extract the base URL from a given URL.\n    url parsing, domain extraction, web utilities\n\n    Use cases:\n    - Get domain name from full URLs\n    - Clean up URLs for comparison\n    - Extract root website addresses\n    - Standardize URL formats",
-      "inputs": [
-        {
-          "name": "url",
-          "type": "str",
-          "description": "The URL to extract the base from",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/baseurl",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/baseurl.md"
-    },
-    {
-      "type": "lib.html.ExtractAudio",
-      "title": "Extract Audio",
-      "namespace": "lib.html",
-      "description": "Extract audio elements from HTML content.\n    extract, audio, src\n\n    Use cases:\n    - Collect audio sources from web pages\n    - Analyze audio usage on websites\n    - Create audio playlists",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "The HTML content to extract audio from.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "base_url",
-          "type": "str",
-          "description": "The base URL of the page, used to resolve relative audio URLs.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "audio",
-          "type": "audio"
-        },
-        {
-          "name": "audios",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/extractaudio",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/extractaudio.md"
-    },
-    {
-      "type": "lib.html.ExtractImages",
-      "title": "Extract Images",
-      "namespace": "lib.html",
-      "description": "Extract images from HTML content.\n    extract, images, src\n\n    Use cases:\n    - Collect images from web pages\n    - Analyze image usage on websites\n    - Create image galleries",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "The HTML content to extract images from.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "base_url",
-          "type": "str",
-          "description": "The base URL of the page, used to resolve relative image URLs.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "image",
-          "type": "image"
-        },
-        {
-          "name": "images",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/extractimages",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/extractimages.md"
-    },
-    {
-      "type": "lib.html.ExtractLinks",
-      "title": "Extract Links",
-      "namespace": "lib.html",
-      "description": "Extract all links from HTML content with type classification.\n    extract, links, urls, web scraping, html\n\n    Use cases:\n    - Analyze website structure and navigation\n    - Discover related content and resources\n    - Build sitemaps and link graphs\n    - Find internal and external references\n    - Collect URLs for further processing",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "The HTML content to extract links from.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "base_url",
-          "type": "str",
-          "description": "The base URL of the page, used to determine internal/external links.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "href",
-          "type": "str"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "type",
-          "type": "str"
-        },
-        {
-          "name": "links",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/extractlinks",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/extractlinks.md"
-    },
-    {
-      "type": "lib.html.ExtractMetadata",
-      "title": "Extract Metadata",
-      "namespace": "lib.html",
-      "description": "Extract metadata from HTML content.\n    extract, metadata, seo\n\n    Use cases:\n    - Analyze SEO elements\n    - Gather page information\n    - Extract structured data",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "The HTML content to extract metadata from.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "title",
-          "type": "str"
-        },
-        {
-          "name": "description",
-          "type": "str"
-        },
-        {
-          "name": "keywords",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/extractmetadata",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/extractmetadata.md"
-    },
-    {
-      "type": "lib.html.ExtractVideos",
-      "title": "Extract Videos",
-      "namespace": "lib.html",
-      "description": "Extract videos from HTML content.\n    extract, videos, src\n\n    Use cases:\n    - Collect video sources from web pages\n    - Analyze video usage on websites\n    - Create video playlists",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "The HTML content to extract videos from.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "base_url",
-          "type": "str",
-          "description": "The base URL of the page, used to resolve relative video URLs.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "video",
-          "type": "video"
-        },
-        {
-          "name": "videos",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/extractvideos",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/extractvideos.md"
-    },
-    {
-      "type": "lib.html.HTMLToText",
-      "title": "Convert HTML to Text",
-      "namespace": "lib.html",
-      "description": "Converts HTML to plain text by removing tags and decoding entities using BeautifulSoup.\n    html, text, convert\n\n    Use cases:\n    - Cleaning HTML content for text analysis\n    - Extracting readable content from web pages\n    - Preparing HTML data for natural language processing",
-      "inputs": [
-        {
-          "name": "text",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "preserve_linebreaks",
-          "type": "bool",
-          "description": "Convert block-level elements to newlines",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/converthtmltotext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/converthtmltotext.md"
-    },
-    {
-      "type": "lib.html.WebsiteContentExtractor",
-      "title": "Website Content Extractor",
-      "namespace": "lib.html",
-      "description": "Extract main content from a website, removing navigation, ads, and other non-essential elements.\n    scrape, web scraping, content extraction, text analysis\n\n    Use cases:\n    - Clean web content for further analysis\n    - Extract article text from news websites\n    - Prepare web content for summarization",
-      "inputs": [
-        {
-          "name": "html_content",
-          "type": "str",
-          "description": "The raw HTML content of the website.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/html/websitecontentextractor",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/html/websitecontentextractor.md"
-    },
-    {
       "type": "lib.image.channel.Merge",
       "title": "Channel Merge",
       "namespace": "lib.image.channel",
@@ -5317,7 +5066,7 @@
       "type": "lib.image.effects.Add",
       "title": "Add Blend",
       "namespace": "lib.image.effects",
-      "description": "Additive composite of two images: out = source + over × gain.\n    image, add, blend, composite",
+      "description": "Additive composite of two images: out = source + over \u00d7 gain.\n    image, add, blend, composite",
       "inputs": [],
       "outputs": [
         {
@@ -5407,7 +5156,7 @@
       "type": "lib.image.filter.Pixelate",
       "title": "Pixelate",
       "namespace": "lib.image.filter",
-      "description": "Average each N×N block to a single colour.\n    image, pixelate, mosaic, filter",
+      "description": "Average each N\u00d7N block to a single colour.\n    image, pixelate, mosaic, filter",
       "inputs": [],
       "outputs": [
         {
@@ -5422,7 +5171,7 @@
       "type": "lib.image.filter.Threshold",
       "title": "Threshold",
       "namespace": "lib.image.filter",
-      "description": "Smoothstep luminance threshold — keeps pixels above the cutoff, fades around it.\n    image, threshold, brightpass, filter",
+      "description": "Smoothstep luminance threshold \u2014 keeps pixels above the cutoff, fades around it.\n    image, threshold, brightpass, filter",
       "inputs": [],
       "outputs": [
         {
@@ -5527,7 +5276,7 @@
       "type": "lib.image.mask.Invert",
       "title": "Invert Mask",
       "namespace": "lib.image.mask",
-      "description": "Invert mask alpha (coverage → 1 − coverage).\n    image, mask, invert, alpha",
+      "description": "Invert mask alpha (coverage \u2192 1 \u2212 coverage).\n    image, mask, invert, alpha",
       "inputs": [],
       "outputs": [
         {
@@ -5542,7 +5291,7 @@
       "type": "lib.image.warp.Affine",
       "title": "Affine",
       "namespace": "lib.image.warp",
-      "description": "Apply an inverse 2×3 affine matrix. Each output UV maps to source (m00·u + m01·v + tx, m10·u + m11·v + ty).\n    image, affine, transform, matrix, warp",
+      "description": "Apply an inverse 2\u00d73 affine matrix. Each output UV maps to source (m00\u00b7u + m01\u00b7v + tx, m10\u00b7u + m11\u00b7v + ty).\n    image, affine, transform, matrix, warp",
       "inputs": [],
       "outputs": [
         {
@@ -5557,7 +5306,7 @@
       "type": "lib.image.warp.CornerPin",
       "title": "Corner Pin",
       "namespace": "lib.image.warp",
-      "description": "Perspective warp via an inverse 3×3 homography (H22 fixed at 1).\n    image, perspective, corner pin, homography, warp",
+      "description": "Perspective warp via an inverse 3\u00d73 homography (H22 fixed at 1).\n    image, perspective, corner pin, homography, warp",
       "inputs": [],
       "outputs": [
         {
@@ -5617,7 +5366,7 @@
       "type": "lib.image.warp.PolarRemap",
       "title": "Polar Remap",
       "namespace": "lib.image.warp",
-      "description": "Convert between rectangular and polar UV space. 0 rect→polar / 1 polar→rect.\n    image, polar, warp, kaleidoscope",
+      "description": "Convert between rectangular and polar UV space. 0 rect\u2192polar / 1 polar\u2192rect.\n    image, polar, warp, kaleidoscope",
       "inputs": [],
       "outputs": [
         {
@@ -5647,7 +5396,7 @@
       "type": "lib.image.warp.Tile",
       "title": "Tile",
       "namespace": "lib.image.warp",
-      "description": "Tile the source N × M times across the same-sized canvas.\n    image, tile, repeat, pattern",
+      "description": "Tile the source N \u00d7 M times across the same-sized canvas.\n    image, tile, repeat, pattern",
       "inputs": [],
       "outputs": [
         {
@@ -5889,158 +5638,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail.md"
-    },
-    {
-      "type": "lib.markdown.ExtractBulletLists",
-      "title": "Extract Bullet Lists",
-      "namespace": "lib.markdown",
-      "description": "Extracts bulleted lists from markdown.\n    markdown, lists, bullets, extraction\n\n    Use cases:\n    - Extract unordered list items\n    - Analyze bullet point structures\n    - Convert bullet lists to structured data",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[list[dict[str, str]]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractbulletlists",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractbulletlists.md"
-    },
-    {
-      "type": "lib.markdown.ExtractCodeBlocks",
-      "title": "Extract Code Blocks",
-      "namespace": "lib.markdown",
-      "description": "Extracts code blocks and their languages from markdown.\n    markdown, code, extraction\n\n    Use cases:\n    - Extract code samples for analysis\n    - Collect programming examples\n    - Analyze code snippets in documentation",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, str]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractcodeblocks",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractcodeblocks.md"
-    },
-    {
-      "type": "lib.markdown.ExtractHeaders",
-      "title": "Extract Headers",
-      "namespace": "lib.markdown",
-      "description": "Extracts headers and creates a document structure/outline.\n    markdown, headers, structure\n\n    Use cases:\n    - Generate table of contents\n    - Analyze document structure\n    - Extract main topics from documents",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "max_level",
-          "type": "int",
-          "description": "Maximum header level to extract (1-6)",
-          "required": false,
-          "default": 6
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractheaders",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractheaders.md"
-    },
-    {
-      "type": "lib.markdown.ExtractLinks",
-      "title": "Extract Links",
-      "namespace": "lib.markdown",
-      "description": "Extracts all links from markdown text.\n    markdown, links, extraction\n\n    Use cases:\n    - Extract references and citations from academic documents\n    - Build link graphs from markdown documentation\n    - Analyze external resources referenced in markdown files",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "include_titles",
-          "type": "bool",
-          "description": "Whether to include link titles in output",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, str]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractlinks",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractlinks.md"
-    },
-    {
-      "type": "lib.markdown.ExtractNumberedLists",
-      "title": "Extract Numbered Lists",
-      "namespace": "lib.markdown",
-      "description": "Extracts numbered lists from markdown.\n    markdown, lists, numbered, extraction\n\n    Use cases:\n    - Extract ordered list items\n    - Analyze enumerated structures\n    - Convert numbered lists to structured data",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[list[str]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractnumberedlists",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extractnumberedlists.md"
-    },
-    {
-      "type": "lib.markdown.ExtractTables",
-      "title": "Extract Tables",
-      "namespace": "lib.markdown",
-      "description": "Extracts tables from markdown and converts them to structured data.\n    markdown, tables, data\n\n    Use cases:\n    - Extract tabular data from markdown\n    - Convert markdown tables to structured formats\n    - Analyze tabulated information",
-      "inputs": [
-        {
-          "name": "markdown",
-          "type": "str",
-          "description": "The markdown text to analyze",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/markdown/extracttables",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/markdown/extracttables.md"
     },
     {
       "type": "lib.nlp.ClassifyText",
@@ -6631,7 +6228,7 @@
         {
           "name": "dpi",
           "type": "int",
-          "description": "Rendering DPI for OCR — higher values improve accuracy on small text",
+          "description": "Rendering DPI for OCR \u2014 higher values improve accuracy on small text",
           "required": false,
           "default": 150
         }
@@ -8761,7 +8358,7 @@
         {
           "name": "min_score",
           "type": "float",
-          "description": "Minimum confidence score (0–1) to keep a detection",
+          "description": "Minimum confidence score (0\u20131) to keep a detection",
           "required": false,
           "default": 0.5
         }
@@ -8880,14 +8477,14 @@
         {
           "name": "account_sid",
           "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
+          "description": "Twilio Account SID (optional \u2014 falls back to TWILIO_ACCOUNT_SID secret)",
           "required": false,
           "default": ""
         },
         {
           "name": "auth_token",
           "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
+          "description": "Twilio Auth Token (optional \u2014 falls back to TWILIO_AUTH_TOKEN secret)",
           "required": false,
           "default": ""
         }
@@ -8921,14 +8518,14 @@
         {
           "name": "account_sid",
           "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
+          "description": "Twilio Account SID (optional \u2014 falls back to TWILIO_ACCOUNT_SID secret)",
           "required": false,
           "default": ""
         },
         {
           "name": "auth_token",
           "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
+          "description": "Twilio Auth Token (optional \u2014 falls back to TWILIO_AUTH_TOKEN secret)",
           "required": false,
           "default": ""
         }
@@ -8972,14 +8569,14 @@
         {
           "name": "account_sid",
           "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
+          "description": "Twilio Account SID (optional \u2014 falls back to TWILIO_ACCOUNT_SID secret)",
           "required": false,
           "default": ""
         },
         {
           "name": "auth_token",
           "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
+          "description": "Twilio Auth Token (optional \u2014 falls back to TWILIO_AUTH_TOKEN secret)",
           "required": false,
           "default": ""
         }
@@ -9023,14 +8620,14 @@
         {
           "name": "account_sid",
           "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
+          "description": "Twilio Account SID (optional \u2014 falls back to TWILIO_ACCOUNT_SID secret)",
           "required": false,
           "default": ""
         },
         {
           "name": "auth_token",
           "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
+          "description": "Twilio Auth Token (optional \u2014 falls back to TWILIO_AUTH_TOKEN secret)",
           "required": false,
           "default": ""
         }
@@ -10138,21 +9735,21 @@
         {
           "name": "mode",
           "type": "enum",
-          "description": "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.",
+          "description": "How the agent runs.\n\n\u2022 loop: standard tool\u2011calling loop \u2014 the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool\u2011using tasks.\n\u2022 plan: the LLM first drafts a multi\u2011step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub\u2011tasks.",
           "required": false,
           "default": "loop"
         },
         {
           "name": "system",
           "type": "str",
-          "description": "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task.",
+          "description": "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per\u2011run task.",
           "required": false,
           "default": "You are a friendly assistant"
         },
         {
           "name": "prompt",
           "type": "str",
-          "description": "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning.",
+          "description": "The user message for this run \u2014 the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning.",
           "required": false,
           "default": ""
         },
@@ -10180,27 +9777,27 @@
         {
           "name": "history",
           "type": "list[message]",
-          "description": "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt.",
+          "description": "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad\u2011hoc context \u2014 for example, few\u2011shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt.",
           "required": false,
           "default": []
         },
         {
           "name": "thread_id",
           "type": "str",
-          "description": "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation.",
+          "description": "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it \u2014 giving the agent long\u2011term memory across runs and across nodes that share the same ID. Leave empty for a stateless one\u2011shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation.",
           "required": false,
           "default": ""
         },
         {
           "name": "max_tokens",
           "type": "int",
-          "description": "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+          "description": "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192\u201316384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
           "required": true
         },
         {
           "name": "max_turns",
           "type": "int",
-          "description": "Upper bound on agentic turns — one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
+          "description": "Upper bound on agentic turns \u2014 one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
           "required": false,
           "default": 100
         }
@@ -10288,7 +9885,7 @@
           "type": "str",
           "description": "The system prompt for the classifier",
           "required": false,
-          "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" ≠ spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n"
+          "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" \u2260 spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n"
         },
         {
           "name": "model",
@@ -11815,7 +11412,7 @@
       "type": "nodetool.audio.AudioMixer",
       "title": "Audio Mixer",
       "namespace": "nodetool.audio",
-      "description": "Mix multiple audio tracks together. Add tracks dynamically with the “add audio input” button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay",
+      "description": "Mix multiple audio tracks together. Add tracks dynamically with the \u201cadd audio input\u201d button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay",
       "inputs": [],
       "outputs": [
         {
@@ -11863,7 +11460,7 @@
       "type": "nodetool.audio.Concat",
       "title": "Concatenate Audio",
       "namespace": "nodetool.audio",
-      "description": "Concatenates audio files together. Add inputs dynamically with the “add audio input” button, or wire a list of audio into a single input.\n    audio, edit, join, +",
+      "description": "Concatenates audio files together. Add inputs dynamically with the \u201cadd audio input\u201d button, or wire a list of audio into a single input.\n    audio, edit, join, +",
       "inputs": [],
       "outputs": [
         {
@@ -12260,7 +11857,7 @@
       "type": "nodetool.audio.realtime.AudioOutput",
       "title": "Audio Out",
       "namespace": "nodetool.audio.realtime",
-      "description": "Plays a realtime audio chunk stream — the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
+      "description": "Plays a realtime audio chunk stream \u2014 the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
       "inputs": [
         {
           "name": "chunk",
@@ -12758,7 +12355,7 @@
         {
           "name": "gate",
           "type": "cv",
-          "description": "Gate CV stream — values ≥ 0.5 count as gate-high.",
+          "description": "Gate CV stream \u2014 values \u2265 0.5 count as gate-high.",
           "required": true
         },
         {
@@ -12778,7 +12375,7 @@
         {
           "name": "sustain",
           "type": "float",
-          "description": "Sustain level (0–1).",
+          "description": "Sustain level (0\u20131).",
           "required": false,
           "default": 0.7
         },
@@ -12803,7 +12400,7 @@
       "type": "nodetool.audio.synth.Attenuverter",
       "title": "Attenuverter",
       "namespace": "nodetool.audio.synth",
-      "description": "Scales and offsets a CV (or audio) stream: out = in * scale + offset.\n    cv, synthesis, utility, attenuverter, modular\n\n    Negative scale inverts the signal. The Swiss-army CV utility — adapt an LFO's range to a pitch input, invert an envelope, add a constant bias.\n\n    Use cases:\n    - Reduce LFO depth before a pitch input\n    - Invert an envelope for ducking\n    - Add a DC offset to centre a modulation",
+      "description": "Scales and offsets a CV (or audio) stream: out = in * scale + offset.\n    cv, synthesis, utility, attenuverter, modular\n\n    Negative scale inverts the signal. The Swiss-army CV utility \u2014 adapt an LFO's range to a pitch input, invert an envelope, add a constant bias.\n\n    Use cases:\n    - Reduce LFO depth before a pitch input\n    - Invert an envelope for ducking\n    - Add a DC offset to centre a modulation",
       "inputs": [
         {
           "name": "signal",
@@ -12839,7 +12436,7 @@
       "type": "nodetool.audio.synth.Gate",
       "title": "Gate",
       "namespace": "nodetool.audio.synth",
-      "description": "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
+      "description": "Generates a repeating on/off gate CV pattern \u2014 the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
       "inputs": [
         {
           "name": "on_duration",
@@ -12938,7 +12535,7 @@
       "type": "nodetool.audio.synth.Mixer",
       "title": "Mixer",
       "namespace": "nodetool.audio.synth",
-      "description": "Sums up to four audio streams with per-input levels.\n    audio, synthesis, mixer, modular\n\n    Output = Σ level_i * in_i, emitted as soon as every still-open input can cover the frames; inputs that have ended contribute silence. The stream ends when all connected inputs end. Assumes matching sample rates and channel counts (no resampling).\n\n    Use cases:\n    - Combine oscillators into a richer voice\n    - Mix a dry signal with a filtered copy\n    - Sub-mix several synth voices",
+      "description": "Sums up to four audio streams with per-input levels.\n    audio, synthesis, mixer, modular\n\n    Output = \u03a3 level_i * in_i, emitted as soon as every still-open input can cover the frames; inputs that have ended contribute silence. The stream ends when all connected inputs end. Assumes matching sample rates and channel counts (no resampling).\n\n    Use cases:\n    - Combine oscillators into a richer voice\n    - Mix a dry signal with a filtered copy\n    - Sub-mix several synth voices",
       "inputs": [
         {
           "name": "in1",
@@ -13006,7 +12603,7 @@
       "type": "nodetool.audio.synth.Oscillator",
       "title": "Oscillator",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
+      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms \u2014 saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
       "inputs": [
         {
           "name": "pitch_cv",
@@ -13075,7 +12672,7 @@
       "type": "nodetool.audio.synth.SampleHold",
       "title": "Sample & Hold",
       "namespace": "nodetool.audio.synth",
-      "description": "Samples the signal input on each trigger rising edge and holds it.\n    cv, synthesis, sample-hold, modular\n\n    On a trigger rising edge (≥ 0.5) at sample k, the held value becomes signal[k]; the output is the held value every sample. The signal input drives chunk cadence; the trigger is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic random-stepped CV (noise → signal, clock → trigger)\n    - Quantize an LFO into steps\n    - Freeze a modulation value on demand",
+      "description": "Samples the signal input on each trigger rising edge and holds it.\n    cv, synthesis, sample-hold, modular\n\n    On a trigger rising edge (\u2265 0.5) at sample k, the held value becomes signal[k]; the output is the held value every sample. The signal input drives chunk cadence; the trigger is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic random-stepped CV (noise \u2192 signal, clock \u2192 trigger)\n    - Quantize an LFO into steps\n    - Freeze a modulation value on demand",
       "inputs": [
         {
           "name": "signal",
@@ -13086,7 +12683,7 @@
         {
           "name": "trigger",
           "type": "cv",
-          "description": "Sampling clock — samples on each rising edge (≥ 0.5).",
+          "description": "Sampling clock \u2014 samples on each rising edge (\u2265 0.5).",
           "required": true
         }
       ],
@@ -13103,7 +12700,7 @@
       "type": "nodetool.audio.synth.VCA",
       "title": "VCA",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n    audio, cv, synthesis, vca, amplifier, modular\n\n    Output = audio * gain * max(0, cv) per sample (negative CV is clamped — a VCA doesn't invert). The audio input drives chunk cadence; the CV is frame-aligned with hold-last when it lags or ends. With nothing patched into cv, acts as a plain gain.\n\n    Use cases:\n    - Shape a note with an ADSR envelope\n    - Tremolo via an LFO\n    - Sidechain-style ducking from any CV source",
+      "description": "Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n    audio, cv, synthesis, vca, amplifier, modular\n\n    Output = audio * gain * max(0, cv) per sample (negative CV is clamped \u2014 a VCA doesn't invert). The audio input drives chunk cadence; the CV is frame-aligned with hold-last when it lags or ends. With nothing patched into cv, acts as a plain gain.\n\n    Use cases:\n    - Shape a note with an ADSR envelope\n    - Tremolo via an LFO\n    - Sidechain-style ducking from any CV source",
       "inputs": [
         {
           "name": "audio",
@@ -13138,7 +12735,7 @@
       "type": "nodetool.audio.synth.VCF",
       "title": "VCF",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled filter: a biquad whose cutoff is modulated by a CV stream.\n    audio, cv, synthesis, vcf, filter, modular\n\n    Cutoff = cutoff_hz * 2^(cv * cv_amount) (volts/octave), recomputed every 64 samples (control rate); filter state persists across chunks so chunked output equals a single pass. The audio input drives chunk cadence; CV is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic envelope filter sweeps (ADSR → cutoff_cv)\n    - Wah/auto-filter via an LFO\n    - Static tone shaping with nothing patched into cutoff_cv",
+      "description": "Voltage-controlled filter: a biquad whose cutoff is modulated by a CV stream.\n    audio, cv, synthesis, vcf, filter, modular\n\n    Cutoff = cutoff_hz * 2^(cv * cv_amount) (volts/octave), recomputed every 64 samples (control rate); filter state persists across chunks so chunked output equals a single pass. The audio input drives chunk cadence; CV is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic envelope filter sweeps (ADSR \u2192 cutoff_cv)\n    - Wah/auto-filter via an LFO\n    - Static tone shaping with nothing patched into cutoff_cv",
       "inputs": [
         {
           "name": "audio",
@@ -14313,7 +13910,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items are buffered into batches of size N.",
+          "description": "Streaming input \u2014 items are buffered into batches of size N.",
           "required": false,
           "default": null
         },
@@ -14397,7 +13994,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items are counted but not forwarded.",
+          "description": "Streaming input \u2014 items are counted but not forwarded.",
           "required": false,
           "default": null
         }
@@ -14461,7 +14058,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — duplicate items are dropped.",
+          "description": "Streaming input \u2014 duplicate items are dropped.",
           "required": false,
           "default": null
         },
@@ -14491,7 +14088,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items after the first N are forwarded.",
+          "description": "Streaming input \u2014 items after the first N are forwarded.",
           "required": false,
           "default": null
         },
@@ -14555,7 +14152,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — each item is tested against the predicate.",
+          "description": "Streaming input \u2014 each item is tested against the predicate.",
           "required": false,
           "default": null
         },
@@ -14585,7 +14182,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items pass through if they equal the target value.",
+          "description": "Streaming input \u2014 items pass through if they equal the target value.",
           "required": false,
           "default": null
         },
@@ -14690,7 +14287,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — only the final value is forwarded.",
+          "description": "Streaming input \u2014 only the final value is forwarded.",
           "required": false,
           "default": null
         }
@@ -14842,7 +14439,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — each item is forwarded until the limit is reached.",
+          "description": "Streaming input \u2014 each item is forwarded until the limit is reached.",
           "required": false,
           "default": null
         },
@@ -14906,7 +14503,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — forwarded unchanged after logging.",
+          "description": "Streaming input \u2014 forwarded unchanged after logging.",
           "required": false,
           "default": null
         },
@@ -14988,7 +14585,7 @@
         {
           "name": "max_unmatched_pairs",
           "type": "int",
-          "description": "Maximum number of unmatched items to buffer before failing. §7.",
+          "description": "Maximum number of unmatched items to buffer before failing. \u00a77.",
           "required": false,
           "default": 1024
         }
@@ -16906,7 +16503,7 @@
       "type": "nodetool.image.Blur",
       "title": "Blur",
       "namespace": "nodetool.image",
-      "description": "Blur an image — Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter",
+      "description": "Blur an image \u2014 Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter",
       "inputs": [
         {
           "name": "image",
@@ -17089,14 +16686,14 @@
         {
           "name": "canvas_width",
           "type": "int",
-          "description": "Composite canvas width in pixels. 0 → use the first visible layer's width.",
+          "description": "Composite canvas width in pixels. 0 \u2192 use the first visible layer's width.",
           "required": false,
           "default": 0
         },
         {
           "name": "canvas_height",
           "type": "int",
-          "description": "Composite canvas height in pixels. 0 → use the first visible layer's height.",
+          "description": "Composite canvas height in pixels. 0 \u2192 use the first visible layer's height.",
           "required": false,
           "default": 0
         }
@@ -17371,63 +16968,63 @@
         {
           "name": "r_black",
           "type": "int",
-          "description": "Red channel input black point (0–255).",
+          "description": "Red channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "r_gamma",
           "type": "float",
-          "description": "Red channel gamma (0.01–10).",
+          "description": "Red channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "r_white",
           "type": "int",
-          "description": "Red channel input white point (0–255).",
+          "description": "Red channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         },
         {
           "name": "g_black",
           "type": "int",
-          "description": "Green channel input black point (0–255).",
+          "description": "Green channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "g_gamma",
           "type": "float",
-          "description": "Green channel gamma (0.01–10).",
+          "description": "Green channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "g_white",
           "type": "int",
-          "description": "Green channel input white point (0–255).",
+          "description": "Green channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         },
         {
           "name": "b_black",
           "type": "int",
-          "description": "Blue channel input black point (0–255).",
+          "description": "Blue channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "b_gamma",
           "type": "float",
-          "description": "Blue channel gamma (0.01–10).",
+          "description": "Blue channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "b_white",
           "type": "int",
-          "description": "Blue channel input white point (0–255).",
+          "description": "Blue channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         }
@@ -19651,7 +19248,7 @@
       "type": "nodetool.list.RepeatEach",
       "title": "Repeat Each",
       "namespace": "nodetool.list",
-      "description": "Repeat each list item consecutively N times.\n    list, repeat, duplicate, interleave, expand\n\n    Use cases:\n    - Generate multiple variants per input item\n    - [A, B, C] × 2 → [A, A, B, B, C, C]\n    - Feed expanded lists into For Each",
+      "description": "Repeat each list item consecutively N times.\n    list, repeat, duplicate, interleave, expand\n\n    Use cases:\n    - Generate multiple variants per input item\n    - [A, B, C] \u00d7 2 \u2192 [A, A, B, B, C, C]\n    - Feed expanded lists into For Each",
       "inputs": [
         {
           "name": "input_list",
@@ -19687,7 +19284,7 @@
       "type": "nodetool.list.RepeatValue",
       "title": "Repeat Value",
       "namespace": "nodetool.list",
-      "description": "Duplicate a single value into a list N times.\n    list, repeat, duplicate, fill, scalar, constant\n\n    Use cases:\n    - Build [v, v, v] from one prompt or parameter before For Each\n    - Expand a scalar into a list for list-typed inputs\n    - v × 3 → [v, v, v]",
+      "description": "Duplicate a single value into a list N times.\n    list, repeat, duplicate, fill, scalar, constant\n\n    Use cases:\n    - Build [v, v, v] from one prompt or parameter before For Each\n    - Expand a scalar into a list for list-typed inputs\n    - v \u00d7 3 \u2192 [v, v, v]",
       "inputs": [
         {
           "name": "value",
@@ -19723,7 +19320,7 @@
       "type": "nodetool.list.Tile",
       "title": "Tile List",
       "namespace": "nodetool.list",
-      "description": "Repeat an entire list end-to-end N times.\n    list, repeat, tile, cycle, loop, concatenate\n\n    Use cases:\n    - Run the same item sequence multiple times before For Each\n    - Duplicate a prompt list for batch generation\n    - [A, B, C] × 3 → [A, B, C, A, B, C, A, B, C]",
+      "description": "Repeat an entire list end-to-end N times.\n    list, repeat, tile, cycle, loop, concatenate\n\n    Use cases:\n    - Run the same item sequence multiple times before For Each\n    - Duplicate a prompt list for batch generation\n    - [A, B, C] \u00d7 3 \u2192 [A, B, C, A, B, C, A, B, C]",
       "inputs": [
         {
           "name": "input_list",
@@ -19903,7 +19500,7 @@
       "type": "nodetool.model3d.FormatConverter",
       "title": "Format Converter",
       "namespace": "nodetool.model3d",
-      "description": "Convert a 3D model between supported formats.\n    3d, mesh, model, convert, format, glb, gltf, export\n\n    Currently supported conversions: glb → gltf. Other targets are not yet implemented.\n\n    Use cases:\n    - Convert GLB to textual glTF for inspection\n    - Export models as glTF for tool compatibility",
+      "description": "Convert a 3D model between supported formats.\n    3d, mesh, model, convert, format, glb, gltf, export\n\n    Currently supported conversions: glb \u2192 gltf. Other targets are not yet implemented.\n\n    Use cases:\n    - Convert GLB to textual glTF for inspection\n    - Export models as glTF for tool compatibility",
       "inputs": [
         {
           "name": "model",
@@ -19914,7 +19511,7 @@
         {
           "name": "output_format",
           "type": "enum",
-          "description": "Target format for conversion. Currently only glb → gltf is supported.",
+          "description": "Target format for conversion. Currently only glb \u2192 gltf is supported.",
           "required": false,
           "default": "glb"
         }
@@ -21017,7 +20614,7 @@
       "type": "nodetool.test.StreamingInputProcessor",
       "title": "Streaming Input Processor",
       "namespace": "nodetool.test",
-      "description": "Streaming input node – called once with empty inputs",
+      "description": "Streaming input node \u2013 called once with empty inputs",
       "inputs": [],
       "outputs": [],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/test/streaminginputprocessor",
@@ -21357,7 +20954,7 @@
       "type": "nodetool.text.Concat",
       "title": "Concat",
       "namespace": "nodetool.text",
-      "description": "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button, or wire a list of strings into a single input.\n    +, text, combine, add, concatenate, merge, join, append",
+      "description": "Concatenates text inputs into a single output. Add inputs dynamically with the \u201cadd text input\u201d button, or wire a list of strings into a single input.\n    +, text, combine, add, concatenate, merge, join, append",
       "inputs": [],
       "outputs": [
         {
@@ -21859,57 +21456,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/text/checklength",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/text/checklength.md"
-    },
-    {
-      "type": "nodetool.text.HtmlToText",
-      "title": "HTML to Text",
-      "namespace": "nodetool.text",
-      "description": "Converts HTML content to plain text using html2text.\n    html, convert, text, parse, extract",
-      "inputs": [
-        {
-          "name": "html",
-          "type": "str",
-          "description": "HTML content to convert",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "base_url",
-          "type": "str",
-          "description": "Base URL for resolving relative links",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "body_width",
-          "type": "int",
-          "description": "Width for text wrapping",
-          "required": false,
-          "default": 1000
-        },
-        {
-          "name": "ignore_images",
-          "type": "bool",
-          "description": "Whether to ignore image tags",
-          "required": false,
-          "default": true
-        },
-        {
-          "name": "ignore_mailto_links",
-          "type": "bool",
-          "description": "Whether to ignore mailto links",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/text/htmltotext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/text/htmltotext.md"
     },
     {
       "type": "nodetool.text.IndexOf",
@@ -23618,7 +23164,7 @@
       "type": "nodetool.video.ChromaKey",
       "title": "Chroma Key",
       "namespace": "nodetool.video",
-      "description": "Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black — composite it over a background with the Overlay node.\n    video, chroma key, green screen, compositing",
+      "description": "Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black \u2014 composite it over a background with the Overlay node.\n    video, chroma key, green screen, compositing",
       "inputs": [
         {
           "name": "video",
@@ -23725,7 +23271,7 @@
       "type": "nodetool.video.Concat",
       "title": "Concatenate Video",
       "namespace": "nodetool.video",
-      "description": "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button, or wire a list of videos into a single input.\n    video, concat, merge, combine, audio, +",
+      "description": "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the \u201cadd video input\u201d button, or wire a list of videos into a single input.\n    video, concat, merge, combine, audio, +",
       "inputs": [],
       "outputs": [
         {
@@ -25025,7 +24571,7 @@
         {
           "name": "speed",
           "type": "float",
-          "description": "The speed of the model’s spoken response",
+          "description": "The speed of the model\u2019s spoken response",
           "required": false,
           "default": 1
         },
@@ -25396,7 +24942,7 @@
       "type": "openai.image.ImageVariation",
       "title": "Image Variation",
       "namespace": "openai.image",
-      "description": "Generate variations of an input image using OpenAI's image variations API.\n    image, variation, remix, generate, alternative, dall-e\n\n    Takes a square PNG image and produces a new image that is a variation of it.\n    No text prompt is used — the model riffs on the source image directly.",
+      "description": "Generate variations of an input image using OpenAI's image variations API.\n    image, variation, remix, generate, alternative, dall-e\n\n    Takes a square PNG image and produces a new image that is a variation of it.\n    No text prompt is used \u2014 the model riffs on the source image directly.",
       "inputs": [
         {
           "name": "image",

@@ -4,7 +4,9 @@ Text-processing nodes for [NodeTool](https://nodetool.ai).
 
 A pack of text nodes for NodeTool workflows: manipulate and template strings,
 match and replace with regex, tokenize and embed, run NLP (tokenizing, stemming,
-sentiment, entity extraction), parse HTML and Markdown, and build SVG.
+sentiment, entity extraction), and build SVG. HTML and Markdown parsing moved
+to the `@nodetool-ai/sandbox-html` and `@nodetool-ai/sandbox-markdown` sandbox
+packs, importable from a Code node.
 
 ## Install
 
@@ -48,17 +50,6 @@ npm install @nodetool-ai/text-nodes
 
 `lib.nlp.Tokenize`, `lib.nlp.Stem`, `lib.nlp.ClassifyText`, `lib.nlp.ExtractEntities`,
 `lib.nlp.SentimentAnalysis`, `lib.nlp.TfIdf`, `lib.nlp.PhoneticMatch`.
-
-### Markdown
-
-`lib.markdown.ExtractHeaders`, `lib.markdown.ExtractLinks`, `lib.markdown.ExtractBulletLists`,
-`lib.markdown.ExtractNumberedLists`, `lib.markdown.ExtractCodeBlocks`, `lib.markdown.ExtractTables`.
-
-### HTML
-
-`lib.html.HTMLToText`, `lib.html.WebsiteContentExtractor`, `lib.html.ExtractLinks`,
-`lib.html.ExtractImages`, `lib.html.ExtractVideos`, `lib.html.ExtractAudio`,
-`lib.html.ExtractMetadata`, `lib.html.BaseUrl`. Also `nodetool.text.HtmlToText`.
 
 ### SVG
 

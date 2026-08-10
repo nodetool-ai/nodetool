@@ -53,6 +53,12 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-markdown",
+    packName: "@nodetool-ai/sandbox-markdown",
+    library: "marked",
+    runs: "guest"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-xlsx",
     packName: "@nodetool-ai/sandbox-xlsx",
     library: "exceljs",

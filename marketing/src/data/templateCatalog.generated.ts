@@ -1212,14 +1212,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "research-paper-summarizer",
-        "name": "Research Paper Summarizer",
-        "description": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
-        "tags": [
-          "research"
-        ]
-      },
-      {
         "slug": "seo-content-engine",
         "name": "SEO Content Engine",
         "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
@@ -1451,14 +1443,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "map-a-readmes-structure",
-        "name": "Map a README's Structure",
-        "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "one-tagline-six-markets",
         "name": "One Tagline, Six Markets",
         "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
@@ -1492,14 +1476,6 @@ export const templateCatalog: CatalogCategory[] = [
           "beginner",
           "tutorial",
           "template"
-        ]
-      },
-      {
-        "slug": "read-the-links-out-of-a-page",
-        "name": "Read the Links Out of a Page",
-        "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
-        "tags": [
-          "text"
         ]
       },
       {

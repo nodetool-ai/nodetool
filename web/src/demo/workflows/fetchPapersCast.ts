@@ -20,7 +20,7 @@ import {
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 
 const GET_TEXT = "nodetool.code.Code";
-const EXTRACT_LINKS = "lib.markdown.ExtractLinks";
+const EXTRACT_LINKS = "nodetool.generators.DataGenerator";
 const FILTER = "nodetool.data.Filter";
 const FOR_EACH = "nodetool.control.ForEach";
 const DOWNLOAD = "lib.browser.DownloadFile";

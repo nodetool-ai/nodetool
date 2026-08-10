@@ -13,7 +13,6 @@ import {
   ChunkTextNode,
   ExtractJSONNode,
   CountTokensNode,
-  HtmlToTextNode,
   SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
@@ -638,7 +637,7 @@ describe("text nodes", () => {
     await expect(regexFilter.process()).resolves.toEqual({});
   });
 
-  it("extract json / token count / html to text", async () => {
+  it("extract json / token count", async () => {
     const _ej = new ExtractJSONNode();
     _ej.assign({
       text: '{"a":{"b":[1,2]}}',
@@ -650,10 +649,6 @@ describe("text nodes", () => {
     const _ct = new CountTokensNode();
     _ct.assign({ text: "hello, world!" });
     await expect(_ct.process()).resolves.toEqual({ output: 4 });
-
-    const _ht = new HtmlToTextNode();
-    _ht.assign({ html: "<p>Hello<br>World</p>" });
-    await expect(_ht.process()).resolves.toEqual({ output: "Hello\nWorld" });
   });
 
   it("filesystem text save/load and embedding fallback", async () => {
