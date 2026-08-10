@@ -24,12 +24,19 @@ import {
   type CodeActEvalCase,
   type CodeActEvalExpectations
 } from "./codeact-cases.js";
+import { shippedHostPackCatalog } from "./codeact-sandbox-pack-cases.js";
 
 const DEFAULT_MAX_ITERATIONS = 8;
 
 /** Everything the pure checker needs — no provider, no I/O. */
 export interface CodeActObservation {
   toolsInvoked: Set<string>;
+  /**
+   * Every tool name seen on the event stream, including the ones the executor
+   * adds to the session — which the case's recorder never wraps and so cannot
+   * see.
+   */
+  sessionToolsInvoked: Set<string>;
   /** Provider turns that carried a code action. */
   actions: number;
   /** Bridged tool invocations. */
@@ -97,6 +104,14 @@ export function checkCodeActExpectations(
       detail: hit ? `invoked forbidden tool ${name}` : undefined
     });
   }
+  for (const name of expect.requiredSessionTools ?? []) {
+    const pass = obs.sessionToolsInvoked.has(name);
+    checks.push({
+      name: `session-tool:${name}`,
+      pass,
+      detail: pass ? undefined : `never invoked ${name}`
+    });
+  }
   if (expect.maxActions !== undefined) {
     checks.push({
       name: `actions<=${expect.maxActions}`,
@@ -138,9 +153,15 @@ async function runCase(
   const maxIterations =
     evalCase.maxIterations ?? opts.maxIterations ?? DEFAULT_MAX_ITERATIONS;
 
+  // A case that allows packages needs a catalog to resolve them; one that does
+  // not stays on the process default, which is what every other case runs with.
+  const sandboxPackages = evalCase.sandboxPackages ?? [];
   const context = new ProcessingContext({
     jobId: `codeact-eval-${randomUUID()}`,
-    userId: "eval-user"
+    userId: "eval-user",
+    ...(sandboxPackages.length > 0
+      ? { sandboxModuleCatalog: shippedHostPackCatalog() }
+      : {})
   });
 
   const step: Step = {
@@ -167,7 +188,8 @@ async function runCase(
     model: opts.model,
     tools,
     maxIterations,
-    signal: opts.signal
+    signal: opts.signal,
+    sandboxPackages
   });
 
   const costBefore = opts.provider.getTotalCost();
@@ -175,12 +197,14 @@ async function runCase(
   let result: unknown = null;
   let actions = 0;
   let error: string | undefined;
+  const sessionToolsInvoked = new Set<string>();
 
   try {
     for await (const item of executor.execute()) {
       if (opts.signal?.aborted) break;
       if (item.type === "tool_call_update") {
         const tc = item as ToolCallUpdate;
+        if (tc.name) sessionToolsInvoked.add(tc.name);
         // A "round" is one execute_code turn.
         if (tc.name === EXECUTE_CODE_TOOL_NAME) actions++;
       }
@@ -200,6 +224,7 @@ async function runCase(
 
   const observation: CodeActObservation = {
     toolsInvoked: new Set(recorder.invocations.map((i) => i.name)),
+    sessionToolsInvoked,
     actions,
     toolCalls: recorder.invocations.length,
     result

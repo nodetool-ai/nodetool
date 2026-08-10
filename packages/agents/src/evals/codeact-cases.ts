@@ -113,6 +113,12 @@ export interface CodeActEvalExpectations {
   /** Tools that must have been invoked (through the bridge or directly). */
   requiredTools?: string[];
   forbiddenTools?: string[];
+  /**
+   * Tools the executor adds to the session rather than the case — the package
+   * docs tool, the memory tools. The recorder only wraps a case's own toolbelt,
+   * so these are observed on the event stream instead.
+   */
+  requiredSessionTools?: string[];
   /** Bounds on provider turns that carried a code action. */
   maxActions?: number;
   /** Bounds on bridged tool invocations. */
@@ -137,6 +143,12 @@ export interface CodeActEvalCase {
   createTools?: (recorder: CodeActToolRecorder) => Tool[];
   /** Override the suite-level action-round cap for this case. */
   maxIterations?: number;
+  /**
+   * Sandbox packages this session allows an action to import. An action may
+   * import these and nothing else; a case that declares none imports nothing,
+   * which is the default every other case runs under.
+   */
+  sandboxPackages?: readonly string[];
   /**
    * `nodetool.*` namespaces this case exercises — the coverage test asserts
    * the API cases collectively cover every namespace the object model has.
