@@ -11,6 +11,10 @@
  * Pure functions, no I/O — {@link validateCodeNodeBody} is called by
  * `validateGraph` and unit-tested directly.
  */
+import {
+  isSandboxModulesV1Enabled,
+  SANDBOX_MODULES_DISABLED_MESSAGE
+} from "@nodetool-ai/config";
 import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
@@ -110,7 +114,7 @@ export interface CodeNodeIssue {
    * "code_return_shape" | "code_missing_output" | "code_undeclared_output" |
    * "code_undefined_name" | "code_undefined_input" | "code_unused_input" |
    * "code_unused_package" | "code_package_unavailable" |
-   * "code_package_mismatch".
+   * "code_package_mismatch" | "code_package_disabled".
    */
   code: string;
   message: string;
@@ -141,6 +145,13 @@ export interface CodeNodeValidationInput {
    * a warning.
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * Whether this host runs sandbox package imports at all
+   * (`NODETOOL_SANDBOX_MODULES_V1`). Defaults to the environment's answer.
+   * While it is off, a non-empty `packages` declaration is an error: the node
+   * would refuse the same way at run time.
+   */
+  sandboxModulesEnabled?: boolean;
 }
 
 function formatNames(names: readonly string[]): string {
@@ -233,20 +244,31 @@ export function validateCodeNodeBody(
     });
   }
 
-  const unusedPackages = [...declaredSpecifiers].filter(
-    (specifier) => !imported.includes(specifier)
-  );
-  if (unusedPackages.length > 0) {
+  const modulesEnabled =
+    input.sandboxModulesEnabled ?? isSandboxModulesV1Enabled();
+  if (declaredSpecifiers.size > 0 && !modulesEnabled) {
+    // Nothing further to say about the declarations: the run refuses them
+    // before it resolves anything, so drift and unused warnings would be noise.
     issues.push({
-      severity: "warning",
-      code: "code_unused_package",
-      message: `The node declares ${formatNames(unusedPackages.sort())} in \`packages\`, which the code never imports.`
+      severity: "error",
+      code: "code_package_disabled",
+      message: `The node declares ${formatNames([...declaredSpecifiers].sort())} in \`packages\`. ${SANDBOX_MODULES_DISABLED_MESSAGE}`
     });
+  } else if (declaredSpecifiers.size > 0) {
+    const unusedPackages = [...declaredSpecifiers].filter(
+      (specifier) => !imported.includes(specifier)
+    );
+    if (unusedPackages.length > 0) {
+      issues.push({
+        severity: "warning",
+        code: "code_unused_package",
+        message: `The node declares ${formatNames(unusedPackages.sort())} in \`packages\`, which the code never imports.`
+      });
+    }
+    issues.push(
+      ...catalogIssues(input.sandboxModuleCatalog, input.declaredPackages ?? [])
+    );
   }
-
-  issues.push(
-    ...catalogIssues(input.sandboxModuleCatalog, input.declaredPackages ?? [])
-  );
 
   // ── Names the body reads but nothing puts in scope ───────────────────────
   // Declared inputs are deliberately NOT bare-name scope: they arrive on the

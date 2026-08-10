@@ -200,6 +200,51 @@ export function preloadBrowserRunner(): void {
 }
 
 /**
+ * The one property-aware eligibility check. A Code node that declares sandbox
+ * packages runs on the server only: module delivery to the browser lands in M2,
+ * and until it does the browser runner has no way to fetch the module sources.
+ * Nothing is written back onto the node — this is a routing decision, not a
+ * platform classification.
+ */
+export const SANDBOX_PACKAGES_BROWSER_MESSAGE =
+  "Sandbox package imports are unavailable in the browser runner until " +
+  "module delivery is enabled.";
+
+const CODE_NODE_TYPE = "nodetool.code.Code";
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * `packages`, read from any of the three graph shapes: the editor's
+ * `data.properties` bag, a `properties` bag, or props flattened onto `data`.
+ */
+function declaresSandboxPackages(node: {
+  type?: string | null;
+  data?: unknown;
+  properties?: unknown;
+}): boolean {
+  if (node.type !== CODE_NODE_TYPE) return false;
+  const data = asRecord(node.data);
+  const props =
+    asRecord(node.properties) ?? asRecord(data?.["properties"]) ?? data ?? {};
+  const declared = props["packages"];
+  return Array.isArray(declared) && declared.length > 0;
+}
+
+/** Node ids whose `packages` declaration forces the graph onto the server. */
+function sandboxPackageNodeIds(
+  graph: WorkflowGraph | null | undefined
+): string[] {
+  return (graph?.nodes ?? [])
+    .filter((node) => declaresSandboxPackages(node))
+    .map((node) => String(node.id));
+}
+
+/**
  * Synchronous routing decision used on hot paths. Returns `true` only when the
  * runner is already loaded and can run every node in `graph`. When it hasn't
  * loaded yet it returns `false` and warms the cache in the background, so the
@@ -210,6 +255,7 @@ export function canRunGraphInBrowserSync(
 ): boolean {
   const nodes = graph?.nodes ?? [];
   if (nodes.length === 0) return false;
+  if (sandboxPackageNodeIds(graph).length > 0) return false;
   const ready = usingWorker()
     ? cachedBrowserNodeTypes !== undefined
     : cachedLocalRunner !== undefined;
@@ -246,6 +292,13 @@ export interface BrowserEligibility {
   browserNodeTypes: string[];
   /** Node types NOT in the browser registry — these force the server path. */
   serverNodeTypes: string[];
+  /**
+   * Ids of Code nodes declaring sandbox `packages`. Non-empty forces the server
+   * path regardless of node types; `reason` says why.
+   */
+  sandboxPackageNodeIds: string[];
+  /** Why an otherwise-capable graph is ineligible. */
+  reason?: string;
 }
 
 /**
@@ -260,6 +313,7 @@ export async function reportBrowserEligibility(
   const types = (graph?.nodes ?? [])
     .map((node) => node.type)
     .filter((t): t is string => typeof t === "string");
+  const packageNodeIds = sandboxPackageNodeIds(graph);
   const available = await ensureRunnerLoaded();
   if (!available) {
     return {
@@ -267,7 +321,8 @@ export async function reportBrowserEligibility(
       runnerAvailable: false,
       total: types.length,
       browserNodeTypes: [],
-      serverNodeTypes: types
+      serverNodeTypes: types,
+      sandboxPackageNodeIds: packageNodeIds
     };
   }
   const browserNodeTypes: string[] = [];
@@ -278,11 +333,18 @@ export async function reportBrowserEligibility(
     );
   }
   return {
-    eligible: types.length > 0 && serverNodeTypes.length === 0,
+    eligible:
+      types.length > 0 &&
+      serverNodeTypes.length === 0 &&
+      packageNodeIds.length === 0,
     runnerAvailable: true,
     total: types.length,
     browserNodeTypes,
-    serverNodeTypes
+    serverNodeTypes,
+    sandboxPackageNodeIds: packageNodeIds,
+    ...(packageNodeIds.length > 0
+      ? { reason: SANDBOX_PACKAGES_BROWSER_MESSAGE }
+      : {})
   };
 }
 

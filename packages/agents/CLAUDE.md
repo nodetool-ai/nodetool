@@ -176,9 +176,11 @@ runner. Text inputs cap at `MAX_DATA_INPUT_CHARS`, binary at
 `MAX_DATA_INPUT_BYTES`, and `unzip` refuses archives inflating past
 `MAX_UNZIP_TOTAL_BYTES`. Members are documented to models via the sandbox
 manifest (`code-gen/sandbox-manifest.ts`), which the drift test holds equal to
-the real surface. The guest itself has no module loader — `import`/`require`
-do not exist — so a host bridge is the only way library-backed behaviour
-reaches user code.
+the real surface. The guest's own loader serves only the sandbox packages a run
+declares — a Code node's `packages` property, or a CodeAct session's allowlist,
+and only while `NODETOOL_SANDBOX_MODULES_V1=1`; dynamic `import()` and
+`require` never resolve. For everything else a host bridge is still the only
+way library-backed behaviour reaches user code.
 
 `format` exists because QuickJS ships no `Intl`: each member is a host bridge
 over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and

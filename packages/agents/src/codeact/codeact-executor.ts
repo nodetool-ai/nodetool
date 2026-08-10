@@ -60,6 +60,11 @@ import {
 import { searchTools } from "../tools/tool-search.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
 import {
+  mountActionModules,
+  packagePromptLines,
+  sessionAllowedPackages
+} from "./sandbox-packages.js";
+import {
   GRAPH_MODEL_PRELUDE,
   GRAPH_MODEL_PROMPT_SECTION,
   GRAPH_MODEL_TOOL_NAMES,
@@ -259,6 +264,17 @@ export interface CodeActExecutorOptions {
    * {@link CODEACT_DEFER_THRESHOLD}.
    */
   residentToolNames?: Iterable<string>;
+  /**
+   * Sandbox package specifiers this session consents to. An action may import
+   * these and nothing else, and the prompt advertises exactly these.
+   *
+   * Defaults to none. Which packs are trusted is not knowable in here — the
+   * caller resolves that from agent/session configuration, user approval, or
+   * the task's own declarations — so the safe reading of "trusted packs only"
+   * is an empty list until a caller says otherwise. The whole allowlist is
+   * empty anyway while `NODETOOL_SANDBOX_MODULES_V1` is off.
+   */
+  sandboxPackages?: readonly string[];
 }
 
 /** Observation envelope returned to the model after each code action. */
@@ -301,6 +317,8 @@ export class CodeActExecutor {
   private readonly deferredTools: Tool[];
   /** Guest prelude for each action: tool wrappers + the object models. */
   private readonly prelude: string;
+  /** Specifiers this session's actions may import (flag-gated, may be empty). */
+  private readonly sandboxPackages: string[];
   /** Persists across actions within the step (CaveAgent-style runtime state). */
   private readonly state: Record<string, unknown> = {};
   private result: unknown = null;
@@ -322,6 +340,7 @@ export class CodeActExecutor {
     this.actionTimeoutMs = opts.actionTimeoutMs;
     this.clock = opts.clock;
     this.maxToolCallsPerAction = opts.maxToolCallsPerAction;
+    this.sandboxPackages = sessionAllowedPackages(opts.sandboxPackages);
 
     // Memory tools ride in the toolbelt as functions like everything else.
     const existing = new Set(this.tools.map((t) => t.name));
@@ -392,7 +411,11 @@ export class CodeActExecutor {
       resultSchema: this.resultSchema,
       preamble: opts.systemPrompt,
       directToolNames: this.coreTools.map((t) => t.name),
-      extraSections
+      extraSections,
+      packageLines: packagePromptLines(
+        this.sandboxPackages,
+        this.context.sandboxModuleCatalog
+      )
     });
   }
 
@@ -553,6 +576,18 @@ export class CodeActExecutor {
           toolCalls: 0
         } satisfies ActionObservation);
       }
+      const mount = mountActionModules(
+        code,
+        this.sandboxPackages,
+        this.context.sandboxModuleCatalog
+      );
+      if (!mount.ok) {
+        return JSON.stringify({
+          ok: false,
+          error: mount.error,
+          toolCalls: 0
+        } satisfies ActionObservation);
+      }
       this.actionCount++;
       bridge.resetActionBudget();
 
@@ -562,6 +597,7 @@ export class CodeActExecutor {
         timeoutMs: this.actionTimeoutMs ?? DEFAULT_CODEACT_ACTION_TIMEOUT_MS,
         signal: this.signal,
         clock: this.clock,
+        modules: mount.modules,
         globals: {
           ...bridge.globals,
           __finish: finishBridge,

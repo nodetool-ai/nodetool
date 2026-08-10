@@ -25,7 +25,7 @@ export class RunCodeTool extends Tool {
     "stat/mkdir/remove(), getSecret(), sleep(), progress(), crypto.randomUUID/" +
     "getRandomValues/digest/hmac, format.number/date/relativeTime/list, " +
     "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
-    "toBase64/fromBase64/toHex/fromHex. No imports — there is no module loader. " +
+    "toBase64/fromBase64/toHex/fromHex. This tool declares no sandbox packages, so nothing is importable. " +
     "Independent calls run concurrently: Promise.all over several fetches costs one round trip, " +
     "and parallelMap(items, fn, concurrency) fans out a list with a bound.";
   readonly jsonSchema: Record<string, unknown> = {

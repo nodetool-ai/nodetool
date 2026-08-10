@@ -1294,25 +1294,29 @@ describe("Code node sandbox packages", () => {
     const report = validateGraph(
       graph({ code, packages: [{ specifier: "@acme/geo" }] }),
       registry,
-      { sandboxModuleCatalog: catalog }
+      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
     );
-    expect(report.issues).toEqual([]);
+    expect(report.issues.map((i) => i.code)).toEqual([
+      "code_package_browser_parity"
+    ]);
   });
 
   it("accepts a bare specifier string as a declaration", () => {
     const report = validateGraph(
       graph({ code, packages: ["@acme/geo"] }),
       registry,
-      { sandboxModuleCatalog: null }
+      { sandboxModuleCatalog: null, sandboxModulesEnabled: true }
     );
-    expect(report.issues).toEqual([]);
+    expect(report.issues.map((i) => i.code)).toEqual([
+      "code_package_browser_parity"
+    ]);
   });
 
   it("reports an import the node does not declare", () => {
     const report = validateGraph(
       graph({ code, packages: [] }),
       registry,
-      { sandboxModuleCatalog: catalog }
+      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
     );
     const issue = report.issues.find((i) => i.code === "code_module");
     expect(issue?.nodeId).toBe("c");
@@ -1326,7 +1330,7 @@ describe("Code node sandbox packages", () => {
         packages: ["@nope/pack"]
       }),
       registry,
-      { sandboxModuleCatalog: catalog }
+      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
     );
     const issue = report.issues.find(
       (i) => i.code === "code_package_unavailable"
@@ -1339,7 +1343,7 @@ describe("Code node sandbox packages", () => {
     const report = validateGraph(
       graph({ code, packages: [{ nope: 1 }] }),
       registry,
-      { sandboxModuleCatalog: null }
+      { sandboxModuleCatalog: null, sandboxModulesEnabled: true }
     );
     const issue = report.issues.find(
       (i) => i.code === "code_module" && i.message.includes("not a sandbox module")
@@ -1355,7 +1359,8 @@ describe("Code node sandbox packages", () => {
           code: 'import { x } from "@nope/pack";\nreturn { out: x };',
           packages: ["@nope/pack"]
         }),
-        registry
+        registry,
+        { sandboxModulesEnabled: true }
       );
       expect(
         report.issues.some((i) => i.code === "code_package_unavailable")
@@ -1363,5 +1368,33 @@ describe("Code node sandbox packages", () => {
     } finally {
       setProcessSandboxModuleCatalog(null);
     }
+  });
+
+  it("warns about the browser gap on any node declaring packages", () => {
+    const report = validateGraph(
+      graph({ code, packages: ["@acme/geo"] }),
+      registry,
+      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
+    );
+    const issue = report.issues.find(
+      (i) => i.code === "code_package_browser_parity"
+    );
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.nodeId).toBe("c");
+    expect(issue?.message).toContain("browser runner");
+  });
+
+  it("refuses the declaration outright while the flag is off", () => {
+    const report = validateGraph(
+      graph({ code, packages: ["@acme/geo"] }),
+      registry,
+      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: false }
+    );
+    const issue = report.issues.find((i) => i.code === "code_package_disabled");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("NODETOOL_SANDBOX_MODULES_V1=1");
+    expect(report.issues.map((i) => i.code)).not.toContain(
+      "code_package_browser_parity"
+    );
   });
 });

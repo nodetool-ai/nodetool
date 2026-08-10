@@ -12,6 +12,10 @@
  */
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import {
+  isSandboxModulesV1Enabled,
+  SANDBOX_MODULES_BROWSER_PARITY_MESSAGE
+} from "@nodetool-ai/config";
+import {
   getProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
@@ -576,6 +580,12 @@ export interface GraphValidationOptions {
    * graph without one (a browser client, a test).
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * Whether this host runs sandbox package imports
+   * (`NODETOOL_SANDBOX_MODULES_V1`). Defaults to the environment's answer, so
+   * an offline check reports what the run would do.
+   */
+  sandboxModulesEnabled?: boolean;
 }
 
 export function validateGraph(
@@ -745,6 +755,19 @@ export function validateGraph(
             "declaration — each entry is a specifier, or an object with a `specifier`."
         });
       }
+      const modulesEnabled =
+        options.sandboxModulesEnabled ?? isSandboxModulesV1Enabled();
+      if (declarations.length > 0 && modulesEnabled) {
+        // The M1 rollout gap: this graph runs on the server and is refused by
+        // the browser runner. A warning — the server run is legitimate.
+        issues.push({
+          severity: "warning",
+          code: "code_package_browser_parity",
+          nodeId: id,
+          nodeType: type,
+          message: `Node "${id}": ${SANDBOX_MODULES_BROWSER_PARITY_MESSAGE}`
+        });
+      }
       for (const codeIssue of validateCodeNodeBody({
         code: props.code,
         availableInputs: [...availableInputs].filter(
@@ -753,7 +776,8 @@ export function validateGraph(
         declaredOutputs: Object.keys(readDynamicOutputs(node)),
         connectedOutputs: [...(consumedByNode.get(id) ?? [])],
         declaredPackages: declarations,
-        sandboxModuleCatalog
+        sandboxModuleCatalog,
+        sandboxModulesEnabled: modulesEnabled
       })) {
         issues.push({
           severity: codeIssue.severity,

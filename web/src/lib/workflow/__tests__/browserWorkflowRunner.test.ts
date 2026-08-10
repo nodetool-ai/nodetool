@@ -4,6 +4,8 @@ import {
   canRunGraphInBrowser,
   canRunGraphInBrowserSync,
   collectNodeClasses,
+  reportBrowserEligibility,
+  SANDBOX_PACKAGES_BROWSER_MESSAGE,
   runBrowserGraphJob
 } from "../browserWorkflowRunner";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
@@ -132,6 +134,79 @@ describe("canRunGraphInBrowserSync", () => {
 
     expect(canRunGraphInBrowserSync(browserGraph("browser.Const"))).toBe(true);
     expect(canRunGraphInBrowserSync(browserGraph("server.Image"))).toBe(false);
+  });
+});
+
+describe("sandbox package refusal", () => {
+  /** A registry that also knows the Code node, so only `packages` decides. */
+  const codeRegistry = {
+    has: (type: string) =>
+      type.startsWith("browser.") || type === "nodetool.code.Code"
+  };
+
+  function installCodeRunner(): void {
+    __setBrowserRunnerLoader(async () => ({
+      wf: {
+        createBrowserRegistry: () => codeRegistry,
+        runBrowserWorkflow: () => completed()()
+      } as never,
+      nodeClasses: []
+    }));
+  }
+
+  const codeGraph = (packages: unknown): WorkflowGraph =>
+    ({
+      nodes: [
+        {
+          id: "code_1",
+          type: "nodetool.code.Code",
+          data: { properties: { code: "return {};", packages } }
+        }
+      ],
+      edges: []
+    }) as unknown as WorkflowGraph;
+
+  it("stays eligible when the Code node declares no package", async () => {
+    installCodeRunner();
+    const report = await reportBrowserEligibility(codeGraph([]));
+    expect(report.eligible).toBe(true);
+    expect(report.sandboxPackageNodeIds).toEqual([]);
+    expect(report.reason).toBeUndefined();
+  });
+
+  it("refuses a graph whose Code node declares packages, naming the node", async () => {
+    installCodeRunner();
+    const report = await reportBrowserEligibility(codeGraph(["@acme/geo"]));
+    expect(report.eligible).toBe(false);
+    expect(report.sandboxPackageNodeIds).toEqual(["code_1"]);
+    expect(report.reason).toBe(SANDBOX_PACKAGES_BROWSER_MESSAGE);
+    // The node type itself stays browser-capable — only the property refuses.
+    expect(report.serverNodeTypes).toEqual([]);
+    expect(await canRunGraphInBrowser(codeGraph(["@acme/geo"]))).toBe(false);
+  });
+
+  it("refuses on the sync path too, once the runner is loaded", async () => {
+    installCodeRunner();
+    await canRunGraphInBrowser(codeGraph([]));
+    expect(canRunGraphInBrowserSync(codeGraph([]))).toBe(true);
+    expect(canRunGraphInBrowserSync(codeGraph(["@acme/geo"]))).toBe(false);
+  });
+
+  it("reads the packages property from a flattened graph shape", async () => {
+    installCodeRunner();
+    const flattened = {
+      nodes: [
+        {
+          id: "code_2",
+          type: "nodetool.code.Code",
+          data: { code: "return {};", packages: ["@acme/geo"] }
+        }
+      ],
+      edges: []
+    } as unknown as WorkflowGraph;
+    const report = await reportBrowserEligibility(flattened);
+    expect(report.sandboxPackageNodeIds).toEqual(["code_2"]);
+    expect(report.eligible).toBe(false);
   });
 });
 

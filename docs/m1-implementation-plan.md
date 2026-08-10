@@ -6,7 +6,12 @@ catalog, discovery, and install trust flow; M1 makes a declared sandbox
 module importable in guest code, on every execution path, behind a parity
 flag. Each task lands green on its own and carries its tests.
 
-## Task 1 — Entry builder: AST transform for static imports
+> **Landed.** Tasks 1 and 2 in `d7d0b47`, task 3 in `8ac8ebe`, tasks 4 and 5 in
+> the commit that added this note. M1 is complete behind
+> `NODETOOL_SANDBOX_MODULES_V1`; see the M1 checkpoint in
+> [sandbox-package-design.md](sandbox-package-design.md).
+
+## Task 1 — Entry builder: AST transform for static imports (landed, `d7d0b47`)
 
 Replace `wrapCode()`'s string wrapping (`packages/agents/src/js-sandbox.ts:2194`)
 with an AST-based entry builder for code that contains imports:
@@ -29,7 +34,7 @@ Tests: extend `packages/agents/tests/js-sandbox.test.ts` `wrapCode`
 describe — hoisting, implicit return, top-level await, `return` inside the
 body, source of syntax errors still pointing at user code.
 
-## Task 2 — Runtime loader: the enforcement boundary
+## Task 2 — Runtime loader: the enforcement boundary (landed, `d7d0b47`)
 
 `runInSandbox` gains a `modules` option carrying a
 `SandboxModuleResolution` (`@nodetool-ai/protocol`), and installs a custom
@@ -51,7 +56,7 @@ Tests: adversarial fixtures in `js-sandbox.test.ts` — every denial case
 above, plus a two-module pack with an `internal` helper, and a check that
 a module cannot import another pack's module undeclared.
 
-## Task 3 — Code node `packages` + validation + CLI/server wiring
+## Task 3 — Code node `packages` + validation + CLI/server wiring (landed, `8ac8ebe`)
 
 - `CodeNode` (`packages/code-nodes/src/nodes/code-node.ts`) gains a
   `packages` property: a list of `SandboxModuleDeclaration`. `process` and
@@ -73,7 +78,7 @@ Tests: `code-node-validation.test.ts`, `code-node.test.ts` end-to-end with
 a fixture pack, `context.test.ts` untouched (injection default already
 covered).
 
-## Task 4 — CodeAct session allowlist + one-line prompt tier
+## Task 4 — CodeAct session allowlist + one-line prompt tier (landed)
 
 - `CodeActExecutorOptions` and `ChatCodeActSessionOptions` gain a session
   package allowlist (default: trusted packs only, per the design's trust
@@ -94,7 +99,7 @@ Tests: `codeact-executor.test.ts` (allowlisted import mounts, undeclared
 import fails as observation), drift tests, `chat-codeact.test.ts` (chat
 sessions default to no packages).
 
-## Task 5 — Parity flag, browser refusal, docs
+## Task 5 — Parity flag, browser refusal, docs (landed)
 
 - A `NODETOOL_SANDBOX_MODULES_V1` opt-in flag, placed where server, CLI,
   and validation can all read it (not in `websocket` — the existing SDK

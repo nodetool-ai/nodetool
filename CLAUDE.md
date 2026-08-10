@@ -595,7 +595,9 @@ to save one — and `POST /api/workflows/:id/run|debug` refuses the run with a
 upstream half of the graph has been paid for.
 
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
-not valid JavaScript, uses `import`/`export` (the sandbox has no module loader),
+not valid JavaScript, uses `export` at the top level, imports a specifier the
+node's `packages` property does not declare (the guest loader resolves only
+declared sandbox packages, and only while `NODETOOL_SANDBOX_MODULES_V1=1`),
 reads a name that is neither a sandbox API nor one of the node's inputs
 (a ReferenceError at run time), never returns, or leaves a declared output
 unset on some return path is reported against the node. The analysis lives in

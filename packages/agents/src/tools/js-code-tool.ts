@@ -26,8 +26,8 @@ Vanilla JavaScript with full syntax: variables, loops, conditionals, functions, 
 destructuring, spread, template literals, try/catch, async/await, Map, Set, RegExp, URL, \
 URLSearchParams, Date, Math, JSON, Array methods (map, filter, reduce, find, every, some, etc).
 
-There is no module loader — \`import\`/\`require\` do not exist and no third-party library is in \
-scope. Library-backed work reaches you only through the narrow bridges below (\`data\`, \`format\`, \
+This tool declares no sandbox packages, so nothing is importable here and no third-party library \
+is in scope. Library-backed work reaches you only through the narrow bridges below (\`data\`, \`format\`, \
 \`crypto\`); for anything else use vanilla JS or a dedicated tool/node.
 
 ## Bridge APIs

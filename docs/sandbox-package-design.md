@@ -6,13 +6,18 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0 is implemented:
+> Status: design, revised after two review rounds. M0 and M1 are implemented.
+> M1 ships behind `NODETOOL_SANDBOX_MODULES_V1`, off by default: with the flag
+> on, a declared sandbox module is importable in Code nodes, CodeAct actions,
+> the CLI and the server; with it off, every surface refuses a `packages`
+> declaration with the same message. Browser delivery is M2, so a graph using
+> `packages` is refused by the browser runner and validation warns about it.
+> M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
 > sandbox-only host-loader guard, scripts-disabled installation with an
 > install ledger, and the integrity-verified trust/rebuild flow with its
-> Package Manager surface. Runtime loading is M1 — no module reaches the guest
-> yet. The first review killed four assumptions
+> Package Manager surface. The first review killed four assumptions
 > (corrected under "Facts"); the second pinned the contracts that were
 > still loose — CodeAct session consent, the untrusted-doc policy, exact
 > scalar WASM signatures and instance ownership, memory-manifest
@@ -780,6 +785,67 @@ Two things belong to M1 that earlier drafts deferred:
   Nothing persistent is written: no node platform metadata is rewritten,
   so a workflow saved during M1 carries no stale server-only
   classification after M2.
+
+
+#### M1 checkpoint — imports end to end, behind the flag
+
+M1 is implemented and gated by `NODETOOL_SANDBOX_MODULES_V1`
+(`packages/config/src/sandbox-feature-flags.ts`, exact opt-in on `"1"`).
+
+What shipped:
+
+- **Entry builder.** `buildEntryModule()` (`packages/agents/src/js-sandbox.ts`)
+  parses a snippet as a module, hoists its static `ImportDeclaration`s above the
+  async IIFE and blanks the ranges they vacate, so line numbers in a syntax
+  error still point at the user's code. Import-free code takes the old
+  `wrapCode` path byte for byte.
+- **Normalizer-enforced loader.** `RunSandboxOptions.modules` installs a module
+  loader *and normalizer* on the context. The normalizer is the enforcement
+  point: QuickJS serves a cached module without consulting the loader but
+  normalizes every specifier first, which is what makes the denial hold for the
+  wrapper's own Node-compat bootstrap. Declared specifiers and their intra-pack
+  siblings resolve; `node:*`, absolute and encoded paths, sibling escapes,
+  another pack's internals and every dynamic `import()` do not. Loaded modules
+  carry the timer deletions on their first line, so hardening precedes their
+  evaluation.
+- **Code node `packages`.** `CodeNode` (`packages/code-nodes/src/nodes/code-node.ts`)
+  declares what it may import and resolves it through
+  `context.sandboxModuleCatalog`; nothing declared installs no loader at all.
+- **Validation.** `validateCodeNodeBody` and `validateGraph`
+  (`packages/node-sdk/src/`) read the declarations offline: an undeclared import
+  and a dynamic resolution are errors, an unused declaration and version/digest
+  drift are warnings, and a specifier no installed pack offers is an error
+  naming the pack. `nodetool validate`, `node run` and `debug` reproduce all of
+  it headlessly.
+- **CodeAct session consent.** `CodeActExecutorOptions.sandboxPackages` and
+  `ChatCodeActSessionOptions.sandboxPackages` are the session allowlist
+  (default: none). Each action's code is parsed for static imports; allowed
+  specifiers are resolved and mounted, anything else is refused as the
+  action's observation, naming the specifier. The prompt carries one sanitized
+  line per allowed specifier — never the installed catalog — and says plainly
+  when nothing is importable
+  (`packages/agents/src/codeact/sandbox-packages.ts`).
+- **The flag.** Off (the default): the Code node refuses a declaration before
+  the guest starts, CodeAct mounts nothing, and validation reports the
+  declaration as an error naming the variable. On: everything above works, and
+  validation adds a `code_package_browser_parity` warning on any Code node with
+  a non-empty `packages` — the browser runner refuses such a graph
+  (`reportBrowserEligibility().sandboxPackageNodeIds` plus a `reason`, in
+  `web/src/lib/workflow/browserWorkflowRunner.ts`). Nothing persistent is
+  written: no node platform metadata changes, so a workflow saved during M1
+  carries no stale server-only classification into M2.
+
+The canonical sentence every prompt surface now states — replacing "there is no
+module loader" — is `SANDBOX_MODULE_RULE` in
+`packages/agents/src/code-gen/sandbox-manifest.ts`, pinned by the drift tests.
+
+Regression suites: `packages/agents/tests/js-sandbox-modules.test.ts`,
+`codeact-sandbox-packages.test.ts`, `codeact-executor.test.ts`,
+`codeact-prompt-drift.test.ts`, `sandbox-manifest-drift.test.ts`;
+`packages/node-sdk/tests/code-node-validation.test.ts`,
+`graph-validation.test.ts`; `packages/code-nodes/tests/code-node-packages.test.ts`;
+`packages/config/tests/sandbox-feature-flags.test.ts`; and
+`web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
 
 ### M2 — Delivery parity (removes the flag)
 

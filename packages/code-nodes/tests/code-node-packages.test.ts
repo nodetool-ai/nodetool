@@ -6,7 +6,8 @@
  * a declaration a catalog cannot serve fails the node before the guest starts,
  * and version drift only warns, because resolution uses what is installed.
  */
-import { describe, it, expect, afterEach } from "vitest";
+import { describe, it, expect, afterEach, beforeEach } from "vitest";
+import { SANDBOX_MODULES_V1_FLAG } from "@nodetool-ai/config";
 import { CodeNode, setCodeNodeTools } from "@nodetool-ai/code-nodes";
 import type {
   ResolvedSandboxModule,
@@ -105,7 +106,15 @@ function node(
 }
 
 setCodeNodeTools([]);
-afterEach(() => setCodeNodeTools([]));
+// Imports are a flagged path; these cases are about what happens once a host
+// has opted in. The refusal while it is off has its own case below.
+beforeEach(() => {
+  process.env[SANDBOX_MODULES_V1_FLAG] = "1";
+});
+afterEach(() => {
+  setCodeNodeTools([]);
+  delete process.env[SANDBOX_MODULES_V1_FLAG];
+});
 
 describe("CodeNode — sandbox packages", () => {
   it("imports a declared module and returns its result", async () => {
@@ -181,5 +190,22 @@ describe("CodeNode — sandbox packages", () => {
       chunks.push(chunk);
     }
     expect(chunks).toEqual([{ out: "geo:1" }, { out: "geo:2" }]);
+  });
+
+  it("refuses a declaration while the parity flag is off", async () => {
+    delete process.env[SANDBOX_MODULES_V1_FLAG];
+    await expect(
+      node('import { label } from "@acme/geo";\nreturn { out: label(1) };', [
+        "@acme/geo"
+      ]).process(contextWith(catalog()))
+    ).rejects.toThrow(/NODETOOL_SANDBOX_MODULES_V1=1/);
+  });
+
+  it("runs an import-free body with the flag off", async () => {
+    delete process.env[SANDBOX_MODULES_V1_FLAG];
+    const result = await node("return { out: 1 };", []).process(
+      contextWith(catalog())
+    );
+    expect(result).toEqual({ out: 1 });
   });
 });
