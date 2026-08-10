@@ -63,6 +63,7 @@ import {
 } from "./packageManager";
 import {
   installNodePack,
+  trustNodePack,
   uninstallNodePack,
   listInstalledNodePacks,
   getNodePackInstallRoot,
@@ -76,6 +77,7 @@ import {
 
 const nodePackInstallRequestSchema = z.object({ spec: z.string() }).strict();
 const nodePackUninstallRequestSchema = z.object({ name: z.string() }).strict();
+const nodePackTrustRequestSchema = z.object({ name: z.string() }).strict();
 
 function isRuntimePackageId(id: string): id is RuntimePackageId {
   return RUNTIME_PACKAGE_IDS.includes(id as RuntimePackageId);
@@ -904,6 +906,14 @@ export function initializeIpcHandlers(): void {
     }
     logMessage(`Uninstalling node pack: ${parsed.data.name}`);
     return await uninstallNodePack(parsed.data.name);
+  });
+  createIpcMainHandler(IpcChannels.NODE_PACK_TRUST, async (_event, req) => {
+    const parsed = nodePackTrustRequestSchema.safeParse(req);
+    if (!parsed.success) {
+      return { success: false, message: "Invalid node-pack trust request." };
+    }
+    logMessage(`Approving node pack trust: ${parsed.data.name}`);
+    return await trustNodePack(parsed.data.name);
   });
   createIpcMainHandler(IpcChannels.NODE_PACK_GET_INSTALL_DIR, async () => {
     return getNodePackInstallRoot();

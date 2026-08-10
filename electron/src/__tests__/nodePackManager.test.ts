@@ -22,7 +22,8 @@ jest.mock("@nodetool-ai/node-sdk/sandbox-pack-discovery", () => ({
 jest.mock("fs/promises", () => ({
   mkdir: jest.fn().mockResolvedValue(undefined),
   access: jest.fn().mockResolvedValue(undefined),
-  writeFile: jest.fn().mockResolvedValue(undefined),
+  writeFile: jest.fn(),
+  rename: jest.fn(),
   readdir: jest.fn(),
   readFile: jest.fn()
 }));
@@ -34,14 +35,22 @@ const { discoverSandboxPack } = require("@nodetool-ai/node-sdk/sandbox-pack-disc
 import {
   getNodePackInstallRoot,
   installNodePack,
+  trustNodePack,
   uninstallNodePack,
   listInstalledNodePacks
 } from "../nodePackManager";
+
+const ROOT = "/mock/userData/optional-node";
+const LEDGER = `${ROOT}/nodetool-packs.json`;
+const LOCKFILE = `${ROOT}/package-lock.json`;
 
 type FakeProc = EventEmitter & {
   stdout: EventEmitter;
   stderr: EventEmitter;
 };
+
+/** In-memory files the fs/promises mock reads and writes. */
+let files: Record<string, string>;
 
 function makeProc(): FakeProc {
   return Object.assign(new EventEmitter(), {
@@ -66,39 +75,68 @@ function stubSuccessfulNpmSpawns(): void {
   });
 }
 
+function packageDir(name: string): string {
+  return `${ROOT}/node_modules/${name}`;
+}
+
 function stubInstalledPackage(options: {
   readonly name: string;
   readonly version: string;
   readonly nodetool: Record<string, unknown>;
   readonly sandbox?: boolean;
+  readonly lockfile?: Record<string, unknown>;
 }): void {
-  fsp.readFile.mockImplementation((path: string) => {
-    if (path.endsWith("package-lock.json")) {
-      return Promise.resolve(JSON.stringify({
-        packages: {
-          [`node_modules/${options.name}`]: {
-            version: options.version,
-            resolved: `https://registry.example/${options.name}`,
-            integrity: "sha512-test"
-          }
-        }
-      }));
-    }
-    return Promise.resolve(JSON.stringify({
-      name: options.name,
-      version: options.version,
-      nodetool: options.nodetool
-    }));
+  files[`${packageDir(options.name)}/package.json`] = JSON.stringify({
+    name: options.name,
+    version: options.version,
+    nodetool: options.nodetool
   });
-  discoverSandboxPack.mockReturnValue(options.sandbox === true
-    ? { name: options.name, version: options.version }
-    : undefined);
+  files[LOCKFILE] = JSON.stringify({
+    packages: options.lockfile ?? {
+      [`node_modules/${options.name}`]: {
+        version: options.version,
+        resolved: `https://registry.example/${options.name}`,
+        integrity: "sha512-test"
+      }
+    }
+  });
+  discoverSandboxPack.mockReturnValue(
+    options.sandbox === true
+      ? { name: options.name, version: options.version }
+      : undefined
+  );
+}
+
+/** A package.json for a `node_modules` listing, without the lockfile plumbing. */
+function stubListedPackage(dir: string, contents: unknown): void {
+  files[`${ROOT}/node_modules/${dir}/package.json`] =
+    typeof contents === "string" ? contents : JSON.stringify(contents);
 }
 
 describe("nodePackManager", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     stubNpmFound();
+    files = {};
+    fsp.readFile.mockImplementation((path: string) => {
+      const found = files[path];
+      return found === undefined
+        ? Promise.reject(new Error(`ENOENT: ${path}`))
+        : Promise.resolve(found);
+    });
+    fsp.writeFile.mockImplementation((path: string, data: string) => {
+      files[path] = data;
+      return Promise.resolve();
+    });
+    fsp.rename.mockImplementation((from: string, to: string) => {
+      const value = files[from];
+      if (value !== undefined) {
+        files[to] = value;
+        delete files[from];
+      }
+      return Promise.resolve();
+    });
+    fsp.readdir.mockResolvedValue([]);
   });
 
   describe("getNodePackInstallRoot", () => {
@@ -121,7 +159,7 @@ describe("nodePackManager", () => {
       expect(result.message).toContain("Invalid npm pack spec");
     });
 
-    it("succeeds with a valid spec and npm exit 0", async () => {
+    it("activates a sandbox-only pack with scripts disabled", async () => {
       const proc = makeProc();
       stubNpmSpawn(proc);
       stubInstalledPackage({
@@ -136,10 +174,10 @@ describe("nodePackManager", () => {
       const result = await promise;
 
       expect(result.success).toBe(true);
-      expect(result.message).toContain("Installed @acme/cool-nodes");
       expect(result.installation).toMatchObject({
         mode: "sandbox-only",
         scripts: "skipped",
+        active: true,
         artifact: {
           version: "1.0.0",
           resolved: "https://registry.example/@acme/cool-nodes",
@@ -165,7 +203,7 @@ describe("nodePackManager", () => {
       expect(result.message).toContain("npm exited with code 1");
     });
 
-    it("keeps register packs inactive until the trusted rebuild flow exists", async () => {
+    it("keeps a register pack inactive until trust is approved", async () => {
       stubSuccessfulNpmSpawns();
       stubInstalledPackage({
         name: "@scope/pkg",
@@ -178,7 +216,8 @@ describe("nodePackManager", () => {
       expect(result.success).toBe(false);
       expect(result.installation).toMatchObject({
         mode: "register",
-        scripts: "skipped"
+        scripts: "skipped",
+        active: false
       });
       expect(spawn).toHaveBeenCalledTimes(1);
     });
@@ -196,9 +235,192 @@ describe("nodePackManager", () => {
       expect(result.success).toBe(false);
       expect(result.installation).toMatchObject({
         mode: "unknown",
-        scripts: "skipped"
+        scripts: "skipped",
+        active: false
       });
       expect(spawn).toHaveBeenCalledTimes(1);
+    });
+
+    it("records the pack and its dependency closure in the ledger", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: { register: "register" },
+        lockfile: {
+          "node_modules/@scope/pkg": {
+            version: "2.0.0",
+            resolved: "https://registry.example/@scope/pkg",
+            integrity: "sha512-pkg",
+            dependencies: { helper: "^1.0.0" }
+          },
+          "node_modules/helper": {
+            version: "1.4.0",
+            resolved: "https://registry.example/helper",
+            integrity: "sha512-helper"
+          },
+          "node_modules/unrelated": { version: "9.9.9" }
+        }
+      });
+
+      await installNodePack("@scope/pkg");
+
+      const ledger = JSON.parse(files[LEDGER] ?? "{}");
+      expect(ledger.packs["@scope/pkg"].dependencies).toEqual([
+        {
+          name: "helper",
+          version: "1.4.0",
+          resolved: "https://registry.example/helper",
+          integrity: "sha512-helper"
+        }
+      ]);
+    });
+  });
+
+  describe("trustNodePack", () => {
+    async function installRegisterPack(
+      lockfile?: Record<string, unknown>
+    ): Promise<void> {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: { register: "register" },
+        ...(lockfile === undefined ? {} : { lockfile })
+      });
+      await installNodePack("@scope/pkg");
+      jest.clearAllMocks();
+      stubNpmFound();
+      stubSuccessfulNpmSpawns();
+      discoverSandboxPack.mockReturnValue(undefined);
+    }
+
+    it("rejects a pack NodeTool never installed", async () => {
+      const result = await trustNodePack("@scope/pkg");
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("was not installed by NodeTool");
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it("rebuilds the pack and its dependencies after verifying identity", async () => {
+      await installRegisterPack({
+        "node_modules/@scope/pkg": {
+          version: "2.0.0",
+          resolved: "https://registry.example/@scope/pkg",
+          integrity: "sha512-pkg",
+          dependencies: { helper: "^1.0.0" }
+        },
+        "node_modules/helper": {
+          version: "1.4.0",
+          resolved: "https://registry.example/helper",
+          integrity: "sha512-helper"
+        }
+      });
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(true);
+      expect(result.installation).toMatchObject({
+        mode: "register",
+        scripts: "ran",
+        active: true
+      });
+      expect(spawn).toHaveBeenCalledWith(
+        "npm",
+        expect.arrayContaining(["rebuild", "@scope/pkg", "helper"]),
+        expect.any(Object)
+      );
+      expect(spawn.mock.calls[0][1]).not.toContain("install");
+    });
+
+    it("refuses when the artifact integrity changed since install", async () => {
+      await installRegisterPack();
+      files[LOCKFILE] = JSON.stringify({
+        packages: {
+          "node_modules/@scope/pkg": {
+            version: "2.0.0",
+            resolved: "https://registry.example/@scope/pkg",
+            integrity: "sha512-swapped"
+          }
+        }
+      });
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("integrity changed");
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it("refuses when a dependency's artifact changed since install", async () => {
+      await installRegisterPack({
+        "node_modules/@scope/pkg": {
+          version: "2.0.0",
+          resolved: "https://registry.example/@scope/pkg",
+          integrity: "sha512-pkg",
+          dependencies: { helper: "^1.0.0" }
+        },
+        "node_modules/helper": {
+          version: "1.4.0",
+          resolved: "https://registry.example/helper",
+          integrity: "sha512-helper"
+        }
+      });
+      files[LOCKFILE] = JSON.stringify({
+        packages: {
+          "node_modules/@scope/pkg": {
+            version: "2.0.0",
+            resolved: "https://registry.example/@scope/pkg",
+            integrity: "sha512-pkg",
+            dependencies: { helper: "^1.0.0" }
+          },
+          "node_modules/helper": {
+            version: "1.5.0",
+            resolved: "https://registry.example/helper",
+            integrity: "sha512-other"
+          }
+        }
+      });
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("helper version changed");
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it("refuses when the pack changed mode since install", async () => {
+      await installRegisterPack();
+      files[`${packageDir("@scope/pkg")}/package.json`] = JSON.stringify({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: {}
+      });
+
+      const result = await trustNodePack("@scope/pkg");
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("changed from register to unknown");
+      expect(spawn).not.toHaveBeenCalled();
+    });
+
+    it("refuses a sandbox-only pack, which runs no host code", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@acme/sandbox",
+        version: "1.0.0",
+        nodetool: { sandboxModules: [{ name: ".", kind: "js", file: "s.js" }] },
+        sandbox: true
+      });
+      await installNodePack("@acme/sandbox");
+      jest.clearAllMocks();
+      stubNpmFound();
+
+      const result = await trustNodePack("@acme/sandbox");
+
+      expect(result.success).toBe(false);
+      expect(result.message).toContain("sandbox-only");
+      expect(spawn).not.toHaveBeenCalled();
     });
   });
 
@@ -221,6 +443,21 @@ describe("nodePackManager", () => {
       expect(result.message).toContain("Uninstalled @acme/cool-nodes");
     });
 
+    it("drops the ledger row so a reinstall is classified fresh", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: { register: "register" }
+      });
+      await installNodePack("@scope/pkg");
+
+      await uninstallNodePack("@scope/pkg");
+
+      const ledger = JSON.parse(files[LEDGER] ?? "{}");
+      expect(ledger.packs).toEqual({});
+    });
+
     it("rejects name with version suffix", async () => {
       const result = await uninstallNodePack("pkg@1.0.0");
       expect(result.success).toBe(false);
@@ -237,42 +474,64 @@ describe("nodePackManager", () => {
 
     it("finds packages with nodetool field", async () => {
       fsp.readdir.mockResolvedValueOnce(["cool-nodes"]);
-      fsp.readFile.mockResolvedValueOnce(
-        JSON.stringify({
-          name: "cool-nodes",
-          version: "1.2.3",
-          nodetool: { type: "node-pack" }
-        })
-      );
+      stubListedPackage("cool-nodes", {
+        name: "cool-nodes",
+        version: "1.2.3",
+        nodetool: { type: "node-pack" }
+      });
 
       const packs = await listInstalledNodePacks();
       expect(packs).toEqual([{ name: "cool-nodes", version: "1.2.3" }]);
     });
 
+    it("reports the install mode recorded in the ledger", async () => {
+      stubSuccessfulNpmSpawns();
+      stubInstalledPackage({
+        name: "@scope/pkg",
+        version: "2.0.0",
+        nodetool: { register: "register" }
+      });
+      await installNodePack("@scope/pkg");
+      fsp.readdir
+        .mockResolvedValueOnce(["@scope"])
+        .mockResolvedValueOnce(["pkg"]);
+
+      const packs = await listInstalledNodePacks();
+
+      expect(packs).toEqual([
+        {
+          name: "@scope/pkg",
+          version: "2.0.0",
+          installation: expect.objectContaining({
+            mode: "register",
+            active: false,
+            scripts: "skipped"
+          })
+        }
+      ]);
+    });
+
     it("skips packages without nodetool field", async () => {
       fsp.readdir.mockResolvedValueOnce(["regular-pkg"]);
-      fsp.readFile.mockResolvedValueOnce(
-        JSON.stringify({ name: "regular-pkg", version: "0.1.0" })
-      );
+      stubListedPackage("regular-pkg", { name: "regular-pkg", version: "0.1.0" });
 
       const packs = await listInstalledNodePacks();
       expect(packs).toEqual([]);
     });
 
     it("scans scoped packages", async () => {
-      fsp.readdir.mockResolvedValueOnce(["@acme"]);
-      fsp.readdir.mockResolvedValueOnce(["nodes-a", "nodes-b"]);
-      fsp.readFile
-        .mockResolvedValueOnce(
-          JSON.stringify({
-            name: "@acme/nodes-a",
-            version: "2.0.0",
-            nodetool: true
-          })
-        )
-        .mockResolvedValueOnce(
-          JSON.stringify({ name: "@acme/nodes-b", version: "3.0.0" })
-        );
+      fsp.readdir
+        .mockResolvedValueOnce(["@acme"])
+        .mockResolvedValueOnce(["nodes-a", "nodes-b"]);
+      stubListedPackage("@acme/nodes-a", {
+        name: "@acme/nodes-a",
+        version: "2.0.0",
+        nodetool: true
+      });
+      stubListedPackage("@acme/nodes-b", {
+        name: "@acme/nodes-b",
+        version: "3.0.0"
+      });
 
       const packs = await listInstalledNodePacks();
       expect(packs).toEqual([{ name: "@acme/nodes-a", version: "2.0.0" }]);
@@ -280,13 +539,11 @@ describe("nodePackManager", () => {
 
     it("skips .bin and .cache directories", async () => {
       fsp.readdir.mockResolvedValueOnce([".bin", ".cache", "real-pkg"]);
-      fsp.readFile.mockResolvedValueOnce(
-        JSON.stringify({
-          name: "real-pkg",
-          version: "1.0.0",
-          nodetool: {}
-        })
-      );
+      stubListedPackage("real-pkg", {
+        name: "real-pkg",
+        version: "1.0.0",
+        nodetool: {}
+      });
 
       const packs = await listInstalledNodePacks();
       expect(packs).toEqual([{ name: "real-pkg", version: "1.0.0" }]);
@@ -294,7 +551,7 @@ describe("nodePackManager", () => {
 
     it("skips packages with invalid JSON", async () => {
       fsp.readdir.mockResolvedValueOnce(["broken-pkg"]);
-      fsp.readFile.mockResolvedValueOnce("not json");
+      stubListedPackage("broken-pkg", "not json");
 
       const packs = await listInstalledNodePacks();
       expect(packs).toEqual([]);

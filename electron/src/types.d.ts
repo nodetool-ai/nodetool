@@ -104,6 +104,7 @@ declare global {
         listInstalled: () => Promise<NodePackInfo[]>;
         install: (spec: string) => Promise<NodePackActionResult>;
         uninstall: (name: string) => Promise<NodePackActionResult>;
+        trust: (name: string) => Promise<NodePackActionResult>;
         getInstallDir: () => Promise<string>;
         listBuiltin: () => Promise<BuiltinPackStatus[]>;
         setBuiltinEnabled: (
@@ -571,6 +572,7 @@ export enum IpcChannels {
   NODE_PACK_LIST_INSTALLED = "node-pack-list-installed",
   NODE_PACK_INSTALL = "node-pack-install",
   NODE_PACK_UNINSTALL = "node-pack-uninstall",
+  NODE_PACK_TRUST = "node-pack-trust",
   NODE_PACK_GET_INSTALL_DIR = "node-pack-get-install-dir",
   // Built-in node pack channels (first-party packs shipped with NodeTool)
   BUILTIN_PACK_LIST = "builtin-pack-list",
@@ -742,6 +744,7 @@ export interface IpcRequest {
   [IpcChannels.NODE_PACK_LIST_INSTALLED]: void;
   [IpcChannels.NODE_PACK_INSTALL]: { spec: string };
   [IpcChannels.NODE_PACK_UNINSTALL]: { name: string };
+  [IpcChannels.NODE_PACK_TRUST]: { name: string };
   [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: void;
   [IpcChannels.BUILTIN_PACK_LIST]: void;
   [IpcChannels.BUILTIN_PACK_SET_ENABLED]: { id: string; enabled: boolean };
@@ -853,6 +856,7 @@ export interface IpcResponse {
   [IpcChannels.NODE_PACK_LIST_INSTALLED]: NodePackInfo[];
   [IpcChannels.NODE_PACK_INSTALL]: NodePackActionResult;
   [IpcChannels.NODE_PACK_UNINSTALL]: NodePackActionResult;
+  [IpcChannels.NODE_PACK_TRUST]: NodePackActionResult;
   [IpcChannels.NODE_PACK_GET_INSTALL_DIR]: string;
   [IpcChannels.BUILTIN_PACK_LIST]: BuiltinPackStatus[];
   [IpcChannels.BUILTIN_PACK_SET_ENABLED]: BuiltinPackStatus[];
@@ -1006,6 +1010,8 @@ export interface PackageUninstallRequest {
 export interface NodePackInfo {
   name: string;
   version?: string;
+  /** Install mode and activation state, when the pack is in the install ledger. */
+  installation?: NodePackInstallStatus;
 }
 
 /** A first-party node pack shipped with NodeTool, plus its enabled state. */

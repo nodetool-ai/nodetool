@@ -365,6 +365,15 @@ const api = {
         name: validateNpmName(name),
       }),
 
+    /**
+     * Approve a register/hybrid pack: verify the recorded artifact identity,
+     * then run its lifecycle scripts against the copy already on disk.
+     */
+    trust: (name: string) =>
+      ipcRenderer.invoke(IpcChannels.NODE_PACK_TRUST, {
+        name: validateNpmName(name),
+      }),
+
     /** Path of the install root (so the UI can show it). */
     getInstallDir: () =>
       ipcRenderer.invoke(IpcChannels.NODE_PACK_GET_INSTALL_DIR),

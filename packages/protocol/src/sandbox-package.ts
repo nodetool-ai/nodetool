@@ -209,14 +209,53 @@ export const NodePackArtifactIdentitySchema = z.object({
 }).strict();
 export type NodePackArtifactIdentity = z.infer<typeof NodePackArtifactIdentitySchema>;
 
-/** Classification returned after an initial scripts-disabled node-pack install. */
+/** Whether lifecycle scripts have run for an installed pack. */
+export const NodePackScriptsStateSchema = z.enum(["skipped", "ran"]);
+export type NodePackScriptsState = z.infer<typeof NodePackScriptsStateSchema>;
+
+/**
+ * Classification of an installed node pack.
+ *
+ * `active` is the host's own gate, not npm's: a sandbox-only pack is active as
+ * soon as it installs, while a register or hybrid pack stays inactive until the
+ * user approves trust and the integrity-checked rebuild runs.
+ */
 export const NodePackInstallStatusSchema = z.object({
   mode: NodePackInstallModeSchema,
-  scripts: z.literal("skipped"),
+  scripts: NodePackScriptsStateSchema,
+  active: z.boolean(),
   artifact: NodePackArtifactIdentitySchema.optional(),
   reason: z.string().min(1).optional()
 }).strict();
 export type NodePackInstallStatus = z.infer<typeof NodePackInstallStatusSchema>;
+
+/**
+ * One pack's row in the install ledger.
+ *
+ * `dependencies` is the lockfile identity of every package the pack's own
+ * lifecycle scripts would run for. Trust approval compares the whole set
+ * against the lockfile again before enabling scripts, because `--ignore-scripts`
+ * suppressed the dependencies' scripts too.
+ */
+export const NodePackInstallRecordSchema = z.object({
+  name: z.string().min(1),
+  mode: NodePackInstallModeSchema,
+  scripts: NodePackScriptsStateSchema,
+  active: z.boolean(),
+  artifact: NodePackArtifactIdentitySchema.optional(),
+  reason: z.string().min(1).optional(),
+  dependencies: z.array(NodePackArtifactIdentitySchema).optional(),
+  installedAt: z.string().min(1).optional(),
+  trustedAt: z.string().min(1).optional()
+}).strict();
+export type NodePackInstallRecord = z.infer<typeof NodePackInstallRecordSchema>;
+
+/** The on-disk ledger of what the host installed and what it authorized. */
+export const NodePackLedgerSchema = z.object({
+  version: z.literal(1),
+  packs: z.record(z.string(), NodePackInstallRecordSchema)
+}).strict();
+export type NodePackLedger = z.infer<typeof NodePackLedgerSchema>;
 
 /** Result returned across the Electron IPC boundary for node-pack mutations. */
 export const NodePackActionResultSchema = z.object({
@@ -225,6 +264,19 @@ export const NodePackActionResultSchema = z.object({
   installation: NodePackInstallStatusSchema.optional()
 }).strict();
 export type NodePackActionResult = z.infer<typeof NodePackActionResultSchema>;
+
+/** Reduce a ledger row to the status shape the UI and IPC consume. */
+export function nodePackInstallStatus(
+  record: NodePackInstallRecord
+): NodePackInstallStatus {
+  return {
+    mode: record.mode,
+    scripts: record.scripts,
+    active: record.active,
+    ...(record.artifact === undefined ? {} : { artifact: record.artifact }),
+    ...(record.reason === undefined ? {} : { reason: record.reason })
+  };
+}
 
 /** Parse only the sandbox-owned subset of a pack manifest. */
 export function parseSandboxPackManifest(value: unknown): SandboxPackManifest {

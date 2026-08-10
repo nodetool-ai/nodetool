@@ -159,6 +159,186 @@ const PackRow = memo(function PackRow({
   );
 });
 
+type NodePackInstallMode = "sandbox-only" | "register" | "hybrid" | "unknown";
+
+interface NodePackInstallStatus {
+  mode: NodePackInstallMode;
+  scripts: "skipped" | "ran";
+  active: boolean;
+  reason?: string;
+}
+
+interface NodePackActionResult {
+  success: boolean;
+  message: string;
+  installation?: NodePackInstallStatus;
+}
+
+interface InstalledNodePack {
+  name: string;
+  version?: string;
+  installation?: NodePackInstallStatus;
+}
+
+interface NodePacksApi {
+  listInstalled: () => Promise<InstalledNodePack[]>;
+  install: (spec: string) => Promise<NodePackActionResult>;
+  trust: (name: string) => Promise<NodePackActionResult>;
+}
+
+function nodePacksApi(): NodePacksApi | undefined {
+  const api = window.api as undefined | { nodePacks?: Partial<NodePacksApi> };
+  const packs = api?.nodePacks;
+  if (!packs?.listInstalled || !packs.install || !packs.trust) return undefined;
+  return packs as NodePacksApi;
+}
+
+const MODE_LABEL: Record<NodePackInstallMode, string> = {
+  "sandbox-only": "sandbox modules only",
+  register: "registers host nodes",
+  hybrid: "host nodes + sandbox modules",
+  unknown: "unrecognized manifest"
+};
+
+/**
+ * What the install mode means for the user. Install is never authorization:
+ * anything that runs host code stays inactive until trust is approved.
+ */
+function installStateText(status: NodePackInstallStatus): string {
+  if (status.mode === "unknown") {
+    return `Inactive. The installed manifest is not a supported NodeTool pack, so trust cannot be granted.${
+      status.reason ? ` ${status.reason}` : ""
+    }`;
+  }
+  if (status.mode === "sandbox-only") {
+    return "Active. Its modules run inside the sandbox with the importing node's capabilities. No host code and no lifecycle scripts ran.";
+  }
+  if (status.active) {
+    return "Trusted. Lifecycle scripts ran against the artifact that was installed.";
+  }
+  return "Inactive. It installed with lifecycle scripts disabled and runs no host code until you approve trust.";
+}
+
+const InstalledPacksPanel = memo(function InstalledPacksPanel({
+  packs,
+  onChanged
+}: {
+  packs: InstalledNodePack[];
+  onChanged: () => void;
+}) {
+  const [busy, setBusy] = useState<string | null>(null);
+  const [result, setResult] = useState<
+    { name: string; ok: boolean; message: string } | null
+  >(null);
+
+  const handleTrust = useCallback(
+    async (name: string) => {
+      const api = nodePacksApi();
+      if (!api) return;
+      setBusy(name);
+      setResult(null);
+      try {
+        const trusted = await api.trust(name);
+        setResult({ name, ok: trusted.success, message: trusted.message });
+        if (trusted.success) onChanged();
+      } catch (err: unknown) {
+        setResult({
+          name,
+          ok: false,
+          message: err instanceof Error ? err.message : String(err)
+        });
+      } finally {
+        setBusy(null);
+      }
+    },
+    [onChanged]
+  );
+
+  if (packs.length === 0) return null;
+
+  return (
+    <FlexColumn gap={1.75}>
+      <Text size="normal" weight={600}>
+        Installed by NodeTool ({packs.length})
+      </Text>
+      <FlexColumn gap={1.25}>
+        {packs.map((pack) => {
+          const status = pack.installation;
+          const needsTrust =
+            status !== undefined &&
+            !status.active &&
+            (status.mode === "register" || status.mode === "hybrid");
+          return (
+            <FlexColumn
+              key={pack.name}
+              gap={0.75}
+              sx={(theme) => ({
+                px: 2.25,
+                py: 1.75,
+                borderRadius: BORDER_RADIUS.xl,
+                border: `1px solid ${theme.vars.palette.divider}`,
+                backgroundColor: theme.vars.palette.background.paper
+              })}
+            >
+              <FlexRow gap={3} align="center" sx={{ flexWrap: "wrap" }}>
+                <FlexColumn gap={0.5} sx={{ minWidth: 0, flex: 1 }}>
+                  <FlexRow gap={1} align="center" sx={{ flexWrap: "wrap" }}>
+                    <Text size="normal" weight={600} truncate>
+                      {pack.name}
+                    </Text>
+                    {pack.version && (
+                      <Text size="small" color="secondary" family="secondary">
+                        v{pack.version}
+                      </Text>
+                    )}
+                    {status && (
+                      <>
+                        <Chip label={MODE_LABEL[status.mode]} compact />
+                        <Chip
+                          label={status.active ? "active" : "inactive"}
+                          color={
+                            status.active
+                              ? "success"
+                              : status.mode === "unknown"
+                                ? "error"
+                                : "warning"
+                          }
+                          compact
+                        />
+                      </>
+                    )}
+                  </FlexRow>
+                  <Text size="small" color="secondary">
+                    {status
+                      ? installStateText(status)
+                      : "Installed outside the current install ledger, so its mode is unknown here."}
+                  </Text>
+                </FlexColumn>
+                {needsTrust && (
+                  <EditorButton
+                    variant="contained"
+                    density="compact"
+                    onClick={() => void handleTrust(pack.name)}
+                    disabled={busy !== null}
+                    sx={{ flexShrink: 0 }}
+                  >
+                    {busy === pack.name ? "Verifying…" : "Trust and rebuild"}
+                  </EditorButton>
+                )}
+              </FlexRow>
+              {result?.name === pack.name && (
+                <AlertBanner severity={result.ok ? "success" : "error"} compact>
+                  {result.message}
+                </AlertBanner>
+              )}
+            </FlexColumn>
+          );
+        })}
+      </FlexColumn>
+    </FlexColumn>
+  );
+});
+
 const InstallPanel = memo(function InstallPanel({
   onInstalled
 }: {
@@ -169,6 +349,7 @@ const InstallPanel = memo(function InstallPanel({
     { kind: "idle" }
     | { kind: "installing" }
     | { kind: "ok"; message: string }
+    | { kind: "warn"; message: string }
     | { kind: "err"; message: string }
   >({ kind: "idle" });
 
@@ -177,25 +358,24 @@ const InstallPanel = memo(function InstallPanel({
     if (!trimmed) return;
     setStatus({ kind: "installing" });
     try {
-      const api = window.api as
-        | undefined
-        | {
-            nodePacks?: {
-              install: (
-                s: string
-              ) => Promise<{ success: boolean; message: string }>;
-            };
-          };
-      if (!api?.nodePacks?.install) {
+      const api = nodePacksApi();
+      if (!api) {
         setStatus({
           kind: "err",
           message: "Node pack install is not available in this build."
         });
         return;
       }
-      const result = await api.nodePacks.install(trimmed);
-      if (result.success) {
-        setStatus({ kind: "ok", message: result.message });
+      const result = await api.install(trimmed);
+      // A pack that installed but stayed inactive is not an error: the message
+      // says which mode applied and what approval it still needs.
+      const inactive =
+        !result.success && result.installation?.mode !== undefined;
+      if (result.success || inactive) {
+        setStatus({
+          kind: inactive ? "warn" : "ok",
+          message: result.message
+        });
         setSpec("");
         onInstalled();
       } else {
@@ -246,6 +426,11 @@ const InstallPanel = memo(function InstallPanel({
           {status.message}
         </AlertBanner>
       )}
+      {status.kind === "warn" && (
+        <AlertBanner severity="warning" compact>
+          {status.message}
+        </AlertBanner>
+      )}
       {status.kind === "err" && (
         <AlertBanner severity="error" compact>
           {status.message}
@@ -278,9 +463,25 @@ function PackagesMenu() {
     }))
   );
 
+  const [installed, setInstalled] = useState<InstalledNodePack[]>([]);
+
+  const refreshInstalled = useCallback(async () => {
+    const api = nodePacksApi();
+    if (!api) return;
+    try {
+      setInstalled(await api.listInstalled());
+    } catch {
+      setInstalled([]);
+    }
+  }, []);
+
   useEffect(() => {
     void fetch();
   }, [fetch]);
+
+  useEffect(() => {
+    void refreshInstalled();
+  }, [refreshInstalled]);
 
   const trustedSet = new Set(trust.allowlist);
   const isTrusted = (name: string) =>
@@ -320,7 +521,24 @@ function PackagesMenu() {
         </FlexRow>
       </FlexColumn>
 
-      {isElectron && <InstallPanel onInstalled={() => void reload()} />}
+      {isElectron && (
+        <InstallPanel
+          onInstalled={() => {
+            void reload();
+            void refreshInstalled();
+          }}
+        />
+      )}
+
+      {isElectron && (
+        <InstalledPacksPanel
+          packs={installed}
+          onChanged={() => {
+            void reload();
+            void refreshInstalled();
+          }}
+        />
+      )}
 
       <FlexColumn gap={1.75}>
         <FlexRow gap={1} align="center" justify="space-between">

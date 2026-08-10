@@ -15,9 +15,13 @@ import { app } from "electron";
 import { discoverSandboxPack } from "@nodetool-ai/node-sdk/sandbox-pack-discovery";
 import {
   NodePackHostManifestSchema,
+  NodePackLedgerSchema,
+  nodePackInstallStatus,
   type NodePackActionResult,
+  type NodePackArtifactIdentity,
   type NodePackInstallMode,
-  type NodePackInstallStatus
+  type NodePackInstallRecord,
+  type NodePackLedger
 } from "@nodetool-ai/protocol/sandbox-package";
 import { z } from "zod";
 
@@ -51,11 +55,17 @@ const installedPackageSchema = z.object({
 const lockfileEntrySchema = z.object({
   version: z.string().min(1).optional(),
   resolved: z.string().min(1).optional(),
-  integrity: z.string().min(1).optional()
+  integrity: z.string().min(1).optional(),
+  dependencies: z.record(z.string(), z.string()).optional(),
+  optionalDependencies: z.record(z.string(), z.string()).optional()
 }).passthrough();
 const lockfileSchema = z.object({
   packages: z.record(z.string(), lockfileEntrySchema).optional()
 }).passthrough();
+type LockfilePackages = Record<string, z.infer<typeof lockfileEntrySchema>>;
+
+/** Ledger filename inside the install root. Not an npm artifact — host state. */
+const LEDGER_FILE = "nodetool-packs.json";
 
 function assertValidSpec(spec: string): void {
   if (typeof spec !== "string" || !SPEC_RE.test(spec)) {
@@ -136,19 +146,27 @@ export async function installNodePack(
   try {
     assertValidSpec(spec);
     await runNpm(["install", "--ignore-scripts", spec]);
-    const installation = await classifyInstalledNodePack(spec);
-    if (installation.mode !== "sandbox-only") {
+    const name = packageNameFromSpec(spec);
+    const record = await classifyInstalledNodePack(name);
+    await writeLedgerRecord(record);
+    const installation = nodePackInstallStatus(record);
+    if (record.mode === "unknown") {
       return {
         success: false,
-        message: installation.mode === "unknown"
-          ? `Installed ${spec} with lifecycle scripts disabled, but its manifest is not a supported sandbox-only NodeTool pack.`
-          : `Installed ${spec} with lifecycle scripts disabled. Trust approval and an integrity-checked rebuild are required before host registration can run.`,
+        message: `Installed ${spec} with lifecycle scripts disabled, but its manifest is not a supported NodeTool pack.`,
+        installation
+      };
+    }
+    if (!record.active) {
+      return {
+        success: false,
+        message: `Installed ${spec} with lifecycle scripts disabled. It stays inactive until you approve trust, which verifies the recorded artifact integrity and then runs the pack's lifecycle scripts.`,
         installation
       };
     }
     return {
       success: true,
-      message: `Installed ${spec} with lifecycle scripts disabled. It will be cataloged when sandbox-package host integration is enabled.`,
+      message: `Installed ${spec} with lifecycle scripts disabled. Its sandbox modules are cataloged after the server restarts.`,
       installation
     };
   } catch (error) {
@@ -158,45 +176,159 @@ export async function installNodePack(
   }
 }
 
-async function classifyInstalledNodePack(spec: string): Promise<NodePackInstallStatus> {
-  const name = packageNameFromSpec(spec);
+/**
+ * Approve a register or hybrid pack and run its lifecycle scripts against the
+ * artifact already on disk.
+ *
+ * The recorded lockfile identity of the pack and of every package its scripts
+ * would run for is verified first, so an artifact swapped between install and
+ * approval never reaches a script-enabled npm run. A version number alone is
+ * not identity: `resolved` and `integrity` are compared too.
+ */
+export async function trustNodePack(name: string): Promise<NodePackActionResult> {
+  try {
+    assertValidName(name);
+    const ledger = await readLedger();
+    const recorded = ledger.packs[name];
+    if (recorded === undefined) {
+      return { success: false, message: `${name} was not installed by NodeTool, so there is no recorded artifact to verify.` };
+    }
+    if (recorded.mode === "unknown") {
+      return {
+        success: false,
+        message: `${name} does not declare a supported NodeTool manifest. Trust cannot be granted to an unknown pack.`,
+        installation: nodePackInstallStatus(recorded)
+      };
+    }
+    if (recorded.mode === "sandbox-only") {
+      return {
+        success: false,
+        message: `${name} is sandbox-only. It runs no host code and needs no lifecycle scripts.`,
+        installation: nodePackInstallStatus(recorded)
+      };
+    }
+
+    const current = await classifyInstalledNodePack(name);
+    if (current.mode !== recorded.mode) {
+      return {
+        success: false,
+        message: `${name} changed from ${recorded.mode} to ${current.mode} since it was installed. Reinstall it before approving trust.`,
+        installation: nodePackInstallStatus(current)
+      };
+    }
+    const drift = artifactDrift(recorded, current);
+    if (drift !== undefined) {
+      return {
+        success: false,
+        message: `${name} is not the artifact that was installed: ${drift}. Reinstall it before approving trust.`,
+        installation: nodePackInstallStatus(current)
+      };
+    }
+
+    const rebuildTargets = [name, ...(current.dependencies ?? []).map((entry) => entry.name)];
+    await runNpm(["rebuild", ...rebuildTargets]);
+
+    const approved: NodePackInstallRecord = {
+      ...current,
+      scripts: "ran",
+      active: true,
+      trustedAt: new Date().toISOString()
+    };
+    await writeLedgerRecord(approved);
+    return {
+      success: true,
+      message: `Approved ${name} and ran lifecycle scripts for it and ${rebuildTargets.length - 1} dependenc${rebuildTargets.length === 2 ? "y" : "ies"}. Add it to the pack allowlist in Settings → Packages, then restart the server to load it.`,
+      installation: nodePackInstallStatus(approved)
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logMessage(`trustNodePack failed for ${name}: ${message}`, "warn");
+    return { success: false, message };
+  }
+}
+
+async function classifyInstalledNodePack(name: string): Promise<NodePackInstallRecord> {
   const packageDir = packageDirectory(name);
-  const artifact = await readArtifactIdentity(name);
+  const lockfile = await readLockfilePackages();
+  const artifact = artifactIdentity(name, lockfile);
+  const dependencies = dependencyClosure(name, lockfile);
+  const base = {
+    name,
+    scripts: "skipped" as const,
+    ...(artifact === undefined ? {} : { artifact }),
+    ...(dependencies.length === 0 ? {} : { dependencies }),
+    installedAt: new Date().toISOString()
+  };
+  const unknown = (reason?: unknown): NodePackInstallRecord => ({
+    ...base,
+    mode: "unknown",
+    active: false,
+    ...(reason instanceof Error ? { reason: reason.message } : {})
+  });
+
   let rawPackage: string;
   try {
     rawPackage = await fsp.readFile(path.join(packageDir, "package.json"), "utf8");
   } catch {
     // A missing installed manifest is classified as untrusted rather than retried.
-    return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+    return unknown();
   }
   const parsedPackage = installedPackageSchema.safeParse(parseJson(rawPackage));
   if (!parsedPackage.success || parsedPackage.data.name !== name) {
-    return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+    return unknown();
   }
   const rawManifest = parsedPackage.data.nodetool;
   const manifest = NodePackHostManifestSchema.safeParse(rawManifest);
   if (!manifest.success || !isRecord(rawManifest)) {
-    return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+    return unknown();
   }
   const hasSandboxModules = Object.hasOwn(rawManifest, "sandboxModules");
   const hasRegister = Object.hasOwn(rawManifest, "register");
   const hasHostDeclaration = hasRegister || Object.hasOwn(rawManifest, "apiVersion");
   if (hasSandboxModules) {
     try {
-      if (discoverSandboxPack(packageDir) === undefined) {
-        return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
-      }
+      if (discoverSandboxPack(packageDir) === undefined) return unknown();
     } catch (error) {
-      return unknownInstallation(artifact, error);
+      return unknown(error);
     }
   }
   if (!hasSandboxModules && !hasHostDeclaration) {
-    return { mode: "unknown", scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+    return unknown();
   }
   const mode: NodePackInstallMode = hasSandboxModules
     ? hasRegister ? "hybrid" : "sandbox-only"
     : "register";
-  return { mode, scripts: "skipped", ...(artifact === undefined ? {} : { artifact }) };
+  return { ...base, mode, active: mode === "sandbox-only" };
+}
+
+/** Describe the first identity field that moved, or undefined when nothing did. */
+function artifactDrift(
+  recorded: NodePackInstallRecord,
+  current: NodePackInstallRecord
+): string | undefined {
+  const recordedAll = [
+    ...(recorded.artifact === undefined ? [] : [recorded.artifact]),
+    ...(recorded.dependencies ?? [])
+  ];
+  if (recordedAll.length === 0) {
+    return "no lockfile identity was recorded at install time";
+  }
+  const currentAll = new Map(
+    [
+      ...(current.artifact === undefined ? [] : [current.artifact]),
+      ...(current.dependencies ?? [])
+    ].map((entry) => [entry.name, entry])
+  );
+  for (const entry of recordedAll) {
+    const now = currentAll.get(entry.name);
+    if (now === undefined) return `${entry.name} is no longer in the lockfile`;
+    for (const field of ["version", "resolved", "integrity"] as const) {
+      if (entry[field] !== now[field]) {
+        return `${entry.name} ${field} changed from ${entry[field] ?? "none"} to ${now[field] ?? "none"}`;
+      }
+    }
+  }
+  return undefined;
 }
 
 function packageNameFromSpec(spec: string): string {
@@ -210,23 +342,109 @@ function packageDirectory(name: string): string {
   return path.join(nodeModulesDir(), ...name.split("/"));
 }
 
-async function readArtifactIdentity(name: string): Promise<NodePackInstallStatus["artifact"]> {
+async function readLockfilePackages(): Promise<LockfilePackages> {
   try {
     const rawLockfile = await fsp.readFile(path.join(getNodePackInstallRoot(), "package-lock.json"), "utf8");
     const lockfile = lockfileSchema.safeParse(parseJson(rawLockfile));
-    const entry = lockfile.success
-      ? lockfile.data.packages?.[`node_modules/${name}`]
-      : undefined;
-    return {
-      name,
-      ...(entry?.version === undefined ? {} : { version: entry.version }),
-      ...(entry?.resolved === undefined ? {} : { resolved: entry.resolved }),
-      ...(entry?.integrity === undefined ? {} : { integrity: entry.integrity })
-    };
+    return lockfile.success ? lockfile.data.packages ?? {} : {};
   } catch {
     // The lockfile may not exist after a failed or interrupted npm install.
-    return { name };
+    return {};
   }
+}
+
+function artifactIdentity(
+  name: string,
+  packages: LockfilePackages,
+  lockPath = `node_modules/${name}`
+): NodePackArtifactIdentity | undefined {
+  const entry = packages[lockPath];
+  if (entry === undefined) return undefined;
+  return {
+    name,
+    ...(entry.version === undefined ? {} : { version: entry.version }),
+    ...(entry.resolved === undefined ? {} : { resolved: entry.resolved }),
+    ...(entry.integrity === undefined ? {} : { integrity: entry.integrity })
+  };
+}
+
+/**
+ * Every package whose lifecycle scripts run when the pack is rebuilt: its
+ * transitive runtime and optional dependencies, resolved the way npm resolves
+ * them — nested `node_modules` first, then each parent up to the install root.
+ */
+function dependencyClosure(
+  name: string,
+  packages: LockfilePackages
+): NodePackArtifactIdentity[] {
+  const rootPath = `node_modules/${name}`;
+  if (packages[rootPath] === undefined) return [];
+  const seen = new Set<string>([rootPath]);
+  const found = new Map<string, NodePackArtifactIdentity>();
+  const pending = [rootPath];
+  for (let index = 0; index < pending.length; index += 1) {
+    const current = pending[index];
+    if (current === undefined) continue;
+    const entry = packages[current];
+    if (entry === undefined) continue;
+    const deps = { ...entry.dependencies, ...entry.optionalDependencies };
+    for (const dep of Object.keys(deps)) {
+      const resolved = resolveLockPath(current, dep, packages);
+      if (resolved === undefined || seen.has(resolved)) continue;
+      seen.add(resolved);
+      pending.push(resolved);
+      const identity = artifactIdentity(dep, packages, resolved);
+      if (identity !== undefined && !found.has(dep)) found.set(dep, identity);
+    }
+  }
+  return [...found.values()].sort((left, right) => left.name.localeCompare(right.name));
+}
+
+/** Walk `<from>/node_modules/<dep>` outward, mirroring Node's resolution order. */
+function resolveLockPath(
+  from: string,
+  dep: string,
+  packages: LockfilePackages
+): string | undefined {
+  const segments = from.split("/");
+  for (let depth = segments.length; depth >= 0; depth -= 1) {
+    const prefix = segments.slice(0, depth).join("/");
+    const candidate = prefix === "" ? `node_modules/${dep}` : `${prefix}/node_modules/${dep}`;
+    if (packages[candidate] !== undefined) return candidate;
+  }
+  return undefined;
+}
+
+function ledgerPath(): string {
+  return path.join(getNodePackInstallRoot(), LEDGER_FILE);
+}
+
+async function readLedger(): Promise<NodePackLedger> {
+  try {
+    const raw = await fsp.readFile(ledgerPath(), "utf8");
+    const parsed = NodePackLedgerSchema.safeParse(parseJson(raw));
+    if (parsed.success) return parsed.data;
+  } catch {
+    // No ledger yet, or one written by an incompatible version.
+  }
+  return { version: 1, packs: {} };
+}
+
+async function writeLedgerRecord(record: NodePackInstallRecord): Promise<void> {
+  const ledger = await readLedger();
+  const next: NodePackLedger = {
+    version: 1,
+    packs: { ...ledger.packs, [record.name]: record }
+  };
+  await writeLedger(next);
+}
+
+async function writeLedger(ledger: NodePackLedger): Promise<void> {
+  await ensureInstallRoot();
+  const target = ledgerPath();
+  const temp = `${target}.tmp`;
+  await fsp.writeFile(temp, `${JSON.stringify(ledger, null, 2)}\n`, "utf8");
+  await fsp.rename(temp, target);
 }
 
 function parseJson(value: string): unknown {
@@ -236,19 +454,6 @@ function parseJson(value: string): unknown {
     // Invalid package metadata is classified as unknown rather than trusted.
     return undefined;
   }
-}
-
-function unknownInstallation(
-  artifact: NodePackInstallStatus["artifact"],
-  error?: unknown
-): NodePackInstallStatus {
-  const reason = error instanceof Error ? error.message : undefined;
-  return {
-    mode: "unknown",
-    scripts: "skipped",
-    ...(artifact === undefined ? {} : { artifact }),
-    ...(reason === undefined ? {} : { reason })
-  };
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -262,6 +467,11 @@ export async function uninstallNodePack(
   try {
     assertValidName(name);
     await runNpm(["uninstall", name]);
+    const ledger = await readLedger();
+    if (ledger.packs[name] !== undefined) {
+      const { [name]: _removed, ...rest } = ledger.packs;
+      await writeLedger({ version: 1, packs: rest });
+    }
     return {
       success: true,
       message: `Uninstalled ${name}. Restart the server to apply.`
@@ -275,10 +485,11 @@ export async function uninstallNodePack(
 
 /**
  * Scan the install root and return every package whose `package.json` has a
- * `nodetool` field.
+ * `nodetool` field, with the install mode the ledger recorded for it.
  */
 export async function listInstalledNodePacks(): Promise<NodePackInfo[]> {
   const root = nodeModulesDir();
+  const ledger = await readLedger();
   const results: NodePackInfo[] = [];
   let topLevel: string[];
   try {
@@ -313,6 +524,8 @@ export async function listInstalledNodePacks(): Promise<NodePackInfo[]> {
       if (parsed.nodetool && parsed.name) {
         const info: NodePackInfo = { name: parsed.name };
         if (parsed.version !== undefined) info.version = parsed.version;
+        const record = ledger.packs[parsed.name];
+        if (record !== undefined) info.installation = nodePackInstallStatus(record);
         results.push(info);
       }
     } catch {
