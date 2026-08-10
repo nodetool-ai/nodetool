@@ -1,59 +1,22 @@
-import type { ProcessingContext, BaseProvider } from "@nodetool-ai/runtime";
-import { Tool } from "./base-tool.js";
+/**
+ * `list_provider_models` — the language models one provider offers.
+ *
+ * @deprecated Ported to the `models` capability module
+ * (`../capabilities/models.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import {
+  CapabilityTool,
+  UNGATED,
+  createCapabilityRun
+} from "../capabilities/index.js";
+import { listProviderModels } from "../capabilities/models.js";
 
-export class ListProviderModelsTool extends Tool {
-  readonly name = "list_provider_models";
-  readonly description = "List available language models from a provider.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      provider: {
-        type: "string" as const,
-        description: "Provider ID (e.g. 'openai', 'anthropic')"
-      }
-    },
-    required: ["provider"]
-  };
-
-  private providers: Record<string, BaseProvider>;
-
+export class ListProviderModelsTool extends CapabilityTool {
   constructor(providers: Record<string, BaseProvider>) {
-    super();
-    this.providers = providers;
-  }
-
-  async process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const providerId = params.provider;
-    if (typeof providerId !== "string") {
-      return { success: false, error: "provider must be a string" };
-    }
-
-    const provider = this.providers[providerId];
-    if (!provider) {
-      return { success: false, error: `Unknown provider: ${providerId}` };
-    }
-
-    if (
-      typeof (provider as unknown as Record<string, unknown>)
-        .getAvailableLanguageModels !== "function"
-    ) {
-      return {
-        success: false,
-        error: `Provider ${providerId} does not support model listing`
-      };
-    }
-
-    try {
-      const models = await provider.getAvailableLanguageModels();
-      return { success: true, provider: providerId, models };
-    } catch (e) {
-      return {
-        success: false,
-        error: `Failed to list models: ${e instanceof Error ? e.message : String(e)}`
-      };
-    }
+    super(listProviderModels.spec, listProviderModels.impl, (context) =>
+      createCapabilityRun({ context, gate: UNGATED, providers })
+    );
   }
 }

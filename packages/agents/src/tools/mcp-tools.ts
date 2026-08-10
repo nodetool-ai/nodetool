@@ -36,17 +36,16 @@ import { Tool } from "./base-tool.js";
 import { LocalListNodesTool } from "./local-list-nodes-tool.js";
 import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
 import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
-import { FindModelTool } from "./find-model-tool.js";
-import { ListModelsTool } from "./list-models-tool.js";
+import { findModel, listModels } from "../capabilities/models.js";
 import {
-  GenerateImageTool,
-  EditImageTool,
-  GenerateVideoTool,
-  AnimateImageTool,
-  GenerateSpeechTool,
-  TranscribeAudioTool,
-  EmbedTextTool
-} from "./media-tools.js";
+  animateImage,
+  editImage,
+  embedText,
+  generateImage,
+  generateSpeech,
+  generateVideo,
+  transcribeAudio
+} from "../capabilities/media.js";
 import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
@@ -62,9 +61,9 @@ import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 import { forwardSubAgentStream } from "../subagent.js";
 import {
   CapabilityTool,
+  UNGATED,
   createCapabilityRun,
   toolFromCapability,
-  type CapabilityGate,
   type CapabilityRun
 } from "../capabilities/index.js";
 import {
@@ -96,19 +95,6 @@ export type {
   ModelCatalogs,
   WorkflowEnvironmentProvider
 } from "./mcp-tool-support.js";
-
-/**
- * The gate a directly-constructed tool carries. These classes are gated from
- * the outside — `gateTools` wraps them per turn, exactly as before — and the
- * adapter calls the implementation without consulting the run's own gate, so
- * this exists only to satisfy the run's shape. `auto` keeps the two paths
- * equivalent if anything ever reaches `invoke` through one of them.
- */
-const UNGATED: CapabilityGate = {
-  mode: "auto",
-  sessionAllow: new Set<string>(),
-  requestApproval: async () => "allow"
-};
 
 /** What a host injects into the workflow capabilities. */
 interface WorkflowCapabilityDeps {
@@ -1377,16 +1363,25 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   tools.push(...createWorkflowDocumentTools(options.registry));
 
   if (options.providers && Object.keys(options.providers).length > 0) {
+    // The providers map rides on the run and is read at call time, so a host
+    // that fills it lazily still serves what it resolved after construction.
+    const providers = options.providers;
+    const modelRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({ context, gate: UNGATED, providers });
+    const mediaRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({ context, gate: UNGATED });
     tools.push(
-      new FindModelTool(options.providers),
-      new ListModelsTool(options.providers),
-      new GenerateImageTool(),
-      new EditImageTool(),
-      new GenerateVideoTool(),
-      new AnimateImageTool(),
-      new GenerateSpeechTool(),
-      new TranscribeAudioTool(),
-      new EmbedTextTool()
+      toolFromCapability(findModel.spec, findModel.impl, modelRun),
+      toolFromCapability(listModels.spec, listModels.impl, modelRun),
+      ...[
+        generateImage,
+        editImage,
+        generateVideo,
+        animateImage,
+        generateSpeech,
+        transcribeAudio,
+        embedText
+      ].map((entry) => toolFromCapability(entry.spec, entry.impl, mediaRun))
     );
   }
 

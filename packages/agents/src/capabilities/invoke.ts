@@ -23,6 +23,7 @@ import {
   type PermissionCategory
 } from "../tools/tool-permissions.js";
 import { findCapability } from "./registry.js";
+import type { LongTermMemory } from "../long-term-memory.js";
 import type {
   CapabilityExport,
   CapabilityGate,
@@ -40,6 +41,20 @@ import type {
   WorkflowEnvironmentProvider
 } from "../tools/mcp-tools.js";
 
+/**
+ * The gate a directly-constructed tool carries. The deprecated `Tool`
+ * subclasses are gated from the outside — `gateTools` wraps them per turn,
+ * exactly as before — and the adapter calls the implementation without
+ * consulting the run's own gate, so this exists only to satisfy the run's
+ * shape. `auto` keeps the two paths equivalent if anything ever reaches
+ * {@link CapabilityRun.invoke} through one of them.
+ */
+export const UNGATED: CapabilityGate = {
+  mode: "auto",
+  sessionAllow: new Set<string>(),
+  requestApproval: async () => "allow"
+};
+
 export interface CreateCapabilityRunOptions {
   context: ProcessingContext;
   gate: CapabilityGate;
@@ -52,6 +67,7 @@ export interface CreateCapabilityRunOptions {
   modelCatalogs?: ModelCatalogs;
   listPackageAssets?: PackageAssetLister;
   workflowEnvironment?: WorkflowEnvironmentProvider;
+  memory?: LongTermMemory;
   loaders?: CapabilityLoaders;
   /**
    * Capabilities this run serves beyond the registry — the subsystem-dependent
@@ -83,6 +99,7 @@ export function createCapabilityRun(
     modelCatalogs: options.modelCatalogs,
     listPackageAssets: options.listPackageAssets,
     workflowEnvironment: options.workflowEnvironment,
+    memory: options.memory,
     loaders: options.loaders,
     invoke: async (name, args) => {
       const entry = local.get(name) ?? (await findCapability(name));

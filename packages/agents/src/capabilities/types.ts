@@ -19,6 +19,7 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PermissionGateOptions } from "../tools/tool-permissions.js";
 import type { PermissionCategory } from "../tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../subagent.js";
+import type { LongTermMemory } from "../long-term-memory.js";
 import type {
   ExampleWorkflowCatalog,
   ModelCatalogs,
@@ -107,6 +108,13 @@ export interface CapabilityRun {
   readonly modelCatalogs?: ModelCatalogs;
   readonly listPackageAssets?: PackageAssetLister;
   readonly workflowEnvironment?: WorkflowEnvironmentProvider;
+  /**
+   * The long-term memory the style capabilities read and write. A run that
+   * carries none falls back to the per-user registry keyed on
+   * `context.userId` — the two-way resolution the tool classes did with their
+   * optional bound-memory constructor argument.
+   */
+  readonly memory?: LongTermMemory;
   readonly loaders?: CapabilityLoaders;
   /** The single choke point: lookup → gate → impl. Every surface calls this. */
   invoke(name: string, args: Record<string, unknown>): Promise<unknown>;

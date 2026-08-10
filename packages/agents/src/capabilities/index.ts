@@ -33,5 +33,9 @@ export {
   capabilityFromTool
 } from "./adapters.js";
 export type { CapabilityRunSource } from "./adapters.js";
-export { createCapabilityRun, resolveCapabilityMessage } from "./invoke.js";
+export {
+  UNGATED,
+  createCapabilityRun,
+  resolveCapabilityMessage
+} from "./invoke.js";
 export type { CreateCapabilityRunOptions } from "./invoke.js";

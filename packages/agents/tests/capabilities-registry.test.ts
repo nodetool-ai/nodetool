@@ -33,17 +33,34 @@ import {
  * capability; changing one is a reviewable diff, which is the whole point.
  */
 const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
+  animate_image: "write",
+  // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the map's conservative
+  // default classes the three judges and the taste pair `external`.
+  compare_images: "external",
   create_workflow: "write",
+  critique_image: "external",
   debug_workflow: "execute",
+  edit_image: "write",
+  embed_text: "write",
   export_workflow_digraph: "read",
+  find_model: "read",
+  generate_image: "write",
+  generate_speech: "write",
+  generate_video: "write",
   get_example_workflow: "read",
+  get_style_profile: "external",
   get_workflow: "read",
+  list_models: "read",
+  list_provider_models: "read",
   list_workflows: "read",
+  record_style_preference: "external",
   // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the map's conservative
   // default classes it `external`. Carried over as-is by the port.
   resolve_workflow_escalation: "external",
   run_workflow: "execute",
+  score_image_adherence: "external",
   start_background_job: "execute",
+  transcribe_audio: "write",
   validate_workflow: "read"
 };
 
