@@ -144,7 +144,37 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   // --- email ---
   search_email: "read",
   archive_email: "external",
-  add_label_to_email: "external"
+  add_label_to_email: "external",
+  // timelines
+  list_timelines: "read",
+  list_timeline_versions: "read",
+  get_timeline_version: "read",
+  create_timeline_version: "write",
+  restore_timeline_version: "write",
+  edit_timeline: "write",
+  validate_timeline: "read",
+  // sketches
+  list_sketches: "read",
+  list_sketch_versions: "read",
+  get_sketch_version: "read",
+  create_sketch_version: "write",
+  restore_sketch_version: "write",
+  edit_sketch: "write",
+  validate_sketch: "read",
+  // scripts
+  list_scripts: "read",
+  get_script: "read",
+  voice_script_lines: "write",
+  assemble_script_timeline: "write",
+  edit_script: "write",
+  // storyboards
+  list_storyboards: "read",
+  get_storyboard: "read",
+  render_storyboard_stills: "write",
+  render_storyboard_clips: "write",
+  revise_storyboard_clip: "write",
+  assemble_storyboard_timeline: "write",
+  edit_storyboard: "write"
 };
 
 describe("capability registry walk", () => {

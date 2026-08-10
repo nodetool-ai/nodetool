@@ -21,8 +21,6 @@ import {
   listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
-import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
 import { Workflow } from "@nodetool-ai/models";
 import { Tool } from "./base-tool.js";
 import { findModel, listModels } from "../capabilities/models.js";
@@ -56,6 +54,8 @@ import {
   type CapabilityRun,
   type CapabilitySpec
 } from "../capabilities/index.js";
+import { validateTimeline } from "../capabilities/timelines.js";
+import { validateSketch } from "../capabilities/sketches.js";
 import {
   JOB_CAPABILITIES,
   getJob,
@@ -389,148 +389,6 @@ export type TimelineLoader = (
   id: string
 ) => Promise<TimelineToolRecord | null>;
 
-/** A positive finite number from a tool param, or undefined. */
-function numberParam(value: unknown): number | undefined {
-  return typeof value === "number" && Number.isFinite(value) && value > 0
-    ? value
-    : undefined;
-}
-
-/** Unwrap a stored document that may still be JSON text. */
-function parseStoredDocument(document: unknown): unknown {
-  if (typeof document !== "string") return document;
-  try {
-    return JSON.parse(document);
-  } catch {
-    return undefined;
-  }
-}
-
-/** One-line count of what a static validation found. */
-function issueSummary(validation: {
-  errors: unknown[];
-  warnings: unknown[];
-}): string {
-  const errors = validation.errors.length;
-  const warnings = validation.warnings.length;
-  if (errors === 0 && warnings === 0) return "No issues found.";
-  const parts: string[] = [];
-  if (errors > 0) parts.push(`${errors} error${errors === 1 ? "" : "s"}`);
-  if (warnings > 0)
-    parts.push(`${warnings} warning${warnings === 1 ? "" : "s"}`);
-  return parts.join(", ");
-}
-
-export class ValidateTimelineTool extends Tool {
-  readonly name = "validate_timeline";
-  readonly description =
-    "Statically validate a timeline sequence WITHOUT rendering or playing it: " +
-    "clips on tracks the document lacks, duplicate ids, overlapping clips, " +
-    "fades and transitions longer than the clip, in/out points that cannot " +
-    "render, unknown animation presets, incomplete bindings, and fields a " +
-    "schema round trip would strip. Pass an inline `document` to check one you " +
-    "are building, or `timeline_id` to validate a saved sequence. Run it after " +
-    "timeline edits and before rendering.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      timeline_id: {
-        type: "string" as const,
-        description: "The ID of a saved timeline sequence to validate"
-      },
-      document: {
-        type: "object" as const,
-        description:
-          "Inline TimelineDocument to validate ({ tracks, clips, markers }). " +
-          "Takes precedence over timeline_id."
-      },
-      fps: {
-        type: "number" as const,
-        description:
-          "Frame rate the inline document renders at (default 30). Timing " +
-          "checks are frame-based, so a document authored at another fps " +
-          "validates against the wrong grid without this. Ignored for timeline_id."
-      },
-      width: {
-        type: "number" as const,
-        description:
-          "Render width of the inline document. Ignored for timeline_id."
-      },
-      height: {
-        type: "number" as const,
-        description:
-          "Render height of the inline document. Ignored for timeline_id."
-      }
-    }
-  };
-
-  // The timeline API is tRPC-only, so there is no REST route to fall back on:
-  // a host that wants the `timeline_id` path injects a loader. Without one the
-  // tool still validates inline documents.
-  constructor(private readonly loadTimeline?: TimelineLoader) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const inline = params["document"];
-    const timelineId = params["timeline_id"] as string | undefined;
-
-    let document = inline;
-    // An inline document carries no stored render settings, so the caller
-    // supplies them; the timeline_id path overwrites these from the row.
-    let meta: { fps?: number; width?: number; height?: number } = {
-      fps: numberParam(params["fps"]),
-      width: numberParam(params["width"]),
-      height: numberParam(params["height"])
-    };
-    let name: string | undefined;
-
-    if (document === undefined && timelineId) {
-      if (!this.loadTimeline) {
-        return {
-          error:
-            "Cannot load a saved timeline in this process: no timeline loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
-          validated: false
-        };
-      }
-      const record = await this.loadTimeline(context, timelineId);
-      if (!record) {
-        return {
-          error: `Timeline ${timelineId} was not found.`,
-          validated: false
-        };
-      }
-      document = parseStoredDocument(record.document);
-      meta = { fps: record.fps, width: record.width, height: record.height };
-      name = record.name;
-    }
-
-    if (document === undefined || document === null) {
-      return {
-        error:
-          "No timeline to validate — pass an inline `document` ({tracks, clips, markers}) or a valid `timeline_id`."
-      };
-    }
-
-    const validation = validateTimelineSequence(document, meta);
-    return {
-      ...validation,
-      ...(timelineId ? { timeline_id: timelineId } : {}),
-      ...(name ? { name } : {}),
-      summary: issueSummary(validation)
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return params["timeline_id"]
-      ? `Validating timeline ${params["timeline_id"]}`
-      : "Validating timeline document";
-  }
-}
-
 export interface SketchToolRecord {
   /** The stored document — a JSON string or an already-parsed object. */
   document: unknown;
@@ -546,126 +404,39 @@ export type SketchLoader = (
   id: string
 ) => Promise<SketchToolRecord | null>;
 
-export class ValidateSketchTool extends Tool {
-  readonly name = "validate_sketch";
-  readonly description =
-    "Statically validate a sketch (image document) WITHOUT rendering it: " +
-    "duplicate layer ids, an active or mask layer the stack lacks, unknown " +
-    "blend modes, opacities and transforms that cannot render, generation " +
-    "bindings pointing at missing layers, unknown binding kinds and statuses, " +
-    "canvas settings that disagree with the stored ones, and fields a schema " +
-    "round trip would strip. Pass an inline `document` to check one you are " +
-    "building, or `image_document_id` to validate a saved sketch. Run it after " +
-    "sketch edits and before handing the document back.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      image_document_id: {
-        type: "string" as const,
-        description: "The ID of a saved sketch (image document) to validate"
-      },
-      document: {
-        type: "object" as const,
-        description:
-          "Inline ImageDocumentData to validate ({ sketch, layerBindings }). " +
-          "Takes precedence over image_document_id."
-      },
-      width: {
-        type: "number" as const,
-        description:
-          "Canvas width the inline document is stored against. The canvas " +
-          "size lives on the row, not in the document, so without it a " +
-          "mismatch between the two cannot be reported. Ignored for " +
-          "image_document_id."
-      },
-      height: {
-        type: "number" as const,
-        description:
-          "Canvas height the inline document is stored against. Ignored for image_document_id."
-      },
-      background_color: {
-        type: "string" as const,
-        description:
-          "Canvas background color the inline document is stored against. Ignored for image_document_id."
-      }
-    }
-  };
-
-  // The sketch API is tRPC-only, so there is no REST route to fall back on:
-  // a host that wants the `image_document_id` path injects a loader. Without
-  // one the tool still validates inline documents.
-  constructor(private readonly loadSketch?: SketchLoader) {
-    super();
+/**
+ * @deprecated Ported to the `timelines` capability module
+ * (`../capabilities/timelines.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both. The
+ * loader that was a constructor argument rides on the run.
+ */
+export class ValidateTimelineTool extends CapabilityTool {
+  constructor(loadTimeline?: TimelineLoader) {
+    super(validateTimeline.spec, validateTimeline.impl, (context) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        loaders: { timeline: loadTimeline }
+      })
+    );
   }
+}
 
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const inline = params["document"];
-    const sketchId = params["image_document_id"] as string | undefined;
-
-    let document = inline;
-    // An inline document carries no stored canvas settings, so the caller
-    // supplies them; the image_document_id path overwrites these from the row.
-    let meta: {
-      width?: number;
-      height?: number;
-      backgroundColor?: string;
-    } = {
-      width: numberParam(params["width"]),
-      height: numberParam(params["height"]),
-      backgroundColor:
-        typeof params["background_color"] === "string"
-          ? (params["background_color"] as string)
-          : undefined
-    };
-    let name: string | undefined;
-
-    if (document === undefined && sketchId) {
-      if (!this.loadSketch) {
-        return {
-          error:
-            "Cannot load a saved sketch in this process: no sketch loader is available. Pass the document inline as `document`, or call this tool from a server-side context.",
-          validated: false
-        };
-      }
-      const record = await this.loadSketch(context, sketchId);
-      if (!record) {
-        return {
-          error: `Sketch ${sketchId} was not found.`,
-          validated: false
-        };
-      }
-      document = parseStoredDocument(record.document);
-      meta = {
-        width: record.width,
-        height: record.height,
-        backgroundColor: record.backgroundColor
-      };
-      name = record.name;
-    }
-
-    if (document === undefined || document === null) {
-      return {
-        error:
-          "No sketch to validate — pass an inline `document` ({sketch, layerBindings}) or a valid `image_document_id`."
-      };
-    }
-
-    const validation = validateSketchDocument(document, meta);
-    return {
-      ...validation,
-      ...(sketchId ? { image_document_id: sketchId } : {}),
-      ...(name ? { name } : {}),
-      summary: issueSummary(validation)
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return params["image_document_id"]
-      ? `Validating sketch ${params["image_document_id"]}`
-      : "Validating sketch document";
+/**
+ * @deprecated Ported to the `sketches` capability module
+ * (`../capabilities/sketches.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both. The
+ * loader that was a constructor argument rides on the run.
+ */
+export class ValidateSketchTool extends CapabilityTool {
+  constructor(loadSketch?: SketchLoader) {
+    super(validateSketch.spec, validateSketch.impl, (context) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        loaders: { sketch: loadSketch }
+      })
+    );
   }
 }
 

@@ -37,7 +37,11 @@ const MODULES: Readonly<Record<string, Loader>> = {
   web: () => import("./web.js").then((m) => m.module),
   files: () => import("./files.js").then((m) => m.module),
   agents: () => import("./agents.js").then((m) => m.module),
-  google: () => import("./google.js").then((m) => m.module)
+  google: () => import("./google.js").then((m) => m.module),
+  timelines: () => import("./timelines.js").then((m) => m.module),
+  sketches: () => import("./sketches.js").then((m) => m.module),
+  scripts: () => import("./scripts.js").then((m) => m.module),
+  storyboards: () => import("./storyboards.js").then((m) => m.module)
 };
 
 /**
@@ -63,7 +67,11 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "web",
   "files",
   "agents",
-  "google"
+  "google",
+  "timelines",
+  "sketches",
+  "scripts",
+  "storyboards"
 ];
 
 const cache = new Map<string, Promise<CapabilityModule>>();
