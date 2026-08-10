@@ -198,8 +198,6 @@ export const SandboxModuleSummarySchema = z.object({
   packName: z.string().regex(PACKAGE_NAME),
   packVersion: z.string().min(1).optional(),
   kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM, SandboxModuleKind.HOST]),
-  description: z.string().max(160).optional()
-  kind: z.enum([SandboxModuleKind.JS, SandboxModuleKind.WASM]),
   description: z.string().max(MAX_SANDBOX_DESCRIPTION).optional(),
   /** The module's content digest, so a picker can stamp what it declares. */
   contentDigest: contentDigestSchema.optional()
