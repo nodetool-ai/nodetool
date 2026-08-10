@@ -309,7 +309,7 @@ export const value = 1;`
     expect(result.error).toContain("eval");
   });
 
-  it("refuses a WASM module with the M4 message", async () => {
+  it("refuses a WASM module whose binary cannot be read", async () => {
     const result = await runInSandbox({
       code: "return 1;",
       modules: {
@@ -321,6 +321,7 @@ export const value = 1;`
             moduleId: "sandbox/fast.wasm",
             kind: "wasm",
             bytes: new Uint8Array([0, 97, 115, 109]),
+            wasm: { memoryPagesMax: 1, exports: [{ wasm: "run", as: "run" }] },
             graph: []
           }
         ],
@@ -328,7 +329,6 @@ export const value = 1;`
       }
     });
     expect(result.success).toBe(false);
-    expect(result.error).toContain("not supported yet (M4)");
-    expect(result.error).toContain("@acme/fast");
+    expect(result.error).toContain("truncated WASM binary");
   });
 });

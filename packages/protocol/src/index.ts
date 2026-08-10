@@ -25,6 +25,8 @@ export * from "./triggers.js";
 export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
 export * from "./sandbox-package.js";
+export * from "./sandbox-wasm.js";
+export * from "./wasm-binary.js";
 export {
   type Platform,
   type NodeEffect,

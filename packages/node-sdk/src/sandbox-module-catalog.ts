@@ -137,7 +137,10 @@ function toResolvedModule(
   if (module.bytes === undefined) {
     throw new Error(`sandbox module ${module.specifier} has no WASM bytes`);
   }
-  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes) };
+  if (module.wasm === undefined) {
+    throw new Error(`sandbox module ${module.specifier} has no WASM call contract`);
+  }
+  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes), wasm: module.wasm };
 }
 
 function moduleGraph(
