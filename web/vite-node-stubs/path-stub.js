@@ -48,21 +48,6 @@ export function extname(p) {
 export function isAbsolute(p) {
   return typeof p === "string" && p.startsWith("/");
 }
-export function relative(from, to) {
-  const fromParts = resolve(String(from)).split("/").filter(Boolean);
-  const toParts = resolve(String(to)).split("/").filter(Boolean);
-  let common = 0;
-  while (
-    common < fromParts.length &&
-    common < toParts.length &&
-    fromParts[common] === toParts[common]
-  ) {
-    common += 1;
-  }
-  const up = fromParts.slice(common).map(() => "..");
-  return [...up, ...toParts.slice(common)].join("/");
-}
-
 
 // Real POSIX semantics rather than a thrower: callers use the result as a
 // string (a pack-relative module id), so returning a wrong-but-plausible value
