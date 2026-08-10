@@ -57,25 +57,6 @@ async function run(name: string): Promise<Record<string, unknown[]>> {
 }
 
 describe("shipped gallery examples produce what they claim", () => {
-  it("Validate a Signup Payload normalises a messy address", async () => {
-    const out = await run("Validate a Signup Payload");
-    // Leading/trailing space and mixed case, still a valid address.
-    expect(out["is_email"]).toEqual([true]);
-    // '@' and '+' are not alphanumeric — the check that stops people using
-    // is_alphanumeric as a username test on an email field.
-    expect(out["is_alphanumeric"]).toEqual([false]);
-    expect(out["normalized_email"]).toEqual([
-      "ada.lovelace+signup@example.com"
-    ]);
-  });
-
-  it("Check a URL and an IP reports the address family, not just validity", async () => {
-    const out = await run("Check a URL and an IP");
-    expect(out["url_ok"]).toEqual([true]);
-    expect(out["is_ipv6"]).toEqual([true]);
-    expect(out["is_ipv4"]).toEqual([false]);
-  });
-
   it("Map a README's Structure returns the outline with heading levels", async () => {
     const out = await run("Map a README's Structure");
     expect(out["headers"]?.[0]).toEqual([

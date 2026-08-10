@@ -42,12 +42,6 @@ import {
   SplitJSONNode,
   SaveDocumentFileNode,
   LoadDocumentFileNode,
-  ImportCSVNode,
-  SelectColumnNode,
-  AggregateNode,
-  RenameNode,
-  FillNANode,
-  FilterNoneNode,
   WaitNode,
   CreateSilenceNode,
   ConcatAudioNode,
@@ -75,10 +69,6 @@ describe("base node registration", () => {
     expect(registry.has(IfNode.nodeType)).toBe(true);
     expect(registry.has("nodetool.control.RepeatCount")).toBe(true);
     expect(registry.has("nodetool.control.RepeatValue")).toBe(true);
-    expect(registry.has("nodetool.list.Range")).toBe(true);
-    expect(registry.has("nodetool.list.Tile")).toBe(true);
-    expect(registry.has("nodetool.list.RepeatEach")).toBe(true);
-    expect(registry.has("nodetool.list.RepeatValue")).toBe(true);
     expect(registry.has("nodetool.input.StringInput")).toBe(true);
     expect(registry.has("nodetool.output.Output")).toBe(true);
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
@@ -88,7 +78,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
     expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
-    expect(registry.has("nodetool.data.Aggregate")).toBe(true);
+    expect(registry.has("nodetool.data.ForEachRow")).toBe(true);
     expect(registry.has("nodetool.code.Code")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.triggers.Wait")).toBe(true);
@@ -330,40 +320,6 @@ describe("input/output nodes", () => {
       out.push(String(chunk.chunk));
     }
     expect(out.length).toBeGreaterThan(0);
-  });
-
-  it("data nodes import/select/aggregate/rename/fill work", async () => {
-    const _imp = new ImportCSVNode();
-    _imp.assign({ csv_data: "team,score\nA,10\nA,20\nB,5" });
-    const imported = await _imp.process();
-    const _sel = new SelectColumnNode();
-    _sel.assign({ dataframe: imported.output, columns: "team,score" });
-    const selected = await _sel.process();
-    const _agg = new AggregateNode();
-    _agg.assign({
-      dataframe: selected.output,
-      columns: "team",
-      aggregation: "sum"
-    });
-    const aggregated = await _agg.process();
-    const _ren = new RenameNode();
-    _ren.assign({ dataframe: aggregated.output, rename_map: "score:total" });
-    const renamed = await _ren.process();
-    const _fill = new FillNANode();
-    _fill.assign({ dataframe: renamed.output, method: "value", value: 0 });
-    const filled = await _fill.process();
-
-    expect(
-      (filled.output as { rows: Array<Record<string, unknown>> }).rows.length
-    ).toBe(2);
-  });
-
-  it("FilterNoneNode omits null and forwards non-null", async () => {
-    const _fn1 = new FilterNoneNode();
-    await expect(_fn1.process()).resolves.toEqual({ output: [] });
-    const _fn2 = new FilterNoneNode();
-    _fn2.assign({ value: "ok" });
-    await expect(_fn2.process()).resolves.toEqual({ output: "ok" });
   });
 
   it("WaitNode returns wait metadata", async () => {

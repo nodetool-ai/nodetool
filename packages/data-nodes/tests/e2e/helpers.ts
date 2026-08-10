@@ -1,7 +1,7 @@
 import { WorkflowRunner } from "@nodetool-ai/kernel";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeDescriptor, Edge } from "@nodetool-ai/protocol";
-import { DATA_NODES, LIB_RSS_NODES } from "@nodetool-ai/data-nodes";
+import { DATA_NODES } from "@nodetool-ai/data-nodes";
 import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { ProcessingContext } from "@nodetool-ai/runtime";
@@ -23,7 +23,6 @@ export function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();
   for (const nodeClass of [
     ...DATA_NODES,
-    ...LIB_RSS_NODES,
     ...CONSTANT_NODES,
     ...OUTPUT_NODES
   ]) {

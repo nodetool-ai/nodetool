@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 684 NodeTool nodes across 92 namespaces.
+Complete reference documentation for all 641 NodeTool nodes across 88 namespaces.
 
 ## Namespaces
 
@@ -43,7 +43,6 @@ Complete reference documentation for all 684 NodeTool nodes across 92 namespaces
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
 - **[lib.convert](lib/convert/)** - 1 node(s)
 - **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
-- **[lib.datetime](lib/datetime/)** - 5 node(s)
 - **[lib.docx](lib/docx/)** - 9 node(s)
 - **[lib.epub](lib/epub/)** - 4 node(s)
 - **[lib.excel](lib/excel/)** - 6 node(s)
@@ -64,7 +63,6 @@ Complete reference documentation for all 684 NodeTool nodes across 92 namespaces
 - **[lib.ocr](lib/ocr/)** - 2 node(s)
 - **[lib.pdf](lib/pdf/)** - 11 node(s)
 - **[lib.pptx](lib/pptx/)** - 2 node(s)
-- **[lib.rss](lib/rss/)** - 2 node(s)
 - **[lib.s3](lib/s3/)** - 7 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 7 node(s)
@@ -72,7 +70,6 @@ Complete reference documentation for all 684 NodeTool nodes across 92 namespaces
 - **[lib.svg](lib/svg/)** - 14 node(s)
 - **[lib.tensorflow](lib/tensorflow/)** - 4 node(s)
 - **[lib.twilio](lib/twilio/)** - 4 node(s)
-- **[lib.validate](lib/validate/)** - 5 node(s)
 - **[lib.video.download](lib/video/download/)** - 1 node(s)
 
 ### messaging
@@ -100,13 +97,12 @@ Complete reference documentation for all 684 NodeTool nodes across 92 namespaces
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
 - **[nodetool.constant](nodetool/constant/)** - 30 node(s)
 - **[nodetool.control](nodetool/control/)** - 22 node(s)
-- **[nodetool.data](nodetool/data/)** - 29 node(s)
+- **[nodetool.data](nodetool/data/)** - 2 node(s)
 - **[nodetool.document](nodetool/document/)** - 8 node(s)
 - **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
-- **[nodetool.list](nodetool/list/)** - 4 node(s)
 - **[nodetool.model3d](nodetool/model3d/)** - 17 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
 - **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)

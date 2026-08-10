@@ -97,13 +97,13 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/brand-and-social",
     "title": "Brand & Social — Free AI Mini App | NodeTool",
-    "description": "One brand identity drives three deliverables.",
+    "description": "One brand identity drives two deliverables.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "brand-and-social",
     "name": "Brand & Social",
-    "summary": "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
+    "summary": "Fill in your brand once — the asset kit and the thumbnail factory both read the same values.",
     "featured": true,
     "note": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
     "workflows": [
@@ -116,11 +116,6 @@ export const miniAppEntries: MiniAppEntry[] = [
         "name": "Hook & Thumbnail Factory",
         "slug": "hook-and-thumbnail-factory",
         "route": "/templates/hook-and-thumbnail-factory"
-      },
-      {
-        "name": "Social Media Calendar Filler",
-        "slug": "social-media-calendar-filler",
-        "route": "/templates/social-media-calendar-filler"
       }
     ],
     "templateRoute": "/templates/brand-asset-generator",
@@ -133,14 +128,11 @@ export const miniAppEntries: MiniAppEntry[] = [
       "example",
       "image",
       "images",
-      "marketing",
-      "planning",
       "social",
-      "social media",
       "video"
     ],
     "heading": "🎨 Brand & Social",
-    "tagline": "One brand identity drives three deliverables.",
+    "tagline": "One brand identity drives two deliverables.",
     "buttonLabel": "Generate brand assets",
     "inputs": [
       {
@@ -174,14 +166,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "How many hooks?",
         "kind": "number"
-      },
-      {
-        "label": "This month's theme",
-        "kind": "text"
-      },
-      {
-        "label": "Posts per week",
-        "kind": "number"
       }
     ],
     "outputs": [
@@ -204,21 +188,9 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Featured thumbnail",
         "kind": "image"
-      },
-      {
-        "label": "Content calendar",
-        "kind": "data"
-      },
-      {
-        "label": "Post visuals",
-        "kind": "image"
-      },
-      {
-        "label": "Captions & hashtags",
-        "kind": "text"
       }
     ],
-    "widgetCount": 44
+    "widgetCount": 31
   },
   {
     "route": "/apps/concept-studio",
@@ -779,15 +751,15 @@ export const miniAppEntries: MiniAppEntry[] = [
   {
     "route": "/apps/research-desk",
     "title": "Research Desk — Free AI Mini App | NodeTool",
-    "description": "One topic, three sources, three briefings side by side.",
+    "description": "One topic, two sources, two briefings side by side.",
     "priority": 0.4,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "research-desk",
     "name": "Research Desk",
-    "summary": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
+    "summary": "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
     "featured": true,
-    "note": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button.",
+    "note": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
     "workflows": [
       {
         "name": "Research Agent",
@@ -798,11 +770,6 @@ export const miniAppEntries: MiniAppEntry[] = [
         "name": "Hacker News Agent",
         "slug": "hacker-news-agent",
         "route": "/templates/hacker-news-agent"
-      },
-      {
-        "name": "Summarize RSS",
-        "slug": "summarize-rss",
-        "route": "/templates/summarize-rss"
       }
     ],
     "templateRoute": "/templates/research-agent",
@@ -820,7 +787,7 @@ export const miniAppEntries: MiniAppEntry[] = [
       "streaming"
     ],
     "heading": "🕵️ Research Desk",
-    "tagline": "One topic, three sources, three briefings side by side.",
+    "tagline": "One topic, two sources, two briefings side by side.",
     "buttonLabel": "Run the desk",
     "inputs": [
       {
@@ -830,10 +797,6 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Who is it for?",
         "kind": "choice"
-      },
-      {
-        "label": "RSS feed",
-        "kind": "text"
       }
     ],
     "outputs": [
@@ -844,13 +807,9 @@ export const miniAppEntries: MiniAppEntry[] = [
       {
         "label": "Hacker News",
         "kind": "text"
-      },
-      {
-        "label": "Feed digest",
-        "kind": "text"
       }
     ],
-    "widgetCount": 22
+    "widgetCount": 18
   },
   {
     "route": "/apps/study-buddy",

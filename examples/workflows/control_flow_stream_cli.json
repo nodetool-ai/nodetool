@@ -187,7 +187,10 @@
       },
       {
         "id": "drop_nulls",
-        "type": "nodetool.data.FilterNone"
+        "type": "nodetool.control.FilterCode",
+        "data": {
+          "predicate": "item !== null"
+        }
       },
       {
         "id": "collect_present",
@@ -327,7 +330,7 @@
         "source": "sparse_items",
         "sourceHandle": "output",
         "target": "drop_nulls",
-        "targetHandle": "value"
+        "targetHandle": "input_item"
       },
       {
         "id": "e16",

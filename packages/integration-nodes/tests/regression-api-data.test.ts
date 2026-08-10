@@ -15,11 +15,6 @@ import {
 } from "@nodetool-ai/integration-nodes";
 import { GoogleSearchNode } from "@nodetool-ai/integration-nodes";
 import {
-  AggregateNode,
-  DropNANode,
-  JoinDataframeNode
-} from "@nodetool-ai/data-nodes";
-import {
   ChartGeneratorNode,
   SVGGeneratorNode
 } from "@nodetool-ai/llm-nodes";
@@ -28,14 +23,6 @@ import { SelectLibNode } from "@nodetool-ai/integration-nodes";
 
 // ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
-
-type Row = Record<string, unknown>;
-
-function df(rows: Row[]): { rows: Row[] } {
-  return { rows };
-}
-
 // ---------------------------------------------------------------------------
 // 1. Apify API key name - must use APIFY_API_TOKEN, not APIFY_API_KEY
 // ---------------------------------------------------------------------------
@@ -113,146 +100,6 @@ describe("Supabase credentials regression", () => {
     const node = new SelectLibNode();
     // supabase_url should NOT be a declared property on the node
     expect((node as any).supabase_url).toBeUndefined();
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 4. Aggregate std/var - must not throw "Unknown aggregation function"
-// ---------------------------------------------------------------------------
-describe("Aggregate std/var regression", () => {
-  const values = [2, 4, 4, 4, 5, 5, 7, 9];
-  // Sample variance = sum((x - mean)^2) / (n-1)
-  // mean = 40/8 = 5
-  // sum of squared deviations = 9+1+1+1+0+0+4+16 = 32
-  // sample variance = 32/7 ~ 4.571
-  // sample std = sqrt(32/7) ~ 2.138
-
-  it("aggregation 'std' returns sample standard deviation, not an error", async () => {
-    const node = new AggregateNode();
-    node.assign({
-      dataframe: df(values.map((v) => ({ group: "A", val: v }))),
-      columns: "group",
-      aggregation: "std"
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    expect(rows).toHaveLength(1);
-    const std = rows[0].val as number;
-    expect(std).toBeCloseTo(2.0, 0); // ~2.138, close to 2.0 at 0 decimal places
-    expect(std).toBeGreaterThan(1.5);
-    expect(std).toBeLessThan(2.5);
-  });
-
-  it("aggregation 'var' returns sample variance, not an error", async () => {
-    const node = new AggregateNode();
-    node.assign({
-      dataframe: df(values.map((v) => ({ group: "A", val: v }))),
-      columns: "group",
-      aggregation: "var"
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    expect(rows).toHaveLength(1);
-    const variance = rows[0].val as number;
-    expect(variance).toBeCloseTo(4.571, 1); // 32/7
-    expect(variance).toBeGreaterThan(4);
-    expect(variance).toBeLessThan(5);
-  });
-
-  it("aggregation 'median' still works", async () => {
-    const node = new AggregateNode();
-    node.assign({
-      dataframe: df(values.map((v) => ({ group: "A", val: v }))),
-      columns: "group",
-      aggregation: "median"
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    expect(rows).toHaveLength(1);
-    // median of [2,4,4,4,5,5,7,9] = (4+5)/2 = 4.5
-    expect(rows[0].val).toBeCloseTo(4.5, 5);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 5. DropNA should NOT remove rows with empty strings
-// ---------------------------------------------------------------------------
-describe("DropNA empty string regression", () => {
-  it("keeps rows with empty strings (only removes null/undefined/NaN)", async () => {
-    const node = new DropNANode();
-    node.assign({
-      df: df([
-        { name: "Alice", note: "" },
-        { name: "Bob", note: "hello" },
-        { name: null, note: "world" },
-        { name: "Charlie", note: undefined }
-      ])
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    // Should keep Alice (empty string is NOT NA) and Bob
-    // Should drop null-name row and undefined-note row
-    expect(rows).toHaveLength(2);
-    expect(rows[0].name).toBe("Alice");
-    expect(rows[0].note).toBe("");
-    expect(rows[1].name).toBe("Bob");
-  });
-
-  it("drops rows with NaN values", async () => {
-    const node = new DropNANode();
-    node.assign({
-      df: df([{ val: 1 }, { val: NaN }, { val: 3 }])
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    expect(rows).toHaveLength(2);
-    expect(rows[0].val).toBe(1);
-    expect(rows[1].val).toBe(3);
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 6. Join column validation - must throw when column missing
-// ---------------------------------------------------------------------------
-describe("Join column validation regression", () => {
-  it("throws error when join column does not exist in dataframe A", async () => {
-    const node = new JoinDataframeNode();
-    node.assign({
-      dataframe_a: df([{ id: 1, name: "Alice" }]),
-      dataframe_b: df([{ id: 1, score: 95 }]),
-      join_on: "nonexistent_column"
-    });
-    await expect(node.process()).rejects.toThrow(/not found.*dataframe A/i);
-  });
-
-  it("throws error when join column does not exist in dataframe B", async () => {
-    const node = new JoinDataframeNode();
-    node.assign({
-      dataframe_a: df([{ id: 1, name: "Alice" }]),
-      dataframe_b: df([{ user_id: 1, score: 95 }]),
-      join_on: "id"
-    });
-    await expect(node.process()).rejects.toThrow(/not found.*dataframe B/i);
-  });
-
-  it("joins correctly when column exists in both", async () => {
-    const node = new JoinDataframeNode();
-    node.assign({
-      dataframe_a: df([
-        { id: 1, name: "Alice" },
-        { id: 2, name: "Bob" }
-      ]),
-      dataframe_b: df([
-        { id: 1, score: 95 },
-        { id: 2, score: 80 }
-      ]),
-      join_on: "id"
-    });
-    const result = await node.process();
-    const rows = (result.output as { rows: Row[] }).rows;
-    expect(rows).toHaveLength(2);
-    expect(rows[0]).toMatchObject({ id: 1, name: "Alice", score: 95 });
-    expect(rows[1]).toMatchObject({ id: 2, name: "Bob", score: 80 });
   });
 });
 

@@ -283,14 +283,13 @@ export const EXAMPLE_APPS = [
     name: "Research Desk",
     emoji: "🕵️",
     featured: true,
-    tagline: "One topic, three sources, three briefings side by side.",
+    tagline: "One topic, two sources, two briefings side by side.",
     description:
-      "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
-    note: "🔑 Needs an OpenAI key. All three briefings run in parallel from one button.",
+      "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
+    note: "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
     workflows: {
       research: "Research Agent",
-      hn: "Hacker News Agent",
-      rss: "Summarize RSS"
+      hn: "Hacker News Agent"
     },
     variables: [
       {
@@ -316,8 +315,7 @@ export const EXAMPLE_APPS = [
         workflow: "hn",
         policy: "parallel",
         inputs: { topic: { from: "variable", variableId: "topic" } }
-      },
-      { id: "digest", name: "Digest", workflow: "rss", policy: "parallel" }
+      }
     ],
     sections: [
       {
@@ -330,8 +328,7 @@ export const EXAMPLE_APPS = [
             label: "Who is it for?",
             options: ["engineers", "executives", "a general audience"]
           },
-          { text: "feed_url", op: "digest", label: "RSS feed" },
-          { run: ["brief", "pulse", "digest"], label: "Run the desk" }
+          { run: ["brief", "pulse"], label: "Run the desk" }
         ],
         results: [
           { progress: "brief", label: "Searching & browsing sources…" },
@@ -342,9 +339,7 @@ export const EXAMPLE_APPS = [
         title: "The pulse",
         results: [
           { progress: "pulse", label: "Reading the front page…" },
-          { show: "analysis", op: "pulse", as: "Markdown", label: "Hacker News", demo: "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines." },
-          { progress: "digest", label: "Reading your feed…" },
-          { show: "summary", op: "digest", as: "Markdown", label: "Feed digest", demo: "**Today's brief:** the EU passes its AI liability directive; two labs ship smaller on-device models." }
+          { show: "analysis", op: "pulse", as: "Markdown", label: "Hacker News", demo: "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines." }
         ]
       }
     ]
@@ -428,14 +423,13 @@ export const EXAMPLE_APPS = [
     name: "Brand & Social",
     emoji: "🎨",
     featured: true,
-    tagline: "One brand identity drives three deliverables.",
+    tagline: "One brand identity drives two deliverables.",
     description:
-      "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
+      "Fill in your brand once — the asset kit and the thumbnail factory both read the same values.",
     note: "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
     workflows: {
       brand: "Brand Asset Generator",
-      hooks: "Hook & Thumbnail Factory",
-      calendar: "Social Media Calendar Filler"
+      hooks: "Hook & Thumbnail Factory"
     },
     variables: [
       { id: "brandName", name: "Brand name", scope: "user", persist: true, type: "str", default: "Aurora Labs" },
@@ -456,17 +450,6 @@ export const EXAMPLE_APPS = [
         workflow: "hooks",
         policy: "replace",
         inputs: { "Target Audience": { from: "variable", variableId: "audience" } }
-      },
-      {
-        id: "calendar",
-        name: "Calendar",
-        workflow: "calendar",
-        policy: "replace",
-        inputs: {
-          brand_name: { from: "variable", variableId: "brandName" },
-          target_audience: { from: "variable", variableId: "audience" },
-          brand_voice: { from: "variable", variableId: "voice" }
-        }
       }
     ],
     sections: [
@@ -500,21 +483,6 @@ export const EXAMPLE_APPS = [
           { show: "thumbnail_gallery", op: "thumbnails", as: "Image", label: "Thumbnail gallery", demo: IMG },
           { show: "hooks", op: "thumbnails", as: "Markdown", label: "Hook ideas", demo: "1. “You're losing $100/month by not knowing this.”\n2. “$5 a day → $1M. Here's the math nobody shows you.”" },
           { show: "thumbnail", op: "thumbnails", as: "Image", label: "Featured thumbnail" }
-        ]
-      },
-      {
-        title: "This month's calendar",
-        op: "calendar",
-        controls: [
-          { text: "monthly_theme", op: "calendar", label: "This month's theme", multiline: true },
-          { number: "posts_per_week", op: "calendar", label: "Posts per week", min: 1, max: 7 },
-          { run: ["calendar"], label: "Fill my calendar" }
-        ],
-        results: [
-          { progress: "calendar", label: "Filling your calendar…" },
-          { show: "content_calendar", op: "calendar", as: "Table", label: "Content calendar" },
-          { show: "post_images", op: "calendar", as: "Image", label: "Post visuals", demo: IMG },
-          { show: "captions", op: "calendar", as: "Markdown", label: "Captions & hashtags" }
         ]
       }
     ]
