@@ -450,6 +450,66 @@ async function dirSize(dir) {
   return total;
 }
 
+/**
+ * Stage the sandbox module files of every bundled builtin pack under
+ * `_sandbox/<pack>/`, next to a copy of the pack's package.json.
+ *
+ * The package.json travels with the files because the pack manifest *is* the
+ * declaration: `discoverSandboxPack` reads `nodetool.sandboxModules` from it,
+ * so a staged pack directory stays discoverable exactly like an installed one.
+ * A declared file that is missing from the package fails the build — a pack
+ * half-staged into the artifact is worse than one left out.
+ */
+async function stageBundledSandboxPacks(packs) {
+  console.log("\nStaging sandbox modules of bundled builtin packs...");
+  if (packs.length === 0) {
+    console.log("  No builtin pack declares sandbox modules");
+    return 0;
+  }
+  let staged = 0;
+  for (const pack of packs) {
+    const pkgRoot = resolvePackageRoot(pack);
+    if (!pkgRoot) {
+      throw new Error(
+        `Bundled sandbox pack not found: ${pack}. ` +
+        `Run 'npm install' and 'npm run build:packages' first.`
+      );
+    }
+    const manifestPath = path.join(pkgRoot, "package.json");
+    const pkgJson = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
+    const nodetool = pkgJson.nodetool ?? {};
+    const modules = nodetool.sandboxModules;
+    if (!Array.isArray(modules) || modules.length === 0) {
+      throw new Error(
+        `Bundled sandbox pack ${pack} declares no nodetool.sandboxModules. ` +
+        `Remove it from BUNDLED_SANDBOX_PACKS in ` +
+        `packages/config/src/package-asset-registry.ts.`
+      );
+    }
+    const files = [
+      ...modules.map((module) => module?.file).filter(Boolean),
+      ...(Array.isArray(nodetool.internal) ? nodetool.internal : []),
+    ];
+    const destRoot = path.join(BUNDLE_DIR, "_sandbox", ...pack.split("/"));
+    await fsp.mkdir(destRoot, { recursive: true });
+    await fsp.copyFile(manifestPath, path.join(destRoot, "package.json"));
+    for (const file of new Set(files)) {
+      const src = path.join(pkgRoot, file);
+      if (!fs.existsSync(src)) {
+        throw new Error(
+          `Sandbox pack ${pack} declares ${file}, which is not in the package.`
+        );
+      }
+      const dest = path.join(destRoot, ...file.split("/"));
+      await fsp.mkdir(path.dirname(dest), { recursive: true });
+      await fsp.copyFile(src, dest);
+      staged += 1;
+    }
+    console.log(`  Staged ${pack} (${new Set(files).size} sandbox file(s))`);
+  }
+  return staged;
+}
+
 async function copyExternalPackages() {
   // Use "_modules" instead of "node_modules" because electron-builder
   // excludes node_modules directories by default in extraResources.
@@ -941,7 +1001,9 @@ async function main() {
     "dist",
     "package-asset-registry.js"
   );
-  const { PACKAGE_RUNTIME_ASSETS } = await import(pathToFileURL(registryPath).href);
+  const { PACKAGE_RUNTIME_ASSETS, BUNDLED_SANDBOX_PACKS } = await import(
+    pathToFileURL(registryPath).href
+  );
 
   const stagedAssets = new Map();
   for (const asset of PACKAGE_RUNTIME_ASSETS) {
@@ -972,6 +1034,16 @@ async function main() {
     console.log(`  Staged ${basename} (from ${asset.pkg}/dist/${asset.path})`);
   }
   console.log(`  Total: ${stagedAssets.size} registered asset(s) staged`);
+
+  // --- Stage sandbox modules of bundled builtin packs ---
+  // A pack that ships inside the app carries guest module sources the backend
+  // never imports, so esbuild does not see them and nothing else copies them.
+  // The pack list is the explicit BUNDLED_SANDBOX_PACKS registry (empty today);
+  // the *file* list is data-driven — each pack's own `nodetool.sandboxModules`
+  // manifest, the same declaration the catalog's discovery reads — so adding a
+  // module to a listed pack needs no change here. Installed packs are
+  // unaffected: they resolve through the optional-node root at runtime.
+  await stageBundledSandboxPacks(BUNDLED_SANDBOX_PACKS ?? []);
 
   // Cross-check: any *-manifest.json in a package's dist/ that is NOT in the
   // registry is almost certainly a new provider manifest someone forgot to

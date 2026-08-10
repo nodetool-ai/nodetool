@@ -601,7 +601,7 @@ upstream half of the graph has been paid for.
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
 not valid JavaScript, uses `export` at the top level, imports a specifier the
 node's `packages` property does not declare (the guest loader resolves only
-declared sandbox packages, and only while `NODETOOL_SANDBOX_MODULES_V1=1`),
+declared sandbox packages),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
 too — reads an `inputs.<name>` the node does not declare, never returns, or

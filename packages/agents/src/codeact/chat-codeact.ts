@@ -104,8 +104,7 @@ export interface ChatCodeActSessionOptions {
   /**
    * Sandbox package specifiers this chat session consents to. Defaults to
    * none: a chat turn's code is model-written, so nothing is importable until
-   * the caller names what the session allows (and never while
-   * `NODETOOL_SANDBOX_MODULES_V1` is off).
+   * the caller names what the session allows.
    */
   sandboxPackages?: readonly string[];
   /**
