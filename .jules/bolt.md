@@ -79,3 +79,7 @@
 ## 2026-05-25 - O(N*E) bottleneck in findMissingModelNodes
 **Learning:** Found an O(N * E) bottleneck in `web/src/utils/findMissingModelNodes.ts` where `edges.some(...)` was called for every model property of every node. Since `edges` can be large and nodes have multiple properties, this nested array iteration slowed down operations for checking missing model nodes, particularly on large graphs.
 **Action:** Replaced the O(E) `.some()` lookup inside the loop with an O(1) `Set` lookup. Pre-computed a `Set` of connected target properties by iterating over `edges` once before the loop, bringing the time complexity down from O(N * P * E) to O(E + N * P).
+
+## 2026-05-25 - Fixing Mock Stubs Requires Validating E2E Tests
+**Learning:** Found that unapproved dependency updates (like bumping `fastify` and `@huggingface/hub` inside workspaces that aren't central to the task) can trigger hidden test regressions, especially in end-to-end tests that rely on carefully mocked Node APIs (`fs-stub.js`, `path-stub.js`) during Vite build steps.
+**Action:** When updating shared API mocks or running `npm run build` after an unrequested package lock change, always execute `npm run test:e2e` in the affected workspace (like `packages/workflow-runner`) to ensure the stubs actually provide the correct interfaces needed for browser tests.
