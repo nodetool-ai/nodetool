@@ -6,13 +6,13 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0 is partially
-> implemented. Protocol schemas, non-executing discovery, the initial catalog
-> contract, and the sandbox-only host-loader guard are implemented in the
-> current worktree. Electron's first-install path also skips lifecycle scripts
-> and returns the installed artifact identity. Catalog injection, explicit
-> trust/rebuild, and runtime loading are not. The first review killed four
-> assumptions
+> Status: design, revised after two review rounds. M0 is implemented:
+> protocol schemas, non-executing discovery, the catalog contract and its
+> concrete host, catalog injection into server and CLI contexts, the
+> sandbox-only host-loader guard, scripts-disabled installation with an
+> install ledger, and the integrity-verified trust/rebuild flow with its
+> Package Manager surface. Runtime loading is M1 — no module reaches the guest
+> yet. The first review killed four assumptions
 > (corrected under "Facts"); the second pinned the contracts that were
 > still loose — CodeAct session consent, the untrusted-doc policy, exact
 > scalar WASM signatures and instance ownership, memory-manifest
@@ -346,11 +346,18 @@ interface SandboxModuleCatalog {
   resolveForExecution(
     declarations: readonly SandboxModuleDeclaration[]
   ): SandboxModuleResolution;                            // sources for the loader
-  authorizeDelivery(moduleId: string, principal: DeliveryPrincipal):
-    Promise<AuthorizedSandboxModuleDelivery>;            // browser route
   diagnostics(): readonly SandboxModuleStatus[];         // doctor / packs.list
 }
 ```
+
+`authorizeDelivery` is **not** part of the M0 contract. Delivery is the M2
+subject, and an authorization method with no route behind it is an untested
+promise, not a boundary. M2 adds it as the asynchronous, entitlement-aware
+half of the browser route described under "Delivery and distribution" — one
+operation resolving authorization and content together, returning
+browser-safe bytes, media type, graph digest and dependency module ids, never
+a filesystem path. Until then nothing outside the process can ask the catalog
+for module source.
 
 One catalog instance is constructed where packs are discovered and
 injected into every consumer: kernel execution (via ProcessingContext),
@@ -667,56 +674,88 @@ It now provides:
 contract, and node-sdk provides `createSandboxModuleCatalog()` over the
 discovery results. Its execution resolution returns browser-safe module graphs
 without absolute paths, reporting missing modules as errors and version or
-digest drift as warnings. `ProcessingContext` accepts that catalog and keeps
-it when copied. This is a contract and adapter only: hosts do not yet
-construct or inject it for CLI or server runs.
+digest drift as warnings.
+
+`discoverSandboxCatalog()` (`packages/node-sdk/src/sandbox-catalog-host.ts`)
+is the concrete host: it scans the pack search paths, discovers every sandbox
+package without executing pack code, and builds one catalog. Nothing throws
+out of it — a pack that violates the static contract and a package name
+claimed by two roots both become catalog diagnostics, and a duplicated name
+is **dropped** rather than resolved by scan order, so shadowing never silently
+picks a winner.
+
+Injection: the server builds the catalog in `bootstrapNodeRegistry()` and
+again on soft reload, the CLI builds it in `buildFullRegistry()`, and each
+installs it as the process's catalog default
+(`setProcessSandboxModuleCatalog`). `ProcessingContext` reads that default
+only when its constructor is given no `sandboxModuleCatalog` option; an
+explicit value — including `null` — always wins. The catalog stays an injected
+dependency, and the default exists so the twenty-odd context construction
+sites do not each thread it through. Runs already in flight keep the catalog
+instance they captured. `packs.sandboxModules` over tRPC returns the
+summaries and every diagnostic, kept separate from the node-pack snapshot
+`packs.list` reports: sandbox modules and nodes are discovered by different
+code and fail independently.
 
 The host pack loader also treats `sandboxModules` without an explicit
 `register` export as a sandbox-only manifest and skips it before resolving or
 importing its entry point. A hybrid pack with an explicit `register` still
 uses the existing host-pack trust path.
 
-Electron's first-install path now passes `--ignore-scripts`, reads the
-requested package from the installed `node_modules` directory, and returns a
-structured classification: sandbox-only, register, hybrid, or unknown. It
-returns the lockfile's version, resolved URL, and integrity when present.
-Until the trusted rebuild flow exists, register, hybrid, and unknown packages
-remain inactive with scripts still disabled. This does not persist a trust
-decision or perform an integrity-bound rebuild; those remain separate work.
+Electron's first-install path passes `--ignore-scripts`, reads the requested
+package from the installed `node_modules` directory, and classifies it:
+sandbox-only, register, hybrid, or unknown. The classification, the lockfile
+identity of the pack (version, resolved URL, integrity), and the identity of
+every package in its dependency closure are written to an install ledger at
+`<userData>/optional-node/nodetool-packs.json`. A sandbox-only pack is
+`active` immediately; register, hybrid, and unknown packs are recorded
+inactive with scripts still disabled.
+
+`trustNodePack(name)` is the approval flow. It re-classifies the pack from
+disk, refuses if the mode moved, and compares the whole recorded closure
+against the lockfile again — version, resolved URL and integrity, per
+package — before anything runs. Only then does it run
+`npm rebuild <pack> <closure…>` with scripts enabled, against the artifact
+already on disk. There is no refetch, so there is no window in which a
+different artifact could arrive; the closure is rebuilt because
+`--ignore-scripts` suppressed the dependencies' scripts too. Success marks the
+row `scripts: "ran"`, `active: true`. An unknown manifest can never be
+approved, and a sandbox-only pack is refused because it runs no host code.
+
+Trust here authorizes **lifecycle scripts**, which is a different question
+from whether the pack loader may import the pack: that stays the
+`~/.config/nodetool/packs.json` allowlist the Settings → Packages toggle
+writes, and the approval message says so. A register pack therefore needs both
+before it registers nodes.
 
 The current `SKILL.md` check is also only a discovery warning. It verifies
 the size and minimal frontmatter shape; it does not register the file with
 the agent skill system. Full skill parsing and disclosure remain in M5.
 
-The discovery result is data for the future catalog. It does not import a
-pack, run lifecycle scripts, compile npm modules, authorize browser
-delivery, or make a module available to QuickJS. The remaining M0 work is
-therefore an explicit boundary:
+Settings → Packages shows this rather than treating install as
+authorization: each pack installed by NodeTool carries its mode, an
+active/inactive chip, a sentence saying what that mode means, and — for an
+inactive register or hybrid pack — a **Trust and rebuild** action. An install
+that lands inactive reports as a warning with the mode named, not as a
+failure.
 
-1. Construct and inject the discovery-backed catalog into CLI validation and
-   server contexts, keeping catalog diagnostics separate from the existing
-   node-pack snapshot.
-2. Add an explicit trust approval flow for register and hybrid packs, then
-   verify the recorded integrity before a script-enabled rebuild. The Package
-   Manager must show the installed mode rather than treating install as
-   authorization.
-3. Keep direct URLs rejected and report an unknown installed manifest without
-   granting trust or enabling lifecycle scripts.
+What discovery still does not do: import a pack, compile npm modules,
+authorize browser delivery, or make a module available to QuickJS. Duplicate
+package names across roots and collisions after path normalization (for
+example, two spellings of the same package-relative file) stay failures; the
+catalog host preserves them as diagnostics instead of reintroducing
+order-dependent resolution.
 
-Discovery rejects duplicate package names across roots and collisions after
-path normalization (for example, two spellings of the same package-relative
-file). Catalog construction must preserve those failures rather than
-reintroducing order-dependent resolution.
-
-M0 exits only when a sandbox-only package can be installed without running
-pack code, appears in catalog diagnostics, resolves through the same catalog
-used by validation and execution, and is still unavailable to the guest
-until M1's loader is enabled. The discovery tests in
-`packages/node-sdk/tests/sandbox-pack-discovery.test.ts`, catalog tests in
-`packages/node-sdk/tests/sandbox-module-catalog.test.ts`, and host-loader
-tests in `packages/node-sdk/tests/pack-loader.test.ts` are the lowest-level
-regression suites for the implemented slices; each later boundary needs its
-own contract test before the milestone can close.
+M0's exit criteria are met for the sandbox-only path: such a package installs
+without running pack code, appears in `packs.sandboxModules` diagnostics,
+resolves through the same catalog validation and execution share, and stays
+unavailable to the guest until M1's loader is enabled. The regression suites
+are `packages/node-sdk/tests/sandbox-pack-discovery.test.ts`,
+`sandbox-module-catalog.test.ts`, `sandbox-catalog-host.test.ts`,
+`pack-loader.test.ts`, `packages/runtime/tests/context.test.ts` for the
+injection default, and
+`electron/src/__tests__/nodePackManager.test.ts` for install classification
+and the integrity-bound rebuild.
 
 ### M1 — Guest JS end to end (feature-flagged)
 
