@@ -38,7 +38,7 @@ function emptyCatalog(): SandboxModuleCatalog {
 
 describe("an uninstalled pack in a CodeAct session", () => {
   it("gets no line in the one-liner tier", () => {
-    const allowed = sessionAllowedPackages(undefined, true);
+    const allowed = sessionAllowedPackages(undefined);
     expect(packagePromptLines(allowed, emptyCatalog())).toEqual([]);
     expect(allowed).not.toContain(ZIP);
   });
