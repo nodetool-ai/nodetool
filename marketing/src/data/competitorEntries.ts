@@ -3,11 +3,11 @@ import { yearToken } from "./types";
 import type { OgAccent } from "../lib/og";
 
 /**
- * Comparison page-data contract, consumed by the `/vs/*` and `/alternatives/*`
- * routes (PR-5). One competitor record drives two templates: the head-to-head
- * `/vs/<slug>` page (hero, at-a-glance cards, feature table, explainer, CTA)
- * and the listicle-style `/alternatives/<slug>` page (limitation intro, a short
- * tool list, the same feature table, and a visible FAQ).
+ * Comparison page-data contract, consumed by the `/alternatives/*` route. One
+ * competitor record drives one page: a limitation intro, a short tool list, the
+ * head-to-head at-a-glance cards, the feature table, the explainer, and a
+ * visible FAQ. It drove two near-identical templates until 2026-08-10, when the
+ * `/vs/<slug>` twin was folded in (see `alternativesEntries` below).
  *
  * The six original competitors (comfyui, weavy, langflow, n8n, flowise, dify)
  * started as verbatim transcriptions of the hand-built pages they replaced;
@@ -92,15 +92,13 @@ export type Competitor = {
   /** Grouping label used by the alternatives template, e.g. "Node editor". */
   category: string;
 
-  // --- /vs metadata ---
-  vsTitle: string;
-  vsDescription: string;
-  vsOgTitle: string;
-  vsOgDescription: string;
+  // --- OG card (the /alternatives opengraph-image route reads this) ---
   og: { image: string; accent: OgAccent; subtitle: string };
 
-  // --- /vs hero ---
-  heroHeading: string;
+  /**
+   * Lead paragraph for the at-a-glance section: why this comparison comes up.
+   * Was the /vs hero paragraph before that page was folded in.
+   */
   heroParagraph: string;
 
   // --- at-a-glance cards ---
@@ -141,19 +139,12 @@ export const competitors: Competitor[] = [
     name: "ComfyUI",
     theme: "blue",
     category: "Node editor",
-    vsTitle: "NodeTool vs ComfyUI — the open creative AI workspace",
-    vsDescription:
-      "ComfyUI is an node editor built for engineers for Stable Diffusion. NodeTool is the studio around it: image, video, music, and text on one visual canvas, a far wider list of models across providers, and built-in editing tools — all your own keys at provider prices. Both are open source.",
-    vsOgTitle: "NodeTool vs ComfyUI — the open creative AI workspace",
-    vsOgDescription:
-      "Beyond diffusion images: NodeTool puts image, video, audio, and text on one visual canvas with editing tools built in. Open source, your own keys, provider prices.",
     og: {
       image: "screen_canvas.png",
       accent: "blue",
       subtitle:
         "The studio around the node editor — every medium, every provider.",
     },
-    heroHeading: "The open creative AI workspace, not just a diffusion editor.",
     heroParagraph:
       "ComfyUI will hand you the sampler, the VAE, and the latents — if your project ends at a diffusion image, nothing goes deeper. Most projects don't end there. The still becomes a clip, the clip needs a voice, the voice needs music, and suddenly you're out of the graph and back in the tab-switching business. NodeTool is the studio for that whole arc: image, video, music, and words on one canvas, every major provider on your own keys at provider prices, and an agent that can wire the graph for you. Both are open source.",
     competitorTagline: "Node editor for diffusion images",
@@ -217,18 +208,11 @@ export const competitors: Competitor[] = [
     footerName: "Weavy (Figma Weave)",
     theme: "blue",
     category: "Creative canvas",
-    vsTitle: "NodeTool vs Weavy (now Figma Weave) — open source, your own keys, no credits",
-    vsDescription:
-      "Weavy became Figma Weave after Figma acquired it in October 2025 — still a closed SaaS canvas with credits and a curated list of models. NodeTool is open source (AGPL-3.0) and your own keys: every provider, your keys, provider prices, and you own your workflows and files. Cloud is just managed hosting of the same self-hostable code.",
-    vsOgTitle: "NodeTool vs Weavy (now Figma Weave) — open source, your own keys",
-    vsOgDescription:
-      "No credits, no hand-picked list of models, no lock-in. NodeTool is open source and runs on your own keys: every provider at provider prices, with workflows and files you own.",
     og: {
       image: "screen_canvas.png",
       accent: "violet",
       subtitle: "Open source and your own keys — no credits, no hand-picked list of models, no lock-in.",
     },
-    heroHeading: "Open source and your own keys. No credits, no lock-in.",
     heroParagraph:
       "One morning in October 2025, Weavy users woke up to a new name, a new owner, and the same old credit meter. Figma acquired Weavy, renamed it Figma Weave, and the canvas stayed what it always was: closed, hosted, and billed in credits, with a model list someone else curates. NodeTool takes the opposite bet — open source, your own keys at provider prices, workflows and files you own, and an agent-first workspace where an agent can build the pipeline for you. Cloud is just managed hosting of the same code you can self-host.",
     competitorTagline: "Closed SaaS canvas, now Figma Weave",
@@ -296,18 +280,11 @@ export const competitors: Competitor[] = [
     name: "Figma Weave",
     theme: "violet",
     category: "Creative canvas",
-    vsTitle: "NodeTool vs Figma Weave — the open-source alternative",
-    vsDescription:
-      "Figma Weave (formerly Weavy) is a hosted AI canvas billed in its own AI credits, on its way into the Figma platform. NodeTool covers the same visual media workflows as an open-source workspace that runs on your own keys: every provider, your keys, provider prices, on your desktop or self-hosted — no credits, no ecosystem lock-in.",
-    vsOgTitle: "NodeTool vs Figma Weave — the open-source alternative",
-    vsOgDescription:
-      "Same visual media workflows, without the credits or the ecosystem. NodeTool is open source and runs on your own keys: every provider at provider prices, workflows you own.",
     og: {
       image: "screen_canvas.png",
       accent: "violet",
       subtitle: "The open-source, your own keys alternative to Figma Weave.",
     },
-    heroHeading: "The open-source alternative to Figma Weave.",
     heroParagraph:
       "Figma Weave — the canvas formerly known as Weavy — is a polished hosted tool with a curated frontier model list, billed in its own AI credits and moving deeper into the Figma platform with every release. That's fine until the day a model you rely on drops off the list, or the credit math changes, or the roadmap bends toward Figma's plans instead of yours. NodeTool covers the same visual media workflows in the open: AGPL-3.0 source, your own keys at provider prices, an agent that can build the pipeline for you, a desktop app that runs offline with local models, and workflows and files that stay yours.",
     competitorTagline: "Hosted AI canvas in the Figma ecosystem",
@@ -372,18 +349,11 @@ export const competitors: Competitor[] = [
     name: "Langflow",
     theme: "blue",
     category: "Chatbot & agent builder",
-    vsTitle: "NodeTool vs Langflow — agents plus native media generation",
-    vsDescription:
-      "Langflow is a drag-and-drop builder for chatbot and agent apps, covering chat, document search, and agents. NodeTool covers the same agent and document-search ground and adds what Langflow leaves to external APIs: native image, video, and music generation with editing tools on the same canvas — open source, your own keys, local models included.",
-    vsOgTitle: "NodeTool vs Langflow — agents plus native media generation",
-    vsOgDescription:
-      "Both build agents and document question-answering. Only one renders image, video, and music natively on the same canvas. Open source, your own keys, local models.",
     og: {
       image: "screen_workflow.png",
       accent: "emerald",
       subtitle: "Agents plus native image, video, and music generation — on one canvas.",
     },
-    heroHeading: "Agents that ship media, not just messages.",
     heroParagraph:
       "Your Langflow agent can answer from a thousand documents. Now ask it for a storyboard, and watch the flow end at a blank HTTP node waiting for an API you'll wire by hand. Langflow is a capable drag-and-drop builder for chat, document search, and agents, rooted in Python and LangChain — but its agents ship messages, not media. NodeTool covers that same ground and keeps going: native image, video, and music generation with editing tools on the same canvas, and an agent that can build the whole pipeline itself. Open source, your own keys at provider prices, local models included.",
     competitorTagline: "Drag-and-drop builder for chatbot and agent apps",
@@ -447,18 +417,11 @@ export const competitors: Competitor[] = [
     name: "n8n",
     theme: "blue",
     category: "Workflow automation",
-    vsTitle: "NodeTool vs n8n — when the workflow creates, not just connects",
-    vsDescription:
-      "n8n moves data between hundreds of business apps. NodeTool is built for workflows where the AI work is the point: native image, video, and music generation, agents, and editing tools on one canvas — open source under AGPL-3.0 (not fair-code), your own keys at provider prices, with a desktop app and local models.",
-    vsOgTitle: "NodeTool vs n8n — when the workflow creates, not just connects",
-    vsOgDescription:
-      "n8n connects apps. NodeTool generates — image, video, music, and agents on one canvas. Open source (AGPL-3.0), your own keys, desktop app, local models.",
     og: {
       image: "screen_canvas.png",
       accent: "cyan",
       subtitle: "Workflows that create, not just connect — native generation and agents.",
     },
-    heroHeading: "Workflows that create, not just connect.",
     heroParagraph:
       "n8n is what you reach for when a record has to travel from Salesforce to Slack to a spreadsheet, every night, without fail. But try to make the workflow produce something — a product video, a batch of campaign images, a soundtrack — and the creative step collapses into a generic HTTP node calling an API you configured by hand. NodeTool is built for workflows where the AI work is the point: native image, video, and music generation, agents, and editing tools on one canvas, with an agent that can author the pipeline for you. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "Workflow automation platform",
@@ -522,18 +485,11 @@ export const competitors: Competitor[] = [
     name: "Flowise",
     theme: "violet",
     category: "Chatbot & agent builder",
-    vsTitle: "NodeTool vs Flowise — chatbots that answer from your documents plus native media generation",
-    vsDescription:
-      "Flowise is the fastest drag-and-drop path to a LangChain-based chatbot that answers from your documents. NodeTool covers the same agent and retrieval ground, then adds native image, video, and music generation and editing tools on the same canvas — your own keys at provider prices, no hosted-credit tiers.",
-    vsOgTitle: "NodeTool vs Flowise — chatbots that answer from your documents plus native media generation",
-    vsOgDescription:
-      "Flowise builds chatbots that answer from your documents fast. NodeTool builds the chatbot and the image, video, and music pipeline around it — one canvas, your own keys.",
     og: {
       image: "screen_workflow.png",
       accent: "violet",
       subtitle: "chatbots that answer from your documents plus native image, video, and music generation.",
     },
-    heroHeading: "The chatbot, plus everything it needs to produce.",
     heroParagraph:
       "Flowise gets you from zero to a document-answering chatbot in an afternoon: vector store, retriever, LLM node, done. Then the client asks for the demo video, the launch images, a voice for the assistant — and every one of those lands outside the flow, in a raw HTTP node or another tool entirely. NodeTool covers the same agent and retrieval ground, then keeps the whole deliverable on one canvas: native image, video, and music generation, editing tools, and an agent that can build the pipeline itself. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "Drag-and-drop LangChain builder",
@@ -597,18 +553,11 @@ export const competitors: Competitor[] = [
     name: "Dify",
     theme: "amber",
     category: "Chatbot & agent builder",
-    vsTitle: "NodeTool vs Dify — a language model app platform vs a media-generation canvas",
-    vsDescription:
-      "Dify is a strong language model app platform: prompt management, knowledge bases, and agent debugging for text-first products. NodeTool starts from the same agent and document-search ground, then puts native image, video, and music generation and editing tools on the same canvas — your own keys at provider prices, no vendor-hosted markup.",
-    vsOgTitle: "NodeTool vs Dify — a language model app platform vs a media-generation canvas",
-    vsOgDescription:
-      "Dify is built for text-first chatbot and agent apps. NodeTool adds native image, video, and music generation on the same canvas as agents and document search — your own keys.",
     og: {
       image: "screen_llms.png",
       accent: "amber",
       subtitle: "Agents and document search, plus native image, video, and music generation.",
     },
-    heroHeading: "Text apps are the floor, not the ceiling.",
     heroParagraph:
       "Dify earns its reputation on the text side: prompt management, knowledge bases, agent debugging — everything a support bot or internal copilot needs. But the day the deliverable includes a rendered image, a video cut, or a synthesized voice, the work has to leave the platform. NodeTool starts from the same agent and document-search ground and keeps the whole job on one canvas: native image, video, and music generation, editing tools, and an agent that can build the pipeline for you. Open source under AGPL-3.0, your own keys at provider prices, with a desktop app and local models.",
     competitorTagline: "language model app development platform",
@@ -675,18 +624,11 @@ export const competitors: Competitor[] = [
     theme: "rose",
     category: "Creative canvas",
     isNew: true,
-    vsTitle: "NodeTool vs Flora — an open canvas you own",
-    vsDescription:
-      "Flora is a polished, hosted infinite canvas for AI image and video, billed in credits. NodeTool is the open source, your own keys version of that idea: image, video, music, and text on one visual canvas, every provider at list price, and workflows and files you keep. Both put creation on a canvas — only one is yours to self-host.",
-    vsOgTitle: "NodeTool vs Flora — an open canvas you own",
-    vsOgDescription:
-      "Flora is a hosted, credit-based creative canvas. NodeTool is open source and runs on your own keys — every provider at list price, workflows you own.",
     og: {
       image: "screen_canvas.png",
       accent: "rose",
       subtitle: "A creative AI canvas that's open source and runs on your own keys — not credit-metered.",
     },
-    heroHeading: "The creative canvas, open source and yours.",
     heroParagraph:
       "Flora is a beautifully designed hosted canvas for AI image and video — and every render on it burns credits, on a model list someone else curates, on servers where your work lives. NodeTool is the open version of that idea: image, video, music, and text on one visual canvas, every model called with your own keys at provider prices, an agent that can build the pipeline for you, and workflows and files you own and can self-host.",
     competitorTagline: "Hosted infinite canvas",
@@ -746,18 +688,11 @@ export const competitors: Competitor[] = [
     theme: "cyan",
     category: "Creative canvas",
     isNew: true,
-    vsTitle: "NodeTool vs Krea — real-time generation, or an open pipeline",
-    vsDescription:
-      "Krea is a hosted studio known for real-time image generation and enhancement, sold on subscription and credits. NodeTool is an open-source, bring-your-own-key canvas for the whole pipeline: image, video, music, and text on one graph, every provider at list price, self-hostable. Krea is faster to a single instant render; NodeTool is built to compose, edit, and own the result.",
-    vsOgTitle: "NodeTool vs Krea — real-time generation, or an open pipeline",
-    vsOgDescription:
-      "Krea shines at instant, real-time renders. NodeTool is the open, your own keys pipeline around them — image, video, music, and text on one canvas.",
     og: {
       image: "screen_canvas.png",
       accent: "cyan",
       subtitle: "An open canvas that runs on your own keys, built for the whole process rather than one instant render.",
     },
-    heroHeading: "Instant renders, or the whole pipeline?",
     heroParagraph:
       "Krea's party trick is real: sketch, and the image resolves under your cursor. For a single instant render, it's hard to beat. But a finished piece is rarely a single render — it's a pipeline of steps across image, video, music, and text, and that's where a hosted, credit-billed studio runs out of canvas. NodeTool is the open-source, bring-your-own-key workspace for the pipeline: every model at provider prices, editing built in, an agent that can wire the steps for you, and the whole thing self-hostable.",
     competitorTagline: "Hosted real-time studio",
@@ -817,18 +752,11 @@ export const competitors: Competitor[] = [
     theme: "emerald",
     category: "Local language model runtime",
     isNew: true,
-    vsTitle: "NodeTool vs LM Studio — local language models, plus everything after them",
-    vsDescription:
-      "LM Studio is an excellent desktop app for running local GGUF language models with a chat UI and an OpenAI-compatible local server. NodeTool runs local models too — via Ollama, MLX, and llama.cpp — but on a visual canvas that also generates image, video, and music and builds agents and document search. For pure local-language model chat and serving, LM Studio is more specialized; for building workflows around those models, NodeTool is the canvas.",
-    vsOgTitle: "NodeTool vs LM Studio — local language models, plus everything after them",
-    vsOgDescription:
-      "LM Studio runs local language models beautifully. NodeTool runs local models too, then builds image, video, music, agents, and document search around them.",
     og: {
       image: "screen_llms.png",
       accent: "emerald",
       subtitle: "Run local models, then build the whole workflow around them.",
     },
-    heroHeading: "Run local models — then build the workflow.",
     heroParagraph:
       "LM Studio nails the first hour of local AI: browse a model, download it, chat with it, serve it over an OpenAI-compatible endpoint. The question is the second hour — when you want that model to read your documents, drive an agent, or feed a prompt into image and video generation, and the chat window has no answer. NodeTool runs local models too, via Ollama, MLX, and llama.cpp, but on a visual canvas that builds whole workflows around them — with an agent that can do the building.",
     competitorTagline: "Desktop local-language model runtime",
@@ -887,18 +815,11 @@ export const competitors: Competitor[] = [
     theme: "blue",
     category: "Local language model runtime",
     isNew: true,
-    vsTitle: "NodeTool vs Jan — an open local chat app vs an open AI canvas",
-    vsDescription:
-      "Jan is an open source, offline-first desktop app for chatting with local language models — a clean local ChatGPT alternative. NodeTool is open source too, but a visual canvas: it runs local models and adds image, video, and music generation, agents, and document search. Both are open and local-friendly; Jan is a focused chat app, NodeTool is the workflow builder around the models.",
-    vsOgTitle: "NodeTool vs Jan — an open local chat app vs an open AI canvas",
-    vsOgDescription:
-      "Jan is an open, offline-first local chat app. NodeTool is an open visual canvas — local models plus generation, agents, and document search.",
     og: {
       image: "screen_chat.png",
       accent: "blue",
       subtitle: "Open and local-first — plus generation, agents, and document search on one canvas.",
     },
-    heroHeading: "Open and local — plus everything past chat.",
     heroParagraph:
       "Jan makes one promise and keeps it: a private, offline chat with a local model, in an app that's fully open source. NodeTool shares the open, local-first values and asks a bigger question — what happens after the chat? On its canvas the same local models, run via Ollama, MLX, and llama.cpp, drive image, video, and music generation, agents, and document search on one graph, and an agent can build that graph for you.",
     competitorTagline: "Open source local chat app",
@@ -957,18 +878,11 @@ export const competitors: Competitor[] = [
     theme: "violet",
     category: "Agent automation",
     isNew: true,
-    vsTitle: "NodeTool vs Lindy — business-ops agents vs an AI generation canvas",
-    vsDescription:
-      "Lindy is a hosted platform that needs no code for AI assistants that automate business operations — email, scheduling, CRM. NodeTool is an open-source, bring-your-own-key canvas where the AI work is the output: native image, video, and music generation, agents, and document search. Lindy is built for ops plumbing; NodeTool is built to produce media and run creative agent workflows.",
-    vsOgTitle: "NodeTool vs Lindy — business-ops agents vs an AI generation canvas",
-    vsOgDescription:
-      "Lindy automates business ops with hosted agents. NodeTool is the open canvas that runs on your own keys for AI generation, agents, and document search.",
     og: {
       image: "screen_workflow.png",
       accent: "violet",
       subtitle: "When the agent's job is to create — image, video, music — not just plumb ops.",
     },
-    heroHeading: "Agents that produce, not just operate.",
     heroParagraph:
       "Lindy's agents live in your inbox, your calendar, and your CRM, quietly handling the operations work nobody wants. But ask one for the campaign itself — the images, the video, the soundtrack — and you've left what the platform is built for. NodeTool is an open-source, bring-your-own-key canvas where the AI work is the deliverable: native image, video, and music generation, agents, and document search on one visual canvas, with an agent that builds the pipeline from your description.",
     competitorTagline: "Hosted business-ops agents",
@@ -1028,18 +942,11 @@ export const competitors: Competitor[] = [
     theme: "amber",
     category: "Workflow automation",
     isNew: true,
-    vsTitle: "NodeTool vs Gumloop — business automation vs an AI generation canvas",
-    vsDescription:
-      "Gumloop is a hosted platform that needs no code for AI-powered business automation, with prebuilt nodes and integrations. NodeTool is an open-source, bring-your-own-key canvas where the AI work is the point: native image, video, and music generation, agents, and document search. Gumloop automates business processes; NodeTool produces media and runs creative workflows you can self-host.",
-    vsOgTitle: "NodeTool vs Gumloop — business automation vs an AI generation canvas",
-    vsOgDescription:
-      "Gumloop automates business processes, hosted, with no code to write. NodeTool is the open canvas that runs on your own keys for AI generation, agents, and document search.",
     og: {
       image: "screen_workflow.png",
       accent: "amber",
       subtitle: "When the workflow's output is generated media — not a business process.",
     },
-    heroHeading: "Automation that generates, not just processes.",
     heroParagraph:
       "Gumloop will move your data through a business process without a line of code — prebuilt nodes, broad SaaS integrations, all hosted. But a process that ends in a spreadsheet is a different job from a workflow that ends in a finished video. NodeTool is an open-source, bring-your-own-key canvas built for the second job: native image, video, and music generation, agents, and document search on one visual canvas, with an agent that builds the pipeline from your description.",
     competitorTagline: "Hosted automation, no code required",
@@ -1152,7 +1059,7 @@ export function alternativesFor(slug: string): {
     .slice(0, 5)
     .map((c) => ({
       name: c.name,
-      href: `/vs/${c.slug}`,
+      href: `/alternatives/${c.slug}`,
       note: c.competitorTagline,
       isNodetool: false,
     }));
@@ -1161,31 +1068,29 @@ export function alternativesFor(slug: string): {
 
 const YEAR = yearToken();
 
-/** `/vs/*` page entries for the registry, sitemap, and smoke suite. */
-export const vsEntries: PageEntry[] = competitors.map((c) => ({
-  route: `/vs/${c.slug}`,
-  title: `${c.vsTitle} (${YEAR})`,
-  description: c.vsDescription,
+/**
+ * `/alternatives/*` page entries for the registry, sitemap, and smoke suite.
+ *
+ * One record, one page. The `/vs/<slug>` twin this engine used to emit is gone
+ * (2026-08-10): both routes generated from this same array, so they competed for
+ * one query set, and `/alternatives` won 11 of the 12 head-to-head pairs — 4,817
+ * impressions to 1,117 (SEO_STRATEGY.md § 0.10, finding 3). `/vs/<slug>` now
+ * 301s here from `next.config.mjs`, and the head-to-head copy it owned (the
+ * at-a-glance cards and the explainer) is rendered on this page instead, so the
+ * "NodeTool vs X" queries keep their on-page support. The `vs*` fields below are
+ * still the source of that copy — they name the section, not a route.
+ */
+export const alternativesEntries: PageEntry[] = competitors.map((c) => ({
+  route: `/alternatives/${c.slug}`,
+  title: `${c.name} alternatives (${YEAR}) — why teams choose NodeTool`,
+  description: `${c.limitation} Compare NodeTool and other ${c.category.toLowerCase()} alternatives — open source, your own keys, one canvas for image, video, audio, and text.`,
   priority: c.isNew ? 0.6 : 0.7,
   changeFrequency: "monthly",
   indexable: true,
 }));
 
-/** `/alternatives/*` page entries for the registry, sitemap, and smoke suite. */
-export const alternativesEntries: PageEntry[] = competitors.map((c) => ({
-  route: `/alternatives/${c.slug}`,
-  title: `${c.name} alternatives (${YEAR}) — why teams choose NodeTool`,
-  description: `${c.limitation} Compare NodeTool and other ${c.category.toLowerCase()} alternatives — open source, your own keys, one canvas for image, video, audio, and text.`,
-  priority: c.isNew ? 0.55 : 0.6,
-  changeFrequency: "monthly",
-  indexable: true,
-}));
-
-/** Both comparison templates, folded into one engine contribution. */
-export const competitorEntries: PageEntry[] = [
-  ...vsEntries,
-  ...alternativesEntries,
-];
+/** The comparison engine's contribution to the registry. */
+export const competitorEntries: PageEntry[] = alternativesEntries;
 
 /**
  * Footer "Compare" column, derived from the data module. The established
@@ -1193,4 +1098,7 @@ export const competitorEntries: PageEntry[] = [
  */
 export const footerCompareLinks: { name: string; href: string }[] = competitors
   .filter((c) => !c.isNew)
-  .map((c) => ({ name: `vs ${c.footerName ?? c.name}`, href: `/vs/${c.slug}` }));
+  .map((c) => ({
+    name: `vs ${c.footerName ?? c.name}`,
+    href: `/alternatives/${c.slug}`,
+  }));

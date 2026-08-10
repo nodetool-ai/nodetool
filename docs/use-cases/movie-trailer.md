@@ -3,6 +3,12 @@ layout: page
 title: "Movie Trailer Generator"
 description: "Type one logline and the canvas builds a cinematic teaser: a Director node storyboards it into shots, a text-to-image model renders the key art, and a video model animates and cuts it into a finished trailer."
 image: /assets/use-cases/trailer-shot-1.png
+# This page mirrors the marketing site's version of the same use case, so the
+# two competed for one query set across domains (docs/SEO_STRATEGY.md § 0.10,
+# finding 4). The marketing page is the search destination — it carries the
+# video, the shot gallery, and the HowTo schema — so it takes the canonical and
+# this page stays for docs readers who browse the use-case index.
+canonical_url: "https://nodetool.ai/use-cases/movie-trailer"
 ---
 
 <p class="usecase-eyebrow">Use case · Film</p>

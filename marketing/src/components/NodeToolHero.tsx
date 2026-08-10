@@ -34,7 +34,13 @@ export default function NodeToolHero() {
           </h1>
 
           <p className="mt-6 max-w-xl text-base leading-relaxed text-slate-300 md:text-lg">
-            NodeTool is the open-source, agent-first creative workspace: one
+            NodeTool is the open-source, agent-first creative workspace: one{" "}
+            <a
+              href="/node-based-ai"
+              className="text-slate-100 underline decoration-slate-500/50 underline-offset-2 transition-colors hover:text-white hover:decoration-slate-300"
+            >
+              node-based
+            </a>{" "}
             canvas for image, video, audio, and text, where every editor is a
             tool an agent can drive. Say what you want and the agent builds the
             workflow and runs it — on every major model, with your own keys, at

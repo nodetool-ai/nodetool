@@ -49,19 +49,17 @@ export function isAbsolute(p) {
   return typeof p === "string" && p.startsWith("/");
 }
 
+// Real POSIX semantics rather than a thrower: callers use the result as a
+// string (a pack-relative module id), so returning a wrong-but-plausible value
+// would be worse than being correct here.
 export function relative(from, to) {
-  const fromParts = resolve(String(from)).split("/").filter(Boolean);
-  const toParts = resolve(String(to)).split("/").filter(Boolean);
-  let common = 0;
-  while (
-    common < fromParts.length &&
-    common < toParts.length &&
-    fromParts[common] === toParts[common]
-  ) {
-    common += 1;
-  }
-  const up = fromParts.slice(common).map(() => "..");
-  return [...up, ...toParts.slice(common)].join("/");
+  if (typeof from !== "string" || typeof to !== "string") return "";
+  const split = (p) => resolve(p).split("/").filter(Boolean);
+  const a = split(from);
+  const b = split(to);
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return [...Array(a.length - i).fill(".."), ...b.slice(i)].join("/");
 }
 
 export const posix = {
