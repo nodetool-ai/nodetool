@@ -88,7 +88,30 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   view_image: "read",
   // apps
   build_app: "execute",
-  debug_app: "execute"
+  debug_app: "execute",
+  // --- web ---
+  web_search: "read",
+  google_news: "read",
+  google_images: "read",
+  browser: "external",
+  take_screenshot: "read",
+  http_request: "external",
+  download_file: "write",
+  // --- documents ---
+  extract_pdf_text: "read",
+  extract_pdf_tables: "read",
+  convert_pdf_to_markdown: "read",
+  convert_markdown_to_pdf: "write",
+  convert_document: "write",
+  // --- memory (thread memory; the AgentMemory tools stay executor-internal) ---
+  thread_memory_save: "write",
+  thread_memory_list: "read",
+  thread_memory_update: "write",
+  thread_memory_delete: "write",
+  // --- email ---
+  search_email: "read",
+  archive_email: "external",
+  add_label_to_email: "external"
 };
 
 describe("capability registry walk", () => {

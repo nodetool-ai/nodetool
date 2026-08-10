@@ -56,6 +56,16 @@ export const UNGATED: CapabilityGate = {
   requestApproval: async () => "allow"
 };
 
+/**
+ * A run over one call's context and nothing else — what every ported tool
+ * class whose capability needs only the context builds in its `process()`.
+ */
+export function ungatedCapabilityRun(
+  context: ProcessingContext
+): CapabilityRun {
+  return createCapabilityRun({ context, gate: UNGATED });
+}
+
 export interface CreateCapabilityRunOptions {
   context: ProcessingContext;
   gate: CapabilityGate;
