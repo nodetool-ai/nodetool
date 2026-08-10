@@ -7,7 +7,10 @@ import {
   chatUnavailableBridges
 } from "../src/codeact/prompt.js";
 import { CODEACT_INJECTED_GLOBALS } from "../src/codeact/tool-api.js";
-import { getSandboxManifest } from "../src/code-gen/sandbox-manifest.js";
+import {
+  getSandboxManifest,
+  SANDBOX_MODULE_RULE
+} from "../src/code-gen/sandbox-manifest.js";
 import { unknownApiReferences } from "../src/code-gen/sandbox-prompt.js";
 
 /**
@@ -76,10 +79,28 @@ describe("CodeAct prompt / sandbox drift", () => {
     }
   });
 
-  it("states the module-loader rule once, from the manifest", () => {
+  it("states the module rule once, from the manifest", () => {
     const prompt = buildCodeActSystemPrompt({ tools: [], variant: "step" });
-    const occurrences = prompt.split("no module loader").length - 1;
+    const occurrences = prompt.split(SANDBOX_MODULE_RULE).length - 1;
     expect(occurrences).toBe(1);
+    // The retired claim must not come back through another surface.
+    expect(prompt).not.toContain("no module loader");
+  });
+
+  it("says nothing is importable when the session allows no package", () => {
+    const prompt = buildCodeActSystemPrompt({ tools: [], variant: "step" });
+    expect(prompt).toContain("No sandbox packages are available in this session");
+  });
+
+  it("advertises one line per session-allowed package", () => {
+    const prompt = buildCodeActSystemPrompt({
+      tools: [],
+      variant: "step",
+      packageLines: ["@acme/geo — Great-circle distance helpers."]
+    });
+    expect(prompt).toContain("# Sandbox packages");
+    expect(prompt).toContain("- @acme/geo — Great-circle distance helpers.");
+    expect(prompt).not.toContain("No sandbox packages are available");
   });
 });
 

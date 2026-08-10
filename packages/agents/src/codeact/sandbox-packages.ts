@@ -1,0 +1,128 @@
+/**
+ * Session package consent for CodeAct actions.
+ *
+ * A Code node carries a `packages` declaration a person saved; a CodeAct action
+ * is code the model just wrote. Mounting whatever happens to be installed would
+ * let the model hand an unrelated pack the action's `fetch`, `workspace`,
+ * `getSecret` and tool capabilities, so an action imports only what the session
+ * allowed — and the prompt advertises only those specifiers, one line each,
+ * never the installed catalog.
+ *
+ * A session that allowed nothing therefore imports nothing: the allowlist is
+ * empty, the prompt says so, and an import is refused as an observation the
+ * model can correct.
+ */
+import type { SandboxModuleResolution } from "@nodetool-ai/protocol";
+import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
+import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
+
+/** Longest description the one-line tier prints (the summary schema caps at 160). */
+export const MAX_PACKAGE_DESCRIPTION = 160;
+
+/** The specifiers an action may import: the session's allowlist, deduped. */
+export function sessionAllowedPackages(
+  allowlist: readonly string[] | undefined
+): string[] {
+  return [...new Set(allowlist ?? [])];
+}
+
+/**
+ * Pack-authored text reaches every prompt of the session, so it is stripped to
+ * a single short line: no control characters, no newlines, no runaway length.
+ */
+export function sanitizePackageDescription(text: string): string {
+  const flat = text
+    .replace(/[\u0000-\u001f\u007f-\u009f]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return flat.length > MAX_PACKAGE_DESCRIPTION
+    ? `${flat.slice(0, MAX_PACKAGE_DESCRIPTION - 1).trimEnd()}…`
+    : flat;
+}
+
+/**
+ * One line per allowed specifier the catalog knows: `specifier — description`.
+ * A specifier the catalog cannot describe still gets its line — the model needs
+ * to know it may import it.
+ */
+export function packagePromptLines(
+  allowed: readonly string[],
+  catalog: SandboxModuleCatalog | null | undefined
+): string[] {
+  if (allowed.length === 0) return [];
+  const summaries = new Map(
+    (catalog?.summaries() ?? []).map((summary) => [summary.specifier, summary])
+  );
+  return allowed.map((specifier) => {
+    const description = summaries.get(specifier)?.description;
+    const clean = description ? sanitizePackageDescription(description) : "";
+    return clean ? `${specifier} — ${clean}` : specifier;
+  });
+}
+
+export type ActionModuleMount =
+  | { ok: true; modules?: SandboxModuleResolution }
+  | { ok: false; error: string };
+
+/**
+ * Resolve the modules one action's code may mount.
+ *
+ * Code that imports nothing mounts nothing (and installs no loader). A
+ * specifier off the allowlist — or one the catalog cannot serve — stops the
+ * action before the guest starts: the model sees the refusal as its
+ * observation and can drop the import or ask for the package.
+ */
+export function mountActionModules(
+  code: string,
+  allowed: readonly string[],
+  catalog: SandboxModuleCatalog | null | undefined
+): ActionModuleMount {
+  const parsed = parseCodeBody(code);
+  // A body that does not parse has no imports to serve; the sandbox reports the
+  // syntax error itself, where the position still points at the model's code.
+  if ("error" in parsed) return { ok: true };
+
+  const specifiers = [...new Set(staticImportSpecifiers(parsed.statements))];
+  if (specifiers.length === 0) return { ok: true };
+
+  const allowSet = new Set(allowed);
+  const denied = specifiers.filter((specifier) => !allowSet.has(specifier));
+  if (denied.length > 0) {
+    const list = denied.map((specifier) => `"${specifier}"`).join(", ");
+    return {
+      ok: false,
+      error:
+        `The action imports ${list}, which is not on this session's package ` +
+        `allowlist. ${
+          allowed.length > 0
+            ? `Only ${allowed.map((s) => `"${s}"`).join(", ")} can be imported here.`
+            : "No sandbox package is available in this session."
+        } Rewrite the action without the import.`
+    };
+  }
+
+  if (!catalog) {
+    return {
+      ok: false,
+      error:
+        "Sandbox packages cannot be resolved in this process, so the action's " +
+        "imports cannot be served. Rewrite the action without the import."
+    };
+  }
+
+  const resolution = catalog.resolveForExecution(
+    specifiers.map((specifier) => ({ specifier }))
+  );
+  const errors = resolution.statuses.filter(
+    (status) => status.status === "error"
+  );
+  if (errors.length > 0) {
+    return {
+      ok: false,
+      error: errors
+        .map((status) => `${status.message} (pack "${status.packName}")`)
+        .join(" ")
+    };
+  }
+  return { ok: true, modules: resolution };
+}

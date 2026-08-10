@@ -3,17 +3,39 @@ import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from "nod
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { parse } from "acorn";
 import {
+  generateSandboxWasmFacade,
   normalizeSandboxSpecifier,
+  parseWasmBinary,
+  RESERVED_IDENTIFIERS,
+  SANDBOX_WASM_FACADE_VERSION,
   SandboxModuleManifestSchema,
   SandboxPackManifestSchema,
+  wasmExportContractViolation,
+  WasmBinaryError,
+  type ParsedWasmBinary,
   type SandboxModuleManifest,
   type SandboxPackManifest,
-  type SandboxModuleStatus
+  type SandboxModuleStatus,
+  type SandboxWasmContract
 } from "@nodetool-ai/protocol";
+import {
+  npmModuleId,
+  type SandboxCompiledNpmArtifact,
+  type SandboxCompiledNpmLookup
+} from "./sandbox-npm-artifacts.js";
 export { normalizeSandboxSpecifier } from "@nodetool-ai/protocol";
+export {
+  npmModuleId,
+  isNpmModuleId,
+  type SandboxCompiledNpmArtifact,
+  type SandboxCompiledNpmLookup,
+  type SandboxNpmCompileOutcome,
+  type SandboxNpmCompileRequest
+} from "./sandbox-npm-artifacts.js";
 
 const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 const ENCODED_PATH_CHARACTER = /%(?:2e|2f|5c)/i;
+const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 /** Static resource limits enforced while discovering sandbox package artifacts. */
 export const SANDBOX_PACKAGE_LIMITS = {
@@ -45,6 +67,8 @@ export interface SandboxDiscoveredModule {
   readonly npm?: string;
   readonly source?: string;
   readonly bytes?: Uint8Array;
+  /** WASM modules only: the validated scalar call contract the host enforces. */
+  readonly wasm?: SandboxWasmContract;
   readonly dependencies: readonly string[];
 }
 
@@ -82,14 +106,29 @@ type AstNode = {
 };
 
 type StoredFile = {
-  readonly path: string;
+  readonly path?: string;
   readonly bytes: Buffer;
   readonly kind: "js" | "wasm";
   readonly specifier?: string;
 };
 
+/** Host-supplied input discovery cannot produce on its own. */
+export interface SandboxPackDiscoveryOptions {
+  /**
+   * Compiled npm artifacts, keyed by pack and dependency name.
+   *
+   * Discovery stays synchronous and engine-free: it never runs esbuild and
+   * never starts QuickJS. A host that already compiled injects the results
+   * here; without them an npm entry is reported as `pending-compile`.
+   */
+  readonly compiled?: SandboxCompiledNpmLookup;
+}
+
 /** Discover a single installed pack without importing or executing pack code. */
-export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | undefined {
+export function discoverSandboxPack(
+  packDir: string,
+  options: SandboxPackDiscoveryOptions = {}
+): SandboxPackDiscovery | undefined {
   const dir = realpathOrThrow(packDir);
   const packageJsonPath = join(dir, "package.json");
   if (!existsSync(packageJsonPath) || !isRegularFile(packageJsonPath)) return undefined;
@@ -128,17 +167,71 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
   }
 
   const publicModules: UndigestedSandboxModule[] = [];
+  const npmArtifacts = new Map<string, SandboxCompiledNpmArtifact>();
   for (const module of manifest.sandboxModules) {
     const specifier = normalizeSandboxSpecifier(packageName, module.name);
     if (module.kind === "js" && module.npm !== undefined) {
+      const id = npmModuleId(module.npm);
+      const outcome = options.compiled?.({
+        packName: packageName,
+        packDir: dir,
+        specifier,
+        npmName: module.npm
+      });
+      const pending: UndigestedSandboxModule = {
+        specifier, kind: "js", id, npm: module.npm, dependencies: [], declaration: module
+      };
+      if (outcome === undefined) {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: "pending-compile",
+          message: `npm module ${module.npm} is not compiled yet; run \`nodetool packs compile\` to build it`
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      if (outcome.status === "skipped") {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: outcome.code,
+          message: outcome.message
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      const source = outcome.artifact.source;
+      const bytes = Buffer.from(source, "utf8");
+      if (bytes.byteLength > SANDBOX_PACKAGE_LIMITS.npmBundledJsBytes) {
+        statuses.push({
+          packName: packageName,
+          specifier,
+          status: "skipped",
+          code: "npm-module-too-large",
+          message: `npm module ${module.npm} compiles to ${bytes.byteLength} bytes, over the ${SANDBOX_PACKAGE_LIMITS.npmBundledJsBytes} byte cap`
+        });
+        publicModules.push(pending);
+        continue;
+      }
+      if (files.has(id)) {
+        throw new SandboxPackDiscoveryError(`${packageName}: duplicate npm module ${module.npm}`);
+      }
+      files.set(id, { bytes, kind: "js", specifier });
+      npmArtifacts.set(id, outcome.artifact);
+      for (const warning of outcome.warnings ?? []) {
+        statuses.push({ packName: packageName, specifier, status: "warning", code: "npm-module-warning", message: warning });
+      }
       statuses.push({
         packName: packageName,
         specifier,
-        status: "skipped",
-        code: "npm-module-unsupported",
-        message: `npm module ${module.npm} is validated but requires the M3 compiler`
+        status: "ready",
+        code: "npm-module-compiled",
+        message: `npm module ${module.npm} compiled to ${bytes.byteLength} bytes`
       });
-      publicModules.push({ specifier, kind: "js", id: `npm:${module.npm}`, npm: module.npm, dependencies: [], declaration: module });
+      publicModules.push({ ...pending, source });
       continue;
     }
     const moduleFile = module.file;
@@ -152,13 +245,16 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     const id = addFile(dir, moduleFile, module.kind, specifier, files);
     const artifact = files.get(id);
     if (artifact === undefined) throw new SandboxPackDiscoveryError(`${packageName}: missing ${module.file}`);
-    if (module.kind === "wasm") validateWasmModule(artifact.bytes, module, packageName, specifier);
+    const contract = module.kind === "wasm"
+      ? validateWasmModule(artifact.bytes, module, packageName, specifier)
+      : undefined;
     publicModules.push({
       specifier,
       kind: module.kind,
       id,
       file: artifact.path,
       ...(module.kind === "js" ? { source: artifact.bytes.toString("utf8") } : { bytes: artifact.bytes }),
+      ...(contract === undefined ? {} : { wasm: contract }),
       dependencies: [],
       declaration: module
     });
@@ -171,7 +267,10 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     if (id === undefined || dependenciesById.has(id)) continue;
     const artifact = files.get(id);
     if (artifact === undefined) throw new SandboxPackDiscoveryError(`${packageName}: missing module ${id}`);
-    if (artifact.kind !== "js") {
+    // A compiled npm bundle is a self-contained leaf: the compiler already
+    // proved it resolves nothing, with a stricter scope-aware analysis than the
+    // authored-file scan below.
+    if (artifact.kind !== "js" || npmArtifacts.has(id)) {
       dependenciesById.set(id, []);
       continue;
     }
@@ -188,13 +287,18 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
   assertAcyclic(dependenciesById, packageName);
 
   const version = typeof packageJson.version === "string" ? packageJson.version : undefined;
-  const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(({ declaration, ...module }) => ({
-    ...module,
-    dependencies: dependenciesById.get(module.id) ?? [],
-    digest: module.npm === undefined
-      ? computeModuleDigest({ ...module, declaration }, files, dependenciesById, packageName, version)
-      : computeNpmPlaceholderDigest({ ...module, declaration }, packageName, version)
-  }));
+  const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(({ declaration, ...module }) => {
+    const artifact = npmArtifacts.get(module.id);
+    return {
+      ...module,
+      dependencies: dependenciesById.get(module.id) ?? [],
+      digest: module.npm === undefined
+        ? computeModuleDigest({ ...module, declaration }, files, dependenciesById, packageName, version)
+        : artifact === undefined
+          ? computeNpmPlaceholderDigest({ ...module, declaration }, packageName, version)
+          : computeNpmCompiledDigest({ ...module, declaration }, artifact, packageName, version)
+    };
+  });
   const graph = [...files.entries()].map(([id, file]) => ({
     id,
     kind: file.kind,
@@ -227,16 +331,19 @@ export function discoverSandboxPack(packDir: string): SandboxPackDiscovery | und
     modules: resolvedModules,
     graph,
     internal: [...internalIds].sort(compareStrings),
-    digest: computeDigest(resolvedModules, files, internalIds, manifest, packageName, version),
+    digest: computeDigest(resolvedModules, files, internalIds, manifest, packageName, version, npmArtifacts),
     statuses
   };
 }
 
 /** Discover sandbox modules from package directories without ambiguous pack ownership. */
-export function discoverSandboxPacks(packageDirs: readonly string[]): SandboxPackDiscovery[] {
+export function discoverSandboxPacks(
+  packageDirs: readonly string[],
+  options: SandboxPackDiscoveryOptions = {}
+): SandboxPackDiscovery[] {
   const found = new Map<string, SandboxPackDiscovery>();
   for (const packageDir of packageDirs) {
-    const discovery = discoverSandboxPack(packageDir);
+    const discovery = discoverSandboxPack(packageDir, options);
     if (discovery === undefined) continue;
     if (found.has(discovery.name)) {
       throw new SandboxPackDiscoveryError(
@@ -253,9 +360,23 @@ export function computeSandboxModuleGraphDigest(
   modules: readonly SandboxDiscoveredModule[],
   files: ReadonlyMap<string, { bytes: Uint8Array; kind?: "js" | "wasm" }>,
   internal: ReadonlySet<string>,
-  metadata?: { manifest?: SandboxPackManifest; packageName?: string; packageVersion?: string }
+  metadata?: {
+    manifest?: SandboxPackManifest;
+    packageName?: string;
+    packageVersion?: string;
+    /** Compiler identity per compiled npm module id, keyed by graph id. */
+    npmArtifacts?: ReadonlyMap<string, SandboxCompiledNpmArtifact>;
+  }
 ): string {
-  return computeDigest(modules, files, internal, metadata?.manifest, metadata?.packageName, metadata?.packageVersion);
+  return computeDigest(
+    modules,
+    files,
+    internal,
+    metadata?.manifest,
+    metadata?.packageName,
+    metadata?.packageVersion,
+    metadata?.npmArtifacts
+  );
 }
 
 function computeDigest(
@@ -264,9 +385,20 @@ function computeDigest(
   internal: ReadonlySet<string>,
   manifest: SandboxPackManifest | undefined,
   packageName: string | undefined,
-  packageVersion: string | undefined
+  packageVersion: string | undefined,
+  npmArtifacts?: ReadonlyMap<string, SandboxCompiledNpmArtifact>
 ): string {
-  const publicById = new Map(modules.filter((module) => !module.id.startsWith("npm:")).map((module) => [module.id, module]));
+  // An npm module without a compiled artifact has no file in the graph, so it
+  // cannot contribute an entry; one with an artifact is a file like any other.
+  const publicById = new Map(modules.filter((module) => files.has(module.id)).map((module) => [module.id, module]));
+  const compiled = [...(npmArtifacts?.entries() ?? [])]
+    .map(([id, artifact]) => ({
+      id,
+      compilerVersion: artifact.compilerVersion,
+      optionsDigest: artifact.optionsDigest,
+      inputsDigest: artifact.inputsDigest
+    }))
+    .sort(compareById);
   const entries = [...files.entries()].map(([id, file]) => {
     const module = publicById.get(id);
     return {
@@ -284,10 +416,10 @@ function computeDigest(
     sandboxModules: [...manifest.sandboxModules].sort((left, right) => compareStrings(left.name, right.name)).map((module) =>
       module.kind === "js"
         ? { name: module.name, kind: module.kind, file: module.file, npm: module.npm }
-        : { name: module.name, kind: module.kind, file: module.file, memoryPagesMax: module.memoryPagesMax, exports: [...module.exports].sort(compareExportNames) }
+        : { name: module.name, kind: module.kind, file: module.file, memoryPagesMax: module.memoryPagesMax, limits: module.limits, exports: [...module.exports].sort(compareExportNames) }
     )
   };
-  return createHash("sha256").update(JSON.stringify({ packageName, packageVersion, manifest: manifestMetadata, entries })).digest("hex");
+  return createHash("sha256").update(JSON.stringify({ packageName, packageVersion, manifest: manifestMetadata, entries, compiled })).digest("hex");
 }
 
 function computeModuleDigest(
@@ -324,7 +456,43 @@ function computeModuleDigest(
     moduleId: module.id,
     kind: module.kind,
     declaration: moduleDigestDeclaration(module.declaration),
+    // A WASM module's guest surface is generated, so the generator is part of
+    // what the digest pins: regenerate the facade differently and a workflow's
+    // saved digest stops matching, exactly as a changed binary would.
+    ...(module.wasm === undefined ? {} : {
+      facadeVersion: SANDBOX_WASM_FACADE_VERSION,
+      facade: generateSandboxWasmFacade(module.specifier, module.wasm)
+    }),
     entries
+  })).digest("hex");
+}
+
+/**
+ * Digest for an npm module that has a compiled artifact.
+ *
+ * The bundled source is what the guest evaluates, so it is what the digest is
+ * over — plus the compiler's version and options digest, because the same
+ * package version compiled under different resolver conditions is a different
+ * module. A saved workflow whose pack was recompiled therefore reports drift
+ * instead of quietly running different code.
+ */
+function computeNpmCompiledDigest(
+  module: UndigestedSandboxModule,
+  artifact: SandboxCompiledNpmArtifact,
+  packageName: string,
+  packageVersion: string | undefined
+): string {
+  return createHash("sha256").update(JSON.stringify({
+    packageName,
+    packageVersion,
+    specifier: module.specifier,
+    moduleId: module.id,
+    npm: module.npm,
+    declaration: moduleDigestDeclaration(module.declaration),
+    compilerVersion: artifact.compilerVersion,
+    optionsDigest: artifact.optionsDigest,
+    inputsDigest: artifact.inputsDigest,
+    source: createHash("sha256").update(artifact.source).digest("hex")
   })).digest("hex");
 }
 
@@ -351,6 +519,7 @@ function moduleDigestDeclaration(module: SandboxModuleManifest): object {
     kind: module.kind,
     file: module.file,
     memoryPagesMax: module.memoryPagesMax,
+    limits: module.limits,
     exports: [...module.exports].sort(compareExportNames)
   };
 }
@@ -406,102 +575,52 @@ function inspectJavaScript(source: string, moduleId: string, packDir: string, fi
   return dependencies.sort(compareStrings);
 }
 
-function validateWasmModule(bytes: Uint8Array, manifest: Extract<SandboxModuleManifest, { kind: "wasm" }>, packageName: string, specifier: string): void {
+/**
+ * Validate a WASM binary against its manifest and return the call contract.
+ *
+ * Every rejection names the export and the rule it broke — "is a memory, not a
+ * function", "uses i64, which maps to bigint rather than number" — so a pack
+ * author is told what to change, not that something is unsupported.
+ */
+function validateWasmModule(bytes: Uint8Array, manifest: Extract<SandboxModuleManifest, { kind: "wasm" }>, packageName: string, specifier: string): SandboxWasmContract {
   const validationBuffer = new ArrayBuffer(bytes.byteLength);
   new Uint8Array(validationBuffer).set(bytes);
   if (!WebAssembly.validate(validationBuffer)) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: invalid WASM binary`);
-  const module = parseWasm(bytes, packageName, specifier);
+  let module: ParsedWasmBinary;
+  try {
+    module = parseWasmBinary(bytes);
+  } catch (error) {
+    if (error instanceof WasmBinaryError) {
+      throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: ${error.message}`, { cause: error });
+    }
+    throw error;
+  }
   if (module.importCount !== 0) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: WASM imports are not allowed`);
   for (const memory of module.memories) {
     if (memory.shared || memory.maximum === undefined) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: every WASM memory must be unshared and declare a maximum`);
     if (memory.maximum < memory.minimum || memory.maximum > manifest.memoryPagesMax || memory.maximum > 4096) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: memory maximum exceeds the declared or host ceiling`);
   }
-  for (const exported of manifest.exports) {
+  const exports = manifest.exports.map((exported) => {
     const wasmName = typeof exported === "string" ? exported : exported.wasm;
-    const actual = module.exports.get(wasmName);
-    if (actual === undefined) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: declared export ${wasmName} is missing`);
-    if (actual.kind !== 0) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: declared export ${wasmName} is not a function`);
-    const signature = module.functions[actual.index];
-    if (signature === undefined || signature.parameters.length > 8 || signature.results.length > 1) {
-      throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: export ${wasmName} has an unsupported signature`);
+    const alias = typeof exported === "string" ? exported : exported.as;
+    // The manifest schema already holds this, but discovery is its own
+    // enforcement point: a binary export that is not an identifier must be
+    // renamed with `{ "wasm": …, "as": … }`, and the alias must be one.
+    if (!JS_IDENTIFIER.test(alias) || RESERVED_IDENTIFIERS.has(alias)) {
+      throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: export ${wasmName} is exposed as "${alias}", which is not a usable JavaScript identifier — map it with { "wasm": "${wasmName}", "as": "<identifier>" }`);
     }
-    for (const type of [...signature.parameters, ...signature.results]) {
-      if (type !== 0x7f && type !== 0x7d && type !== 0x7c) {
-        throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: export ${wasmName} uses an unsupported WASM value type`);
-      }
+    const entry = module.exports.get(wasmName);
+    const violation = wasmExportContractViolation(entry, entry === undefined ? undefined : module.functions[entry.index]);
+    if (violation !== undefined) {
+      throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: export ${wasmName} ${violation}`);
     }
-  }
-}
-
-type WasmSignature = { readonly parameters: readonly number[]; readonly results: readonly number[] };
-type WasmExport = { readonly kind: number; readonly index: number };
-type ParsedWasm = { readonly importCount: number; readonly memories: readonly { minimum: number; maximum?: number; shared: boolean }[]; readonly exports: ReadonlyMap<string, WasmExport>; readonly functions: readonly WasmSignature[] };
-
-function parseWasm(bytes: Uint8Array, packageName: string, specifier: string): ParsedWasm {
-  const cursor = new BinaryCursor(bytes, packageName, specifier);
-  if (cursor.readBytes(4).join(",") !== "0,97,115,109" || cursor.readBytes(4).join(",") !== "1,0,0,0") throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: invalid WASM magic or version`);
-  const types: WasmSignature[] = [];
-  const functionTypeIndexes: number[] = [];
-  const memories: { minimum: number; maximum?: number; shared: boolean }[] = [];
-  const exports = new Map<string, WasmExport>();
-  let importCount = 0;
-  while (!cursor.done) {
-    const section = cursor.section();
-    const sectionCursor = new BinaryCursor(section.payload, packageName, specifier);
-    if (section.id === 1) {
-      for (let i = 0, count = sectionCursor.vectorLength(); i < count; i += 1) {
-        if (sectionCursor.readByte() !== 0x60) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: invalid WASM function type`);
-        const parameters = sectionCursor.valueTypes();
-        const results = sectionCursor.valueTypes();
-        types.push({ parameters, results });
-      }
-    } else if (section.id === 2) {
-      importCount = sectionCursor.vectorLength();
-      sectionCursor.skipRemaining();
-    } else if (section.id === 3) {
-      for (let i = 0, count = sectionCursor.vectorLength(); i < count; i += 1) functionTypeIndexes.push(sectionCursor.u32());
-    } else if (section.id === 5) {
-      for (let i = 0, count = sectionCursor.vectorLength(); i < count; i += 1) {
-        const flags = sectionCursor.u32();
-        const minimum = sectionCursor.u32();
-        const hasMaximum = flags === 1 || flags === 3;
-        const shared = flags === 2 || flags === 3;
-        if (flags !== 0 && flags !== 1 && flags !== 2 && flags !== 3) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: invalid WASM memory limits`);
-        memories.push({ minimum, ...(hasMaximum ? { maximum: sectionCursor.u32() } : {}), shared });
-      }
-    } else if (section.id === 7) {
-      for (let i = 0, count = sectionCursor.vectorLength(); i < count; i += 1) {
-        const name = sectionCursor.string();
-        const kind = sectionCursor.readByte();
-        const index = sectionCursor.u32();
-        if (exports.has(name)) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: duplicate WASM export ${name}`);
-        exports.set(name, { kind, index });
-      }
-    } else {
-      sectionCursor.skipRemaining();
-    }
-    if (!sectionCursor.done) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: malformed WASM section`);
-  }
-  const functions = functionTypeIndexes.map((typeIndex) => {
-    const signature = types[typeIndex];
-    if (signature === undefined) throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: invalid WASM function type index`);
-    return signature;
+    return { wasm: wasmName, as: alias };
   });
-  return { importCount, memories, exports, functions };
-}
-
-class BinaryCursor {
-  private offset = 0;
-  constructor(private readonly bytes: Uint8Array, private readonly packageName: string, private readonly specifier: string) {}
-  get done(): boolean { return this.offset === this.bytes.length; }
-  readByte(): number { if (this.offset >= this.bytes.length) throw new SandboxPackDiscoveryError(`${this.packageName}/${this.specifier}: truncated WASM binary`); return this.bytes[this.offset++]; }
-  readBytes(count: number): number[] { return Array.from({ length: count }, () => this.readByte()); }
-  u32(): number { let value = 0; let shift = 0; for (let i = 0; i < 5; i += 1) { const byte = this.readByte(); value += (byte & 0x7f) * 2 ** shift; if ((byte & 0x80) === 0) { if (value > 0xffffffff) throw new SandboxPackDiscoveryError(`${this.packageName}/${this.specifier}: invalid WASM integer`); return value; } shift += 7; } throw new SandboxPackDiscoveryError(`${this.packageName}/${this.specifier}: invalid WASM integer`); }
-  vectorLength(): number { return this.u32(); }
-  string(): string { const bytes = this.readBytes(this.u32()); try { return new TextDecoder("utf-8", { fatal: true }).decode(new Uint8Array(bytes)); } catch (error) { throw new SandboxPackDiscoveryError(`${this.packageName}/${this.specifier}: invalid WASM name`, { cause: error }); } }
-  valueTypes(): number[] { return Array.from({ length: this.vectorLength() }, () => this.readByte()); }
-  skipRemaining(): void { this.offset = this.bytes.length; }
-  section(): { id: number; payload: Uint8Array } { const id = this.readByte(); const size = this.u32(); if (this.offset + size > this.bytes.length) throw new SandboxPackDiscoveryError(`${this.packageName}/${this.specifier}: truncated WASM section`); const payload = this.bytes.slice(this.offset, this.offset + size); this.offset += size; return { id, payload }; }
+  return {
+    memoryPagesMax: manifest.memoryPagesMax,
+    exports,
+    ...(manifest.limits === undefined ? {} : { limits: manifest.limits })
+  };
 }
 
 function walkAst(value: unknown, visit: (node: AstNode) => void): void {

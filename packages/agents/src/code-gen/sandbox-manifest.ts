@@ -923,6 +923,20 @@ function partitionNativeGlobals(): {
   };
 }
 
+/**
+ * The one sentence every surface states about modules in the guest.
+ *
+ * Modules exist now — the loader serves what a run declared and refuses
+ * everything else — so the old "there is no module loader" claim is false. It
+ * lives here because the CodeAct prompt, the Code node prompts and the editor
+ * docs all restate it, and the drift tests hold them to this text.
+ */
+export const SANDBOX_MODULE_RULE =
+  "Modules come only from the sandbox packages this run declares, imported " +
+  "with a static `import` at the top of the code; dynamic import expressions " +
+  "and `require` never resolve, and there is no Intl. Everything else a " +
+  "library would do comes from the bridges below.";
+
 let cached: SandboxManifest | null = null;
 
 /** Build the manifest. Cached — the inputs are module constants. */
@@ -958,9 +972,7 @@ export function getSandboxManifest(): SandboxManifest {
       {
         text: "Images are edited as encoded bytes: assetToSandbox then workspace.readBytes to get them, image.* or createCanvas to change them, workspace.writeBytes then sandboxToAsset to hand one back."
       },
-      {
-        text: "There is no module loader and no Intl. Anything a library would do comes from the bridges below."
-      },
+      { text: SANDBOX_MODULE_RULE },
       {
         text: "The platform object model is available as `nodetool` (with the raw `tools` bridge under it): nodetool.capabilities() reports which namespaces are live in this environment; a method whose backing tool is missing throws naming that tool. Tool-backed calls can spend money (media generation, workflow runs) and reach the web — permission gating stays with the tools themselves.",
         audience: "code-node"

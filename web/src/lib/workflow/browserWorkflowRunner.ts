@@ -26,6 +26,11 @@ import {
 import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
 import { stampGenerationIndex } from "./browserRunnerRelay";
 import {
+  createSeededSandboxModuleCatalog,
+  prepareSandboxModulesForGraph,
+  type SandboxModuleRecord
+} from "./sandboxModuleCatalog";
+import {
   buildBrowserRunner,
   collectNodeClasses,
   loadBrowserModules,
@@ -337,13 +342,27 @@ export function updateBrowserJobNodeProperties(
 export async function runBrowserGraphJob(
   options: BrowserGraphJobOptions
 ): Promise<BrowserGraphJobResult> {
+  // Sandbox modules are fetched here, before either path starts: the catalog
+  // contract is synchronous, and the same verified records seed the catalog on
+  // whichever side ends up running. A module that cannot be had fails the job
+  // now, rather than as a resolve error deep inside the guest.
+  let sandboxModules: SandboxModuleRecord[] | null;
+  try {
+    sandboxModules = await prepareSandboxModulesForGraph(options.graph);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Sandbox modules unavailable";
+    console.error(`[browserRunner] ✖ sandbox modules unavailable: ${message}`);
+    return { success: false, outputs: {}, error: message };
+  }
+
   if (shouldUseWorker() && !workerDisabled) {
     try {
       const { getBrowserWorkerReady, runBrowserGraphJobInWorker } =
         await import("./browserWorkerClient");
       // Ensure the registry is built; a failed init throws → main-thread path.
       await getBrowserWorkerReady();
-      return await runBrowserGraphJobInWorker(options);
+      return await runBrowserGraphJobInWorker(options, sandboxModules);
     } catch (error) {
       console.warn(
         "[browserRunner] worker run failed to start; falling back to main thread",
@@ -352,7 +371,7 @@ export async function runBrowserGraphJob(
       workerDisabled = true;
     }
   }
-  return runBrowserGraphJobLocal(options);
+  return runBrowserGraphJobLocal(options, sandboxModules);
 }
 
 /**
@@ -360,7 +379,8 @@ export async function runBrowserGraphJob(
  * delivering each message inline. The fallback path and the unit-test path.
  */
 async function runBrowserGraphJobLocal(
-  options: BrowserGraphJobOptions
+  options: BrowserGraphJobOptions,
+  sandboxModules: SandboxModuleRecord[] | null = null
 ): Promise<BrowserGraphJobResult> {
   const { graph, params = {}, signal, workflowId } = options;
   if (signal?.aborted) {
@@ -399,6 +419,12 @@ async function runBrowserGraphJobLocal(
     jobId,
     workflowId,
     signal,
+    ...(sandboxModules === null
+      ? {}
+      : {
+          sandboxModuleCatalog:
+            createSeededSandboxModuleCatalog(sandboxModules)
+        }),
     onRunner: (workflowRunner) => {
       localRunners.set(jobId, workflowRunner);
     }

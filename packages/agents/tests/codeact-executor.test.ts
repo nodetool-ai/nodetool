@@ -527,6 +527,119 @@ describe("CodeAct core tools", () => {
   });
 });
 
+describe("CodeAct sandbox packages", () => {
+  const DIGEST = "c".repeat(64);
+  const source = "export const twice = (n) => n * 2;";
+  const catalog = {
+    summaries: () => [
+      {
+        specifier: "@acme/geo",
+        packName: "@acme/nodetool-geo",
+        kind: "js" as const,
+        description: "Doubles a number."
+      }
+    ],
+    diagnostics: () => [],
+    resolveForExecution: () => ({
+      modules: [
+        {
+          specifier: "@acme/geo",
+          packName: "@acme/nodetool-geo",
+          contentDigest: DIGEST,
+          moduleId: "sandbox/geo.js",
+          kind: "js" as const,
+          source,
+          graph: [
+            {
+              id: "sandbox/geo.js",
+              kind: "js" as const,
+              source,
+              dependencies: [],
+              internal: false
+            }
+          ]
+        }
+      ],
+      statuses: []
+    })
+  };
+
+  it("mounts an allowlisted import and advertises it in the prompt", async () => {
+    const { step, task } = makeStep(ANSWER_SCHEMA);
+    const context = createMockContext() as Record<string, unknown>;
+    context["sandboxModuleCatalog"] = catalog;
+    const provider = createLoopProvider([
+      {
+        toolCalls: [
+          codeAction(
+            "tc_1",
+            `import { twice } from "@acme/geo";\nawait finish({answer: twice(21)});`
+          )
+        ]
+      }
+    ]);
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: [],
+      sandboxPackages: ["@acme/geo"]
+    });
+    for await (const _ of executor.execute()) void _;
+    expect(executor.getResult()).toEqual({ answer: 42 });
+  }, 60_000);
+
+  it("refuses an import the session never allowed, as the observation", async () => {
+    const { step, task } = makeStep();
+    const context = createMockContext() as Record<string, unknown>;
+    context["sandboxModuleCatalog"] = catalog;
+    const observations: string[] = [];
+    // A provider that keeps the observation the executor hands back, which is
+    // the whole point: the model reads the refusal and can correct itself.
+    const provider = {
+      provider: "fake",
+      hasToolSupport: async () => true,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
+        }>;
+      }) {
+        const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
+        const result = await tool?.execute?.({
+          code: `import { twice } from "@acme/geo";\nreturn twice(1);`
+        });
+        observations.push(String(result));
+        yield {
+          type: "message",
+          message: { role: "assistant", content: "cannot import that" }
+        };
+        yield { type: "chunk", content: "", done: true };
+      }
+    } as unknown as BaseProvider;
+
+    const executor = new CodeActExecutor({
+      task,
+      step,
+      context: context as never,
+      provider,
+      model: "m",
+      tools: []
+    });
+    for await (const _ of executor.execute()) void _;
+
+    const observation = JSON.parse(observations[0] ?? "{}") as {
+      ok: boolean;
+      error?: string;
+    };
+    expect(observation.ok).toBe(false);
+    expect(observation.error).toContain("@acme/geo");
+    expect(observation.error).toContain("allowlist");
+  });
+});
+
 describe("coercionArtifactPaths", () => {
   it("names the paths carrying [object Object]", async () => {
     const { coercionArtifactPaths } = await import(

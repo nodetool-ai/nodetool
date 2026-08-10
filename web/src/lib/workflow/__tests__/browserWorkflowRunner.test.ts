@@ -4,8 +4,10 @@ import {
   canRunGraphInBrowser,
   canRunGraphInBrowserSync,
   collectNodeClasses,
+  reportBrowserEligibility,
   runBrowserGraphJob
 } from "../browserWorkflowRunner";
+import { clearSandboxModuleCache } from "../sandboxModuleCatalog";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
 
 const browserGraph = (type: string): WorkflowGraph =>
@@ -132,6 +134,185 @@ describe("canRunGraphInBrowserSync", () => {
 
     expect(canRunGraphInBrowserSync(browserGraph("browser.Const"))).toBe(true);
     expect(canRunGraphInBrowserSync(browserGraph("server.Image"))).toBe(false);
+  });
+});
+
+describe("sandbox package prefetch", () => {
+  /** A registry that also knows the Code node, so only `packages` decides. */
+  const codeRegistry = {
+    has: (type: string) =>
+      type.startsWith("browser.") || type === "nodetool.code.Code"
+  };
+
+  function installCodeRunner(
+    onRun?: (opts: Record<string, unknown>) => void
+  ): void {
+    __setBrowserRunnerLoader(async () => ({
+      wf: {
+        createBrowserRegistry: () => codeRegistry,
+        runBrowserWorkflow: (opts: Record<string, unknown>) => {
+          onRun?.(opts);
+          return completed()();
+        }
+      } as never,
+      nodeClasses: []
+    }));
+  }
+
+  const codeGraph = (packages: unknown): WorkflowGraph =>
+    ({
+      nodes: [
+        {
+          id: "code_1",
+          type: "nodetool.code.Code",
+          data: { properties: { code: "return {};", packages } }
+        }
+      ],
+      edges: []
+    }) as unknown as WorkflowGraph;
+
+  const DIGEST = "a".repeat(64);
+
+  /** SHA-256 of `body`, hex — what the route announces and the client checks. */
+  async function sha(body: string): Promise<string> {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(body)
+    );
+    return [...new Uint8Array(digest)]
+      .map((byte) => byte.toString(16).padStart(2, "0"))
+      .join("");
+  }
+
+  /** The members of `Response` the catalog reads — jsdom has no Fetch classes. */
+  function fakeResponse(
+    status: number,
+    body: string,
+    headers: Record<string, string> = {}
+  ): Response {
+    const lookup = new Map(
+      Object.entries(headers).map(([key, value]) => [key.toLowerCase(), value])
+    );
+    return {
+      ok: status >= 200 && status < 300,
+      status,
+      headers: { get: (name: string) => lookup.get(name.toLowerCase()) ?? null },
+      arrayBuffer: async () => new TextEncoder().encode(body).buffer
+    } as unknown as Response;
+  }
+
+  async function moduleResponse(
+    source: string,
+    overrides: Record<string, string> = {}
+  ): Promise<Response> {
+    return fakeResponse(200, source, {
+      "Content-Type": "text/javascript",
+      "X-Content-Digest": DIGEST,
+      "X-Content-Sha256": await sha(source),
+      "X-Sandbox-Pack": "@acme/nodetool-geo",
+      "X-Sandbox-File-Id": "sandbox/geo.js",
+      "X-Sandbox-Internal": "0",
+      "X-Sandbox-Module-Dependencies": "[]",
+      ...overrides
+    });
+  }
+
+  /** jsdom has no `fetch`, so install one rather than spy on a missing global. */
+  function installFetch(
+    impl: (input: unknown) => Promise<Response>
+  ): jest.Mock<Promise<Response>, [unknown]> {
+    const mock = jest.fn(impl) as jest.Mock<Promise<Response>, [unknown]>;
+    (globalThis as { fetch?: unknown }).fetch = mock;
+    return mock;
+  }
+
+  beforeEach(() => {
+    clearSandboxModuleCache();
+  });
+
+  afterEach(() => {
+    delete (globalThis as { fetch?: unknown }).fetch;
+  });
+
+  it("stays eligible whether or not the Code node declares packages", async () => {
+    installCodeRunner();
+    expect((await reportBrowserEligibility(codeGraph([]))).eligible).toBe(true);
+    expect(
+      (await reportBrowserEligibility(codeGraph(["@acme/geo"]))).eligible
+    ).toBe(true);
+    expect(canRunGraphInBrowserSync(codeGraph(["@acme/geo"]))).toBe(true);
+  });
+
+  it("fetches the declared modules and hands the run a warmed catalog", async () => {
+    const source = "export const label = () => 'geo';\n";
+    const fetchMock = installFetch(async () => moduleResponse(source));
+    let captured: Record<string, unknown> | undefined;
+    installCodeRunner((opts) => {
+      captured = opts;
+    });
+
+    const result = await runBrowserGraphJob({
+      graph: codeGraph(["@acme/geo"]),
+      workflowId: "wf-pkg"
+    });
+
+    expect(result.success).toBe(true);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain(
+      "/api/sandbox-modules/%40acme%2Fgeo"
+    );
+    const catalog = captured?.sandboxModuleCatalog as {
+      resolveForExecution: (
+        d: Array<{ specifier: string }>
+      ) => { modules: Array<{ specifier: string; source?: string }> };
+    };
+    expect(catalog.resolveForExecution([{ specifier: "@acme/geo" }]).modules[0])
+      .toMatchObject({ specifier: "@acme/geo", source });
+  });
+
+  it("passes no catalog when the graph declares nothing", async () => {
+    const fetchMock = installFetch(async () => {
+      throw new Error("no module should be fetched");
+    });
+    let captured: Record<string, unknown> | undefined;
+    installCodeRunner((opts) => {
+      captured = opts;
+    });
+
+    await runBrowserGraphJob({ graph: codeGraph([]), workflowId: "wf-none" });
+
+    expect(captured?.sandboxModuleCatalog).toBeUndefined();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("fails the job when a declared module is not on this server", async () => {
+    installFetch(async () => fakeResponse(404, ""));
+    installCodeRunner();
+
+    const result = await runBrowserGraphJob({
+      graph: codeGraph(["@acme/geo"]),
+      workflowId: "wf-404"
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("@acme/geo");
+    expect(result.error).toContain("not available on this server");
+  });
+
+  it("fails the job when a delivered body fails its content check", async () => {
+    installFetch(async () =>
+      moduleResponse("export const label = () => 'geo';\n", {
+        "X-Content-Sha256": "b".repeat(64)
+      })
+    );
+    installCodeRunner();
+
+    const result = await runBrowserGraphJob({
+      graph: codeGraph(["@acme/geo"]),
+      workflowId: "wf-sha"
+    });
+
+    expect(result.success).toBe(false);
+    expect(result.error).toContain("failed its content check");
   });
 });
 

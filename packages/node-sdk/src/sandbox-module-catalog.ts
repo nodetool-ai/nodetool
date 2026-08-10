@@ -1,8 +1,16 @@
-import type {
-  ResolvedSandboxModule,
-  SandboxModuleGraphFile,
-  SandboxModuleStatus,
-  SandboxModuleSummary
+import { createHash } from "node:crypto";
+
+import {
+  sandboxDeliveryRefusal,
+  sandboxGraphFileModuleId,
+  parseSandboxGraphFileModuleId,
+  SandboxDeliveryMediaType,
+  type ResolvedSandboxModule,
+  type SandboxModuleDeliveryResult,
+  type SandboxModuleGraphFile,
+  type SandboxModuleStatus,
+  type SandboxModuleSummary,
+  type SandboxWasmContract
 } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
@@ -49,6 +57,11 @@ export function createSandboxModuleCatalog(
     }
   }
 
+  const packs = new Map<string, PackDelivery>();
+  for (const discovery of discoveries) {
+    packs.set(discovery.name, packDelivery(discovery));
+  }
+
   const summaries = [...discoveredBySpecifier.values()]
     .map(({ discovery, module }): SandboxModuleSummary => ({
       specifier: module.specifier,
@@ -61,6 +74,10 @@ export function createSandboxModuleCatalog(
   return {
     summaries: () => summaries,
     diagnostics: () => statuses,
+    // Asynchronous by contract; the v1 entitlement decision is synchronous.
+    authorizeDelivery: (moduleId) => Promise.resolve(
+      authorizeDelivery(moduleId, discoveredBySpecifier, unavailableSpecifiers, packs)
+    ),
     resolveForExecution: (declarations) => {
       const modules: ResolvedSandboxModule[] = [];
       const resolutionStatuses: SandboxModuleStatus[] = [];
@@ -115,6 +132,175 @@ export function createSandboxModuleCatalog(
   };
 }
 
+interface PackDelivery {
+  readonly discovery: SandboxPackDiscovery;
+  readonly filesById: ReadonlyMap<string, SandboxDiscoveredFile>;
+  /** The graph digest of the module each file belongs to. */
+  readonly digestByFileId: ReadonlyMap<string, string>;
+}
+
+/**
+ * Index one pack's graph for delivery.
+ *
+ * Every file gets the graph digest of the public module that reaches it. A file
+ * shared by two entry modules belongs to both graphs and therefore has two
+ * candidate digests; the lexicographically first specifier wins, so the answer
+ * is stable across processes. The digest identifies the module graph a file was
+ * delivered as part of — it is never a hash of that one file.
+ */
+function packDelivery(discovery: SandboxPackDiscovery): PackDelivery {
+  const filesById = new Map(discovery.graph.map((file) => [file.id, file]));
+  const digestByFileId = new Map<string, string>();
+  const entries = [...discovery.modules]
+    .filter((module) => module.npm === undefined)
+    .sort((left, right) => left.specifier.localeCompare(right.specifier));
+  for (const module of entries) {
+    const pending = [module.id];
+    const seen = new Set<string>();
+    for (let index = 0; index < pending.length; index += 1) {
+      const id = pending[index];
+      if (id === undefined || seen.has(id)) continue;
+      seen.add(id);
+      if (!digestByFileId.has(id)) digestByFileId.set(id, module.digest);
+      const file = filesById.get(id);
+      if (file !== undefined) pending.push(...file.dependencies);
+    }
+  }
+  return { discovery, filesById, digestByFileId };
+}
+
+/**
+ * Resolve one opaque module id to browser-safe content.
+ *
+ * Public entry specifiers and internal graph-file ids are both deliverable: the
+ * browser loader needs the whole graph, not just the entry. v1 entitlement
+ * policy is that any request reaching the catalog is authorized — the seam
+ * exists so a later private-pack rule is a policy change, not new plumbing.
+ */
+function authorizeDelivery(
+  moduleId: string,
+  discoveredBySpecifier: ReadonlyMap<string, {
+    readonly discovery: SandboxPackDiscovery;
+    readonly module: SandboxDiscoveredModule;
+  }>,
+  unavailableSpecifiers: ReadonlySet<string>,
+  packs: ReadonlyMap<string, PackDelivery>
+): SandboxModuleDeliveryResult {
+  const entry = discoveredBySpecifier.get(moduleId);
+  if (entry !== undefined) {
+    const { discovery, module } = entry;
+    if (module.npm !== undefined) {
+      return sandboxDeliveryRefusal(
+        "unavailable",
+        `Sandbox module ${moduleId} is not available for delivery.`
+      );
+    }
+    return deliveryFor(discovery, {
+      moduleId,
+      fileId: module.id,
+      // A public entry is the pack's advertised surface, never an internal file.
+      internal: false,
+      digest: module.digest,
+      kind: module.kind,
+      ...(module.source === undefined ? {} : { source: module.source }),
+      ...(module.bytes === undefined ? {} : { bytes: module.bytes }),
+      // Only a public entry carries the call contract the facade is built from.
+      ...(module.wasm === undefined ? {} : { wasm: module.wasm }),
+      dependencies: module.dependencies
+    });
+  }
+  if (unavailableSpecifiers.has(moduleId)) {
+    return sandboxDeliveryRefusal(
+      "unavailable",
+      `Sandbox module ${moduleId} is not available for delivery.`
+    );
+  }
+
+  const parsed = parseSandboxGraphFileModuleId(moduleId);
+  const pack = parsed === undefined ? undefined : packs.get(parsed.packName);
+  const file = parsed === undefined || pack === undefined
+    ? undefined
+    : pack.filesById.get(parsed.fileId);
+  const digest = parsed === undefined || pack === undefined
+    ? undefined
+    : pack.digestByFileId.get(parsed.fileId);
+  if (parsed === undefined || pack === undefined || file === undefined || digest === undefined) {
+    return sandboxDeliveryRefusal("not-found", `Sandbox module ${moduleId} is not installed.`);
+  }
+  return deliveryFor(pack.discovery, {
+    moduleId,
+    fileId: parsed.fileId,
+    internal: file.internal,
+    digest,
+    kind: file.kind,
+    ...(file.source === undefined ? {} : { source: file.source }),
+    ...(file.bytes === undefined ? {} : { bytes: file.bytes }),
+    dependencies: file.dependencies
+  });
+}
+
+function deliveryFor(
+  discovery: SandboxPackDiscovery,
+  content: {
+    readonly moduleId: string;
+    readonly fileId: string;
+    readonly internal: boolean;
+    readonly digest: string;
+    readonly kind: "js" | "wasm";
+    readonly source?: string;
+    readonly bytes?: Uint8Array;
+    readonly wasm?: SandboxWasmContract;
+    readonly dependencies: readonly string[];
+  }
+): SandboxModuleDeliveryResult {
+  const common = {
+    authorized: true as const,
+    moduleId: content.moduleId,
+    fileId: content.fileId,
+    internal: content.internal,
+    packName: discovery.name,
+    ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
+    contentDigest: content.digest,
+    dependencies: content.dependencies.map((dependency) =>
+      sandboxGraphFileModuleId(discovery.name, dependency)
+    )
+  };
+  if (content.kind === "js") {
+    if (content.source === undefined) {
+      return sandboxDeliveryRefusal(
+        "unavailable",
+        `Sandbox module ${content.moduleId} has no JavaScript source.`
+      );
+    }
+    return {
+      ...common,
+      kind: "js",
+      mediaType: SandboxDeliveryMediaType.JS,
+      contentSha256: sha256(Buffer.from(content.source, "utf8")),
+      source: content.source
+    };
+  }
+  if (content.bytes === undefined) {
+    return sandboxDeliveryRefusal(
+      "unavailable",
+      `Sandbox module ${content.moduleId} has no WASM bytes.`
+    );
+  }
+  return {
+    ...common,
+    kind: "wasm",
+    mediaType: SandboxDeliveryMediaType.WASM,
+    contentSha256: sha256(content.bytes),
+    bytes: new Uint8Array(content.bytes),
+    ...(content.wasm === undefined ? {} : { wasm: content.wasm })
+  };
+}
+
+/** Hash of exactly the bytes a client receives, so the client can check them. */
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
+}
+
 function toResolvedModule(
   discovery: SandboxPackDiscovery,
   module: SandboxDiscoveredModule
@@ -137,7 +323,10 @@ function toResolvedModule(
   if (module.bytes === undefined) {
     throw new Error(`sandbox module ${module.specifier} has no WASM bytes`);
   }
-  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes) };
+  if (module.wasm === undefined) {
+    throw new Error(`sandbox module ${module.specifier} has no WASM call contract`);
+  }
+  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes), wasm: module.wasm };
 }
 
 function moduleGraph(

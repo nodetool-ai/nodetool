@@ -55,8 +55,8 @@ export function analyzeGeneratedCode(
       ok: false,
       errors: [
         `The code uses \`${moduleKinds.join("` and `")}\` at the top level. The body runs ` +
-          "inside an async function, which cannot contain module declarations, and the " +
-          "sandbox has no module loader — `import` and `require` do not exist there. " +
+          "inside an async function, which cannot contain module declarations, and this " +
+          "authoring surface declares no sandbox packages, so nothing is importable here. " +
           "Use only the sandbox API and the code's own helpers."
       ]
     };

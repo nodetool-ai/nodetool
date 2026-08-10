@@ -65,6 +65,7 @@ import {
   type SupervisorCliOptions
 } from "./supervisor.js";
 import { registerPackageCommands } from "./commands/package.js";
+import { registerPackCommands } from "./commands/packs.js";
 import { registerDeployCommands } from "./commands/deploy.js";
 import { registerHfCommands } from "./commands/models-hf.js";
 import { registerWorkerCommands } from "./commands/worker.js";
@@ -2317,6 +2318,7 @@ mcp
 // ---------------------------------------------------------------------------
 
 registerPackageCommands(program);
+registerPackCommands(program);
 registerWorkerCommands(program);
 
 // ---------------------------------------------------------------------------

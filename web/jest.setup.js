@@ -16,6 +16,20 @@ if (typeof global.structuredClone === 'undefined') {
   global.structuredClone = (obj) => JSON.parse(JSON.stringify(obj));
 }
 
+// jsdom exposes `crypto` without `subtle`, which a real browser always has and
+// browser code uses — the sandbox module catalog verifies every delivered
+// module body with SubtleCrypto. Node's WebCrypto is the same implementation,
+// so hand that one member over rather than stub a hash a test would then be
+// measuring instead of the real one. Only `subtle` is added: jsdom's own
+// `getRandomValues`/`randomUUID` stay, because uuid-generating code all over
+// the app is built against them.
+if (global.crypto && global.crypto.subtle === undefined) {
+  Object.defineProperty(global.crypto, "subtle", {
+    value: require("node:crypto").webcrypto.subtle,
+    configurable: true
+  });
+}
+
 // Mock import.meta for Vite compatibility
 global.import = {
   meta: {

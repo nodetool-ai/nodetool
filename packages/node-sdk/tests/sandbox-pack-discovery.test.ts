@@ -142,7 +142,7 @@ describe("sandbox package discovery", () => {
     expect(discovery?.graph[0]?.bytes).toBeDefined();
     rmSync(valid, { recursive: true, force: true });
 
-    for (const [bytes, message] of [[wasmWithImport, "imports"], [wasmWithI64, "unsupported"], [wasmWithMemory(0), "maximum"]] as const) {
+    for (const [bytes, message] of [[wasmWithImport, "imports"], [wasmWithI64, "uses i64"], [wasmWithMemory(0), "maximum"]] as const) {
       const dir = pack({ apiVersion: 1, sandboxModules: [{ name: "math", kind: "wasm", file: "math.wasm", memoryPagesMax: 4, exports: ["run"] }] }, { "math.wasm": bytes });
       expectDiscoveryError(() => discoverSandboxPack(dir), message);
       rmSync(dir, { recursive: true, force: true });

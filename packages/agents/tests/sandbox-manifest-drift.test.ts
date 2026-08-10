@@ -158,6 +158,15 @@ describe("authoring instructions name only APIs the sandbox has", () => {
     ).toEqual([]);
   });
 
+  it("keeps the editor chat docs on the current module rule", () => {
+    const source = readIfPresent(CHAT_INTEGRATION);
+    if (!source) return;
+    // The guest has a loader now; the retired claim must not survive here.
+    expect(source).not.toContain("no module loader");
+    const block = source.match(/<sandbox_api>([\s\S]*?)<\/sandbox_api>/);
+    expect(block![1]).toContain("packages property");
+  });
+
   it("holds for the editor chat sandbox docs", () => {
     const source = readIfPresent(CHAT_INTEGRATION);
     if (!source) return;

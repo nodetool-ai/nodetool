@@ -244,6 +244,28 @@ export interface CodeActPromptOptions {
   directToolNames?: string[];
   /** Extra sections appended after the tool catalog (e.g. the graph model). */
   extraSections?: string[];
+  /**
+   * One line per sandbox package this session allows, already sanitized —
+   * `specifier — description`. Empty (the default) prints the sentence that
+   * says nothing is importable, so the model never guesses either way.
+   */
+  packageLines?: readonly string[];
+}
+
+/**
+ * The session's package tier: one line per allowed specifier, or the sentence
+ * that says there are none. It is always present — silence would leave the
+ * model to guess whether `import` is worth trying.
+ */
+function renderPackageSection(lines: readonly string[]): string {
+  if (lines.length === 0) {
+    return "# Sandbox packages\nNo sandbox packages are available in this session. Do not import anything.";
+  }
+  return [
+    "# Sandbox packages",
+    "Import these with a static `import` at the top of the action. Only these specifiers resolve; every other import fails.",
+    lines.map((line) => `- ${line}`).join("\n")
+  ].join("\n\n");
 }
 
 export function buildCodeActSystemPrompt(
@@ -299,6 +321,7 @@ export function buildCodeActSystemPrompt(
         direct.join(", ")
     );
   }
+  sections.push(renderPackageSection(options.packageLines ?? []));
   for (const section of options.extraSections ?? []) {
     if (section.trim()) sections.push(section.trim());
   }

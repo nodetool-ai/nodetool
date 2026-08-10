@@ -35,6 +35,10 @@ import {
   type LoadedBrowserRunner
 } from "./browserRunnerCore";
 import { attachPreviewBitmaps } from "./attachPreviewBitmaps";
+import {
+  createSeededSandboxModuleCatalog,
+  type SandboxModuleRecord
+} from "./sandboxModuleCatalog";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -83,6 +87,12 @@ interface RunMessage {
   graph: Parameters<typeof normalizeGraphForKernel>[0];
   params?: Record<string, unknown>;
   workflowId: string;
+  /**
+   * Verified sandbox module sources for this run's Code nodes. The main thread
+   * fetches and hash-checks them (it owns the origin, the auth header and the
+   * job-error path); the worker only turns the records back into a catalog.
+   */
+  sandboxModules?: SandboxModuleRecord[] | null;
 }
 interface CancelMessage {
   type: "cancel";
@@ -96,7 +106,7 @@ interface UpdatePropertiesMessage {
 }
 
 async function runJob(msg: RunMessage): Promise<void> {
-  const { jobId, graph, params = {}, workflowId } = msg;
+  const { jobId, graph, params = {}, workflowId, sandboxModules } = msg;
 
   let runner: LoadedBrowserRunner;
   try {
@@ -154,6 +164,12 @@ async function runJob(msg: RunMessage): Promise<void> {
       jobId,
       workflowId,
       signal: controller.signal,
+      ...(sandboxModules == null
+        ? {}
+        : {
+            sandboxModuleCatalog:
+              createSeededSandboxModuleCatalog(sandboxModules)
+          }),
       onRunner: (workflowRunner) => {
         runners.set(jobId, workflowRunner);
       }

@@ -1,0 +1,14 @@
+{
+  "name": "@fixture/sandbox-process-hard",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "fixture-process-hard": "1.0.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "fixture-process-hard" }
+    ]
+  }
+}

@@ -11,14 +11,19 @@
  * Pure functions, no I/O — {@link validateCodeNodeBody} is called by
  * `validateGraph` and unit-tested directly.
  */
+import type { SandboxModuleDeclaration } from "@nodetool-ai/protocol";
+import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
+
 import {
   analyzeCodeBody,
   CODE_INPUTS_GLOBAL,
+  dynamicModuleAccess,
   freeIdentifiers,
   inputsMemberReads,
   moduleDeclarationKinds,
   parseCodeBody,
   returnShapes,
+  staticImportSpecifiers,
   typeofGuardedNames
 } from "./code-analysis.js";
 
@@ -103,7 +108,9 @@ export interface CodeNodeIssue {
   /**
    * Stable category: "code_syntax" | "code_module" | "code_no_return" |
    * "code_return_shape" | "code_missing_output" | "code_undeclared_output" |
-   * "code_undefined_name" | "code_undefined_input" | "code_unused_input".
+   * "code_undefined_name" | "code_undefined_input" | "code_unused_input" |
+   * "code_unused_package" | "code_package_unavailable" |
+   * "code_package_mismatch".
    */
   code: string;
   message: string;
@@ -121,6 +128,19 @@ export interface CodeNodeValidationInput {
   declaredOutputs: readonly string[];
   /** Output handles other nodes are wired to. A superset check on `keys`. */
   connectedOutputs?: readonly string[];
+  /**
+   * Sandbox modules the node declares in its `packages` property. The guest
+   * loader serves exactly these, so an import of anything else fails at run
+   * time and a declaration nothing imports is dead weight.
+   */
+  declaredPackages?: readonly SandboxModuleDeclaration[];
+  /**
+   * The installed catalog, when the caller has one. Given it, the declarations
+   * are resolved offline: a specifier no installed pack offers is an error, and
+   * a pack version or content digest that moved since the workflow was saved is
+   * a warning.
+   */
+  sandboxModuleCatalog?: SandboxModuleCatalog | null;
 }
 
 function formatNames(names: readonly string[]): string {
@@ -167,16 +187,66 @@ export function validateCodeNodeBody(
 
   const issues: CodeNodeIssue[] = [];
 
-  const moduleKinds = moduleDeclarationKinds(parsed.statements);
-  if (moduleKinds.length > 0) {
+  if (moduleDeclarationKinds(parsed.statements).includes("export")) {
     issues.push({
       severity: "error",
       code: "code_module",
       message:
-        `The code uses \`${moduleKinds.join("` and `")}\` at the top level. The body runs ` +
-        "inside an async function, which cannot contain module declarations, and the " +
-        "sandbox has no module loader — `import` and `require` do not exist there."
+        "The code uses `export` at the top level. The body runs inside an async " +
+        "function, which cannot contain an export declaration — return an object " +
+        "instead; its keys become the node's output handles."
     });
+  }
+
+  const declaredSpecifiers = new Set(
+    (input.declaredPackages ?? []).map((declaration) => declaration.specifier)
+  );
+  const imported = staticImportSpecifiers(parsed.statements);
+  const undeclaredImports = [
+    ...new Set(imported.filter((specifier) => !declaredSpecifiers.has(specifier)))
+  ].sort();
+  if (undeclaredImports.length > 0) {
+    issues.push({
+      severity: "error",
+      code: "code_module",
+      message:
+        `The code imports ${formatNames(undeclaredImports)}, which this node does not ` +
+        `declare — the sandbox resolves only the modules listed in the node's ` +
+        `\`packages\` property. Add ${undeclaredImports.length > 1 ? "them" : "it"} there, ` +
+        "or remove the import."
+    });
+  }
+
+  const dynamic = dynamicModuleAccess(parsed.statements);
+  if (dynamic.dynamicImport || dynamic.require) {
+    const used = [
+      ...(dynamic.dynamicImport ? ["import()"] : []),
+      ...(dynamic.require ? ["require()"] : [])
+    ];
+    issues.push({
+      severity: "error",
+      code: "code_module",
+      message:
+        `The code uses \`${used.join("` and `")}\`, which the sandbox does not support — ` +
+        "the loader denies every dynamic resolution. Declare the module in the node's " +
+        "`packages` property and import it with a static `import` at the top of the code."
+    });
+  }
+
+  if (declaredSpecifiers.size > 0) {
+    const unusedPackages = [...declaredSpecifiers].filter(
+      (specifier) => !imported.includes(specifier)
+    );
+    if (unusedPackages.length > 0) {
+      issues.push({
+        severity: "warning",
+        code: "code_unused_package",
+        message: `The node declares ${formatNames(unusedPackages.sort())} in \`packages\`, which the code never imports.`
+      });
+    }
+    issues.push(
+      ...catalogIssues(input.sandboxModuleCatalog, input.declaredPackages ?? [])
+    );
   }
 
   // ── Names the body reads but nothing puts in scope ───────────────────────
@@ -203,8 +273,13 @@ export function validateCodeNodeBody(
         "fetch() objects instead of Headers/Request/Response."
     });
   }
+  // `require` already has its own issue above; reporting it again as an
+  // invented name would say the same thing twice with worse advice.
   const undefinedNames = unbound.filter(
-    (name) => !SANDBOX_GLOBALS.has(name) && !ABSENT_GLOBALS.has(name)
+    (name) =>
+      !SANDBOX_GLOBALS.has(name) &&
+      !ABSENT_GLOBALS.has(name) &&
+      !(name === "require" && dynamic.require)
   );
   // A declared input read as a bare name: the pre-`inputs` form. It is a
   // reference to that input, so the unused check below must not also complain.
@@ -340,6 +415,32 @@ export function validateCodeNodeBody(
   }
 
   return withUnusedInputs(issues, declaredInputsUnused);
+}
+
+/**
+ * Resolve the declarations against the installed catalog, offline.
+ *
+ * The catalog reports what only an installed host knows: a specifier no pack
+ * offers (error, naming the pack the specifier claims), and a pack version or
+ * content digest that moved since the workflow was saved (warning — resolution
+ * always uses what is installed).
+ */
+function catalogIssues(
+  catalog: SandboxModuleCatalog | null | undefined,
+  declarations: readonly SandboxModuleDeclaration[]
+): CodeNodeIssue[] {
+  if (!catalog || declarations.length === 0) return [];
+  const { statuses } = catalog.resolveForExecution(declarations);
+  return statuses
+    .filter((status) => status.status === "error" || status.status === "warning")
+    .map((status) => ({
+      severity: status.status === "error" ? ("error" as const) : ("warning" as const),
+      code:
+        status.status === "error"
+          ? "code_package_unavailable"
+          : "code_package_mismatch",
+      message: `${status.message} (pack "${status.packName}")`
+    }));
 }
 
 function withUnusedInputs(

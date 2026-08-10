@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SANDBOX_WASM_BUDGETS } from "./sandbox-wasm.js";
+
 const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const MODULE_NAME = /^(?:\.|[A-Za-z0-9._-]+)$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._~-]+\/)?[a-z0-9._~-]+$/i;
@@ -49,6 +51,30 @@ const wasmExportSchema = z.union([
   z.object({ wasm: z.string().min(1).refine((value) => !CONTROL_CHARACTERS.test(value), "invalid WASM export name"), as: identifierSchema }).strict()
 ]);
 
+/**
+ * Budgets a manifest may lower.
+ *
+ * Every bound's default is also its ceiling ({@link SANDBOX_WASM_BUDGETS}), so
+ * a `.max()` here is the whole "may lower, never raise" rule — a manifest that
+ * asks for more is rejected rather than clamped, because a pack that thinks it
+ * has 60 s is a pack that will be surprised at 30.
+ */
+export const SandboxWasmLimitsSchema = z.object({
+  callTimeoutMs: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callTimeoutMs).optional(),
+  callConcurrency: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callConcurrency).optional(),
+  callsPerInvocation: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callsPerInvocation).optional(),
+  wallClockMs: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.wallClockMs).optional()
+}).strict();
+export type SandboxWasmLimits = z.infer<typeof SandboxWasmLimitsSchema>;
+
+/** The normalized call contract a resolved WASM module carries to the host. */
+export const SandboxWasmContractSchema = z.object({
+  memoryPagesMax: z.number().int().min(0).max(4096),
+  exports: z.array(z.object({ wasm: z.string().min(1), as: identifierSchema }).strict()).min(1),
+  limits: SandboxWasmLimitsSchema.optional()
+}).strict();
+export type SandboxWasmContract = z.infer<typeof SandboxWasmContractSchema>;
+
 const jsModuleSchema = z.object({
   name: moduleNameSchema,
   kind: z.literal(SandboxModuleKind.JS),
@@ -65,7 +91,8 @@ const wasmModuleSchema = z.object({
   kind: z.literal(SandboxModuleKind.WASM),
   file: fileSchema,
   memoryPagesMax: z.number().int().min(0).max(4096),
-  exports: z.array(wasmExportSchema).min(1)
+  exports: z.array(wasmExportSchema).min(1),
+  limits: SandboxWasmLimitsSchema.optional()
 }).strict().superRefine((value, ctx) => {
   const aliases = new Set<string>();
   const wasmNames = new Set<string>();
@@ -184,6 +211,8 @@ export const ResolvedSandboxModuleSchema = z.discriminatedUnion("kind", [
     moduleId: z.string().min(1),
     kind: z.literal(SandboxModuleKind.WASM),
     bytes: z.instanceof(Uint8Array),
+    /** The manifest's call contract, normalized: every export as `{wasm, as}`. */
+    wasm: SandboxWasmContractSchema,
     graph: z.array(SandboxModuleGraphFileSchema)
   }).strict()
 ]);
@@ -195,6 +224,134 @@ export const SandboxModuleResolutionSchema = z.object({
   statuses: z.array(SandboxModuleStatusSchema)
 }).strict();
 export type SandboxModuleResolution = z.infer<typeof SandboxModuleResolutionSchema>;
+
+/** Media type a delivered sandbox module is served with. */
+export const SandboxDeliveryMediaType = {
+  JS: "text/javascript",
+  WASM: "application/wasm"
+} as const;
+export type SandboxDeliveryMediaType =
+  (typeof SandboxDeliveryMediaType)[keyof typeof SandboxDeliveryMediaType];
+
+/**
+ * Separator between a pack name and an internal graph-file id in an opaque
+ * delivery module id.
+ *
+ * A public entry module is addressed by its specifier (`@acme/geo`). Every
+ * other file of the graph — internal helpers and files a second entry imports —
+ * is addressed as `<packName>::<fileId>`. Neither a package name nor a
+ * package-relative file id may contain `::`, so the two forms cannot collide.
+ */
+export const SANDBOX_GRAPH_FILE_SEPARATOR = "::";
+
+/** Compose the opaque delivery id of one file inside a pack's module graph. */
+export function sandboxGraphFileModuleId(packName: string, fileId: string): string {
+  return `${packName}${SANDBOX_GRAPH_FILE_SEPARATOR}${fileId}`;
+}
+
+/** Split an opaque graph-file id, or undefined when the id is an entry specifier. */
+export function parseSandboxGraphFileModuleId(
+  moduleId: string
+): { packName: string; fileId: string } | undefined {
+  const index = moduleId.indexOf(SANDBOX_GRAPH_FILE_SEPARATOR);
+  if (index <= 0) return undefined;
+  const packName = moduleId.slice(0, index);
+  const fileId = moduleId.slice(index + SANDBOX_GRAPH_FILE_SEPARATOR.length);
+  if (fileId.length === 0) return undefined;
+  return { packName, fileId };
+}
+
+const deliveryCommon = {
+  authorized: z.literal(true),
+  /** The opaque id this delivery answers — an entry specifier or a graph-file id. */
+  moduleId: z.string().min(1),
+  /**
+   * The delivered file's pack-relative id (`sandbox/geo.js`).
+   *
+   * A graph-file id already carries it, but an entry is addressed by its
+   * specifier, and the client needs the file id all the same: relative imports
+   * inside the module resolve against it.
+   */
+  fileId: z.string().min(1),
+  /** Whether the pack's manifest keeps this file out of its public surface. */
+  internal: z.boolean(),
+  packName: z.string().regex(PACKAGE_NAME),
+  packVersion: z.string().min(1).optional(),
+  /** The owning module's graph digest (never a per-file hash). */
+  contentDigest: contentDigestSchema,
+  /**
+   * SHA-256 of the delivered bytes of *this* file.
+   *
+   * `contentDigest` versions the whole module graph, so every file of one graph
+   * carries the same value and a client cannot check a response body against
+   * it. This is the per-response hash a client verifies before it executes
+   * anything: for JS, the UTF-8 encoding of `source`; for WASM, `bytes`.
+   */
+  contentSha256: contentDigestSchema,
+  /** Opaque ids of the modules this one imports, for closure prefetching. */
+  dependencies: z.array(z.string().min(1))
+};
+
+/** Browser-safe content for one sandbox module, carrying no filesystem path. */
+export const AuthorizedSandboxModuleDeliverySchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...deliveryCommon,
+    kind: z.literal(SandboxModuleKind.JS),
+    mediaType: z.literal(SandboxDeliveryMediaType.JS),
+    source: z.string()
+  }).strict(),
+  z.object({
+    ...deliveryCommon,
+    kind: z.literal(SandboxModuleKind.WASM),
+    mediaType: z.literal(SandboxDeliveryMediaType.WASM),
+    bytes: z.instanceof(Uint8Array),
+    /**
+     * The call contract, present only on a pack's public WASM entry.
+     *
+     * A client needs it to build the facade it imports; an internal graph file
+     * is bytes a facade already names, so it carries none.
+     */
+    wasm: SandboxWasmContractSchema.optional()
+  }).strict()
+]);
+export type AuthorizedSandboxModuleDelivery = z.infer<
+  typeof AuthorizedSandboxModuleDeliverySchema
+>;
+
+/** Why the catalog would not hand out a module's content. */
+export const SandboxDeliveryRefusalReasonSchema = z.enum([
+  "not-found",
+  "unavailable",
+  "forbidden"
+]);
+export type SandboxDeliveryRefusalReason = z.infer<
+  typeof SandboxDeliveryRefusalReasonSchema
+>;
+
+/** The catalog's refusal to deliver, carrying no content and no path. */
+export const SandboxDeliveryRefusalSchema = z.object({
+  authorized: z.literal(false),
+  reason: SandboxDeliveryRefusalReasonSchema,
+  message: z.string().min(1)
+}).strict();
+export type SandboxDeliveryRefusal = z.infer<typeof SandboxDeliveryRefusalSchema>;
+
+/** One answer to a delivery request: authorized content or a refusal. */
+export const SandboxModuleDeliveryResultSchema = z.union([
+  AuthorizedSandboxModuleDeliverySchema,
+  SandboxDeliveryRefusalSchema
+]);
+export type SandboxModuleDeliveryResult = z.infer<
+  typeof SandboxModuleDeliveryResultSchema
+>;
+
+/** Build a refusal without repeating the shape at every call site. */
+export function sandboxDeliveryRefusal(
+  reason: SandboxDeliveryRefusalReason,
+  message: string
+): SandboxDeliveryRefusal {
+  return { authorized: false, reason, message };
+}
 
 /** Install modes returned by Electron before package lifecycle scripts run. */
 export const NodePackInstallModeSchema = z.enum(["sandbox-only", "register", "hybrid", "unknown"]);

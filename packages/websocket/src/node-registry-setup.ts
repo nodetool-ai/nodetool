@@ -337,7 +337,7 @@ export async function bootstrapNodeRegistry(
       onResult: (result) => logPackResult(result, options.log)
     });
     setPackSnapshot(results);
-    refreshSandboxCatalog(options.packSearchPaths);
+    await refreshSandboxCatalog(options.packSearchPaths);
   }
   applyProductionNodePolicy(registry, options.log);
   applyCloudNodePolicy(registry, options.log);

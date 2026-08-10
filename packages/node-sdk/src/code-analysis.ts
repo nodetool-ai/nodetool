@@ -97,6 +97,53 @@ export function moduleDeclarationKinds(
   return [...kinds];
 }
 
+/**
+ * Specifiers of the top-level static `import` declarations, in source order.
+ *
+ * These are the only imports the guest loader can serve: it resolves a
+ * specifier the run declared, and nothing else.
+ */
+export function staticImportSpecifiers(
+  statements: readonly CodeBodyStatement[]
+): string[] {
+  const specifiers: string[] = [];
+  for (const statement of statements) {
+    if (statement.type !== "ImportDeclaration") continue;
+    const source = statement.source;
+    if (typeof source.value === "string") specifiers.push(source.value);
+  }
+  return specifiers;
+}
+
+/** Module access the loader refuses outright, anywhere in the body. */
+export interface DynamicModuleAccess {
+  /** `import(...)` — the loader denies every dynamic resolution. */
+  dynamicImport: boolean;
+  /** `require(...)` — CommonJS does not exist in the guest. */
+  require: boolean;
+}
+
+export function dynamicModuleAccess(
+  statements: readonly CodeBodyStatement[]
+): DynamicModuleAccess {
+  let dynamicImport = false;
+  let require = false;
+  walk(statements, (node) => {
+    if (node.type === "ImportExpression") {
+      dynamicImport = true;
+      return;
+    }
+    if (
+      node.type === "CallExpression" &&
+      node.callee.type === "Identifier" &&
+      node.callee.name === "require"
+    ) {
+      require = true;
+    }
+  });
+  return { dynamicImport, require };
+}
+
 /** Outcome of inspecting one `return` argument. */
 export interface ReturnShape {
   /** Keys the returned object literal definitely carries. */

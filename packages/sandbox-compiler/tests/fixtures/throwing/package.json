@@ -1,0 +1,14 @@
+{
+  "name": "@fixture/sandbox-throwing",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "fixture-throwing": "1.0.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "fixture-throwing" }
+    ]
+  }
+}

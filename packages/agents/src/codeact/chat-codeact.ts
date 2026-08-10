@@ -17,12 +17,21 @@
  * node editing happens on a JS object model committed through the same tools.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  getProcessSandboxModuleCatalog,
+  type ProcessingContext,
+  type SandboxModuleCatalog
+} from "@nodetool-ai/runtime";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
 import { stripImagePayload } from "../tools/image-injection.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
 import { buildCodeActSystemPrompt } from "./prompt.js";
+import {
+  mountActionModules,
+  packagePromptLines,
+  sessionAllowedPackages
+} from "./sandbox-packages.js";
 import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
@@ -92,6 +101,18 @@ export interface ChatCodeActSessionOptions {
    * mid-wait; the answer then resolves nothing.
    */
   clock?: SandboxClock;
+  /**
+   * Sandbox package specifiers this chat session consents to. Defaults to
+   * none: a chat turn's code is model-written, so nothing is importable until
+   * the caller names what the session allows.
+   */
+  sandboxPackages?: readonly string[];
+  /**
+   * Catalog the allowed specifiers resolve through. Defaults to the process
+   * catalog the host installed — a chat session gets no ProcessingContext, so
+   * there is no other place to read one from. Pass `null` to resolve nothing.
+   */
+  sandboxModuleCatalog?: SandboxModuleCatalog | null;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
 }
@@ -313,6 +334,12 @@ export function createChatCodeActSession(
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
   if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
 
+  const sandboxPackages = sessionAllowedPackages(options.sandboxPackages);
+  const sandboxModuleCatalog =
+    options.sandboxModuleCatalog !== undefined
+      ? options.sandboxModuleCatalog
+      : getProcessSandboxModuleCatalog();
+
   const systemPromptSection = buildCodeActSystemPrompt({
     tools: resident,
     deferredTools: deferred,
@@ -320,7 +347,8 @@ export function createChatCodeActSession(
     directToolNames: options.directToolNames
       ? [...options.directToolNames]
       : undefined,
-    extraSections
+    extraSections,
+    packageLines: packagePromptLines(sandboxPackages, sandboxModuleCatalog)
   });
 
   const preludeParts = [CODEACT_PRELUDE];
@@ -339,6 +367,18 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
+    const mount = mountActionModules(
+      code,
+      sandboxPackages,
+      sandboxModuleCatalog
+    );
+    if (!mount.ok) {
+      return JSON.stringify({
+        ok: false,
+        error: mount.error,
+        toolCalls: 0
+      } satisfies ActionObservation);
+    }
     actionCalls = 0;
 
     const outcome = await runInSandbox({
@@ -347,6 +387,7 @@ export function createChatCodeActSession(
       signal: options.signal,
       clock: options.clock,
       limits: { maxFetchCalls: 0 },
+      modules: mount.modules,
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,

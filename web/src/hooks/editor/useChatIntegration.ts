@@ -157,7 +157,7 @@ export function useChatIntegration(params: {
     const isCode = language === "javascript" || language === "typescript";
     const sandboxDocs = isCode
       ? `\n<sandbox_api>
-The Code node runs JavaScript in a QuickJS sandbox. Only these names exist — there are no libraries and no module loader.
+The Code node runs JavaScript in a QuickJS sandbox. Only these names exist, plus the sandbox packages the node declares in its packages property — nothing else can be imported.
 
 GLOBALS: console.log/warn/error/info, JSON, Math, Date, RegExp, Array, Object, String, Number, Boolean, Map, Set, Promise, Error, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, btoa, atob, structuredClone, TextEncoder, TextDecoder, URL, URLSearchParams
 
