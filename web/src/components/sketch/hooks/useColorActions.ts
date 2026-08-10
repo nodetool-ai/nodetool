@@ -46,6 +46,11 @@ function syncFgToTool(
   }
 }
 
+export interface UseColorActionsReturn {
+  handleEyedropperPick: (color: string) => void;
+  handleBrushSizeChange: (size: number) => void;
+}
+
 export function useColorActions({
   activeTool,
   setForegroundColor,
@@ -57,7 +62,7 @@ export function useColorActions({
   setCloneStampSettings,
   setShapeSettings,
   setGradientSettings
-}: UseColorActionsParams) {
+}: UseColorActionsParams): UseColorActionsReturn {
   // ─── Eyedropper event (tool = eyedropper) ────────────────────────
   useEffect(() => {
     const handler = (e: Event) => {

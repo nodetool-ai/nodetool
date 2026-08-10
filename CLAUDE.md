@@ -598,11 +598,13 @@ A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
 not valid JavaScript, uses `export` at the top level, imports a specifier the
 node's `packages` property does not declare (the guest loader resolves only
 declared sandbox packages, and only while `NODETOOL_SANDBOX_MODULES_V1=1`),
-reads a name that is neither a sandbox API nor one of the node's inputs
-(a ReferenceError at run time), never returns, or leaves a declared output
-unset on some return path is reported against the node. The analysis lives in
-`@nodetool-ai/node-sdk` (`code-analysis.ts`, `code-node-validation.ts`), so the
-graph validator, the `submit_code` planner and the editor read one AST.
+reads a bare name that is not a sandbox API — including one of the node's own
+inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
+too — reads an `inputs.<name>` the node does not declare, never returns, or
+leaves a declared output unset on some return path is reported against the node.
+The analysis lives in `@nodetool-ai/node-sdk` (`code-analysis.ts`,
+`code-node-validation.ts`), so the graph validator, the `submit_code` planner
+and the editor read one AST.
 
 ```bash
 npm run dev:nodetool -- validate <workflow_id>

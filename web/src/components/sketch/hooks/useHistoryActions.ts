@@ -80,13 +80,18 @@ function restoreEntry(
   }
 }
 
+export interface UseHistoryActionsReturn {
+  handleUndo: () => void;
+  handleRedo: () => void;
+}
+
 export function useHistoryActions({
   canvasRef,
   undo,
   redo,
   currentLayerIds,
   flushBeforeUndo
-}: UseHistoryActionsParams) {
+}: UseHistoryActionsParams): UseHistoryActionsReturn {
   const handleUndo = useCallback(() => {
     // Flush deferred pixel syncs so the undo tip-snapshot captures the latest
     // layer.data, otherwise redo to the tip restores stale pixels.

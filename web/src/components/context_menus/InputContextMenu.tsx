@@ -852,40 +852,44 @@ const InputContextMenu: React.FC = () => {
 
   const showStaticActions = searchTerm.trim().length === 0;
 
-  const actionRowStyles = {
-    alignItems: "center",
-    backgroundColor: "transparent",
-    border: 0,
-    borderRadius: BORDER_RADIUS.md,
-    color: "text.primary",
-    cursor: "pointer",
-    display: "flex",
-    font: "inherit",
-    gap: "0.5em",
-    margin: 0,
-    minHeight: "28px",
-    padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
-    textAlign: "left",
-    width: "100%",
-    "&:hover": { backgroundColor: theme.vars.palette.action.hover },
-    ".icon-bg": {
+  // Shared by every action row: serialize the sx object once, not once per row per render.
+  const actionRowStyles = useMemo(
+    () => ({
       alignItems: "center",
-      backgroundColor: theme.vars.palette.grey[900],
-      borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
-      boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+      backgroundColor: "transparent",
+      border: 0,
+      borderRadius: BORDER_RADIUS.md,
+      color: "text.primary",
+      cursor: "pointer",
       display: "flex",
-      flexShrink: 0,
-      height: "18px",
-      justifyContent: "center",
-      padding: getSpacingPx(SPACING.micro),
-      width: "18px"
-    },
-    ".icon-bg svg": {
-      color: theme.vars.palette.grey[100],
-      height: "13px",
-      width: "13px"
-    }
-  };
+      font: "inherit",
+      gap: "0.5em",
+      margin: 0,
+      minHeight: "28px",
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.sm)}`,
+      textAlign: "left",
+      width: "100%",
+      "&:hover": { backgroundColor: theme.vars.palette.action.hover },
+      ".icon-bg": {
+        alignItems: "center",
+        backgroundColor: theme.vars.palette.grey[900],
+        borderRadius: `0 0 ${BORDER_RADIUS.xs} 0`,
+        boxShadow: `inset 1px 1px 2px ${theme.vars.palette.action.disabledBackground}`,
+        display: "flex",
+        flexShrink: 0,
+        height: "18px",
+        justifyContent: "center",
+        padding: getSpacingPx(SPACING.micro),
+        width: "18px"
+      },
+      ".icon-bg svg": {
+        color: theme.vars.palette.grey[100],
+        height: "13px",
+        width: "13px"
+      }
+    }),
+    [theme]
+  );
 
   if (!menuPosition) {
     return null;

@@ -42,6 +42,28 @@ export interface UseStrokeLifecycleActionsParams {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
+export interface UseStrokeLifecycleActionsReturn {
+  pendingStrokeFinalizeRef: RefObject<Map<string, PendingStrokeFinalize>>;
+  flushPendingStrokeFinalization: () => void;
+  flushLayerThumbnailsWhenIdle: () => void;
+  handleStrokeStart: () => void;
+  handleStrokeEnd: (
+    layerId: string,
+    data: string | null,
+    committedBounds?: LayerContentBounds,
+    options?: StrokeEndOptions
+  ) => void;
+  commitPixelLayerChange: (
+    layerId: string,
+    data: string | null,
+    bounds?: LayerContentBounds
+  ) => void;
+  syncPixelLayerFromCanvas: (
+    layerId: string,
+    bounds?: LayerContentBounds
+  ) => string | null;
+}
+
 export function useStrokeLifecycleActions({
   canvasRef,
   document,
@@ -53,7 +75,7 @@ export function useStrokeLifecycleActions({
   pendingExportSyncRef,
   onExportImage,
   onExportMask
-}: UseStrokeLifecycleActionsParams) {
+}: UseStrokeLifecycleActionsParams): UseStrokeLifecycleActionsReturn {
   const pendingStrokeFinalizeRef = useRef<Map<string, PendingStrokeFinalize>>(
     new Map()
   );

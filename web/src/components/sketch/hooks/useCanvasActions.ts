@@ -43,10 +43,22 @@ import {
   type SketchDocument,
   type SketchTool
 } from "../types";
-import { useExportSyncActions } from "./useExportSyncActions";
-import { useStrokeLifecycleActions } from "./useStrokeLifecycleActions";
-import { useTransformActions } from "./useTransformActions";
-import { useCanvasGeometryActions } from "./useCanvasGeometryActions";
+import {
+  useExportSyncActions,
+  type UseExportSyncActionsReturn
+} from "./useExportSyncActions";
+import {
+  useStrokeLifecycleActions,
+  type UseStrokeLifecycleActionsReturn
+} from "./useStrokeLifecycleActions";
+import {
+  useTransformActions,
+  type UseTransformActionsReturn
+} from "./useTransformActions";
+import {
+  useCanvasGeometryActions,
+  type UseCanvasGeometryActionsReturn
+} from "./useCanvasGeometryActions";
 import { getLayerGeometry } from "../transform/geometry/layerGeometry";
 import { useSketchStore } from "../state";
 import { combineMasks, type SelectionCombineOp } from "../selection";
@@ -79,6 +91,35 @@ export interface UseCanvasActionsParams {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
+/** Stated as `Pick`/`Omit` of the sub-hooks so a renamed action fails here. */
+export interface UseCanvasActionsReturn
+  extends Pick<
+      UseStrokeLifecycleActionsReturn,
+      "handleStrokeStart" | "handleStrokeEnd" | "flushLayerThumbnailsWhenIdle"
+    >,
+    Pick<UseExportSyncActionsReturn, "syncSketchOutputsNow" | "handleExportPng">,
+    Omit<
+      UseCanvasGeometryActionsReturn,
+      "nudgePanForCanvasPixelDelta" | "finalizeCanvasCrop"
+    >,
+    Omit<
+      UseTransformActionsReturn,
+      | "transformOriginalRef"
+      | "pushTransformHistory"
+      | "bakeLayerTransformIntoDocumentSpace"
+      | "reconcileAllLayerTransforms"
+    > {
+  /** Drain deferred stroke finalization and export sync. */
+  flushPendingCanvasSync: () => void;
+  handleCropCommit: () => void;
+  handleCropCancelPreview: () => void;
+  /** `op` defaults to "replace"; pass "add" to union with the current selection. */
+  handleLoadLayerAsSelection: (
+    layerId: string,
+    op?: SelectionCombineOp
+  ) => void;
+}
+
 export function useCanvasActions({
   canvasRef,
   document,
@@ -97,7 +138,7 @@ export function useCanvasActions({
   offsetAllPaintLayersTransform,
   onExportImage,
   onExportMask
-}: UseCanvasActionsParams) {
+}: UseCanvasActionsParams): UseCanvasActionsReturn {
   // ─── Export sync (owns pendingExportSyncRef) ────────────────────
   const exportSync = useExportSyncActions({
     canvasRef,

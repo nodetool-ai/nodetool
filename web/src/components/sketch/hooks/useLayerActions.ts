@@ -38,10 +38,38 @@ export interface UseLayerActionsParams {
   groupLayers: (layerIds: string[]) => void;
 }
 
-interface HandleAddLayerOptions {
+export interface HandleAddLayerOptions {
   fillColor?: string | null;
   name?: string;
   type?: "raster" | "mask";
+}
+
+export interface UseLayerActionsReturn {
+  handleAddLayer: (options?: HandleAddLayerOptions) => string;
+  handleRemoveLayer: (layerId: string) => void;
+  handleDuplicateLayer: (layerId: string) => void;
+  handleReorderLayers: (fromIndex: number, toIndex: number) => void;
+  handleMoveActiveLayer: (direction: "up" | "down") => void;
+  handleToggleVisibility: (layerId: string) => void;
+  handleSetLayerOpacity: (layerId: string, opacity: number) => void;
+  handleSetLayerBlendMode: (layerId: string, blendMode: BlendMode) => void;
+  handleRenameLayer: (layerId: string, name: string) => void;
+  handleSetMaskLayer: (layerId: string | null) => void;
+  handleToggleAlphaLock: (layerId: string) => void;
+  handleToggleExposedInput: (layerId: string) => void;
+  handleToggleExposedOutput: (layerId: string) => void;
+  handleFlipHorizontal: () => void;
+  handleFlipVertical: () => void;
+  handleRotate180: () => void;
+  handleMergeDown: () => void;
+  handleFlattenVisible: () => void;
+  handleAddGroup: (name?: string) => void;
+  handleToggleGroupCollapsed: (groupId: string) => void;
+  handleMoveLayerToGroup: (layerId: string, groupId: string | null) => void;
+  handleUngroupLayer: (groupId: string) => void;
+  handleGroupSelectedLayers: () => void;
+  handleMergeSelectedLayers: () => void;
+  handleDeleteSelectedLayers: () => void;
 }
 
 export function useLayerActions({
@@ -68,7 +96,7 @@ export function useLayerActions({
   moveLayerToGroup,
   ungroupLayer,
   groupLayers
-}: UseLayerActionsParams) {
+}: UseLayerActionsParams): UseLayerActionsReturn {
   const handleAddLayer = useCallback(
     (options?: HandleAddLayerOptions) => {
       const fillColor = options?.fillColor;
