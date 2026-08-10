@@ -76,3 +76,6 @@
 ## 2024-05-25 - O(N * M) Parent Lookups in Layer Tree Traversal
 **Learning:** Functions like `isLayerCompositeVisible` and `getLayerDepth` were using `layers.find()` in `while` loops to traverse a layer's parent hierarchy. This caused an $O(N \times D)$ bottleneck (where D is depth) during operations that process all layers, significantly slowing down renders in sketches with many layers.
 **Action:** Added an optional `layerMap` parameter to tree traversal helper functions. By pre-computing a `Map<string, Layer>` once and passing it down, the complexity was reduced to $O(D)$ per layer, dropping execution times by orders of magnitude for large documents.
+## 2026-05-25 - O(N*E) bottleneck in findMissingModelNodes
+**Learning:** Found an O(N * E) bottleneck in `web/src/utils/findMissingModelNodes.ts` where `edges.some(...)` was called for every model property of every node. Since `edges` can be large and nodes have multiple properties, this nested array iteration slowed down operations for checking missing model nodes, particularly on large graphs.
+**Action:** Replaced the O(E) `.some()` lookup inside the loop with an O(1) `Set` lookup. Pre-computed a `Set` of connected target properties by iterating over `edges` once before the loop, bringing the time complexity down from O(N * P * E) to O(E + N * P).
