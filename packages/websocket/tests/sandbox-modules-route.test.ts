@@ -78,7 +78,7 @@ afterEach(async () => {
 });
 
 describe("GET /api/sandbox-modules/*", () => {
-  it("serves the module source with digest and immutable caching headers", async () => {
+  it("serves the module source with digest and revalidating caching headers", async () => {
     const response = await app.inject({
       method: "GET",
       url: "/api/sandbox-modules/@acme/geo"
@@ -94,9 +94,11 @@ describe("GET /api/sandbox-modules/*", () => {
     expect(response.headers["x-sandbox-file-id"]).toBe("sandbox/geo.js");
     expect(response.headers["x-sandbox-internal"]).toBe("0");
     expect(response.headers["etag"]).toBe(`"${DIGEST}"`);
-    expect(response.headers["cache-control"]).toBe(
-      "public, max-age=31536000, immutable"
-    );
+    // The URL is the stable module id, so `immutable` would be unsound: a pack
+    // upgrade changes the body behind the same URL, and an immutable response
+    // is never revalidated — a browser could run last year's source. `private`
+    // keeps an authorized pack's source out of shared caches.
+    expect(response.headers["cache-control"]).toBe("private, no-cache");
     expect(response.headers["x-sandbox-module-dependencies"]).toBe(
       JSON.stringify(["@acme/geo::sandbox/helper.js"])
     );
@@ -104,6 +106,8 @@ describe("GET /api/sandbox-modules/*", () => {
   });
 
   it("answers 304 when the client already holds this digest", async () => {
+    // `no-cache` makes every reuse a conditional request, so this is the hot
+    // path, not an edge case: one cheap round trip instead of a re-download.
     const response = await app.inject({
       method: "GET",
       url: "/api/sandbox-modules/@acme/geo",
@@ -112,6 +116,22 @@ describe("GET /api/sandbox-modules/*", () => {
 
     expect(response.statusCode).toBe(304);
     expect(response.body).toBe("");
+    expect(response.headers["cache-control"]).toBe("private, no-cache");
+    expect(response.headers["etag"]).toBe(`"${DIGEST}"`);
+  });
+
+  it("answers 200 with the new body when the client holds a superseded digest", async () => {
+    // The URL did not change — the pack did. This is exactly what `immutable`
+    // would have hidden from the client for up to a year.
+    const response = await app.inject({
+      method: "GET",
+      url: "/api/sandbox-modules/@acme/geo",
+      headers: { "if-none-match": `"${"9".repeat(64)}"` }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.body).toBe(SOURCE);
+    expect(response.headers["etag"]).toBe(`"${DIGEST}"`);
   });
 
   it("accepts a percent-encoded scoped id and an internal graph-file id", async () => {
