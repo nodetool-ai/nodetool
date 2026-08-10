@@ -5,7 +5,15 @@
  * context menu, drop image, and trim operations.
  */
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction
+} from "react";
 import type { Asset } from "../../../stores/ApiTypes";
 import type { SketchCanvasRef } from "../SketchCanvas";
 import {
@@ -182,9 +190,68 @@ export interface UseCanvasGeometryActionsParams {
   syncSketchOutputsNow: () => void;
 }
 
-interface HandlePasteOptions {
+export interface HandlePasteOptions {
   targetLayerId?: string;
   pasteAnchorDocument?: Point | null;
+}
+
+export interface UseCanvasGeometryActionsReturn {
+  nudgePanForCanvasPixelDelta: (dW: number, dH: number) => void;
+  handleCanvasResize: (width: number, height: number) => void;
+  handleCanvasResizeStart: () => void;
+  handleCanvasResizeDrag: (
+    width: number,
+    height: number,
+    options?: { translateLayers?: Point; resizeFromCenter?: boolean }
+  ) => void;
+  handleZoomIn: () => void;
+  handleZoomOut: () => void;
+  handleZoomFit: () => void;
+  handleCropComplete: (
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
+  handleCropCanvasToActiveLayerVisiblePixels: () => void;
+  handleCropCanvasToActiveLayerExtents: () => void;
+  handleCropCanvasToSelection: () => void;
+  finalizeCanvasCrop: (
+    x: number,
+    y: number,
+    width: number,
+    height: number
+  ) => void;
+  handleClearLayer: () => void;
+  handleFillLayerWithColor: (color: string) => void;
+  handleTrimLayerToBounds: () => void;
+  contextMenu: { x: number; y: number } | null;
+  handleContextMenu: (x: number, y: number) => void;
+  handleContextMenuClose: () => void;
+  transformContextMenu: { x: number; y: number } | null;
+  handleTransformContextMenu: (x: number, y: number) => void;
+  handleTransformContextMenuClose: () => void;
+  handleCopy: () => void;
+  handleCut: () => void;
+  handlePaste: (
+    preferInternalClipboardFirst?: boolean,
+    options?: HandlePasteOptions
+  ) => Promise<void>;
+  handlePasteAsNewLayer: (
+    createLayer: () => string | null,
+    options?: { preferInternalClipboardFirst?: boolean }
+  ) => Promise<string | null>;
+  handleDropImage: (file: File) => Promise<void>;
+  handleDropAsset: (asset: Asset) => Promise<void>;
+  adjBrightness: number;
+  adjContrast: number;
+  adjSaturation: number;
+  setAdjBrightness: Dispatch<SetStateAction<number>>;
+  setAdjContrast: Dispatch<SetStateAction<number>>;
+  setAdjSaturation: Dispatch<SetStateAction<number>>;
+  handleApplyAdjustments: () => void;
+  handleCancelAdjustments: () => void;
+  handleInvertLayerColors: () => void;
 }
 
 export function useCanvasGeometryActions({
@@ -201,7 +268,7 @@ export function useCanvasGeometryActions({
   syncPixelLayerFromCanvas,
   reconcileAllLayerTransforms,
   syncSketchOutputsNow
-}: UseCanvasGeometryActionsParams) {
+}: UseCanvasGeometryActionsParams): UseCanvasGeometryActionsReturn {
   // ─── Canvas crop finalization ──────────────────────────────────
   const finalizeCanvasCrop = useCallback(
     (x: number, y: number, width: number, height: number) => {

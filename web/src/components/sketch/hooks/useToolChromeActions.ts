@@ -16,9 +16,29 @@
  * - Props-passed callbacks (adjust, transform, segmentation)
  */
 
-import { useSketchStore } from "../state";
+import { useSketchStore, type SketchStore } from "../state";
 
-export function useToolChromeActions() {
+export type ToolChromeActions = Pick<
+  SketchStore,
+  | "setBrushSettings"
+  | "setPencilSettings"
+  | "setEraserSettings"
+  | "setShapeSettings"
+  | "setFillSettings"
+  | "setBlurSettings"
+  | "setGradientSettings"
+  | "setCloneStampSettings"
+  | "setSelectSettings"
+  | "setSegmentSettings"
+  | "setMoveSettings"
+  | "setTransformSettings"
+  | "invertSelection"
+  | "featherCurrentSelection"
+  | "smoothCurrentSelectionBorders"
+  | "convertSelectionToBorderOutline"
+>;
+
+export function useToolChromeActions(): ToolChromeActions {
   // Per-tool settings setters
   const setBrushSettings = useSketchStore((s) => s.setBrushSettings);
   const setPencilSettings = useSketchStore((s) => s.setPencilSettings);

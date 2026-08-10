@@ -40,11 +40,19 @@ export interface UseExportSyncActionsParams {
   onExportMask?: (dataUrl: string | null) => void;
 }
 
+export interface UseExportSyncActionsReturn {
+  /** Set by the stroke lifecycle; drained by `flushPendingExportSync`. */
+  pendingExportSyncRef: RefObject<PendingExportSync>;
+  flushPendingExportSync: () => void;
+  syncSketchOutputsNow: () => void;
+  handleExportPng: () => void;
+}
+
 export function useExportSyncActions({
   canvasRef,
   onExportImage,
   onExportMask
-}: UseExportSyncActionsParams) {
+}: UseExportSyncActionsParams): UseExportSyncActionsReturn {
   const pendingExportSyncRef = useRef<PendingExportSync>({
     image: false,
     mask: false
