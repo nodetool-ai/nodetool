@@ -676,3 +676,80 @@ facts, and nothing here changes them. And one honest reservation: if MCP App-sty
 inline views turn out to matter to desktop users, Decision 2 removed them with no
 successor, and the right response will be a new surface — not quietly re-growing
 native tool registrations behind the two-tool contract.
+
+## Status (2026-08-10)
+
+PRs 1–11 landed on this branch, in this order:
+
+- `agents: add capability types, registry, adapters, and gated invoke (PR 2 of tool-class retirement)`
+- `websocket: reduce the MCP surface toward the two-tool contract (PR 1 of tool-class retirement, in progress)`
+- `agents: begin porting the workflows namespace onto the capability registry (PR 3 of tool-class retirement, in progress)`
+- `agents: workflows namespace runs on the capability registry (PR 3 of tool-class retirement)`
+- `agents: models, media and style namespaces run on the capability registry (PR 4 of tool-class retirement)`
+- `agents: collections and nodes namespaces run on the capability registry (PR 7 of tool-class retirement)`
+- `agents: jobs, assets and apps namespaces run on the capability registry (PR 5 of tool-class retirement)`
+- `agents: web, documents, memory and email namespaces run on the capability registry (PR 6 of tool-class retirement)`
+- `agents: files, agents and google namespaces run on the capability registry (PR 9 of tool-class retirement)`
+- `agents: timelines, sketches, scripts and storyboards namespaces run on the capability registry (PR 8 of tool-class retirement)`
+- `agents+websocket: the permission gate moves into CapabilityRun.invoke (PR 10 of tool-class retirement)`
+- `agents+protocol+websocket: the platform is importable in the sandbox (PR 11 of tool-class retirement)`
+- `agents: break the tool-permissions/capabilities import cycle that deadlocked the bundled backend`
+
+### The esbuild async-cycle lesson
+
+`gateTools` was written beside the classification map it reads, in
+`tools/tool-permissions.ts`, and importing `capabilities/adapters.ts` from there
+closed a cycle: `tool-permissions` → `adapters` → `tool-permissions`. Node's ESM
+breaks a synchronous cycle by handing back a partly-initialized namespace, so
+`vitest`, `tsc` and the dev server all stayed green. The packaged backend does
+not run ESM — `scripts/bundle-backend.mjs` gives esbuild one `server.mjs` whose
+modules are `__esm` wrappers, and a wrapper that awaits its own cycle never
+settles. `init_tool_permissions` awaited `init_adapters`, which awaited
+`init_tool_permissions`, and the process hung on a top-level await before
+serving `/health`. The fix was direction, not ordering: `gateTools` moved to
+`capabilities/gate-tools.ts`, whose header states the rule it now enforces —
+capabilities import `tool-permissions`, never the reverse. Two lessons for the
+rest of this migration: an import cycle across the `tools/`↔`capabilities/`
+seam is a bundle-only failure, and `npm run backend:smoke` is the only check in
+the repo that sees it.
+
+### What PR 12 did not delete, and why
+
+The PR-12 sketch above describes an end state this tree cannot reach yet. PR 12
+as executed deletes what is provably dead, pins the coverage the migration won,
+and records the rest as named debt:
+
+- **The deprecated thin `CapabilityTool` subclasses stay.** `getBuiltinTools`
+  and `getAgentToolbelt` are synchronous and every caller assembles a belt
+  synchronously, while capability modules load through `import()`. A belt
+  cannot be built from the registry alone until either the belt assembly turns
+  async or the registry gains eager specs. That is its own PR, with its own
+  callers to touch.
+- **The `nodetool` global stays.** The design gives the generated shim over the
+  imports at least one release before it dies; PR 11 shipped the import form,
+  and this is that release.
+- **`capabilityFromTool` stays.** It is load-bearing in `gateTools`: the shim
+  turns each `Tool` into a capability view so `invoke` can run the one ladder
+  over it. It goes when belts stop being `Tool[]`, not before.
+- **`base-tool.ts` stays.** `SubAgentTool`, `SandboxTool`
+  (`packages/sandbox-tools`), the Code-node tool factory
+  (`packages/code-nodes`), and the two browser-agent factories
+  (`packages/automation-nodes`) still subclass `Tool`, as do the websocket UI
+  bridges and the CLI's `execute_code` shim.
+
+### Measured `extends Tool`
+
+Before (recorded above): **180 occurrences across 77 files**. After PR 12:
+**84 across 52 files** (64 of them in `packages/agents`, tests included), plus
+**88 `extends CapabilityTool` across 30 files** — the deprecated subclasses that
+now carry no implementation of their own. Outside `packages/agents` the
+remaining `Tool` subclasses are the ones listed above, and the fake tools in the
+`chat` and `code-nodes` test suites.
+
+`packages/agents/tests/capabilities-coverage.test.ts` is what keeps the count
+from growing back: everything `getBuiltinTools()` and `getAllMcpTools({})`
+assemble must resolve through `findCapability`, and the seventeen that do not
+are pinned by name with a reason — the eight workflow-document `ui_*` schemas,
+which route to a renderer or a direct registry write rather than to a host
+function, and the nine provider-specific duplicates in
+`AGENT_TOOLBELT_EXCLUDED`, each of which a routed capability already covers.
