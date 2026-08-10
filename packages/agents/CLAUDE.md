@@ -769,8 +769,10 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `google_grounded_search`, `dataforseo_search`, `dataforseo_news` and
   `dataforseo_images`, which `web_search`/`google_news`/`google_images` reach
   by routing across the configured backends host-side (`backend` pins one).
-  `getBuiltinTools()` still returns them all, so MCP clients, which have no
-  object model, keep them.
+  `getBuiltinTools()` still returns them all as the full inventory for
+  registration and audits. Every surface a model reasons over — chat turns,
+  agent steps, and the MCP server — assembles its belt from
+  `getAgentToolbelt()`, because all three have the object model.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface: 19 cases over two

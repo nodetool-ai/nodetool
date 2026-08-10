@@ -186,6 +186,33 @@ abstract class Tool {
 | **Node registry** | `LocalSearchNodesTool`, `LocalListNodesTool`, `LocalGetNodeInfoTool` | `local-search-nodes-tool.ts`, `local-list-nodes-tool.ts`, `local-get-node-info-tool.ts` |
 | **Models** | `ListModelsTool` | `list-models-tool.ts` |
 
+### The MCP surface is CodeAct too
+
+An external agent (Claude Code, ChatGPT, …) that connects to NodeTool's MCP
+server gets the same shape a chat turn gets, for the same reason: **one action
+tool plus the core set**, not a flat catalog.
+
+`registerAgentMcpTools` (`packages/websocket/src/mcp-agent-tools.ts`) builds a
+`createChatCodeActSession` over the derived belt — `getAgentToolbelt()` plus
+`getAllMcpTools()` plus Google Workspace — and registers `execute_code`, the
+`CORE_TOOL_NAMES` set, and `view_image`. Everything else on that belt is
+reachable inside an action as `tools.<name>()`, through the `nodetool.*` object
+model, or found with `await searchTools("query")`. MCP has no system prompt, so
+the action contract and tool catalog ride in the `execute_code` description.
+
+It used to register all ~95 bridged tools flat, which made a scoped MCP session
+NodeTool's largest surface anywhere — 120 tools and ~27k tokens of schema before
+the caller did anything. It is 34 tools and ~11k tokens now, and it cannot drift
+from the chat surface because both call the same session builder.
+
+Native registrations in `mcp-server.ts` keep their names: `run_workflow`,
+`get_asset`, `get_job` and friends render thumbnails and MCP Apps into the tool
+response, which a sandbox action's JSON observation envelope cannot carry. The
+plain version of each stays available inside an action. A **scoped** session
+does not get the `ui_*` renderer bridge at all — those tools serve a connected
+editor, and a scoped caller edits persisted documents through
+`openWorkflow()` in an action instead.
+
 ### Workflow Harness Tools
 
 `ValidateWorkflowTool` and `DebugWorkflowTool` (in `mcp-tools.ts`) are the

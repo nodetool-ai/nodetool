@@ -265,8 +265,8 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
   `openai_image_generation`, `google_image_generation`,
   `openai_text_to_speech` — because `nodetool.media` already covers them
   through the provider-agnostic `generate_image` / `generate_speech`. They stay
-  in `getBuiltinTools()`, so MCP clients, which have no object model, keep
-  them.
+  in `getBuiltinTools()` as the full inventory for registration and audits;
+  no surface a model reasons over offers them.
 
 ## Evaluation
 
