@@ -24,6 +24,150 @@ three pre-existing stubs, whose trailing-slash `redirect_to` 404s on GitHub Page
 and `installation.md` rewrites (§0.6); `comparisons.md` cross-links to `/vs/*` (§0.6); `/agents`
 and `/cloud` retitles (§0.7); `llms.txt` on nodetool.ai and JSON-LD on `/agents`, `/creatives`,
 `/marketing` (§0.8). The Weavy → Figma Weave capture plan (§0.9) shipped 2026-07-16.
+**§0.10 is the second Search Console audit (2026-08-10)** — read it before §0, which it supersedes
+on every number. It re-prioritizes §7 again: the programmatic build of §4/SEO_PROGRAMMATIC.md has
+shipped (≈400 indexed www URLs, up from 13), so the work is no longer "add page types". It is
+de-duplicating the families that now compete with each other and giving the one large non-branded
+cluster a page of its own.
+
+## 0.10 Second Search Console audit (2026-08-10)
+
+Export: 1,000-row page report (1,543 clicks / 74.1k impressions) and 1,000-row query report
+(776 clicks / 19.2k impressions), trailing window ending 2026-08-10. Both reports are truncated at
+1,000 rows by GSC, so totals are floors, and the query report's tail is all zero-click. Against the
+2026-07-02 baseline (939 clicks / 48.2k impressions): **+64% clicks, +54% impressions.** Twelve
+findings, each with the action it forces.
+
+1. **Growth is real; the branded ceiling has not moved.** Branded queries take 579 of 776 visible
+   query clicks (75%) on 2,281 impressions. Non-branded: 197 clicks / 16.9k impressions / **1.16%
+   CTR** — the same 1.2% as in §0, on 1.8× the impressions. The programmatic build bought surface,
+   and the surface earns impressions. It does not yet earn clicks, because almost none of it ranks
+   above position 7. Read every CTR number below with finding 8 in mind.
+
+2. **The "node AI" head cluster tripled and is still stuck on the lower half of page one.** 120
+   query variants, **11,123 impressions — 66% of all non-branded impressions** — at weighted
+   position 7.5 and 1.18% CTR. "ai node" alone: 4,527 impressions, 4 clicks, position 6.4. Every
+   variant lands on `/`, which absorbs 32.9k impressions and 80% of all site clicks. The signal
+   inside the cluster is that specificity converts: "ai node editor" (310 impressions, position
+   5.4) runs **3.87% CTR**, 3× the cluster average, and "node ai tool" (130 impressions, position
+   1.4) runs 23.8%. **Action:** this is the largest single lever on the site. Build one entity page
+   for the cluster — `/node-based-ai` (or promote `/studio`) whose title, H1 and opening paragraph
+   are the query, not a homepage that has to serve every intent at once. Link it from the homepage
+   hero and from every `/alternatives/*` page. Moving "ai node" from 6.4 to 3 is worth roughly
+   450 clicks a quarter at category CTR — more than the entire non-branded total today.
+
+3. **`/vs/*` and `/alternatives/*` are one dataset behind two templates, and they eat each other.**
+   Both routes call `generateStaticParams` over the same `competitors` array
+   (`marketing/src/data/competitorEntries.ts`, 13 entries), so every competitor ships two URLs from
+   two ~220-line templates that differ in copy but not in intent. `/alternatives/*`: 4,817
+   impressions / 68 clicks. `/vs/*`: 1,117 / 9. `/alternatives` wins **11 of 12** head-to-head
+   pairs — comfyui 821 vs 115, lm-studio 1,456 vs 132, figma-weave 674 vs 46, flowise 210 vs 74,
+   langflow 216 vs 48 — losing only n8n (87 vs 232) and jan (57 vs 110). §0.9 warned about
+   cannibalization between the weavy and figma-weave pages; the export shows it is the general case,
+   not a special one. **Action:** make `/alternatives/<slug>` canonical, 301 `/vs/<slug>` → it, and
+   delete one template. Keep the "X vs NodeTool" query surface as H2 sections inside the
+   alternatives page. Move `/vs/n8n` and `/vs/jan`'s copy angle across before redirecting them,
+   since those two out-rank their twins.
+
+4. **The same duplication runs through `/apps/*`, `/templates/*` and `/use-cases/*`.** 20 slugs
+   exist under both `/apps` and `/templates` (415 vs 384 impressions on the overlap). Movie trailer
+   has **four** URLs: `/apps/movie-trailer-generator` (47 impressions, position 38.9),
+   `/templates/movie-trailer-generator`, `/use-cases/movie-trailer` (182, 21.4), and
+   `docs.nodetool.ai/use-cases/movie-trailer.html` — which is why the best of them ranks 21st for
+   "ai movie trailer generator" (32 impressions, position 46.9) while converting 4.95% when it does
+   show. Product video, music video visualizer, image-to-video animation, SEO content engine,
+   color-boost video, and research paper summarizer are each split the same way. **Action:** one
+   intent, one URL. Split the families by what they actually are — `/templates/*` is the workflow
+   file, `/apps/*` is the runnable mini app — and where a pair is one thing, redirect the weaker
+   URL. Do this before adding more of either.
+
+5. **Three query sets have tool intent, page-one impressions, and no page that matches.**
+   - **Billing block generator.** "billing block generator" 140 impressions at position 7.7, plus
+     "movie poster billing block generator" (12), "movie billing block generator" (5), "billing
+     block creator/maker" (7), "credit block generator" (2). ~170 impressions of buy-intent
+     currently absorbed by `/use-cases/movie-poster`. A poster billing block is a text-layout job
+     NodeTool can do end to end, and the query has no strong incumbent. **Ship a page for it.**
+   - **Brand asset generator.** "brand asset generator" 126 impressions at position 6.1, **0
+     clicks**, plus "brand assets generator" (15) and "brand asset tool" (7).
+     `/apps/brand-asset-generator` already exists (193 impressions, position 8.4, 1.04%). This is a
+     title/H1 problem, not a missing-page problem — match the query exactly.
+   - **KIE.** 652 impressions across 20 queries at position 7.5 for 2 clicks: "kie ai" (609), plus
+     kie api / models / suno / kling / omni / `kie_api_key`. `/providers/kie` takes 838 impressions
+     at 0.24% CTR. **Action:** rewrite `/providers/kie` as a landing page — what you can run, what
+     it costs, how BYOK works — not a spec dump. `/providers/replicate` (198 impressions, 0 clicks)
+     and `/providers/fal` (146, 0) need the same treatment; the whole `/providers` family is 1,470
+     impressions at 0.20%.
+
+6. **"Mini apps" is an emerging category term and the hub does not own it.** 11 queries — "mini
+   apps ai", "ai mini apps", "mini app ai", "ai generator mini apps" and misspellings — 85
+   impressions at position 7.7, 0 clicks. The `/apps` hub took 115 impressions at position 7.6.
+   **Action:** cheap fix. Give `/apps` the category title, an intro that defines the term, and links
+   to all 47 app pages.
+
+7. **Docs are 28% of impressions and 5% of clicks, and part of the index is machine noise.**
+   docs.nodetool.ai: 80 clicks / 20.9k impressions (0.38% CTR). The 529 node-reference URLs took
+   7,867 impressions for **22 clicks** — §0's finding 4, unchanged and larger. New in this export:
+   **32 internal planning documents are indexed** (`plans/*`, `*-prd`, `*-design`,
+   `*-implementation-plan`, `RELIABILITY_*`, `KERNEL_*`, `sdk/non-regression-baseline-*`), 306
+   impressions between them — including this file, at `docs.nodetool.ai/seo-strategy` (20
+   impressions, position 13.4). **Action:** `noindex` the planning docs and the two SEO docs. Leave
+   the node reference indexed as a support asset and stop treating it as an opportunity.
+
+8. **Third-party documentation queries are a permanent ~620-impression tax on sitewide CTR.** 119
+   queries — pdfplumber `extract_text`, stable diffusion img2img/controlnet/inpainting "official
+   docs", notion api, aws s3, apify, plus `site:`/`ext:`/`after:` operators — took 619 impressions
+   and **zero clicks**. They will never click a NodeTool page. **Action:** exclude them before
+   reading any CTR figure, and never optimize a page for them.
+
+9. **AI-assistant traffic is now measurable, and it arrives shaped like conversation.** 64 queries
+   (278 impressions, weighted position 8.5, several at 1–3) are LLM-mediated: two full persona
+   prompts (a CTO and a CPO brief, both ending "how can i chain multiple llms like claude and gpt in
+   one visual workspace?"), evaluation commands ("evaluate the generative ai company figma weave /
+   weavy on local and self-hosted ai generation for privacy-conscious work", position 2.0), and
+   bare follow-up fragments — "which is free", "is it safe and private?", "how much do these cost?",
+   "open source?", "does this already exist?", "what other similar tools". §0.8's bet paid off; the
+   answer-shaped pages are what rank here. **Action:** two named gaps. The phrase "chain multiple
+   LLMs like Claude and GPT in one visual workspace" appears in three separate prompts and has no
+   page — build it. And "how much do these cost" is per-model demand answered by a single
+   `/pricing` page (173 impressions); put plain crawlable per-model cost text on the model pages.
+
+10. **Non-English demand exists and nothing serves it.** "node ia" (70 impressions, position 8.5),
+    "ia node" (19), "nodes ia" (2), "노드ai", "图像生成", "quels sont les meilleurs espaces de
+    travail créatifs ia" (7), "alternativas a lm studio", "hay alguna alternativa gratuita", "para
+    imagenes", plus Portuguese, Russian, Turkish and Vietnamese follow-up fragments — ~130
+    impressions, no localized page anywhere. **Action:** not a translation project on this evidence.
+    Pull the GSC country/language report first. If it holds up, the cheap test is Spanish and French
+    copies of `/` and `/alternatives/comfyui` with `hreflang`, nothing more.
+
+11. **Page-two rescue list — ranked, not missing.** Pages with ≥50 impressions at position 11–30,
+    by impressions: `/alternatives/figma-weave` (674, 11.3), `/alternatives/weavy` (667, 12.3),
+    `/tasks/lip-sync` (426, 11.0 — "lipsync model", "best lipsync model", "open source lip sync"),
+    `/templates` hub (270, 15.1), `/vs/n8n` (232, 13.9), `/use-cases/movie-trailer` (182, 21.4),
+    `/tasks/image-to-video` (135, 15.0), `/use-cases/product-video` (124, 10.3, **0 clicks**),
+    `/apps/audio-to-image` (94, 11.3 — 5.32% CTR, the best-converting page on the site).
+    **Action:** internal links and content depth on these nine beats nine new pages. This is the
+    highest ratio of return to effort in the whole audit after finding 2.
+
+12. **`/agents` proves the sitelink theory: 1,054 impressions at position 4.8, zero clicks.** §0's
+    finding 7 guessed that mid-position segment pages were absorbing branded sitelink impressions;
+    a full window at position 4.8 with no clicks confirms it. `/cloud` (1,463 impressions, position
+    5.3, 2 clicks) and `/creatives` (1,776, 9.1, 10) behave the same. The §0.7 retitles did not fix
+    it because the title was never the problem. **Action:** stop reading these impressions as
+    demand — they are branded overflow, and they flatter the sitewide numbers. Judge these pages on
+    the non-branded queries they earn, or accept them as conversion pages and not entry pages.
+
+### What this changes about the plan
+
+§4 and SEO_PROGRAMMATIC.md described building page factories. Those shipped. The next quarter is
+consolidation, not expansion:
+
+- **Merge, don't add** (findings 3, 4): 26 competitor URLs → 13; 20 duplicated app/template slugs
+  resolved; the four movie-trailer URLs → one.
+- **One new page that matters** (finding 2), plus three small ones with named demand behind them
+  (findings 5, 6, 9).
+- **Rewrite nine ranked pages** rather than ship nine new ones (finding 11).
+- **Shrink the index** (findings 7, 8): `noindex` on 32 planning docs; stop counting node-reference
+  and third-party-docs impressions as an audience.
 
 ## 0.9 Weavy → Figma Weave capture plan (2026-07-16)
 
@@ -128,6 +272,12 @@ One stray demand signal: "real time agent api" (132 impressions, pos 36) plus th
 agent guide; a proper docs page would inherit it.
 
 ## 1. Where nodetool.ai stands today
+
+**Stale as of 2026-08-10 — this section describes the site before the programmatic build.** The
+site now ships ≈400 indexed www URLs across `/alternatives`, `/vs`, `/templates` (146 slugs),
+`/apps` (47), `/providers` (20), `/tasks` (8), `/solutions` (8), `/models`, `/faq`, `/ideas`,
+`/blog`, and `/showcase`. See §0.10 for what that surface actually earns. Kept below for the gap
+analysis, which still reads correctly as history.
 
 The site (`marketing/src/app/`) has 13 indexed pages: `/`, `/studio`, `/cloud`, `/pricing`,
 `/agents`, `/creatives`, `/developers`, two comparison pages (`/vs/comfyui`, `/vs/weavy`), two
@@ -353,6 +503,34 @@ Content only ranks if something points at it:
 
 ## 7. Prioritized roadmap
 
+**Current plan — re-prioritized 2026-08-10 against §0.10.** The 2026-07-02 list follows it, kept
+for the shipped record.
+
+1. **Immediate** (hours, no new content): `noindex` the 32 indexed planning docs and both SEO docs
+   (§0.10 finding 7); retitle `/apps` to own "AI mini apps" (finding 6); rewrite
+   `/apps/brand-asset-generator`'s title and H1 to the exact query (finding 5).
+2. **Consolidation** (this month — the main work): 301 `/vs/<slug>` → `/alternatives/<slug>` after
+   porting the n8n and jan copy angles, and delete the second template (finding 3); resolve the 20
+   duplicated `/apps` ↔ `/templates` slugs and collapse the four movie-trailer URLs to one
+   (finding 4). Both are redirect-and-delete work, so guard them with `marketing/tests/e2e/` and
+   watch for 404s in GSC for two weeks after.
+3. **The one big page** (this month): the `/node-based-ai` entity page for the 11.1k-impression
+   cluster, linked from the homepage hero and every `/alternatives/*` page (finding 2). Nothing else
+   on the site is worth this much.
+4. **Rescue before build** (next month): content depth and internal links on the nine page-two
+   pages in finding 11, starting with `/alternatives/figma-weave`, `/alternatives/weavy` and
+   `/tasks/lip-sync`; rewrite `/providers/kie`, `/providers/replicate` and `/providers/fal` as
+   landing pages (finding 5).
+5. **New pages with named demand only** (next month): billing block generator (finding 5); a "chain
+   multiple LLMs in one visual workspace" page (finding 9); per-model cost text on the model pages
+   (finding 9).
+6. **Measure before translating** (next quarter): pull the GSC country/language report against
+   finding 10 before committing to any localized page.
+7. **Unchanged and still ongoing**: distribution (§6) — the US authority gap in §0.3 is the reason
+   ranked pages sit at 7–12 rather than 1–3, and no on-page work in items 1–5 substitutes for it.
+
+### Roadmap as of 2026-07-02 (shipped record)
+
 Re-prioritized 2026-07-02 against the Search Console audit in §0.
 
 1. **Immediate** (hours): ~~fix the `movie-trailer` sitemap omission (§1, §5)~~ done 2026-07-01;
@@ -378,6 +556,27 @@ Re-prioritized 2026-07-02 against the Search Console audit in §0.
    (§5); check the `/vs/*` pages' query impressions weekly until they register (§0.2).
 
 ## 8. Measurement
+
+**Current baseline (GSC export, trailing window ending 2026-08-10):** 1,543 clicks / 74.1k
+impressions across the 1,000-URL page report; non-branded 197 clicks / 16.9k impressions / 1.16%
+CTR; docs 80 clicks / 20.9k impressions / 0.38% CTR; homepage 1,242 clicks (80% of the site) on
+32.9k impressions.
+
+The four numbers to move, with the finding each one tests:
+
+| Metric | Now | Tests |
+|---|---|---|
+| "ai node" cluster weighted position | 7.5 | the entity page (§0.10 finding 2) |
+| Non-branded CTR, third-party-docs queries excluded | 1.16% | consolidation (findings 3, 4) |
+| `/alternatives/*` clicks | 68 | the redirect merge — this should absorb `/vs`'s 9 and grow |
+| Share of clicks not on `/` | 20% | whether any page other than the homepage can win a query |
+
+Read non-branded CTR only with the 619 third-party-documentation impressions excluded (finding 8),
+and do not count `/agents`, `/cloud` or `/creatives` impressions as demand (finding 12). Re-audit
+when this section is more than a quarter old; the last two audits were six weeks apart and the
+category moved in both.
+
+### Baseline as of 2026-07-02
 
 Baseline (GSC export, trailing window ending 2026-07-02): 939 clicks / 48.2k impressions total;
 non-branded 115 clicks / 9.4k impressions / 1.23% CTR; US position 12.5; docs 75 clicks / 18.9k
