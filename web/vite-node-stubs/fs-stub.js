@@ -14,6 +14,7 @@ export const readFileSync = notInBrowser("readFileSync");
 export const statSync = notInBrowser("statSync");
 export const lstatSync = notInBrowser("lstatSync");
 export const realpathSync = notInBrowser("realpathSync");
+export const accessSync = notInBrowser("accessSync");
 export const writeFileSync = notInBrowser("writeFileSync");
 export const openSync = notInBrowser("openSync");
 export const writeSync = notInBrowser("writeSync");
@@ -21,6 +22,13 @@ export const createReadStream = notInBrowser("createReadStream");
 export const createWriteStream = notInBrowser("createWriteStream");
 export const cpSync = notInBrowser("cpSync");
 export const unlinkSync = notInBrowser("unlinkSync");
+export const rmSync = notInBrowser("rmSync");
+export const mkdtempSync = notInBrowser("mkdtempSync");
+
+// `constants` is data, not behavior — `accessSync(p, constants.R_OK)` reads it
+// before it ever calls, so a throwing stub would break at the wrong moment.
+// These are the POSIX values Node exposes.
+export const constants = { F_OK: 0, X_OK: 1, W_OK: 2, R_OK: 4 };
 
 // `import { promises as fs } from "node:fs"` — async API surface. Methods
 // reject (browser-tagged code must never call them); the object exists so the
@@ -46,6 +54,7 @@ export default {
   statSync,
   lstatSync,
   realpathSync,
+  accessSync,
   writeFileSync,
   openSync,
   writeSync,
@@ -53,5 +62,8 @@ export default {
   createWriteStream,
   cpSync,
   unlinkSync,
+  rmSync,
+  mkdtempSync,
+  constants,
   promises
 };

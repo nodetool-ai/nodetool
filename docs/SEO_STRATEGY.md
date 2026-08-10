@@ -81,6 +81,17 @@ findings, each with the action it forces.
    file, `/apps/*` is the runnable mini app — and where a pair is one thing, redirect the weaker
    URL. Do this before adding more of either.
 
+   **Corrected 2026-08-10 after reading `marketing/next.config.mjs`:** the `/apps` ↔ `/templates`
+   half of this finding was already fixed in code. The examples-revamp retired those `/apps/<slug>`
+   pages and redirects each one to its absorbing app or template, and every slug named above is in
+   that map. The export was measuring URLs that had already stopped resolving — a trailing-window
+   artifact, not a live duplicate. Read it as a caution about this whole audit: GSC reports lag the
+   deploy, so check the route table before acting on a duplication finding. What survives the
+   correction is the **movie-trailer split**, which is real and still live:
+   `/use-cases/movie-trailer` (182 impressions, position 21.4), `/templates/movie-trailer-generator`,
+   and the `docs.nodetool.ai/use-cases/movie-trailer.html` mirror all resolve today and all target
+   one intent.
+
 5. **Three query sets have tool intent, page-one impressions, and no page that matches.**
    - **Billing block generator.** "billing block generator" 140 impressions at position 7.7, plus
      "movie poster billing block generator" (12), "movie billing block generator" (5), "billing
@@ -91,12 +102,21 @@ findings, each with the action it forces.
      clicks**, plus "brand assets generator" (15) and "brand asset tool" (7).
      `/apps/brand-asset-generator` already exists (193 impressions, position 8.4, 1.04%). This is a
      title/H1 problem, not a missing-page problem — match the query exactly.
-   - **KIE.** 652 impressions across 20 queries at position 7.5 for 2 clicks: "kie ai" (609), plus
-     kie api / models / suno / kling / omni / `kie_api_key`. `/providers/kie` takes 838 impressions
-     at 0.24% CTR. **Action:** rewrite `/providers/kie` as a landing page — what you can run, what
-     it costs, how BYOK works — not a spec dump. `/providers/replicate` (198 impressions, 0 clicks)
-     and `/providers/fal` (146, 0) need the same treatment; the whole `/providers` family is 1,470
-     impressions at 0.20%.
+   - **KIE — corrected 2026-08-10 after reading the page.** 652 impressions across 20 queries at
+     position 7.5 for 2 clicks: "kie ai" (609), plus kie api / models / suno / kling / omni /
+     `kie_api_key`. `/providers/kie` takes 838 impressions at 0.24% CTR. This finding first called
+     for rewriting the page "as a landing page, not a spec dump" — wrong, inferred from the CTR
+     without opening it. `/providers/[slug]` already ships a differentiated title, a tagline, three
+     blurb paragraphs, strengths, an FAQ, and a generated model catalog. The CTR has a simpler
+     cause: **"kie ai" is navigational.** Searchers want kie.ai, and a third-party page at position
+     7 will convert badly no matter how good it is. The same reading applies to the rest of the
+     family (`/providers/replicate` 198 impressions / 0 clicks, `/providers/fal` 146 / 0, whole
+     family 1,470 at 0.20%). **Action:** do not invest in the provider pages for brand-navigational
+     queries — that CTR is the expected outcome, not a defect. The winnable slice is the
+     *capability* tail those brands carry ("kie suno", "kie kling", "kie api", "kie models", "kling
+     3.0 local model", "together ai image generation pricing flux"), which asks what a model can do
+     and what it costs. That question belongs on the model pages (finding 9's per-model cost text),
+     not on a provider hub.
 
 6. **"Mini apps" is an emerging category term and the hub does not own it.** 11 queries — "mini
    apps ai", "ai mini apps", "mini app ai", "ai generator mini apps" and misspellings — 85
@@ -506,21 +526,37 @@ Content only ranks if something points at it:
 **Current plan — re-prioritized 2026-08-10 against §0.10.** The 2026-07-02 list follows it, kept
 for the shipped record.
 
-1. **Immediate** (hours, no new content): `noindex` the 32 indexed planning docs and both SEO docs
-   (§0.10 finding 7); retitle `/apps` to own "AI mini apps" (finding 6); rewrite
-   `/apps/brand-asset-generator`'s title and H1 to the exact query (finding 5).
-2. **Consolidation** (this month — the main work): 301 `/vs/<slug>` → `/alternatives/<slug>` after
-   porting the n8n and jan copy angles, and delete the second template (finding 3); resolve the 20
-   duplicated `/apps` ↔ `/templates` slugs and collapse the four movie-trailer URLs to one
-   (finding 4). Both are redirect-and-delete work, so guard them with `marketing/tests/e2e/` and
-   watch for 404s in GSC for two weeks after.
-3. **The one big page** (this month): the `/node-based-ai` entity page for the 11.1k-impression
-   cluster, linked from the homepage hero and every `/alternatives/*` page (finding 2). Nothing else
-   on the site is worth this much.
+1. ~~**Immediate**: `noindex` the indexed planning docs and both SEO docs (§0.10 finding 7); give
+   `/apps` the "AI mini apps" H1 (finding 6).~~ **Shipped 2026-08-10.** The noindex set is a
+   `defaults` block in `docs/_config.yml` (36 paths, `noindex: true` + `sitemap: false`) plus the
+   `robots` meta in `_layouts/default.html`; add new plans/PRDs/designs there in the PR that adds
+   them. `/apps` H1 is now "AI mini apps anyone can use" — the `<title>` already said it.
+2. ~~**Consolidation**: permanently redirect `/vs/<slug>` → `/alternatives/<slug>` and delete the second
+   template (finding 3).~~ **Shipped 2026-08-10.** The wildcard redirect lives in
+   `marketing/next.config.mjs`; `src/app/vs/` is gone; the head-to-head copy (at-a-glance cards and
+   explainer, with `competitorBulletTone` honored) now renders on the alternatives page, so the
+   "NodeTool vs X" queries keep on-page support and the n8n/jan angles came across with it. Five
+   fields that only described the retired page (`vsTitle`, `vsDescription`, `vsOgTitle`,
+   `vsOgDescription`, `heroHeading`) were deleted from the type and all 13 records;
+   `ComparisonMesh`'s `basePath` prop went with them. Note the status code: Next's
+   `permanent: true` emits **308**, not 301 — equivalent for search engines, and what
+   `routes-manifest.json` will show if you verify it.
+   **Also shipped:** the movie-trailer split from finding 4's correction. All six
+   `docs/use-cases/*.md` mirrors now carry a `canonical_url` pointing at their marketing
+   equivalent, so the cross-domain duplicate consolidates without deleting docs content the
+   use-case index still links. The `/apps` ↔ `/templates` half needed no work — see the
+   correction under finding 4.
+3. ~~**The one big page**: the `/node-based-ai` entity page for the 11.1k-impression cluster
+   (finding 2).~~ **Shipped 2026-08-10.** `marketing/src/app/node-based-ai/`, priority 0.9, linked
+   from the homepage hero (on the words "node-based"), the footer Product column, and every
+   `/alternatives/*` page through `ComparisonMesh`. Sections target specific variants rather than
+   restating the head term, and one section disambiguates the three intents the cluster mixes
+   (visual graph / Node.js / ComfyUI). Watch the cluster's weighted position — that is the metric
+   this page exists to move.
 4. **Rescue before build** (next month): content depth and internal links on the nine page-two
    pages in finding 11, starting with `/alternatives/figma-weave`, `/alternatives/weavy` and
-   `/tasks/lip-sync`; rewrite `/providers/kie`, `/providers/replicate` and `/providers/fal` as
-   landing pages (finding 5).
+   `/tasks/lip-sync`. The provider-page rewrite that used to sit here is struck — see finding 5's
+   correction: those pages are already built, and their CTR is a navigational-query artifact.
 5. **New pages with named demand only** (next month): billing block generator (finding 5); a "chain
    multiple LLMs in one visual workspace" page (finding 9); per-model cost text on the model pages
    (finding 9).
