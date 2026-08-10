@@ -92,7 +92,8 @@ You can skip planning entirely by passing a pre-built `task` object to the Agent
 
 See [codeact-design.md](codeact-design.md) for the action protocol, the
 sandbox limits that apply per action, and the `state` object that persists
-across a step's actions.
+across a step's actions, and [javascript-sandbox.md](javascript-sandbox.md)
+for the engine itself — capabilities, limits, imports, security model.
 
 ### Fan-Out Execution
 
