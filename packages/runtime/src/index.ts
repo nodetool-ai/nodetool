@@ -22,6 +22,7 @@ export {
 export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 export {
   getProcessSandboxModuleCatalog,
+  refuseSandboxDelivery,
   setProcessSandboxModuleCatalog
 } from "./sandbox-module-catalog.js";
 export {

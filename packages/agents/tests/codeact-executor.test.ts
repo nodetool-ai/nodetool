@@ -2,8 +2,7 @@
  * CodeActExecutor harness tests — a scripted provider drives code actions
  * through the real QuickJS sandbox and tool bridge. No network, no model.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { SANDBOX_MODULES_V1_FLAG } from "@nodetool-ai/config";
+import { describe, it, expect } from "vitest";
 import { CodeActExecutor } from "../src/codeact/codeact-executor.js";
 import { Tool } from "../src/tools/base-tool.js";
 import type { Step, Task } from "../src/types.js";
@@ -564,13 +563,6 @@ describe("CodeAct sandbox packages", () => {
       statuses: []
     })
   };
-
-  beforeEach(() => {
-    process.env[SANDBOX_MODULES_V1_FLAG] = "1";
-  });
-  afterEach(() => {
-    delete process.env[SANDBOX_MODULES_V1_FLAG];
-  });
 
   it("mounts an allowlisted import and advertises it in the prompt", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);

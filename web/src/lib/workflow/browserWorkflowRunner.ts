@@ -26,6 +26,11 @@ import {
 import { materializeBrowserOutputs } from "./materializeBrowserOutputs";
 import { stampGenerationIndex } from "./browserRunnerRelay";
 import {
+  createSeededSandboxModuleCatalog,
+  prepareSandboxModulesForGraph,
+  type SandboxModuleRecord
+} from "./sandboxModuleCatalog";
+import {
   buildBrowserRunner,
   collectNodeClasses,
   loadBrowserModules,
@@ -200,51 +205,6 @@ export function preloadBrowserRunner(): void {
 }
 
 /**
- * The one property-aware eligibility check. A Code node that declares sandbox
- * packages runs on the server only: module delivery to the browser lands in M2,
- * and until it does the browser runner has no way to fetch the module sources.
- * Nothing is written back onto the node — this is a routing decision, not a
- * platform classification.
- */
-export const SANDBOX_PACKAGES_BROWSER_MESSAGE =
-  "Sandbox package imports are unavailable in the browser runner until " +
-  "module delivery is enabled.";
-
-const CODE_NODE_TYPE = "nodetool.code.Code";
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : null;
-}
-
-/**
- * `packages`, read from any of the three graph shapes: the editor's
- * `data.properties` bag, a `properties` bag, or props flattened onto `data`.
- */
-function declaresSandboxPackages(node: {
-  type?: string | null;
-  data?: unknown;
-  properties?: unknown;
-}): boolean {
-  if (node.type !== CODE_NODE_TYPE) return false;
-  const data = asRecord(node.data);
-  const props =
-    asRecord(node.properties) ?? asRecord(data?.["properties"]) ?? data ?? {};
-  const declared = props["packages"];
-  return Array.isArray(declared) && declared.length > 0;
-}
-
-/** Node ids whose `packages` declaration forces the graph onto the server. */
-function sandboxPackageNodeIds(
-  graph: WorkflowGraph | null | undefined
-): string[] {
-  return (graph?.nodes ?? [])
-    .filter((node) => declaresSandboxPackages(node))
-    .map((node) => String(node.id));
-}
-
-/**
  * Synchronous routing decision used on hot paths. Returns `true` only when the
  * runner is already loaded and can run every node in `graph`. When it hasn't
  * loaded yet it returns `false` and warms the cache in the background, so the
@@ -255,7 +215,6 @@ export function canRunGraphInBrowserSync(
 ): boolean {
   const nodes = graph?.nodes ?? [];
   if (nodes.length === 0) return false;
-  if (sandboxPackageNodeIds(graph).length > 0) return false;
   const ready = usingWorker()
     ? cachedBrowserNodeTypes !== undefined
     : cachedLocalRunner !== undefined;
@@ -292,13 +251,6 @@ export interface BrowserEligibility {
   browserNodeTypes: string[];
   /** Node types NOT in the browser registry — these force the server path. */
   serverNodeTypes: string[];
-  /**
-   * Ids of Code nodes declaring sandbox `packages`. Non-empty forces the server
-   * path regardless of node types; `reason` says why.
-   */
-  sandboxPackageNodeIds: string[];
-  /** Why an otherwise-capable graph is ineligible. */
-  reason?: string;
 }
 
 /**
@@ -313,7 +265,6 @@ export async function reportBrowserEligibility(
   const types = (graph?.nodes ?? [])
     .map((node) => node.type)
     .filter((t): t is string => typeof t === "string");
-  const packageNodeIds = sandboxPackageNodeIds(graph);
   const available = await ensureRunnerLoaded();
   if (!available) {
     return {
@@ -321,8 +272,7 @@ export async function reportBrowserEligibility(
       runnerAvailable: false,
       total: types.length,
       browserNodeTypes: [],
-      serverNodeTypes: types,
-      sandboxPackageNodeIds: packageNodeIds
+      serverNodeTypes: types
     };
   }
   const browserNodeTypes: string[] = [];
@@ -333,18 +283,11 @@ export async function reportBrowserEligibility(
     );
   }
   return {
-    eligible:
-      types.length > 0 &&
-      serverNodeTypes.length === 0 &&
-      packageNodeIds.length === 0,
+    eligible: types.length > 0 && serverNodeTypes.length === 0,
     runnerAvailable: true,
     total: types.length,
     browserNodeTypes,
-    serverNodeTypes,
-    sandboxPackageNodeIds: packageNodeIds,
-    ...(packageNodeIds.length > 0
-      ? { reason: SANDBOX_PACKAGES_BROWSER_MESSAGE }
-      : {})
+    serverNodeTypes
   };
 }
 
@@ -399,13 +342,27 @@ export function updateBrowserJobNodeProperties(
 export async function runBrowserGraphJob(
   options: BrowserGraphJobOptions
 ): Promise<BrowserGraphJobResult> {
+  // Sandbox modules are fetched here, before either path starts: the catalog
+  // contract is synchronous, and the same verified records seed the catalog on
+  // whichever side ends up running. A module that cannot be had fails the job
+  // now, rather than as a resolve error deep inside the guest.
+  let sandboxModules: SandboxModuleRecord[] | null;
+  try {
+    sandboxModules = await prepareSandboxModulesForGraph(options.graph);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Sandbox modules unavailable";
+    console.error(`[browserRunner] ✖ sandbox modules unavailable: ${message}`);
+    return { success: false, outputs: {}, error: message };
+  }
+
   if (shouldUseWorker() && !workerDisabled) {
     try {
       const { getBrowserWorkerReady, runBrowserGraphJobInWorker } =
         await import("./browserWorkerClient");
       // Ensure the registry is built; a failed init throws → main-thread path.
       await getBrowserWorkerReady();
-      return await runBrowserGraphJobInWorker(options);
+      return await runBrowserGraphJobInWorker(options, sandboxModules);
     } catch (error) {
       console.warn(
         "[browserRunner] worker run failed to start; falling back to main thread",
@@ -414,7 +371,7 @@ export async function runBrowserGraphJob(
       workerDisabled = true;
     }
   }
-  return runBrowserGraphJobLocal(options);
+  return runBrowserGraphJobLocal(options, sandboxModules);
 }
 
 /**
@@ -422,7 +379,8 @@ export async function runBrowserGraphJob(
  * delivering each message inline. The fallback path and the unit-test path.
  */
 async function runBrowserGraphJobLocal(
-  options: BrowserGraphJobOptions
+  options: BrowserGraphJobOptions,
+  sandboxModules: SandboxModuleRecord[] | null = null
 ): Promise<BrowserGraphJobResult> {
   const { graph, params = {}, signal, workflowId } = options;
   if (signal?.aborted) {
@@ -461,6 +419,12 @@ async function runBrowserGraphJobLocal(
     jobId,
     workflowId,
     signal,
+    ...(sandboxModules === null
+      ? {}
+      : {
+          sandboxModuleCatalog:
+            createSeededSandboxModuleCatalog(sandboxModules)
+        }),
     onRunner: (workflowRunner) => {
       localRunners.set(jobId, workflowRunner);
     }

@@ -8,6 +8,11 @@ them. M2 delivers module source to the browser, runs the same
 loading/denial contract there, and removes the flag. Parity restored is
 the exit criterion.
 
+> **Landed.** Tasks 1, 2 and 5 in `126eceb`; tasks 3, 4 and 6 in the commit
+> that carries this banner. The `NODETOOL_SANDBOX_MODULES_V1` flag no longer
+> exists; see the M2 checkpoint in
+> [sandbox-package-design.md](sandbox-package-design.md).
+
 Grounding: browser runs execute the kernel `WorkflowRunner` client-side
 through `runBrowserWorkflow` (`packages/workflow-runner/src/browser.ts`),
 routed by `web/src/lib/workflow/browserWorkflowRunner.ts` and

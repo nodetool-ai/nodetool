@@ -6,14 +6,14 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0, M1, and M3 are
-> implemented.
-> M1 ships behind `NODETOOL_SANDBOX_MODULES_V1`, off by default: with the flag
-> on, a declared sandbox module is importable in Code nodes, CodeAct actions,
-> the CLI and the server; with it off, every surface refuses a `packages`
-> declaration with the same message. Browser delivery is M2, so a graph using
-> `packages` is refused by the browser runner and validation warns about it.
-> M0 provides:
+> Status: design, revised after two review rounds. M0, M1, M2 and M3 are
+> implemented. A declared sandbox module is importable in Code nodes, CodeAct
+> actions, the CLI, the server **and the browser runner** — M2 delivered module
+> source to the browser over `GET /api/sandbox-modules/*`, ran the same
+> loading/denial contract there, and removed the `NODETOOL_SANDBOX_MODULES_V1`
+> parity flag along with the browser refusal it covered. M3 adds the npm
+> compiler: a config-only `npm` manifest entry is bundled, scanned,
+> admission-probed, and cached by content. M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
 > sandbox-only host-loader guard, scripts-disabled installation with an
@@ -790,8 +790,9 @@ Two things belong to M1 that earlier drafts deferred:
 
 #### M1 checkpoint — imports end to end, behind the flag
 
-M1 is implemented and gated by `NODETOOL_SANDBOX_MODULES_V1`
-(`packages/config/src/sandbox-feature-flags.ts`, exact opt-in on `"1"`).
+M1 is implemented. It shipped gated by `NODETOOL_SANDBOX_MODULES_V1` (exact
+opt-in on `"1"`), which M2 removed; the flag paragraph below records what it
+covered.
 
 What shipped:
 
@@ -826,15 +827,14 @@ What shipped:
   line per allowed specifier — never the installed catalog — and says plainly
   when nothing is importable
   (`packages/agents/src/codeact/sandbox-packages.ts`).
-- **The flag.** Off (the default): the Code node refuses a declaration before
-  the guest starts, CodeAct mounts nothing, and validation reports the
-  declaration as an error naming the variable. On: everything above works, and
-  validation adds a `code_package_browser_parity` warning on any Code node with
-  a non-empty `packages` — the browser runner refuses such a graph
-  (`reportBrowserEligibility().sandboxPackageNodeIds` plus a `reason`, in
-  `web/src/lib/workflow/browserWorkflowRunner.ts`). Nothing persistent is
-  written: no node platform metadata changes, so a workflow saved during M1
-  carries no stale server-only classification into M2.
+- **The flag.** `NODETOOL_SANDBOX_MODULES_V1` gated all of the above while the
+  browser runner could not fetch module sources. Off, the Code node refused a
+  declaration before the guest started, CodeAct mounted nothing, and validation
+  reported the declaration as an error; on, validation added a
+  `code_package_browser_parity` warning because the browser runner refused such
+  a graph outright. M2 removed the flag, the warning and the refusal. Nothing
+  persistent was written while it existed — no node platform metadata changed —
+  so no workflow saved during M1 needed migrating.
 
 The canonical sentence every prompt surface now states — replacing "there is no
 module loader" — is `SANDBOX_MODULE_RULE` in
@@ -845,8 +845,7 @@ Regression suites: `packages/agents/tests/js-sandbox-modules.test.ts`,
 `codeact-prompt-drift.test.ts`, `sandbox-manifest-drift.test.ts`;
 `packages/node-sdk/tests/code-node-validation.test.ts`,
 `graph-validation.test.ts`; `packages/code-nodes/tests/code-node-packages.test.ts`;
-`packages/config/tests/sandbox-feature-flags.test.ts`; and
-`web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
+and `web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
 
 ### M2 — Delivery parity (removes the flag)
 
@@ -854,6 +853,54 @@ Browser delivery by opaque module id with digest verification; Electron
 staging for bundled builtins; the same loading/denial fixtures running on
 Node and browser. The M1 feature flag is removed here — parity restored
 is the exit criterion.
+
+#### M2 checkpoint — the browser runs what the server runs
+
+M2 is implemented; there is no flag. What shipped:
+
+- **The delivery half of the catalog.** `authorizeDelivery(moduleId)`
+  (`packages/runtime/src/sandbox-module-catalog.ts`, implemented in
+  `packages/node-sdk/src/sandbox-module-catalog.ts`) resolves authorization and
+  content in one call and answers with browser-safe source, its media type, the
+  module-graph digest, a per-file `contentSha256`, the delivered file's
+  pack-relative id, and the opaque ids of everything it imports. Never a
+  filesystem path. Public entry specifiers and internal graph-file ids
+  (`<pack>::<file>`) are both deliverable, because the browser loader needs the
+  whole graph.
+- **The route.** `GET /api/sandbox-modules/*`
+  (`packages/websocket/src/routes/sandbox-modules.ts`), a wildcard because ids
+  contain `/`. It resolves only through the catalog: unknown id → 404, refusal →
+  403, otherwise the body plus `X-Content-Digest`, `X-Content-Sha256`,
+  `X-Sandbox-Module-Dependencies`, `X-Sandbox-File-Id` and a digest ETag with
+  immutable caching.
+- **The browser catalog.** `web/src/lib/workflow/sandboxModuleCatalog.ts`
+  fetches by module id, verifies each body against `contentSha256` with
+  `crypto.subtle` — a mismatch is never cached and never returned — walks the
+  dependency header until the closure is complete, and turns the records into a
+  `SandboxModuleCatalog` that answers synchronously. The digest versions the
+  cache: a file reached from one root whose digest no longer matches is a
+  leftover from a previous pack version and is re-fetched.
+- **Prefetch before the run.** `runBrowserGraphJob` collects the graph's
+  `packages` declarations and fetches the closure *before* either execution path
+  starts, because the catalog contract is synchronous and fetching is not. A
+  module that cannot be had fails the job right there, naming the pack, instead
+  of surfacing as a resolve error inside the guest. The verified records are
+  plain data, so the Web Worker path receives them across `postMessage` and
+  builds its catalog in the worker — one verification, on the side that owns the
+  origin and the auth header.
+- **One contract, two runtimes.** The loading and denial cases are data
+  (`@nodetool-ai/agents/sandbox-module-fixtures`): declared imports, an
+  intra-pack internal helper, `node:*` and compat-module denials, path escapes
+  and encoded traversals, undeclared specifiers, another pack's internals,
+  computed and variable dynamic imports, and the module-level `setTimeout`/`eval`
+  hardening. `packages/agents/tests/js-sandbox-modules.test.ts` drives them under
+  vitest; `packages/workflow-runner/e2e/tests/sandbox-modules.spec.ts` drives the
+  same array through a Code node in a real headless Chromium.
+- **The flag is gone.** `packages/config/src/sandbox-feature-flags.ts` and every
+  read of it are deleted, along with the `code_package_disabled` validation
+  error, the `code_package_browser_parity` warning, and the browser runner's
+  property-aware refusal. A graph with `packages` is browser-eligible when its
+  node types are.
 
 ### M3 — npm compilation
 

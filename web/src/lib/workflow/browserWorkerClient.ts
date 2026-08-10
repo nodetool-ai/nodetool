@@ -16,6 +16,7 @@ import type {
   BrowserGraphJobOptions,
   BrowserGraphJobResult
 } from "./browserRunnerCore";
+import type { SandboxModuleRecord } from "./sandboxModuleCatalog";
 
 interface ReadyMessage {
   type: "ready";
@@ -110,7 +111,13 @@ export function updateBrowserJobNodeProperties(
  * the worker is already ready (caller awaits {@link getBrowserWorkerReady}).
  */
 export function runBrowserGraphJobInWorker(
-  options: BrowserGraphJobOptions
+  options: BrowserGraphJobOptions,
+  /**
+   * Sandbox module sources the main thread already fetched and verified. They
+   * cross as plain data and the worker builds its catalog from them — the
+   * verification (and the job error a failure produces) stays on one side.
+   */
+  sandboxModules: SandboxModuleRecord[] | null = null
 ): Promise<BrowserGraphJobResult> {
   const { graph, params = {}, signal, workflowId } = options;
   if (signal?.aborted) {
@@ -206,6 +213,13 @@ export function runBrowserGraphJobInWorker(
 
     w.addEventListener("message", onMessage);
     signal?.addEventListener("abort", onAbort, { once: true });
-    w.postMessage({ type: "run", jobId, graph, params, workflowId });
+    w.postMessage({
+      type: "run",
+      jobId,
+      graph,
+      params,
+      workflowId,
+      sandboxModules
+    });
   });
 }
