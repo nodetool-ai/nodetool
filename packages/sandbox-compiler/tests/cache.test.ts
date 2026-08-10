@@ -6,11 +6,12 @@
  */
 
 import { afterAll, describe, expect, it } from "vitest";
-import { mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { CompiledModuleCache, computeCacheKey } from "../src/cache.js";
+import { SANDBOX_COMPILER_VERSION } from "../src/options.js";
 import { compileNpmModule } from "../src/compile.js";
 import { cleanup, materializePack } from "./fixtures.js";
 
@@ -22,7 +23,8 @@ afterAll(() => cleanup(workspace));
 const baseInput = {
   npmName: "fixture-clean",
   esbuildVersion: "0.28.1",
-  inputDigests: [{ path: "node_modules/fixture-clean/index.js", sha256: "abc123" }]
+  inputDigests: [{ path: "node_modules/fixture-clean/index.js", sha256: "abc123" }],
+  resolutionDigests: [{ path: "node_modules/fixture-clean/package.json", sha256: "def456" }]
 };
 
 describe("computeCacheKey", () => {
@@ -52,6 +54,14 @@ describe("computeCacheKey", () => {
       computeCacheKey(baseInput)
     );
   });
+
+  it("changes when a resolution input changes, with every input identical", () => {
+    const remapped = {
+      ...baseInput,
+      resolutionDigests: [{ path: "node_modules/fixture-clean/package.json", sha256: "999" }]
+    };
+    expect(computeCacheKey(remapped)).not.toBe(computeCacheKey(baseInput));
+  });
 });
 
 describe("CompiledModuleCache", () => {
@@ -61,13 +71,14 @@ describe("CompiledModuleCache", () => {
     cache.write({
       key,
       npmName: "fixture-clean",
-      compilerVersion: "1",
+      compilerVersion: SANDBOX_COMPILER_VERSION,
       esbuildVersion: "0.28.1",
       optionsDigest: "a".repeat(64),
       inputsDigest: "b".repeat(64),
       source: "export const x = 1;",
       bytes: 19,
       inputDigests: [],
+      resolutionDigests: [],
       scanWarnings: [],
       probeOk: true,
       probeExports: ["x"]
@@ -91,6 +102,7 @@ describe("CompiledModuleCache", () => {
       source: "export const x = 1;",
       bytes: 19,
       inputDigests: [],
+      resolutionDigests: [],
       scanWarnings: [],
       probeOk: true,
       probeExports: []
@@ -107,13 +119,14 @@ describe("CompiledModuleCache", () => {
       cache.write({
         key,
         npmName: "fixture-clean",
-        compilerVersion: "1",
+        compilerVersion: SANDBOX_COMPILER_VERSION,
         esbuildVersion: "0.28.1",
         optionsDigest: "a".repeat(64),
         inputsDigest: "b".repeat(64),
         source: `export const x = ${i};`,
         bytes: 19,
         inputDigests: [],
+        resolutionDigests: [],
         scanWarnings: [],
         probeOk: true,
         probeExports: []
@@ -131,13 +144,14 @@ describe("CompiledModuleCache", () => {
         new CompiledModuleCache(root).write({
           key,
           npmName: "fixture-clean",
-          compilerVersion: "1",
+          compilerVersion: SANDBOX_COMPILER_VERSION,
           esbuildVersion: "0.28.1",
           optionsDigest: "a".repeat(64),
           inputsDigest: "b".repeat(64),
           source: `export const x = ${"y".repeat(i * 500)};`,
           bytes: 19,
           inputDigests: [],
+          resolutionDigests: [],
           scanWarnings: [],
           probeOk: true,
           probeExports: []
@@ -180,6 +194,71 @@ describe("compileNpmModule caching", () => {
     const dependency = join(packDir, "node_modules", "fixture-clean", "index.js");
     writeFileSync(dependency, `${readFileSync(dependency, "utf8")}\nexport const later = 2;\n`);
     expect(cache.readForPack(packDir, "fixture-clean")).toBeUndefined();
+  });
+
+  it("misses when a manifest re-points the dependency at a different file", async () => {
+    // The stale-bundle case inputs alone cannot see: `exports` selects v2.js
+    // while index.js stays on disk, byte for byte what it was. Every recorded
+    // input still matches; the bundle is nonetheless the wrong code.
+    const packDir = materializePack("clean", join(workspace, "reexport"));
+    const cache = new CompiledModuleCache(join(cacheRoot, "reexport"));
+    await compileNpmModule({ packDir, npmName: "fixture-clean", cache });
+    expect(cache.readForPack(packDir, "fixture-clean")?.source).toContain("slugify");
+
+    const dependency = join(packDir, "node_modules", "fixture-clean");
+    const before = readFileSync(join(dependency, "index.js"), "utf8");
+    writeFileSync(join(dependency, "v2.js"), "export const two = 2;\n");
+    writeFileSync(
+      join(dependency, "package.json"),
+      JSON.stringify({
+        name: "fixture-clean",
+        version: "1.0.0",
+        type: "module",
+        main: "v2.js",
+        module: "v2.js",
+        exports: { ".": "./v2.js" }
+      })
+    );
+    expect(readFileSync(join(dependency, "index.js"), "utf8")).toBe(before);
+
+    expect(cache.readForPack(packDir, "fixture-clean")).toBeUndefined();
+    const recompiled = await compileNpmModule({ packDir, npmName: "fixture-clean", cache });
+    expect(recompiled.cached).toBe(false);
+    expect(cache.readForPack(packDir, "fixture-clean")?.source).toContain("two");
+  });
+
+  it("misses when a nearer copy of the dependency appears and shadows it", async () => {
+    // A pack one directory below the install that resolved: the hoisted copy
+    // decides the bundle until a closer one is installed, and that install
+    // touches nothing the bundle read.
+    const root = join(workspace, "shadow");
+    const hoisted = materializePack("clean", root);
+    const packDir = join(hoisted, "packs", "inner");
+    mkdirSync(packDir, { recursive: true });
+    writeFileSync(join(packDir, "package.json"), JSON.stringify({ name: "inner", version: "1.0.0" }));
+
+    const cache = new CompiledModuleCache(join(cacheRoot, "shadow"));
+    await compileNpmModule({ packDir, npmName: "fixture-clean", cache });
+    expect(cache.readForPack(packDir, "fixture-clean")?.source).toContain("slugify");
+
+    const nearer = join(packDir, "node_modules", "fixture-clean");
+    mkdirSync(nearer, { recursive: true });
+    writeFileSync(
+      join(nearer, "package.json"),
+      JSON.stringify({
+        name: "fixture-clean",
+        version: "2.0.0",
+        type: "module",
+        main: "index.js",
+        module: "index.js",
+        exports: { ".": "./index.js" }
+      })
+    );
+    writeFileSync(join(nearer, "index.js"), "export const shadowed = true;\n");
+
+    expect(cache.readForPack(packDir, "fixture-clean")).toBeUndefined();
+    await compileNpmModule({ packDir, npmName: "fixture-clean", cache });
+    expect(cache.readForPack(packDir, "fixture-clean")?.source).toContain("shadowed");
   });
 
   it("compiles again when the caller opts out of the cache", async () => {

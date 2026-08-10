@@ -25,11 +25,14 @@ export {
 } from "./options.js";
 
 export {
+  ABSENT,
   bundleNpmModule,
   optionsDigest,
   type BundleFailure,
   type BundleOutcome,
-  type BundleResult
+  type BundleResult,
+  type InputDigest,
+  type ResolutionDigest
 } from "./bundle.js";
 
 export {

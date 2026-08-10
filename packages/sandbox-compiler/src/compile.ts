@@ -61,7 +61,8 @@ export async function compileNpmModule(
   const key = computeCacheKey({
     npmName,
     esbuildVersion: bundle.esbuildVersion,
-    inputDigests: bundle.inputDigests
+    inputDigests: bundle.inputDigests,
+    resolutionDigests: bundle.resolutionDigests
   });
   const cache = request.noCache === true ? undefined : request.cache ?? new CompiledModuleCache();
   const hit = cache?.read(key);
@@ -119,6 +120,7 @@ export async function compileNpmModule(
     source: bundle.source,
     bytes: bundle.bytes,
     inputDigests: bundle.inputDigests,
+    resolutionDigests: bundle.resolutionDigests,
     scanWarnings: scan.warnings,
     probeOk: true,
     probeExports: probe.exports

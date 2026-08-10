@@ -12,7 +12,7 @@
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { isBuiltin } from "node:module";
-import { resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 
 import esbuild, { type BuildFailure, type Metafile, type Plugin } from "esbuild";
 
@@ -30,12 +30,39 @@ export interface InputDigest {
   readonly sha256: string;
 }
 
+/**
+ * One file that decided *which* inputs esbuild read, with its content hash.
+ *
+ * Input hashes answer "did the files we bundled change". They cannot answer
+ * "would we still resolve to those files", because a `package.json` is
+ * consulted during resolution and never appears among the inputs: flip
+ * `exports` from `v1.js` to `v2.js` and, as long as `v1.js` is still on disk
+ * unchanged, every recorded input still matches while the bundle is wrong.
+ * These records close that gap — the manifests governing each input, plus the
+ * places a closer copy of the dependency could appear and shadow the one that
+ * won.
+ */
+export interface ResolutionDigest {
+  /**
+   * Pack-relative path. Unlike an input this may reach above the pack, because
+   * a hoisted install puts the manifest that resolved it there.
+   */
+  readonly path: string;
+  /** Content hash, or {@link ABSENT} for a file that did not exist. */
+  readonly sha256: string;
+}
+
+/** Recorded in place of a hash for a file that was not there. */
+export const ABSENT = "absent";
+
 /** A successful bundle plus what the cache key is computed from. */
 export interface BundleResult {
   readonly source: string;
   readonly bytes: number;
   /** Every input esbuild read, sorted by path. */
   readonly inputDigests: readonly InputDigest[];
+  /** Every file that decided which inputs those were, sorted by path. */
+  readonly resolutionDigests: readonly ResolutionDigest[];
   readonly inputsDigest: string;
   readonly optionsDigest: string;
   readonly esbuildVersion: string;
@@ -111,13 +138,15 @@ async function runBuild(
     }
     const source = output.text;
     const inputDigests = hashInputs(packDir, built.metafile);
+    const resolutionDigests = hashResolution(packDir, npmName, built.metafile);
     return {
       status: "bundled",
       result: {
         source,
         bytes: Buffer.byteLength(source, "utf8"),
         inputDigests,
-        inputsDigest: digestOf(inputDigests),
+        resolutionDigests,
+        inputsDigest: digestOf(inputDigests, resolutionDigests),
         optionsDigest: optionsDigest(esbuild.version),
         esbuildVersion: esbuild.version,
         defaultExport: withDefault
@@ -184,11 +213,108 @@ function hashInputs(packDir: string, metafile: Metafile | undefined): InputDiges
     }
     digests.push({ path: relativePath, sha256: createHash("sha256").update(bytes).digest("hex") });
   }
-  return digests.sort((left, right) => (left.path < right.path ? -1 : left.path > right.path ? 1 : 0));
+  return digests.sort(byPath);
 }
 
-function digestOf(inputDigests: readonly InputDigest[]): string {
-  return createHash("sha256").update(JSON.stringify(inputDigests)).digest("hex");
+/**
+ * Hash every file that decided which inputs esbuild read.
+ *
+ * Two sets, both of them `package.json` files. The *governing* manifests are
+ * the ones a resolver consults on the way to an input — the package's own
+ * manifest, whose `exports`/`main` chose the file, any nested manifest between
+ * it and the file, and the pack's own. The *shadow* candidates are the places
+ * a nearer copy of the dependency could be installed later; those are usually
+ * absent, and an absence that becomes a file is exactly the change that
+ * silently re-resolves the import.
+ *
+ * Lockfiles are deliberately not hashed. A lockfile records what *should* be
+ * installed, so hashing one invalidates every pack's cache on any unrelated
+ * dependency edit while still saying nothing about the tree on disk. Once the
+ * install actually happens it moves either an input or one of these manifests,
+ * which is what the digest is watching.
+ */
+function hashResolution(
+  packDir: string,
+  npmName: string,
+  metafile: Metafile | undefined
+): ResolutionDigest[] {
+  const paths = new Set<string>(shadowCandidates(packDir, npmName));
+  paths.add(join(packDir, "package.json"));
+  for (const relativePath of Object.keys(metafile?.inputs ?? {})) {
+    if (relativePath.startsWith(`${NAMESPACE}.js`)) continue;
+    for (const manifest of manifestsGoverning(packDir, resolve(packDir, relativePath))) {
+      paths.add(manifest);
+    }
+  }
+  const digests: ResolutionDigest[] = [];
+  for (const absolute of paths) {
+    let bytes: Buffer;
+    try {
+      bytes = readFileSync(absolute);
+    } catch {
+      digests.push({ path: relative(packDir, absolute), sha256: ABSENT });
+      continue;
+    }
+    digests.push({
+      path: relative(packDir, absolute),
+      sha256: createHash("sha256").update(bytes).digest("hex")
+    });
+  }
+  return digests.sort(byPath);
+}
+
+/**
+ * Every `package.json` between `file` and the root of the package holding it.
+ *
+ * The walk stops at the enclosing `node_modules` — above that directory is a
+ * different package, whose manifest had no say in resolving this file — or at
+ * the pack itself for a file the pack ships.
+ */
+function manifestsGoverning(packDir: string, file: string): string[] {
+  const manifests: string[] = [];
+  let dir = dirname(file);
+  while (basename(dir) !== "node_modules") {
+    manifests.push(join(dir, "package.json"));
+    const parent = dirname(dir);
+    if (parent === dir || dir === packDir) break;
+    dir = parent;
+  }
+  return manifests;
+}
+
+/**
+ * Every `node_modules/<npmName>/package.json` from the pack upward.
+ *
+ * Node resolution takes the nearest one, so a copy installed closer to the
+ * pack than the one that won replaces the dependency without touching a single
+ * recorded input.
+ */
+function shadowCandidates(packDir: string, npmName: string): string[] {
+  const segments = npmName.split("/");
+  const candidates: string[] = [];
+  let dir = packDir;
+  for (;;) {
+    if (basename(dir) !== "node_modules") {
+      candidates.push(join(dir, "node_modules", ...segments, "package.json"));
+    }
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  return candidates;
+}
+
+function byPath(left: { path: string }, right: { path: string }): number {
+  return left.path < right.path ? -1 : left.path > right.path ? 1 : 0;
+}
+
+function digestOf(
+  inputDigests: readonly InputDigest[],
+  resolutionDigests: readonly ResolutionDigest[]
+): string {
+  return createHash("sha256")
+    .update(JSON.stringify({ inputs: inputDigests, resolution: resolutionDigests }))
+    .digest("hex");
 }
 
 /** Digest of the pinned options plus the esbuild that will apply them. */

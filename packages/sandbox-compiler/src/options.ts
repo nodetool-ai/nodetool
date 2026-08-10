@@ -55,7 +55,7 @@ export const NPM_PROBE_MAX_LOG_CHARS = 500;
  * "admitted" means. It is part of the cache key, so a bump re-compiles and
  * re-probes everything rather than trusting a verdict an older compiler made.
  */
-export const SANDBOX_COMPILER_VERSION = "1";
+export const SANDBOX_COMPILER_VERSION = "2";
 
 /** The build options exactly as the cache key records them. */
 export interface NormalizedCompileOptions {
