@@ -65,6 +65,11 @@ export interface TaskExecutorOptions {
   upstreamMemoryKeys?: string[];
   /** External cancellation, forwarded to every step executor. */
   signal?: AbortSignal;
+  /**
+   * Sandbox package specifiers the session consents to, forwarded to every step
+   * executor. Empty by default — installed is not chosen.
+   */
+  sandboxPackages?: readonly string[];
 }
 
 export class TaskExecutor {
@@ -83,6 +88,7 @@ export class TaskExecutor {
   private maxConcurrentAgents: number;
   private upstreamMemoryKeys: string[];
   private signal?: AbortSignal;
+  private readonly sandboxPackages: readonly string[];
   private _finishStepId: string | undefined;
 
   constructor(opts: TaskExecutorOptions) {
@@ -92,6 +98,7 @@ export class TaskExecutor {
     this.task = opts.task;
     this.context = opts.context;
     this.inputs = opts.inputs ?? {};
+    this.sandboxPackages = opts.sandboxPackages ?? [];
     this.systemPrompt = opts.systemPrompt;
     this.maxSteps = opts.maxSteps ?? DEFAULT_MAX_STEPS;
     this.maxStepIterations =
@@ -177,7 +184,8 @@ export class TaskExecutor {
           maxTokens: this.maxTokens,
           useFinishTask: this.isFinishStep(step),
           upstreamMemoryKeys: this.upstreamMemoryKeys,
-          signal: this.signal
+          signal: this.signal,
+          sandboxPackages: this.sandboxPackages
         });
         return executor.execute();
       });
@@ -426,7 +434,8 @@ export class TaskExecutor {
         maxTokens: this.maxTokens,
         useFinishTask: false,
         upstreamMemoryKeys: this.upstreamMemoryKeys,
-        signal: this.signal
+        signal: this.signal,
+        sandboxPackages: this.sandboxPackages
       });
       return executor.execute();
     });

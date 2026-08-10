@@ -84,6 +84,11 @@ const sandboxModulesOutput = z.object({
       packName: z.string(),
       packVersion: z.string().optional(),
       kind: z.enum(["js", "wasm", "host"])
+      kind: z.enum(["js", "wasm"]),
+      /** The pack's one-line description, already sanitized and capped. */
+      description: z.string().optional(),
+      /** Stamped onto a declaration so a saved graph pins what it ran against. */
+      contentDigest: z.string().optional()
     })
   ),
   diagnostics: z.array(
@@ -96,6 +101,19 @@ const sandboxModulesOutput = z.object({
     })
   )
 });
+
+const sandboxPackDocsOutput = z
+  .object({
+    packName: z.string(),
+    packVersion: z.string().optional(),
+    /** True only when the pack is on the pack-loader allowlist. */
+    trusted: z.boolean(),
+    name: z.string(),
+    description: z.string(),
+    /** The rendered SKILL.md body — served by request, never in a summary. */
+    body: z.string()
+  })
+  .nullable();
 
 // ── DTO mapping ──────────────────────────────────────────────────────────
 
@@ -195,9 +213,42 @@ export const packsRouter = router({
           ...(summary.packVersion === undefined
             ? {}
             : { packVersion: summary.packVersion }),
-          kind: summary.kind
+          kind: summary.kind,
+          ...(summary.description === undefined
+            ? {}
+            : { description: summary.description }),
+          ...(summary.contentDigest === undefined
+            ? {}
+            : { contentDigest: summary.contentDigest })
         })),
         diagnostics: [...getSandboxCatalogDiagnostics()]
+      };
+    }),
+
+  /**
+   * One pack's SKILL.md, by name.
+   *
+   * Its own procedure on purpose: the body is third-party prompt content, so it
+   * travels only when something asks for this pack — never riding along in the
+   * module summaries every client fetches. `trusted` says which disclosure rule
+   * applies, so the UI can label documentation the operator has not vouched
+   * for.
+   */
+  sandboxPackageDocs: protectedProcedure
+    .input(z.object({ packName: z.string().min(1).max(214) }))
+    .output(sandboxPackDocsOutput)
+    .query(({ input }) => {
+      const skill = getSandboxCatalog()?.packSkill?.(input.packName);
+      if (skill === undefined) return null;
+      return {
+        packName: skill.packName,
+        ...(skill.packVersion === undefined
+          ? {}
+          : { packVersion: skill.packVersion }),
+        trusted: skill.trusted,
+        name: skill.name,
+        description: skill.description,
+        body: skill.body
       };
     }),
 

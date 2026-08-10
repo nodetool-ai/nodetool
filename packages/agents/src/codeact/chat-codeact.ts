@@ -33,6 +33,10 @@ import {
   sessionAllowedPackages
 } from "./sandbox-packages.js";
 import {
+  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
+  SandboxPackageDocsTool
+} from "./sandbox-package-docs.js";
+import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
   extractErrorPayload,
@@ -179,8 +183,29 @@ function normalizeToolResult(raw: unknown): unknown {
 export function createChatCodeActSession(
   options: ChatCodeActSessionOptions
 ): ChatCodeActSession {
-  const toolNames = options.tools.map((t) => t.name);
-  const byName = new Map(options.tools.map((t) => [t.name, t]));
+  const sandboxPackages = sessionAllowedPackages(options.sandboxPackages);
+  const sandboxModuleCatalog =
+    options.sandboxModuleCatalog !== undefined
+      ? options.sandboxModuleCatalog
+      : getProcessSandboxModuleCatalog();
+
+  // A session that allows packages can read what they document. The tool runs
+  // in-session rather than through the chat router: it needs no permission gate
+  // and no client round trip, only the allowlist and the catalog this session
+  // already resolves its imports through. A catalog that serves no skill answers
+  // `package_docs_unavailable` — the prompt never advertises a call that cannot
+  // be made.
+  const docsTool =
+    sandboxPackages.length > 0 &&
+    !options.tools.some((t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME)
+      ? new SandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
+      : null;
+  const belt: ToolSignatureSource[] = docsTool
+    ? [...options.tools, docsTool]
+    : options.tools;
+
+  const toolNames = belt.map((t) => t.name);
+  const byName = new Map(belt.map((t) => [t.name, t]));
   const maxCallsPerAction =
     options.maxToolCallsPerAction ?? DEFAULT_MAX_TOOL_CALLS_PER_ACTION;
   const withGraphModel = hasGraphModelTools(toolNames);
@@ -238,11 +263,17 @@ export function createChatCodeActSession(
       }
 
       options.onToolCall?.({ name, args });
-      const raw = await options.executeTool({
-        id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
-        name,
-        args
-      });
+      const raw =
+        docsTool !== null && name === docsTool.name
+          ? await docsTool.process(
+              options.context ?? ({} as ProcessingContext),
+              args
+            )
+          : await options.executeTool({
+              id: `codeact_${toolCallIdPrefix}_${totalCalls}`,
+              name,
+              args
+            });
       // Pixels never fit the observation envelope: base64 in a JSON result
       // burns the context and the model still cannot see it. `view_image`
       // stays a direct provider tool for exactly that reason, so any
@@ -265,7 +296,7 @@ export function createChatCodeActSession(
       "assistant message (no tool call) when the work is done."
   });
 
-  const searchCatalog = options.tools.map((t) => ({
+  const searchCatalog = belt.map((t) => ({
     name: t.name,
     description: t.description ?? ""
   }));
@@ -311,12 +342,17 @@ export function createChatCodeActSession(
   }
   // Tools the caller also offers top level are documented there, not here.
   for (const name of options.directToolNames ?? []) covered.add(name);
-  const catalogTools = options.tools.filter((t) => !covered.has(t.name));
+  const catalogTools = belt.filter((t) => !covered.has(t.name));
 
   // Progressive disclosure, mirroring the step executor's split.
   const residentNames = new Set(
     options.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
   );
+  // The package section names this call, so its signature belongs in the
+  // catalog rather than behind a searchTools() round trip.
+  if (byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME)) {
+    residentNames.add(SANDBOX_PACKAGE_DOCS_TOOL_NAME);
+  }
   let resident: ToolSignatureSource[];
   let deferred: ToolSignatureSource[];
   if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
@@ -334,12 +370,6 @@ export function createChatCodeActSession(
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);
   if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
 
-  const sandboxPackages = sessionAllowedPackages(options.sandboxPackages);
-  const sandboxModuleCatalog =
-    options.sandboxModuleCatalog !== undefined
-      ? options.sandboxModuleCatalog
-      : getProcessSandboxModuleCatalog();
-
   const systemPromptSection = buildCodeActSystemPrompt({
     tools: resident,
     deferredTools: deferred,
@@ -348,7 +378,8 @@ export function createChatCodeActSession(
       ? [...options.directToolNames]
       : undefined,
     extraSections,
-    packageLines: packagePromptLines(sandboxPackages, sandboxModuleCatalog)
+    packageLines: packagePromptLines(sandboxPackages, sandboxModuleCatalog),
+    packageDocsTool: byName.has(SANDBOX_PACKAGE_DOCS_TOOL_NAME)
   });
 
   const preludeParts = [CODEACT_PRELUDE];

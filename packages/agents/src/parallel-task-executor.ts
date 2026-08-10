@@ -74,6 +74,8 @@ export interface ParallelTaskExecutorOptions {
   planTools?: string[];
   /** External cancellation, forwarded to every task and step executor. */
   signal?: AbortSignal;
+  /** Sandbox package specifiers the session consents to, forwarded per task. */
+  sandboxPackages?: readonly string[];
 }
 
 export class ParallelTaskExecutor {
@@ -93,6 +95,7 @@ export class ParallelTaskExecutor {
   private readonly runId?: string;
   private readonly planTools?: string[];
   private readonly signal?: AbortSignal;
+  private readonly sandboxPackages: readonly string[];
   /**
    * IDs of tasks that ran but did not genuinely succeed (budget exhausted,
    * unsatisfiable dependency, or an error result). Tracked separately from
@@ -121,6 +124,7 @@ export class ParallelTaskExecutor {
     this.runId = opts.runId;
     this.planTools = opts.planTools;
     this.signal = opts.signal;
+    this.sandboxPackages = opts.sandboxPackages ?? [];
   }
 
   /**
@@ -333,7 +337,8 @@ export class ParallelTaskExecutor {
       maxConcurrentAgents: this.maxConcurrentAgents,
       parallelExecution: true, // Enable parallel step execution within each task
       upstreamMemoryKeys,
-      signal: this.signal
+      signal: this.signal,
+      sandboxPackages: this.sandboxPackages
     });
 
     let taskResult: unknown = null;

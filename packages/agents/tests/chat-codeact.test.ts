@@ -4,7 +4,15 @@
  * No network, no model.
  */
 import { describe, it, expect, vi } from "vitest";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  SandboxModuleCatalog
+} from "@nodetool-ai/runtime";
+import type {
+  SandboxModuleSummary,
+  SandboxPackSkillDisclosure
+} from "@nodetool-ai/protocol";
+import { PACKAGE_DOCS_CALL } from "../src/codeact/prompt.js";
 import {
   createChatCodeActSession,
   type ChatCodeActToolCall
@@ -590,4 +598,127 @@ describe("createSandboxClock", () => {
     resume();
     expect(clock.suspendedMs()).toBeGreaterThanOrEqual(0);
   });
+});
+
+describe("sandbox package docs in a chat session", () => {
+  const SUMMARY: SandboxModuleSummary = {
+    specifier: "@acme/geo",
+    packName: "@acme/geo",
+    packVersion: "1.2.0",
+    kind: "js",
+    description: "Great-circle distance helpers."
+  };
+
+  function skill(trusted: boolean): SandboxPackSkillDisclosure {
+    return {
+      packName: "@acme/geo",
+      packVersion: "1.2.0",
+      trusted,
+      name: "acme-geo",
+      description: "Great-circle distance helpers.",
+      body: "Call distance(a, b).",
+      sections: {}
+    };
+  }
+
+  function catalog(trusted: boolean): SandboxModuleCatalog {
+    return {
+      summaries: () => [SUMMARY],
+      diagnostics: () => [],
+      resolveForExecution: () => ({ modules: [], statuses: [] }),
+      packSkill: (packName) =>
+        packName === "@acme/geo" ? skill(trusted) : undefined
+    };
+  }
+
+  const docsCall =
+    'return await tools.get_sandbox_package_docs({ specifier: "@acme/geo" });';
+
+  it("installs the tool and advertises the real invocation", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({}),
+      sandboxPackages: ["@acme/geo"],
+      sandboxModuleCatalog: catalog(true)
+    });
+    expect(session.systemPromptSection).toContain(PACKAGE_DOCS_CALL);
+    const obs = await runAction(session, docsCall);
+    expect(obs.error).toBeUndefined();
+    expect(obs.result).toMatchObject({
+      specifier: "@acme/geo",
+      trusted: true,
+      documentation: "Call distance(a, b)."
+    });
+  }, 60_000);
+
+  it("never routes the call through the chat router", async () => {
+    const executeTool = vi.fn(async () => ({}));
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool,
+      sandboxPackages: ["@acme/geo"],
+      sandboxModuleCatalog: catalog(true)
+    });
+    await runAction(session, docsCall);
+    expect(executeTool).not.toHaveBeenCalled();
+  }, 60_000);
+
+  it("wraps an untrusted pack's body as reference data", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({}),
+      sandboxPackages: ["@acme/geo"],
+      sandboxModuleCatalog: catalog(false)
+    });
+    const obs = await runAction(session, docsCall);
+    const result = obs.result as { trusted: boolean; documentation: string };
+    expect(result.trusted).toBe(false);
+    expect(result.documentation).toContain("<untrusted-package-docs>");
+    expect(result.documentation).toContain("Call distance(a, b).");
+  }, 60_000);
+
+  it("refuses a specifier the session never allowed", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({}),
+      sandboxPackages: ["@acme/geo"],
+      sandboxModuleCatalog: catalog(true)
+    });
+    const obs = await runAction(
+      session,
+      'return await tools.get_sandbox_package_docs({ specifier: "@evil/pack" });'
+    );
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("allowlist");
+  }, 60_000);
+
+  it("answers package_docs_unavailable when no catalog serves the pack", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({}),
+      sandboxPackages: ["@acme/geo"],
+      sandboxModuleCatalog: null
+    });
+    expect(session.systemPromptSection).toContain(PACKAGE_DOCS_CALL);
+    const obs = await runAction(session, docsCall);
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain("no readable SKILL.md");
+  }, 60_000);
+
+  it("installs no tool and advertises nothing without an allowlist", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({}),
+      sandboxModuleCatalog: catalog(true)
+    });
+    expect(session.systemPromptSection).not.toContain(PACKAGE_DOCS_CALL);
+    expect(session.systemPromptSection).not.toContain(
+      "get_sandbox_package_docs"
+    );
+    const obs = await runAction(session, docsCall);
+    expect(obs.ok).toBe(false);
+    // The prelude builds a wrapper per belt tool, so an absent tool is not
+    // callable at all — the strongest structural proof it was never installed.
+    expect(obs.error).toContain("not a function");
+  }, 60_000);
 });

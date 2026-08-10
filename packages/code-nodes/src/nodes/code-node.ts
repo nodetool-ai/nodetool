@@ -263,6 +263,10 @@ export class CodeNode extends BaseNode {
     type: "list[dict]",
     default: [],
     title: "Packages",
+    // The editor renders this with the sandbox package picker, which lists the
+    // installed packs and stamps each declaration with the version and digest
+    // it was chosen against.
+    json_schema_extra: { type: "sandbox_packages" },
     description:
       "Sandbox packages this code may import, as specifiers or " +
       '{specifier, resolvedPackVersion, contentDigest} objects — e.g. ["@acme/geo"]. ' +
