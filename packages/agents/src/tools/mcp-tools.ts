@@ -17,21 +17,13 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
-  ACTIVE_MODEL_CONTEXT_KEY,
   listOfflineModelIds,
-  listRegisteredProviderIds,
-  type ActiveModelSelection
+  listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
-import { runApplicationDebug } from "@nodetool-ai/execution/service";
-import type { AppDebugRequest } from "@nodetool-ai/execution/service";
-import { Asset, Job, Workflow } from "@nodetool-ai/models";
-import {
-  runApplicationBuild,
-  type AppBuildRequest
-} from "../app-build/build-service.js";
+import { Workflow } from "@nodetool-ai/models";
 import { Tool } from "./base-tool.js";
 import { findModel, listModels } from "../capabilities/models.js";
 import {
@@ -43,7 +35,6 @@ import {
   generateVideo,
   transcribeAudio
 } from "../capabilities/media.js";
-import { SaveAssetTool, ReadAssetTool } from "./asset-tools.js";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { graph as workflowGraphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
@@ -61,8 +52,23 @@ import {
   UNGATED,
   createCapabilityRun,
   toolFromCapability,
-  type CapabilityRun
+  type CapabilityImpl,
+  type CapabilityRun,
+  type CapabilitySpec
 } from "../capabilities/index.js";
+import {
+  JOB_CAPABILITIES,
+  getJob,
+  getJobLogs,
+  listJobs
+} from "../capabilities/jobs.js";
+import {
+  getAsset,
+  listAssets,
+  readAsset,
+  saveAsset
+} from "../capabilities/assets.js";
+import { APP_CAPABILITIES, buildApp, debugApp } from "../capabilities/apps.js";
 import {
   WORKFLOW_CAPABILITIES,
   createWorkflow,
@@ -79,8 +85,6 @@ import {
 import { NODE_CAPABILITIES } from "../capabilities/nodes.js";
 import {
   RUNTIME_MODEL_CATALOGS,
-  jobRecord,
-  noRegistryError,
   userIdOf,
   workflowRecord,
   type ExampleWorkflowCatalog,
@@ -101,6 +105,8 @@ interface WorkflowCapabilityDeps {
   exportDsl?: WorkflowDslExporter;
   workflowEnvironment?: WorkflowEnvironmentProvider;
   modelCatalogs?: ModelCatalogs;
+  /** `list_assets` with `source: "package"`. */
+  listPackageAssets?: PackageAssetLister;
 }
 
 /** A run over one call's context, carrying the injected dependencies. */
@@ -115,32 +121,9 @@ function workflowCapabilityRun(
     examples: deps.examples,
     exportDsl: deps.exportDsl,
     workflowEnvironment: deps.workflowEnvironment,
-    modelCatalogs: deps.modelCatalogs
+    modelCatalogs: deps.modelCatalogs,
+    listPackageAssets: deps.listPackageAssets
   });
-}
-
-/**
- * An asset row as the tools report it. Deliberately metadata only: the signed
- * download URLs on the HTTP response come from the server's storage adapter,
- * and an agent that wants the bytes calls `read_asset`.
- */
-function assetRecord(asset: Asset): Record<string, unknown> {
-  const ext = asset.fileExtension;
-  return {
-    id: asset.id,
-    user_id: asset.user_id,
-    workflow_id: asset.workflow_id ?? null,
-    parent_id: asset.parent_id ?? null,
-    name: asset.name,
-    content_type: asset.content_type,
-    // The canonical reference an agent can paste into a workflow property or
-    // pass to media tools.
-    uri: ext ? `asset://${asset.id}.${ext}` : `asset://${asset.id}`,
-    size: asset.size ?? null,
-    duration: asset.duration ?? null,
-    created_at: asset.created_at,
-    metadata: asset.metadata ?? null
-  };
 }
 
 /**
@@ -340,202 +323,29 @@ export class ResolveWorkflowEscalationTool extends CapabilityTool {
   }
 }
 
-export class BuildAppTool extends Tool {
-  readonly name = "build_app";
-  readonly description =
-    "Build a mini app from one sentence of intent and return the build " +
-    "report: the pinned spec, what each stage did, the issues repair rounds " +
-    "fixed, the simulated run of every interaction, a pass/fail verdict, and " +
-    "— only behind a passing verdict — the ApplicationBundle. The bundle is " +
-    "offered, not installed: show the user the verdict and install it with " +
-    "POST /api/applications/import-bundle once they agree. The build's own " +
-    "model calls default to the provider and model YOU are running on — omit " +
-    "provider/model to inherit them; pass both only to build with a " +
-    "different model. A build takes " +
-    "minutes; pass poll=true to get a session id back immediately, then read " +
-    "GET /api/debug/sessions/<id> until it settles or cancel it with POST " +
-    "/api/debug/sessions/<id>/cancel.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      prompt: {
-        type: "string" as const,
-        description: "What the app should do, in the user's own terms"
-      },
-      spec: {
-        type: "object" as const,
-        description:
-          "A pinned BuildSpec to build instead of writing one from the prompt"
-      },
-      provider: {
-        type: "string" as const,
-        description:
-          "Provider id for the build's own model calls. Defaults to the " +
-          "provider of the agent making this call."
-      },
-      model: {
-        type: "string" as const,
-        description:
-          "Model id the build authors with. Defaults to the model of the " +
-          "agent making this call."
-      },
-      workflow_ids: {
-        type: "array" as const,
-        items: { type: "string" as const },
-        description:
-          "Existing workflow ids to pin, in the spec's operation order — " +
-          "these are bound instead of planned"
-      },
-      max_repairs: {
-        type: "number" as const,
-        description: "Repair rounds allowed after the first pass (default 3)"
-      },
-      cost_cap_usd: {
-        type: "number" as const,
-        description: "Ceiling on what the build may spend (default 2)"
-      },
-      timeout_ms: {
-        type: "number" as const,
-        description: "Wall clock for the whole build (default 600000)"
-      },
-      poll: {
-        type: "boolean" as const,
-        description:
-          "Return a session id as soon as the build starts instead of " +
-          "waiting for it (default false)"
-      }
-    },
-    required: []
-  };
-
-  constructor(private readonly registry?: NodeRegistry) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    if (!this.registry) return noRegistryError("build an app");
-    const inherited = context.get<ActiveModelSelection | undefined>(
-      ACTIVE_MODEL_CONTEXT_KEY
+/**
+ * @deprecated Ported to the `apps` capability module
+ * (`../capabilities/apps.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class BuildAppTool extends CapabilityTool {
+  constructor(registry?: NodeRegistry) {
+    super(buildApp.spec, buildApp.impl, (context) =>
+      workflowCapabilityRun(context, { registry })
     );
-    const body = { ...params } as AppBuildRequest;
-    if (inherited) {
-      body.provider ??= inherited.provider;
-      body.model ??= inherited.model;
-    }
-    try {
-      return await runApplicationBuild(userIdOf(context), body, this.registry);
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const prompt = params["prompt"];
-    return typeof prompt === "string" && prompt.trim()
-      ? `Building an app: ${prompt}`
-      : "Building an app from the given spec";
   }
 }
 
-export class DebugAppTool extends Tool {
-  readonly name = "debug_app";
-  readonly description =
-    "Debug a mini APP (not a workflow): validate every widget binding, " +
-    "simulate the app the way the web runtime does, execute its operations " +
-    "on the kernel, and return each widget's final state plus a pass/fail " +
-    "verdict with the issues behind it. Pass `application_id` for a saved " +
-    "app or `document` for an unsaved one — exactly one of them. With " +
-    "run=false this is a static wiring check that runs in milliseconds and " +
-    "costs nothing; use it after every wiring change. A full run executes " +
-    "the real workflows and spends real money, so run it to confirm the app " +
-    "works, not to explore. Use `interact` to script the user actions to " +
-    "simulate. A long run takes minutes; pass poll=true to get a session id " +
-    "back immediately, then read GET /api/debug/sessions/<id> until it " +
-    "settles.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      application_id: {
-        type: "string" as const,
-        description:
-          "The ID of a saved application to debug. Give this or `document`, not both."
-      },
-      document: {
-        type: "object" as const,
-        description:
-          "An application document to debug inline, for an app that is not " +
-          "saved (or whose draft differs from the saved row). Give this or " +
-          "`application_id`, not both."
-      },
-      params: {
-        type: "object" as const,
-        description: "Input values keyed by input name, seeded before the run"
-      },
-      interact: {
-        type: "array" as const,
-        items: { type: "object" as const },
-        description:
-          "User actions to simulate, in order. Each step is one of " +
-          "{set: {key, value, operationId?}}, {click: <widget>}, " +
-          "{change: {…}}, {run: <operationId>}, {cancel: <operationId>}, " +
-          "{seedResource: {id, items}}. Widgets are named by component id, " +
-          "by a type only one widget has, or by a unique label. Omit this " +
-          "to click the app's natural run trigger."
-      },
-      run: {
-        type: "boolean" as const,
-        description:
-          "Execute the app's operations (default true). false checks the " +
-          "wiring only — free and instant."
-      },
-      timeout_ms: {
-        type: "number" as const,
-        description: "Wall clock for the whole debug run"
-      },
-      poll: {
-        type: "boolean" as const,
-        description:
-          "Return a session id as soon as the run starts instead of waiting " +
-          "for it (default false)"
-      }
-    },
-    required: []
-  };
-
-  constructor(private readonly registry?: NodeRegistry) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    if (!this.registry) return noRegistryError("debug an app");
-    try {
-      return await runApplicationDebug(
-        userIdOf(context),
-        params as AppDebugRequest,
-        this.registry
-      );
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const target = params["application_id"];
-    const label =
-      typeof target === "string" && target.trim() ? ` ${target}` : " draft";
-    return params["run"] === false
-      ? `Checking app${label} wiring`
-      : `Debugging app${label}`;
+/**
+ * @deprecated Ported to the `apps` capability module
+ * (`../capabilities/apps.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class DebugAppTool extends CapabilityTool {
+  constructor(registry?: NodeRegistry) {
+    super(debugApp.spec, debugApp.impl, (context) =>
+      workflowCapabilityRun(context, { registry })
+    );
   }
 }
 
@@ -1014,115 +824,42 @@ export class ExportWorkflowDigraphTool extends CapabilityTool {
 // Job Tools
 // ============================================================================
 
-export class ListJobsTool extends Tool {
-  readonly name = "list_jobs";
-  readonly description =
-    "List jobs (workflow executions) with optional filtering.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "Optional workflow ID to filter by"
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of jobs to return",
-        default: 100
-      }
-    },
-    required: [] as string[]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const workflowId = params["workflow_id"];
-    const [jobs, next] = await Job.paginate(userIdOf(context), {
-      limit: Number(params["limit"] ?? 100),
-      ...(typeof workflowId === "string" && workflowId ? { workflowId } : {})
-    });
-    return { jobs: jobs.map(jobRecord), next: next || null };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const wfId = params["workflow_id"];
-    return wfId ? `Listing jobs for workflow ${wfId}` : "Listing jobs";
+/**
+ * @deprecated Ported to the `jobs` capability module
+ * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class ListJobsTool extends CapabilityTool {
+  constructor() {
+    super(listJobs.spec, listJobs.impl, (context) =>
+      workflowCapabilityRun(context, {})
+    );
   }
 }
 
-export class GetJobTool extends Tool {
-  readonly name = "get_job";
-  readonly description =
-    "Get details about a specific job including status, timing, and error info.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      job_id: {
-        type: "string" as const,
-        description: "The job ID"
-      }
-    },
-    required: ["job_id"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const jobId = String(params["job_id"]);
-    const job = await Job.find(userIdOf(context), jobId);
-    if (!job) return { error: `Job ${jobId} was not found.` };
-    return { ...jobRecord(job), params: job.params ?? null };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Getting job ${params["job_id"]}`;
+/**
+ * @deprecated Ported to the `jobs` capability module
+ * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class GetJobTool extends CapabilityTool {
+  constructor() {
+    super(getJob.spec, getJob.impl, (context) =>
+      workflowCapabilityRun(context, {})
+    );
   }
 }
 
-export class GetJobLogsTool extends Tool {
-  readonly name = "get_job_logs";
-  readonly description = "Get logs for a job to debug workflow executions.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      job_id: {
-        type: "string" as const,
-        description: "The job ID"
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of log entries to return",
-        default: 200
-      }
-    },
-    required: ["job_id"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const jobId = String(params["job_id"]);
-    const job = await Job.find(userIdOf(context), jobId);
-    if (!job) return { error: `Job ${jobId} was not found.` };
-    // `limit` keeps the most recent entries — the tail is what explains a
-    // failure. Previously it was forwarded to an endpoint that ignored it.
-    const limit = Number(params["limit"] ?? 200);
-    const logs = job.logs ?? [];
-    return {
-      job_id: job.id,
-      status: job.status,
-      error: job.error_message ?? job.error ?? null,
-      total_logs: logs.length,
-      logs: logs.slice(Math.max(0, logs.length - limit))
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Getting logs for job ${params["job_id"]}`;
+/**
+ * @deprecated Ported to the `jobs` capability module
+ * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class GetJobLogsTool extends CapabilityTool {
+  constructor() {
+    super(getJobLogs.spec, getJobLogs.impl, (context) =>
+      workflowCapabilityRun(context, {})
+    );
   }
 }
 
@@ -1149,112 +886,29 @@ export class StartBackgroundJobTool extends CapabilityTool {
 // Asset Tools
 // ============================================================================
 
-export class ListAssetsTool extends Tool {
-  readonly name = "list_assets";
-  readonly description =
-    "List or search assets with flexible filtering options.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      source: {
-        type: "string" as const,
-        enum: ["user", "package"],
-        default: "user"
-      },
-      query: {
-        type: "string" as const,
-        description: "Search query for asset names (min 2 chars)"
-      },
-      content_type: {
-        type: "string" as const,
-        description:
-          "Filter by content type (image, video, audio, text, folder)"
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of assets to return",
-        default: 100
-      }
-    },
-    required: [] as string[]
-  };
-
-  constructor(private readonly listPackageAssets?: PackageAssetLister) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const source = String(params["source"] ?? "user");
-    const query = params["query"] as string | undefined;
-    const contentType = params["content_type"] as string | undefined;
-    const limit = Number(params["limit"] ?? 100);
-    const userId = userIdOf(context);
-
-    // Package assets are files shipped with a node package, not database rows;
-    // they stay on the REST route that serves them.
-    if (source === "package") {
-      // Package assets are files inside the installed node packages, served
-      // by the server from its own install — there is no row to read.
-      return this.listPackageAssets
-        ? { assets: await this.listPackageAssets({ limit }), next: null }
-        : {
-            error:
-              "Package assets are not available in this process — they are " +
-              "read from the installed node packages by the server."
-          };
-    }
-
-    if (query) {
-      const [assets, next] = await Asset.searchAssetsGlobal(userId, query, {
-        ...(contentType ? { contentType } : {}),
-        limit
-      });
-      return { assets: assets.map(assetRecord), next: next || null };
-    }
-
-    const [assets, next] = await Asset.paginate(userId, {
-      ...(contentType ? { contentType } : {}),
-      limit
-    });
-    return { assets: assets.map(assetRecord), next: next || null };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const query = params["query"];
-    return query ? `Searching assets for '${query}'` : "Listing assets";
+/**
+ * @deprecated Ported to the `assets` capability module
+ * (`../capabilities/assets.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class ListAssetsTool extends CapabilityTool {
+  constructor(listPackageAssets?: PackageAssetLister) {
+    super(listAssets.spec, listAssets.impl, (context) =>
+      workflowCapabilityRun(context, { listPackageAssets })
+    );
   }
 }
 
-export class GetAssetTool extends Tool {
-  readonly name = "get_asset";
-  readonly description = "Get detailed information about a specific asset.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      asset_id: {
-        type: "string" as const,
-        description: "The ID of the asset"
-      }
-    },
-    required: ["asset_id"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const assetId = String(params["asset_id"]);
-    const asset = await Asset.find(userIdOf(context), assetId);
-    return asset
-      ? assetRecord(asset)
-      : { error: `Asset ${assetId} was not found.` };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Getting asset ${params["asset_id"]}`;
+/**
+ * @deprecated Ported to the `assets` capability module
+ * (`../capabilities/assets.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class GetAssetTool extends CapabilityTool {
+  constructor() {
+    super(getAsset.spec, getAsset.impl, (context) =>
+      workflowCapabilityRun(context, {})
+    );
   }
 }
 
@@ -1326,26 +980,25 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       registry: options.registry,
       examples: options.examples,
       exportDsl: options.exportDsl,
-      workflowEnvironment: options.workflowEnvironment
+      workflowEnvironment: options.workflowEnvironment,
+      listPackageAssets: options.listPackageAssets
     });
 
+  const asTool = (entry: { spec: CapabilitySpec; impl: CapabilityImpl }): Tool =>
+    toolFromCapability(entry.spec, entry.impl, workflowRun);
+
   const tools: Tool[] = [
-    ...WORKFLOW_CAPABILITIES.map((entry) =>
-      toolFromCapability(entry.spec, entry.impl, workflowRun)
-    ),
-    new BuildAppTool(options.registry),
-    new DebugAppTool(options.registry),
-    new ListJobsTool(),
-    new GetJobTool(),
-    new GetJobLogsTool(),
-    new ListAssetsTool(options.listPackageAssets),
-    new GetAssetTool(),
+    ...WORKFLOW_CAPABILITIES.map(asTool),
+    ...APP_CAPABILITIES.map(asTool),
+    ...JOB_CAPABILITIES.map(asTool),
+    asTool(listAssets),
+    asTool(getAsset),
     // Asset persistence — used by the agent to surface artifacts (text
     // reports, images, audio) into the chat. Media-generation tools save
     // their outputs as assets automatically; use save_asset for anything
     // else worth keeping.
-    new SaveAssetTool(),
-    new ReadAssetTool()
+    asTool(saveAsset),
+    asTool(readAsset)
   ];
 
   // Node discovery reads the registry directly; there is no registry-free

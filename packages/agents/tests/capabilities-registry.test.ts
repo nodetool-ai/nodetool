@@ -72,7 +72,23 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   vector_index: "write",
   vector_markdown_split_and_index: "write",
   vector_recursive_split_and_index: "write",
-  vector_text_search: "read"
+  vector_text_search: "read",
+  // jobs
+  get_job: "read",
+  get_job_logs: "read",
+  list_jobs: "read",
+  // assets
+  asset_list: "read",
+  asset_search: "read",
+  get_asset: "read",
+  list_assets: "read",
+  list_images: "read",
+  read_asset: "read",
+  save_asset: "write",
+  view_image: "read",
+  // apps
+  build_app: "execute",
+  debug_app: "execute"
 };
 
 describe("capability registry walk", () => {

@@ -692,7 +692,7 @@ describe("BuildAppTool", () => {
   it("documents the inheritance in the tool and parameter descriptions", () => {
     const tool = new BuildAppTool();
     expect(tool.description).toContain("default to the provider and model");
-    const props = tool.jsonSchema.properties;
+    const props = tool.inputSchema.properties as Record<string, { description: string }>;
     expect(props.provider.description).toContain("agent making this call");
     expect(props.model.description).toContain("agent making this call");
   });
@@ -735,9 +735,11 @@ describe("DebugAppTool", () => {
 
   it("requires neither target in the schema — the service enforces exactly one", () => {
     const tool = new DebugAppTool();
-    expect(tool.jsonSchema.required).toEqual([]);
-    expect(Object.keys(tool.jsonSchema.properties)).toContain("application_id");
-    expect(Object.keys(tool.jsonSchema.properties)).toContain("document");
+    expect(tool.inputSchema.required).toEqual([]);
+    expect(Object.keys(tool.inputSchema.properties ?? {})).toContain(
+      "application_id"
+    );
+    expect(Object.keys(tool.inputSchema.properties ?? {})).toContain("document");
   });
 
   it("userMessage distinguishes the free wiring check from a run", () => {
