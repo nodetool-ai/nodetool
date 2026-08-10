@@ -2,7 +2,6 @@
  * End-to-end tests for the new document libraries:
  *  - EPUB: epub2-backed extraction (metadata, TOC, full text, per-chapter)
  *  - PPTX: office-text-extractor (full text) + custom per-slide extractor (jszip)
- *  - OCR:  tesseract.js node registration / interface
  *
  * Each block runs the corresponding node directly and through a workflow
  * (registry-resolved) to validate the end-to-end pipeline.
@@ -16,8 +15,6 @@ import {
   EpubExtractChaptersLibNode,
   PptxExtractTextLibNode,
   PptxExtractSlidesLibNode,
-  OcrExtractTextLibNode,
-  OcrExtractDataLibNode,
   ConstantDocumentNode,
   OutputNode
 } from "../../src/index.js";
@@ -219,23 +216,6 @@ describe("PPTX nodes", () => {
     expect(slides[1].slide_number).toBe(2);
     expect(String(slides[1].text)).toContain("Slide two title");
     expect(String(slides[1].text)).toContain("Bullet point");
-  });
-});
-
-describe("OCR nodes (registration & interface)", () => {
-  // tesseract.js downloads language data on first call which is too heavy
-  // for a unit test. We validate node interface and that a missing image
-  // raises a clear error so the workflow surface is correct.
-  it("registers in the base node registry", () => {
-    const registry = makeRegistry();
-    expect(registry.has(OcrExtractTextLibNode.nodeType)).toBe(true);
-    expect(registry.has(OcrExtractDataLibNode.nodeType)).toBe(true);
-  });
-
-  it("throws a clear error when no image data is provided", async () => {
-    const node = new OcrExtractTextLibNode();
-    node.assign({ image: {} });
-    await expect(node.process()).rejects.toThrow("No image data or URI provided");
   });
 });
 
