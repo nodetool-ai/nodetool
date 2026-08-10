@@ -114,6 +114,16 @@ const nextConfig = {
     ];
 
     return [
+      // The `/vs/<slug>` comparison family is retired (2026-08-10). It and
+      // `/alternatives/<slug>` generated from the same `competitors` array, so
+      // the two pages competed for one query set and split its equity;
+      // `/alternatives` won 11 of the 12 head-to-head pairs, taking 4,817
+      // impressions to `/vs`'s 1,117 (docs/SEO_STRATEGY.md § 0.10, finding 3).
+      // The head-to-head copy moved onto the alternatives page, so this is a
+      // consolidation, not a deletion. Wildcard rather than an enumerated list:
+      // every competitor slug resolves under both prefixes, and an unknown slug
+      // 404s at the destination exactly as it did at the source.
+      { source: "/vs/:slug", destination: "/alternatives/:slug", permanent: true },
       ...Object.entries(merges).map(([from, to]) => ({
         source: `/templates/${from}`,
         destination: `/templates/${to}`,

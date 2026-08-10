@@ -49,6 +49,19 @@ export function isAbsolute(p) {
   return typeof p === "string" && p.startsWith("/");
 }
 
+// Real POSIX semantics rather than a thrower: callers use the result as a
+// string (a pack-relative module id), so returning a wrong-but-plausible value
+// would be worse than being correct here.
+export function relative(from, to) {
+  if (typeof from !== "string" || typeof to !== "string") return "";
+  const split = (p) => resolve(p).split("/").filter(Boolean);
+  const a = split(from);
+  const b = split(to);
+  let i = 0;
+  while (i < a.length && i < b.length && a[i] === b[i]) i++;
+  return [...Array(a.length - i).fill(".."), ...b.slice(i)].join("/");
+}
+
 export const posix = {
   sep,
   delimiter,
@@ -57,7 +70,8 @@ export const posix = {
   dirname,
   basename,
   extname,
-  isAbsolute
+  isAbsolute,
+  relative
 };
 
 export default {
@@ -69,5 +83,6 @@ export default {
   basename,
   extname,
   isAbsolute,
+  relative,
   posix
 };

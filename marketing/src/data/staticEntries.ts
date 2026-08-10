@@ -17,11 +17,16 @@ export const staticEntries: PageEntry[] = [
   { route: "/studio", title: "NodeTool Studio", description: "Run open models on your own machine.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/cloud", title: "NodeTool Cloud", description: "Run NodeTool workflows in the cloud.", priority: 0.9, changeFrequency: "weekly", indexable: true },
   { route: "/pricing", title: "Pricing", description: "Free Studio, your own keys, pay providers directly.", priority: 0.8, changeFrequency: "weekly", indexable: true },
+  // The entity page for the "node based ai" / "ai node editor" cluster — the
+  // largest non-branded query set the site has (SEO_STRATEGY.md § 0.10,
+  // finding 2). Priority sits with the segment landings, above the comparison
+  // pages it feeds.
+  { route: "/node-based-ai", title: "Node-based AI", description: "Build AI workflows with nodes, not prompts.", priority: 0.9, changeFrequency: "monthly", indexable: true },
   { route: "/agents", title: "AI Agents", description: "Build planning agents on a visual canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/creatives", title: "For Creatives", description: "A visual canvas for creative AI work.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/developers", title: "For Developers", description: "Wire every major model into one canvas.", priority: 0.8, changeFrequency: "monthly", indexable: true },
   { route: "/marketing", title: "For Marketing", description: "Produce campaign assets with AI workflows.", priority: 0.8, changeFrequency: "monthly", indexable: true },
-  // /vs/* and /alternatives/* come from the competitorEntries engine module.
+  // /alternatives/* comes from the competitorEntries engine module.
   { route: "/templates", title: "AI Workflow Templates", description: "Browse ready-to-run NodeTool workflow templates by category.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/apps", title: "AI Mini Apps", description: "Ready-to-use AI mini apps built with NodeTool's App Builder.", priority: 0.8, changeFrequency: "weekly", indexable: true },
   { route: "/use-cases/product-video", title: "Product Video", description: "Make product videos with AI workflows.", priority: 0.6, changeFrequency: "monthly", indexable: true },
