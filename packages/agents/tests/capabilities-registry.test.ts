@@ -32,7 +32,20 @@ import {
  * name → permission category. Add a line here in the same PR that adds the
  * capability; changing one is a reviewable diff, which is the whole point.
  */
-const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {};
+const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
+  create_workflow: "write",
+  debug_workflow: "execute",
+  export_workflow_digraph: "read",
+  get_example_workflow: "read",
+  get_workflow: "read",
+  list_workflows: "read",
+  // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the map's conservative
+  // default classes it `external`. Carried over as-is by the port.
+  resolve_workflow_escalation: "external",
+  run_workflow: "execute",
+  start_background_job: "execute",
+  validate_workflow: "read"
+};
 
 describe("capability registry walk", () => {
   it("every registered export carries an identity and a category", async () => {
@@ -98,7 +111,10 @@ describe("capabilityModuleIssues", () => {
       spec: { ...good.spec, name: "burn_widgets", category: undefined },
       impl: good.impl
     } as unknown as CapabilityModule["exports"][number];
-    const mod: CapabilityModule = { module: "widgets", exports: [uncategorized] };
+    const mod: CapabilityModule = {
+      module: "widgets",
+      exports: [uncategorized]
+    };
     expect(capabilityModuleIssues("widgets", mod)).toEqual([
       "burn_widgets carries no permission category (got undefined)"
     ]);
@@ -127,7 +143,10 @@ describe("capabilityModuleIssues", () => {
       spec: good.spec,
       impl: undefined
     } as unknown as CapabilityModule["exports"][number];
-    const mod: CapabilityModule = { module: "widgets", exports: [good, broken] };
+    const mod: CapabilityModule = {
+      module: "widgets",
+      exports: [good, broken]
+    };
     expect(capabilityModuleIssues("widgets", mod)).toEqual([
       "widgets exports list_widgets twice",
       "list_widgets carries no implementation"

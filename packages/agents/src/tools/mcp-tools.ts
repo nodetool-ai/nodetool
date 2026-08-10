@@ -22,24 +22,10 @@ import {
   listRegisteredProviderIds,
   type ActiveModelSelection
 } from "@nodetool-ai/runtime";
-import type {
-  GraphValidationIssue,
-  NodeMetadata,
-  NodeRegistry
-} from "@nodetool-ai/node-sdk";
-import {
-  collectModelSelectionIssues,
-  validateGraph
-} from "@nodetool-ai/node-sdk";
+import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import { validateSketchDocument } from "@nodetool-ai/execution/sketch-debug";
-import {
-  runApplicationDebug,
-  runWorkflow,
-  submitEscalationVerdict,
-  type RunWorkflowOutcome,
-  type WorkflowRunEnvironment
-} from "@nodetool-ai/execution/service";
+import { runApplicationDebug } from "@nodetool-ai/execution/service";
 import type { AppDebugRequest } from "@nodetool-ai/execution/service";
 import { Asset, Job, Workflow } from "@nodetool-ai/models";
 import {
@@ -72,91 +58,81 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { z } from "zod";
 import { GraphPlanner } from "../graph-planner.js";
-import { evaluateGraphDsl } from "../graph-dsl.js";
 import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
 import { forwardSubAgentStream } from "../subagent.js";
+import {
+  CapabilityTool,
+  createCapabilityRun,
+  toolFromCapability,
+  type CapabilityGate,
+  type CapabilityRun
+} from "../capabilities/index.js";
+import {
+  WORKFLOW_CAPABILITIES,
+  createWorkflow,
+  debugWorkflow,
+  exportWorkflowDigraph,
+  getExampleWorkflow,
+  getWorkflow,
+  listWorkflows,
+  resolveWorkflowEscalation,
+  runWorkflowCapability,
+  startBackgroundJob,
+  validateWorkflow
+} from "../capabilities/workflows.js";
+import {
+  RUNTIME_MODEL_CATALOGS,
+  jobRecord,
+  noRegistryError,
+  userIdOf,
+  workflowRecord,
+  type ExampleWorkflowCatalog,
+  type ModelCatalogs,
+  type WorkflowEnvironmentProvider
+} from "./mcp-tool-support.js";
 
-/** The user every read and write is scoped to. */
-function userIdOf(context: ProcessingContext): string {
-  return context.userId ?? "1";
-}
+export type {
+  ExampleWorkflowCatalog,
+  ModelCatalogs,
+  WorkflowEnvironmentProvider
+} from "./mcp-tool-support.js";
 
 /**
- * Resolves the environment a workflow run executes in. The server injects its
- * full Python-aware runtime (bridge, executor resolution) lazily; a host that
- * has only a registry gets registry-only resolution, and Python nodes report
- * they cannot execute instead of silently doing nothing.
+ * The gate a directly-constructed tool carries. These classes are gated from
+ * the outside — `gateTools` wraps them per turn, exactly as before — and the
+ * adapter calls the implementation without consulting the run's own gate, so
+ * this exists only to satisfy the run's shape. `auto` keeps the two paths
+ * equivalent if anything ever reaches `invoke` through one of them.
  */
-export type WorkflowEnvironmentProvider = () => Promise<WorkflowRunEnvironment>;
+const UNGATED: CapabilityGate = {
+  mode: "auto",
+  sessionAllow: new Set<string>(),
+  requestApproval: async () => "allow"
+};
 
-/** The run environment a tool was constructed with, or null when it has none. */
-async function resolveRunEnvironment(
-  environment: WorkflowEnvironmentProvider | undefined,
-  registry: NodeRegistry | undefined
-): Promise<WorkflowRunEnvironment | null> {
-  if (environment) return environment();
-  return registry ? { registry } : null;
+/** What a host injects into the workflow capabilities. */
+interface WorkflowCapabilityDeps {
+  registry?: NodeRegistry;
+  examples?: ExampleWorkflowCatalog;
+  exportDsl?: WorkflowDslExporter;
+  workflowEnvironment?: WorkflowEnvironmentProvider;
+  modelCatalogs?: ModelCatalogs;
 }
 
-/**
- * The refusal a tool returns when it needs the node registry and was
- * constructed without one — a registry-free context (the multi-task planner,
- * a unit test) cannot resolve a node type, so a run would fail late and
- * cryptically instead of here.
- */
-function noRegistryError(what: string): Record<string, unknown> {
-  return {
-    error:
-      `Cannot ${what}: no node registry is available in this process. Call ` +
-      "this tool from a server-side context, or use the CLI.",
-    ran: false
-  };
-}
-
-/** A run/debug service outcome as a tool result. */
-function outcomeResult(outcome: RunWorkflowOutcome): unknown {
-  return outcome.kind === "payload"
-    ? outcome.payload
-    : { error: outcome.detail, status: outcome.status };
-}
-
-/** A stored workflow as the tools report it — the same fields the API returns. */
-function workflowRecord(workflow: Workflow): Record<string, unknown> {
-  return {
-    id: workflow.id,
-    access: workflow.access,
-    created_at: workflow.created_at,
-    updated_at: workflow.updated_at,
-    name: workflow.name,
-    tool_name: workflow.tool_name,
-    description: workflow.description,
-    tags: workflow.tags,
-    thumbnail: workflow.thumbnail,
-    thumbnail_url: workflow.thumbnail_url,
-    graph: workflow.graph,
-    settings: workflow.settings,
-    package_name: workflow.package_name,
-    path: workflow.path,
-    run_mode: workflow.run_mode,
-    workspace_id: workflow.workspace_id,
-    html_app: workflow.html_app,
-    app_doc: workflow.app_doc ?? null
-  };
-}
-
-/** A job row as the tools report it — the same fields `/api/jobs` returns. */
-function jobRecord(job: Job): Record<string, unknown> {
-  return {
-    id: job.id,
-    user_id: job.user_id,
-    job_type: "workflow",
-    status: job.status,
-    workflow_id: job.workflow_id,
-    started_at: job.started_at ?? null,
-    finished_at: job.finished_at ?? null,
-    error: job.error_message ?? job.error ?? null,
-    cost: job.cost ?? null
-  };
+/** A run over one call's context, carrying the injected dependencies. */
+function workflowCapabilityRun(
+  context: ProcessingContext,
+  deps: WorkflowCapabilityDeps
+): CapabilityRun {
+  return createCapabilityRun({
+    context,
+    gate: UNGATED,
+    nodeRegistry: deps.registry,
+    examples: deps.examples,
+    exportDsl: deps.exportDsl,
+    workflowEnvironment: deps.workflowEnvironment,
+    modelCatalogs: deps.modelCatalogs
+  });
 }
 
 /**
@@ -183,329 +159,29 @@ function assetRecord(asset: Asset): Record<string, unknown> {
   };
 }
 
-// Column/row spacing for the auto-layout. 280 is NodeTool's default node
-// width, so a 320 column gap leaves ~40px between stages.
-const LAYOUT_COL_GAP = 320;
-const LAYOUT_ROW_GAP = 220;
-
 /**
- * Assign a grid position to every node from the graph's dataflow: columns are
- * topological depth (longest path from a root), rows are order within a
- * column. A left-to-right layered layout — the same shape NodeTool graphs are
- * authored in — without a full layout engine (no `elkjs` in the backend).
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
  */
-function computeAutoLayout(
-  nodeIds: string[],
-  edges: Array<Record<string, unknown>>
-): Map<string, { x: number; y: number }> {
-  const ids = new Set(nodeIds);
-  const outgoing = new Map<string, string[]>();
-  const indegree = new Map<string, number>();
-  for (const id of nodeIds) {
-    outgoing.set(id, []);
-    indegree.set(id, 0);
+export class ListWorkflowsTool extends CapabilityTool {
+  constructor(examples?: ExampleWorkflowCatalog) {
+    super(listWorkflows.spec, listWorkflows.impl, (context) =>
+      workflowCapabilityRun(context, { examples })
+    );
   }
-  for (const edge of edges) {
-    const source = edge["source"] == null ? "" : String(edge["source"]);
-    const target = edge["target"] == null ? "" : String(edge["target"]);
-    if (source === target || !ids.has(source) || !ids.has(target)) continue;
-    outgoing.get(source)!.push(target);
-    indegree.set(target, (indegree.get(target) ?? 0) + 1);
-  }
-
-  // Longest-path layering via Kahn's topological order: each node lands one
-  // column past its deepest upstream. Roots (no incoming edge) sit in column 0.
-  const column = new Map<string, number>();
-  const remaining = new Map(indegree);
-  const queue: string[] = [];
-  for (const id of nodeIds) {
-    column.set(id, 0);
-    if ((indegree.get(id) ?? 0) === 0) queue.push(id);
-  }
-  const ordered: string[] = [];
-  for (let head = 0; head < queue.length; head++) {
-    const id = queue[head];
-    ordered.push(id);
-    for (const target of outgoing.get(id) ?? []) {
-      column.set(target, Math.max(column.get(target)!, column.get(id)! + 1));
-      remaining.set(target, remaining.get(target)! - 1);
-      if (remaining.get(target) === 0) queue.push(target);
-    }
-  }
-  // A cycle leaves nodes that never reach indegree 0; keep them in column 0 and
-  // append in original order so they still get a slot.
-  const placed = new Set(ordered);
-  for (const id of nodeIds) if (!placed.has(id)) ordered.push(id);
-
-  const rowByColumn = new Map<number, number>();
-  const positions = new Map<string, { x: number; y: number }>();
-  for (const id of ordered) {
-    const col = column.get(id) ?? 0;
-    const row = rowByColumn.get(col) ?? 0;
-    rowByColumn.set(col, row + 1);
-    positions.set(id, { x: col * LAYOUT_COL_GAP, y: row * LAYOUT_ROW_GAP });
-  }
-  return positions;
 }
 
 /**
- * Set `ui_properties.position` on every node from {@link computeAutoLayout},
- * overriding any caller-supplied coordinates (create_workflow always
- * auto-lays-out) while preserving other `ui_properties` fields (title, color).
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
  */
-function withAutoLayout(nodes: unknown, edges: unknown): unknown {
-  if (!Array.isArray(nodes)) return nodes;
-  const isRecord = (v: unknown): v is Record<string, unknown> =>
-    !!v && typeof v === "object" && !Array.isArray(v);
-  const edgeList = Array.isArray(edges) ? edges.filter(isRecord) : [];
-  const ids = nodes.filter(isRecord).map((node) => String(node["id"] ?? ""));
-  const positions = computeAutoLayout(ids, edgeList);
-  return nodes.map((node) => {
-    if (!isRecord(node)) return node;
-    const id = String(node["id"] ?? "");
-    const ui = isRecord(node["ui_properties"]) ? node["ui_properties"] : {};
-    return {
-      ...node,
-      ui_properties: {
-        zIndex: 0,
-        width: 280,
-        selectable: true,
-        ...ui,
-        position: positions.get(id) ?? { x: 0, y: 0 }
-      }
-    };
-  });
-}
-
-/**
- * Normalize an agent-authored graph into the *stored* workflow shape.
- *
- * Two representations exist. The kernel (and `GraphPlanner`/`GraphBuilder`)
- * puts a node's property bag under `properties`; the persisted/editor shape
- * puts it flat under `data`, with layout under `ui_properties`. Saving kernel
- * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
- * `properties` on the way to the kernel and leaves an existing `properties`
- * alone — but the editor reads `node.data`, so such a workflow opens with
- * every node blank. The planner emits no layout at all, so the nodes would
- * also pile at the origin.
- *
- * This is the boundary where both conversions happen — `create_workflow` is
- * the only tool that persists a graph, so it maps `properties` → `data` and
- * always auto-lays-out the result.
- */
-function normalizeWorkflowGraph(graph: unknown): unknown {
-  if (!graph || typeof graph !== "object" || Array.isArray(graph)) return graph;
-  const record = graph as Record<string, unknown>;
-  const rawNodes = record["nodes"];
-  const rawEdges = record["edges"];
-
-  const normalizeNode = (value: unknown, fallbackId?: string): unknown => {
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
-      return value;
-    }
-    const node = value as Record<string, unknown>;
-    // `properties` and `parameters` are dropped from the spread so the stored
-    // node carries the bag once, under `data`. `ui_properties` stays in `rest`
-    // and is filled in by `withAutoLayout` below.
-    const { node_type, parameters, properties, ...rest } = node;
-    const data = properties ?? parameters ?? node["data"];
-    return {
-      ...rest,
-      id: node["id"] ?? fallbackId,
-      type: node["type"] ?? node_type,
-      ...(data === undefined ? {} : { data })
-    };
-  };
-
-  const nodes = Array.isArray(rawNodes)
-    ? rawNodes.map((node) => normalizeNode(node))
-    : rawNodes && typeof rawNodes === "object"
-      ? Object.entries(rawNodes as Record<string, unknown>).map(([id, node]) =>
-          normalizeNode(node, id)
-        )
-      : rawNodes;
-
-  const edges = Array.isArray(rawEdges)
-    ? rawEdges.map((value, index) => {
-        if (!value || typeof value !== "object" || Array.isArray(value)) {
-          return value;
-        }
-        const edge = value as Record<string, unknown>;
-        const { source_output, target_input, ...rest } = edge;
-        return {
-          ...rest,
-          id: edge["id"] ?? `edge-${index}`,
-          sourceHandle: edge["sourceHandle"] ?? source_output ?? "output",
-          targetHandle: edge["targetHandle"] ?? target_input
-        };
-      })
-    : rawEdges;
-
-  return { ...record, nodes: withAutoLayout(nodes, edges), edges };
-}
-
-// ============================================================================
-// Workflow Tools
-// ============================================================================
-
-/** Project a workflow record to a light summary — never the full graph. */
-function lightWorkflow(w: unknown): unknown {
-  if (!w || typeof w !== "object") return w;
-  const r = w as Record<string, unknown>;
-  return {
-    id: r["id"],
-    name: r["name"],
-    description: r["description"] ?? null,
-    tags: r["tags"] ?? null,
-    // Example records carry their package — get_example_workflow needs it.
-    ...(typeof r["package_name"] === "string" && r["package_name"]
-      ? { package_name: r["package_name"] }
-      : {})
-  };
-}
-
-/** Strip embedded graphs from a workflow list, keeping pagination intact. */
-function lightWorkflowList(resp: unknown): unknown {
-  if (Array.isArray(resp)) return resp.map(lightWorkflow);
-  if (resp && typeof resp === "object") {
-    const r = resp as Record<string, unknown>;
-    if (Array.isArray(r["workflows"])) {
-      return { ...r, workflows: r["workflows"].map(lightWorkflow) };
-    }
-  }
-  return resp;
-}
-
-/**
- * The shipped example workflows. They are JSON files inside the installed node
- * packages, and finding them is the server's job (`example-workflows.ts` walks
- * the package metadata roots), so a host that has them injects this.
- */
-export interface ExampleWorkflowCatalog {
-  /** Every example, optionally filtered by a free-text query. */
-  list: (opts: { query?: string; limit?: number }) => Promise<unknown[]>;
-  /** One example by package and name, graph included. */
-  get: (packageName: string, exampleName: string) => Promise<unknown | null>;
-}
-
-const NO_EXAMPLES = {
-  error:
-    "Example workflows are not available in this process — the catalog is " +
-    "read from the installed node packages by the server."
-};
-
-export class ListWorkflowsTool extends Tool {
-  readonly name = "list_workflows";
-  readonly description =
-    "List workflows (id, name, description, tags only — no graph). Returns user workflows, example workflows, or both. Use get_workflow for the full graph of a specific workflow.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_type: {
-        type: "string" as const,
-        description: "Type of workflows to list",
-        enum: ["user", "example", "all"],
-        default: "user"
-      },
-      query: {
-        type: "string" as const,
-        description: "Optional search query to filter workflows"
-      },
-      limit: {
-        type: "number" as const,
-        description: "Maximum number of workflows to return",
-        default: 100
-      }
-    },
-    required: [] as string[]
-  };
-
-  constructor(private readonly examples?: ExampleWorkflowCatalog) {
-    super();
-  }
-
-  private async listUser(
-    context: ProcessingContext,
-    limit: number
-  ): Promise<unknown> {
-    const [workflows, next] = await Workflow.paginate(userIdOf(context), {
-      limit
-    });
-    return lightWorkflowList({
-      workflows: workflows.map((w) => workflowRecord(w)),
-      next: next || null
-    });
-  }
-
-  private async listExamples(
-    query: string | undefined,
-    limit: number
-  ): Promise<unknown> {
-    if (!this.examples) return NO_EXAMPLES;
-    return lightWorkflowList({
-      workflows: await this.examples.list({
-        ...(query ? { query } : {}),
-        limit
-      }),
-      next: null
-    });
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const workflowType = String(params["workflow_type"] ?? "user");
-    const query = params["query"] as string | undefined;
-    const limit = Number(params["limit"] ?? 100);
-
-    if (workflowType === "example") {
-      return this.listExamples(query, limit);
-    }
-    if (workflowType === "all") {
-      return {
-        examples: await this.listExamples(query, limit),
-        user: await this.listUser(context, limit)
-      };
-    }
-    return this.listUser(context, limit);
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const wt = params["workflow_type"] ?? "user";
-    const q = params["query"];
-    if (q) return `Listing ${wt} workflows matching '${q}'`;
-    return `Listing ${wt} workflows`;
-  }
-}
-
-export class GetWorkflowTool extends Tool {
-  readonly name = "get_workflow";
-  readonly description =
-    "Get detailed information about a specific workflow including its graph structure.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "The ID of the workflow"
-      }
-    },
-    required: ["workflow_id"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const workflowId = String(params["workflow_id"]);
-    const workflow = await Workflow.find(userIdOf(context), workflowId);
-    if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
-    return workflowRecord(workflow);
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Getting workflow ${params["workflow_id"]}`;
+export class GetWorkflowTool extends CapabilityTool {
+  constructor() {
+    super(getWorkflow.spec, getWorkflow.impl, (context) =>
+      workflowCapabilityRun(context, {})
+    );
   }
 }
 
@@ -615,403 +291,68 @@ export function createWorkflowDocumentTools(
 }
 
 /**
- * The provider and model catalogs to check a graph's selections against.
- * Defaults to the runtime's own — these tools run server-side — and is
- * injectable so a caller with a different catalog, or a test, can supply one.
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
  */
-export interface ModelCatalogs {
-  listProviderIds: () => readonly string[];
-  listModelIds: (
-    provider: string,
-    modelType: string
-  ) => readonly string[] | undefined;
-}
-
-const RUNTIME_MODEL_CATALOGS: ModelCatalogs = {
-  listProviderIds: () => listRegisteredProviderIds(),
-  listModelIds: (provider, modelType) =>
-    listOfflineModelIds(provider, modelType)
-};
-
-/**
- * The provider/model half of graph validation, as tool-result data.
- *
- * Every model id in a graph an agent authored is a guess until something
- * checks it, and the failure is expensive and late: the run starts, the
- * upstream nodes execute, and the model node dies on a provider that was never
- * registered. This is the cheap half of `validateGraph` — a property walk, no
- * registry metadata — so a creation tool can afford it on every call.
- *
- * Returns null when every selection resolves.
- */
-function modelSelectionError(
-  graph: unknown,
-  catalogs: ModelCatalogs
-): Record<string, unknown> | null {
-  if (!graph || typeof graph !== "object") return null;
-  const nodes = (graph as { nodes?: unknown }).nodes;
-  if (!Array.isArray(nodes)) return null;
-  const issues: GraphValidationIssue[] = collectModelSelectionIssues(
-    { nodes: nodes as never[] },
-    catalogs
-  );
-  if (issues.length === 0) return null;
-  return {
-    error:
-      "The graph selects providers or models the runtime cannot honour. Fix " +
-      "them (find_model returns a valid {provider, model_id} pair) and retry.",
-    issues: issues.map((issue) => ({
-      code: issue.code,
-      node_id: issue.nodeId,
-      node_type: issue.nodeType,
-      message: issue.message
-    }))
-  };
-}
-
-export class CreateWorkflowTool extends Tool {
-  readonly name = "create_workflow";
-  readonly description =
-    "Create a new workflow with a name, graph structure, and optional " +
-    "metadata. Model properties are checked before the workflow is created: " +
-    "an unregistered provider or a model id the provider does not offer is " +
-    "returned as an error instead of being saved.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      name: { type: "string" as const, description: "The workflow name" },
-      graph: {
-        type: "object" as const,
-        description:
-          "Workflow graph with nodes and edges. Nodes may be an array of {id, type, properties} or an object keyed by node id with {node_type, parameters}. Edges use source, target, targetHandle/target_input, and optional sourceHandle/source_output (defaults to output)."
-      },
-      description: {
-        type: "string" as const,
-        description: "Optional workflow description"
-      },
-      tags: {
-        type: "array" as const,
-        items: { type: "string" as const },
-        description: "Optional workflow tags"
-      },
-      access: {
-        type: "string" as const,
-        enum: ["private", "public"],
-        default: "private"
-      }
-    },
-    required: ["name", "graph"]
-  };
-
-  constructor(private readonly catalogs: ModelCatalogs = RUNTIME_MODEL_CATALOGS) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const graph = normalizeWorkflowGraph(params["graph"]);
-    const badModels = modelSelectionError(graph, this.catalogs);
-    if (badModels) return badModels;
-
-    const created = (await Workflow.create({
-      user_id: userIdOf(context),
-      name: String(params["name"]),
-      description:
-        typeof params["description"] === "string" ? params["description"] : "",
-      tags: Array.isArray(params["tags"]) ? (params["tags"] as string[]) : [],
-      access: params["access"] === "public" ? "public" : "private",
-      graph: graph as Workflow["graph"],
-      run_mode: "workflow"
-    })) as Workflow;
-    return workflowRecord(created);
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Creating workflow '${params["name"]}'`;
-  }
-}
-
-/**
- * Escalated run payloads name the follow-up tool, so the model driving the
- * loop knows how to answer without reading endpoint docs.
- */
-function annotateEscalatedRun(run: unknown): unknown {
-  if (!run || typeof run !== "object") return run;
-  const record = run as Record<string, unknown>;
-  if (record["status"] !== "escalated") return run;
-  return {
-    ...record,
-    next_tool:
-      "A node invocation failed and the run is parked awaiting your verdict. " +
-      "Call resolve_workflow_escalation with this session_id and " +
-      "escalation_id and one of the escalation's allowedActions."
-  };
-}
-
-export class RunWorkflowTool extends Tool {
-  readonly name = "run_workflow";
-  readonly description =
-    "Execute a workflow with given parameters and return results. With " +
-    "interactive=true a failing node invocation pauses the run and returns " +
-    "an escalation (status \"escalated\") for you to answer via " +
-    "resolve_workflow_escalation — retry, substitute, skip, or fail — " +
-    "instead of the whole run failing outright.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "The ID of the workflow to run"
-      },
-      params: {
-        type: "object" as const,
-        description: "Dictionary of input parameters for the workflow"
-      },
-      interactive: {
-        type: "boolean" as const,
-        description:
-          "Bubble node failures up as escalations you answer, instead of " +
-          "failing the run (default false)"
-      }
-    },
-    required: ["workflow_id"]
-  };
-
-  constructor(
-    private readonly registry?: NodeRegistry,
-    private readonly environment?: WorkflowEnvironmentProvider
-  ) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const env = await resolveRunEnvironment(this.environment, this.registry);
-    if (!env) return noRegistryError("run a workflow");
-    const outcome = await runWorkflow({
-      workflowId: String(params["workflow_id"]),
-      userId: userIdOf(context),
-      environment: env,
-      params: (params["params"] as Record<string, unknown>) ?? {},
-      interactive: params["interactive"] === true
-    });
-    return annotateEscalatedRun(outcomeResult(outcome));
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Running workflow ${params["workflow_id"]}`;
-  }
-}
-
-/** Distill a workflow API record down to a graph overview for a debug report. */
-function summarizeWorkflowGraph(workflow: unknown): unknown {
-  if (!workflow || typeof workflow !== "object") return workflow;
-  const wf = workflow as Record<string, unknown>;
-  const graph = (wf.graph ?? wf) as Record<string, unknown>;
-  const nodes = Array.isArray(graph.nodes)
-    ? (graph.nodes as Array<Record<string, unknown>>)
-    : [];
-  const edges = Array.isArray(graph.edges)
-    ? (graph.edges as Array<Record<string, unknown>>)
-    : [];
-  return {
-    id: wf.id,
-    name: wf.name,
-    node_count: nodes.length,
-    edge_count: edges.length,
-    node_types: [...new Set(nodes.map((n) => String(n.type ?? "unknown")))],
-    nodes: nodes.map((n) => ({ id: n.id, type: n.type })),
-    edges
-  };
-}
-
-export class DebugWorkflowTool extends Tool {
-  readonly name = "debug_workflow";
-  readonly description =
-    "Run a workflow end-to-end and return a consolidated debug report: a " +
-    "pass/fail verdict with the issues behind it, per-node status and errors, " +
-    "logs, LLM calls, outputs, job record, and the workflow graph overview. " +
-    "Use this to troubleshoot a failing or misbehaving workflow and iterate. " +
-    "With interactive=true a failing node invocation pauses the run and " +
-    "returns an escalation (status \"escalated\") for you to answer via " +
-    "resolve_workflow_escalation before the report is produced.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "The ID of the workflow to run and debug"
-      },
-      params: {
-        type: "object" as const,
-        description: "Input parameters keyed by input-node name"
-      },
-      interactive: {
-        type: "boolean" as const,
-        description:
-          "Bubble node failures up as escalations you answer mid-run, " +
-          "instead of only reading them post-mortem (default false)"
-      },
-      include_graph: {
-        type: "boolean" as const,
-        description:
-          "Include the workflow graph overview in the report (default true)"
-      },
-      log_limit: {
-        type: "number" as const,
-        description: "Maximum job log entries to include (default 200)"
-      }
-    },
-    required: ["workflow_id"]
-  };
-
-  constructor(
-    private readonly registry?: NodeRegistry,
-    private readonly environment?: WorkflowEnvironmentProvider
-  ) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const env = await resolveRunEnvironment(this.environment, this.registry);
-    if (!env) return noRegistryError("debug a workflow");
-    const workflowId = String(params["workflow_id"]);
-    const userId = userIdOf(context);
-    const includeGraph = params["include_graph"] !== false;
-
-    const outcome = await runWorkflow({
-      workflowId,
-      userId,
-      debug: true,
-      environment: env,
-      params: (params["params"] as Record<string, unknown>) ?? {},
-      interactive: params["interactive"] === true
-    });
-    const run = outcomeResult(outcome);
-
-    // An escalated run has produced no report yet — the job is parked on the
-    // failing node. Hand the escalation back for a verdict; the final report
-    // arrives from resolve_workflow_escalation once the run settles.
-    if (
-      run &&
-      typeof run === "object" &&
-      (run as Record<string, unknown>)["status"] === "escalated"
-    ) {
-      return { workflow_id: workflowId, run: annotateEscalatedRun(run) };
-    }
-
-    const report: Record<string, unknown> = { workflow_id: workflowId, run };
-
-    const jobId = (run as Record<string, unknown>)?.["job_id"];
-    if (typeof jobId === "string") {
-      const job = await Job.find(userId, jobId);
-      if (job) {
-        const logLimit = Number(params["log_limit"] ?? 200);
-        const logs = job.logs ?? [];
-        report["job"] = {
-          ...jobRecord(job),
-          logs: logs.slice(Math.max(0, logs.length - logLimit))
-        };
-      }
-    }
-    if (includeGraph) {
-      const workflow = await Workflow.find(userId, workflowId);
-      if (workflow) {
-        report["workflow"] = summarizeWorkflowGraph(workflowRecord(workflow));
-      }
-    }
-    return report;
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Debugging workflow ${params["workflow_id"]}`;
-  }
-}
-
-export class ResolveWorkflowEscalationTool extends Tool {
-  readonly name = "resolve_workflow_escalation";
-  readonly description =
-    "Answer an escalation raised by an interactive run_workflow/debug_workflow " +
-    "run. The run is parked on the failing node until you decide: retry the " +
-    "invocation, substitute repaired outputs (only when the escalation carries " +
-    "a candidateOutput), skip the invocation, end the stream (streaming nodes), " +
-    "or fail the node. Only the escalation's allowedActions are accepted; the " +
-    "kernel enforces the same set. Returns the next escalation (answer it the " +
-    "same way) or the run's final report.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      session_id: {
-        type: "string" as const,
-        description: "The debug session id from the escalated response"
-      },
-      escalation_id: {
-        type: "string" as const,
-        description: "The escalation id being answered"
-      },
-      action: {
-        type: "string" as const,
-        enum: ["retry", "substitute", "skip", "end_stream", "fail"],
-        description: "The verdict — must be one of the escalation's allowedActions"
-      },
-      outputs: {
-        type: "object" as const,
-        description:
-          "For substitute: repaired output values keyed by the node's " +
-          "declared output slots"
-      },
-      reason: {
-        type: "string" as const,
-        description:
-          "For fail: a one-sentence reason surfaced as the run's error summary"
-      },
-      apply_to: {
-        type: "string" as const,
-        enum: ["invocation", "signature"],
-        description:
-          "For skip/fail: \"signature\" also resolves later failures with the " +
-          "same failureSignature without asking again (default \"invocation\")"
-      }
-    },
-    required: ["session_id", "escalation_id", "action"]
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const action = String(params["action"]);
-    const verdict: Record<string, unknown> = { action };
-    if (action === "substitute" && params["outputs"] !== undefined) {
-      verdict["outputs"] = params["outputs"];
-    }
-    if (action === "fail" && typeof params["reason"] === "string") {
-      verdict["reason"] = params["reason"];
-    }
-    if (
-      (action === "skip" || action === "fail") &&
-      typeof params["apply_to"] === "string"
-    ) {
-      verdict["applyTo"] = params["apply_to"];
-    }
-    const outcome = await submitEscalationVerdict(
-      String(params["session_id"]),
-      userIdOf(context),
-      String(params["escalation_id"]),
-      verdict as Parameters<typeof submitEscalationVerdict>[3]
+export class CreateWorkflowTool extends CapabilityTool {
+  constructor(catalogs: ModelCatalogs = RUNTIME_MODEL_CATALOGS) {
+    super(createWorkflow.spec, createWorkflow.impl, (context) =>
+      workflowCapabilityRun(context, { modelCatalogs: catalogs })
     );
-    return annotateEscalatedRun(outcomeResult(outcome));
   }
+}
 
-  userMessage(params: Record<string, unknown>): string {
-    return `Resolving workflow escalation with "${params["action"]}"`;
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class RunWorkflowTool extends CapabilityTool {
+  constructor(
+    registry?: NodeRegistry,
+    environment?: WorkflowEnvironmentProvider
+  ) {
+    super(runWorkflowCapability.spec, runWorkflowCapability.impl, (context) =>
+      workflowCapabilityRun(context, {
+        registry,
+        workflowEnvironment: environment
+      })
+    );
+  }
+}
+
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class DebugWorkflowTool extends CapabilityTool {
+  constructor(
+    registry?: NodeRegistry,
+    environment?: WorkflowEnvironmentProvider
+  ) {
+    super(debugWorkflow.spec, debugWorkflow.impl, (context) =>
+      workflowCapabilityRun(context, {
+        registry,
+        workflowEnvironment: environment
+      })
+    );
+  }
+}
+
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class ResolveWorkflowEscalationTool extends CapabilityTool {
+  constructor() {
+    super(
+      resolveWorkflowEscalation.spec,
+      resolveWorkflowEscalation.impl,
+      (context) => workflowCapabilityRun(context, {})
+    );
   }
 }
 
@@ -1214,143 +555,27 @@ export class DebugAppTool extends Tool {
   }
 }
 
-export class ValidateWorkflowTool extends Tool {
-  readonly name = "validate_workflow";
-  readonly description =
-    "Statically validate a workflow against the node registry WITHOUT running " +
-    "it: unknown node types, missing required properties, unselected models, " +
-    "model properties naming an unregistered provider or a model id that " +
-    "provider does not offer, and dangling or mis-typed edges. Pass `code` to " +
-    "check the same graph program you would hand to submit_graph, an inline " +
-    "`graph` to check a graph you are building, or `workflow_id` to validate " +
-    "a saved one. Run this before saving or running to catch breakage in " +
-    "milliseconds.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description:
-          "The ID of a saved workflow to validate (fetched from the API)"
-      },
-      graph: {
-        type: "object" as const,
-        description:
-          "Inline graph to validate ({ nodes, edges }). Takes precedence over workflow_id."
-      },
-      code: {
-        type: "string" as const,
-        description:
-          "A graph program in the same DSL submit_graph takes — node(type, " +
-          "properties) and ref.output(slot?), ending with `return graph();`. " +
-          "Evaluated in the sandbox, then validated. Takes precedence over `graph`."
-      }
-    }
-  };
-
-  // When a registry is available the tool validates locally; without one it
-  // falls back to fetching the workflow so the tool still returns something
-  // useful in registry-free contexts (e.g. the multi-task planner).
-  /**
-   * The provider and model catalogs are supplied here rather than living on
-   * NodeRegistry: the registry also runs in the browser, which has neither to
-   * reach. Without them `validateGraph` skips the `unknown_provider` and
-   * `unknown_model` checks entirely, so a model naming a provider the runtime
-   * cannot construct — or an id that provider does not offer — passed silently
-   * on the agent surface, which is exactly where hallucinated ids come from.
-   * This tool always runs server-side, so the runtime's own catalogs are the
-   * right default.
-   */
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class ValidateWorkflowTool extends CapabilityTool {
   constructor(
-    private readonly registry?: NodeRegistry,
-    private readonly listProviderIds: () => readonly string[] = () =>
+    registry?: NodeRegistry,
+    listProviderIds: () => readonly string[] = () =>
       listRegisteredProviderIds(),
-    private readonly listModelIds: (
+    listModelIds: (
       provider: string,
       modelType: string
     ) => readonly string[] | undefined = listOfflineModelIds
   ) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    let graph = params["graph"] as
-      | { nodes?: unknown[]; edges?: unknown[] }
-      | undefined;
-    const workflowId = params["workflow_id"] as string | undefined;
-    const code = typeof params["code"] === "string" ? params["code"] : "";
-
-    // A graph program is what the planner actually authors, so let it be
-    // checked in the form it will be submitted in rather than hand-translated
-    // to JSON first. Same evaluation submit_graph uses.
-    if (code.trim()) {
-      const evaluated = await evaluateGraphDsl(code);
-      if (!evaluated.graph) {
-        return {
-          status: "code_error",
-          error: evaluated.error ?? "Program produced no graph.",
-          ...(evaluated.logs?.length ? { logs: evaluated.logs } : {})
-        };
-      }
-      graph = evaluated.graph;
-    }
-
-    if (!graph && workflowId) {
-      const workflow = await Workflow.find(userIdOf(context), workflowId);
-      if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
-      graph = workflow.getGraph() as unknown as typeof graph;
-    }
-
-    if (!graph || !Array.isArray(graph.nodes)) {
-      return {
-        error:
-          "No graph to validate — pass a graph program as `code`, an inline `graph` ({nodes, edges}), or a valid `workflow_id`."
-      };
-    }
-
-    // `edges` reaches `.map()` inside validateGraph — a non-array would throw a
-    // raw TypeError past the tool's structured error shape.
-    if (graph.edges !== undefined && !Array.isArray(graph.edges)) {
-      return {
-        error:
-          "`graph.edges` must be an array of edges ({source, sourceHandle, target, targetHandle})."
-      };
-    }
-
-    if (!this.registry) {
-      // Returning the graph with a note read as a pass to every caller that
-      // checks for issues rather than for prose. A validator with no registry
-      // cannot validate; say so as an error.
-      return {
-        error:
-          "Cannot validate: no node registry is available in this process. Run `nodetool validate` from the CLI, or call this tool from a server-side context with a registry.",
-        validated: false
-      };
-    }
-
-    const registry = this.registry;
-    return validateGraph(
-      { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
-      {
-        has: (type) => registry.has(type),
-        getMetadata: (type) => registry.getMetadata(type),
-        validateNode: (descriptor, connectedHandles) =>
-          registry.validateNode(descriptor, connectedHandles),
-        listProviderIds: () => this.listProviderIds(),
-        listModelIds: (provider, modelType) =>
-          this.listModelIds(provider, modelType)
-      }
+    super(validateWorkflow.spec, validateWorkflow.impl, (context) =>
+      workflowCapabilityRun(context, {
+        registry,
+        modelCatalogs: { listProviderIds, listModelIds }
+      })
     );
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    if (params["code"]) return "Validating graph program";
-    return params["workflow_id"]
-      ? `Validating workflow ${params["workflow_id"]}`
-      : "Validating workflow graph";
   }
 }
 
@@ -1434,11 +659,13 @@ export class ValidateTimelineTool extends Tool {
       },
       width: {
         type: "number" as const,
-        description: "Render width of the inline document. Ignored for timeline_id."
+        description:
+          "Render width of the inline document. Ignored for timeline_id."
       },
       height: {
         type: "number" as const,
-        description: "Render height of the inline document. Ignored for timeline_id."
+        description:
+          "Render height of the inline document. Ignored for timeline_id."
       }
     }
   };
@@ -1773,105 +1000,29 @@ export class PlanWorkflowGraphTool extends Tool {
   }
 }
 
-export class GetExampleWorkflowTool extends Tool {
-  readonly name = "get_example_workflow";
-  readonly description =
-    "Load a specific example workflow from a package by name.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      package_name: {
-        type: "string" as const,
-        description: "The name of the package containing the example"
-      },
-      example_name: {
-        type: "string" as const,
-        description: "The name of the example workflow to load"
-      }
-    },
-    required: ["package_name", "example_name"]
-  };
-
-  constructor(private readonly examples?: ExampleWorkflowCatalog) {
-    super();
-  }
-
-  async process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    if (!this.examples) return NO_EXAMPLES;
-    const packageName = String(params["package_name"]);
-    const exampleName = String(params["example_name"]);
-    const example = await this.examples.get(packageName, exampleName);
-    return (
-      example ?? {
-        error: `No example named "${exampleName}" in package "${packageName}".`
-      }
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class GetExampleWorkflowTool extends CapabilityTool {
+  constructor(examples?: ExampleWorkflowCatalog) {
+    super(getExampleWorkflow.spec, getExampleWorkflow.impl, (context) =>
+      workflowCapabilityRun(context, { examples })
     );
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Loading example ${params["package_name"]}/${params["example_name"]}`;
   }
 }
 
-export class ExportWorkflowDigraphTool extends Tool {
-  readonly name = "export_workflow_digraph";
-  readonly description =
-    "Export a workflow as a Graphviz Digraph (DOT format) for visualization.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "The ID of the workflow to export"
-      },
-      descriptive_names: {
-        type: "boolean" as const,
-        description: "Use descriptive node names instead of UUIDs",
-        default: true
-      }
-    },
-    required: ["workflow_id"]
-  };
-
-  // `workflowToDsl` lives in `@nodetool-ai/dsl`, which sits above this package
-  // in the dependency order, so the exporter is injected by whichever host has
-  // it (the server, the CLI) rather than imported.
-  constructor(private readonly exportDsl?: WorkflowDslExporter) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    if (!this.exportDsl) {
-      return {
-        error:
-          "Cannot export: no DSL exporter is available in this process. Run " +
-          "`nodetool workflows export-dsl` from the CLI instead."
-      };
-    }
-    const workflowId = String(params["workflow_id"]);
-    const workflow = await Workflow.find(userIdOf(context), workflowId);
-    if (!workflow) return { error: `Workflow ${workflowId} was not found.` };
-    if (!workflow.graph) return { error: "Workflow has no graph to export." };
-    try {
-      return {
-        workflow_id: workflowId,
-        source: this.exportDsl(workflow.graph, { workflowName: workflow.name })
-      };
-    } catch (error) {
-      return {
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Exporting workflow ${params["workflow_id"]} as digraph`;
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class ExportWorkflowDigraphTool extends CapabilityTool {
+  constructor(exportDsl?: WorkflowDslExporter) {
+    super(exportWorkflowDigraph.spec, exportWorkflowDigraph.impl, (context) =>
+      workflowCapabilityRun(context, { exportDsl })
+    );
   }
 }
 
@@ -1991,50 +1142,22 @@ export class GetJobLogsTool extends Tool {
   }
 }
 
-export class StartBackgroundJobTool extends Tool {
-  readonly name = "start_background_job";
-  readonly description =
-    "Start a workflow running in the background and return a job ID for tracking.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      workflow_id: {
-        type: "string" as const,
-        description: "The workflow ID to run"
-      },
-      params: {
-        type: "object" as const,
-        description: "Optional input parameters"
-      }
-    },
-    required: ["workflow_id"]
-  };
-
+/**
+ * @deprecated Ported to the `workflows` capability module
+ * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
+ * constructors keep working; there is one implementation behind both.
+ */
+export class StartBackgroundJobTool extends CapabilityTool {
   constructor(
-    private readonly registry?: NodeRegistry,
-    private readonly environment?: WorkflowEnvironmentProvider
+    registry?: NodeRegistry,
+    environment?: WorkflowEnvironmentProvider
   ) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const env = await resolveRunEnvironment(this.environment, this.registry);
-    if (!env) return noRegistryError("start a background job");
-    const outcome = await runWorkflow({
-      workflowId: String(params["workflow_id"]),
-      userId: userIdOf(context),
-      environment: env,
-      params: (params["params"] as Record<string, unknown>) ?? {},
-      background: true
-    });
-    return outcomeResult(outcome);
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    return `Starting background job for workflow ${params["workflow_id"]}`;
+    super(startBackgroundJob.spec, startBackgroundJob.impl, (context) =>
+      workflowCapabilityRun(context, {
+        registry,
+        workflowEnvironment: environment
+      })
+    );
   }
 }
 
@@ -2210,22 +1333,27 @@ export interface GetAllMcpToolsOptions {
 }
 
 export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
+  // The workflow namespace is a capability module now: one spec + impl per
+  // capability, wrapped as a `Tool` so every consumer — runner, MCP, CLI,
+  // evals — keeps the surface it had. The dependencies that used to be
+  // constructor arguments ride on the run instead.
+  const workflowRun = (context: ProcessingContext): CapabilityRun =>
+    workflowCapabilityRun(context, {
+      registry: options.registry,
+      examples: options.examples,
+      exportDsl: options.exportDsl,
+      workflowEnvironment: options.workflowEnvironment
+    });
+
   const tools: Tool[] = [
-    new ListWorkflowsTool(options.examples),
-    new GetWorkflowTool(),
-    new CreateWorkflowTool(),
-    new RunWorkflowTool(options.registry, options.workflowEnvironment),
-    new DebugWorkflowTool(options.registry, options.workflowEnvironment),
-    new ResolveWorkflowEscalationTool(),
+    ...WORKFLOW_CAPABILITIES.map((entry) =>
+      toolFromCapability(entry.spec, entry.impl, workflowRun)
+    ),
     new BuildAppTool(options.registry),
     new DebugAppTool(options.registry),
-    new ValidateWorkflowTool(options.registry),
-    new GetExampleWorkflowTool(options.examples),
-    new ExportWorkflowDigraphTool(options.exportDsl),
     new ListJobsTool(),
     new GetJobTool(),
     new GetJobLogsTool(),
-    new StartBackgroundJobTool(options.registry, options.workflowEnvironment),
     new ListAssetsTool(options.listPackageAssets),
     new GetAssetTool(),
     // Asset persistence — used by the agent to surface artifacts (text

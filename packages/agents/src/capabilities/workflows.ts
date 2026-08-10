@@ -38,7 +38,11 @@ import {
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
-import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {
@@ -406,7 +410,8 @@ const RESOLVE_ESCALATION_SCHEMA: JsonSchema = {
     action: {
       type: "string",
       enum: ["retry", "substitute", "skip", "end_stream", "fail"],
-      description: "The verdict — must be one of the escalation's allowedActions"
+      description:
+        "The verdict — must be one of the escalation's allowedActions"
     },
     outputs: {
       type: "object",
@@ -424,7 +429,7 @@ const RESOLVE_ESCALATION_SCHEMA: JsonSchema = {
       enum: ["invocation", "signature"],
       description:
         'For skip/fail: "signature" also resolves later failures with the ' +
-        "same failureSignature without asking again (default \"invocation\")"
+        'same failureSignature without asking again (default "invocation")'
     }
   },
   required: ["session_id", "escalation_id", "action"]
@@ -450,9 +455,8 @@ const resolveWorkflowEscalation: CapabilityExport = {
       `Resolving workflow escalation with "${params["action"]}"`
   },
   impl: async (run, params) => {
-    const { submitEscalationVerdict } = await import(
-      "@nodetool-ai/execution/service"
-    );
+    const { submitEscalationVerdict } =
+      await import("@nodetool-ai/execution/service");
     const action = String(params["action"]);
     const verdict: Record<string, unknown> = { action };
     if (action === "substitute" && params["outputs"] !== undefined) {

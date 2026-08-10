@@ -179,7 +179,9 @@ export async function capabilityModuleDrift(): Promise<readonly string[]> {
     for (const entry of mod.exports) {
       const owner = owners.get(entry.spec.name);
       if (owner !== undefined) {
-        drift.push(`${entry.spec.name} is exported by both ${owner} and ${name}`);
+        drift.push(
+          `${entry.spec.name} is exported by both ${owner} and ${name}`
+        );
       } else {
         owners.set(entry.spec.name, name);
       }
