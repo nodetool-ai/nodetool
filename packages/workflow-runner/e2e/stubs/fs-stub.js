@@ -14,10 +14,7 @@ export const readFileSync = notInBrowser("readFileSync");
 export const statSync = notInBrowser("statSync");
 export const lstatSync = notInBrowser("lstatSync");
 export const realpathSync = notInBrowser("realpathSync");
-<<<<<<< HEAD
-=======
 export const accessSync = notInBrowser("accessSync");
->>>>>>> origin/main
 export const writeFileSync = notInBrowser("writeFileSync");
 export const openSync = notInBrowser("openSync");
 export const writeSync = notInBrowser("writeSync");
@@ -41,10 +38,7 @@ export default {
   statSync,
   lstatSync,
   realpathSync,
-<<<<<<< HEAD
-=======
   accessSync,
->>>>>>> origin/main
   writeFileSync,
   openSync,
   writeSync,
