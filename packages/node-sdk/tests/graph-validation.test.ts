@@ -8,6 +8,7 @@ import {
 import type { NodeMetadata } from "../src/metadata.js";
 import type { NodePropertyValidationIssue } from "../src/validation.js";
 import {
+  refuseSandboxDelivery,
   setProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
@@ -1262,6 +1263,8 @@ describe("Code node sandbox packages", () => {
   const catalog: SandboxModuleCatalog = {
     summaries: () => [],
     diagnostics: () => [],
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(refuseSandboxDelivery(moduleId)),
     resolveForExecution: (declarations) => ({
       modules: [],
       statuses: declarations
@@ -1294,29 +1297,25 @@ describe("Code node sandbox packages", () => {
     const report = validateGraph(
       graph({ code, packages: [{ specifier: "@acme/geo" }] }),
       registry,
-      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: catalog }
     );
-    expect(report.issues.map((i) => i.code)).toEqual([
-      "code_package_browser_parity"
-    ]);
+    expect(report.issues).toEqual([]);
   });
 
   it("accepts a bare specifier string as a declaration", () => {
     const report = validateGraph(
       graph({ code, packages: ["@acme/geo"] }),
       registry,
-      { sandboxModuleCatalog: null, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: null }
     );
-    expect(report.issues.map((i) => i.code)).toEqual([
-      "code_package_browser_parity"
-    ]);
+    expect(report.issues).toEqual([]);
   });
 
   it("reports an import the node does not declare", () => {
     const report = validateGraph(
       graph({ code, packages: [] }),
       registry,
-      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: catalog }
     );
     const issue = report.issues.find((i) => i.code === "code_module");
     expect(issue?.nodeId).toBe("c");
@@ -1330,7 +1329,7 @@ describe("Code node sandbox packages", () => {
         packages: ["@nope/pack"]
       }),
       registry,
-      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: catalog }
     );
     const issue = report.issues.find(
       (i) => i.code === "code_package_unavailable"
@@ -1343,7 +1342,7 @@ describe("Code node sandbox packages", () => {
     const report = validateGraph(
       graph({ code, packages: [{ nope: 1 }] }),
       registry,
-      { sandboxModuleCatalog: null, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: null }
     );
     const issue = report.issues.find(
       (i) => i.code === "code_module" && i.message.includes("not a sandbox module")
@@ -1360,7 +1359,7 @@ describe("Code node sandbox packages", () => {
           packages: ["@nope/pack"]
         }),
         registry,
-        { sandboxModulesEnabled: true }
+        {}
       );
       expect(
         report.issues.some((i) => i.code === "code_package_unavailable")
@@ -1370,31 +1369,19 @@ describe("Code node sandbox packages", () => {
     }
   });
 
-  it("warns about the browser gap on any node declaring packages", () => {
+  it("says nothing about the browser on a node declaring packages", () => {
+    // The browser runner fetches and runs declared modules as of M2, so a
+    // graph that declares them is an ordinary graph.
     const report = validateGraph(
       graph({ code, packages: ["@acme/geo"] }),
       registry,
-      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: true }
+      { sandboxModuleCatalog: catalog }
     );
-    const issue = report.issues.find(
-      (i) => i.code === "code_package_browser_parity"
-    );
-    expect(issue?.severity).toBe("warning");
-    expect(issue?.nodeId).toBe("c");
-    expect(issue?.message).toContain("browser runner");
-  });
-
-  it("refuses the declaration outright while the flag is off", () => {
-    const report = validateGraph(
-      graph({ code, packages: ["@acme/geo"] }),
-      registry,
-      { sandboxModuleCatalog: catalog, sandboxModulesEnabled: false }
-    );
-    const issue = report.issues.find((i) => i.code === "code_package_disabled");
-    expect(issue?.severity).toBe("error");
-    expect(issue?.message).toContain("NODETOOL_SANDBOX_MODULES_V1=1");
     expect(report.issues.map((i) => i.code)).not.toContain(
       "code_package_browser_parity"
+    );
+    expect(report.issues.map((i) => i.code)).not.toContain(
+      "code_package_disabled"
     );
   });
 });

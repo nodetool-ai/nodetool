@@ -1,9 +1,11 @@
-import type {
-  SandboxModuleDeclaration,
-  SandboxModuleResolution,
-  SandboxModuleStatus,
-  SandboxModuleSummary,
-  SandboxPackSkillDisclosure
+import {
+  sandboxDeliveryRefusal,
+  type SandboxModuleDeclaration,
+  type SandboxModuleDeliveryResult,
+  type SandboxModuleResolution,
+  type SandboxModuleStatus,
+  type SandboxModuleSummary,
+  type SandboxPackSkillDisclosure
 } from "@nodetool-ai/protocol";
 
 /**
@@ -23,6 +25,25 @@ export interface SandboxModuleCatalog {
    * that anyway — a pack may simply ship no skill.
    */
   packSkill?(packName: string): SandboxPackSkillDisclosure | undefined;
+  /**
+   * Authorize and retrieve one module's browser-safe content by opaque id.
+   *
+   * Authorization and retrieval are one operation so the two checks cannot
+   * drift apart. Asynchronous by contract — an entitlement decision may need
+   * database or remote state — even where the v1 implementation decides
+   * synchronously.
+   */
+  authorizeDelivery(moduleId: string): Promise<SandboxModuleDeliveryResult>;
+}
+
+/** The refusal a catalog with nothing to deliver returns for any id. */
+export function refuseSandboxDelivery(
+  moduleId: string
+): SandboxModuleDeliveryResult {
+  return sandboxDeliveryRefusal(
+    "not-found",
+    `Sandbox module ${moduleId} is not available for delivery.`
+  );
 }
 
 let processCatalog: SandboxModuleCatalog | null = null;

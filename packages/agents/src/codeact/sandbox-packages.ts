@@ -8,11 +8,10 @@
  * allowed — and the prompt advertises only those specifiers, one line each,
  * never the installed catalog.
  *
- * Everything here is off while `NODETOOL_SANDBOX_MODULES_V1` is off: the
- * allowlist resolves empty, the prompt says so, and an import is refused as an
- * observation the model can correct.
+ * A session that allowed nothing therefore imports nothing: the allowlist is
+ * empty, the prompt says so, and an import is refused as an observation the
+ * model can correct.
  */
-import { isSandboxModulesV1Enabled } from "@nodetool-ai/config";
 import {
   MAX_SANDBOX_DESCRIPTION,
   sanitizeSandboxDescription,
@@ -24,15 +23,10 @@ import { parseCodeBody, staticImportSpecifiers } from "@nodetool-ai/node-sdk";
 /** Longest description the one-line tier prints (the summary schema caps at 160). */
 export const MAX_PACKAGE_DESCRIPTION = MAX_SANDBOX_DESCRIPTION;
 
-/**
- * The specifiers an action may import: the session's allowlist, or nothing at
- * all while the parity flag is off.
- */
+/** The specifiers an action may import: the session's allowlist, deduped. */
 export function sessionAllowedPackages(
-  allowlist: readonly string[] | undefined,
-  enabled: boolean = isSandboxModulesV1Enabled()
+  allowlist: readonly string[] | undefined
 ): string[] {
-  if (!enabled) return [];
   return [...new Set(allowlist ?? [])];
 }
 

@@ -60,6 +60,7 @@ export {
 
 export {
   getNodetoolDataDir,
+  getNodetoolCacheDir,
   getDefaultDbPath,
   getPostgresDatabaseUrl,
   getDefaultVectorstoreDbPath,
@@ -75,12 +76,3 @@ export {
   SIGNED_URL_TTL,
   type StorageConfig
 } from "./storage-config.js";
-
-export {
-  SANDBOX_MODULES_V1_FLAG,
-  SANDBOX_MODULES_DISABLED_MESSAGE,
-  SANDBOX_MODULES_BROWSER_PARITY_MESSAGE,
-  isSandboxModulesV1Enabled,
-  getSandboxFeatureFlagSnapshot,
-  type SandboxFeatureFlagSnapshot
-} from "./sandbox-feature-flags.js";

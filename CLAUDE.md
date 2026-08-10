@@ -69,7 +69,7 @@ work immediately. Slash commands: `/serve`, `/verify`, `/onboard`. See
 ## Architecture
 
 ```
-packages/           # 58 npm workspace packages (TypeScript backend)
+packages/           # 59 npm workspace packages (TypeScript backend)
   protocol/         # Shared message types — base dependency for everything
   config/           # Configuration loading, logging
   security/         # Secret storage, encryption
@@ -88,6 +88,8 @@ packages/           # 58 npm workspace packages (TypeScript backend)
   app-runtime/      # Mini-app document, bindings, instance state, streaming fold
                     # (shared by web, the CLI `app debug` harness, and mobile)
   model-pricing/    # Unit price for a selected FAL/kie/GenSpend model (web + runner)
+  sandbox-compiler/ # Compiles a pack's npm dependency into a guest module
+                    # (esbuild bundle, scope-aware scan, QuickJS admission probe)
   ...
 
 web/                # React 19 + Vite + MUI + Zustand + ReactFlow
@@ -597,7 +599,7 @@ upstream half of the graph has been paid for.
 A `nodetool.code.Code` node's `code` is parsed, not just stored: a body that is
 not valid JavaScript, uses `export` at the top level, imports a specifier the
 node's `packages` property does not declare (the guest loader resolves only
-declared sandbox packages, and only while `NODETOOL_SANDBOX_MODULES_V1=1`),
+declared sandbox packages),
 reads a bare name that is not a sandbox API — including one of the node's own
 inputs, which arrive on the `inputs` object, so a bare read is a ReferenceError
 too — reads an `inputs.<name>` the node does not declare, never returns, or
@@ -925,6 +927,37 @@ npm run dev:nodetool -- eval app-build -p anthropic -m claude-sonnet-5
 npm run dev:nodetool -- eval app-build --cases greeting-card,draft-then-publish \
   -p ollama -m none --no-find-model --min-success 1
 ```
+
+### nodetool packs compile (Sandbox npm Modules)
+
+A sandbox pack can declare a guest module by npm dependency name instead of
+authoring code (`{"name": ".", "kind": "js", "npm": "js-yaml"}`). This builds
+it: esbuild bundles the dependency with pinned resolver conditions and no
+externals, a scope-aware scan rejects free references to globals the guest
+lacks, and a capability-free QuickJS probe imports the bundle to prove it
+initializes. Results are cached by content digest — never by version — under
+`<user cache>/nodetool/sandbox-modules`.
+
+```bash
+npm run dev:nodetool -- packs compile                  # every installed pack
+npm run dev:nodetool -- packs compile --json           # machine-readable report
+npm run dev:nodetool -- packs compile --force          # recompile and re-probe
+npm run dev:nodetool -- packs compile --pack-search-path <node_modules dir>
+```
+
+Everything that stops a module short of admission is a **named skip**, not an
+error: `npm-module-builtin-import` (the dependency needs `node:*`),
+`npm-module-unresolved`, `npm-module-too-large` (1 MB cap),
+`npm-module-forbidden-global`, and `npm-module-probe-failed`. The skips reach
+the Package Manager through `packs.sandboxModules` diagnostics.
+
+The server compiles during its own catalog refresh and Electron compiles after
+an install, so the command is for a warm cache and for diagnosing one pack. The
+CLI's synchronous registry build never compiles: it reads the cache, re-hashing
+every recorded input first, and a miss surfaces as `pending-compile` naming this
+command. Compiler: `packages/sandbox-compiler`. Design:
+[docs/sandbox-package-design.md](docs/sandbox-package-design.md) § Config-only
+modules from npm packages.
 
 ### nodetool affected (Changed-File → Workspace Mapping)
 

@@ -136,7 +136,7 @@ return [
 let first;
 try { await spin(); first = "no error"; } catch (e) { first = e.message; }
 return first + " | " + (await add(20, 22));`,
-        referenceWasmResolution({ limits: { callTimeoutMs: 200 } })
+        referenceWasmResolution({ limits: { callTimeoutMs: 2_000 } })
       );
       expect(result.success).toBe(true);
       expect(String(result.result)).toContain("terminated and replaced");

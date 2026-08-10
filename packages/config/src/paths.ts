@@ -175,6 +175,32 @@ export function getDefaultTransformersJsCacheDir(): string {
 }
 
 /**
+ * Per-user cache root for derived artifacts NodeTool can always rebuild.
+ *
+ * Separate from {@link getNodetoolDataDir} on purpose: everything under here is
+ * safe to delete. Override with NODETOOL_CACHE_DIR.
+ *
+ * - Windows:     %LOCALAPPDATA%\nodetool\cache
+ * - macOS/Linux: $XDG_CACHE_HOME/nodetool  (fallback: ~/.cache/nodetool)
+ */
+export function getNodetoolCacheDir(): string {
+  if (!IS_NODE) return notOnNode("getNodetoolCacheDir");
+  const override = process.env["NODETOOL_CACHE_DIR"]?.trim();
+  if (override) return override;
+  if (process.platform === "win32") {
+    return join(
+      process.env["LOCALAPPDATA"] ?? join(homedir(), "AppData", "Local"),
+      "nodetool",
+      "cache"
+    );
+  }
+  return join(
+    process.env["XDG_CACHE_HOME"] ?? join(homedir(), ".cache"),
+    "nodetool"
+  );
+}
+
+/**
  * Return the absolute filesystem path for a storage key.
  * Use this on the server side for direct file reads.
  */

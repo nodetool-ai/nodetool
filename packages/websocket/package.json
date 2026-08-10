@@ -55,6 +55,7 @@
     "@nodetool-ai/replicate-nodes": "*",
     "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox-compiler": "*",
     "@nodetool-ai/security": "*",
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/timeline": "*",

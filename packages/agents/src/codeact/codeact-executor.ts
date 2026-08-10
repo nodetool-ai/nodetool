@@ -272,8 +272,7 @@ export interface CodeActExecutorOptions {
    * Defaults to none. Which packs are trusted is not knowable in here — the
    * caller resolves that from agent/session configuration, user approval, or
    * the task's own declarations — so the safe reading of "trusted packs only"
-   * is an empty list until a caller says otherwise. The whole allowlist is
-   * empty anyway while `NODETOOL_SANDBOX_MODULES_V1` is off.
+   * is an empty list until a caller says otherwise.
    */
   sandboxPackages?: readonly string[];
 }

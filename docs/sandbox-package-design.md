@@ -6,13 +6,16 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0, M1 and M5 are
-> implemented.
-> M1 ships behind `NODETOOL_SANDBOX_MODULES_V1`, off by default: with the flag
-> on, a declared sandbox module is importable in Code nodes, CodeAct actions,
-> the CLI and the server; with it off, every surface refuses a `packages`
-> declaration with the same message. Browser delivery is M2, so a graph using
-> `packages` is refused by the browser runner and validation warns about it.
+> Status: design, revised after two review rounds. M0 through M5 are
+> implemented. A declared sandbox module is importable in Code nodes, CodeAct
+> actions, the CLI, the server **and the browser runner** — M2 delivered module
+> source to the browser over `GET /api/sandbox-modules/*`, ran the same
+> loading/denial contract there, and removed the `NODETOOL_SANDBOX_MODULES_V1`
+> parity flag along with the browser refusal it covered. M3 adds the npm
+> compiler: a config-only `npm` manifest entry is bundled, scanned,
+> admission-probed, and cached by content. M4 adds scalar WASM modules behind
+> generated facades. M5 adds trust-scoped disclosure: a pack's SKILL.md reaches
+> agents as a skill or a docs tool, and the package picker in the editor.
 > M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
@@ -672,9 +675,9 @@ It now provides:
   graph;
 - section-level WASM checks for imports, memories, exports, and scalar
   signatures; and
-- a stable graph digest for authored JS, internal JS, and WASM files. npm
-  entries are recorded as skipped until the M3 compiler supplies their
-  bundled source graph and compiler metadata.
+- a stable graph digest for authored JS, internal JS, and WASM files. An npm
+  entry joins that graph once a host injects its compiled artifact (M3); one
+  nothing has compiled yet is recorded as `pending-compile`.
 
 `@nodetool-ai/runtime` now owns the read-only `SandboxModuleCatalog`
 contract, and node-sdk provides `createSandboxModuleCatalog()` over the
@@ -791,8 +794,9 @@ Two things belong to M1 that earlier drafts deferred:
 
 #### M1 checkpoint — imports end to end, behind the flag
 
-M1 is implemented and gated by `NODETOOL_SANDBOX_MODULES_V1`
-(`packages/config/src/sandbox-feature-flags.ts`, exact opt-in on `"1"`).
+M1 is implemented. It shipped gated by `NODETOOL_SANDBOX_MODULES_V1` (exact
+opt-in on `"1"`), which M2 removed; the flag paragraph below records what it
+covered.
 
 What shipped:
 
@@ -827,15 +831,14 @@ What shipped:
   line per allowed specifier — never the installed catalog — and says plainly
   when nothing is importable
   (`packages/agents/src/codeact/sandbox-packages.ts`).
-- **The flag.** Off (the default): the Code node refuses a declaration before
-  the guest starts, CodeAct mounts nothing, and validation reports the
-  declaration as an error naming the variable. On: everything above works, and
-  validation adds a `code_package_browser_parity` warning on any Code node with
-  a non-empty `packages` — the browser runner refuses such a graph
-  (`reportBrowserEligibility().sandboxPackageNodeIds` plus a `reason`, in
-  `web/src/lib/workflow/browserWorkflowRunner.ts`). Nothing persistent is
-  written: no node platform metadata changes, so a workflow saved during M1
-  carries no stale server-only classification into M2.
+- **The flag.** `NODETOOL_SANDBOX_MODULES_V1` gated all of the above while the
+  browser runner could not fetch module sources. Off, the Code node refused a
+  declaration before the guest started, CodeAct mounted nothing, and validation
+  reported the declaration as an error; on, validation added a
+  `code_package_browser_parity` warning because the browser runner refused such
+  a graph outright. M2 removed the flag, the warning and the refusal. Nothing
+  persistent was written while it existed — no node platform metadata changed —
+  so no workflow saved during M1 needed migrating.
 
 The canonical sentence every prompt surface now states — replacing "there is no
 module loader" — is `SANDBOX_MODULE_RULE` in
@@ -846,8 +849,7 @@ Regression suites: `packages/agents/tests/js-sandbox-modules.test.ts`,
 `codeact-prompt-drift.test.ts`, `sandbox-manifest-drift.test.ts`;
 `packages/node-sdk/tests/code-node-validation.test.ts`,
 `graph-validation.test.ts`; `packages/code-nodes/tests/code-node-packages.test.ts`;
-`packages/config/tests/sandbox-feature-flags.test.ts`; and
-`web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
+and `web/src/lib/workflow/__tests__/browserWorkflowRunner.test.ts`.
 
 #### M5 checkpoint — trust-scoped disclosure
 
@@ -896,10 +898,108 @@ staging for bundled builtins; the same loading/denial fixtures running on
 Node and browser. The M1 feature flag is removed here — parity restored
 is the exit criterion.
 
+#### M2 checkpoint — the browser runs what the server runs
+
+M2 is implemented; there is no flag. What shipped:
+
+- **The delivery half of the catalog.** `authorizeDelivery(moduleId)`
+  (`packages/runtime/src/sandbox-module-catalog.ts`, implemented in
+  `packages/node-sdk/src/sandbox-module-catalog.ts`) resolves authorization and
+  content in one call and answers with browser-safe source, its media type, the
+  module-graph digest, a per-file `contentSha256`, the delivered file's
+  pack-relative id, and the opaque ids of everything it imports. Never a
+  filesystem path. Public entry specifiers and internal graph-file ids
+  (`<pack>::<file>`) are both deliverable, because the browser loader needs the
+  whole graph.
+- **The route.** `GET /api/sandbox-modules/*`
+  (`packages/websocket/src/routes/sandbox-modules.ts`), a wildcard because ids
+  contain `/`. It resolves only through the catalog: unknown id → 404, refusal →
+  403, otherwise the body plus `X-Content-Digest`, `X-Content-Sha256`,
+  `X-Sandbox-Module-Dependencies`, `X-Sandbox-File-Id` and a digest ETag with
+  immutable caching.
+- **The browser catalog.** `web/src/lib/workflow/sandboxModuleCatalog.ts`
+  fetches by module id, verifies each body against `contentSha256` with
+  `crypto.subtle` — a mismatch is never cached and never returned — walks the
+  dependency header until the closure is complete, and turns the records into a
+  `SandboxModuleCatalog` that answers synchronously. The digest versions the
+  cache: a file reached from one root whose digest no longer matches is a
+  leftover from a previous pack version and is re-fetched.
+- **Prefetch before the run.** `runBrowserGraphJob` collects the graph's
+  `packages` declarations and fetches the closure *before* either execution path
+  starts, because the catalog contract is synchronous and fetching is not. A
+  module that cannot be had fails the job right there, naming the pack, instead
+  of surfacing as a resolve error inside the guest. The verified records are
+  plain data, so the Web Worker path receives them across `postMessage` and
+  builds its catalog in the worker — one verification, on the side that owns the
+  origin and the auth header.
+- **One contract, two runtimes.** The loading and denial cases are data
+  (`@nodetool-ai/agents/sandbox-module-fixtures`): declared imports, an
+  intra-pack internal helper, `node:*` and compat-module denials, path escapes
+  and encoded traversals, undeclared specifiers, another pack's internals,
+  computed and variable dynamic imports, and the module-level `setTimeout`/`eval`
+  hardening. `packages/agents/tests/js-sandbox-modules.test.ts` drives them under
+  vitest; `packages/workflow-runner/e2e/tests/sandbox-modules.spec.ts` drives the
+  same array through a Code node in a real headless Chromium.
+- **The flag is gone.** `packages/config/src/sandbox-feature-flags.ts` and every
+  read of it are deleted, along with the `code_package_disabled` validation
+  error, the `code_package_browser_parity` warning, and the browser runner's
+  property-aware refusal. A graph with `packages` is browser-eligible when its
+  node types are.
+
 ### M3 — npm compilation
 
 The dedicated compiler module: content-addressed cache, explicit resolver
 conditions, scope-aware scan, QuickJS admission probe.
+
+#### M3 checkpoint — the compiler ships
+
+M3 is implemented in `packages/sandbox-compiler`
+(`@nodetool-ai/sandbox-compiler`), a workspace of its own because node-sdk
+must not depend on esbuild or a JavaScript engine.
+
+- `compileNpmModule({ packDir, npmName })` runs the pipeline in order:
+  esbuild with `bundle`, `format: "esm"`, `platform: "neutral"`, pinned
+  `conditions` (`import`, `module`, `default`) and `mainFields`
+  (`module`, `main`), no externals and no minification; the scope-aware
+  scan; the capability-free probe. Each way it can end short of admission
+  is a named skip — `npm-module-builtin-import`,
+  `npm-module-unresolved`, `npm-module-too-large`,
+  `npm-module-forbidden-global`, `npm-module-scan-rejected`,
+  `npm-module-probe-failed`.
+- The scan (`scan.ts`) resolves every identifier against the real scope
+  chain, so a shadowed `process` is not a hit. A free reference errors; a
+  reference the module feature-detects — the argument of a `typeof`, or
+  one in a branch a `typeof` on the same name guards — warns.
+- The probe (`probe.ts`) instantiates quickjs-ng directly with
+  `allowFetch: false`, `allowFs: false`, no env, no bridges, a 5 s
+  deadline, a 64 MB heap and capped console output. Only the bundle
+  resolves; every other specifier is denied by name.
+- The cache (`cache.ts`) keys on a digest over every input file's content
+  hash from esbuild's metafile, the esbuild version, the compiler's
+  contract version, and the normalized options. Entries are written
+  temp-file-plus-rename, keys are validated against `^[a-f0-9]{64}$`
+  before they reach a path, and the cache root is
+  `getNodetoolCacheDir()/sandbox-modules`. A pointer per
+  `(pack directory, dependency)` lets a synchronous host read an entry
+  back; it re-hashes every recorded input first, so content still decides.
+- Discovery stays synchronous and engine-free. `discoverSandboxPack` takes
+  an injected `compiled` lookup: an entry with an artifact joins the source
+  graph as `npm:<name>`, one without becomes `pending-compile` naming
+  `nodetool packs compile`. A compiled module's digest is over the bundled
+  source plus the compiler version and options digest, so recompiling under
+  different conditions reports drift rather than silently running different
+  code.
+- Compilation runs where the host is already async: the server's
+  `refreshSandboxCatalog` (which imports the compiler lazily and degrades to
+  a named `compiler-unavailable` warning), Electron's install hook, and
+  `nodetool packs compile`. The CLI's synchronous `buildFullRegistry` only
+  reads the cache.
+
+The measured candidate table and the cap decision are in
+[m3-implementation-plan.md](m3-implementation-plan.md). Regression suites:
+`packages/sandbox-compiler/tests/`, `packages/node-sdk/tests/sandbox-npm-discovery.test.ts`,
+`packages/websocket/tests/sandbox-catalog.test.ts`,
+`packages/cli/tests/packs-command.test.ts`.
 
 ### M4 — WASM (scalar-only)
 

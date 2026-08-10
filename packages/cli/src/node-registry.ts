@@ -13,6 +13,7 @@ import {
   discoverSandboxCatalog
 } from "@nodetool-ai/node-sdk";
 import { setProcessSandboxModuleCatalog } from "@nodetool-ai/runtime";
+import { createCachedNpmLookup } from "@nodetool-ai/sandbox-compiler/cache";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -27,10 +28,16 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
  * so the CLI's validation and execution harnesses resolve sandbox modules
  * through the same instance the server uses. Discovery executes no pack code.
  * A failure leaves the CLI without a catalog rather than without a registry.
+ *
+ * This path never compiles. npm-backed modules resolve only from the cache,
+ * whose entries are re-verified against their inputs' current contents; a miss
+ * becomes the `pending-compile` diagnostic naming `nodetool packs compile`.
  */
 export function installSandboxCatalog(): void {
   try {
-    setProcessSandboxModuleCatalog(discoverSandboxCatalog().catalog);
+    setProcessSandboxModuleCatalog(
+      discoverSandboxCatalog(undefined, { compiled: createCachedNpmLookup() }).catalog
+    );
   } catch (error) {
     console.warn(
       `Sandbox module catalog unavailable: ${
