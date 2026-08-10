@@ -21,6 +21,7 @@ import type { PermissionCategory } from "../tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../subagent.js";
 import type {
   ExampleWorkflowCatalog,
+  ModelCatalogs,
   PackageAssetLister,
   SketchLoader,
   TimelineLoader,
@@ -97,6 +98,13 @@ export interface CapabilityRun {
   readonly providers?: Record<string, BaseProvider>;
   readonly examples?: ExampleWorkflowCatalog;
   readonly exportDsl?: WorkflowDslExporter;
+  /**
+   * Provider/model catalogs the graph checks validate against. Defaults to the
+   * runtime's own where a run supplies none — this is the constructor argument
+   * `create_workflow` and `validate_workflow` took, so a caller with a
+   * different catalog (or a test) can still supply one.
+   */
+  readonly modelCatalogs?: ModelCatalogs;
   readonly listPackageAssets?: PackageAssetLister;
   readonly workflowEnvironment?: WorkflowEnvironmentProvider;
   readonly loaders?: CapabilityLoaders;

@@ -20,14 +20,10 @@ import {
 
 type Loader = () => Promise<CapabilityModule>;
 
-/**
- * Empty until the namespaces land (PRs 3–9). Entries read:
- *
- * ```ts
- * workflows: () => import("./workflows.js").then((m) => m.module),
- * ```
- */
-const MODULES: Readonly<Record<string, Loader>> = {};
+/** One lazy loader per namespace. The rest land in PRs 4–9. */
+const MODULES: Readonly<Record<string, Loader>> = {
+  workflows: () => import("./workflows.js").then((m) => m.module)
+};
 
 /**
  * The namespaces this build declares. It is the other half of {@link MODULES}
@@ -36,7 +32,7 @@ const MODULES: Readonly<Record<string, Loader>> = {};
  * {@link capabilityModuleDrift} checks what is actually implemented. A module
  * lands in both or it lands in neither.
  */
-export const DECLARED_CAPABILITY_MODULES: readonly string[] = [];
+export const DECLARED_CAPABILITY_MODULES: readonly string[] = ["workflows"];
 
 const cache = new Map<string, Promise<CapabilityModule>>();
 

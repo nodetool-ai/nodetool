@@ -34,6 +34,7 @@ import type {
 } from "./types.js";
 import type {
   ExampleWorkflowCatalog,
+  ModelCatalogs,
   PackageAssetLister,
   WorkflowDslExporter,
   WorkflowEnvironmentProvider
@@ -48,6 +49,7 @@ export interface CreateCapabilityRunOptions {
   providers?: Record<string, BaseProvider>;
   examples?: ExampleWorkflowCatalog;
   exportDsl?: WorkflowDslExporter;
+  modelCatalogs?: ModelCatalogs;
   listPackageAssets?: PackageAssetLister;
   workflowEnvironment?: WorkflowEnvironmentProvider;
   loaders?: CapabilityLoaders;
@@ -78,6 +80,7 @@ export function createCapabilityRun(
     providers: options.providers,
     examples: options.examples,
     exportDsl: options.exportDsl,
+    modelCatalogs: options.modelCatalogs,
     listPackageAssets: options.listPackageAssets,
     workflowEnvironment: options.workflowEnvironment,
     loaders: options.loaders,

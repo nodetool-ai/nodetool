@@ -33,8 +33,14 @@ function isRunFactory(
   return typeof source === "function";
 }
 
-/** A `Tool` whose `process()` is one capability implementation. */
-class CapabilityTool extends Tool {
+/**
+ * A `Tool` whose `process()` is one capability implementation.
+ *
+ * Exported so a ported tool class can survive as a one-line subclass while its
+ * callers migrate — the class keeps its constructor and its wire identity, and
+ * the behaviour comes from the capability. Both die in PR 12.
+ */
+export class CapabilityTool extends Tool {
   readonly name: string;
   readonly description: string;
 
