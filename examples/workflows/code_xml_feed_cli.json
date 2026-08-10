@@ -1,0 +1,105 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "xml",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n<feed xmlns=\"http://www.w3.org/2005/Atom\">\n  <title>Release notes from nodetool</title>\n  <entry><title>v0.7.7</title><updated>2026-08-04T09:15:00Z</updated></entry>\n  <entry><title>v0.7.6</title><updated>2026-07-21T16:40:00Z</updated></entry>\n  <entry><title>v0.7.5</title><updated>2026-07-02T11:05:00Z</updated></entry>\n</feed>\n"
+        }
+      },
+      {
+        "id": "feed",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "import { parse } from \"@nodetool-ai/sandbox-xml\";\n\nconst feed = await parse(inputs.xml);\nconst entries = [].concat(feed?.feed?.entry ?? []);\nreturn {\n  feed_title: String(feed?.feed?.title ?? \"\"),\n  count: entries.length,\n  titles: entries.map((e) => String(e.title))\n};\n",
+          "packages": [
+            "@nodetool-ai/sandbox-xml"
+          ],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Parse the release feed"
+        },
+        "dynamic_properties": {
+          "xml": ""
+        },
+        "dynamic_outputs": {
+          "feed_title": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "count": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "titles": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "out_title",
+        "type": "nodetool.output.Output",
+        "name": "feed_title",
+        "data": {
+          "name": "feed_title"
+        }
+      },
+      {
+        "id": "out_count",
+        "type": "nodetool.output.Output",
+        "name": "count",
+        "data": {
+          "name": "count"
+        }
+      },
+      {
+        "id": "out_titles",
+        "type": "nodetool.output.Output",
+        "name": "titles",
+        "data": {
+          "name": "titles"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_xml_output_feed_xml",
+        "source": "xml",
+        "sourceHandle": "output",
+        "target": "feed",
+        "targetHandle": "xml"
+      },
+      {
+        "id": "e_feed_feed_title_out_title_value",
+        "source": "feed",
+        "sourceHandle": "feed_title",
+        "target": "out_title",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_feed_count_out_count_value",
+        "source": "feed",
+        "sourceHandle": "count",
+        "target": "out_count",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_feed_titles_out_titles_value",
+        "source": "feed",
+        "sourceHandle": "titles",
+        "target": "out_titles",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

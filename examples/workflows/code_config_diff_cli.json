@@ -1,0 +1,122 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "before",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "service: nodetool-api\nreplicas: 2\nimage: ghcr.io/nodetool-ai/api:0.7.6\n"
+        }
+      },
+      {
+        "id": "after",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "service: nodetool-api\nreplicas: 3\nimage: ghcr.io/nodetool-ai/api:0.7.7\n"
+        }
+      },
+      {
+        "id": "drift",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "import { unified } from \"@nodetool-ai/sandbox-diff\";\n\nconst patch = await unified(inputs.before, inputs.after, {\n  oldName: \"deploy.yaml@old\",\n  newName: \"deploy.yaml@new\",\n  context: 1\n});\nreturn {\n  changed: patch.includes(\"@@\"),\n  added_lines: patch.split(\"\\n\").filter((l) => l.startsWith(\"+\") && !l.startsWith(\"+++\")).length,\n  removed_lines: patch.split(\"\\n\").filter((l) => l.startsWith(\"-\") && !l.startsWith(\"---\")).length\n};\n",
+          "packages": [
+            {
+              "specifier": "@nodetool-ai/sandbox-diff"
+            }
+          ],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Diff two config revisions"
+        },
+        "dynamic_properties": {
+          "before": "",
+          "after": ""
+        },
+        "dynamic_outputs": {
+          "changed": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "added_lines": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "removed_lines": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "out_changed",
+        "type": "nodetool.output.Output",
+        "name": "changed",
+        "data": {
+          "name": "changed"
+        }
+      },
+      {
+        "id": "out_added",
+        "type": "nodetool.output.Output",
+        "name": "added_lines",
+        "data": {
+          "name": "added_lines"
+        }
+      },
+      {
+        "id": "out_removed",
+        "type": "nodetool.output.Output",
+        "name": "removed_lines",
+        "data": {
+          "name": "removed_lines"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_before_output_drift_before",
+        "source": "before",
+        "sourceHandle": "output",
+        "target": "drift",
+        "targetHandle": "before"
+      },
+      {
+        "id": "e_after_output_drift_after",
+        "source": "after",
+        "sourceHandle": "output",
+        "target": "drift",
+        "targetHandle": "after"
+      },
+      {
+        "id": "e_drift_changed_out_changed_value",
+        "source": "drift",
+        "sourceHandle": "changed",
+        "target": "out_changed",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_drift_added_lines_out_added_value",
+        "source": "drift",
+        "sourceHandle": "added_lines",
+        "target": "out_added",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_drift_removed_lines_out_removed_value",
+        "source": "drift",
+        "sourceHandle": "removed_lines",
+        "target": "out_removed",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}

@@ -1,0 +1,112 @@
+{
+  "graph": {
+    "nodes": [
+      {
+        "id": "html",
+        "type": "nodetool.constant.String",
+        "data": {
+          "value": "<!doctype html>\n<html>\n  <head><title>Sandbox packages</title></head>\n  <body>\n    <h1>Sandbox packages</h1>\n    <p>Every library the sandbox offers is an <strong>importable module</strong>.</p>\n    <h2>Guest modules</h2>\n    <p>See <a href=\"https://nodetool.ai/docs\">the docs</a> and <a href=\"/local\">a local page</a>.</p>\n    <h2>Host modules</h2>\n  </body>\n</html>\n"
+        }
+      },
+      {
+        "id": "extract",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "import { select, toMarkdown } from \"@nodetool-ai/sandbox-html\";\n\nconst [titles, headings, hrefs] = await Promise.all([\n  select(inputs.html, \"h1\"),\n  select(inputs.html, \"h2\"),\n  select(inputs.html, \"a[href]\", { attr: \"href\" })\n]);\nconst markdown = await toMarkdown(inputs.html);\nreturn {\n  title: titles[0] ?? \"\",\n  headings,\n  external_links: hrefs.filter((h) => h.startsWith(\"http\")).length,\n  markdown\n};\n",
+          "packages": [
+            {
+              "specifier": "@nodetool-ai/sandbox-html"
+            }
+          ],
+          "timeout": 30,
+          "max_response_mb": 8,
+          "allow_local_network": false,
+          "allow_host_filesystem": false
+        },
+        "ui_properties": {
+          "title": "Select and convert the page"
+        },
+        "dynamic_properties": {
+          "html": ""
+        },
+        "dynamic_outputs": {
+          "title": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "headings": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "external_links": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "markdown": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
+      },
+      {
+        "id": "out_title",
+        "type": "nodetool.output.Output",
+        "name": "title",
+        "data": {
+          "name": "title"
+        }
+      },
+      {
+        "id": "out_headings",
+        "type": "nodetool.output.Output",
+        "name": "headings",
+        "data": {
+          "name": "headings"
+        }
+      },
+      {
+        "id": "out_links",
+        "type": "nodetool.output.Output",
+        "name": "external_links",
+        "data": {
+          "name": "external_links"
+        }
+      }
+    ],
+    "edges": [
+      {
+        "id": "e_html_output_extract_html",
+        "source": "html",
+        "sourceHandle": "output",
+        "target": "extract",
+        "targetHandle": "html"
+      },
+      {
+        "id": "e_extract_title_out_title_value",
+        "source": "extract",
+        "sourceHandle": "title",
+        "target": "out_title",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_extract_headings_out_headings_value",
+        "source": "extract",
+        "sourceHandle": "headings",
+        "target": "out_headings",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e_extract_external_links_out_links_value",
+        "source": "extract",
+        "sourceHandle": "external_links",
+        "target": "out_links",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "params": {}
+}
