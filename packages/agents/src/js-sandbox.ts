@@ -21,8 +21,11 @@
  * guest heap, stack, fetch timeout) is overridable per invocation through
  * `RunSandboxOptions.limits`, clamped to hard ceilings.
  *
- * The guest itself stays module-free — there is no loader, so user code cannot
- * `import`/`require` anything. Library-backed capabilities reach it only
+ * The guest imports nothing by default — without `RunSandboxOptions.modules`
+ * there is no loader at all, so user code cannot `import`/`require` anything.
+ * With it, the run's declared sandbox packages and their intra-pack siblings
+ * are the only importable modules (see {@link createGuestModuleHost}), and
+ * dynamic `import()` stays denied. Library-backed capabilities reach it only
  * through narrow host bridges that take and return plain data:
  * `data.parseCsv` (papaparse), `data.selectHtml` (cheerio), `format.*` (Intl),
  * `crypto.*` (WebCrypto), and `image.*`/`canvas.*` (a real 2D canvas —
@@ -43,7 +46,15 @@
  * the never-reject/abort-guard conventions every bridge follows.
  */
 
-import { addSerializer, expose, loadQuickJs } from "@sebastianwessel/quickjs";
+import {
+  addSerializer,
+  expose,
+  getModuleLoader as createDefaultModuleLoader,
+  loadQuickJs,
+  modulePathNormalizer as defaultModulePathNormalizer
+} from "@sebastianwessel/quickjs";
+import * as acorn from "acorn";
+import type { SandboxModuleResolution } from "@nodetool-ai/protocol";
 // The variant package uses a `default` export. With `esModuleInterop` this
 // typechecks as a namespace, so reach through `.default` explicitly.
 import * as quickJsVariantModule from "@jitl/quickjs-ng-wasmfile-release-sync";
@@ -2192,13 +2203,228 @@ export const BLOCKED_TIMER_GLOBALS = [
  * {@link BLOCKED_TIMER_GLOBALS}).
  */
 export function wrapCode(code: string): string {
-  const dropTimers = BLOCKED_TIMER_GLOBALS.map(
-    (n) => `delete globalThis.${n};`
-  ).join(" ");
-  return `${dropTimers}
+  return `${dropTimersStatement()}
 export default await (async () => {
 ${code}
 })();`;
+}
+
+function dropTimersStatement(): string {
+  return BLOCKED_TIMER_GLOBALS.map((n) => `delete globalThis.${n};`).join(" ");
+}
+
+/**
+ * Build the entry module for user code, hoisting static `import` declarations
+ * out of the async IIFE {@link wrapCode} wraps the body in.
+ *
+ * An `import` is only legal at module top level, so the IIFE body cannot hold
+ * one. The imports are spliced out by source range and re-emitted on a single
+ * line above the wrapper; the ranges they vacate are blanked with spaces (never
+ * with fewer newlines), so every remaining line of user code keeps its content
+ * and its offset from the body's start. The whole body shifts down by exactly
+ * one line relative to {@link wrapCode}'s output.
+ *
+ * Import-free code takes the {@link wrapCode} path unchanged, and so does code
+ * acorn cannot parse — a syntax error must reach the guest exactly as the user
+ * wrote it, not as this transform's complaint about it.
+ *
+ * Dynamic `import()` expressions are left where they are. The module loader
+ * denies them at runtime (see {@link createGuestModuleHost}); rewriting them
+ * here would only move a runtime denial into a confusing compile-time one.
+ */
+export function buildEntryModule(code: string): string {
+  let program: acorn.Program;
+  try {
+    program = acorn.parse(code, {
+      ecmaVersion: "latest",
+      sourceType: "module",
+      allowAwaitOutsideFunction: true,
+      allowReturnOutsideFunction: true
+    });
+  } catch {
+    return wrapCode(code);
+  }
+
+  const imports = program.body.filter(
+    (node): node is acorn.ImportDeclaration => node.type === "ImportDeclaration"
+  );
+  if (imports.length === 0) return wrapCode(code);
+
+  const hoisted: string[] = [];
+  let body = "";
+  let cursor = 0;
+  for (const declaration of imports) {
+    const text = code.slice(declaration.start, declaration.end);
+    hoisted.push(text.endsWith(";") ? text : `${text};`);
+    body += code.slice(cursor, declaration.start);
+    body += text.replace(/[^\n]/g, " ");
+    cursor = declaration.end;
+  }
+  body += code.slice(cursor);
+
+  return `${hoisted.join(" ")}
+${dropTimersStatement()}
+export default await (async () => {
+${body}
+})();`;
+}
+
+// ---------------------------------------------------------------------------
+// Guest module loading
+// ---------------------------------------------------------------------------
+
+/** Prefix of every module id this host resolves. Not a path — nothing mounts it. */
+const GUEST_MODULE_PREFIX = "nodetool-sandbox:";
+
+/**
+ * The module id every denial normalizes to. QuickJS never caches a module whose
+ * load failed, so one constant id serves every denial in a run: the normalizer
+ * records the reason, the loader immediately turns it into a guest-side Error.
+ */
+const DENIED_MODULE_ID = `${GUEST_MODULE_PREFIX}denied`;
+
+/** Separator between a pack name and a file id inside a module id. */
+const GUEST_MODULE_SEPARATOR = "|";
+
+function guestModuleId(packName: string, fileId: string): string {
+  return `${GUEST_MODULE_PREFIX}${packName}${GUEST_MODULE_SEPARATOR}${fileId}`;
+}
+
+/** Resolve a `./`-relative specifier against a pack-relative file id. */
+function resolveRelativeFileId(fromFileId: string, specifier: string): string {
+  const parts = fromFileId.split("/").slice(0, -1);
+  for (const segment of specifier.split("/")) {
+    if (segment === "" || segment === ".") continue;
+    if (segment === "..") parts.pop();
+    else parts.push(segment);
+  }
+  return parts.join("/");
+}
+
+type SandboxRunOptions = NonNullable<
+  Parameters<Awaited<ReturnType<typeof loadQuickJs>>["runSandboxed"]>[1]
+>;
+
+export interface GuestModuleHost {
+  /** Loader and normalizer to hand `runSandboxed`. */
+  readonly options: Pick<
+    SandboxRunOptions,
+    "getModuleLoader" | "modulePathNormalizer"
+  >;
+  /** Stop delegating to the wrapper's own Node-compat resolution. */
+  enterGuestPhase(): void;
+  /** After the entry's static graph is linked, every further resolve is dynamic. */
+  lockStaticGraph(): void;
+}
+
+/**
+ * Install the run's declared sandbox modules as the *only* importable modules.
+ *
+ * The enforcement point is the **normalizer**, not the loader: QuickJS resolves
+ * an already-loaded module straight out of its cache without consulting the
+ * loader, but it normalizes every specifier first. A denial decided in the
+ * normalizer therefore also holds for `node:buffer` and friends, which the
+ * wrapper imports into the cache during its own bootstrap
+ * (`prepareNodeCompatibility`) before guest code exists.
+ *
+ * Three phases, in order:
+ *
+ * 1. **bootstrap** — the wrapper's `import 'node:buffer'` and the rest of its
+ *    compat preamble run before our sandboxed function is called. They resolve
+ *    through the library's own normalizer and loader, or the runtime never
+ *    starts.
+ * 2. **guest, linking** — only the run's declared specifiers and their
+ *    intra-pack siblings resolve. Everything else — `node:*`, the compat
+ *    modules the bootstrap warmed, absolute paths, `../` escapes, encoded
+ *    traversals, another pack's internal files — is denied by name.
+ * 3. **guest, locked** — the entry module's static graph is linked, so any
+ *    further resolution is a dynamic `import()`, and every one of those is
+ *    denied. A computed specifier is unknowable ahead of the call, and the
+ *    declaration is the whole contract, so the stricter rule is the honest one.
+ *
+ * Loaded module sources are prefixed with the timer deletions
+ * ({@link BLOCKED_TIMER_GLOBALS}) on the same line as their first statement:
+ * dependencies evaluate *before* the entry body, so the entry's own deletions
+ * come too late to harden them. `eval`/`Function` need no such treatment — the
+ * init prelude deletes them for the whole context before any user `evalCode`.
+ */
+export function createGuestModuleHost(
+  modules: SandboxModuleResolution
+): GuestModuleHost | undefined {
+  const sources = new Map<string, string>();
+  const specifiers = new Map<string, string>();
+  for (const module of modules.modules) {
+    if (module.kind !== "js") continue;
+    const entryId = guestModuleId(module.packName, module.moduleId);
+    specifiers.set(module.specifier, entryId);
+    sources.set(entryId, module.source);
+    for (const file of module.graph) {
+      if (file.kind !== "js") continue;
+      sources.set(guestModuleId(module.packName, file.id), file.source);
+    }
+  }
+  if (sources.size === 0) return undefined;
+
+  const hardening = dropTimersStatement();
+  let phase: "bootstrap" | "guest" = "bootstrap";
+  let locked = false;
+  let denial = "";
+
+  const deny = (message: string): string => {
+    denial = message;
+    return DENIED_MODULE_ID;
+  };
+
+  const resolve = (baseName: string, requested: string): string => {
+    if (locked) {
+      return deny(
+        `dynamic import() is not allowed in the sandbox (requested "${requested}")`
+      );
+    }
+    const declared = specifiers.get(requested);
+    if (declared !== undefined) return declared;
+    if (requested.startsWith(".") && baseName.startsWith(GUEST_MODULE_PREFIX)) {
+      const separator = baseName.indexOf(GUEST_MODULE_SEPARATOR);
+      const pack = baseName.slice(GUEST_MODULE_PREFIX.length, separator);
+      const fileId = baseName.slice(separator + 1);
+      const target = resolveRelativeFileId(fileId, requested);
+      for (const candidate of [target, `${target}.js`, `${target}/index.js`]) {
+        const id = guestModuleId(pack, candidate);
+        if (sources.has(id)) return id;
+      }
+      return deny(`"${requested}" is not a file of the ${pack} sandbox package`);
+    }
+    return deny(
+      `"${requested}" is not a sandbox package declared by this node — add it to the node's packages declaration to import it`
+    );
+  };
+
+  return {
+    options: {
+      modulePathNormalizer: (baseName, requestedName, context) =>
+        phase === "bootstrap"
+          ? defaultModulePathNormalizer(baseName, requestedName, context)
+          : resolve(baseName, requestedName),
+      getModuleLoader: (fs, runtimeOptions) => {
+        const fallback = createDefaultModuleLoader(fs, runtimeOptions);
+        return (moduleName, context) => {
+          if (moduleName === DENIED_MODULE_ID) {
+            return { error: new Error(denial) };
+          }
+          const source = sources.get(moduleName);
+          if (source !== undefined) return { value: `${hardening}${source}` };
+          if (phase === "bootstrap") return fallback(moduleName, context);
+          return { error: new Error(`Module "${moduleName}" is not available`) };
+        };
+      }
+    },
+    enterGuestPhase() {
+      phase = "guest";
+    },
+    lockStaticGraph() {
+      locked = true;
+    }
+  };
 }
 
 /**
@@ -2288,6 +2514,13 @@ export interface RunSandboxOptions {
    * {@link DEFAULT_SUSPEND_ALLOWANCE_MS}.
    */
   suspendAllowanceMs?: number;
+  /**
+   * Sandbox modules this run may import, already resolved by the catalog.
+   * Without it the guest has no module loader at all, exactly as before: an
+   * `import` resolves nothing. With it, these modules and their intra-pack
+   * siblings are the only importable ones — see {@link createGuestModuleHost}.
+   */
+  modules?: SandboxModuleResolution;
 }
 
 export interface RunSandboxResult {
@@ -2404,13 +2637,24 @@ export async function runInSandbox(
     limits,
     onProgress,
     clock,
-    suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS
+    suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS,
+    modules
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
 
   if (!code.trim()) {
     return { success: false, error: "No code provided", logs: [] };
   }
+
+  const unsupported = modules?.modules.find((m) => m.kind === "wasm");
+  if (unsupported) {
+    return {
+      success: false,
+      error: `WASM sandbox modules are not supported yet (M4): ${unsupported.specifier}`,
+      logs: []
+    };
+  }
+  const moduleHost = modules ? createGuestModuleHost(modules) : undefined;
 
   if (signal?.aborted) {
     return { success: false, error: "Execution cancelled", logs: [] };
@@ -2444,6 +2688,9 @@ export async function runInSandbox(
 
     const sandboxRun = runSandboxed(
       async ({ ctx, evalCode }) => {
+        // Past this point the wrapper's own Node-compat bootstrap has run, so
+        // nothing else may resolve outside the run's declared modules.
+        moduleHost?.enterGuestPhase();
         // A CPU-bound guest never yields to the host event loop, so an abort
         // listener can't fire and Promise.race can't help. QuickJS polls this
         // interrupt handler from inside the interpreter, which is the only
@@ -2774,7 +3021,12 @@ export default true;`,
           "sandbox-init"
         );
 
-        const userResult = await evalCode(wrapCode(code), "user-code");
+        // `evalCode` compiles and links the module — resolving its whole static
+        // import graph — before its first await, so a resolution that arrives
+        // after this call has returned can only come from a dynamic `import()`.
+        const pendingUserResult = evalCode(buildEntryModule(code), "user-code");
+        moduleHost?.lockStaticGraph();
+        const userResult = await pendingUserResult;
 
         // Sync mutable globals back to the host. node:vm shared the host heap,
         // so `state.counter++` in user code mutated the caller's object directly.
@@ -2827,7 +3079,8 @@ export default true;`,
         // the guest as `process.env` and can flip debug paths in its `node:util`
         // polyfill. Guest code has no business reading host-shaped environment
         // variables, so the stub carries nothing.
-        env: {}
+        env: {},
+        ...moduleHost?.options
       }
     );
 
