@@ -1,21 +1,27 @@
 /**
- * Permission classification and the gate wrapper for chat-agent tools.
+ * Permission classification, the gate's options, and the `Tool` shim over it.
  *
  * The chat agent always carries a fixed toolbelt; a permission *mode* decides
  * whether each tool call runs automatically, asks the user first, or is
- * blocked. The gate is implemented as a transparent {@link Tool} wrapper
- * ({@link GatedTool}) so both the chat loop and any `run_subtask` child loop
- * inherit gating by simply calling `tool.process()`.
+ * blocked. The ladder itself lives in `capabilities/invoke.ts` — one
+ * implementation, reached either through `CapabilityRun.invoke` or through the
+ * {@link gateTools} wrapper below, which is how a host that still hands out
+ * `Tool` instances gets the same gate.
  *
- * Design: docs/superpowers/specs/2026-05-28-chat-permission-model-design.md
+ * Design: docs/superpowers/specs/2026-05-28-chat-permission-model-design.md,
+ * docs/tool-class-retirement-design.md § "Where the permission gate lives"
  */
 
 import type { ProcessingContext, ProviderTool } from "@nodetool-ai/runtime";
 import type { ZodType } from "zod";
 import { Tool } from "./base-tool.js";
-// Type-only import: keeps tool-permissions.ts free of provider/LLM runtime
-// deps and avoids any value-level import cycle with security-monitor.ts.
+import { capabilityFromTool } from "../capabilities/adapters.js";
+import { createCapabilityRun } from "../capabilities/invoke.js";
+// Type-only imports: keep tool-permissions.ts free of provider/LLM runtime
+// deps and avoid any value-level import cycle with security-monitor.ts and
+// the sandbox.
 import type { SecurityVerdict, PendingAction } from "../security-monitor.js";
+import type { SandboxClock } from "../js-sandbox.js";
 
 /** How risky a tool is, independent of the active mode. */
 export type PermissionCategory = "read" | "write" | "execute" | "external";
@@ -254,10 +260,17 @@ export interface PermissionGateOptions {
    * that the mode/approval logic would otherwise run is first vetted by the
    * monitor; a `block` verdict stops execution with a structured error. This
    * is a plain callback (NOT the monitor class) so the gate carries no
-   * provider/LLM dependency. Default undefined → GatedTool behaves exactly as
+   * provider/LLM dependency. Default undefined → the gate behaves exactly as
    * before, byte-for-byte. Read-class tools are NEVER consulted, even when set.
    */
   securityMonitor?: (action: PendingAction) => Promise<SecurityVerdict>;
+  /**
+   * The sandbox clock a code action runs on, when the call comes from one. The
+   * gate stops it for the length of an approval prompt or a monitor consult:
+   * that wait is the user's (or another model's), not the guest program's, and
+   * charging it to the action's wall clock kills the program that asked.
+   */
+  clock?: SandboxClock;
   /**
    * Optional accessor for the recent transcript text, forwarded into the
    * monitor's {@link PendingAction.transcript} so SOFT-block user-intent
@@ -268,10 +281,13 @@ export interface PermissionGateOptions {
 }
 
 /**
- * Transparent permission wrapper around a {@link Tool}. Forwards identity and
- * schema to the inner tool; only `process()` runs the gate.
+ * Transparent permission wrapper around a {@link Tool}. Identity, schema and
+ * message template are the inner tool's, unchanged; only `process()` differs,
+ * and it does nothing itself — it builds a one-call {@link CapabilityRun} over
+ * a capability view of the tool and lets `invoke` run the ladder. There is one
+ * ladder, and this is the door a `Tool` walks through it.
  */
-class GatedTool extends Tool {
+class GatedCapabilityTool extends Tool {
   override readonly needsToolCallId: boolean;
 
   constructor(
@@ -290,19 +306,19 @@ class GatedTool extends Tool {
     return this.inner.description;
   }
 
-  get schema(): ZodType | undefined {
+  override get schema(): ZodType | undefined {
     return this.inner.schema;
   }
 
-  get inputSchema(): Record<string, unknown> {
+  override get inputSchema(): Record<string, unknown> {
     return this.inner.inputSchema;
   }
 
-  toProviderTool(): ProviderTool {
+  override toProviderTool(): ProviderTool {
     return this.inner.toProviderTool();
   }
 
-  userMessage(params: Record<string, unknown>): string {
+  override userMessage(params: Record<string, unknown>): string {
     return this.inner.userMessage(params);
   }
 
@@ -310,101 +326,13 @@ class GatedTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const category = permissionCategoryFor(this.inner.name);
-    const decision = decidePermission(this.gate.mode, category);
-
-    // Read-class tools are never consulted by the security monitor — go
-    // straight to the inner tool to guarantee that invariant even if a monitor
-    // is wired in.
-    if (category === "read") {
-      return this.inner.process(context, params);
-    }
-
-    if (decision === "allow") {
-      return this.runInner(context, params, category);
-    }
-
-    if (decision === "block") {
-      return {
-        error: "blocked_in_plan_mode",
-        message:
-          `Cannot run \`${this.inner.name}\` in plan mode — only read-only ` +
-          `tools are allowed. Produce a concrete plan instead and let the ` +
-          `user switch out of plan mode to execute it.`
-      };
-    }
-
-    // decision === "ask"
-    if (this.gate.sessionAllow.has(this.inner.name)) {
-      return this.runInner(context, params, category);
-    }
-
-    const answer = await this.gate.requestApproval({
-      toolName: this.inner.name,
-      category,
-      args: Tool.stripMessage(params),
-      message: Tool.resolveMessage(this.inner, params)
+    const capability = capabilityFromTool(this.inner);
+    const run = createCapabilityRun({
+      context,
+      gate: this.gate,
+      capabilities: [capability]
     });
-
-    if (answer === "deny") {
-      return {
-        error: "permission_denied",
-        message:
-          `The user declined to run \`${this.inner.name}\`. Do not retry the ` +
-          `same call; explain what you wanted to do or propose an alternative.`
-      };
-    }
-
-    if (answer === "allow_for_chat") {
-      this.gate.sessionAllow.add(this.inner.name);
-    }
-
-    return this.runInner(context, params, category);
-  }
-
-  /**
-   * Single execution chokepoint for actionable (non-read) tool calls. When a
-   * security monitor is wired in, the call is vetted here — after the
-   * mode/approval logic has already said "run" — and a `block` verdict stops
-   * execution with a structured error mirroring the existing block/deny paths.
-   * Without a monitor, this is just `inner.process()`.
-   */
-  private async runInner(
-    context: ProcessingContext,
-    params: Record<string, unknown>,
-    category: PermissionCategory
-  ): Promise<unknown> {
-    const consult = this.gate.securityMonitor;
-    if (consult) {
-      const verdict = await consult({
-        name: this.inner.name,
-        category,
-        args: Tool.stripMessage(params),
-        transcript: this.gate.recentTranscript?.()
-      });
-      if (verdict.block) {
-        const reason = verdict.reason?.trim()
-          ? verdict.reason.trim()
-          : "the security monitor flagged this action as unsafe";
-        const remediation =
-          verdict.tier === "hard"
-            ? "This is a HARD block: it crosses a security boundary and cannot " +
-              "be cleared by user instruction. Do not retry; choose a safe " +
-              "alternative."
-            : "This is a SOFT block: it was flagged as destructive or " +
-              "high-reach. Do not retry the same call; if the user has " +
-              "explicitly and specifically authorized this exact action, " +
-              "surface that, otherwise propose a safer alternative.";
-        return {
-          error: "blocked_by_security_monitor",
-          message:
-            `The security monitor blocked \`${this.inner.name}\` ` +
-            `(tier: ${verdict.tier}, severity: ${verdict.severity}): ` +
-            `${reason}. ${remediation}`
-        };
-      }
-    }
-    return this.inner.process(context, params);
+    return run.invoke(capability.spec.name, params);
   }
 }
 
@@ -413,5 +341,5 @@ export function gateTools(
   tools: Tool[],
   options: PermissionGateOptions
 ): Tool[] {
-  return tools.map((tool) => new GatedTool(tool, options));
+  return tools.map((tool) => new GatedCapabilityTool(tool, options));
 }

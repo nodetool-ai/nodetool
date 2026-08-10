@@ -1,9 +1,11 @@
 /**
- * Gate parity: `CapabilityRun.invoke` and `GatedTool` must decide the same way.
+ * Gate parity: the two doors into the one ladder must decide the same way.
  *
- * PR 10 moves the gate out of the wrapper class and into `invoke`. Until then
- * both exist, and the risk is that they drift — a capability that quietly loses
- * its prompt, or gains one. So every assertion here runs twice: once through
+ * PR 10 moved the gate out of the wrapper class and into `invoke`, and
+ * `gateTools` became a shim that routes a `Tool` through it. So there is one
+ * implementation and two entrances, and the risk is that the shim loses
+ * something on the way in — a capability that quietly loses its prompt, or
+ * gains one. Every assertion here therefore runs twice: once through
  * `invoke`, once through `gateTools(toolFromCapability(...))`, over the same
  * capability, with the same scripted approver. The transcripts must be equal.
  *
@@ -17,6 +19,9 @@ import { describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createCapabilityRun } from "../src/capabilities/invoke.js";
 import { toolFromCapability } from "../src/capabilities/adapters.js";
+import { Tool } from "../src/tools/base-tool.js";
+import { TOOL_CALL_ID_FIELD } from "../src/tools/subtask-fields.js";
+import type { SandboxClock } from "../src/js-sandbox.js";
 import type {
   CapabilityExport,
   CapabilityGate,
@@ -333,5 +338,152 @@ describe("invoke lookup", () => {
     expect(transcript.prompts[0].message).toBe("Doing the thing");
     // The implementation still sees the raw args, as `Tool.process` does.
     expect(transcript.runs[0]).toEqual({ target: "x", _message: "Doing the thing" });
+  });
+});
+
+/** A clock that records every suspension, and whether one is open right now. */
+function recordingClock(): SandboxClock & {
+  events: string[];
+  suspended: () => boolean;
+} {
+  const events: string[] = [];
+  let depth = 0;
+  return {
+    events,
+    suspended: () => depth > 0,
+    suspend() {
+      depth++;
+      events.push("suspend");
+      let resumed = false;
+      return () => {
+        if (resumed) return;
+        resumed = true;
+        depth--;
+        events.push("resume");
+      };
+    },
+    suspendedMs: () => 0
+  };
+}
+
+describe("the gate suspends the sandbox clock", () => {
+  it("stops the clock for the length of an approval prompt", async () => {
+    const clock = recordingClock();
+    const runs: Record<string, unknown>[] = [];
+    const capability = makeCapability(CANARIES.write, "write", runs);
+    let suspendedDuringPrompt = false;
+    const run = createCapabilityRun({
+      context: ctx,
+      gate: {
+        mode: "default",
+        sessionAllow: new Set<string>(),
+        requestApproval: async () => {
+          suspendedDuringPrompt = clock.suspended();
+          return "allow";
+        },
+        clock
+      },
+      capabilities: [capability]
+    });
+
+    await run.invoke(CANARIES.write, {});
+    expect(suspendedDuringPrompt).toBe(true);
+    // Exactly one suspension, closed before the implementation ran.
+    expect(clock.events).toEqual(["suspend", "resume"]);
+    expect(clock.suspended()).toBe(false);
+    expect(runs).toHaveLength(1);
+  });
+
+  it("stops it for a monitor consult and leaves reads alone", async () => {
+    const clock = recordingClock();
+    const runs: Record<string, unknown>[] = [];
+    const gate: CapabilityGate = {
+      mode: "auto",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow",
+      securityMonitor: async () => ({
+        block: false,
+        tier: "soft" as const,
+        severity: "low" as const
+      }),
+      clock
+    };
+    const run = createCapabilityRun({
+      context: ctx,
+      gate,
+      capabilities: [
+        makeCapability(CANARIES.write, "write", runs),
+        makeCapability(CANARIES.read, "read", runs)
+      ]
+    });
+
+    await run.invoke(CANARIES.read, {});
+    expect(clock.events).toEqual([]);
+
+    await run.invoke(CANARIES.write, {});
+    expect(clock.events).toEqual(["suspend", "resume"]);
+  });
+
+  it("suspends the same way through the gateTools shim", async () => {
+    const clock = recordingClock();
+    const runs: Record<string, unknown>[] = [];
+    const capability = makeCapability(CANARIES.write, "write", runs);
+    const gate: CapabilityGate = {
+      mode: "default",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow",
+      clock
+    };
+    const tool = toolFromCapability(capability.spec, capability.impl, (context) =>
+      createCapabilityRun({ context, gate, capabilities: [capability] })
+    );
+    await gateTools([tool], gate)[0].process(ctx, {});
+    expect(clock.events).toEqual(["suspend", "resume"]);
+  });
+});
+
+/** A tool that needs the LLM's tool-call id, the way `run_subtask` does. */
+class NeedsToolCallIdTool extends Tool {
+  readonly name = "run_subtask";
+  readonly description = "canary";
+  override readonly needsToolCallId = true;
+  seen: Record<string, unknown> | null = null;
+  async process(
+    _context: ProcessingContext,
+    params: Record<string, unknown>
+  ): Promise<unknown> {
+    this.seen = params;
+    return { ok: true };
+  }
+}
+
+describe("the gateTools shim preserves the tool's own surface", () => {
+  it("threads _tool_call_id through to a needsToolCallId tool", async () => {
+    const inner = new NeedsToolCallIdTool();
+    const gated = gateTools([inner], {
+      mode: "default",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow"
+    })[0];
+
+    expect(gated.needsToolCallId).toBe(true);
+    await Tool.executeTool(gated, ctx, { _message: "hi" }, { toolCallId: "call_7" });
+    expect(inner.seen).toEqual({ [TOOL_CALL_ID_FIELD]: "call_7" });
+  });
+
+  it("forwards name, description, schema and the provider tool", () => {
+    const inner = new NeedsToolCallIdTool();
+    const gated = gateTools([inner], {
+      mode: "auto",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow"
+    })[0];
+
+    expect(gated.name).toBe(inner.name);
+    expect(gated.description).toBe(inner.description);
+    expect(gated.schema).toBe(inner.schema);
+    expect(gated.inputSchema).toEqual(inner.inputSchema);
+    expect(gated.toProviderTool()).toEqual(inner.toProviderTool());
+    expect(gated.userMessage({})).toBe(inner.userMessage({}));
   });
 });

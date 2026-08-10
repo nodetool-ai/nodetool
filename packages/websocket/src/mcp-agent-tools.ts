@@ -44,6 +44,8 @@ import {
   getAllMcpTools,
   getGoogleWorkspaceTools,
   permissionCategoryFor,
+  createCapabilityRun,
+  type CapabilityRun,
   NODETOOL_API_NAMESPACE_TOOLS
 } from "@nodetool-ai/agents";
 import { FileStorageAdapter, zodToJsonSchema } from "@nodetool-ai/runtime";
@@ -519,7 +521,7 @@ export function registerAgentMcpTools(
   server: McpServer,
   options: McpServerOptions,
   frontend: McpFrontendBridge
-): void {
+): CapabilityRun {
   // Every bridged tool runs against one user's secrets and assets, so a session
   // without an explicit user binding has no surface at all — a default user
   // here would cross the tenant boundary on any mount serving more than one
@@ -542,6 +544,29 @@ export function registerAgentMcpTools(
       providersPromise = loadConfiguredProviders(sharedProviders, scope.userId);
     return providersPromise;
   };
+
+  // MCP runs every call in `auto`: an MCP session has no approval UI to prompt
+  // through, so a gate that could ask would only deadlock. What bounds this
+  // surface is the session's user binding above, not a per-call question.
+  // Nothing consumes the run yet — the belt below is still what the sandbox
+  // calls, and PR 11 routes the guest through `run.invoke`.
+  const capabilityRun = createCapabilityRun({
+    context,
+    gate: {
+      mode: "auto",
+      sessionAllow: new Set<string>(),
+      requestApproval: async () => "allow"
+    },
+    nodeRegistry: options.registry,
+    ...mcpToolHostDeps({
+      registry: options.registry,
+      metadataRoots: options.metadataRoots,
+      metadataMaxDepth: options.metadataMaxDepth,
+      examplesDir: options.examplesDir
+    }),
+    providers: sharedProviders,
+    loaders: { timeline: loadTimelineForUser, sketch: loadSketchForUser }
+  });
 
   const workflowDocumentToolNames = new Set<string>(
     WORKFLOW_DOCUMENT_TOOL_NAMES
@@ -680,4 +705,6 @@ export function registerAgentMcpTools(
     registered: [session.providerTool.name, ...(viewImage ? ["view_image"] : [])],
     beltSize: belt.length
   });
+
+  return capabilityRun;
 }

@@ -1,15 +1,12 @@
 /**
  * `CapabilityRun.invoke` — the single choke point: lookup → gate → impl.
  *
- * Today the gate is a wrapper class applied where someone remembered
- * `gateTools`. With no `Tool.process` left to wrap it moves here, into the one
- * place lookup already happens, so a direct call and an in-sandbox call cannot
- * take different paths.
- *
- * This is new machinery running beside `GatedTool`, not a replacement for it —
- * the gate move itself lands in PR 10. What guarantees the two agree meanwhile
- * is `tests/capabilities-gate-parity.test.ts`, which drives the same calls
- * through both and compares transcripts.
+ * The gate used to be a wrapper class applied where someone remembered
+ * `gateTools`. It lives here now, in the one place lookup already happens, so a
+ * direct call and an in-sandbox call cannot take different paths. `gateTools`
+ * survives as a shim that routes a `Tool` through this ladder
+ * (`tools/tool-permissions.ts`); `tests/capabilities-gate-parity.test.ts`
+ * drives both entrances and compares transcripts.
  *
  * Design: docs/tool-class-retirement-design.md § "Where the permission gate
  * lives".
@@ -43,12 +40,11 @@ import type {
 } from "../tools/mcp-tools.js";
 
 /**
- * The gate a directly-constructed tool carries. The deprecated `Tool`
- * subclasses are gated from the outside — `gateTools` wraps them per turn,
- * exactly as before — and the adapter calls the implementation without
- * consulting the run's own gate, so this exists only to satisfy the run's
- * shape. `auto` keeps the two paths equivalent if anything ever reaches
- * {@link CapabilityRun.invoke} through one of them.
+ * The gate a directly-constructed tool carries. Those tools are gated from the
+ * outside — `gateTools` wraps them per turn — and the adapter calls the
+ * implementation without consulting the run's own gate, so this exists only to
+ * satisfy the run's shape. `auto` keeps the two paths equivalent if anything
+ * ever reaches {@link CapabilityRun.invoke} through one of them.
  */
 export const UNGATED: CapabilityGate = {
   mode: "auto",
@@ -128,10 +124,28 @@ export function createCapabilityRun(
 }
 
 /**
- * The decide/ask/block ladder, verbatim from `GatedTool.process`: the
- * read-class fast path first (a read is never prompted and never consulted by
- * the monitor, even when one is wired in), then the mode decision, then the
- * session allow-set, then the approval round trip.
+ * A host round trip the guest's budget must not pay for. An approval prompt is
+ * the user's wait, and a monitor consult is another model's; charged to the
+ * action's wall clock either one kills the very program that asked, and the
+ * answer then resolves nothing. Without a clock this is a plain call.
+ */
+async function offTheClock<T>(
+  gate: CapabilityGate,
+  work: () => Promise<T>
+): Promise<T> {
+  const resume = gate.clock?.suspend();
+  try {
+    return await work();
+  } finally {
+    resume?.();
+  }
+}
+
+/**
+ * The one decide/ask/block ladder: the read-class fast path first (a read is
+ * never prompted and never consulted by the monitor, even when one is wired
+ * in), then the mode decision, then the session allow-set, then the approval
+ * round trip.
  */
 async function gatedCall(
   run: CapabilityRun,
@@ -167,12 +181,14 @@ async function gatedCall(
     return runImpl(run, entry, args, category);
   }
 
-  const answer = await run.gate.requestApproval({
-    toolName: spec.name,
-    category,
-    args: Tool.stripMessage(args),
-    message: resolveCapabilityMessage(spec, args)
-  });
+  const answer = await offTheClock(run.gate, () =>
+    run.gate.requestApproval({
+      toolName: spec.name,
+      category,
+      args: Tool.stripMessage(args),
+      message: resolveCapabilityMessage(spec, args)
+    })
+  );
 
   if (answer === "deny") {
     return {
@@ -193,8 +209,8 @@ async function gatedCall(
 /**
  * The execution chokepoint for actionable (non-read) calls: the security
  * monitor is consulted here, after the mode/approval logic already said "run",
- * and a `block` verdict stops execution with the same structured error the
- * gate wrapper returns.
+ * and a `block` verdict stops execution with a structured error mirroring the
+ * block/deny paths above.
  */
 async function runImpl(
   run: CapabilityRun,
@@ -204,12 +220,14 @@ async function runImpl(
 ): Promise<unknown> {
   const consult = run.gate.securityMonitor;
   if (consult) {
-    const verdict = await consult({
-      name: entry.spec.name,
-      category,
-      args: Tool.stripMessage(args),
-      transcript: run.gate.recentTranscript?.()
-    });
+    const verdict = await offTheClock(run.gate, () =>
+      consult({
+        name: entry.spec.name,
+        category,
+        args: Tool.stripMessage(args),
+        transcript: run.gate.recentTranscript?.()
+      })
+    );
     if (verdict.block) {
       const reason = verdict.reason?.trim()
         ? verdict.reason.trim()

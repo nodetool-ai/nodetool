@@ -38,7 +38,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   // default classes the three judges and the taste pair `external`.
   compare_images: "external",
   create_workflow: "write",
-  critique_image: "external",,
+  critique_image: "external",
   edit_file: "write",
   glob: "read",
   grep: "read",
@@ -71,7 +71,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   google_sheets_append: "external",
   google_sheets_create: "external",
   google_sheets_read: "external",
-  google_sheets_update: "external"
+  google_sheets_update: "external",
   debug_workflow: "execute",
   edit_image: "write",
   embed_text: "write",
