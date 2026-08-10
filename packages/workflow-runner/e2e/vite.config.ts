@@ -1,4 +1,5 @@
 import { defineConfig, type Plugin } from "vite";
+import type { Plugin as EsbuildPlugin } from "esbuild";
 import { resolve } from "node:path";
 
 /**
@@ -34,12 +35,37 @@ const NODE_PROTOCOL_STUBS: Record<string, string> = {
   "node:http2": `${STUBS}/empty.js`,
   "node:perf_hooks": `${STUBS}/empty.js`,
   "node:vm": `${STUBS}/empty.js`,
-  "node:stream": `${STUBS}/empty.js`,
+  // Not empty: memfs — pulled in by the QuickJS sandbox behind the Code node —
+  // subclasses stream.Readable/Writable at module scope, and an undefined
+  // super constructor throws while the chunk evaluates.
+  "node:stream": `${STUBS}/stream-stub.js`,
   "node:util": `${STUBS}/empty.js`,
-  "node:buffer": `${STUBS}/empty.js`,
+  // Not empty either: the QuickJS wrapper touches Buffer at module load.
+  "node:buffer": `${STUBS}/buffer-stub.js`,
   "node:assert": `${STUBS}/empty.js`,
-  "node:process": `${STUBS}/empty.js`
+  "node:process": `${STUBS}/empty.js`,
+  "node:async_hooks": `${STUBS}/empty.js`,
+  "node:module": `${STUBS}/empty.js`
 };
+
+/**
+ * The esbuild counterpart of {@link stubNodeProtocolPlugin}, for Vite's
+ * dependency pre-bundle. That pass is a separate esbuild run whose resolution
+ * does not go through `resolve.alias` or the `resolveId` hooks below, so
+ * `@sebastianwessel/quickjs` would otherwise get its `node:buffer` import
+ * externalized and throw the moment it touches `Buffer` at module load.
+ */
+function stubNodeBuiltinsEsbuildPlugin(): EsbuildPlugin {
+  return {
+    name: "stub-node-builtins-esbuild",
+    setup(build) {
+      build.onResolve({ filter: /^node:/ }, (args) => {
+        const stub = NODE_PROTOCOL_STUBS[args.path];
+        return stub ? { path: stub } : undefined;
+      });
+    }
+  };
+}
 
 /**
  * Vite's built-in `resolve.alias` doesn't intercept `node:*` protocol
@@ -87,11 +113,13 @@ export default defineConfig({
       { find: "node:http2", replacement: `${STUBS}/empty.js` },
       { find: "node:perf_hooks", replacement: `${STUBS}/empty.js` },
       { find: "node:vm", replacement: `${STUBS}/empty.js` },
-      { find: "node:stream", replacement: `${STUBS}/empty.js` },
+      { find: "node:stream", replacement: `${STUBS}/stream-stub.js` },
       { find: "node:util", replacement: `${STUBS}/empty.js` },
-      { find: "node:buffer", replacement: `${STUBS}/empty.js` },
+      { find: "node:buffer", replacement: `${STUBS}/buffer-stub.js` },
       { find: "node:assert", replacement: `${STUBS}/empty.js` },
-      { find: "node:process", replacement: `${STUBS}/empty.js` }
+      { find: "node:process", replacement: `${STUBS}/empty.js` },
+      { find: "node:async_hooks", replacement: `${STUBS}/empty.js` },
+      { find: "node:module", replacement: `${STUBS}/empty.js` }
     ]
   },
   esbuild: {
@@ -103,6 +131,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
+    esbuildOptions: { plugins: [stubNodeBuiltinsEsbuildPlugin()] },
     exclude: [
       "@nodetool-ai/base-nodes",
       "@nodetool-ai/core-nodes",
@@ -113,7 +142,8 @@ export default defineConfig({
       "@nodetool-ai/protocol",
       "@nodetool-ai/agents",
       "@nodetool-ai/config",
-      "@nodetool-ai/models"
+      "@nodetool-ai/models",
+      "@nodetool-ai/code-nodes"
     ]
   },
   server: {

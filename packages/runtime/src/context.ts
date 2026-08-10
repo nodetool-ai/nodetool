@@ -159,6 +159,10 @@ import {
   type SandboxModuleCatalog
 } from "./sandbox-module-catalog.js";
 
+// Re-exported from the narrow `/context` subpath so a browser client can type
+// its own catalog without importing the package root (providers, tracing).
+export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
+
 // ---------------------------------------------------------------------------
 // Cache interface
 // ---------------------------------------------------------------------------
