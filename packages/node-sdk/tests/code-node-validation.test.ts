@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { validateCodeNodeBody } from "../src/code-node-validation.js";
 import { collectBoundNames, freeIdentifiers, parseCodeBody } from "../src/code-analysis.js";
+import type { SandboxModuleStatus } from "@nodetool-ai/protocol";
+import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 /** Codes of the issues a body produces, for terse assertions. */
 function codes(
@@ -219,5 +221,158 @@ describe("code AST helpers", () => {
     const parsed = parseCodeBody("return { key: obj.prop };");
     if ("error" in parsed) throw new Error(parsed.error);
     expect(freeIdentifiers(parsed.statements)).toEqual(["obj"]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Sandbox package declarations
+// ---------------------------------------------------------------------------
+
+/** A catalog that resolves one specifier and reports drift for another. */
+function fakeCatalog(): SandboxModuleCatalog {
+  return {
+    summaries: () => [],
+    diagnostics: () => [],
+    resolveForExecution: (declarations) => {
+      const statuses: SandboxModuleStatus[] = [];
+      for (const declaration of declarations) {
+        if (declaration.specifier !== "@acme/geo") {
+          statuses.push({
+            packName: "@acme/nodetool-missing",
+            specifier: declaration.specifier,
+            status: "error",
+            code: "module-not-found",
+            message: `Sandbox module ${declaration.specifier} is not installed.`
+          });
+          continue;
+        }
+        if (declaration.resolvedPackVersion !== undefined) {
+          statuses.push({
+            packName: "@acme/nodetool-geo",
+            specifier: declaration.specifier,
+            status: "warning",
+            code: "version-mismatch",
+            message: `Sandbox module ${declaration.specifier} was saved with pack version 1.0.0.`
+          });
+        }
+      }
+      return { modules: [], statuses };
+    }
+  };
+}
+
+const withPackages = (
+  code: string,
+  specifiers: string[],
+  extra: Partial<Parameters<typeof validateCodeNodeBody>[0]> = {}
+) => ({
+  ...body(code, [], ["out"]),
+  declaredPackages: specifiers.map((specifier) => ({ specifier })),
+  ...extra
+});
+
+describe("validateCodeNodeBody — sandbox packages", () => {
+  it("accepts an import of a declared specifier and binds its names", () => {
+    expect(
+      validateCodeNodeBody(
+        withPackages(
+          'import { haversine } from "@acme/geo";\nreturn { out: haversine(1, 2) };',
+          ["@acme/geo"]
+        )
+      )
+    ).toEqual([]);
+  });
+
+  it("rejects an import the node does not declare", () => {
+    const issues = validateCodeNodeBody(
+      withPackages('import { x } from "@other/pack";\nreturn { out: x };', [
+        "@acme/geo"
+      ])
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain('"@other/pack"');
+    expect(issue?.message).toContain("`packages`");
+  });
+
+  it("rejects an import when the node declares nothing at all", () => {
+    expect(
+      codes(body('import fs from "fs";\nreturn { out: 1 };', [], ["out"]))
+    ).toContain("code_module");
+  });
+
+  it("rejects require() and does not also call it an invented name", () => {
+    const issues = validateCodeNodeBody(
+      withPackages('const geo = require("@acme/geo");\nreturn { out: geo };', [
+        "@acme/geo"
+      ])
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.message).toContain("require()");
+    expect(issues.some((i) => i.code === "code_undefined_name")).toBe(false);
+  });
+
+  it("rejects a dynamic import()", () => {
+    const issues = validateCodeNodeBody(
+      withPackages(
+        'const geo = await import("@acme/geo");\nreturn { out: geo };',
+        ["@acme/geo"]
+      )
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("import()");
+  });
+
+  it("warns about a declaration the code never imports", () => {
+    const issues = validateCodeNodeBody(
+      withPackages("return { out: 1 };", ["@acme/geo"])
+    );
+    expect(issues.map((i) => i.code)).toEqual(["code_unused_package"]);
+    expect(issues[0].severity).toBe("warning");
+    expect(issues[0].message).toContain('"@acme/geo"');
+  });
+
+  it("still rejects a top-level export", () => {
+    const issues = validateCodeNodeBody(
+      body("export const x = 1;\nreturn { out: x };", [], ["out"])
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.message).toContain("`export`");
+  });
+
+  it("reports a specifier the catalog cannot resolve", () => {
+    const issues = validateCodeNodeBody(
+      withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
+        "@nope/pack"
+      ], { sandboxModuleCatalog: fakeCatalog() })
+    );
+    const issue = issues.find((i) => i.code === "code_package_unavailable");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("@nope/pack");
+    expect(issue?.message).toContain("@acme/nodetool-missing");
+  });
+
+  it("warns when the installed pack version moved", () => {
+    const issues = validateCodeNodeBody({
+      ...body('import { h } from "@acme/geo";\nreturn { out: h };', [], ["out"]),
+      declaredPackages: [
+        { specifier: "@acme/geo", resolvedPackVersion: "1.0.0" }
+      ],
+      sandboxModuleCatalog: fakeCatalog()
+    });
+    const issue = issues.find((i) => i.code === "code_package_mismatch");
+    expect(issue?.severity).toBe("warning");
+    expect(issue?.message).toContain("@acme/nodetool-geo");
+  });
+
+  it("checks nothing against a catalog when none is given", () => {
+    expect(
+      validateCodeNodeBody(
+        withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
+          "@nope/pack"
+        ])
+      )
+    ).toEqual([]);
   });
 });

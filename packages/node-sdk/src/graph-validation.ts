@@ -11,7 +11,12 @@
  * so it can be unit-tested with a fake and reused by the CLI and agent tools.
  */
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
+import {
+  getProcessSandboxModuleCatalog,
+  type SandboxModuleCatalog
+} from "@nodetool-ai/runtime";
 import { isJsCodeNodeType, validateCodeNodeBody } from "./code-node-validation.js";
+import { parseSandboxModuleDeclarations } from "./sandbox-module-declarations.js";
 import type { NodeMetadata } from "./metadata.js";
 import { portTypeAliases } from "./port-types.js";
 import {
@@ -564,10 +569,24 @@ export function collectModelSelectionIssues(
   return issues;
 }
 
+export interface GraphValidationOptions {
+  /**
+   * Catalog the Code nodes' `packages` declarations resolve against. Defaults
+   * to the process-wide catalog the host installed; pass `null` to check the
+   * graph without one (a browser client, a test).
+   */
+  sandboxModuleCatalog?: SandboxModuleCatalog | null;
+}
+
 export function validateGraph(
   graph: GraphValidationInput,
-  registry: GraphValidationRegistry
+  registry: GraphValidationRegistry,
+  options: GraphValidationOptions = {}
 ): GraphValidationReport {
+  const sandboxModuleCatalog =
+    options.sandboxModuleCatalog !== undefined
+      ? options.sandboxModuleCatalog
+      : getProcessSandboxModuleCatalog();
   const issues: GraphValidationIssue[] = [];
   const nodes = graph.nodes ?? [];
   const edges = graph.edges ?? [];
@@ -712,13 +731,29 @@ export function validateGraph(
         ...Object.keys(readDynamicProperties(node)),
         ...(connectedByNode.get(id) ?? [])
       ]);
+      const { declarations, invalid } = parseSandboxModuleDeclarations(
+        props.packages
+      );
+      for (const entry of invalid) {
+        issues.push({
+          severity: "error",
+          code: "code_module",
+          nodeId: id,
+          nodeType: type,
+          message:
+            `Node "${id}": the \`packages\` entry ${entry} is not a sandbox module ` +
+            "declaration — each entry is a specifier, or an object with a `specifier`."
+        });
+      }
       for (const codeIssue of validateCodeNodeBody({
         code: props.code,
         availableInputs: [...availableInputs].filter(
           (name) => !isReservedHandle(name)
         ),
         declaredOutputs: Object.keys(readDynamicOutputs(node)),
-        connectedOutputs: [...(consumedByNode.get(id) ?? [])]
+        connectedOutputs: [...(consumedByNode.get(id) ?? [])],
+        declaredPackages: declarations,
+        sandboxModuleCatalog
       })) {
         issues.push({
           severity: codeIssue.severity,

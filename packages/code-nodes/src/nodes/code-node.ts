@@ -25,7 +25,13 @@
  *   // outputs: { sum: 15, upper: "HELLO" }
  */
 
-import { BaseNode, prop, CODE_INPUTS_GLOBAL, NodeRegistry } from "@nodetool-ai/node-sdk";
+import {
+  BaseNode,
+  prop,
+  CODE_INPUTS_GLOBAL,
+  NodeRegistry,
+  parseSandboxModuleDeclarations
+} from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   runInSandbox,
@@ -34,7 +40,7 @@ import {
   type SandboxLimits
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
-import { ALL_PLATFORMS } from "@nodetool-ai/protocol";
+import { ALL_PLATFORMS, type SandboxModuleResolution } from "@nodetool-ai/protocol";
 
 /** JS keywords that cannot be used as variable names. */
 const JS_RESERVED = new Set([
@@ -253,6 +259,18 @@ export class CodeNode extends BaseNode {
   declare code: string;
 
   @prop({
+    type: "list[dict]",
+    default: [],
+    title: "Packages",
+    description:
+      "Sandbox packages this code may import, as specifiers or " +
+      '{specifier, resolvedPackVersion, contentDigest} objects — e.g. ["@acme/geo"]. ' +
+      "The sandbox resolves only what is listed here; every other `import` fails, " +
+      "and dynamic `import()`/`require()` are never available."
+  })
+  declare packages: unknown[];
+
+  @prop({
     type: "int",
     default: 30,
     title: "Timeout",
@@ -337,6 +355,73 @@ export class CodeNode extends BaseNode {
     };
   }
 
+  /**
+   * Resolve the node's `packages` declarations through the host's catalog.
+   *
+   * Nothing declared means nothing importable: no resolution is built and the
+   * sandbox installs no loader at all. A declaration that cannot be served —
+   * no catalog in this process, an uninstalled pack, a module the host refused
+   * — fails the node here rather than as a resolve error inside the guest.
+   * Version and digest drift only warn: resolution uses what is installed, and
+   * saying so on the node's log is the whole remedy.
+   */
+  private resolveModules(
+    context?: ProcessingContext
+  ): SandboxModuleResolution | undefined {
+    const { declarations, invalid } = parseSandboxModuleDeclarations(
+      this.packages
+    );
+    if (invalid.length > 0) {
+      throw new Error(
+        `Invalid \`packages\` declaration${invalid.length > 1 ? "s" : ""}: ${invalid.join(", ")}. ` +
+          "Each entry is a module specifier, or an object with a `specifier`."
+      );
+    }
+    if (declarations.length === 0) return undefined;
+
+    const catalog = context?.sandboxModuleCatalog;
+    if (!catalog) {
+      throw new Error(
+        `Sandbox packages are not available in this process, so ${declarations
+          .map((declaration) => `"${declaration.specifier}"`)
+          .join(", ")} cannot be imported.`
+      );
+    }
+
+    const resolution = catalog.resolveForExecution(declarations);
+    const errors = resolution.statuses.filter(
+      (status) => status.status === "error"
+    );
+    if (errors.length > 0) {
+      throw new Error(
+        errors
+          .map((status) => `${status.message} (pack "${status.packName}")`)
+          .join(" ")
+      );
+    }
+    for (const status of resolution.statuses) {
+      if (status.status !== "warning") continue;
+      this.logWarning(context, `${status.message} (pack "${status.packName}")`);
+    }
+    return resolution;
+  }
+
+  /** Post a warning on the node's log channel, where the run has one. */
+  private logWarning(
+    context: ProcessingContext | undefined,
+    content: string
+  ): void {
+    if (!context || !this.__node_id) return;
+    context.postMessage({
+      type: "log_update",
+      node_id: this.__node_id,
+      node_name: CodeNode.title,
+      content,
+      severity: "warning",
+      workflow_id: context.workflowId
+    });
+  }
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
     const timeout = Number(this.timeout ?? 30);
@@ -369,7 +454,8 @@ export class CodeNode extends BaseNode {
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
       globals,
       limits: this.sandboxLimits(),
-      onProgress: this.progressSink(context)
+      onProgress: this.progressSink(context),
+      modules: this.resolveModules(context)
     });
 
     if (!sandboxResult.success) {
@@ -423,7 +509,8 @@ export class CodeNode extends BaseNode {
       timeoutMs: timeout > 0 ? timeout * 1000 : undefined,
       globals,
       limits: this.sandboxLimits(),
-      onProgress: this.progressSink(context)
+      onProgress: this.progressSink(context),
+      modules: this.resolveModules(context)
     });
 
     if (!sandboxResult.success) {
@@ -451,6 +538,7 @@ function extractDynamicInputs(
 ): Record<string, unknown> {
   const reserved = new Set([
     "code",
+    "packages",
     "timeout",
     "max_response_mb",
     "allow_local_network",

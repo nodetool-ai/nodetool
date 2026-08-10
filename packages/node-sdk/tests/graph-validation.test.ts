@@ -7,6 +7,10 @@ import {
 } from "../src/graph-validation.js";
 import type { NodeMetadata } from "../src/metadata.js";
 import type { NodePropertyValidationIssue } from "../src/validation.js";
+import {
+  setProcessSandboxModuleCatalog,
+  type SandboxModuleCatalog
+} from "@nodetool-ai/runtime";
 
 /** Minimal metadata factory for a node type with given inputs/outputs. */
 function meta(
@@ -1243,5 +1247,121 @@ describe("validateGraph — node/edge shape", () => {
     );
     expect(report.issues.filter((i) => i.code === "property")).toHaveLength(1);
     expect(report.issues.filter((i) => i.code === "duplicate_id")).toHaveLength(1);
+  });
+});
+
+describe("Code node sandbox packages", () => {
+  const CODE = "nodetool.code.Code";
+  const registry = fakeRegistry({
+    [CODE]: meta(CODE, { code: "str", packages: "list" }, {}, {
+      supports_dynamic_inputs: true,
+      supports_dynamic_outputs: true
+    } as Partial<NodeMetadata>)
+  });
+
+  const catalog: SandboxModuleCatalog = {
+    summaries: () => [],
+    diagnostics: () => [],
+    resolveForExecution: (declarations) => ({
+      modules: [],
+      statuses: declarations
+        .filter((declaration) => declaration.specifier !== "@acme/geo")
+        .map((declaration) => ({
+          packName: "@acme/nodetool-missing",
+          specifier: declaration.specifier,
+          status: "error" as const,
+          code: "module-not-found",
+          message: `Sandbox module ${declaration.specifier} is not installed.`
+        }))
+    })
+  };
+
+  const graph = (properties: Record<string, unknown>) => ({
+    nodes: [
+      {
+        id: "c",
+        type: CODE,
+        properties,
+        dynamic_outputs: { out: { type: "str" } }
+      }
+    ],
+    edges: []
+  });
+
+  const code = 'import { haversine } from "@acme/geo";\nreturn { out: haversine(1, 2) };';
+
+  it("accepts an import declared in the packages property", () => {
+    const report = validateGraph(
+      graph({ code, packages: [{ specifier: "@acme/geo" }] }),
+      registry,
+      { sandboxModuleCatalog: catalog }
+    );
+    expect(report.issues).toEqual([]);
+  });
+
+  it("accepts a bare specifier string as a declaration", () => {
+    const report = validateGraph(
+      graph({ code, packages: ["@acme/geo"] }),
+      registry,
+      { sandboxModuleCatalog: null }
+    );
+    expect(report.issues).toEqual([]);
+  });
+
+  it("reports an import the node does not declare", () => {
+    const report = validateGraph(
+      graph({ code, packages: [] }),
+      registry,
+      { sandboxModuleCatalog: catalog }
+    );
+    const issue = report.issues.find((i) => i.code === "code_module");
+    expect(issue?.nodeId).toBe("c");
+    expect(issue?.message).toContain('"@acme/geo"');
+  });
+
+  it("reports a specifier the catalog does not have", () => {
+    const report = validateGraph(
+      graph({
+        code: 'import { x } from "@nope/pack";\nreturn { out: x };',
+        packages: ["@nope/pack"]
+      }),
+      registry,
+      { sandboxModuleCatalog: catalog }
+    );
+    const issue = report.issues.find(
+      (i) => i.code === "code_package_unavailable"
+    );
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("@acme/nodetool-missing");
+  });
+
+  it("reports an entry that is not a declaration", () => {
+    const report = validateGraph(
+      graph({ code, packages: [{ nope: 1 }] }),
+      registry,
+      { sandboxModuleCatalog: null }
+    );
+    const issue = report.issues.find(
+      (i) => i.code === "code_module" && i.message.includes("not a sandbox module")
+    );
+    expect(issue?.severity).toBe("error");
+  });
+
+  it("falls back to the process catalog when the caller passes none", () => {
+    setProcessSandboxModuleCatalog(catalog);
+    try {
+      const report = validateGraph(
+        graph({
+          code: 'import { x } from "@nope/pack";\nreturn { out: x };',
+          packages: ["@nope/pack"]
+        }),
+        registry
+      );
+      expect(
+        report.issues.some((i) => i.code === "code_package_unavailable")
+      ).toBe(true);
+    } finally {
+      setProcessSandboxModuleCatalog(null);
+    }
   });
 });
