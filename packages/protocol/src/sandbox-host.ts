@@ -56,8 +56,19 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     id: "html",
     packName: "@nodetool-ai/sandbox-html",
     library: "cheerio + turndown",
-    description: "CSS selection over HTML, and HTML to markdown.",
-    exports: ["select", "toMarkdown"]
+    description:
+      "CSS selection over HTML, HTML to markdown/text, and link/media/metadata extraction.",
+    exports: [
+      "select",
+      "toMarkdown",
+      "toText",
+      "extractLinks",
+      "extractImages",
+      "extractAudio",
+      "extractVideos",
+      "extractMetadata",
+      "extractReadableText"
+    ]
   },
   xml: {
     id: "xml",

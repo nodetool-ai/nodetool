@@ -3,7 +3,6 @@ import {
   RegexSplitNode,
   RegexValidateNode,
   PromptNode,
-  HtmlToTextNode,
   SliceTextNode,
   ToStringNode,
   IndexOfTextNode,
@@ -148,42 +147,6 @@ describe("text-extra regressions", () => {
       });
       const result = await node.process();
       expect(result.output).toBe("price: $100, code: a$&b$$c");
-    });
-  });
-
-  // 4. HtmlToText
-  describe("HtmlToTextNode", () => {
-    it("converts headers to markdown-style", async () => {
-      const node = new HtmlToTextNode();
-      node.assign({ html: "<h1>Title</h1><p>Text</p>" });
-      const result = await node.process();
-      const output = String(result.output);
-      expect(output).toContain("# Title");
-      expect(output).toContain("Text");
-    });
-
-    it("converts links to text with URL in parens when base_url set", async () => {
-      const node = new HtmlToTextNode();
-      node.assign({
-        html: "<a href='http://x.com'>link</a>",
-        base_url: "http://example.com"
-      });
-      const result = await node.process();
-      const output = String(result.output);
-      expect(output).toContain("link");
-      expect(output).toContain("(http://x.com)");
-    });
-
-    it("handles combined HTML with headers, paragraphs, and links", async () => {
-      const node = new HtmlToTextNode();
-      node.assign({
-        html: "<h1>Title</h1><p>Text</p><a href='http://x.com'>link</a>",
-        base_url: "http://example.com"
-      });
-      const result = await node.process();
-      const output = String(result.output);
-      expect(output).toContain("# Title");
-      expect(output).toContain("link (http://x.com)");
     });
   });
 

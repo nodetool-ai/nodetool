@@ -427,6 +427,73 @@ describe("@nodetool-ai/sandbox-html", () => {
     expect(md).toContain("[docs](https://x.test)");
     expect(md).toMatch(/-\s+one/);
   });
+
+  it("converts a page to plain text", async () => {
+    const result = await run(
+      `import { toText } from "@nodetool-ai/sandbox-html";
+       const html = "<style>p{color:red}</style><p>Hello <b>world</b></p>";
+       return await toText(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Hello world");
+  });
+
+  it("extracts links, classifying internal vs external", async () => {
+    const result = await run(
+      `import { extractLinks } from "@nodetool-ai/sandbox-html";
+       const html = '<a href="/about">About</a><a href="https://other.test">Other</a>';
+       return await extractLinks(html, "https://x.test");`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([
+      { href: "/about", text: "About", type: "internal" },
+      { href: "https://other.test", text: "Other", type: "external" }
+    ]);
+  });
+
+  it("extracts images, audio, and videos with resolved URLs", async () => {
+    const result = await run(
+      `import { extractImages, extractAudio, extractVideos } from "@nodetool-ai/sandbox-html";
+       const html = '<img src="/a.png"><audio src="/a.mp3"></audio>' +
+         '<video><source src="/v.mp4"></video>';
+       return {
+         images: await extractImages(html, "https://x.test"),
+         audio: await extractAudio(html, "https://x.test"),
+         videos: await extractVideos(html, "https://x.test")
+       };`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      images: ["https://x.test/a.png"],
+      audio: ["https://x.test/a.mp3"],
+      videos: ["https://x.test/v.mp4"]
+    });
+  });
+
+  it("extracts title, description, and keywords", async () => {
+    const result = await run(
+      `import { extractMetadata } from "@nodetool-ai/sandbox-html";
+       const html = '<title>Hi</title><meta name="description" content="d">';
+       return await extractMetadata(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ title: "Hi", description: "d", keywords: null });
+  });
+
+  it("extracts the page's readable content", async () => {
+    const result = await run(
+      `import { extractReadableText } from "@nodetool-ai/sandbox-html";
+       const html = "<nav>Menu</nav><article>Main text</article><footer>F</footer>";
+       return await extractReadableText(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Main text");
+  });
 });
 
 // ---------------------------------------------------------------------------

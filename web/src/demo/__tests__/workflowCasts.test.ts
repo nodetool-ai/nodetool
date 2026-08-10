@@ -40,7 +40,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "lib.image.color_grading.Exposure",
   "lib.image.color_grading.SaturationVibrance",
   "nodetool.code.Code",
-  "lib.markdown.ExtractLinks",
   "nodetool.data.Filter",
   "nodetool.control.ForEach",
   "nodetool.control.Collect",

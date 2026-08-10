@@ -102,45 +102,6 @@ describe("text_regex_parse_cli", () => {
   });
 });
 
-describe("markdown_extract_cli", () => {
-  it("pulls headers, lists, code blocks and tables out of one document", async () => {
-    const out = await run("markdown_extract_cli.json");
-
-    expect(out["headers"]).toEqual([
-      [
-        { level: 1, text: "Release Notes", index: 0 },
-        { level: 2, text: "Added", index: 1 },
-        { level: 2, text: "Steps", index: 2 }
-      ]
-    ]);
-    // max_level is a ceiling, so the same document yields only the h1.
-    expect(out["headers_h1"]).toEqual([
-      [{ level: 1, text: "Release Notes", index: 0 }]
-    ]);
-
-    // Lists nest one level: a list *per list block* in the document.
-    expect(out["bullets"]).toEqual([
-      [[{ text: "trigger examples" }, { text: "an executing test" }]]
-    ]);
-    expect(out["numbered"]).toEqual([
-      [["build the packages", "run the suite"]]
-    ]);
-
-    expect(out["code_blocks"]).toEqual([
-      [{ language: "bash", code: "npm run test" }]
-    ]);
-
-    expect(out["tables"]).toEqual([
-      {
-        rows: [
-          { node: "Concat", covered: "yes" },
-          { node: "Chunk", covered: "no" }
-        ]
-      }
-    ]);
-  });
-});
-
 describe("validate_strings_cli", () => {
   it("classifies emails, URLs and IPs, and sanitizes untrusted text", async () => {
     const out = await run("validate_strings_cli.json");
@@ -231,76 +192,6 @@ describe("datetime_cli", () => {
     const [epoch] = out["now_epoch_ms"] as number[];
     expect(typeof epoch).toBe("number");
     expect(epoch).toBeGreaterThan(1_700_000_000_000);
-  });
-});
-
-describe("html_extract_cli", () => {
-  it("extracts metadata, links and media from one HTML document", async () => {
-    const out = await run("html_extract_cli.json");
-
-    expect(out["title"]).toEqual(["NodeTool Docs"]);
-    expect(out["description"]).toEqual(["Visual AI workflows"]);
-    expect(out["keywords"]).toEqual(["workflow, nodes, ai"]);
-
-    // href stays relative; base_url is used to classify internal vs external,
-    // not to rewrite the link.
-    expect(out["links"]).toEqual([
-      [
-        { href: "/workflows", text: "workflow guide", type: "internal" },
-        {
-          href: "https://github.com/nodetool-ai/nodetool",
-          text: "source",
-          type: "external"
-        }
-      ]
-    ]);
-
-    // Media refs are the opposite: base_url *is* applied, and each comes back
-    // as a typed asset ref rather than a bare string.
-    expect(out["images"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/img/editor.png", type: "image" }]
-    ]);
-    expect(out["videos"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/media/tour.mp4", type: "video" }]
-    ]);
-    expect(out["audios"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/media/intro.mp3", type: "audio" }]
-    ]);
-
-    expect(out["text"]).toEqual([
-      "DOCS\n\nStart with the workflow guide [/workflows] or the source " +
-        "[https://github.com/nodetool-ai/nodetool].\n\neditor [/img/editor.png]"
-    ]);
-
-    // BaseUrl drops the path, query and fragment.
-    expect(out["base_url"]).toEqual(["https://docs.nodetool.ai"]);
-  });
-});
-
-describe("dataframe_query_cli", () => {
-  it("queries a dataframe parsed out of a markdown table", async () => {
-    const out = await run("dataframe_query_cli.json");
-
-    // Markdown cells arrive as strings — including the numeric column.
-    expect(out["table"]).toEqual([
-      {
-        rows: [
-          { node: "Concat", runs: "12", status: "ok" },
-          { node: "Chunk", runs: "48", status: "ok" },
-          { node: "Pivot", runs: "3", status: "failed" }
-        ]
-      }
-    ]);
-
-    expect(out["first_failed"]).toEqual([
-      { rows: [{ node: "Pivot", runs: "3", status: "failed" }] }
-    ]);
-
-    // `runs > 20` still compares numerically against those strings, so it
-    // picks 48 and not the lexicographically larger "3".
-    expect(out["first_busy"]).toEqual([
-      { rows: [{ node: "Chunk", runs: "48", status: "ok" }] }
-    ]);
   });
 });
 

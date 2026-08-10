@@ -28,7 +28,17 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   },
   html: async () => {
     const mod = await import("./html.js");
-    return { select: mod.select, toMarkdown: mod.toMarkdown };
+    return {
+      select: mod.select,
+      toMarkdown: mod.toMarkdown,
+      toText: mod.toText,
+      extractLinks: mod.extractLinks,
+      extractImages: mod.extractImages,
+      extractAudio: mod.extractAudio,
+      extractVideos: mod.extractVideos,
+      extractMetadata: mod.extractMetadata,
+      extractReadableText: mod.extractReadableText
+    };
   },
   xml: async () => {
     const mod = await import("./xml.js");
