@@ -49,12 +49,12 @@ Press `↑`/`↓` to navigate input history, `Tab` to complete, and `Esc` or `Ct
 
 ## Tools
 
-The assistant runs with a set of enabled tools (file operations, web search, browser, code execution, NodeTool MCP
+The assistant runs with a set of enabled tools (file operations, web search, browser, NodeTool MCP
 tools, and more). Tools are auto-enabled based on the API keys available in your environment or the encrypted secret
 store. Use `--tools` to override the set explicitly, or `/tools` to see what is currently enabled.
 
 ```bash
-nodetool chat --tools read_file,write_file,grep,run_code
+nodetool chat --tools read_file,write_file,grep,web_search
 ```
 
 ## Workspace

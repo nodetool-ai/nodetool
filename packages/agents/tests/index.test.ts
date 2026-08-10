@@ -16,7 +16,6 @@ describe("agents index exports", () => {
     expect(mod.ListDirectoryTool).toBeDefined();
     expect(mod.DownloadFileTool).toBeDefined();
     expect(mod.HttpRequestTool).toBeDefined();
-    expect(mod.RunCodeTool).toBeDefined();
     expect(mod.WebSearchTool).toBeDefined();
     expect(mod.GoogleNewsTool).toBeDefined();
     expect(mod.GoogleImagesTool).toBeDefined();

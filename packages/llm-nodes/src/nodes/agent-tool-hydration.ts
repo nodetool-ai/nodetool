@@ -29,7 +29,6 @@ import {
   OpenAIImageGenerationTool,
   OpenAITextToSpeechTool,
   OpenAIWebSearchTool,
-  RunCodeTool,
   ScreenshotTool,
   SearchEmailTool,
   Tool
@@ -54,7 +53,6 @@ const STATIC_TOOL_CLASSES: ToolCtor[] = [
   BrowserTool,
   ScreenshotTool,
   HttpRequestTool,
-  RunCodeTool,
   SearchEmailTool,
   DataForSEOSearchTool,
   DataForSEONewsTool,

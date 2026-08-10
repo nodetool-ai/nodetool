@@ -129,10 +129,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // plan_workflow_graph only builds and returns a graph — saving it goes
   // through the gated `create_workflow`.
   plan_workflow_graph: "read",
-  // plan_orchestration_script runs its script in the QuickJS sandbox; the
-  // sub-agents it spawns get the gated parent toolset, so every side effect
-  // is still approved at the individual tool call.
-  plan_orchestration_script: "read",
   // run_search spawns a read-only child loop (read_file/glob/grep/
   // list_directory/memory_read only); the call itself has no side effects, so
   // it always runs ungated.
@@ -204,8 +200,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   build_app: "execute",
   debug_app: "execute",
   start_background_job: "execute",
-  run_code: "execute",
-  js: "execute",
 
   // --- external: third-party side effects ---
   browser: "external",

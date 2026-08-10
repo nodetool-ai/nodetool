@@ -72,7 +72,7 @@ For the full API reference, tool schemas, propagation flow, design decisions, an
 Reader-facing reference for this whole section:
 [docs/javascript-sandbox.md](../../docs/javascript-sandbox.md).
 
-User-authored JS from `MiniJSAgentTool` and `nodetool.code.Code` runs in a
+User-authored JS from a CodeAct action and `nodetool.code.Code` runs in a
 **QuickJS WebAssembly sandbox** via `@sebastianwessel/quickjs`. The guest lives
 in its own WASM heap, so runaway or malicious code can't corrupt the host V8
 heap the way it could under the previous `node:vm` implementation.
@@ -635,15 +635,14 @@ const agent = new Agent({
 
 ### One policy per run (`agent-policy.ts`)
 
-`Agent` resolves `maxSteps`, `maxStepIterations`, `maxTokens`,
-`maxConcurrentAgents` and `maxAgentCalls` into a single `AgentPolicy`
-(`resolveAgentPolicy`, defaults in `DEFAULT_AGENT_POLICY`) and hands the same
-object to every mode — single task, multi-task plan, script, graph. A knob
-therefore means the same thing everywhere: `maxTokens` reaches the script and
-graph runners, `maxSteps` bounds multi-task runs, and task/fan-out dispatch is
-capped by the same semaphore script mode has always had
+`Agent` resolves `maxSteps`, `maxStepIterations`, `maxTokens` and
+`maxConcurrentAgents` into a single `AgentPolicy` (`resolveAgentPolicy`,
+defaults in `DEFAULT_AGENT_POLICY`) and hands the same object to every mode —
+single task, multi-task plan, graph. A knob therefore means the same thing
+everywhere: `maxTokens` reaches the graph runner, `maxSteps` bounds multi-task
+runs, and task/fan-out dispatch is capped by one semaphore
 (`utils/merge-generators.ts`). The plan-approval gate is likewise a property of
-the run, not of the planning mode: script and graph artifacts go through it too.
+the run, not of the planning mode: a planned graph goes through it too.
 
 ### Step failure is terminal, not completion
 
@@ -693,8 +692,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   prompt and discovered in-sandbox with `await searchTools("query")`
   (ToolSearch grammar). All tools stay callable either way.
 - Every step executor is one: `TaskExecutor`, `ParallelTaskExecutor`,
-  `ScriptRunner`'s `agent()` sub-agents, `run_subtask`, and `run_search` all
-  construct `CodeActExecutor`. `StepExecutor` — the older one-JSON-tool-call
+  `run_subtask`, and `run_search` all construct `CodeActExecutor`. `StepExecutor` — the older one-JSON-tool-call
   loop — is no longer exported; two callers keep it because they are one-shot
   structured verdicts on a fail-closed path where a sandbox error would only
   add a failure mode: `SupervisorAgent` and the app-build spec stage.
@@ -759,8 +757,10 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   steers there.
 - The belt carries only what a model cannot write itself. The pure-computation
   tools (`calculate`, `geometry`, `trigonometry`, `statistics`,
-  `unit_conversion`) were deleted outright, MCP included; `run_code` and `js`
-  remain for callers that want a code tool. `getAgentToolbelt()`
+  `unit_conversion`) were deleted outright, MCP included, and so were the code
+  tools `run_code` and `js` — `execute_code` is the code surface, and a second
+  one only invited the model to run code without the sandbox's `nodetool.*` API
+  and `state`. `getAgentToolbelt()`
   (`src/tools/builtin-tools.ts`) additionally drops the provider-specific
   duplicates: the media tools `image_generation`, `openai_image_generation`,
   `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
@@ -808,61 +808,38 @@ the same pipe and nests in the UI the same way.
 Every spawn site goes through it: `RunSubtaskTool` (inherits the full parent
 belt, stitches itself in for recursion) and `RunSearchTool` (read-only
 allowlist, breadth-scaled iteration budget) are thin `SubAgentTool`
-subclasses; `ScriptRunner`'s `agent()` bridge calls `runSubAgent` directly and
-pushes events onto the script channel; `plan_workflow_graph` drives the
-GraphPlanner generator through `forwardSubAgentStream`. A new delegation tool
+subclasses; `plan_workflow_graph` drives the GraphPlanner generator through
+`forwardSubAgentStream`. A new delegation tool
 should be another subclass, not another copy of the machinery.
 
 Tests: `tests/subagent.test.ts` (pure-function coverage), plus the spawn-site
-suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`,
-`tests/script-runner.test.ts`) which exercise the core end-to-end.
+suites (`tests/run-subtask-tool.test.ts`, `tests/run-search-tool.test.ts`)
+which exercise the core end-to-end.
 
-## Script Mode (code-shaped orchestration)
+## Code-shaped orchestration is CodeAct, not a mode
 
-The third planning mode next to `TaskPlan` and the graph planner: the LLM
-authors a JavaScript *orchestration script* (`ScriptPlanner`), and
-`ScriptRunner` executes it in the QuickJS sandbox. Every `agent()` call in the
-script runs a real `CodeActExecutor` sub-agent on the host. A script expresses
-what a static DAG cannot — loops until a condition holds, budget-scaled
-fan-out, dedup between rounds, early exit.
+There is no script mode. It was a third planning mode beside `TaskPlan` and the
+graph planner: `ScriptPlanner` had the LLM author one JavaScript *orchestration
+script* and `ScriptRunner` executed it in the sandbox, spawning a sub-agent per
+`agent()` call. CodeAct made it redundant — a step already acts by writing
+JavaScript in that same sandbox, so the loops, budget-scaled fan-out, dedup
+between rounds and early exits a script expressed are ordinary control flow
+inside an `execute_code` action:
 
-```typescript
-const agent = new Agent({
-  name: "researcher",
-  objective: "Find and verify 5 claims about X",
-  provider, model,
-  useScriptPlanner: true,          // LLM writes the script
-  // script: "...",                // or supply one directly (skips planning)
-  maxConcurrentAgents: 8,          // semaphore over concurrent agent() calls
-  maxAgentCalls: 100               // lifetime cap per run
-});
-```
-
-Guest API (see `SCRIPT_PRELUDE` in `script-runner.ts`):
-
-| Primitive | Behavior |
+| Script primitive | CodeAct equivalent |
 |---|---|
-| `await agent(prompt, opts?)` | Run a sub-agent. `opts.schema` → structured result via `finish_step`; `opts.tools` restricts the toolset; `opts.label` names progress events. Throws on failure. |
-| `await parallel(thunks)` | Concurrent thunks; a failure resolves to `null` instead of rejecting the batch. |
-| `await pipeline(items, ...stages)` | Each item flows through all stages independently (no barrier). Stages receive `(prev, originalItem, index)`. |
-| `log(message)` | Emits a `log_update` to the host event stream. |
-| `budget` | `maxAgentCalls`, `agentCalls()`, `remainingCalls()`, `await spentUsd()`. |
-| `inputs` | Caller-supplied inputs object. |
+| `await agent(prompt, opts?)` | `await nodetool.agents.run(prompt)` (a `run_subtask` child) |
+| `await parallel(thunks)` | `await Promise.all(...)`, or `nodetool.batch` for a bound |
+| `await pipeline(items, ...stages)` | `nodetool.batch(items, async (item) => …)` |
+| `log(message)` | `console.log(message)` |
+| `budget` | the run's own `AgentPolicy` bounds, enforced host-side |
+| `inputs` | the step's inputs, read from `context.memory` via `memory_read` |
 
-The script's `return` value becomes `agent.getResults()`. Sub-agents share
-`context.memory` as usual, and concurrency is bounded host-side by a semaphore
-(`maxConcurrentAgents`, default 8) plus a lifetime call cap (`maxAgentCalls`,
-default 100) — calls past the cap fail with a budget error the script can
-handle (`budget.remainingCalls()` guards loops). Script failures (syntax
-error, uncaught exception, wall-clock timeout — default 60 min including
-sub-agent time) throw from `Agent.execute`.
-
-Host bridges never reject (the QuickJS handle-leak rule from
-`js-sandbox.ts` applies): `__runAgent` resolves `{ok, result|error}` envelopes
-and the guest `agent()` re-throws.
-
-Tests: `tests/script-runner.test.ts`, `tests/script-planner.test.ts`,
-`tests/agent-script-mode.test.ts`.
+The difference that mattered — one authored artifact reviewed before anything
+ran — is not lost: a plan still goes through the approval gate, and an action's
+code is visible in the `execute_code` call. What is gone is the second sandbox
+API, the second planner prompt, and the second set of budget knobs
+(`maxAgentCalls`).
 
 ## Graph Mode (one-shot DSL planning)
 
@@ -984,10 +961,10 @@ npm run dev:nodetool -- eval code-gen -p openai -m gpt-5.4-mini --min-success 0.
 
 Harness tests (scripted provider, no network): `tests/code-gen-eval.test.ts`.
 
-### Planning-mode eval suites (`task-planner`, `script-planner`)
+### Planning-mode eval suite (`task-planner`)
 
-The graph-planner suite covers graph mode. The other two planning modes have a
-suite each, both scoring the *plan* statically — nothing is executed.
+The graph-planner suite covers graph mode. The task planner has a suite of its
+own, scoring the *plan* statically — nothing is executed.
 
 **`task-planner`** runs `TaskPlanner.planMultiTask` and scores the committed
 `TaskPlan`. `PlanBuilder` already rejects structurally broken plans (duplicate
@@ -1001,38 +978,26 @@ case: tasks, steps, parallel width, critical-path depth, planner tool calls,
 rejected `add_task`/`finish_plan` calls; aggregate adds a **clean rate** — the
 fraction of plans built without a single rejected call.
 
-**`script-planner`** runs `ScriptPlanner.plan` and scores the authored
-orchestration script by static analysis. `validateScript` already gates the
-submission (non-empty, calls `agent(`, has a `return`, compiles); the suite
-checks the control flow the objective demands — `parallel()`/`pipeline()` for
-independent work, a real `for`/`while` for unknown-size discovery, a
-`budget.remainingCalls()` guard on that loop, a `schema:` on the aggregating
-call — plus universal checks that the script does not shadow a prelude name
-(`agent`, `parallel`, `budget`, …), does not use `import`/`require` (no loader
-in the guest), and stays inside a character budget. Metrics: `agent()` call
-sites, script length, submit rounds, rejected submissions, one-shot rate.
-
-Cases + expectations live in `src/evals/{task,script}-planner-cases.ts`, the
-runners in `src/evals/{task,script}-planner-eval.ts`. Both offer the same
-never-executed tool library (`src/evals/planner-tools.ts`: `web_search`,
-`fetch_page`, `read_file`, `write_file`, `run_python`, `generate_image`) so the
-planner has something concrete to route work to.
+Cases + expectations live in `src/evals/task-planner-cases.ts`, the runner in
+`src/evals/task-planner-eval.ts`. It offers a never-executed tool library
+(`src/evals/planner-tools.ts`: `web_search`, `fetch_page`, `read_file`,
+`write_file`, `run_python`, `generate_image`) so the planner has something
+concrete to route work to.
 
 ```bash
 npm run dev:nodetool -- eval task-planner --list
 npm run dev:nodetool -- eval task-planner -p anthropic -m claude-sonnet-5
-npm run dev:nodetool -- eval script-planner -p openai -m gpt-5.4-mini --min-success 0.8
 IS_SANDBOX=1 npm run dev:nodetool -- eval task-planner -p claude_agent_sdk -m sonnet --no-find-model
 ```
 
 Harness tests (scripted provider, no network):
-`tests/task-planner-eval.test.ts`, `tests/script-planner-eval.test.ts`.
+`tests/task-planner-eval.test.ts`.
 
-**Cost reads `$0` on these two under `claude_agent_sdk`.** Both planners abort
-the provider loop from inside the accepting tool (`finish_plan` /
-`submit_script`), and the SDK only reports token usage on its terminal `result`
-message — which a cancelled query never emits. The run is not free; the usage
-is simply unobservable. Score, timing, and call counts are unaffected.
+**Cost reads `$0` here under `claude_agent_sdk`.** The planner aborts the
+provider loop from inside the accepting tool (`finish_plan`), and the SDK only
+reports token usage on its terminal `result` message — which a cancelled query
+never emits. The run is not free; the usage is simply unobservable. Score,
+timing, and call counts are unaffected.
 
 ### Tool-loop eval suites (frontend `ui_*` surfaces)
 

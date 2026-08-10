@@ -35,13 +35,11 @@ export {
 } from "./tools/filesystem-tools.js";
 export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
 export { EditFileTool, GlobTool, GrepTool } from "./tools/edit-search-tools.js";
-export { RunCodeTool } from "./tools/code-tools.js";
 export {
   TodoWriteTool,
   getThreadTodos,
   clearThreadTodos
 } from "./tools/todo-tools.js";
-export { MiniJSAgentTool } from "./tools/js-code-tool.js";
 export { ViewImageTool, ListImagesTool } from "./tools/view-image-tool.js";
 export {
   IMAGE_CONTENT_FIELD,
@@ -531,22 +529,6 @@ export type { ParallelTaskExecutorOptions } from "./parallel-task-executor.js";
 export { CompilerAgent } from "./compiler-agent.js";
 export type { CompilerAgentOptions } from "./compiler-agent.js";
 
-// Script-mode planning & execution (code-shaped orchestration)
-export { ScriptPlanner, validateScript } from "./script-planner.js";
-export type { ScriptPlannerOptions } from "./script-planner.js";
-export {
-  ScriptRunner,
-  SCRIPT_RESERVED_NAMES,
-  DEFAULT_MAX_CONCURRENT_AGENTS,
-  DEFAULT_MAX_AGENT_CALLS
-} from "./script-runner.js";
-export type { ScriptRunnerOptions } from "./script-runner.js";
-export {
-  PlanOrchestrationScriptTool,
-  DEFAULT_TOOL_MAX_AGENT_CALLS
-} from "./tools/plan-orchestration-script-tool.js";
-export type { PlanOrchestrationScriptToolOptions } from "./tools/plan-orchestration-script-tool.js";
-
 // GraphPlanner evaluation harness
 export {
   runGraphPlannerEval,
@@ -804,7 +786,7 @@ export {
 export { CODEACT_API_CORE_CASES } from "./evals/codeact-api-core.js";
 export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
 
-// Planning-mode evaluation harnesses (TaskPlanner DAG, ScriptPlanner script)
+// Planning-mode evaluation harness (TaskPlanner DAG)
 export {
   runTaskPlannerEval,
   formatTaskPlanReport,
@@ -821,22 +803,6 @@ export type {
   TaskPlannerEvalCase,
   TaskPlannerEvalExpectations
 } from "./evals/task-planner-cases.js";
-export {
-  runScriptPlannerEval,
-  formatScriptPlanReport,
-  checkScriptExpectations,
-  countAgentCalls
-} from "./evals/script-planner-eval.js";
-export type {
-  ScriptPlanCaseResult,
-  ScriptPlanEvalReport,
-  RunScriptPlannerEvalOptions
-} from "./evals/script-planner-eval.js";
-export { SCRIPT_PLANNER_EVAL_CASES } from "./evals/script-planner-cases.js";
-export type {
-  ScriptPlannerEvalCase,
-  ScriptPlannerEvalExpectations
-} from "./evals/script-planner-cases.js";
 export {
   createPlannerTools,
   PLANNER_TOOL_NAMES

@@ -535,7 +535,6 @@ export function App({
           "list_directory",
           "glob",
           "grep",
-          "run_code",
           "browser",
           "take_screenshot",
           "google_search",

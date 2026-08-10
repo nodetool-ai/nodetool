@@ -90,12 +90,11 @@ const PROMPT_TOOL_USE = `# Tool Use
 - Pull only what you need — don't fetch every entry by reflex.
 
 ## File Tools
-- Use \`read_file\` to read files. Do not use \`run_code\` with cat/head/tail.
+- Use \`read_file\` to read files.
 - Use \`edit_file\` for modifying existing files — it performs exact string replacement and only sends the diff. Prefer it over \`write_file\` for modifications.
 - Use \`write_file\` only for creating new files or complete rewrites.
-- Use \`glob\` to find files by name pattern (e.g. "**/*.ts"). Do not use \`run_code\` with find or ls.
-- Use \`grep\` to search file contents with regex. Do not use \`run_code\` with grep or rg.
-- Use \`run_code\` with language="bash" only for system commands and operations that require shell execution.
+- Use \`glob\` to find files by name pattern (e.g. "**/*.ts").
+- Use \`grep\` to search file contents with regex.
 
 ## Web Tools
 - Use \`browser\` to fetch and read the content of a web page. It returns cleaned, readable text extracted from HTML. This is the right choice for reading articles, documentation, or any page content.

@@ -27,6 +27,5 @@ describe("resolveAgentPolicy", () => {
     expect(policy.maxConcurrentAgents).toBe(
       DEFAULT_AGENT_POLICY.maxConcurrentAgents
     );
-    expect(policy.maxAgentCalls).toBe(DEFAULT_AGENT_POLICY.maxAgentCalls);
   });
 });

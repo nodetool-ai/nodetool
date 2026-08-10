@@ -91,7 +91,6 @@ max_steps: 10
 | `grep` | Search within files |
 | `web_search` | Search the web |
 | `browser` | Browse and extract web content |
-| `run_code` | Run code in a sandbox |
 | `generate_image` | Generate an image |
 | `generate_speech` | Generate speech audio |
 | `generate_video` | Generate a video |

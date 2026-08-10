@@ -394,47 +394,6 @@ const taskPlannerSuite: EvalSuite = {
   }
 };
 
-/** ScriptPlanner (script mode) orchestration-script authoring suite. */
-const scriptPlannerSuite: EvalSuite = {
-  id: "script-planner",
-  description:
-    "Run the ScriptPlanner (script mode) eval suite — orchestration-script authoring: concurrency, loops, budget guards — against a provider/model",
-  async listCases() {
-    const { SCRIPT_PLANNER_EVAL_CASES } = await import("@nodetool-ai/agents");
-    return SCRIPT_PLANNER_EVAL_CASES.map((c) => ({
-      id: c.id,
-      description: c.description,
-      needsModelProviders: c.needsModelProviders
-    }));
-  },
-  async run(deps) {
-    const {
-      SCRIPT_PLANNER_EVAL_CASES,
-      runScriptPlannerEval,
-      formatScriptPlanReport
-    } = await import("@nodetool-ai/agents");
-
-    const cases = selectCases(SCRIPT_PLANNER_EVAL_CASES, deps.caseIds);
-    deps.log(
-      `Running ${cases.length} script-planner case(s) with ${deps.providerId}/${deps.model}`
-    );
-
-    const report = await runScriptPlannerEval({
-      provider: deps.provider,
-      model: deps.model,
-      providers: deps.providers,
-      cases,
-      onEvent: deps.onEvent
-    });
-
-    return {
-      report,
-      formatted: formatScriptPlanReport(report),
-      successRate: report.summary.successRate
-    };
-  }
-};
-
 /**
  * Mini-app build suite: prompt in, verified `ApplicationBundle` out.
  *
@@ -601,7 +560,6 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
   graphE2eSuite,
   codeGenSuite,
   taskPlannerSuite,
-  scriptPlannerSuite,
   subtaskSuite,
   codeActSuite,
   appBuildSuite,

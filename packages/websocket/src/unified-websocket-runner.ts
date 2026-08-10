@@ -141,8 +141,7 @@ import { Tool } from "@nodetool-ai/agents";
 import {
   RunSubtaskTool,
   RunSearchTool,
-  PlanWorkflowGraphTool,
-  PlanOrchestrationScriptTool
+  PlanWorkflowGraphTool
 } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
@@ -1249,10 +1248,9 @@ export const CHAT_AGENT_SYSTEM_PROMPT = `You are NodeTool's chat assistant. Repl
   decompose work that you could just do directly.
 - When the shape of the work needs control flow a flat list of subtasks
   cannot express — fan-out over a list whose size you learn at runtime,
-  loop-until-done, per-item pipelines, budget-scaled depth — call
-  \`tools.plan_orchestration_script\` instead. It writes ONE JavaScript script
-  coordinating sub-agents (\`agent\`, \`parallel\`, \`pipeline\`, \`budget\`)
-  and runs it; progress streams to the user.
+  loop-until-done, per-item pipelines — write it as ordinary JavaScript in an
+  \`execute_code\` action: \`nodetool.agents.run(prompt)\` spawns a sub-agent
+  and \`nodetool.batch(items, fn, {concurrency})\` fans one out over a list.
 
 # Your toolbelt
 You act mostly by writing JavaScript: \`execute_code\` runs one action in a
@@ -1268,8 +1266,8 @@ raw tool it wraps.
 - A few tools stay ordinary tool calls, documented under "Direct tools": the
   file set, search, web fetch, \`todo_write\`, \`run_subtask\`, and \`view_image\`.
   Call one directly when a single call is the whole step.
-- \`tools.plan_workflow_graph\`, \`tools.plan_orchestration_script\` and
-  \`tools.run_search\` are the delegation tools with no \`nodetool.*\` form.
+- \`tools.plan_workflow_graph\` and \`tools.run_search\` are the delegation
+  tools with no \`nodetool.*\` form.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
   catalog. Find it inside an action with \`await searchTools("query")\`, then
   call it as \`tools.<name>()\`. Raise \`max_results\` (\`searchTools("+timeline",
@@ -1450,7 +1448,6 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
 export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives with no `nodetool.*` form.
   "run_search",
-  "plan_orchestration_script",
   // Step 1 of the workflow-building loop the system prompt teaches; the rest
   // of that loop is `nodetool.workflows.*`.
   "plan_workflow_graph",
@@ -5408,20 +5405,6 @@ export class UnifiedWebSocketRunner {
           model,
           parentTools: () => baseTools,
           forwardMessage: forwardSubtaskMessage
-        })
-      );
-
-      // Code-shaped orchestration: the ScriptPlanner writes a script, the
-      // ScriptRunner executes it, and every `agent()` call inside runs on the
-      // same gated toolset as a subtask. Shares the subtask forwarder so
-      // planner progress and sub-agent events nest under this tool's card.
-      serverTools.unshift(
-        new PlanOrchestrationScriptTool({
-          provider,
-          model,
-          parentTools: () => baseTools,
-          forwardMessage: forwardSubtaskMessage,
-          signal: () => this.chatAbort?.signal
         })
       );
 
