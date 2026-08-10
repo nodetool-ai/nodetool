@@ -27,6 +27,7 @@ import {
   isCloudNodeType
 } from "@nodetool-ai/protocol";
 import { setPackSnapshot } from "./pack-snapshot.js";
+import { refreshSandboxCatalog } from "./sandbox-catalog.js";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
@@ -336,6 +337,7 @@ export async function bootstrapNodeRegistry(
       onResult: (result) => logPackResult(result, options.log)
     });
     setPackSnapshot(results);
+    refreshSandboxCatalog(options.packSearchPaths);
   }
   applyProductionNodePolicy(registry, options.log);
   applyCloudNodePolicy(registry, options.log);
@@ -344,3 +346,8 @@ export async function bootstrapNodeRegistry(
 
 // Re-export so existing callers don't have to switch import paths.
 export { getPackSnapshot, reloadPacks } from "./pack-snapshot.js";
+export {
+  getSandboxCatalog,
+  getSandboxCatalogDiagnostics,
+  refreshSandboxCatalog
+} from "./sandbox-catalog.js";

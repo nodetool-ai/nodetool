@@ -24,6 +24,7 @@ import type {
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 import type { SandboxModuleCatalog } from "../src/index.js";
+import { setProcessSandboxModuleCatalog } from "../src/index.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -309,6 +310,28 @@ describe("ProcessingContext – Python model interfaces", () => {
 
     expect(ctx.sandboxModuleCatalog).toBe(catalog);
     expect(ctx.copy().sandboxModuleCatalog).toBe(catalog);
+  });
+
+  it("falls back to the host's process catalog, and lets a caller opt out", () => {
+    const catalog: SandboxModuleCatalog = {
+      summaries: () => [],
+      resolveForExecution: () => ({ modules: [], statuses: [] }),
+      diagnostics: () => []
+    };
+    setProcessSandboxModuleCatalog(catalog);
+    try {
+      expect(new ProcessingContext({ jobId: "j1" }).sandboxModuleCatalog).toBe(
+        catalog
+      );
+      // An explicit null is a decision, not a missing option.
+      expect(
+        new ProcessingContext({ jobId: "j1", sandboxModuleCatalog: null })
+          .sandboxModuleCatalog
+      ).toBeNull();
+    } finally {
+      setProcessSandboxModuleCatalog(null);
+    }
+    expect(new ProcessingContext({ jobId: "j1" }).sandboxModuleCatalog).toBeNull();
   });
 
   it("isolates agent memory by default and shares it on request", () => {

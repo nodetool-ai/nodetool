@@ -12,16 +12,23 @@ import type {
   SandboxPackDiscovery
 } from "./sandbox-pack-discovery.js";
 
-/** Build the runtime catalog from validated, non-executing pack discoveries. */
+/**
+ * Build the runtime catalog from validated, non-executing pack discoveries.
+ *
+ * `hostStatuses` carries diagnostics the host produced before discovery could
+ * run — an unreadable pack, a package name claimed by two roots — so
+ * `diagnostics()` reports one set covering everything the host looked at.
+ */
 export function createSandboxModuleCatalog(
-  discoveries: readonly SandboxPackDiscovery[]
+  discoveries: readonly SandboxPackDiscovery[],
+  hostStatuses: readonly SandboxModuleStatus[] = []
 ): SandboxModuleCatalog {
   const discoveredBySpecifier = new Map<string, {
     readonly discovery: SandboxPackDiscovery;
     readonly module: SandboxDiscoveredModule;
   }>();
   const unavailableSpecifiers = new Set<string>();
-  const statuses: SandboxModuleStatus[] = [];
+  const statuses: SandboxModuleStatus[] = [...hostStatuses];
   const packNames = new Set<string>();
 
   for (const discovery of discoveries) {

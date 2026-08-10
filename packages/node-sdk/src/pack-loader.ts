@@ -514,7 +514,12 @@ function resolveRegisterFn(
     : undefined;
 }
 
-function listPackageDirs(nodeModules: string): string[] {
+/**
+ * Every package directory directly inside one `node_modules`, with scoped
+ * packages expanded one level deeper. Exported for the sandbox catalog host,
+ * which scans the same roots without importing any pack.
+ */
+export function listPackageDirs(nodeModules: string): string[] {
   let entries: string[];
   try {
     entries = readdirSync(nodeModules);

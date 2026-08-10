@@ -12,6 +12,8 @@ import {
   type NodeRegistry
 } from "@nodetool-ai/node-sdk";
 
+import { refreshSandboxCatalog } from "./sandbox-catalog.js";
+
 let snapshot: LoadedPackResult[] = [];
 
 /** Replace the snapshot. Called by {@link bootstrapNodeRegistry} at startup. */
@@ -41,5 +43,6 @@ export async function reloadPacks(
 ): Promise<readonly LoadedPackResult[]> {
   const results = await loadInstalledPacks(registry, options);
   setPackSnapshot(results);
+  refreshSandboxCatalog(options.searchPaths);
   return results;
 }

@@ -154,7 +154,10 @@ import type {
   ProviderStreamItem
 } from "./providers/types.js";
 import type { NodeExecutor } from "./node-executor.js";
-import type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
+import {
+  getProcessSandboxModuleCatalog,
+  type SandboxModuleCatalog
+} from "./sandbox-module-catalog.js";
 
 // ---------------------------------------------------------------------------
 // Cache interface
@@ -1326,7 +1329,11 @@ export class ProcessingContext {
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
     this.authToken = opts.authToken ?? null;
-    this.sandboxModuleCatalog = opts.sandboxModuleCatalog ?? null;
+    // An explicit option — including null — wins over the host default.
+    this.sandboxModuleCatalog =
+      opts.sandboxModuleCatalog !== undefined
+        ? opts.sandboxModuleCatalog
+        : getProcessSandboxModuleCatalog();
     this._secretResolver = opts.secretResolver ?? null;
     this._fetch =
       opts.fetchFn ??

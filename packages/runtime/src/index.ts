@@ -21,6 +21,10 @@ export {
 } from "./context.js";
 export type { SandboxModuleCatalog } from "./sandbox-module-catalog.js";
 export {
+  getProcessSandboxModuleCatalog,
+  setProcessSandboxModuleCatalog
+} from "./sandbox-module-catalog.js";
+export {
   AgentMemory,
   memoryKeys,
   type MemoryEntry,

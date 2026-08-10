@@ -24,6 +24,7 @@ export * from "./package-registry-client.js";
 export * from "./pack-loader.js";
 export * from "./sandbox-pack-discovery.js";
 export * from "./sandbox-module-catalog.js";
+export * from "./sandbox-catalog-host.js";
 export * from "./docs/index.js";
 export * from "./python-package-scan.js";
 export type {

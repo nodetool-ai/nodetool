@@ -11,6 +11,10 @@ import { z } from "zod";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { getPackSnapshot, reloadPacks } from "../../pack-snapshot.js";
+import {
+  getSandboxCatalog,
+  getSandboxCatalogDiagnostics
+} from "../../sandbox-catalog.js";
 import { detectRuntimes, KNOWN_RUNTIMES } from "../../lib/runtime-detection.js";
 import {
   readBuiltinPackOverrides,
@@ -72,6 +76,26 @@ const builtinPackSchema = z.object({
 });
 
 const builtinsOutput = z.object({ packs: z.array(builtinPackSchema) });
+
+const sandboxModulesOutput = z.object({
+  modules: z.array(
+    z.object({
+      specifier: z.string(),
+      packName: z.string(),
+      packVersion: z.string().optional(),
+      kind: z.enum(["js", "wasm"])
+    })
+  ),
+  diagnostics: z.array(
+    z.object({
+      packName: z.string(),
+      specifier: z.string().optional(),
+      status: z.enum(["ready", "warning", "skipped", "error"]),
+      code: z.string(),
+      message: z.string()
+    })
+  )
+});
 
 // ── DTO mapping ──────────────────────────────────────────────────────────
 
@@ -153,6 +177,28 @@ export const packsRouter = router({
       // Return the effective trust (env + file + defaults) so the client sees
       // what's actually in force, consistent with getTrust.
       return resolvePackTrust();
+    }),
+
+  /**
+   * Sandbox modules the installed packs declare, and every diagnostic discovery
+   * produced. Separate from `list`: a pack's sandbox modules and its nodes are
+   * discovered by different code and fail independently.
+   */
+  sandboxModules: protectedProcedure
+    .output(sandboxModulesOutput)
+    .query(() => {
+      const catalog = getSandboxCatalog();
+      return {
+        modules: (catalog?.summaries() ?? []).map((summary) => ({
+          specifier: summary.specifier,
+          packName: summary.packName,
+          ...(summary.packVersion === undefined
+            ? {}
+            : { packVersion: summary.packVersion }),
+          kind: summary.kind
+        })),
+        diagnostics: [...getSandboxCatalogDiagnostics()]
+      };
     }),
 
   /** Built-in packs that ship with NodeTool and whether each is enabled. */
