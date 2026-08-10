@@ -548,8 +548,9 @@ export function registerAgentMcpTools(
   // MCP runs every call in `auto`: an MCP session has no approval UI to prompt
   // through, so a gate that could ask would only deadlock. What bounds this
   // surface is the session's user binding above, not a per-call question.
-  // Nothing consumes the run yet — the belt below is still what the sandbox
-  // calls, and PR 11 routes the guest through `run.invoke`.
+  // The codeact session mounts it, so an action can import
+  // `@nodetool-ai/sandbox-nodetool/<namespace>` and land on `run.invoke`; the
+  // belt remains what `tools.<name>()` calls, past the same gate.
   const capabilityRun = createCapabilityRun({
     context,
     gate: {
@@ -641,7 +642,8 @@ export function registerAgentMcpTools(
       const tool = byName.get(call.name);
       if (!tool) throw new Error(`Unknown tool: ${call.name}`);
       return runBridgedTool(tool, call.args);
-    }
+    },
+    capabilityRun
   });
 
   // The action tool. MCP has no system prompt, so the contract, the tool

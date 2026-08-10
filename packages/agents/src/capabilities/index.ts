@@ -28,6 +28,12 @@ export {
   capabilityModuleDrift
 } from "./registry.js";
 export {
+  SandboxCapabilityError,
+  capabilityModuleSpecs,
+  createCapabilityDispatcher
+} from "./dispatcher.js";
+export type { SandboxCapabilityDispatcher } from "./dispatcher.js";
+export {
   CapabilityTool,
   toolFromCapability,
   capabilityFromTool

@@ -12,6 +12,7 @@ import type {
   SandboxModuleSummary,
   SandboxPackSkillDisclosure
 } from "@nodetool-ai/protocol";
+import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 import { PACKAGE_DOCS_CALL } from "../src/codeact/prompt.js";
 import {
   createChatCodeActSession,
@@ -720,5 +721,23 @@ describe("sandbox package docs in a chat session", () => {
     // The prelude builds a wrapper per belt tool, so an absent tool is not
     // callable at all — the strongest structural proof it was never installed.
     expect(obs.error).toContain("not a function");
+  }, 60_000);
+});
+
+describe("platform modules in a chat session", () => {
+  const specifier = sandboxCapabilitySpecifier("workflows");
+
+  it("mounts nothing without a capability run, and names the module", async () => {
+    const session = createChatCodeActSession({
+      tools: GENERIC_TOOLS,
+      executeTool: async () => ({})
+    });
+    const obs = await runAction(
+      session,
+      `import { list_workflows } from "${specifier}";\nreturn 1;`
+    );
+    expect(obs.ok).toBe(false);
+    expect(obs.error).toContain(specifier);
+    expect(obs.error).toContain("package allowlist");
   }, 60_000);
 });

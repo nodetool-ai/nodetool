@@ -5522,9 +5522,9 @@ export class UnifiedWebSocketRunner {
     // The capability run for this turn: the same gate the belt is wrapped in,
     // this context, and the singletons the tool constructors take today. Every
     // capability a host must supply itself goes in `capabilities` — `run_node`
-    // carries a closure only this package can build. Nothing consumes the run
-    // yet: the sandbox still calls the belt, and PR 11 is what routes the guest
-    // through `run.invoke`.
+    // carries a closure only this package can build. The codeact session below
+    // mounts it, so an action can import
+    // `@nodetool-ai/sandbox-nodetool/<namespace>` and land on `run.invoke`.
     this.chatCapabilityRun = createCapabilityRun({
       context: ctx,
       gate: chatGate,
@@ -5576,7 +5576,8 @@ export class UnifiedWebSocketRunner {
         ],
         context: ctx,
         signal,
-        clock: codeactClock
+        clock: codeactClock,
+        capabilityRun: this.chatCapabilityRun ?? undefined
       });
       providerToolSchemas.push(codeactSession.providerTool);
       providerToolSchemas.push(...directSchemas);
