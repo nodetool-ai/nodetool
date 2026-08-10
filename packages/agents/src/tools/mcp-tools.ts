@@ -33,9 +33,6 @@ import {
   type AppBuildRequest
 } from "../app-build/build-service.js";
 import { Tool } from "./base-tool.js";
-import { LocalListNodesTool } from "./local-list-nodes-tool.js";
-import { LocalSearchNodesTool } from "./local-search-nodes-tool.js";
-import { LocalGetNodeInfoTool } from "./local-get-node-info-tool.js";
 import { findModel, listModels } from "../capabilities/models.js";
 import {
   animateImage,
@@ -79,6 +76,7 @@ import {
   startBackgroundJob,
   validateWorkflow
 } from "../capabilities/workflows.js";
+import { NODE_CAPABILITIES } from "../capabilities/nodes.js";
 import {
   RUNTIME_MODEL_CATALOGS,
   jobRecord,
@@ -1354,10 +1352,16 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
   // variant, because the only other way to answer was an HTTP call to a server
   // that may not be running.
   if (options.registry) {
+    const nodeRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        nodeRegistry: options.registry
+      });
     tools.push(
-      new LocalListNodesTool(options.registry),
-      new LocalSearchNodesTool(options.registry),
-      new LocalGetNodeInfoTool(options.registry)
+      ...NODE_CAPABILITIES.map((entry) =>
+        toolFromCapability(entry.spec, entry.impl, nodeRun)
+      )
     );
   }
   tools.push(...createWorkflowDocumentTools(options.registry));

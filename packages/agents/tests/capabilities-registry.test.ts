@@ -48,20 +48,31 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   generate_speech: "write",
   generate_video: "write",
   get_example_workflow: "read",
+  get_node_info: "read",
   get_style_profile: "external",
   get_workflow: "read",
+  list_collections: "read",
   list_models: "read",
+  list_nodes: "read",
   list_provider_models: "read",
   list_workflows: "read",
+  query_collection: "read",
   record_style_preference: "external",
   // Unlisted in `TOOL_PERMISSION_CATEGORIES`, so the map's conservative
   // default classes it `external`. Carried over as-is by the port.
   resolve_workflow_escalation: "external",
   run_workflow: "execute",
   score_image_adherence: "external",
+  search_nodes: "read",
   start_background_job: "execute",
   transcribe_audio: "write",
-  validate_workflow: "read"
+  validate_workflow: "read",
+  vector_batch_index: "write",
+  vector_hybrid_search: "read",
+  vector_index: "write",
+  vector_markdown_split_and_index: "write",
+  vector_recursive_split_and_index: "write",
+  vector_text_search: "read"
 };
 
 describe("capability registry walk", () => {

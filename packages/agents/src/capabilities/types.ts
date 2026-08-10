@@ -16,6 +16,7 @@ import type {
   ProcessingContext
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { VectorCollection } from "@nodetool-ai/vectorstore";
 import type { PermissionGateOptions } from "../tools/tool-permissions.js";
 import type { PermissionCategory } from "../tools/tool-permissions.js";
 import type { SubAgentToolRuntime } from "../subagent.js";
@@ -107,6 +108,13 @@ export interface CapabilityRun {
    */
   readonly modelCatalogs?: ModelCatalogs;
   readonly listPackageAssets?: PackageAssetLister;
+  /**
+   * The vector collection the `vector_*` capabilities act on. It was a
+   * constructor argument (`new VecIndexTool(collection)`); the capabilities
+   * take no collection name in their schemas, so a run that binds none cannot
+   * serve them and they say so.
+   */
+  readonly vectorCollection?: VectorCollection;
   readonly workflowEnvironment?: WorkflowEnvironmentProvider;
   /**
    * The long-term memory the style capabilities read and write. A run that

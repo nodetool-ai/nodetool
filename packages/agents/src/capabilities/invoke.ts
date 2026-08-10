@@ -17,6 +17,7 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { VectorCollection } from "@nodetool-ai/vectorstore";
 import { Tool } from "../tools/base-tool.js";
 import {
   decidePermission,
@@ -66,6 +67,8 @@ export interface CreateCapabilityRunOptions {
   exportDsl?: WorkflowDslExporter;
   modelCatalogs?: ModelCatalogs;
   listPackageAssets?: PackageAssetLister;
+  /** The collection the `vector_*` capabilities act on; see {@link CapabilityRun}. */
+  vectorCollection?: VectorCollection;
   workflowEnvironment?: WorkflowEnvironmentProvider;
   memory?: LongTermMemory;
   loaders?: CapabilityLoaders;
@@ -98,6 +101,7 @@ export function createCapabilityRun(
     exportDsl: options.exportDsl,
     modelCatalogs: options.modelCatalogs,
     listPackageAssets: options.listPackageAssets,
+    vectorCollection: options.vectorCollection,
     workflowEnvironment: options.workflowEnvironment,
     memory: options.memory,
     loaders: options.loaders,

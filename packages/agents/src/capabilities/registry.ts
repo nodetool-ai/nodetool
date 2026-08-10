@@ -25,7 +25,9 @@ const MODULES: Readonly<Record<string, Loader>> = {
   workflows: () => import("./workflows.js").then((m) => m.module),
   models: () => import("./models.js").then((m) => m.module),
   media: () => import("./media.js").then((m) => m.module),
-  style: () => import("./style.js").then((m) => m.module)
+  style: () => import("./style.js").then((m) => m.module),
+  collections: () => import("./collections.js").then((m) => m.module),
+  nodes: () => import("./nodes.js").then((m) => m.module)
 };
 
 /**
@@ -39,7 +41,9 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "workflows",
   "models",
   "media",
-  "style"
+  "style",
+  "collections",
+  "nodes"
 ];
 
 const cache = new Map<string, Promise<CapabilityModule>>();
