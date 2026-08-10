@@ -885,8 +885,8 @@ export const miniAppEntries: MiniAppEntry[] = [
       "example",
       "flashcards",
       "learning",
-      "persistence",
       "start",
+      "structured-data",
       "template",
       "tutorial"
     ],

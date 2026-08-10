@@ -5,7 +5,7 @@ title: "Flashcard Generator"
 
 ## Overview
 
-Generate study flashcards using AI and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards saved for future review.
+Generate study flashcards using AI, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.
 
 ## Demo
 
@@ -15,7 +15,7 @@ Generate study flashcards using AI and keep them in a workspace file that grows 
 
 ## Tags
 
-education, persistence, ai, flashcards, learning
+education, structured-data, ai, flashcards, learning
 
 ## Workflow Diagram
 
@@ -25,11 +25,11 @@ graph TD
   num_cards_input["num_cards"]
   formattext_format["Prompt"]
   datagenerator_genera["DataGenerator"]
-  store_cards["Code (save & read back)"]
-  deck_output["saved_deck"]
+  plan_study["Code (dedupe & order)"]
+  plan_output["study_plan"]
   topic_topic_ --> formattext_format
   num_cards_input --> formattext_format
   formattext_format --> datagenerator_genera
-  datagenerator_genera --> store_cards
-  store_cards --> deck_output
+  datagenerator_genera --> plan_study
+  plan_study --> plan_output
 {% endmermaid %}

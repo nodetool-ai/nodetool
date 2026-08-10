@@ -175,9 +175,9 @@ ______________________________________________________________________
 
 <span id="pattern-5-database-persistence"></span>
 
-### Pattern 5: Persistence
+### Pattern 5: Structured Records
 
-**Use Case**: Store generated data for later retrieval
+**Use Case**: Have a model produce rows you can compute on, not prose you have to re-parse
 
 **Example**: AI Flashcard Generator
 
@@ -190,30 +190,31 @@ graph TD
   topic_input["StringInput (Topic)"]
   format_prompt["FormatText"]
   generate_flashcards["DataGenerator"]
-  store_cards["Code (save & read back)"]
+  plan_study["Code (dedupe & order)"]
   display_result["Preview"]
   topic_input --> format_prompt
   format_prompt --> generate_flashcards
-  generate_flashcards --> store_cards
-  store_cards --> display_result
+  generate_flashcards --> plan_study
+  plan_study --> display_result
 {% endmermaid %}
 
 **When to Use**:
 
-- Need persistent storage
-- Building apps with memory
-- Agent workflows that need to recall past interactions
+- The model's answer is a list of things, each with the same fields
+- Something downstream has to sort, filter, group, or count them
+- You would otherwise be parsing a markdown list back into data
 
 **Key Nodes**:
 
-- `Code` (`nodetool.code.Code`): one script that appends the new records to a
-  workspace file with `workspace.write` and reads the whole set back
+- `DataGenerator`: ask for named columns and get rows, not a blob
+- `Code` (`nodetool.code.Code`): one script that computes on those rows — here
+  it drops repeated questions and deals one card from each category in turn
 
-**Persistence Flow**:
+**Structured Flow**:
 
-1. Generate data with an agent
-1. Append it to a workspace file
-1. Read the whole set back and display it
+1. Name the columns you want
+1. Generate rows against them
+1. Compute on the rows in one script
 
 ______________________________________________________________________
 

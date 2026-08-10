@@ -9347,16 +9347,16 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
-    "description": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
+    "description": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
-    "summary": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
+    "summary": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "tags": [
       "education",
-      "persistence",
+      "structured-data",
       "ai",
       "flashcards",
       "learning"
@@ -9434,7 +9434,7 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "store_cards",
+          "id": "plan_study",
           "type": "nodetool.code.Code",
           "title": "Code",
           "x": 1126,
@@ -9459,7 +9459,7 @@ export const templateEntries: TemplateEntry[] = [
           "width": 260
         },
         {
-          "id": "deck_output",
+          "id": "plan_output",
           "type": "nodetool.output.Output",
           "title": "Output",
           "x": 1516,
@@ -9499,14 +9499,14 @@ export const templateEntries: TemplateEntry[] = [
         {
           "source": "generate_flashcards",
           "sourceHandle": "dataframe",
-          "target": "store_cards",
+          "target": "plan_study",
           "targetHandle": "cards",
           "color": "any"
         },
         {
-          "source": "store_cards",
-          "sourceHandle": "deck",
-          "target": "deck_output",
+          "source": "plan_study",
+          "sourceHandle": "study_plan",
+          "target": "plan_output",
           "targetHandle": "value",
           "color": "any"
         }

@@ -307,11 +307,11 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "deck_output",
+            "id": "plan_output",
             "parent_id": null,
             "type": "nodetool.output.Output",
             "data": {
-              "name": "saved_deck"
+              "name": "study_plan"
             },
             "ui_properties": {
               "selected": false,
@@ -322,7 +322,7 @@
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "6️⃣ Deck in the database"
+              "title": "6️⃣ The deck in study order"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}

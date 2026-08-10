@@ -5,10 +5,10 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Flashcard Generator",
   "tool_name": null,
-  "description": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
+  "description": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
   "tags": [
     "education",
-    "persistence",
+    "structured-data",
     "ai",
     "flashcards",
     "learning"
@@ -136,11 +136,11 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "store_cards",
+        "id": "plan_study",
         "parent_id": null,
         "type": "nodetool.code.Code",
         "data": {
-          "code": "const file = \"flashcards.json\";\nconst before = await workspace.stat(file);\nconst deck = before.exists ? JSON.parse(await workspace.read(file)) : [];\n\nconst added = (inputs.cards?.rows ?? []).map((card) => ({\n  front: card.front,\n  back: card.back,\n  category: card.category\n}));\ndeck.push(...added);\nawait workspace.write(file, JSON.stringify(deck, null, 2));\n\nreturn { saved: added.length, deck: deck.slice(-10).reverse() };\n",
+          "code": "// The generator hands over rows, not prose — so the deck can be computed on.\nconst cards = inputs.cards?.rows ?? [];\n\n// One card per question: a model asked for fifteen repeats itself.\nconst seen = new Set();\nconst unique = cards.filter((card) => {\n  const key = String(card.front ?? \"\").trim().toLowerCase();\n  if (!key || seen.has(key)) return false;\n  seen.add(key);\n  return true;\n});\n\n// Group by category, then deal one card from each pile in turn, so a study run\n// never asks four questions about the same sub-topic back to back.\nconst piles = new Map();\nfor (const card of unique) {\n  const category = String(card.category ?? \"General\").trim() || \"General\";\n  if (!piles.has(category)) piles.set(category, []);\n  piles.get(category).push({ ...card, category });\n}\nconst dealt = [...piles.values()];\nconst order = [];\nfor (let i = 0; dealt.some((pile) => i < pile.length); i++) {\n  for (const pile of dealt) {\n    if (i < pile.length) order.push(pile[i]);\n  }\n}\n\n// Leitner box 1: review today, then in two days, then in five.\nconst study_plan = order.map((card, index) => ({\n  position: index + 1,\n  front: card.front,\n  back: card.back,\n  category: card.category,\n  review_after_days: [0, 2, 5]\n}));\n\nreturn { study_plan };\n",
           "packages": [],
           "timeout": 30,
           "max_response_mb": 8,
@@ -156,18 +156,13 @@
           "zIndex": 0,
           "width": 320,
           "selectable": true,
-          "title": "5️⃣ Save the deck and read it back"
+          "title": "5️⃣ Turn the cards into a study plan"
         },
         "dynamic_properties": {
           "cards": ""
         },
         "dynamic_outputs": {
-          "saved": {
-            "type": "any",
-            "type_args": [],
-            "optional": false
-          },
-          "deck": {
+          "study_plan": {
             "type": "any",
             "type_args": [],
             "optional": false
@@ -179,7 +174,7 @@
         "parent_id": null,
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob), so downstream steps can store, query, and render them as real data — then a Code node appends the deck to a workspace file and reads the most recent cards back for review.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that saves and re-reads\n\n**Try this:** change the topic or card count. Cards persist across runs — rerun to add more to the same deck."
+          "comment": "# 🃏 Flashcard Generator\n\nEnter a topic; an AI writes each card as a structured front/back/category object (not a markdown blob). Because they are rows and not prose, a Code node can then compute on them: drop repeated questions, deal one card from each category in turn so a run never asks four questions about the same sub-topic back to back, and stamp each card with its Leitner review days.\n\n**Pipeline:** Topic + card count → build prompt → generate card objects → one script that dedupes, orders and schedules them\n\n**Try this:** compare the two outputs — the raw rows the model wrote, and the same cards in study order."
         },
         "ui_properties": {
           "selected": false,
@@ -216,11 +211,11 @@
         "dynamic_outputs": {}
       },
       {
-        "id": "deck_output",
+        "id": "plan_output",
         "parent_id": null,
         "type": "nodetool.output.Output",
         "data": {
-          "name": "saved_deck"
+          "name": "study_plan"
         },
         "ui_properties": {
           "selected": false,
@@ -231,7 +226,7 @@
           "zIndex": 0,
           "width": 280,
           "selectable": true,
-          "title": "6️⃣ Deck in the database"
+          "title": "6️⃣ The deck in study order"
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
@@ -277,15 +272,15 @@
         "id": "edge_store_1",
         "source": "generate_flashcards",
         "sourceHandle": "dataframe",
-        "target": "store_cards",
+        "target": "plan_study",
         "targetHandle": "cards",
         "ui_properties": null
       },
       {
         "id": "edge_store_2",
-        "source": "store_cards",
-        "sourceHandle": "deck",
-        "target": "deck_output",
+        "source": "plan_study",
+        "sourceHandle": "study_plan",
+        "target": "plan_output",
         "targetHandle": "value",
         "ui_properties": null
       }
