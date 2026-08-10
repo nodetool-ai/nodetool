@@ -9347,16 +9347,16 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
-    "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "description": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
-    "summary": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "summary": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
     "tags": [
       "education",
-      "database",
+      "persistence",
       "ai",
       "flashcards",
       "learning"
@@ -9505,7 +9505,7 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "store_cards",
-          "sourceHandle": "recent",
+          "sourceHandle": "deck",
           "target": "deck_output",
           "targetHandle": "value",
           "color": "any"
