@@ -1,57 +1,85 @@
-import fs from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { describe, it, expect, beforeEach } from "vitest";
-import { initTestDb, Workflow, Job, Asset } from "@nodetool-ai/models";
+/**
+ * The `/mcp` surface: exactly two tools, one capability resource, and a session
+ * that must be bound to a user.
+ */
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from "vitest";
+import { initTestDb } from "@nodetool-ai/models";
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import {
   createMcpServer,
   createMcpStdioTransport,
+  handleMcpHttpRequest,
   registerMcpFrontendTransport,
-  unregisterMcpFrontendTransport
+  unregisterMcpFrontendTransport,
+  MCP_SCOPE_REQUIRED_MESSAGE
 } from "../src/mcp-server.js";
+import { MCP_CAPABILITIES_RESOURCE_URI } from "../src/mcp-agent-tools.js";
 import type { AgentTransport } from "../src/agent/transport.js";
 
-function makeMetadataRoot(): string {
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), "mcp-test-"));
-  const metadataDir = path.join(
-    root,
-    "pkg",
-    "src",
-    "nodetool",
-    "package_metadata"
-  );
-  fs.mkdirSync(metadataDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(metadataDir, "pkg.json"),
-    JSON.stringify({
-      name: "pkg",
-      nodes: [
-        {
-          title: "Test Node",
-          description: "A test node for searching",
-          namespace: "test",
-          node_type: "test.TestNode",
-          layout: "default",
-          properties: [],
-          outputs: []
-        },
-        {
-          title: "Image Resize",
-          description: "Resizes images",
-          namespace: "image",
-          node_type: "image.Resize",
-          layout: "default",
-          properties: [],
-          outputs: []
-        }
-      ]
-    }),
-    "utf8"
-  );
-  return root;
+const scope = { userId: "1", source: "stdio-local" as const };
+
+// The bridged file tools are rooted under the NodeTool data dir, and
+// constructing the server creates that directory. Point it at a temp dir so the
+// suite never touches the developer's real workspace.
+let dataDir: string;
+const dataDirEnv = process.platform === "win32" ? "APPDATA" : "XDG_DATA_HOME";
+let previousDataDir: string | undefined;
+
+beforeAll(() => {
+  previousDataDir = process.env[dataDirEnv];
+  dataDir = mkdtempSync(join(tmpdir(), "nodetool-mcp-test-"));
+  process.env[dataDirEnv] = dataDir;
+});
+
+afterAll(() => {
+  if (previousDataDir === undefined) delete process.env[dataDirEnv];
+  else process.env[dataDirEnv] = previousDataDir;
+  rmSync(dataDir, { recursive: true, force: true });
+});
+
+beforeEach(() => {
+  initTestDb();
+});
+
+function fakeTransport(
+  id: string,
+  executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
+): AgentTransport {
+  return {
+    id,
+    isAlive: true,
+    streamMessage: () => {},
+    requestToolManifest: async () => [],
+    executeTool,
+    abortTools: () => {}
+  };
 }
 
-async function callTool(
+/** Initialize a real MCP client against a scoped session. */
+async function connectClient(): Promise<Client> {
+  const server = createMcpServer({ agentToolsScope: scope });
+  const [clientTransport, serverTransport] =
+    InMemoryTransport.createLinkedPair();
+  const client = new Client({ name: "test-client", version: "1.0.0" });
+  await Promise.all([
+    client.connect(clientTransport),
+    server.connect(serverTransport)
+  ]);
+  return client;
+}
+
+function toolNames(server: ReturnType<typeof createMcpServer>): string[] {
+  const tools = (
+    server as unknown as { _registeredTools: Record<string, unknown> }
+  )._registeredTools;
+  return Object.keys(tools);
+}
+
+function callTool(
   server: ReturnType<typeof createMcpServer>,
   name: string,
   args: Record<string, unknown>
@@ -70,372 +98,173 @@ async function callTool(
   }>;
 }
 
-describe("MCP Server", () => {
-  beforeEach(() => {
-    initTestDb();
+/** Run one code action and return its observation envelope. */
+async function act(
+  server: ReturnType<typeof createMcpServer>,
+  code: string
+): Promise<{ ok: boolean; result?: unknown; error?: string }> {
+  const res = await callTool(server, "execute_code", {
+    title: "test action",
+    code
   });
+  return JSON.parse(res.content[0].text) as {
+    ok: boolean;
+    result?: unknown;
+    error?: string;
+  };
+}
 
-  it("creates a server instance", () => {
-    const server = createMcpServer();
-    expect(server).toBeDefined();
-    expect(server).toBeInstanceOf(Object);
-  });
-
+describe("MCP server surface", () => {
   it("creates a stdio transport", () => {
-    const transport = createMcpStdioTransport();
-    expect(transport).toBeDefined();
+    expect(createMcpStdioTransport()).toBeDefined();
   });
 
-  it("registers list_workflows tool", () => {
-    const server = createMcpServer();
-    // Access internal registered tools via the underlying server
-    const tools = (
-      server as unknown as { _registeredTools: Record<string, unknown> }
-    )._registeredTools;
-    expect(tools).toHaveProperty("list_workflows");
+  it("registers exactly execute_code and view_image", () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    expect(toolNames(server).sort()).toEqual(["execute_code", "view_image"]);
   });
 
-  it("registers get_workflow tool", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as { _registeredTools: Record<string, unknown> }
-    )._registeredTools;
-    expect(tools).toHaveProperty("get_workflow");
+  it("lists exactly two tools over a real MCP session", async () => {
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "execute_code",
+      "view_image"
+    ]);
+    await client.close();
   });
 
-  it("registers run_workflow tool", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as { _registeredTools: Record<string, unknown> }
-    )._registeredTools;
-    expect(tools).toHaveProperty("run_workflow");
+  it("carries the action contract and catalog in the execute_code description", async () => {
+    const client = await connectClient();
+    const { tools } = await client.listTools();
+    const description =
+      tools.find((t) => t.name === "execute_code")?.description ?? "";
+    // MCP has no system prompt, so the description is the only place the
+    // contract can reach the model. Without it the tool is unusable.
+    expect(description).toContain("searchTools");
+    expect(description).toContain("nodetool");
+    await client.close();
   });
 
-  it("serves persisted workflow document tools to a scoped session in the sandbox", async () => {
-    // A scoped session gets the CodeAct surface: `execute_code` plus the core
-    // set. The document tools are on the sandbox belt, not registered as MCP
-    // tools — mcp-server.ts skips the renderer bridge for scoped sessions, and
-    // the bridge no longer re-registers them flat.
-    const server = createMcpServer({
-      agentToolsScope: { userId: "user-1", source: "stdio-local" }
-    });
-    const tools = (
-      server as unknown as { _registeredTools: Record<string, unknown> }
-    )._registeredTools;
-
-    expect(tools).toHaveProperty("execute_code");
-    expect(tools).not.toHaveProperty("ui_get_graph");
-
-    const response = await callTool(server, "execute_code", {
-      title: "check belt",
-      code: "return Object.keys(tools).filter((n) => n.startsWith('ui_')).length > 0;"
-    });
-    expect(JSON.parse(response.content[0].text)).toMatchObject({
-      ok: true,
-      result: true
-    });
-  });
-
-  it("registers all expected tools", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as { _registeredTools: Record<string, unknown> }
-    )._registeredTools;
-    const expectedTools = [
-      "list_workflows",
-      "get_workflow",
-      "run_workflow",
-      "list_assets",
-      "get_asset",
-      "list_nodes",
-      "search_nodes",
-      "get_node_info",
-      "list_jobs",
-      "get_job",
-      "list_collections",
-      "get_collection",
-      "query_collection"
-    ];
-    for (const name of expectedTools) {
-      expect(tools).toHaveProperty(name);
-    }
-  });
-
-  it("list_workflows tool has correct description", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as {
-        _registeredTools: Record<string, { description?: string }>;
-      }
-    )._registeredTools;
-    expect(tools.list_workflows.description).toBe(
-      "List workflows. Returns inline base64 thumbnails for hosts that render images (e.g. Claude Desktop) and renders an interactive gallery in App-aware hosts. Supports cursor pagination via start_key — pass the previous response's `next` value to fetch the next page."
+  it("publishes the capabilities catalog as a resource", async () => {
+    const client = await connectClient();
+    const { resources } = await client.listResources();
+    expect(resources.map((r) => r.uri)).toContain(
+      MCP_CAPABILITIES_RESOURCE_URI
     );
-  });
 
-  it("get_workflow tool has correct description", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as {
-        _registeredTools: Record<string, { description?: string }>;
-      }
-    )._registeredTools;
-    expect(tools.get_workflow.description).toBe(
-      "Get detailed information about a specific workflow. Returns the workflow's thumbnail inline as an image block when available, plus an interactive pan/zoom graph view in App-aware hosts."
-    );
-  });
-
-  it("run_workflow tool has correct description", () => {
-    const server = createMcpServer();
-    const tools = (
-      server as unknown as {
-        _registeredTools: Record<string, { description?: string }>;
-      }
-    )._registeredTools;
-    expect(tools.run_workflow.description).toBe(
-      "Run a workflow on the backend, optionally passing parameters."
-    );
-  });
-
-  it("serializes workflow results without relying on toDict()", async () => {
-    await Workflow.create({
-      user_id: "u1",
-      name: "Workflow MCP",
-      graph: { nodes: [], edges: [] },
-      access: "private"
+    const read = await client.readResource({
+      uri: MCP_CAPABILITIES_RESOURCE_URI
     });
-
-    const server = createMcpServer();
-    const response = await callTool(server, "list_workflows", {
-      user_id: "u1",
-      limit: 10
-    });
-
-    expect(response.isError).not.toBe(true);
-    const body = JSON.parse(response.content[0].text) as {
-      workflows: Array<{ name: string }>;
-      next: string | null;
-    };
-    expect(body.workflows).toHaveLength(1);
-    expect(body.workflows[0]?.name).toBe("Workflow MCP");
-    expect(body.next).toBeNull();
-  });
-
-  it("runs a simple workflow on the backend", async () => {
-    const workflow = (await Workflow.create({
-      user_id: "u1",
-      name: "Workflow Runner",
-      access: "private",
-      graph: {
-        nodes: [
-          {
-            id: "const-1",
-            type: "nodetool.constant.Integer",
-            data: { value: 7 }
-          },
-          {
-            id: "out-1",
-            type: "nodetool.output.Output",
-            data: { name: "answer", description: "" }
-          }
-        ],
-        edges: [
-          {
-            id: "edge-1",
-            source: "const-1",
-            sourceHandle: "output",
-            target: "out-1",
-            targetHandle: "value",
-            edge_type: "data"
-          }
-        ]
-      }
-    })) as Workflow;
-
-    const server = createMcpServer();
-    const response = await callTool(server, "run_workflow", {
-      user_id: "u1",
-      workflow_id: workflow.id,
-      params: {}
-    });
-
-    expect(response.isError).not.toBe(true);
-    const body = JSON.parse(response.content[0].text) as {
-      job_id: string;
-      status: string;
-      outputs: Record<string, unknown[]>;
-    };
-    expect(body.job_id).toBeTruthy();
-    expect(body.status).toBe("completed");
-    expect(Object.values(body.outputs).flat()).toContain(7);
-  });
-
-  it("maps MCP snake_case filters to model queries", async () => {
-    const workflow = (await Workflow.create({
-      user_id: "u1",
-      name: "Workflow Filter Target",
-      graph: { nodes: [], edges: [] },
-      access: "private"
-    })) as Workflow;
-
-    await Asset.create({
-      user_id: "u1",
-      name: "keep.png",
-      content_type: "image/png",
-      parent_id: "folder-1"
-    });
-    await Asset.create({
-      user_id: "u1",
-      name: "match.png",
-      content_type: "image/png",
-      parent_id: "folder-2"
-    });
-
-    await Job.create({
-      user_id: "u1",
-      workflow_id: workflow.id,
-      status: "running"
-    });
-    await Job.create({
-      user_id: "u1",
-      workflow_id: "other-workflow",
-      status: "running"
-    });
-
-    const server = createMcpServer();
-
-    const assetsResponse = await callTool(server, "list_assets", {
-      user_id: "u1",
-      parent_id: "folder-2",
-      content_type: "image/png",
-      limit: 10
-    });
-    const assets = JSON.parse(assetsResponse.content[0].text) as {
-      assets: Array<{
+    const entry = read.contents[0];
+    expect(entry.mimeType).toBe("application/json");
+    const catalog = JSON.parse(entry.text as string) as {
+      direct_tools: string[];
+      modules: Array<{ namespace: string; exports: string[] }>;
+      tools: Array<{
         name: string;
-        parent_id: string | null;
+        description: string;
+        permission_category: string;
       }>;
-      next: string | null;
     };
-    expect(assets.assets).toHaveLength(1);
-    expect(assets.assets[0]?.name).toBe("match.png");
-    expect(assets.assets[0]?.parent_id).toBe("folder-2");
-
-    const jobsResponse = await callTool(server, "list_jobs", {
-      user_id: "u1",
-      workflow_id: workflow.id,
-      limit: 10
-    });
-    const jobs = JSON.parse(jobsResponse.content[0].text) as {
-      jobs: Array<{
-        workflow_id: string;
-      }>;
-      next_start_key: string | null;
-    };
-    expect(jobs.jobs).toHaveLength(1);
-    expect(jobs.jobs[0]?.workflow_id).toBe(workflow.id);
+    expect(catalog.direct_tools).toEqual(["execute_code", "view_image"]);
+    expect(catalog.modules.map((m) => m.namespace)).toContain("workflows");
+    const listWorkflows = catalog.tools.find((t) => t.name === "list_workflows");
+    expect(listWorkflows?.permission_category).toBe("read");
+    expect(listWorkflows?.description.length).toBeGreaterThan(0);
+    await client.close();
   });
 });
 
-describe("MCP frontend renderer routing", () => {
-  function makeFakeTransport(
-    id: string,
-    executeTool: AgentTransport["executeTool"] = async () => ({ ok: true })
-  ): AgentTransport {
-    return {
-      id,
-      isAlive: true,
-      streamMessage: () => {},
-      requestToolManifest: async () => [],
-      executeTool,
-      abortTools: () => {}
-    };
-  }
-
-  it("errors when no renderer is connected for a ui_ tool", async () => {
-    const server = createMcpServer();
-    const response = await callTool(server, "ui_get_graph", {});
-    expect(response.isError).toBe(true);
-    expect(response.content[0].text).toContain(
-      "No active NodeTool renderer is connected"
-    );
+describe("session scope", () => {
+  it("refuses to build a session with no bound user", () => {
+    expect(() => createMcpServer()).toThrow(MCP_SCOPE_REQUIRED_MESSAGE);
   });
 
-  it("routes ui_ tools to the connected renderer and strips renderer_id", async () => {
+  it("refuses an unscoped HTTP initialize with the fix named", async () => {
+    const response = await handleMcpHttpRequest(
+      new Request("http://localhost/mcp", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          jsonrpc: "2.0",
+          id: 1,
+          method: "initialize",
+          params: {}
+        })
+      })
+    );
+    expect(response).not.toBeNull();
+    expect(response!.status).toBe(401);
+    const body = (await response!.json()) as { error: { message: string } };
+    expect(body.error.message).toBe(MCP_SCOPE_REQUIRED_MESSAGE);
+    expect(body.error.message).toContain("nodetool mcp serve");
+  });
+});
+
+describe("editor steering through the belt", () => {
+  it("routes an editor-steering ui_ tool to the connected renderer", async () => {
     let received: { name?: string; args?: unknown } = {};
-    const transport = makeFakeTransport("r-1", async (_s, _c, name, args) => {
+    const transport = fakeTransport("r-1", async (_s, _c, name, args) => {
       received = { name, args };
       return { ok: true };
     });
     registerMcpFrontendTransport(transport);
     try {
-      const server = createMcpServer();
-      const response = await callTool(server, "ui_add_node", {
-        id: "n1",
-        type: "test.TestNode",
-        position: { x: 0, y: 0 },
-        renderer_id: "r-1"
-      });
-      expect(response.isError).not.toBe(true);
-      expect(received.name).toBe("ui_add_node");
+      const server = createMcpServer({ agentToolsScope: scope });
+      expect(toolNames(server)).not.toContain("ui_open_workflow");
+
+      const observed = await act(
+        server,
+        'return await tools.ui_open_workflow({ workflow_id: "wf-1", renderer_id: "r-1" });'
+      );
+      expect(observed.ok).toBe(true);
+      expect(received.name).toBe("ui_open_workflow");
+      expect(received.args).toMatchObject({ workflow_id: "wf-1" });
       expect(received.args).not.toHaveProperty("renderer_id");
-      expect(received.args).toMatchObject({ id: "n1" });
     } finally {
       unregisterMcpFrontendTransport(transport);
     }
   });
 
-  it("prefers live editor state for scoped workflow document tools", async () => {
-    const transport = makeFakeTransport("r-live", async () => ({
-      ok: true,
-      workflow_id: "live-workflow"
-    }));
+  it("reports a missing renderer instead of silently succeeding", async () => {
+    const server = createMcpServer({ agentToolsScope: scope });
+    const observed = await act(
+      server,
+      'return await tools.ui_switch_tab({ tab_index: 0 });'
+    );
+    expect(observed.ok).toBe(false);
+    expect(observed.error).toContain("connected NodeTool editor");
+  });
+
+  it("names an unknown renderer_id", async () => {
+    const transport = fakeTransport("r-1");
     registerMcpFrontendTransport(transport);
     try {
-      const server = createMcpServer({
-        agentToolsScope: { userId: "user-1", source: "stdio-local" }
-      });
-      // The live-editor preference lives in the bridged-tool runner, which an
-      // action reaches through `tools.ui_get_graph()`.
-      const response = await callTool(server, "execute_code", {
-        title: "read the graph",
-        code: "return await tools.ui_get_graph({});"
-      });
-      expect(response.isError).not.toBe(true);
-      expect(JSON.parse(response.content[0].text)).toMatchObject({
-        ok: true,
-        result: { workflow_id: "live-workflow" }
-      });
+      const server = createMcpServer({ agentToolsScope: scope });
+      const observed = await act(
+        server,
+        'return await tools.ui_copy({ text: "x", renderer_id: "missing" });'
+      );
+      expect(observed.ok).toBe(false);
+      expect(observed.error).toContain('renderer with id "missing"');
     } finally {
       unregisterMcpFrontendTransport(transport);
     }
   });
 
-  it("errors when a named renderer_id is not connected", async () => {
-    const transport = makeFakeTransport("r-1");
-    registerMcpFrontendTransport(transport);
-    try {
-      const server = createMcpServer();
-      const response = await callTool(server, "ui_get_graph", {
-        renderer_id: "missing"
-      });
-      expect(response.isError).toBe(true);
-      const body = JSON.parse(response.content[0].text) as { error: string };
-      expect(body.error).toContain('renderer with id "missing"');
-    } finally {
-      unregisterMcpFrontendTransport(transport);
-    }
-  });
-
-  it("list_renderers reports connected renderers", async () => {
-    const a = makeFakeTransport("r-a");
-    const b = makeFakeTransport("r-b");
+  it("list_renderers is on the belt, not an MCP tool", async () => {
+    const a = fakeTransport("r-a");
+    const b = fakeTransport("r-b");
     registerMcpFrontendTransport(a);
     registerMcpFrontendTransport(b);
     try {
-      const server = createMcpServer();
-      const response = await callTool(server, "list_renderers", {});
-      const body = JSON.parse(response.content[0].text) as {
+      const server = createMcpServer({ agentToolsScope: scope });
+      expect(toolNames(server)).not.toContain("list_renderers");
+
+      const observed = await act(server, "return await tools.list_renderers({});");
+      expect(observed.ok).toBe(true);
+      const body = observed.result as {
         renderers: Array<{ renderer_id: string; active: boolean }>;
       };
       const ids = body.renderers.map((r) => r.renderer_id);
@@ -448,6 +277,22 @@ describe("MCP frontend renderer routing", () => {
     } finally {
       unregisterMcpFrontendTransport(a);
       unregisterMcpFrontendTransport(b);
+    }
+  });
+
+  it("prefers live editor state for the workflow document tools", async () => {
+    const transport = fakeTransport("r-live", async () => ({
+      ok: true,
+      workflow_id: "live-workflow"
+    }));
+    registerMcpFrontendTransport(transport);
+    try {
+      const server = createMcpServer({ agentToolsScope: scope });
+      const observed = await act(server, "return await tools.ui_get_graph({});");
+      expect(observed.ok).toBe(true);
+      expect(observed.result).toMatchObject({ workflow_id: "live-workflow" });
+    } finally {
+      unregisterMcpFrontendTransport(transport);
     }
   });
 });
