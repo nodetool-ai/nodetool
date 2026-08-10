@@ -17,21 +17,15 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ImapFlow } from "imapflow";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
+import { stripTags, stripToFixpoint } from "./html-text.js";
 
 function stripHtml(html: string): string {
-  let text = html
+  const text = html
     .replace(/<br\s*\/?>/gi, "\n")
     .replace(/<\/p>/gi, "\n\n")
     .replace(/<\/div>/gi, "\n");
-  // Strip tags until a pass removes nothing, so removed fragments cannot
-  // reassemble into a new tag ("<scr<script>ipt>" → "<script>").
-  for (;;) {
-    const next = text.replace(/<[^>]*>/g, "");
-    if (next === text) break;
-    text = next;
-  }
   return (
-    text
+    stripToFixpoint(text, stripTags)
       .replace(/&nbsp;/g, " ")
       .replace(/&lt;/g, "<")
       .replace(/&gt;/g, ">")
