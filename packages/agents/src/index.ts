@@ -152,9 +152,9 @@ export {
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
-  decidePermission,
-  gateTools
+  decidePermission
 } from "./tools/tool-permissions.js";
+export { gateTools } from "./capabilities/gate-tools.js";
 export type {
   PermissionCategory,
   PermissionMode,

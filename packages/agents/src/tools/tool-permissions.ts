@@ -1,22 +1,19 @@
 /**
- * Permission classification, the gate's options, and the `Tool` shim over it.
+ * Permission classification and the gate's options.
  *
  * The chat agent always carries a fixed toolbelt; a permission *mode* decides
  * whether each tool call runs automatically, asks the user first, or is
  * blocked. The ladder itself lives in `capabilities/invoke.ts` — one
  * implementation, reached either through `CapabilityRun.invoke` or through the
- * {@link gateTools} wrapper below, which is how a host that still hands out
- * `Tool` instances gets the same gate.
+ * `gateTools` wrapper (`capabilities/gate-tools.ts`), which is how a host that
+ * still hands out `Tool` instances gets the same gate. The wrapper lives on
+ * the capabilities side so this file never imports from `capabilities/` — the
+ * reverse edge deadlocked the bundled backend's async module wrappers.
  *
  * Design: docs/superpowers/specs/2026-05-28-chat-permission-model-design.md,
  * docs/tool-class-retirement-design.md § "Where the permission gate lives"
  */
 
-import type { ProcessingContext, ProviderTool } from "@nodetool-ai/runtime";
-import type { ZodType } from "zod";
-import { Tool } from "./base-tool.js";
-import { capabilityFromTool } from "../capabilities/adapters.js";
-import { createCapabilityRun } from "../capabilities/invoke.js";
 // Type-only imports: keep tool-permissions.ts free of provider/LLM runtime
 // deps and avoid any value-level import cycle with security-monitor.ts and
 // the sandbox.
@@ -278,68 +275,4 @@ export interface PermissionGateOptions {
    * transcript. Only invoked when {@link securityMonitor} is set.
    */
   recentTranscript?: () => string;
-}
-
-/**
- * Transparent permission wrapper around a {@link Tool}. Identity, schema and
- * message template are the inner tool's, unchanged; only `process()` differs,
- * and it does nothing itself — it builds a one-call {@link CapabilityRun} over
- * a capability view of the tool and lets `invoke` run the ladder. There is one
- * ladder, and this is the door a `Tool` walks through it.
- */
-class GatedCapabilityTool extends Tool {
-  override readonly needsToolCallId: boolean;
-
-  constructor(
-    private readonly inner: Tool,
-    private readonly gate: PermissionGateOptions
-  ) {
-    super();
-    this.needsToolCallId = inner.needsToolCallId;
-  }
-
-  get name(): string {
-    return this.inner.name;
-  }
-
-  get description(): string {
-    return this.inner.description;
-  }
-
-  override get schema(): ZodType | undefined {
-    return this.inner.schema;
-  }
-
-  override get inputSchema(): Record<string, unknown> {
-    return this.inner.inputSchema;
-  }
-
-  override toProviderTool(): ProviderTool {
-    return this.inner.toProviderTool();
-  }
-
-  override userMessage(params: Record<string, unknown>): string {
-    return this.inner.userMessage(params);
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const capability = capabilityFromTool(this.inner);
-    const run = createCapabilityRun({
-      context,
-      gate: this.gate,
-      capabilities: [capability]
-    });
-    return run.invoke(capability.spec.name, params);
-  }
-}
-
-/** Wrap each tool so its `process()` runs through the permission gate. */
-export function gateTools(
-  tools: Tool[],
-  options: PermissionGateOptions
-): Tool[] {
-  return tools.map((tool) => new GatedCapabilityTool(tool, options));
 }

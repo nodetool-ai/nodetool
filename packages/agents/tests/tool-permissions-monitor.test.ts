@@ -12,12 +12,12 @@ import { describe, expect, it, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "../src/tools/base-tool.js";
 import {
-  gateTools,
   type ApprovalDecision,
   type ApprovalRequest,
   type PermissionGateOptions,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { gateTools } from "../src/capabilities/gate-tools.js";
 import type {
   PendingAction,
   SecurityVerdict

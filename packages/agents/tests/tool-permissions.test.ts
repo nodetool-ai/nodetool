@@ -9,11 +9,11 @@ import { Tool } from "../src/tools/base-tool.js";
 import {
   permissionCategoryFor,
   decidePermission,
-  gateTools,
   type ApprovalDecision,
   type ApprovalRequest,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { gateTools } from "../src/capabilities/gate-tools.js";
 
 const ctx = {} as ProcessingContext;
 

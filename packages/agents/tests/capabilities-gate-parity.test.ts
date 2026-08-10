@@ -28,12 +28,12 @@ import type {
   PermissionCategory
 } from "../src/capabilities/types.js";
 import {
-  gateTools,
   permissionCategoryFor,
   type ApprovalDecision,
   type ApprovalRequest,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { gateTools } from "../src/capabilities/gate-tools.js";
 
 const ctx = {} as ProcessingContext;
 

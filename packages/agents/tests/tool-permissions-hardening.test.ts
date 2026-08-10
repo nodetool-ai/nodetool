@@ -8,12 +8,12 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Tool } from "../src/tools/base-tool.js";
 import {
   TOOL_PERMISSION_CATEGORIES,
-  gateTools,
   type ApprovalDecision,
   type ApprovalRequest,
   type PermissionGateOptions,
   type PermissionMode
 } from "../src/tools/tool-permissions.js";
+import { gateTools } from "../src/capabilities/gate-tools.js";
 
 const ctx = {} as ProcessingContext;
 
