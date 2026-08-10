@@ -510,18 +510,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "ad-creative-factory",
-        "name": "Ad Creative Factory",
-        "description": "Turn one product photo and one offer into a batch of ready-to-test vertical video ads. A strategist agent plans a persona × angle test matrix, a structured data generator emits one variant row per cell — persona, angle, and spoken hook as separate fields, not a prose blob — and every row's hook becomes a staged product scene, an animated 9:16 clip, and a voiceover mixed on top.",
-        "tags": [
-          "marketing",
-          "advertising",
-          "video",
-          "audio",
-          "agents"
-        ]
-      },
-      {
         "slug": "b-roll-reel-from-a-brief",
         "name": "B-Roll Reel from a Brief",
         "description": "One line of direction becomes a two-shot b-roll reel. Prompt nodes expand the brief into a wide establishing shot and a matching detail shot, text-to-video renders both, and a crossfade cuts them together. Two paid video generations per run.",
@@ -1212,14 +1200,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "research-paper-summarizer",
-        "name": "Research Paper Summarizer",
-        "description": "Search a curated index of transformer papers by topic, fetch the matches, and have two agents extract findings and technical methodology into one report.",
-        "tags": [
-          "research"
-        ]
-      },
-      {
         "slug": "seo-content-engine",
         "name": "SEO Content Engine",
         "description": "One topic in, a keyword-targeted article batch out — each article lands as typed fields (title, meta description, keywords, body) instead of one markdown blob, ready to paste straight into a CMS. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image.",
@@ -1322,14 +1302,6 @@ export const templateCatalog: CatalogCategory[] = [
           "retrieval",
           "llm",
           "citations"
-        ]
-      },
-      {
-        "slug": "check-a-url-and-an-ip",
-        "name": "Check a URL and an IP",
-        "description": "Two shape tests that people routinely hand-roll with regex and get wrong. IP reports the family as well as validity, because 'is this an address' and 'is this v4' are different questions.",
-        "tags": [
-          "text"
         ]
       },
       {
@@ -1535,17 +1507,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "social-media-calendar-filler",
-        "name": "Social Media Calendar Filler",
-        "description": "Generate a month's worth of social media content as a structured calendar — one row per post with its own image prompt and ready-to-post caption — then render an image for every row.",
-        "tags": [
-          "content",
-          "social media",
-          "marketing",
-          "planning"
-        ]
-      },
-      {
         "slug": "split-a-log-into-records",
         "name": "Split a Log into Records",
         "description": "Regex split turns one blob into a list. The pattern is the record boundary, which is often more reliable than a fixed delimiter.",
@@ -1568,12 +1529,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "text"
         ]
-      },
-      {
-        "slug": "summarize-rss",
-        "name": "Summarize RSS",
-        "description": "Turn any RSS feed into a topic-grouped digest — point it at a new URL and get headlines organized by theme, not a flat list.",
-        "tags": []
       },
       {
         "slug": "take-while-the-numbers-are-small",
@@ -1654,14 +1609,6 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "validate-a-signup-payload",
-        "name": "Validate a Signup Payload",
-        "description": "Run one submitted address through the checks a signup form needs: a strict email test, a bundle of shape checks in one pass, and the sanitised forms you would actually store. Sanitize returns three variants because escaping, trimming and email normalisation are different jobs.",
-        "tags": [
-          "text"
-        ]
-      },
-      {
         "slug": "wrap-a-value-in-quotes",
         "name": "Wrap a Value in Quotes",
         "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
@@ -1705,36 +1652,9 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "add-a-computed-column",
-        "name": "Add a Computed Column",
-        "description": "Append a column of values to a table. The values arrive as a list, so anything that can produce a list - a code node, a generator, another table - can widen a dataframe.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "average-by-column",
-        "name": "Average by Column",
-        "description": "Aggregate a numeric column to its mean rather than its sum. Same node as the sum template with one field changed - worth having both so the aggregation options are discoverable.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
         "slug": "batch-a-list",
         "name": "Batch a List",
         "description": "Group a stream into fixed-size batches. The standard shape for anything rate-limited or priced per call: batch, send, repeat, rather than one request per item.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "clean-and-rank-a-table",
-        "name": "Clean and Rank a Table",
-        "description": "A real four-step data chain rather than a single op: import, drop duplicate rows, sort by volume, then keep the top slice. Each step is inspectable on its own, which is the argument for doing this as a graph instead of one opaque query.",
         "tags": [
           "data",
           "utility"
@@ -1750,38 +1670,12 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "describe-a-table",
-        "name": "Describe a Table",
-        "description": "Get count, mean, min, max and quartiles per numeric column. The first thing to run on data you have not seen before. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "drop-duplicate-rows",
-        "name": "Drop Duplicate Rows",
-        "description": "Remove exact duplicate rows. The sample data here has a repeated south/bo row specifically so the effect is visible. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
         "slug": "drop-duplicates",
         "name": "Drop Duplicates",
         "description": "Pass each distinct value through once and swallow repeats. Set `key` to dedupe objects on one field instead of on the whole value. Runs entirely in-process: no model, no key, no cost.",
         "tags": [
           "data",
           "utility"
-        ]
-      },
-      {
-        "slug": "drop-the-incomplete-rows",
-        "name": "Drop the Incomplete Rows",
-        "description": "Discard any row with a missing cell. The blunt option — see Fill the Gaps for the one that keeps the row.",
-        "tags": [
-          "data"
         ]
       },
       {
@@ -1801,14 +1695,6 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "data",
           "utility"
-        ]
-      },
-      {
-        "slug": "fill-the-gaps-instead",
-        "name": "Fill the Gaps Instead",
-        "description": "Substitute a value for missing cells rather than losing the row. The same input as Drop the Incomplete Rows, so the two are directly comparable.",
-        "tags": [
-          "data"
         ]
       },
       {
@@ -1833,63 +1719,11 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "json-to-a-table",
-        "name": "JSON to a Table",
-        "description": "Turn a JSON array into a dataframe. The usual shape of an API response, made queryable by the rest of the data nodes.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "join-two-tables-on-a-key",
-        "name": "Join Two Tables on a Key",
-        "description": "A key join: names in one table, roles in another, matched on id. The everyday shape of pulling a model's structured output together with the records it refers to.",
-        "tags": [
-          "data"
-        ]
-      },
-      {
         "slug": "keep-only-the-long-lines",
         "name": "Keep Only the Long Lines",
         "description": "Fan a list into a stream, drop the items that fail a predicate, then gather what survived back into a list. Two nodes carry the lesson: Collection is the fan-out — a list fed straight into a stream operator arrives as one item — and Collect is the reverse, without which an output on a stream shows only the last value that passed.",
         "tags": [
           "data"
-        ]
-      },
-      {
-        "slug": "load-a-csv",
-        "name": "Load a CSV",
-        "description": "Parse inline CSV text into a dataframe. The entry point for every other data template here - swap the constant for a file or URL loader when the data stops being a sample. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "merge-two-tables-side-by-side",
-        "name": "Merge Two Tables Side by Side",
-        "description": "Merge aligns two frames column-wise. Unlike Join it does not need a key, so use it when the rows already correspond.",
-        "tags": [
-          "data"
-        ]
-      },
-      {
-        "slug": "narrow-then-order",
-        "name": "Narrow then Order",
-        "description": "Two data steps composed: keep two columns, then order by one of them. Composition is the point - each node is trivial, the chain is what does the work.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "pick-columns",
-        "name": "Pick Columns",
-        "description": "Narrow a dataframe to the columns you actually need. Worth doing early: everything downstream gets cheaper and the intent of the graph gets clearer. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
         ]
       },
       {
@@ -1911,70 +1745,9 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
-        "slug": "rename-the-columns",
-        "name": "Rename the Columns",
-        "description": "Rename before a join so two sources agree on their key, or after one so the output reads the way a report needs it to.",
-        "tags": [
-          "data"
-        ]
-      },
-      {
-        "slug": "slice-rows",
-        "name": "Slice Rows",
-        "description": "Take a row range by index. Useful for paging through a table, or for trimming a header-ish first row that survived import. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
         "slug": "slice-text",
         "name": "Slice Text",
         "description": "Take a fixed range out of a string by index, with an optional step. The blunt way to truncate a caption to a length limit, or to sample every nth character.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "sort-a-table",
-        "name": "Sort a Table",
-        "description": "Order rows by one column. Pair with Take the First Few to get a top-N without writing a query. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "stack-rows-from-two-batches",
-        "name": "Stack Rows from Two Batches",
-        "description": "Append is the row-wise counterpart to Merge — two runs of the same shape concatenated into one table.",
-        "tags": [
-          "data"
-        ]
-      },
-      {
-        "slug": "summarise-by-group",
-        "name": "Summarise by Group",
-        "description": "Aggregate a column - sum, mean, count. The one-node version of a GROUP BY for quick reporting. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "table-to-list",
-        "name": "Table to List",
-        "description": "Convert a dataframe into a list of row objects so the stream-control nodes can iterate it. The bridge between the table world and the per-item world. Runs in-process - no model, no key, no cost.",
-        "tags": [
-          "data",
-          "utility"
-        ]
-      },
-      {
-        "slug": "table-to-rows-to-count",
-        "name": "Table to Rows to Count",
-        "description": "Convert a table to rows, then count them through the stream-control path. Demonstrates the handoff between the dataframe world and the per-item world, which is where wiring mistakes usually happen.",
         "tags": [
           "data",
           "utility"
