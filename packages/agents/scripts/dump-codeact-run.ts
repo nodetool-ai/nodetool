@@ -26,14 +26,20 @@ import {
   createCodeActTools
 } from "../src/evals/codeact-cases.js";
 import { CODEACT_API_EVAL_CASES } from "../src/evals/codeact-api-cases.js";
+import {
+  CODEACT_SANDBOX_PACK_EVAL_CASES,
+  shippedHostPackCatalog
+} from "../src/evals/codeact-sandbox-pack-cases.js";
 import { checkCodeActExpectations } from "../src/evals/codeact-eval.js";
 
 const [caseId, providerId = "claude_agent_sdk", model = "sonnet", iterations] =
   process.argv.slice(2);
 
-const evalCase = [...CODEACT_EVAL_CASES, ...CODEACT_API_EVAL_CASES].find(
-  (c) => c.id === caseId
-);
+const evalCase = [
+  ...CODEACT_EVAL_CASES,
+  ...CODEACT_API_EVAL_CASES,
+  ...CODEACT_SANDBOX_PACK_EVAL_CASES
+].find((c) => c.id === caseId);
 if (!evalCase) {
   console.error(`Unknown case "${caseId}".`);
   process.exit(1);
@@ -42,9 +48,13 @@ if (!evalCase) {
 const provider = await createProviderStrict(providerId);
 const recorder = createCodeActRecorder();
 const tools = (evalCase.createTools ?? createCodeActTools)(recorder);
+const sandboxPackages = evalCase.sandboxPackages ?? [];
 const context = new ProcessingContext({
   jobId: `codeact-dump-${randomUUID()}`,
-  userId: "eval-user"
+  userId: "eval-user",
+  ...(sandboxPackages.length > 0
+    ? { sandboxModuleCatalog: shippedHostPackCatalog() }
+    : {})
 });
 const step: Step = {
   id: randomUUID(),
@@ -65,7 +75,8 @@ const executor = new CodeActExecutor({
   provider,
   model,
   tools,
-  maxIterations: iterations ? Number(iterations) : 40
+  maxIterations: iterations ? Number(iterations) : 40,
+  sandboxPackages
 });
 
 const lines: string[] = [

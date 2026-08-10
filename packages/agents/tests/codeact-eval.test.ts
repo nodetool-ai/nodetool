@@ -8,55 +8,7 @@ import {
   formatCodeActReport
 } from "../src/evals/codeact-eval.js";
 import { CODEACT_EVAL_CASES } from "../src/evals/codeact-cases.js";
-import type {
-  BaseProvider,
-  ProviderStreamItem,
-  ToolCall
-} from "@nodetool-ai/runtime";
-
-/** Provider that answers every case with a scripted list of code actions. */
-function createScriptedLoopProvider(
-  actionsByCall: string[][]
-): BaseProvider {
-  let call = 0;
-  return {
-    provider: "fake",
-    hasToolSupport: async () => true,
-    getTotalCost: () => 0,
-    async *generateLoop(args: {
-      tools?: Array<{
-        name: string;
-        execute?: (a: Record<string, unknown>) => Promise<string | unknown>;
-      }>;
-      signal?: AbortSignal;
-    }): AsyncGenerator<ProviderStreamItem> {
-      const actions = actionsByCall[call++] ?? [];
-      const toolMap = new Map((args.tools ?? []).map((t) => [t.name, t]));
-      let idx = 0;
-      for (const code of actions) {
-        if (args.signal?.aborted) break;
-        const tc: ToolCall = {
-          id: `tc_${call}_${idx++}`,
-          name: "execute_code",
-          args: { code }
-        };
-        yield tc;
-        const tool = toolMap.get(tc.name);
-        const content = tool?.execute ? await tool.execute(tc.args) : "";
-        yield {
-          type: "message",
-          message: {
-            role: "tool",
-            toolCallId: tc.id,
-            content:
-              typeof content === "string" ? content : JSON.stringify(content)
-          }
-        };
-      }
-      yield { type: "chunk", content: "", done: true };
-    }
-  } as unknown as BaseProvider;
-}
+import { createScriptedLoopProvider } from "./_helpers/scripted-loop-provider.js";
 
 const SOLUTIONS: Record<string, string[]> = {
   "chain-in-one-action": [

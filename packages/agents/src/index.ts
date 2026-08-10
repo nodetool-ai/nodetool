@@ -785,6 +785,11 @@ export {
 } from "./evals/codeact-api-cases.js";
 export { CODEACT_API_CORE_CASES } from "./evals/codeact-api-core.js";
 export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
+export {
+  CODEACT_SANDBOX_PACK_EVAL_CASES,
+  SANDBOX_PACK_DOCS_TOOL,
+  shippedHostPackCatalog
+} from "./evals/codeact-sandbox-pack-cases.js";
 
 // Planning-mode evaluation harness (TaskPlanner DAG)
 export {
