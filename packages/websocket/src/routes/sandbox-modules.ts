@@ -13,12 +13,24 @@
  */
 import type { FastifyPluginAsync } from "fastify";
 import { getSandboxCatalog } from "../sandbox-catalog.js";
+import { getHttpRateLimitConfig } from "../lib/http-rate-limit.js";
 
 /** A year, in seconds: responses are immutable because the ETag is a digest. */
 const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
-  app.get("/api/sandbox-modules/*", async (req, reply) => {
+  // The server registers @fastify/rate-limit globally, which already covers
+  // this route. The explicit per-route config restates the same bounds where
+  // a static analyzer (CodeQL js/missing-rate-limiting) can see them next to
+  // the authorization call.
+  const rateLimit = getHttpRateLimitConfig();
+  const routeConfig = {
+    rateLimit: {
+      max: rateLimit.enabled ? rateLimit.max : Number.MAX_SAFE_INTEGER,
+      timeWindow: rateLimit.timeWindow
+    }
+  };
+  app.get("/api/sandbox-modules/*", { config: routeConfig }, async (req, reply) => {
     const moduleId = (req.params as { "*"?: string })["*"] ?? "";
     if (moduleId.length === 0) {
       return reply.status(404).send({ detail: "Not found" });
