@@ -97,12 +97,12 @@ Verified against `packages/agents/src/js-sandbox.ts` by running code in it:
 | `workspace.read/write/readBytes/writeBytes/list/stat/mkdir/remove` | yes |
 | `getSecret()`, `sleep()`, `progress()` | yes |
 | `crypto.digest/hmac/randomUUID/getRandomValues` | yes |
-| `data.parseCsv` (papaparse), `data.selectHtml` (cheerio) | yes |
+| CSV, HTML, XML, XLSX, YAML, zip, dates, diffs | yes — `import` from the matching `@nodetool-ai/sandbox-*` pack, declared on the node |
 | `format.number/date/relativeTime/list` (host `Intl` bridge) | yes |
 | `toBase64/fromBase64/toHex/fromHex`, `assetToSandbox/sandboxToAsset` | yes |
 | `Intl` directly in the guest | **no** — use `format.*` |
 | `eval`, `Function` | **no** — deleted |
-| npm packages, native modules, canvas, ffmpeg | **no** |
+| native modules, ffmpeg | **no** |
 | Streaming operators (fan-out, per-item emission) | **no** — kernel-level |
 
 String, regex, date, math, path, JSON, CSV, HTML-selection, HTTP, hashing, and
@@ -187,7 +187,7 @@ category; none fit the ten that exist.
 | `lib.os` path helpers — `AbsolutePath` `Basename` `Dirname` `FileExtension` `FileName` `FileNameMatch` `FilterFileNames` `GetDirectory` `GetPathInfo` `JoinPaths` `NormalizePath` `PathToString` `RelativePath` `SplitExtension` `SplitPath` | 15 → 12 snippets | **Path** (new). Three pairs are the same operation and merged. `AbsolutePath`, `RelativePath` and `GetPathInfo` are only partly reproducible — see below. |
 | `lib.svg` element builders — `Circle` `ClipPath` `DropShadow` `Ellipse` `GaussianBlur` `Gradient` `Line` `Path` `Polygon` `Rect` `Text` `Transform` | 12 | **SVG** (new) |
 | `lib.markdown` — all 6 extractors | 6 | **Markdown** (new) |
-| `lib.html` — `BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata` `ExtractVideos`, via `data.selectHtml` | 6 | **HTML** (new) |
+| `lib.html` — `BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata` `ExtractVideos`, via `@nodetool-ai/sandbox-html` | 6 | **HTML** (new) |
 | `lib.validate` — `Email` `IP` `URL` `String` `Sanitize` | 5 | **Validation** (new) |
 | `nodetool.list` — `RepeatEach` `RepeatValue` `Tile` | 3 | List |
 | `nodetool.constant.Date` `nodetool.constant.DateTime` — constructors with integer props, not value editors, unlike the rest of `nodetool.constant.*` | 2 | Date & Time |

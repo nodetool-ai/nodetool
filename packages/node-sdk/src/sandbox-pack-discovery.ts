@@ -3,8 +3,12 @@ import { existsSync, lstatSync, readFileSync, realpathSync, statSync } from "nod
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { parse } from "acorn";
 import {
+  generateSandboxHostFacade,
   generateSandboxWasmFacade,
   normalizeSandboxSpecifier,
+  sandboxHostModule,
+  sandboxHostModuleViolation,
+  SANDBOX_HOST_FACADE_VERSION,
   parseSkillDocument,
   parseWasmBinary,
   skillSections,
@@ -49,6 +53,11 @@ export const SANDBOX_PACKAGE_LIMITS = {
   skillBytes: 16 * 1024
 } as const;
 
+/** The id a host module carries in a pack's module table. Never a file path. */
+export function hostModuleId(hostId: string): string {
+  return `host:${hostId}`;
+}
+
 /** One validated file in a discovered sandbox package's module graph. */
 export interface SandboxDiscoveredFile {
   readonly id: string;
@@ -62,7 +71,7 @@ export interface SandboxDiscoveredFile {
 /** A public sandbox entry module discovered without executing pack code. */
 export interface SandboxDiscoveredModule {
   readonly specifier: string;
-  readonly kind: "js" | "wasm";
+  readonly kind: "js" | "wasm" | "host";
   readonly id: string;
   /** Digest of this public module and every transitive source it imports. */
   readonly digest: string;
@@ -72,6 +81,8 @@ export interface SandboxDiscoveredModule {
   readonly bytes?: Uint8Array;
   /** WASM modules only: the validated scalar call contract the host enforces. */
   readonly wasm?: SandboxWasmContract;
+  /** Host modules only: the registry id whose implementation serves the calls. */
+  readonly hostId?: string;
   readonly dependencies: readonly string[];
 }
 
@@ -243,6 +254,32 @@ export function discoverSandboxPack(
       publicModules.push({ ...pending, source });
       continue;
     }
+    if (module.kind === "host") {
+      // The trust rule, enforced where a manifest first meets NodeTool: an id
+      // that is not in the registry, or one claimed by a package the registry
+      // does not pin it to, never becomes a module. A pack ships no code for a
+      // host module, so there is nothing else to read.
+      const violation = sandboxHostModuleViolation(packageName, module.host);
+      if (violation !== undefined) {
+        throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: ${violation}`);
+      }
+      const spec = sandboxHostModule(module.host);
+      if (spec === undefined) {
+        throw new SandboxPackDiscoveryError(`${packageName}/${specifier}: unknown host module`);
+      }
+      publicModules.push({
+        specifier,
+        kind: "host",
+        id: hostModuleId(module.host),
+        hostId: module.host,
+        // The generated facade is the module's whole guest-visible surface, so
+        // it is both what delivery serves and what the digest is over.
+        source: generateSandboxHostFacade(specifier, spec),
+        dependencies: [],
+        declaration: module
+      });
+      continue;
+    }
     const moduleFile = module.file;
     if (moduleFile === undefined) {
       throw new SandboxPackDiscoveryError(`${packageName}: module ${specifier} has no file`);
@@ -298,6 +335,13 @@ export function discoverSandboxPack(
   const version = typeof packageJson.version === "string" ? packageJson.version : undefined;
   const resolvedModules: SandboxDiscoveredModule[] = publicModules.map(({ declaration, ...module }) => {
     const artifact = npmArtifacts.get(module.id);
+    if (module.kind === "host") {
+      return {
+        ...module,
+        dependencies: [],
+        digest: computeHostDigest({ ...module, declaration }, packageName, version)
+      };
+    }
     return {
       ...module,
       dependencies: dependenciesById.get(module.id) ?? [],
@@ -437,11 +481,9 @@ function computeDigest(
   const manifestMetadata = manifest === undefined ? undefined : {
     apiVersion: manifest.apiVersion,
     internal: [...manifest.internal].sort(compareStrings),
-    sandboxModules: [...manifest.sandboxModules].sort((left, right) => compareStrings(left.name, right.name)).map((module) =>
-      module.kind === "js"
-        ? { name: module.name, kind: module.kind, file: module.file, npm: module.npm }
-        : { name: module.name, kind: module.kind, file: module.file, memoryPagesMax: module.memoryPagesMax, limits: module.limits, exports: [...module.exports].sort(compareExportNames) }
-    )
+    sandboxModules: [...manifest.sandboxModules]
+      .sort((left, right) => compareStrings(left.name, right.name))
+      .map((module) => moduleDigestDeclaration(module))
   };
   return createHash("sha256").update(JSON.stringify({ packageName, packageVersion, manifest: manifestMetadata, entries, compiled })).digest("hex");
 }
@@ -520,6 +562,32 @@ function computeNpmCompiledDigest(
   })).digest("hex");
 }
 
+/**
+ * Digest for a host module.
+ *
+ * A host module ships no bytes, so what versions it is the surface the guest
+ * sees: the registry id, the export list behind it, and the facade generator.
+ * Drop an export from the registry and every workflow that pinned this digest
+ * reports drift, which is the point — the guest surface really did change.
+ */
+function computeHostDigest(
+  module: UndigestedSandboxModule,
+  packageName: string,
+  packageVersion: string | undefined
+): string {
+  const spec = module.hostId === undefined ? undefined : sandboxHostModule(module.hostId);
+  return createHash("sha256").update(JSON.stringify({
+    packageName,
+    packageVersion,
+    specifier: module.specifier,
+    moduleId: module.id,
+    hostId: module.hostId,
+    exports: [...(spec?.exports ?? [])].sort(compareStrings),
+    facadeVersion: SANDBOX_HOST_FACADE_VERSION,
+    facade: module.source
+  })).digest("hex");
+}
+
 function computeNpmPlaceholderDigest(
   module: UndigestedSandboxModule,
   packageName: string,
@@ -537,6 +605,9 @@ function computeNpmPlaceholderDigest(
 function moduleDigestDeclaration(module: SandboxModuleManifest): object {
   if (module.kind === "js") {
     return { name: module.name, kind: module.kind, file: module.file, npm: module.npm };
+  }
+  if (module.kind === "host") {
+    return { name: module.name, kind: module.kind, host: module.host };
   }
   return {
     name: module.name,

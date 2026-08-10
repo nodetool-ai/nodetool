@@ -16,7 +16,7 @@ describe("buildCodeGenSystemPrompt", () => {
 
   it("carries the sandbox reference rendered from the manifest", () => {
     expect(prompt).toContain("Sandbox API");
-    expect(prompt).toContain("data.parseCsv");
+    expect(prompt).toContain("workspace.read");
     expect(prompt).toContain("format.number");
   });
 

@@ -117,13 +117,13 @@ export function renderSandboxApiReference(
 
 /**
  * Identifier-like API references in a block of instruction text: bare calls
- * (`sleep(`) and dotted access (`data.parseCsv`). Returns the root name of each,
+ * (`sleep(`) and dotted access (`workspace.read`). Returns the root name of each,
  * which is what has to exist in the sandbox.
  */
 export function extractApiReferences(text: string): string[] {
   const found = new Set<string>();
   const ident = "[A-Za-z_$][A-Za-z0-9_$]*";
-  // Dotted access first, so `data.parseCsv(` is credited to `data`.
+  // Dotted access first, so `workspace.read(` is credited to `workspace`.
   for (const m of text.matchAll(new RegExp(`\\b(${ident})\\.(${ident})`, "g"))) {
     found.add(m[1]);
   }

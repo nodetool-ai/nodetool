@@ -217,7 +217,7 @@ export class CodeNode extends BaseNode {
     "Execute vanilla JavaScript in a sandboxed environment. " +
     "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root(), " +
     "getSecret(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
-    "format.number/date/relativeTime/list, data.parseCsv/selectHtml, " +
+    "format.number/date/relativeTime/list, " +
     "toBase64/fromBase64/toHex/fromHex, parallelMap, plus the `nodetool` object model " +
     "(workflows, assets, jobs, …) backed by platform tools on server hosts — " +
     "nodetool.capabilities() reports what is live. Tool-backed calls can spend money " +
@@ -245,9 +245,10 @@ export class CodeNode extends BaseNode {
       "getSecret(name), sleep(ms), progress(percent, message), " +
       "crypto.randomUUID/getRandomValues/digest/hmac, " +
       "format.number/date/relativeTime/list, " +
-      "data.parseCsv(text, {delimiter, header}), data.selectHtml(html, selector, {attr, limit}), " +
-      "toBase64/fromBase64/toHex/fromHex. Await fetch, sleep, workspace, getSecret, format, " +
-      "data and crypto.digest/hmac; the rest are synchronous. " +
+      "toBase64/fromBase64/toHex/fromHex. Libraries — CSV, HTML, XML, XLSX, YAML, zip, dates, " +
+      "diffs — are sandbox packages: declare one in `packages` and `import` it at the top. " +
+      "Await fetch, sleep, workspace, getSecret, format, an imported package's calls, " +
+      "and crypto.digest/hmac; the rest are synchronous. " +
       "Concurrent calls run in parallel: use Promise.all or " +
       "parallelMap(items, fn, concurrency) to fan out fetches. " +
       "The `nodetool` object model exposes platform tools (nodetool.workflows, " +

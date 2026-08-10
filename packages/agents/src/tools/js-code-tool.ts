@@ -48,14 +48,12 @@ Read/write files in the agent workspace. Also .readBytes / .writeBytes (Uint8Arr
 (a missing path reports exists: false), .root() → workspace root, .copy(src, dest), .move(src, dest),
 .mkdir(path), .remove(path) (one file or one empty directory).
 
-### data.parseCsv(text, {delimiter?, header?}) → object[] | string[][]
-Parse CSV. \`header\` defaults to true (records keyed by the header row); with \`header: false\`
-you get arrays of strings. Values are always strings. Input capped at 5 MB.
-
-### data.selectHtml(html, selector, {attr?, limit?}) → string[]
-Run a CSS selector over HTML and get each match's trimmed text, or the named attribute's value
-when \`attr\` is set (matches without it are skipped). \`limit\` defaults to 100, max 1000.
-Input capped at 5 MB.
+### Libraries are imports, not globals
+CSV, HTML, XML, XLSX, YAML, zip, dates and diffs each live in a sandbox package
+(\`@nodetool-ai/sandbox-csv\`, \`-html\`, \`-xml\`, \`-xlsx\`, \`-yaml\`, \`-zip\`, \`-dates\`,
+\`-diff\`). A run imports one only when it declares it. This tool declares none, so
+nothing is importable here — do the work in plain JavaScript, or use a Code node
+with the package declared.
 
 ### format.number(value, opts?) / .date(epochMs, opts?) / .relativeTime(value, unit, opts?) / .list(items, opts?)
 Locale-aware formatting (Intl-backed; defaults to en-US).

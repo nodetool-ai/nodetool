@@ -1,0 +1,37 @@
+{
+  "name": "@nodetool-ai/sandbox-dates",
+  "version": "0.7.0-rc.34",
+  "description": "Date arithmetic, parsing and formatting inside the NodeTool sandbox, from date-fns",
+  "license": "MIT",
+  "dependencies": {
+    "date-fns": "^4.4.0"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "date-fns" }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-dates"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "date"
+  ]
+}

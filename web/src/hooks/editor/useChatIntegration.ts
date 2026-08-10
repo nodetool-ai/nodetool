@@ -161,9 +161,8 @@ The Code node runs JavaScript in a QuickJS sandbox. Only these names exist, plus
 
 GLOBALS: console.log/warn/error/info, JSON, Math, Date, RegExp, Array, Object, String, Number, Boolean, Map, Set, Promise, Error, parseInt, parseFloat, isNaN, isFinite, encodeURIComponent, decodeURIComponent, btoa, atob, structuredClone, TextEncoder, TextDecoder, URL, URLSearchParams
 
-DATA:
-- await data.parseCsv(text, options?) → array of records keyed by the header row; pass header false for raw rows. Handles quoted fields. Values stay strings.
-- await data.selectHtml(html, selector, options?) → trimmed text of each CSS match, or the named attribute with attr. Options: attr, limit.
+LIBRARIES ARE IMPORTS, NOT GLOBALS:
+CSV, HTML, XML, XLSX, YAML, zip, dates and diffs each live in a sandbox package — @nodetool-ai/sandbox-csv, -html, -xml, -xlsx, -yaml, -zip, -dates, -diff. Declare the package in the node's packages property and import it at the top of the body; a package the node does not declare never resolves. Every export of a host-backed package is async, so await it.
 
 FORMATTING (there is no Intl; these are host calls, default locale en-US):
 - await format.number(value, options?) — locale, style, currency, minimumFractionDigits, maximumFractionDigits, useGrouping

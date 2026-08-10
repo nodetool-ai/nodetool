@@ -372,6 +372,29 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     expect(issue?.message).toContain("@acme/nodetool-missing");
   });
 
+  it("names the package to install when the missing specifier is one NodeTool ships", () => {
+    const issues = validateCodeNodeBody(
+      withPackages(
+        'import yaml from "@nodetool-ai/sandbox-yaml";\nreturn { out: yaml.load("a: 1") };',
+        ["@nodetool-ai/sandbox-yaml"],
+        { sandboxModuleCatalog: fakeCatalog() }
+      )
+    );
+    const issue = issues.find((i) => i.code === "code_package_unavailable");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("Install @nodetool-ai/sandbox-yaml");
+  });
+
+  it("guesses no package name for a specifier NodeTool does not ship", () => {
+    const issues = validateCodeNodeBody(
+      withPackages('import { x } from "@nope/pack";\nreturn { out: x };', [
+        "@nope/pack"
+      ], { sandboxModuleCatalog: fakeCatalog() })
+    );
+    const issue = issues.find((i) => i.code === "code_package_unavailable");
+    expect(issue?.message).not.toContain("Install");
+  });
+
   it("warns when the installed pack version moved", () => {
     const issues = validateCodeNodeBody({
       ...body('import { h } from "@acme/geo";\nreturn { out: h };', [], ["out"]),

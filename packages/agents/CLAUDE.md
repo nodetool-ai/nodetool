@@ -90,8 +90,10 @@ column by `resolveSandboxLimits`:
 | Output | `MAX_OUTPUT_SIZE` = 100 KB | `serializeResult` truncation (`limits.maxOutputSize`) | 10 MB |
 | Random bytes | `MAX_RANDOM_BYTES` = 64 KB | `crypto.getRandomValues` clamp | — |
 | Progress reports | `MAX_PROGRESS_CALLS` = 1000 per run, one per `PROGRESS_MIN_INTERVAL_MS` = 100 ms | counter + timestamp inside the bridge | — |
-| `data.*` input | `MAX_DATA_INPUT_CHARS` = 5 MB of text | length check inside each bridge | — |
-| `data.selectHtml` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
+| Host module text input | `MAX_HOST_INPUT_CHARS` = 5 MB | check inside `host-modules/limits.ts` | — |
+| Host module byte input | `MAX_HOST_INPUT_BYTES` = 10 MB | check inside `host-modules/limits.ts` | — |
+| `sandbox-html` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
+| `sandbox-zip` inflation | `MAX_UNZIP_TOTAL_BYTES` = 50 MB total | check inside `host-modules/zip.ts` | — |
 | `image.*` input | `MAX_IMAGE_INPUT_BYTES` = 25 MB | length check inside each bridge | — |
 | Image / canvas pixels | `MAX_IMAGE_PIXELS` = 32 M, longest edge `MAX_IMAGE_DIMENSION` = 16384 | `assertSurfaceSize` | — |
 | `image.decode` pixels | `MAX_DECODE_PIXELS` = 8 M | check inside the bridge | — |
@@ -118,10 +120,9 @@ aliases are gone),
 `progress(percent, message?)`, `format.{number,date,relativeTime,list}`,
 `image.{info,decode,encode,resize,crop,rotate,flip,adjust,composite,convert}`,
 `canvas.measureText` (plus `canvas.render`, the undocumented plumbing behind
-`createCanvas(...).toBytes()`),
-`data.{parseCsv,toCsv,selectHtml,htmlToMarkdown,parseXlsx,parseYaml,toYaml,
-parseXml,unzip,zip,diff}`, and any caller-supplied `globals`. `fetch` sends a
-`Uint8Array` body as raw bytes instead of JSON.
+`createCanvas(...).toBytes()`), and any caller-supplied `globals`. `fetch` sends
+a `Uint8Array` body as raw bytes instead of JSON. Every one of these is a
+**capability**, not a library — libraries are imports (below).
 
 `progress` is fire-and-forget: it reports to
 `RunSandboxOptions.onProgress`, clamped to 0–100 with the message truncated to
@@ -160,28 +161,56 @@ which is what `MAX_CANVAS_OPS` really bounds — for heavy composition reach for
 `canvas.measureText(text, font?)` returns text metrics so text can be laid out
 before it is drawn.
 
-`data` is the structured-data namespace, all host bridges over libraries that
-stay host-side: `parseCsv`/`toCsv` (papaparse — values stay strings, no
-`dynamicTyping`, so a column never changes shape between runs), `selectHtml`
-(cheerio CSS selection) and `htmlToMarkdown` (turndown), `parseXlsx` (exceljs —
-sheets to records, formula cells yield their computed result), `parseYaml`/
-`toYaml` (js-yaml), `parseXml` (fast-xml-parser — attributes prefixed `@_`,
-text values stay strings), `unzip`/`zip` (fflate — bytes cross host→guest via
-the base64-marker rebuild, deep-revived so entry values are real
-`Uint8Array`s), and `diff` (unified text diff). Every library is
-`await import`ed on first use inside its bridge — lazily, so none sits in any
-entry graph, but visibly, so esbuild inlines them into the packaged backend's
-single-file `server.mjs` and Vite resolves browser builds for the in-browser
-runner. Text inputs cap at `MAX_DATA_INPUT_CHARS`, binary at
-`MAX_DATA_INPUT_BYTES`, and `unzip` refuses archives inflating past
-`MAX_UNZIP_TOTAL_BYTES`. Members are documented to models via the sandbox
-manifest (`code-gen/sandbox-manifest.ts`), which the drift test holds equal to
-the real surface. The guest's own loader serves only the sandbox packages a run
-declares — a Code node's `packages` property, or a CodeAct session's allowlist;
-dynamic `import()` and `require` never resolve. The browser runner fetches
-those modules over `GET /api/sandbox-modules/*` and verifies each body before
-it runs, so the same rules hold client-side. For everything else a host bridge is still the only
-way library-backed behaviour reaches user code.
+Libraries are **imports**, never globals. Every library the sandbox offers is a
+sandbox package a node declares in `packages` and imports at the top of its
+body; there is no `data.*` namespace any more. Two kinds:
+
+- **Guest packs** — the M3 compiler bundles the library into QuickJS:
+  `@nodetool-ai/sandbox-yaml` (js-yaml), `-dates` (date-fns).
+- **Host packs** (`src/host-modules/`) — the library runs where the sandbox
+  runs, behind a generated ESM facade over a per-run dispatcher:
+  `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),
+  `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff). These are the libraries
+  the guest cannot hold — Node builtins, a DOM, or a limit the guest could not
+  enforce on itself.
+
+### Host modules (`src/host-modules/`)
+
+The host-JS analog of the WASM path below, and the same mechanism. A pack's
+manifest entry is `{"kind": "host", "host": "<id>"}` — an **id**, never code.
+`SANDBOX_HOST_MODULES` (`@nodetool-ai/protocol`) is the registry: it names every
+id, the one package allowed to declare it, and its exports. The specifier
+resolves to `generateSandboxHostFacade`'s output — one async export per registry
+export plus a default namespace — importing the private `nodetool:host-bridge`
+module, which the loader serves only to generated facades.
+
+`createSandboxHostDispatcher` is the boundary. It refuses a resolution naming an
+unknown id or claiming another pack's id, then validates the module key, the
+export name and the argument list on every call before an implementation is even
+loaded. The dispatcher binding is deleted before the user IIFE starts; a module
+that grabs it during linking gains nothing beyond the run's declared surface.
+
+`registry.ts` loads each implementation lazily, and each implementation imports
+its library lazily inside itself — so nothing sits in an entry graph, esbuild
+still inlines them into the packaged `server.mjs`, and Vite resolves the browser
+builds for the in-browser runner, where the "host" is the page. Results go out
+as plain data with bytes tagged at any depth (`toGuestBytesDeep`,
+`sandbox-bytes.ts`), and errors as tagged objects — the marshaling rule every
+bridge follows.
+
+Safety limits live **inside** the implementations, where nothing can route
+around them: `MAX_UNZIP_TOTAL_BYTES` in `zip.ts`, the select limits in
+`html.ts`, the shared input caps in `limits.ts`. Tests:
+`tests/host-modules.test.ts` (libraries end to end, the dispatcher's refusals,
+a forged manifest, every limit) and
+`packages/sandbox-compiler/tests/packs.test.ts` (every shipped pack through the
+real install path).
+
+The guest's own loader serves only the sandbox packages a run declares — a Code
+node's `packages` property, or a CodeAct session's allowlist; dynamic `import()`
+and `require` never resolve. The browser runner fetches those modules over
+`GET /api/sandbox-modules/*` and verifies each body before it runs, so the same
+rules hold client-side.
 
 A session that allows packages also carries **`get_sandbox_package_docs`**
 (`codeact/sandbox-package-docs.ts`): it serves one pack's SKILL.md, refuses a

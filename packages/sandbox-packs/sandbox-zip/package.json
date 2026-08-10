@@ -1,0 +1,40 @@
+{
+  "name": "@nodetool-ai/sandbox-zip",
+  "version": "0.7.0-rc.34",
+  "description": "Read and write zip archives inside the NodeTool sandbox, from fflate running on the host with a 50 MB inflation cap",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "zip"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-zip"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "zip",
+    "archive",
+    "compression"
+  ]
+}

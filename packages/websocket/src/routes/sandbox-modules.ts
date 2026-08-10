@@ -78,13 +78,22 @@ const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
     if (delivery.kind === "wasm" && delivery.wasm !== undefined) {
       reply.header("X-Sandbox-Wasm-Contract", JSON.stringify(delivery.wasm));
     }
+    // A host module's body is its generated facade; the client needs the id to
+    // rebuild the resolved module, and the registry supplies everything else.
+    if (delivery.kind === "host") {
+      reply.header("X-Sandbox-Host-Module", delivery.hostId);
+    }
 
     if (req.headers["if-none-match"] === etag) {
       return reply.status(304).send();
     }
     return reply
       .status(200)
-      .send(delivery.kind === "js" ? delivery.source : Buffer.from(delivery.bytes));
+      .send(
+        delivery.kind === "wasm"
+          ? Buffer.from(delivery.bytes)
+          : delivery.source
+      );
   });
 };
 

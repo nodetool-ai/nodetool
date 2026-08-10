@@ -186,7 +186,9 @@ function packDelivery(discovery: SandboxPackDiscovery): PackDelivery {
   const filesById = new Map(discovery.graph.map((file) => [file.id, file]));
   const digestByFileId = new Map<string, string>();
   const entries = [...discovery.modules]
-    .filter((module) => module.npm === undefined)
+    // A compiled npm entry has no authored file, and a host module has no file
+    // at all — neither contributes a graph file to walk.
+    .filter((module) => module.npm === undefined && module.kind !== "host")
     .sort((left, right) => left.specifier.localeCompare(right.specifier));
   for (const module of entries) {
     const pending = [module.id];
@@ -228,6 +230,32 @@ function authorizeDelivery(
         "unavailable",
         `Sandbox module ${moduleId} is not available for delivery.`
       );
+    }
+    if (module.kind === "host") {
+      // The facade is the only artifact a host module has; the client verifies
+      // and caches it like any other JavaScript, and `hostId` lets it rebuild
+      // the resolved module without a second request.
+      if (module.source === undefined || module.hostId === undefined) {
+        return sandboxDeliveryRefusal(
+          "unavailable",
+          `Sandbox module ${moduleId} has no host facade.`
+        );
+      }
+      return {
+        authorized: true,
+        moduleId,
+        fileId: module.id,
+        internal: false,
+        packName: discovery.name,
+        ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
+        contentDigest: module.digest,
+        contentSha256: sha256(Buffer.from(module.source, "utf8")),
+        dependencies: [],
+        kind: "host",
+        mediaType: SandboxDeliveryMediaType.JS,
+        hostId: module.hostId,
+        source: module.source
+      };
     }
     return deliveryFor(discovery, {
       moduleId,
@@ -339,7 +367,7 @@ function toResolvedModule(
   discovery: SandboxPackDiscovery,
   module: SandboxDiscoveredModule
 ): ResolvedSandboxModule {
-  const graph = moduleGraph(discovery.graph, module.id);
+  const graph = module.kind === "host" ? [] : moduleGraph(discovery.graph, module.id);
   const common = {
     specifier: module.specifier,
     packName: discovery.name,
@@ -348,6 +376,12 @@ function toResolvedModule(
     moduleId: module.id,
     graph
   };
+  if (module.kind === "host") {
+    if (module.hostId === undefined) {
+      throw new Error(`sandbox module ${module.specifier} has no host module id`);
+    }
+    return { ...common, kind: "host", hostId: module.hostId };
+  }
   if (module.kind === "js") {
     if (module.source === undefined) {
       throw new Error(`sandbox module ${module.specifier} has no JavaScript source`);

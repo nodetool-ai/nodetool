@@ -1,0 +1,40 @@
+{
+  "name": "@nodetool-ai/sandbox-xml",
+  "version": "0.7.0-rc.34",
+  "description": "Parse XML feeds and sitemaps inside the NodeTool sandbox, from fast-xml-parser running on the host",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "xml"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-xml"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "xml",
+    "rss",
+    "sitemap"
+  ]
+}
