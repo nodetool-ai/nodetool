@@ -145,8 +145,8 @@ subprocess, no host interpreter.
 
 The guest gets standard JavaScript plus a fixed set of bridges — `fetch()`,
 workspace file access, `getSecret()`, `sleep()`, `progress()`,
-`crypto`, `format`, and CSV/HTML `data` helpers. Dynamic inputs arrive as
-globals; the keys of the returned object become the node's outputs.
+`crypto`, `format`, and CSV/HTML `data` helpers. Dynamic inputs arrive on the
+`inputs` object; the keys of the returned object become the node's outputs.
 
 
 ## Cancellation and shutdown
