@@ -13,55 +13,22 @@
 import { afterAll, describe, expect, it } from "vitest";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+import { join } from "node:path";
 
 import { SANDBOX_HOST_MODULES } from "@nodetool-ai/protocol";
 import {
   BRIDGE_PACKS,
-  createSandboxModuleCatalog,
   discoverSandboxPack,
-  SandboxPackDiscoveryError,
-  type SandboxPackDiscovery
+  SandboxPackDiscoveryError
 } from "@nodetool-ai/node-sdk";
 import { runInSandbox } from "@nodetool-ai/agents";
 
-import { CompiledModuleCache } from "../src/cache.js";
-import { compileDiscoveries, createCompiledNpmLookup } from "../src/catalog.js";
 import { cleanup, writeFixturePack } from "./fixtures.js";
+import { discoverPack, packDir, resolveOne } from "./pack-harness.js";
 
-const here = dirname(fileURLToPath(import.meta.url));
-const PACKS_ROOT = join(here, "..", "..", "sandbox-packs");
 const workspace = mkdtempSync(join(tmpdir(), "nodetool-packs-test-"));
-const cache = new CompiledModuleCache(join(workspace, "cache"));
 
 afterAll(() => cleanup(workspace));
-
-/** `@nodetool-ai/sandbox-csv` → `sandbox-csv`. */
-function packDir(packName: string): string {
-  return join(PACKS_ROOT, packName.slice("@nodetool-ai/".length));
-}
-
-/** Discover a shipped pack, compile its npm entry if it has one, discover again. */
-async function discoverPack(specifier: string): Promise<SandboxPackDiscovery> {
-  const dir = packDir(specifier);
-  const first = discoverSandboxPack(dir);
-  if (first === undefined) throw new Error(`${specifier} is not a sandbox pack`);
-  const reports = await compileDiscoveries([first], { cache });
-  const second = discoverSandboxPack(dir, {
-    compiled: createCompiledNpmLookup(reports)
-  });
-  if (second === undefined) throw new Error(`${specifier} stopped being a sandbox pack`);
-  return second;
-}
-
-/** The resolution a Code node declaring this one specifier would execute with. */
-async function resolveOne(specifier: string) {
-  const discovery = await discoverPack(specifier);
-  const catalog = createSandboxModuleCatalog([discovery]);
-  const resolution = catalog.resolveForExecution([{ specifier }]);
-  return { discovery, catalog, resolution };
-}
 
 describe("every shipped pack", () => {
   for (const pack of BRIDGE_PACKS) {
