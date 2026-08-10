@@ -14,6 +14,7 @@ import type {
   SandboxModuleDeclaration,
   SandboxModuleStatus
 } from "@nodetool-ai/protocol";
+import { refuseSandboxDelivery } from "@nodetool-ai/runtime";
 import type { ProcessingContext, SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 const DIGEST = "b".repeat(64);
@@ -45,6 +46,8 @@ function catalog(): SandboxModuleCatalog {
   return {
     summaries: () => [],
     diagnostics: () => [],
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(refuseSandboxDelivery(moduleId)),
     resolveForExecution: (declarations) => {
       const modules: ResolvedSandboxModule[] = [];
       const statuses: SandboxModuleStatus[] = [];

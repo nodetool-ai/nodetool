@@ -41,6 +41,23 @@ export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
   { pkg: "@nodetool-ai/video-nodes", path: "render3d-page.js" }
 ];
 
+/**
+ * Bundled builtin packs whose sandbox modules ship inside the desktop artifact.
+ *
+ * Installed packs are unaffected — they resolve through the optional-node root
+ * at runtime. Only a pack that ships *inside* the app needs staging, because
+ * esbuild bundles the backend into one file and nothing else copies a pack's
+ * `nodetool.sandboxModules` files. `bundle-backend.mjs` reads each listed
+ * package's own manifest for the file list (so adding a module to a listed pack
+ * needs no change here) and stages them under `_sandbox/<pack>/`;
+ * `verify-backend-bundle.mjs` checks the staged tree against that manifest.
+ *
+ * The list is empty because no builtin ships sandbox modules yet. It is an
+ * explicit registry rather than a scan so that shipping guest code inside the
+ * app stays a deliberate, reviewable act.
+ */
+export const BUNDLED_SANDBOX_PACKS: readonly string[] = [];
+
 /** Registry lookup by exact pkg + path. */
 export function findPackageAsset(
   pkg: string,

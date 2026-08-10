@@ -8,6 +8,7 @@ import {
 import type { NodeMetadata } from "../src/metadata.js";
 import type { NodePropertyValidationIssue } from "../src/validation.js";
 import {
+  refuseSandboxDelivery,
   setProcessSandboxModuleCatalog,
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
@@ -1262,6 +1263,8 @@ describe("Code node sandbox packages", () => {
   const catalog: SandboxModuleCatalog = {
     summaries: () => [],
     diagnostics: () => [],
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(refuseSandboxDelivery(moduleId)),
     resolveForExecution: (declarations) => ({
       modules: [],
       statuses: declarations

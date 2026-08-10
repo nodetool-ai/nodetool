@@ -24,7 +24,10 @@ import type {
 import { registerProvider } from "../src/providers/provider-registry.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
 import type { SandboxModuleCatalog } from "../src/index.js";
-import { setProcessSandboxModuleCatalog } from "../src/index.js";
+import {
+  refuseSandboxDelivery,
+  setProcessSandboxModuleCatalog
+} from "../src/index.js";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
@@ -301,7 +304,9 @@ describe("ProcessingContext – Python model interfaces", () => {
     const catalog: SandboxModuleCatalog = {
       summaries: () => [],
       resolveForExecution: () => ({ modules: [], statuses: [] }),
-      diagnostics: () => []
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId) =>
+        Promise.resolve(refuseSandboxDelivery(moduleId))
     };
     const ctx = new ProcessingContext({
       jobId: "j1",
@@ -316,7 +321,9 @@ describe("ProcessingContext – Python model interfaces", () => {
     const catalog: SandboxModuleCatalog = {
       summaries: () => [],
       resolveForExecution: () => ({ modules: [], statuses: [] }),
-      diagnostics: () => []
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId) =>
+        Promise.resolve(refuseSandboxDelivery(moduleId))
     };
     setProcessSandboxModuleCatalog(catalog);
     try {

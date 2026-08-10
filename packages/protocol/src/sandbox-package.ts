@@ -196,6 +196,108 @@ export const SandboxModuleResolutionSchema = z.object({
 }).strict();
 export type SandboxModuleResolution = z.infer<typeof SandboxModuleResolutionSchema>;
 
+/** Media type a delivered sandbox module is served with. */
+export const SandboxDeliveryMediaType = {
+  JS: "text/javascript",
+  WASM: "application/wasm"
+} as const;
+export type SandboxDeliveryMediaType =
+  (typeof SandboxDeliveryMediaType)[keyof typeof SandboxDeliveryMediaType];
+
+/**
+ * Separator between a pack name and an internal graph-file id in an opaque
+ * delivery module id.
+ *
+ * A public entry module is addressed by its specifier (`@acme/geo`). Every
+ * other file of the graph — internal helpers and files a second entry imports —
+ * is addressed as `<packName>::<fileId>`. Neither a package name nor a
+ * package-relative file id may contain `::`, so the two forms cannot collide.
+ */
+export const SANDBOX_GRAPH_FILE_SEPARATOR = "::";
+
+/** Compose the opaque delivery id of one file inside a pack's module graph. */
+export function sandboxGraphFileModuleId(packName: string, fileId: string): string {
+  return `${packName}${SANDBOX_GRAPH_FILE_SEPARATOR}${fileId}`;
+}
+
+/** Split an opaque graph-file id, or undefined when the id is an entry specifier. */
+export function parseSandboxGraphFileModuleId(
+  moduleId: string
+): { packName: string; fileId: string } | undefined {
+  const index = moduleId.indexOf(SANDBOX_GRAPH_FILE_SEPARATOR);
+  if (index <= 0) return undefined;
+  const packName = moduleId.slice(0, index);
+  const fileId = moduleId.slice(index + SANDBOX_GRAPH_FILE_SEPARATOR.length);
+  if (fileId.length === 0) return undefined;
+  return { packName, fileId };
+}
+
+const deliveryCommon = {
+  authorized: z.literal(true),
+  /** The opaque id this delivery answers — an entry specifier or a graph-file id. */
+  moduleId: z.string().min(1),
+  packName: z.string().regex(PACKAGE_NAME),
+  packVersion: z.string().min(1).optional(),
+  /** The owning module's graph digest (never a per-file hash). */
+  contentDigest: contentDigestSchema,
+  /** Opaque ids of the modules this one imports, for closure prefetching. */
+  dependencies: z.array(z.string().min(1))
+};
+
+/** Browser-safe content for one sandbox module, carrying no filesystem path. */
+export const AuthorizedSandboxModuleDeliverySchema = z.discriminatedUnion("kind", [
+  z.object({
+    ...deliveryCommon,
+    kind: z.literal(SandboxModuleKind.JS),
+    mediaType: z.literal(SandboxDeliveryMediaType.JS),
+    source: z.string()
+  }).strict(),
+  z.object({
+    ...deliveryCommon,
+    kind: z.literal(SandboxModuleKind.WASM),
+    mediaType: z.literal(SandboxDeliveryMediaType.WASM),
+    bytes: z.instanceof(Uint8Array)
+  }).strict()
+]);
+export type AuthorizedSandboxModuleDelivery = z.infer<
+  typeof AuthorizedSandboxModuleDeliverySchema
+>;
+
+/** Why the catalog would not hand out a module's content. */
+export const SandboxDeliveryRefusalReasonSchema = z.enum([
+  "not-found",
+  "unavailable",
+  "forbidden"
+]);
+export type SandboxDeliveryRefusalReason = z.infer<
+  typeof SandboxDeliveryRefusalReasonSchema
+>;
+
+/** The catalog's refusal to deliver, carrying no content and no path. */
+export const SandboxDeliveryRefusalSchema = z.object({
+  authorized: z.literal(false),
+  reason: SandboxDeliveryRefusalReasonSchema,
+  message: z.string().min(1)
+}).strict();
+export type SandboxDeliveryRefusal = z.infer<typeof SandboxDeliveryRefusalSchema>;
+
+/** One answer to a delivery request: authorized content or a refusal. */
+export const SandboxModuleDeliveryResultSchema = z.union([
+  AuthorizedSandboxModuleDeliverySchema,
+  SandboxDeliveryRefusalSchema
+]);
+export type SandboxModuleDeliveryResult = z.infer<
+  typeof SandboxModuleDeliveryResultSchema
+>;
+
+/** Build a refusal without repeating the shape at every call site. */
+export function sandboxDeliveryRefusal(
+  reason: SandboxDeliveryRefusalReason,
+  message: string
+): SandboxDeliveryRefusal {
+  return { authorized: false, reason, message };
+}
+
 /** Install modes returned by Electron before package lifecycle scripts run. */
 export const NodePackInstallModeSchema = z.enum(["sandbox-only", "register", "hybrid", "unknown"]);
 export type NodePackInstallMode = z.infer<typeof NodePackInstallModeSchema>;

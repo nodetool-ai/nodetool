@@ -13,6 +13,7 @@ import type {
   SandboxModuleResolution,
   SandboxModuleSummary
 } from "@nodetool-ai/protocol";
+import { refuseSandboxDelivery } from "@nodetool-ai/runtime";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 import {
   mountActionModules,
@@ -57,6 +58,8 @@ function fakeCatalog(
   return {
     summaries: () => summaries,
     diagnostics: () => [],
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(refuseSandboxDelivery(moduleId)),
     resolveForExecution: (
       declarations: readonly SandboxModuleDeclaration[]
     ): SandboxModuleResolution => {

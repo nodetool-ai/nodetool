@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { validateCodeNodeBody } from "../src/code-node-validation.js";
 import { collectBoundNames, freeIdentifiers, parseCodeBody } from "../src/code-analysis.js";
 import type { SandboxModuleStatus } from "@nodetool-ai/protocol";
+import { refuseSandboxDelivery } from "@nodetool-ai/runtime";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
 /** Codes of the issues a body produces, for terse assertions. */
@@ -233,6 +234,8 @@ function fakeCatalog(): SandboxModuleCatalog {
   return {
     summaries: () => [],
     diagnostics: () => [],
+    authorizeDelivery: (moduleId) =>
+      Promise.resolve(refuseSandboxDelivery(moduleId)),
     resolveForExecution: (declarations) => {
       const statuses: SandboxModuleStatus[] = [];
       for (const declaration of declarations) {
