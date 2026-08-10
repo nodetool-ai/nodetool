@@ -1,0 +1,72 @@
+{
+  "name": "@nodetool-ai/sandbox-compiler",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0 <23.0.0"
+  },
+  "version": "0.7.0-rc.34",
+  "description": "Compiles a pack's npm dependency into a guest sandbox module: esbuild bundle, scope-aware scan, QuickJS admission probe, content-addressed cache",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@sebastianwessel/quickjs": "^3.0.1",
+    "acorn": "^8.16.0",
+    "esbuild": "^0.28.1"
+  },
+  "devDependencies": {
+    "@nodetool-ai/agents": "*",
+    "@types/node": "^22.0.0",
+    "date-fns": "^4.4.0",
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.2"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./cache": {
+      "nodetool-dev": "./src/cache.ts",
+      "types": "./dist/cache.d.ts",
+      "import": "./dist/cache.js",
+      "default": "./dist/cache.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-compiler"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "sandbox",
+    "quickjs",
+    "esbuild",
+    "compiler"
+  ]
+}

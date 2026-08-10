@@ -254,6 +254,18 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "CLAUDE.md § nodetool affected"
   },
   {
+    id: "packs-compile",
+    title: "Sandbox npm module compiler (bundle, scan, probe, cache)",
+    command: "nodetool packs compile [--json] [--force]",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    docs: "docs/sandbox-package-design.md § Config-only modules from npm packages",
+    selfcheck: {
+      command: "npm run test --workspace=packages/sandbox-compiler",
+      cost: "cheap"
+    }
+  },
+  {
     id: "harness-audit",
     title: "Harness coverage audit (this registry)",
     command: "nodetool harness audit [--strict]",
@@ -329,6 +341,21 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/tools/sketch-version-tools.ts",
       "packages/models/src/image-document-version.ts",
       "packages/websocket/src/trpc/routers/sketch.ts"
+    ]
+  },
+  {
+    id: "sandbox-packages",
+    title: "Sandbox packages (guest modules, npm compilation, catalog)",
+    harnesses: ["packs-compile", "validate"],
+    paths: [
+      "packages/sandbox-compiler/",
+      "packages/node-sdk/src/sandbox-pack-discovery.ts",
+      "packages/node-sdk/src/sandbox-module-catalog.ts",
+      "packages/node-sdk/src/sandbox-catalog-host.ts",
+      "packages/node-sdk/src/sandbox-npm-artifacts.ts",
+      "packages/protocol/src/sandbox-package.ts",
+      "packages/websocket/src/sandbox-catalog.ts",
+      "electron/src/nodePackManager.ts"
     ]
   },
   {

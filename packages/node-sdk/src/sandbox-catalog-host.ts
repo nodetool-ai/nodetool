@@ -18,7 +18,8 @@ import { defaultPackSearchPaths, listPackageDirs } from "./pack-loader.js";
 import { createSandboxModuleCatalog } from "./sandbox-module-catalog.js";
 import {
   discoverSandboxPack,
-  type SandboxPackDiscovery
+  type SandboxPackDiscovery,
+  type SandboxPackDiscoveryOptions
 } from "./sandbox-pack-discovery.js";
 
 /** What a host keeps after building the catalog. */
@@ -35,7 +36,8 @@ export interface SandboxCatalogHost {
  * pack loader walks) and build the catalog over them.
  */
 export function discoverSandboxCatalog(
-  searchPaths: readonly string[] = defaultPackSearchPaths()
+  searchPaths: readonly string[] = defaultPackSearchPaths(),
+  options: SandboxPackDiscoveryOptions = {}
 ): SandboxCatalogHost {
   const failures: SandboxModuleStatus[] = [];
   const byName = new Map<string, SandboxPackDiscovery>();
@@ -45,7 +47,7 @@ export function discoverSandboxCatalog(
     for (const packageDir of listPackageDirs(nodeModules)) {
       let discovery: SandboxPackDiscovery | undefined;
       try {
-        discovery = discoverSandboxPack(packageDir);
+        discovery = discoverSandboxPack(packageDir, options);
       } catch (error) {
         failures.push({
           packName: packageDir,
