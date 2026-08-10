@@ -26,6 +26,7 @@ const { default: sandboxModulesRoutes } = await import(
 );
 
 const DIGEST = "c".repeat(64);
+const SHA = "d".repeat(64);
 const SOURCE = "export const distance = () => 0;\n";
 const PACK_DIRECTORY = "/srv/nodetool/packs/@acme/geo/sandbox";
 
@@ -50,9 +51,12 @@ function catalogServing(
 const GEO: SandboxModuleDeliveryResult = {
   authorized: true,
   moduleId: "@acme/geo",
+  fileId: "sandbox/geo.js",
+  internal: false,
   packName: "@acme/geo",
   packVersion: "1.2.0",
   contentDigest: DIGEST,
+  contentSha256: SHA,
   kind: "js",
   mediaType: "text/javascript",
   source: SOURCE,
@@ -60,11 +64,8 @@ const GEO: SandboxModuleDeliveryResult = {
 };
 
 let app: FastifyInstance;
-let previousFlag: string | undefined;
 
 beforeEach(async () => {
-  previousFlag = process.env.NODETOOL_SANDBOX_MODULES_V1;
-  process.env.NODETOOL_SANDBOX_MODULES_V1 = "1";
   getSandboxCatalog.mockReset();
   getSandboxCatalog.mockReturnValue(catalogServing({ "@acme/geo": GEO }));
   app = Fastify();
@@ -74,11 +75,6 @@ beforeEach(async () => {
 
 afterEach(async () => {
   await app.close();
-  if (previousFlag === undefined) {
-    delete process.env.NODETOOL_SANDBOX_MODULES_V1;
-  } else {
-    process.env.NODETOOL_SANDBOX_MODULES_V1 = previousFlag;
-  }
 });
 
 describe("GET /api/sandbox-modules/*", () => {
@@ -92,6 +88,11 @@ describe("GET /api/sandbox-modules/*", () => {
     expect(response.body).toBe(SOURCE);
     expect(response.headers["content-type"]).toContain("text/javascript");
     expect(response.headers["x-content-digest"]).toBe(DIGEST);
+    // The digest versions the whole graph; the sha is what a client can check
+    // this body against.
+    expect(response.headers["x-content-sha256"]).toBe(SHA);
+    expect(response.headers["x-sandbox-file-id"]).toBe("sandbox/geo.js");
+    expect(response.headers["x-sandbox-internal"]).toBe("0");
     expect(response.headers["etag"]).toBe(`"${DIGEST}"`);
     expect(response.headers["cache-control"]).toBe(
       "public, max-age=31536000, immutable"
@@ -157,18 +158,6 @@ describe("GET /api/sandbox-modules/*", () => {
 
     expect(unknown.statusCode).toBe(404);
     expect(refused.statusCode).toBe(403);
-  });
-
-  it("404s while the parity flag is off, without asking the catalog", async () => {
-    delete process.env.NODETOOL_SANDBOX_MODULES_V1;
-
-    const response = await app.inject({
-      method: "GET",
-      url: "/api/sandbox-modules/@acme/geo"
-    });
-
-    expect(response.statusCode).toBe(404);
-    expect(getSandboxCatalog).not.toHaveBeenCalled();
   });
 
   it("404s when no host has built a catalog", async () => {

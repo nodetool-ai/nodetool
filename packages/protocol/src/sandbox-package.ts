@@ -236,10 +236,29 @@ const deliveryCommon = {
   authorized: z.literal(true),
   /** The opaque id this delivery answers — an entry specifier or a graph-file id. */
   moduleId: z.string().min(1),
+  /**
+   * The delivered file's pack-relative id (`sandbox/geo.js`).
+   *
+   * A graph-file id already carries it, but an entry is addressed by its
+   * specifier, and the client needs the file id all the same: relative imports
+   * inside the module resolve against it.
+   */
+  fileId: z.string().min(1),
+  /** Whether the pack's manifest keeps this file out of its public surface. */
+  internal: z.boolean(),
   packName: z.string().regex(PACKAGE_NAME),
   packVersion: z.string().min(1).optional(),
   /** The owning module's graph digest (never a per-file hash). */
   contentDigest: contentDigestSchema,
+  /**
+   * SHA-256 of the delivered bytes of *this* file.
+   *
+   * `contentDigest` versions the whole module graph, so every file of one graph
+   * carries the same value and a client cannot check a response body against
+   * it. This is the per-response hash a client verifies before it executes
+   * anything: for JS, the UTF-8 encoding of `source`; for WASM, `bytes`.
+   */
+  contentSha256: contentDigestSchema,
   /** Opaque ids of the modules this one imports, for closure prefetching. */
   dependencies: z.array(z.string().min(1))
 };

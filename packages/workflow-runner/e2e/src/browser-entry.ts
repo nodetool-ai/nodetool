@@ -35,6 +35,12 @@ import {
 import * as constantNodes from "@nodetool-ai/core-nodes/nodes/constant";
 import * as controlNodes from "@nodetool-ai/core-nodes/nodes/control";
 import * as listNodes from "@nodetool-ai/core-nodes/nodes/list";
+// The sandbox-module contract fixtures and the Code node that runs them.
+// Imported statically: a dynamic import here is discovered only when the first
+// test calls it, and Vite's dependency pre-bundle then reloads the page out
+// from under that test.
+import { CodeNode } from "@nodetool-ai/code-nodes/nodes/code-node";
+import { sandboxModuleFixture } from "@nodetool-ai/agents/sandbox-module-fixtures";
 
 // ── Inline NodeExecutor map (plain objects, no BaseNode) ───────────────
 
@@ -110,6 +116,15 @@ interface BrowserNodesRunResult extends BrowserRunResult {
   allStamped: boolean;
 }
 
+/** What one shared sandbox-module fixture produced in the browser. */
+interface SandboxFixtureResult {
+  status: RunResult["status"] | "failed";
+  /** The Code node's result, when the run completed. */
+  result?: unknown;
+  /** The run's or the node's error, when it did not. */
+  error?: string;
+}
+
 declare global {
   interface Window {
     runWorkflowInBrowser: (
@@ -124,6 +139,9 @@ declare global {
       check: BrightnessPixelCheck
     ) => Promise<BrightnessShaderResult>;
     runWebApisInBrowser: () => Promise<WebApiResult>;
+    runSandboxFixtureInBrowser: (
+      fixtureName: string
+    ) => Promise<SandboxFixtureResult>;
     runtimeName: string;
   }
 }
@@ -436,6 +454,97 @@ window.runBrowserNodesInBrowser = async (
     allStamped,
     error: result.error
   };
+};
+
+// ── Sandbox module loading contract, in a real browser ──────────────────────
+
+/**
+ * Run one shared sandbox-module fixture through the production browser chain:
+ * a catalog seeded in-page → the Code node's `packages` resolution → the guest
+ * loader inside QuickJS.
+ *
+ * The fixtures are the same data the Node suite drives
+ * (`packages/agents/tests/js-sandbox-modules.test.ts`), so the two runtimes are
+ * measured against one contract. Delivery over HTTP is not what this proves —
+ * that has its own tests — so the catalog is seeded from the fixture directly.
+ */
+window.runSandboxFixtureInBrowser = async (
+  fixtureName: string
+): Promise<SandboxFixtureResult> => {
+  try {
+    const fixture = sandboxModuleFixture(fixtureName);
+
+    const catalog = {
+      summaries: () => [],
+      diagnostics: () => [],
+      authorizeDelivery: (moduleId: string) =>
+        Promise.resolve({
+          authorized: false as const,
+          reason: "not-found" as const,
+          message: `Sandbox module ${moduleId} is not deliverable in the page.`
+        }),
+      resolveForExecution: (
+        declarations: readonly { specifier: string }[]
+      ) => ({
+        modules: declarations
+          .map((declaration) =>
+            fixture.modules.find(
+              (module) => module.specifier === declaration.specifier
+            )
+          )
+          .filter((module) => module !== undefined),
+        statuses: []
+      })
+    };
+
+    const registry = createBrowserRegistry([
+      CodeNode
+    ] as unknown as Parameters<typeof createBrowserRegistry>[0]);
+    const jobId = `sandbox-${fixtureName}`;
+    const gen = runBrowserWorkflow({
+      graph: {
+        nodes: [
+          {
+            id: "code_1",
+            type: "nodetool.code.Code",
+            name: "out",
+            properties: {
+              code: fixture.code,
+              packages: fixture.modules.map((module) => module.specifier),
+              dynamic_outputs: {}
+            }
+          }
+        ],
+        edges: []
+      } as unknown as GraphData,
+      registry,
+      jobId,
+      workflowId: "e2e-sandbox-modules",
+      sandboxModuleCatalog: catalog as never
+    });
+
+    let nodeError: string | undefined;
+    let nodeResult: unknown;
+    while (true) {
+      const next = await gen.next();
+      if (next.done) {
+        return {
+          status: next.value.status,
+          result: nodeResult,
+          error: next.value.error ?? nodeError
+        };
+      }
+      const message = next.value as unknown as Record<string, unknown>;
+      if (message.type !== "node_update") continue;
+      if (message.status === "completed") nodeResult = message.result;
+      if (message.status === "error") nodeError = String(message.error ?? "");
+    }
+  } catch (err) {
+    return {
+      status: "failed",
+      error: err instanceof Error ? err.message : String(err)
+    };
+  }
 };
 
 (window as unknown as { workflowRunnerReady: boolean }).workflowRunnerReady =

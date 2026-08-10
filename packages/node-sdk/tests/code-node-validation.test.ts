@@ -271,9 +271,6 @@ const withPackages = (
 ) => ({
   ...body(code, [], ["out"]),
   declaredPackages: specifiers.map((specifier) => ({ specifier })),
-  // These cases are about the declarations, so they pin the flag on; the
-  // flag-off refusal has its own cases below.
-  sandboxModulesEnabled: true,
   ...extra
 });
 
@@ -365,34 +362,16 @@ describe("validateCodeNodeBody — sandbox packages", () => {
       declaredPackages: [
         { specifier: "@acme/geo", resolvedPackVersion: "1.0.0" }
       ],
-      sandboxModuleCatalog: fakeCatalog(),
-      sandboxModulesEnabled: true
+      sandboxModuleCatalog: fakeCatalog()
     });
     const issue = issues.find((i) => i.code === "code_package_mismatch");
     expect(issue?.severity).toBe("warning");
     expect(issue?.message).toContain("@acme/nodetool-geo");
   });
 
-  it("refuses a declaration outright while the parity flag is off", () => {
-    const issues = validateCodeNodeBody(
-      withPackages('import { h } from "@acme/geo";\nreturn { out: h };', [
-        "@acme/geo"
-      ], { sandboxModulesEnabled: false, sandboxModuleCatalog: fakeCatalog() })
-    );
-    const issue = issues.find((i) => i.code === "code_package_disabled");
-    expect(issue?.severity).toBe("error");
-    expect(issue?.message).toContain("@acme/geo");
-    expect(issue?.message).toContain("NODETOOL_SANDBOX_MODULES_V1=1");
-    // The catalog is not consulted: the run never gets that far.
-    expect(issues.map((i) => i.code)).not.toContain("code_package_mismatch");
-  });
-
-  it("says nothing about packages when none are declared and the flag is off", () => {
+  it("says nothing about packages when none are declared", () => {
     expect(
-      validateCodeNodeBody({
-        ...body("return { out: 1 };", [], ["out"]),
-        sandboxModulesEnabled: false
-      })
+      validateCodeNodeBody(body("return { out: 1 };", [], ["out"]))
     ).toEqual([]);
   });
 

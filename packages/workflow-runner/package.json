@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/workflow-runner",
   "version": "0.7.0-rc.34",
-  "description": "Portable workflow runner — turns a graph + NodeRegistry into a (Request) => Response handler for Vercel, Cloudflare Workers, or any Web-standard runtime",
+  "description": "Portable workflow runner \u2014 turns a graph + NodeRegistry into a (Request) => Response handler for Vercel, Cloudflare Workers, or any Web-standard runtime",
   "type": "module",
   "engines": {
     "node": ">=22.0.0 <23.0.0"
@@ -22,7 +22,9 @@
     "@nodetool-ai/runtime": "*"
   },
   "devDependencies": {
+    "@nodetool-ai/agents": "*",
     "@nodetool-ai/base-nodes": "*",
+    "@nodetool-ai/code-nodes": "*",
     "@nodetool-ai/gpu": "*",
     "@playwright/test": "^1.50.0",
     "@types/node": "^22.0.0",

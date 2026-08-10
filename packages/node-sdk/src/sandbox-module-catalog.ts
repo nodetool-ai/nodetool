@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 import {
   sandboxDeliveryRefusal,
   sandboxGraphFileModuleId,
@@ -194,6 +196,9 @@ function authorizeDelivery(
     }
     return deliveryFor(discovery, {
       moduleId,
+      fileId: module.id,
+      // A public entry is the pack's advertised surface, never an internal file.
+      internal: false,
       digest: module.digest,
       kind: module.kind,
       ...(module.source === undefined ? {} : { source: module.source }),
@@ -221,6 +226,8 @@ function authorizeDelivery(
   }
   return deliveryFor(pack.discovery, {
     moduleId,
+    fileId: parsed.fileId,
+    internal: file.internal,
     digest,
     kind: file.kind,
     ...(file.source === undefined ? {} : { source: file.source }),
@@ -233,6 +240,8 @@ function deliveryFor(
   discovery: SandboxPackDiscovery,
   content: {
     readonly moduleId: string;
+    readonly fileId: string;
+    readonly internal: boolean;
     readonly digest: string;
     readonly kind: "js" | "wasm";
     readonly source?: string;
@@ -243,6 +252,8 @@ function deliveryFor(
   const common = {
     authorized: true as const,
     moduleId: content.moduleId,
+    fileId: content.fileId,
+    internal: content.internal,
     packName: discovery.name,
     ...(discovery.version === undefined ? {} : { packVersion: discovery.version }),
     contentDigest: content.digest,
@@ -261,6 +272,7 @@ function deliveryFor(
       ...common,
       kind: "js",
       mediaType: SandboxDeliveryMediaType.JS,
+      contentSha256: sha256(Buffer.from(content.source, "utf8")),
       source: content.source
     };
   }
@@ -274,8 +286,14 @@ function deliveryFor(
     ...common,
     kind: "wasm",
     mediaType: SandboxDeliveryMediaType.WASM,
+    contentSha256: sha256(content.bytes),
     bytes: new Uint8Array(content.bytes)
   };
+}
+
+/** Hash of exactly the bytes a client receives, so the client can check them. */
+function sha256(bytes: Uint8Array): string {
+  return createHash("sha256").update(bytes).digest("hex");
 }
 
 function toResolvedModule(

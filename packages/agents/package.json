@@ -80,6 +80,12 @@
       "types": "./dist/js-sandbox.d.ts",
       "import": "./dist/js-sandbox.js",
       "default": "./dist/js-sandbox.js"
+    },
+    "./sandbox-module-fixtures": {
+      "nodetool-dev": "./src/sandbox-module-fixtures.ts",
+      "types": "./dist/sandbox-module-fixtures.d.ts",
+      "import": "./dist/sandbox-module-fixtures.js",
+      "default": "./dist/sandbox-module-fixtures.js"
     }
   },
   "license": "MIT",

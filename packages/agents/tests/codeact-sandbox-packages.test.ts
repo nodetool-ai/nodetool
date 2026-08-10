@@ -5,8 +5,7 @@
  * The mount path runs in the real QuickJS sandbox through a chat session; no
  * model, no network.
  */
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { SANDBOX_MODULES_V1_FLAG } from "@nodetool-ai/config";
+import { describe, it, expect } from "vitest";
 import type {
   ResolvedSandboxModule,
   SandboxModuleDeclaration,
@@ -83,21 +82,8 @@ function fakeCatalog(
   };
 }
 
-beforeEach(() => {
-  process.env[SANDBOX_MODULES_V1_FLAG] = "1";
-});
-
-afterEach(() => {
-  delete process.env[SANDBOX_MODULES_V1_FLAG];
-});
-
 describe("session allowlist", () => {
-  it("is empty while the parity flag is off", () => {
-    delete process.env[SANDBOX_MODULES_V1_FLAG];
-    expect(sessionAllowedPackages(["@acme/geo"])).toEqual([]);
-  });
-
-  it("defaults to nothing even with the flag on", () => {
+  it("defaults to nothing the caller did not consent to", () => {
     expect(sessionAllowedPackages(undefined)).toEqual([]);
   });
 
@@ -236,12 +222,11 @@ describe("chat session actions", () => {
     expect(observation.result).toBe(42);
   }, 60_000);
 
-  it("mounts nothing while the parity flag is off", async () => {
-    delete process.env[SANDBOX_MODULES_V1_FLAG];
+  it("mounts nothing when the session consented to nothing", async () => {
     const session = createChatCodeActSession({
       tools,
       executeTool: async () => ({}),
-      sandboxPackages: ["@acme/geo"],
+      sandboxPackages: [],
       sandboxModuleCatalog: fakeCatalog()
     });
     expect(session.systemPromptSection).toContain(

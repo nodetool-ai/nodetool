@@ -9,11 +9,9 @@
  *
  * The route never touches the filesystem and never translates a path: it asks
  * the catalog to authorize and retrieve in one call, and answers with what the
- * catalog handed back. While `NODETOOL_SANDBOX_MODULES_V1` is off the whole
- * mechanism is dark and every request is a 404.
+ * catalog handed back.
  */
 import type { FastifyPluginAsync } from "fastify";
-import { isSandboxModulesV1Enabled } from "@nodetool-ai/config";
 import { getSandboxCatalog } from "../sandbox-catalog.js";
 
 /** A year, in seconds: responses are immutable because the ETag is a digest. */
@@ -21,9 +19,6 @@ const IMMUTABLE_CACHE_CONTROL = "public, max-age=31536000, immutable";
 
 const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
   app.get("/api/sandbox-modules/*", async (req, reply) => {
-    if (!isSandboxModulesV1Enabled()) {
-      return reply.status(404).send({ detail: "Not found" });
-    }
     const moduleId = (req.params as { "*"?: string })["*"] ?? "";
     if (moduleId.length === 0) {
       return reply.status(404).send({ detail: "Not found" });
@@ -46,6 +41,10 @@ const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
     reply
       .header("Content-Type", delivery.mediaType)
       .header("X-Content-Digest", delivery.contentDigest)
+      // The digest above versions the module graph — every file of one graph
+      // shares it. This is the hash of *this* body, which is what a client can
+      // actually verify before it executes the source.
+      .header("X-Content-Sha256", delivery.contentSha256)
       // A JSON array, not a comma list: a package-relative file id may contain
       // a comma, and the client prefetches the closure from this header.
       .header(
@@ -53,6 +52,10 @@ const sandboxModulesRoutes: FastifyPluginAsync = async (app) => {
         JSON.stringify(delivery.dependencies)
       )
       .header("X-Sandbox-Pack", delivery.packName)
+      // The pack-relative file id: an entry is requested by specifier, and the
+      // client resolves the module's own relative imports against this.
+      .header("X-Sandbox-File-Id", delivery.fileId)
+      .header("X-Sandbox-Internal", delivery.internal ? "1" : "0")
       .header("ETag", etag)
       .header("Cache-Control", IMMUTABLE_CACHE_CONTROL);
     if (delivery.packVersion !== undefined) {
