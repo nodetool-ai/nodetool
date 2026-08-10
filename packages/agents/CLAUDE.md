@@ -204,6 +204,14 @@ guest JS and passes scalars in.
 | Aggregate WASM wall clock per invocation | 30 s |
 | Per-call timeout | 5 s, then the worker is terminated **and replaced** |
 
+The aggregate wall clock is a **reservation**, not a meter read on completion.
+A call is admitted only after taking `min(perCallTimeout, remaining)` out of
+the budget, so concurrent calls divide one cap instead of each seeing the whole
+remainder, and the reservation is what bounds that call's timeout. On
+completion the reservation is replaced by the real duration — a fast call
+refunds, one cut at its timeout keeps the charge — so the budget stays the sum
+of call durations it documents.
+
 The dispatcher is the boundary, not the hiding: it serves only the run's
 declared WASM modules and validates module identity, export allowlist, argument
 count, and argument type before any worker runs — `i32` rejects out of range

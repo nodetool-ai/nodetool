@@ -354,26 +354,38 @@ export function createSandboxWasmDispatcher(
           `${runModule.specifier}: this node exhausted its budget of ${budgets.callsPerInvocation} WASM calls per invocation`
         );
       }
-      const remainingWallClock = budgets.wallClockMs - wallClockUsed;
-      if (remainingWallClock <= 0) {
-        throw new SandboxWasmError(
-          `${runModule.specifier}: this node exhausted its budget of ${budgets.wallClockMs} ms of WASM wall clock per invocation`
-        );
-      }
       callsUsed += 1;
 
       const compiled = await compileSandboxWasm(runModule.contentDigest, runModule.bytes);
       await enter();
+
+      // The wall clock is *reserved* here, not merely read: charging only on
+      // completion let every concurrently admitted call see the whole
+      // remainder, so two calls under the default concurrency of 2 could each
+      // be handed a 30 s budget and spend 60 s of worker time between them.
+      // Read and reserve sit in one synchronous run of this function — no
+      // await between them — so a second call admitted meanwhile can only ever
+      // see what is left after this one took its share.
+      const remainingWallClock = budgets.wallClockMs - wallClockUsed;
+      if (remainingWallClock <= 0) {
+        leave();
+        throw new SandboxWasmError(
+          `${runModule.specifier}: this node exhausted its budget of ${budgets.wallClockMs} ms of WASM wall clock per invocation`
+        );
+      }
+      const reserved = Math.min(runModule.callTimeoutMs, remainingWallClock);
+      wallClockUsed += reserved;
+
       const startedAt = Date.now();
       try {
-        return await pool.run(
-          compiled,
-          exported.wasmName,
-          converted,
-          Math.min(runModule.callTimeoutMs, remainingWallClock)
-        );
+        // The effective timeout is the reservation, so the call cannot outrun
+        // what it was actually admitted for.
+        return await pool.run(compiled, exported.wasmName, converted, reserved);
       } finally {
-        wallClockUsed += Date.now() - startedAt;
+        // Replace the reservation with what the call really cost: a fast call
+        // refunds the difference, one that ran to its timeout charges what it
+        // took. The budget stays the documented sum of call durations.
+        wallClockUsed += Date.now() - startedAt - reserved;
         leave();
       }
     }
