@@ -399,6 +399,7 @@ function getBrowserRegistry(): ReturnType<typeof createBrowserRegistry> {
     const classes = [constantNodes, controlNodes].flatMap((mod) =>
       collectNodeClasses(mod as Record<string, unknown>)
     );
+    classes.push(CodeNode);
     browserRegistry = createBrowserRegistry(
       classes as Parameters<typeof createBrowserRegistry>[0]
     );

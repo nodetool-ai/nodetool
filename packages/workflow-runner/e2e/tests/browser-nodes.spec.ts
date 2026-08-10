@@ -46,17 +46,21 @@ test("a real constant node produces its output in-browser", async ({ page }) => 
   expect(result.allStamped).toBe(true);
 });
 
-test("a real compute node (lib.nlp.Tokenize) runs in-browser", async ({
+test("a real compute node (nodetool.code.Code) runs in-browser", async ({
   page
 }) => {
   const result = await page.evaluate(() =>
     window.runBrowserNodesInBrowser({
       nodes: [
         {
-          id: "t",
-          type: "lib.nlp.Tokenize",
-          name: "tokenize",
-          properties: { text: "hello browser world", mode: "word" }
+          id: "c",
+          type: "nodetool.code.Code",
+          name: "doubled",
+          properties: {
+            code: "return { result: [1, 2, 3].map((n) => n * 2) };",
+            packages: [],
+            dynamic_outputs: { result: "list" }
+          }
         }
       ],
       edges: []
@@ -65,7 +69,7 @@ test("a real compute node (lib.nlp.Tokenize) runs in-browser", async ({
 
   expect(result.error).toBeUndefined();
   expect(result.status).toBe("completed");
-  expect(result.outputs.tokenize).toEqual([["hello", "browser", "world"]]);
+  expect(result.outputs.doubled).toEqual([[2, 4, 6]]);
 });
 
 test("data flows across an edge between two real nodes in-browser", async ({
