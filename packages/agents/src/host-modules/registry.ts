@@ -38,10 +38,6 @@ const LOADERS: Readonly<Record<string, Loader>> = {
     const mod = await import("./xlsx.js");
     return { parse: mod.parse, write: mod.write };
   },
-  sqlite: async () => {
-    const mod = await import("./sqlite.js");
-    return { query: mod.query, run: mod.run };
-  },
   ocr: async () => {
     const mod = await import("./ocr.js");
     return { recognize: mod.recognize };

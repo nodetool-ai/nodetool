@@ -1,12 +1,12 @@
 /**
- * Cookbook Pattern 5 — Database Persistence (AI Flashcards with SQLite).
+ * Cookbook Pattern 5 — Persistence (AI Flashcards that survive a rerun).
  *
  *   Topic → Prompt → Data Generator → Store & Read (Code) → Flashcards (Preview)
  *
  * The persistence pattern: a Data Generator streams structured records, then one
- * Code node importing `@nodetool-ai/sandbox-sqlite` inserts them and reads the
- * deck back for display. Fully synthetic — the generated flashcards and the
- * queried dataframe are canned, so it replays with no database.
+ * Code node appends them to a workspace file and reads the deck back for
+ * display. Fully synthetic — the generated flashcards and the deck read back are
+ * canned, so it replays with no workspace.
  */
 import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "../castTypes";
@@ -47,18 +47,14 @@ const dataframe = {
   data: CARDS.map((c) => [c.front, c.back]),
 };
 
-const STORE_CODE = `import { run } from "@nodetool-ai/sandbox-sqlite";
+const STORE_CODE = `const file = "flashcards.json";
+const before = await workspace.stat(file);
+const deck = before.exists ? JSON.parse(await workspace.read(file)) : [];
 
-const { database, results } = await run(await workspace.readBytes("cards.db"), [
-  { sql: "CREATE TABLE IF NOT EXISTS flashcards (front TEXT, back TEXT)" },
-  ...inputs.cards.rows.map((c) => ({
-    sql: "INSERT INTO flashcards (front, back) VALUES (?, ?)",
-    params: [c.front, c.back],
-  })),
-  { sql: "SELECT * FROM flashcards" },
-]);
-await workspace.writeBytes("cards.db", database);
-return { deck: results.at(-1).rows };`;
+deck.push(...inputs.cards.rows);
+await workspace.write(file, JSON.stringify(deck, null, 2));
+
+return { deck: deck.slice(-10).reverse() };`;
 
 const nodes = [
   node("topic", STRING_INPUT, 0, 40, 240, "Topic", { name: "topic", value: TOPIC }),
@@ -120,15 +116,15 @@ const events: CastEvent[] = [
 export const flashcardsSqliteCast: DemoCast = {
   version: CAST_VERSION,
   id: "cookbook-flashcards-sqlite",
-  name: "AI Flashcards with SQLite",
-  description: "Generate structured records, persist them in SQLite, and read them back.",
+  name: "AI Flashcards That Persist",
+  description: "Generate structured records, save them to the workspace, and read them back.",
   createdAt: new Date(0).toISOString(),
   durationMs: 16000,
   fps: 30,
   workflow: cookbookWorkflow(
     WF,
-    "AI Flashcards with SQLite",
-    "Topic → Data Generator → one Code node that inserts and queries → Preview.",
+    "AI Flashcards That Persist",
+    "Topic → Data Generator → one Code node that saves and re-reads → Preview.",
     nodes,
     edges
   ),

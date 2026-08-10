@@ -175,11 +175,11 @@ ______________________________________________________________________
 
 <span id="pattern-5-database-persistence"></span>
 
-### Pattern 5: Database Persistence
+### Pattern 5: Persistence
 
 **Use Case**: Store generated data for later retrieval
 
-**Example**: AI Flashcard Generator with SQLite
+**Example**: AI Flashcard Generator
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
@@ -188,18 +188,14 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   topic_input["StringInput (Topic)"]
-  create_table["CreateTable"]
   format_prompt["FormatText"]
   generate_flashcards["DataGenerator"]
-  insert_flashcard["Insert"]
-  query_all["Query"]
+  store_cards["Code (save & read back)"]
   display_result["Preview"]
   topic_input --> format_prompt
   format_prompt --> generate_flashcards
-  generate_flashcards --> insert_flashcard
-  create_table --> query_all
-  create_table --> insert_flashcard
-  query_all --> display_result
+  generate_flashcards --> store_cards
+  store_cards --> display_result
 {% endmermaid %}
 
 **When to Use**:
@@ -210,18 +206,14 @@ graph TD
 
 **Key Nodes**:
 
-- `CreateTable`: Initialize database schema
-- `Insert`: Add records
-- `Query`: Retrieve records
-- `Update`: Modify records
-- `Delete`: Remove records
+- `Code` (`nodetool.code.Code`): one script that appends the new records to a
+  workspace file with `workspace.write` and reads the whole set back
 
-**Database Flow**:
+**Persistence Flow**:
 
-1. Create table structure
-1. Generate data with agent
-1. Insert into database
-1. Query and display results
+1. Generate data with an agent
+1. Append it to a workspace file
+1. Read the whole set back and display it
 
 ______________________________________________________________________
 

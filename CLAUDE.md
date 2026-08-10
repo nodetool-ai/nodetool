@@ -959,7 +959,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships eleven packs in
+global — the `data.*` namespace is gone. NodeTool ships ten packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
 installed like any third-party pack and never a workspace:
 
@@ -973,7 +973,6 @@ installed like any third-party pack and never a workspace:
 | `@nodetool-ai/sandbox-xlsx` | exceljs | host |
 | `@nodetool-ai/sandbox-diff` | diff | host |
 | `@nodetool-ai/sandbox-zip` | fflate | host |
-| `@nodetool-ai/sandbox-sqlite` | better-sqlite3 | host |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host |
 | `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host |
 

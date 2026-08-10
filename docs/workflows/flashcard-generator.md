@@ -5,7 +5,7 @@ title: "Flashcard Generator"
 
 ## Overview
 
-Generate study flashcards using AI and store them in a database. Enter any topic and get instant flashcards saved for future review.
+Generate study flashcards using AI and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards saved for future review.
 
 ## Demo
 
@@ -15,24 +15,21 @@ Generate study flashcards using AI and store them in a database. Enter any topic
 
 ## Tags
 
-education, database, ai, flashcards, learning
+education, persistence, ai, flashcards, learning
 
 ## Workflow Diagram
 
 {% mermaid %}
 graph TD
   topic_topic_["topic"]
-  createtable_create["CreateTable"]
-  formattext_format["FormatText"]
+  num_cards_input["num_cards"]
+  formattext_format["Prompt"]
   datagenerator_genera["DataGenerator"]
-  insert_insert["Insert"]
-  query_query_["Query"]
+  store_cards["Code (save & read back)"]
+  deck_output["saved_deck"]
   topic_topic_ --> formattext_format
+  num_cards_input --> formattext_format
   formattext_format --> datagenerator_genera
-  datagenerator_genera --> insert_insert
-  createtable_create --> query_query_
-  createtable_create --> query_query_
-  createtable_create --> insert_insert
-  createtable_create --> insert_insert
-  createtable_create --> query_query_
+  datagenerator_genera --> store_cards
+  store_cards --> deck_output
 {% endmermaid %}

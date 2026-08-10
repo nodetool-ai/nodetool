@@ -27,11 +27,16 @@ notifications (`CreateCalendarEvent`, `CreateNote`, `SendMessage`,
 
 ## What moved to the sandbox
 
-Fetching and crawling pages, SQLite CRUD, Excel, OCR, and the TensorFlow.js
-models are no longer nodes. Each is a sandbox pack a `nodetool.code.Code` node
-imports — `fetch` plus `@nodetool-ai/sandbox-html`, `-sqlite`, `-xlsx`, `-ocr`
-and `-tfjs` — which is one script instead of a chain of near-identical nodes.
-See [packages/sandbox-packs](../sandbox-packs/README.md).
+Fetching and crawling pages, Excel, OCR, and the TensorFlow.js models are no
+longer nodes. Each is a sandbox pack a `nodetool.code.Code` node imports —
+`fetch` plus `@nodetool-ai/sandbox-html`, `-xlsx`, `-ocr` and `-tfjs` — which is
+one script instead of a chain of near-identical nodes. See
+[packages/sandbox-packs](../sandbox-packs/README.md).
+
+The `lib.sqlite.*` CRUD nodes went too, without a pack behind them: a database
+is a file the host holds open across calls, which the sandbox's plain-data
+boundary does not model. A workflow that needs to keep something between runs
+writes it with `workspace.*`.
 
 ## Links
 

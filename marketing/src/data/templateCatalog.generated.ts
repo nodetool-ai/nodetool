@@ -1823,10 +1823,10 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "flashcard-generator",
         "name": "Flashcard Generator",
-        "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+        "description": "Generate study flashcards as structured front/back card objects and keep them in a workspace file that grows across runs. Enter any topic and get instant flashcards that are saved for future review.",
         "tags": [
           "education",
-          "database",
+          "persistence",
           "ai",
           "flashcards",
           "learning"

@@ -73,13 +73,6 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description: "Read and write Excel workbooks.",
     exports: ["parse", "write"]
   },
-  sqlite: {
-    id: "sqlite",
-    packName: "@nodetool-ai/sandbox-sqlite",
-    library: "better-sqlite3",
-    description: "Query and update a SQLite database held as bytes.",
-    exports: ["query", "run"]
-  },
   ocr: {
     id: "ocr",
     packName: "@nodetool-ai/sandbox-ocr",

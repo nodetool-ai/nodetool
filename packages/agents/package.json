@@ -38,7 +38,6 @@
     "@tensorflow/tfjs": "^4.22.0",
     "@types/mailparser": "^3.4.6",
     "acorn": "^8.16.0",
-    "better-sqlite3": "^12.8.0",
     "cheerio": "^1.2.0",
     "diff": "^5.2.0",
     "exceljs": "^4.4.0",
@@ -55,7 +54,6 @@
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",
-    "@types/better-sqlite3": "^7.6.13",
     "@types/diff": "^5.2.3",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^22.0.0",
