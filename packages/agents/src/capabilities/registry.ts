@@ -34,7 +34,10 @@ const MODULES: Readonly<Record<string, Loader>> = {
   documents: () => import("./documents.js").then((m) => m.module),
   email: () => import("./email.js").then((m) => m.module),
   memory: () => import("./memory.js").then((m) => m.module),
-  web: () => import("./web.js").then((m) => m.module)
+  web: () => import("./web.js").then((m) => m.module),
+  files: () => import("./files.js").then((m) => m.module),
+  agents: () => import("./agents.js").then((m) => m.module),
+  google: () => import("./google.js").then((m) => m.module)
 };
 
 /**
@@ -57,7 +60,10 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "documents",
   "email",
   "memory",
-  "web"
+  "web",
+  "files",
+  "agents",
+  "google"
 ];
 
 const cache = new Map<string, Promise<CapabilityModule>>();
