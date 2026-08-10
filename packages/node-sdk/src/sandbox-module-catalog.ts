@@ -9,7 +9,8 @@ import {
   type SandboxModuleDeliveryResult,
   type SandboxModuleGraphFile,
   type SandboxModuleStatus,
-  type SandboxModuleSummary
+  type SandboxModuleSummary,
+  type SandboxWasmContract
 } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
@@ -203,6 +204,8 @@ function authorizeDelivery(
       kind: module.kind,
       ...(module.source === undefined ? {} : { source: module.source }),
       ...(module.bytes === undefined ? {} : { bytes: module.bytes }),
+      // Only a public entry carries the call contract the facade is built from.
+      ...(module.wasm === undefined ? {} : { wasm: module.wasm }),
       dependencies: module.dependencies
     });
   }
@@ -246,6 +249,7 @@ function deliveryFor(
     readonly kind: "js" | "wasm";
     readonly source?: string;
     readonly bytes?: Uint8Array;
+    readonly wasm?: SandboxWasmContract;
     readonly dependencies: readonly string[];
   }
 ): SandboxModuleDeliveryResult {
@@ -287,7 +291,8 @@ function deliveryFor(
     kind: "wasm",
     mediaType: SandboxDeliveryMediaType.WASM,
     contentSha256: sha256(content.bytes),
-    bytes: new Uint8Array(content.bytes)
+    bytes: new Uint8Array(content.bytes),
+    ...(content.wasm === undefined ? {} : { wasm: content.wasm })
   };
 }
 
@@ -318,7 +323,10 @@ function toResolvedModule(
   if (module.bytes === undefined) {
     throw new Error(`sandbox module ${module.specifier} has no WASM bytes`);
   }
-  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes) };
+  if (module.wasm === undefined) {
+    throw new Error(`sandbox module ${module.specifier} has no WASM call contract`);
+  }
+  return { ...common, kind: "wasm", bytes: new Uint8Array(module.bytes), wasm: module.wasm };
 }
 
 function moduleGraph(

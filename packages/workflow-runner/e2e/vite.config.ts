@@ -143,7 +143,16 @@ export default defineConfig({
       "@nodetool-ai/agents",
       "@nodetool-ai/config",
       "@nodetool-ai/models",
-      "@nodetool-ai/code-nodes"
+      "@nodetool-ai/code-nodes",
+      // The QuickJS engine locates its `.wasm` with
+      // `new URL("emscripten-module.wasm", import.meta.url)`. Pre-bundling
+      // moves the emscripten module into the dep cache directory without
+      // moving the `.wasm` next to it, so that URL points at a file the dev
+      // server does not have and the HTML fallback answers instead — the guest
+      // then compiles `<!do…` and aborts with "expected magic word". Excluded,
+      // the module is served from its own directory and the URL resolves.
+      "@jitl/quickjs-ng-wasmfile-release-sync",
+      "quickjs-emscripten-core"
     ]
   },
   server: {

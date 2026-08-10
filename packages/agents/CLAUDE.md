@@ -183,6 +183,44 @@ those modules over `GET /api/sandbox-modules/*` and verifies each body before
 it runs, so the same rules hold client-side. For everything else a host bridge is still the only
 way library-backed behaviour reaches user code.
 
+### Host WASM modules (`src/wasm-sandbox/`)
+
+A pack may declare a WASM module. Its specifier resolves to a **generated ESM
+facade** (`generateSandboxWasmFacade`, `@nodetool-ai/protocol`) with one async
+export per manifest export, calling a **per-run dispatcher** through a private
+bridge module. The call contract is scalar-only: `i32`/`f32`/`f64`, at most 8
+arguments, at most one result, and a void export resolves `undefined`.
+
+**Stateless by contract.** Each call instantiates fresh from the cached module
+inside the worker, runs, and discards the instance — mutable globals and linear
+memory never carry from one call to the next. A pack needing state keeps it in
+guest JS and passes scalars in.
+
+| Bound | Default (also the ceiling a manifest may lower to) |
+|---|---|
+| Worker pool (process-wide) | 4 — not manifest-configurable |
+| Call concurrency per invocation | 2 |
+| Calls per invocation | 256 |
+| Aggregate WASM wall clock per invocation | 30 s |
+| Per-call timeout | 5 s, then the worker is terminated **and replaced** |
+
+The dispatcher is the boundary, not the hiding: it serves only the run's
+declared WASM modules and validates module identity, export allowlist, argument
+count, and argument type before any worker runs — `i32` rejects out of range
+rather than wrapping, `f32`/`f64` take `NaN` and infinities. The bridge module
+is refused to every importer but a generated facade, and the dispatcher binding
+is deleted before the user IIFE starts. A pack module that grabs the binding
+during linking gains nothing beyond the run's own declared surface.
+
+`workers.ts` is the platform seam: Node `worker_threads`, browser Web Worker,
+both created from an inline source string so no entry file has to survive tsx,
+vitest, `dist/`, and the esbuild backend bundle. The browser path is written
+but unexercised here — no browser harness lands until M2.
+
+Fixtures: `tests/fixtures/sandbox-wasm/` (the reference module, its WAT, and the
+contract cases as data). Tests: `tests/js-sandbox-wasm.test.ts` (end to end,
+real workers), `tests/wasm-sandbox-host.test.ts` (conversion, budgets, pool).
+
 `format` exists because QuickJS ships no `Intl`: each member is a host bridge
 over `Intl.NumberFormat`, `Intl.DateTimeFormat`, `Intl.RelativeTimeFormat` and
 `Intl.ListFormat`, defaulting to locale `en-US`. All four are async (they follow

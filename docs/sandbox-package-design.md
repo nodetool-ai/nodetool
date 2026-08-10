@@ -6,14 +6,16 @@ WASM modules bridged in from the host. Distribution rides the existing
 package manager — the `nodetool` manifest in a pack's package.json, the npm
 install flow, and the registry index.
 
-> Status: design, revised after two review rounds. M0, M1, M2 and M3 are
-> implemented. A declared sandbox module is importable in Code nodes, CodeAct
-> actions, the CLI, the server **and the browser runner** — M2 delivered module
-> source to the browser over `GET /api/sandbox-modules/*`, ran the same
-> loading/denial contract there, and removed the `NODETOOL_SANDBOX_MODULES_V1`
-> parity flag along with the browser refusal it covered. M3 adds the npm
-> compiler: a config-only `npm` manifest entry is bundled, scanned,
-> admission-probed, and cached by content. M0 provides:
+> Status: design, revised after two review rounds. M0, M1, M2, M3, M4 and M6
+> are implemented. A declared sandbox module is importable in Code nodes,
+> CodeAct actions, the CLI, the server **and the browser runner** — M2
+> delivered module source to the browser over `GET /api/sandbox-modules/*`, ran
+> the same loading/denial contract there, and removed the
+> `NODETOOL_SANDBOX_MODULES_V1` parity flag along with the browser refusal it
+> covered. M3 adds the npm compiler: a config-only `npm` manifest entry is
+> bundled, scanned, admission-probed, and cached by content. M4 adds scalar
+> WASM modules behind generated facades. M6 ships three bridge packs built on
+> that compiler. M0 provides:
 > protocol schemas, non-executing discovery, the catalog contract and its
 > concrete host, catalog injection into server and CLI contexts, the
 > sandbox-only host-loader guard, scripts-disabled installation with an

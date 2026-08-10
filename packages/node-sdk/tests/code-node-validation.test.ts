@@ -286,6 +286,22 @@ describe("validateCodeNodeBody — sandbox packages", () => {
     ).toEqual([]);
   });
 
+  it("rejects a direct import of the private WASM bridge module", () => {
+    // The bridge is reachable only from a generated facade. It cannot be
+    // declared either — a `packages` specifier may not contain a colon — so
+    // the static analyzer refuses it the same way it refuses any undeclared
+    // import, and the runtime loader refuses it again by name.
+    const issues = validateCodeNodeBody(
+      withPackages(
+        'import { __call } from "nodetool:wasm-bridge";\nreturn { out: __call };',
+        ["@acme/geo"]
+      )
+    );
+    const issue = issues.find((i) => i.code === "code_module");
+    expect(issue?.severity).toBe("error");
+    expect(issue?.message).toContain("nodetool:wasm-bridge");
+  });
+
   it("rejects an import the node does not declare", () => {
     const issues = validateCodeNodeBody(
       withPackages('import { x } from "@other/pack";\nreturn { out: x };', [

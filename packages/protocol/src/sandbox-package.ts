@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { SANDBOX_WASM_BUDGETS } from "./sandbox-wasm.js";
+
 const JS_IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const MODULE_NAME = /^(?:\.|[A-Za-z0-9._-]+)$/;
 const PACKAGE_NAME = /^(?:@[a-z0-9._~-]+\/)?[a-z0-9._~-]+$/i;
@@ -49,6 +51,30 @@ const wasmExportSchema = z.union([
   z.object({ wasm: z.string().min(1).refine((value) => !CONTROL_CHARACTERS.test(value), "invalid WASM export name"), as: identifierSchema }).strict()
 ]);
 
+/**
+ * Budgets a manifest may lower.
+ *
+ * Every bound's default is also its ceiling ({@link SANDBOX_WASM_BUDGETS}), so
+ * a `.max()` here is the whole "may lower, never raise" rule — a manifest that
+ * asks for more is rejected rather than clamped, because a pack that thinks it
+ * has 60 s is a pack that will be surprised at 30.
+ */
+export const SandboxWasmLimitsSchema = z.object({
+  callTimeoutMs: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callTimeoutMs).optional(),
+  callConcurrency: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callConcurrency).optional(),
+  callsPerInvocation: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.callsPerInvocation).optional(),
+  wallClockMs: z.number().int().min(1).max(SANDBOX_WASM_BUDGETS.wallClockMs).optional()
+}).strict();
+export type SandboxWasmLimits = z.infer<typeof SandboxWasmLimitsSchema>;
+
+/** The normalized call contract a resolved WASM module carries to the host. */
+export const SandboxWasmContractSchema = z.object({
+  memoryPagesMax: z.number().int().min(0).max(4096),
+  exports: z.array(z.object({ wasm: z.string().min(1), as: identifierSchema }).strict()).min(1),
+  limits: SandboxWasmLimitsSchema.optional()
+}).strict();
+export type SandboxWasmContract = z.infer<typeof SandboxWasmContractSchema>;
+
 const jsModuleSchema = z.object({
   name: moduleNameSchema,
   kind: z.literal(SandboxModuleKind.JS),
@@ -65,7 +91,8 @@ const wasmModuleSchema = z.object({
   kind: z.literal(SandboxModuleKind.WASM),
   file: fileSchema,
   memoryPagesMax: z.number().int().min(0).max(4096),
-  exports: z.array(wasmExportSchema).min(1)
+  exports: z.array(wasmExportSchema).min(1),
+  limits: SandboxWasmLimitsSchema.optional()
 }).strict().superRefine((value, ctx) => {
   const aliases = new Set<string>();
   const wasmNames = new Set<string>();
@@ -184,6 +211,8 @@ export const ResolvedSandboxModuleSchema = z.discriminatedUnion("kind", [
     moduleId: z.string().min(1),
     kind: z.literal(SandboxModuleKind.WASM),
     bytes: z.instanceof(Uint8Array),
+    /** The manifest's call contract, normalized: every export as `{wasm, as}`. */
+    wasm: SandboxWasmContractSchema,
     graph: z.array(SandboxModuleGraphFileSchema)
   }).strict()
 ]);
@@ -275,7 +304,14 @@ export const AuthorizedSandboxModuleDeliverySchema = z.discriminatedUnion("kind"
     ...deliveryCommon,
     kind: z.literal(SandboxModuleKind.WASM),
     mediaType: z.literal(SandboxDeliveryMediaType.WASM),
-    bytes: z.instanceof(Uint8Array)
+    bytes: z.instanceof(Uint8Array),
+    /**
+     * The call contract, present only on a pack's public WASM entry.
+     *
+     * A client needs it to build the facade it imports; an internal graph file
+     * is bytes a facade already names, so it carries none.
+     */
+    wasm: SandboxWasmContractSchema.optional()
   }).strict()
 ]);
 export type AuthorizedSandboxModuleDelivery = z.infer<

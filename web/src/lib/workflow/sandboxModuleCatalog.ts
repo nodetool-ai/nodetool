@@ -35,7 +35,9 @@ import {
   type SandboxModuleGraphFile,
   type SandboxModuleResolution,
   type SandboxModuleStatus,
-  type SandboxModuleSummary
+  type SandboxModuleSummary,
+  type SandboxWasmContract,
+  SandboxWasmContractSchema
 } from "@nodetool-ai/protocol";
 
 import { restFetch } from "../rest-fetch";
@@ -64,8 +66,13 @@ interface DeliveredSandboxFile {
 export type SandboxModuleRecord =
   | (DeliveredSandboxFile & { kind: "js"; source: string })
   // The buffer is pinned to `ArrayBuffer` (not `ArrayBufferLike`) to match the
-  // protocol schema a resolution is built against.
-  | (DeliveredSandboxFile & { kind: "wasm"; bytes: Uint8Array<ArrayBuffer> });
+  // protocol schema a resolution is built against. `wasm` is the call contract
+  // the facade is built from; only a pack's public entry carries one.
+  | (DeliveredSandboxFile & {
+      kind: "wasm";
+      bytes: Uint8Array<ArrayBuffer>;
+      wasm?: SandboxWasmContract;
+    });
 
 const CODE_NODE_TYPE = "nodetool.code.Code";
 
@@ -161,6 +168,37 @@ function parseDependencies(header: string | null): string[] {
 }
 
 /**
+ * Parse the WASM call contract a public entry is delivered with.
+ *
+ * The contract decides what the guest may call and with which argument types,
+ * so a malformed one is refused rather than trusted: the module then resolves
+ * as unavailable instead of running against a contract nobody validated.
+ */
+function parseWasmContract(
+  moduleId: string,
+  header: string | null
+): SandboxWasmContract | undefined {
+  if (!header) return undefined;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(header);
+  } catch {
+    throw deliveryError(
+      moduleId,
+      "was delivered with an unreadable WASM call contract."
+    );
+  }
+  const contract = SandboxWasmContractSchema.safeParse(parsed);
+  if (!contract.success) {
+    throw deliveryError(
+      moduleId,
+      "was delivered with a WASM call contract the schema refuses."
+    );
+  }
+  return contract.data;
+}
+
+/**
  * Fetch one module by opaque id and verify its body before returning it.
  *
  * A body that does not hash to the header's `contentSha256` is not cached and
@@ -215,10 +253,19 @@ async function fetchModule(moduleId: string): Promise<SandboxModuleRecord> {
       headers.get("X-Sandbox-Module-Dependencies")
     )
   };
-  const record: SandboxModuleRecord =
-    headers.get("Content-Type")?.startsWith("application/wasm") === true
-      ? { ...common, kind: "wasm", bytes }
-      : { ...common, kind: "js", source: new TextDecoder().decode(bytes) };
+  const isWasm =
+    headers.get("Content-Type")?.startsWith("application/wasm") === true;
+  const contract = isWasm
+    ? parseWasmContract(moduleId, headers.get("X-Sandbox-Wasm-Contract"))
+    : undefined;
+  const record: SandboxModuleRecord = isWasm
+    ? {
+        ...common,
+        kind: "wasm",
+        bytes,
+        ...(contract === undefined ? {} : { wasm: contract })
+      }
+    : { ...common, kind: "js", source: new TextDecoder().decode(bytes) };
   cache.set(moduleId, record);
   return record;
 }
@@ -401,11 +448,28 @@ export function createSeededSandboxModuleCatalog(
           moduleId: entry.fileId,
           graph
         };
-        modules.push(
-          entry.kind === "js"
-            ? { ...common, kind: "js", source: entry.source }
-            : { ...common, kind: "wasm", bytes: entry.bytes }
-        );
+        if (entry.kind === "js") {
+          modules.push({ ...common, kind: "js", source: entry.source });
+          continue;
+        }
+        // A WASM entry without its call contract has nothing to build a facade
+        // from, so it is unavailable rather than resolved without one.
+        if (entry.wasm === undefined) {
+          statuses.push({
+            packName: entry.packName,
+            specifier: declaration.specifier,
+            status: "error",
+            code: "module-unavailable",
+            message: `Sandbox module ${declaration.specifier} was delivered without its WASM call contract.`
+          });
+          continue;
+        }
+        modules.push({
+          ...common,
+          kind: "wasm",
+          bytes: entry.bytes,
+          wasm: entry.wasm
+        });
       }
       return { modules, statuses };
     }
