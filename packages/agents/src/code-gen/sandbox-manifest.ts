@@ -29,6 +29,10 @@ import {
   MAX_IMAGE_INPUT_BYTES,
   MAX_IMAGE_PIXELS
 } from "../sandbox-media.js";
+import {
+  MAX_DATA_URI_BYTES,
+  MAX_MEDIA_REF_BYTES
+} from "../sandbox-media-ref.js";
 
 /** The node this manifest describes. */
 export const SANDBOX_MANIFEST_NODE_TYPE = "nodetool.code.Code";
@@ -505,6 +509,60 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
       }
     ]
   },
+  media: {
+    name: "media",
+    kind: "namespace",
+    description:
+      "Read a document/image/audio/video input's bytes, and build a media ref " +
+      "from bytes the body computed. Resolves asset://, /api/storage/, " +
+      "package://, data: URIs, https URLs and file paths. Needs a context.",
+    members: [
+      {
+        name: "media.bytes",
+        signature: "await media.bytes(ref) -> Uint8Array",
+        description: "The bytes behind any media ref.",
+        async: true
+      },
+      {
+        name: "media.text",
+        signature: "await media.text(ref, { encoding? }) -> string",
+        description: "Decode the ref's bytes as text (default utf-8).",
+        async: true
+      },
+      {
+        name: "media.info",
+        signature:
+          "await media.info(ref) -> { type, mimeType, uri, size }",
+        description: "What the ref is and how big it is.",
+        async: true
+      },
+      {
+        name: "media.toDocument",
+        signature:
+          "await media.toDocument(bytes, { mimeType?, filename? }) -> DocumentRef",
+        description: "Bytes to a document ref, ready to return as an output.",
+        async: true
+      },
+      {
+        name: "media.toImage",
+        signature: "await media.toImage(bytes, { mimeType? }) -> ImageRef",
+        description: "Bytes to an image ref.",
+        async: true
+      },
+      {
+        name: "media.toAudio",
+        signature: "await media.toAudio(bytes, { mimeType? }) -> AudioRef",
+        description: "Bytes to an audio ref.",
+        async: true
+      },
+      {
+        name: "media.toVideo",
+        signature: "await media.toVideo(bytes, { mimeType? }) -> VideoRef",
+        description: "Bytes to a video ref.",
+        async: true
+      }
+    ]
+  },
   __maxIter: {
     name: "__maxIter",
     kind: "function",
@@ -652,6 +710,19 @@ function fixedLimits(): SandboxLimitDoc[] {
       value: MAX_IMAGE_INPUT_BYTES
     },
     {
+      key: "maxMediaRefBytes",
+      description: "payload a media.* call moves in either direction",
+      unit: "bytes",
+      value: MAX_MEDIA_REF_BYTES
+    },
+    {
+      key: "maxDataUriBytes",
+      description:
+        "payload a media.to* builder inlines as a data URI when the run has no storage",
+      unit: "bytes",
+      value: MAX_DATA_URI_BYTES
+    },
+    {
       key: "maxImagePixels",
       description: "pixels in a decoded image or rendered canvas",
       unit: "count",
@@ -756,6 +827,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "image",
   "isFinite",
   "isNaN",
+  "media",
   "parallelMap",
   "parseFloat",
   "parseInt",

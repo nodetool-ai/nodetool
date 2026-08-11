@@ -86,6 +86,36 @@ describe("validateCodeNodeBody", () => {
     ).toEqual([]);
   });
 
+  it("accepts the media bridge over a media input", () => {
+    expect(
+      codes(
+        body(
+          `const bytes = await media.bytes(inputs.pdf);
+           const info = await media.info(inputs.pdf);
+           const doc = await media.toDocument(bytes, { mimeType: info.mimeType });
+           return { doc };`,
+          ["pdf"],
+          ["doc"]
+        )
+      )
+    ).toEqual([]);
+  });
+
+  it("still flags an invented name in a body that also uses media", () => {
+    const issues = validateCodeNodeBody(
+      body(
+        `const bytes = await media.bytes(inputs.pdf);
+         return { text: pdfjs.parse(bytes) };`,
+        ["pdf"],
+        ["text"]
+      )
+    );
+    const undefinedName = issues.find((i) => i.code === "code_undefined_name");
+    expect(undefinedName?.severity).toBe("error");
+    expect(undefinedName?.message).toContain('"pdfjs"');
+    expect(undefinedName?.message).not.toContain('"media"');
+  });
+
   it("tells a body reading a removed guest name what replaced it", () => {
     const issues = validateCodeNodeBody(
       body("return { id: uuid(), bytes: utf8Encode(inputs.text) };", ["text"], [

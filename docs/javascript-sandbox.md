@@ -73,6 +73,7 @@ libraries are imports.**
 | `crypto.*` | `randomUUID`, `getRandomValues`, `digest`, `hmac` (WebCrypto-backed; SHA-1/256/384/512) |
 | `format.*` | `number`, `date`, `relativeTime`, `list` — host `Intl`, which QuickJS does not ship. All four are async |
 | `image.*` | `info`, `decode`, `encode`, `resize`, `crop`, `rotate`, `flip`, `adjust`, `composite`, `convert` over encoded bytes |
+| `media.*` | `bytes`, `text`, `info` read a document/image/audio/video input; `toDocument`, `toImage`, `toAudio`, `toVideo` build one to return. Needs a `ProcessingContext` |
 | `canvas.measureText` / `createCanvas(w, h)` | Canvas 2D drawing, recorded in the guest and replayed on a real host context by `await surface.toBytes()` |
 | `assetToSandbox(assetId, path)` / `sandboxToAsset(path)` | Move an asset in and out of the workspace |
 | `progress(percent, message?)` | Fire-and-forget progress, rate-limited and capped |
@@ -86,6 +87,42 @@ Callers add their own globals through `RunSandboxOptions.globals`:
 `inputs` and `state` for the Code node, `tools`/`state`/`finish` for CodeAct,
 `node`/`graph` for the graph DSL. Names in `RESERVED_SANDBOX_NAMES` cannot be
 overwritten this way.
+
+#### `media.*` — media inputs and outputs
+
+A `document`, `image`, `audio` or `video` input arrives in the guest as a ref
+object, not as bytes. `media` is the bridge that resolves one, and the bridge
+that turns bytes back into a ref the next node can read:
+
+```js
+const bytes = await media.bytes(inputs.pdf);
+const page = await media.text(inputs.notes);          // utf-8 unless `encoding` says otherwise
+const { mimeType, size } = await media.info(inputs.pdf);
+return { report: await media.toDocument(bytes, { mimeType, filename: "report.pdf" }) };
+```
+
+| Call | Returns |
+|---|---|
+| `media.bytes(ref)` | `Uint8Array` |
+| `media.text(ref, { encoding? })` | `string` |
+| `media.info(ref)` | `{ type, mimeType, uri, size }` |
+| `media.toDocument(bytes, { mimeType?, filename? })` | `DocumentRef` |
+| `media.toImage(bytes, { mimeType? })` | `ImageRef` |
+| `media.toAudio(bytes, { mimeType? })` | `AudioRef` |
+| `media.toVideo(bytes, { mimeType? })` | `VideoRef` |
+
+Every call is async — `await` all seven.
+
+A ref resolves from any of the forms the rest of NodeTool produces: `asset://`,
+a storage path (`/api/storage/<key>`), an `https:` URL, a `data:` URI, a
+`package://` asset shipped inside a node package, and a plain file path. Pass
+the whole input object, not its `uri` — `media.bytes(inputs.pdf)` — so the ref's
+own type travels with it.
+
+These are **capabilities, not libraries**: they need a `ProcessingContext`, so
+they resolve inside a workflow run and throw in a bare `runInSandbox` call with
+no context. For the libraries that read what the bytes contain — a PDF, a
+spreadsheet, a zip — import a sandbox package.
 
 ### Libraries (imports)
 
@@ -109,7 +146,10 @@ alive (the tfjs weights). Five more carry NodeTool's own code rather than a
 library — `-aws` signs a request with SigV4, and `-notion`, `-supabase`,
 `-twilio` and `-apify` build an authenticated one — and none of them sends it:
 the guest passes what comes back to its own `fetch`, under the run's fetch cap
-and SSRF guard. Third-party packs install the same way. See
+and SSRF guard. Every shipped pack is available out of the box — a checkout, the
+desktop app and the server image each read them from where their own build put
+them. A third-party pack is installed through the Package Manager and is
+discovered the same way. See
 [Sandbox packages](sandbox-package-design.md) and
 `packages/sandbox-packs/README.md`.
 
@@ -283,6 +323,8 @@ return { kept, count: kept.length };
 - **Outputs** are the returned object's keys. Return a non-object and it becomes
   a single `output` handle. Code with no `return` gets an implicit return of its
   last expression.
+- **Media inputs** arrive as refs. Read one with `media.bytes` / `media.text`,
+  and return one built by `media.toDocument` / `toImage` / `toAudio` / `toVideo`.
 - **Streaming.** Code containing `yield` runs through `genProcess`: the yields
   are collected in the guest and emitted one message at a time.
 - **`state`** is a plain object that survives across streaming invocations and

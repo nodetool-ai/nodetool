@@ -66,7 +66,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Host bridges
   "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "format",
-  "image", "canvas",
+  "image", "canvas", "media",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",
   "parallelMap", "createCanvas",
