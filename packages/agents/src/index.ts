@@ -498,6 +498,11 @@ export {
   SCRIPT_VOICE_TOOL_NAMES
 } from "./tools/script-voice-tools.js";
 export {
+  ValidateCodeTool,
+  RunCodeTool,
+  TestCodeTool
+} from "./tools/code-authoring-tools.js";
+export {
   ListStoryboardsTool,
   GetStoryboardTool,
   RenderStoryboardStillsTool,

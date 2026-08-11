@@ -30,7 +30,11 @@ import {
   prop,
   CODE_INPUTS_GLOBAL,
   NodeRegistry,
-  parseSandboxModuleDeclarations
+  parseSandboxModuleDeclarations,
+  hasReturnStatement,
+  hasYieldStatement,
+  wrapImplicitReturn,
+  normalizeCodeOutput
 } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
@@ -110,10 +114,6 @@ const JS_RESERVED = new Set([
   "with",
   "yield"
 ]);
-
-/** Statement keywords that should never be wrapped with `return (...)`. */
-const STATEMENT_KEYWORDS =
-  /^(if|else|for|while|do|switch|try|catch|finally|throw|const|let|var|class|function|with|debugger|break|continue|return)\b/;
 
 // ---------------------------------------------------------------------------
 // The `nodetool` object model — toolbelt bridge
@@ -487,7 +487,7 @@ export class CodeNode extends BaseNode {
       throw new Error(sandboxResult.error ?? "Code execution failed");
     }
 
-    return normalizeOutput(sandboxResult.result);
+    return normalizeCodeOutput(sandboxResult.result);
   }
 
   async *genProcess(
@@ -546,7 +546,7 @@ export class CodeNode extends BaseNode {
     if (Array.isArray(items)) {
       for (const item of items) {
         if (item !== null && item !== undefined) {
-          yield normalizeOutput(item);
+          yield normalizeCodeOutput(item);
         }
       }
     }
@@ -602,80 +602,4 @@ function deepCopyInputs(
   return result;
 }
 
-/**
- * Normalize return value to Record<string, unknown>.
- *
- * The sandbox hands back real `Uint8Array`s for typed arrays at any depth
- * (`serializeResult`), so binary values need no conversion here — only the
- * decision of whether the value is an output bag or a single `output`.
- */
-function normalizeOutput(value: unknown): Record<string, unknown> {
-  if (value === null || value === undefined) return {};
-  if (
-    typeof value === "object" &&
-    !Array.isArray(value) &&
-    (value as object).constructor?.name === "Object"
-  ) {
-    return value as Record<string, unknown>;
-  }
-  return { output: value };
-}
 
-/**
- * Check for a real `return` statement — not one inside a string or comment.
- */
-function hasReturnStatement(code: string): boolean {
-  const stripped = stripStringsAndComments(code);
-  return /(?:^|[;\n{}\s])return[\s;(]/.test(stripped);
-}
-
-/**
- * Check for a real `yield` statement — not one inside a string or comment.
- */
-function hasYieldStatement(code: string): boolean {
-  const stripped = stripStringsAndComments(code);
-  return /(?:^|[;\n{}\s])yield[\s;(]/.test(stripped);
-}
-
-/** Strip string literals and comments to avoid false-positive keyword detection. */
-function stripStringsAndComments(code: string): string {
-  return code
-    .replace(/\/\/.*$/gm, "")
-    .replace(/\/\*[\s\S]*?\*\//g, "")
-    .replace(/"(?:[^"\\]|\\.)*"/g, '""')
-    .replace(/'(?:[^'\\]|\\.)*'/g, "''")
-    .replace(/`(?:[^`\\]|\\.)*`/g, "``");
-}
-
-/**
- * Wrap the last expression with `return(...)` for implicit return support.
- */
-function wrapImplicitReturn(code: string): string {
-  const trimmed = code.trim();
-  if (!trimmed) return "return {};";
-
-  const lines = trimmed.split("\n");
-  const lastIdx = lines.length - 1;
-  const last = lines[lastIdx].trim();
-
-  if (STATEMENT_KEYWORDS.test(last)) return code;
-  if (!last || last.startsWith("//") || last.startsWith("/*")) return code;
-
-  if (
-    last.startsWith("{") ||
-    last.startsWith("(") ||
-    last.startsWith("[") ||
-    last.startsWith('"') ||
-    last.startsWith("'") ||
-    last.startsWith("`") ||
-    last.startsWith(".") ||
-    /^[0-9]/.test(last) ||
-    /^(true|false|null|undefined|NaN|Infinity)\b/.test(last) ||
-    /^[a-zA-Z_$][a-zA-Z0-9_$.]*(\s*[({[])?/.test(last)
-  ) {
-    lines[lastIdx] = `return (${lines[lastIdx]})`;
-    return lines.join("\n");
-  }
-
-  return code;
-}

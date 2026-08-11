@@ -174,7 +174,11 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   render_storyboard_clips: "write",
   revise_storyboard_clip: "write",
   assemble_storyboard_timeline: "write",
-  edit_storyboard: "write"
+  edit_storyboard: "write",
+  // code (Code-node authoring harness)
+  validate_code: "read",
+  run_code: "execute",
+  test_code: "execute"
 };
 
 describe("capability registry walk", () => {

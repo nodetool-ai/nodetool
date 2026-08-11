@@ -45,6 +45,7 @@ import "./sketch";
 import "./script";
 import "./puck";
 import "./model3d";
+import "./code";
 
 // Entity assets.
 import "./entities";

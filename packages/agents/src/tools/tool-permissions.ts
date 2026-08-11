@@ -70,6 +70,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_workflows: "read",
   get_workflow: "read",
   validate_workflow: "read",
+  validate_code: "read",
   list_scripts: "read",
   get_script: "read",
   validate_timeline: "read",
@@ -198,6 +199,8 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
 
   // --- execute: runs arbitrary compute ---
   run_node: "execute",
+  run_code: "execute",
+  test_code: "execute",
   run_workflow: "execute",
   debug_workflow: "execute",
   build_app: "execute",

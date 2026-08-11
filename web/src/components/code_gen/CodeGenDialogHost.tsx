@@ -1,12 +1,12 @@
 /**
- * Hosts the "Write code with AI" dialog for the entry points that have no node
- * of their own to render it from — the palette entry and the two handle
- * context menus.
+ * Hosts the Code assistant dialog for the entry points that have no node of
+ * their own to render it from — the palette entry and the two handle context
+ * menus.
  *
  * The dialog is keyed to an existing node, so those entry points create one up
  * front. This host owns the other half of that deal: if the dialog closes
- * without a submission having been applied, the node and edges it created are
- * removed and any edge that stepped aside is put back.
+ * without code having been applied, the node and edges it created are removed
+ * and any edge that stepped aside is put back.
  */
 import { memo, useCallback } from "react";
 import { shallow } from "zustand/shallow";
@@ -14,7 +14,7 @@ import { shallow } from "zustand/shallow";
 import { useNodes } from "../../contexts/NodeContext";
 import useCodeGenDialogStore from "../../stores/CodeGenDialogStore";
 import { isCodeGenApplied } from "../../utils/codeGenEntryPoints";
-import CodeGenDialog from "../node_types/code_gen/CodeGenDialog";
+import CodeAssistantDialog from "../node_types/code_assistant/CodeAssistantDialog";
 
 const CodeGenDialogHostInner = () => {
   const request = useCodeGenDialogStore((state) => state.request);
@@ -53,7 +53,7 @@ const CodeGenDialogHostInner = () => {
   }
 
   return (
-    <CodeGenDialog
+    <CodeAssistantDialog
       open
       nodeId={request.nodeId}
       onClose={handleClose}

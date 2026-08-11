@@ -801,6 +801,28 @@ matches one done in the UI. Code:
 tools remain the path when the board is open in a browser and the user should
 watch it fill in.
 
+### Code authoring tools (no workflow, no browser)
+
+An agent writes, checks, and debugs a `nodetool.code.Code` body without
+authoring a workflow: **`validate_code`** runs the same static check the
+workflow validator runs (syntax, imports against declared sandbox packages,
+undefined names, undeclared `inputs.*` reads, outputs unset on a return path),
+**`run_code`** executes a body in the QuickJS sandbox with given inputs and
+returns outputs, logs, and error (`yield` bodies return the collected
+`streamed` items), and **`test_code`** grades a case list — inputs plus
+expected outputs per case — as the regression check after an edit.
+
+Execution matches the Code node: the body-shaping rules (implicit return,
+`yield` collection, output normalization) live in `@nodetool-ai/node-sdk`
+(`code-body.ts`), shared with `packages/code-nodes`, so a body that passes the
+harness runs the same way inside a workflow. Harness runs are hermetic: no node
+toolbelt, and only the secrets a call names in `secrets` are readable. These
+are not a second CodeAct surface — `execute_code` remains how an agent acts;
+this harness authors *node* code. Implementations:
+`packages/agents/src/capabilities/code.ts`. In the editor, the Code node's
+assistant dialog (code editor + chat side panel, `ui_code_*` tools) drives the
+same loop while the user watches.
+
 ### nodetool node run (Single-Node Harness)
 
 Runs one node in isolation — instantiate it, feed it a property bag, print what
