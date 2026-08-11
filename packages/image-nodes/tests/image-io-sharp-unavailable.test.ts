@@ -34,7 +34,9 @@ describe("image-io loadSharp graceful degradation", () => {
       // Force the Node branch of encodeRgbaToPng. Other config exports that the
       // module graph may touch are stubbed minimally.
       IS_NODE: true,
-      importNodeBuiltin: async (name: string) => import(name)
+      importNodeBuiltin: async (name: string) => import(name),
+      getNodeBuiltinSync: (name: string) => process.getBuiltinModule(name),
+      importNodeBuiltinSync: (name: string) => process.getBuiltinModule(name)
     }));
   });
 
