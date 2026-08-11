@@ -71,6 +71,10 @@ import {
   SandboxPackageDocsTool
 } from "./sandbox-package-docs.js";
 import {
+  SANDBOX_PACKAGE_LIST_TOOL_NAME,
+  SandboxPackageListTool
+} from "./sandbox-package-listing.js";
+import {
   GRAPH_DSL_PACKAGE,
   withGraphDslPackage
 } from "./graph-dsl-package.js";
@@ -393,6 +397,24 @@ export class CodeActExecutor {
       (t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME
     );
 
+    // Discovery covers what the allowlist does not: a pack installed here but
+    // not allowed is listed as such, so the model reports it instead of writing
+    // an import that gets refused.
+    if (
+      this.sandboxPackages.length > 0 ||
+      (this.context.sandboxModuleCatalog?.summaries().length ?? 0) > 0
+    ) {
+      const listTool = new SandboxPackageListTool(
+        this.sandboxPackages,
+        this.context.sandboxModuleCatalog,
+        this.capabilityRun !== undefined
+      );
+      if (!existing.has(listTool.name)) this.tools.push(listTool);
+    }
+    const hasPackageListTool = this.tools.some(
+      (t) => t.name === SANDBOX_PACKAGE_LIST_TOOL_NAME
+    );
+
     // The core set is offered to the provider as ordinary tools as well.
     this.coreTools = splitCoreTools(this.tools).core;
 
@@ -426,9 +448,6 @@ export class CodeActExecutor {
     const residentNames = new Set(
       opts.residentToolNames ?? CODEACT_RESIDENT_TOOL_NAMES
     );
-    // The package section names this call, so its signature belongs in the
-    // catalog rather than behind a searchTools() round trip.
-    if (hasPackageDocsTool) residentNames.add(SANDBOX_PACKAGE_DOCS_TOOL_NAME);
     if (catalogTools.length <= CODEACT_DEFER_THRESHOLD) {
       this.residentTools = [...catalogTools];
       this.deferredTools = [];
@@ -451,7 +470,10 @@ export class CodeActExecutor {
     if (nodetoolApiSection) extraSections.push(nodetoolApiSection);
     const preludeParts = [CODEACT_PRELUDE];
     if (withGraphModel) preludeParts.push(GRAPH_MODEL_PRELUDE);
-    if (withNodetoolApi) preludeParts.push(NODETOOL_API_PRELUDE_FULL);
+    // Always: `nodetool` carries tool discovery and package discovery, which a
+    // belt with no platform tools still needs. Every method whose tool is
+    // missing throws and names it, so an empty belt degrades to that.
+    preludeParts.push(NODETOOL_API_PRELUDE_FULL);
     this.prelude = preludeParts.join("\n");
 
     this.resultSchema = this.loadResultSchema();
@@ -466,7 +488,8 @@ export class CodeActExecutor {
         this.sandboxPackages,
         this.context.sandboxModuleCatalog
       ),
-      packageDocsTool: hasPackageDocsTool
+      packageDocsTool: hasPackageDocsTool,
+      packageListTool: hasPackageListTool
     });
   }
 

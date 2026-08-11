@@ -8,7 +8,7 @@
  * the chat runner uses, so the two cannot drift — and `view_image`, which stays
  * direct because pixels cannot ride the sandbox's JSON observation envelope.
  * Every other capability lives inside the sandbox as `tools.<name>()` and the
- * `nodetool.*` object model, found with `searchTools()` and catalogued on the
+ * `nodetool.*` object model, found with `nodetool.searchTools()` and catalogued on the
  * `nodetool://capabilities` resource.
  *
  * The bridged set is *derived*, not hand-listed: `getAgentToolbelt()` plus
@@ -513,7 +513,7 @@ function buildCapabilityCatalog(
  *
  * Everything else the catalogs offer becomes the sandbox belt instead of an MCP
  * tool. It stays fully reachable — `tools.<name>()`, the `nodetool.*` object
- * model, `await searchTools("query")` — and the `execute_code` description
+ * model, `await nodetool.searchTools("query")` — and the `execute_code` description
  * carries the same contract and catalog the chat runner puts in its system
  * prompt, because MCP has no system prompt to put it in.
  */

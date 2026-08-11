@@ -52,6 +52,18 @@ const SOLUTIONS: Record<string, string[]> = {
        .reduce((sum, r) => sum + Number(r.amount_eur), 0);
      await finish({ total: Math.round(total * 100) / 100 });`
   ],
+  "sandbox-pack-discover": [
+    `const packs = await nodetool.packs.list();
+     const installed = packs.map((p) => p.packName);
+     const candidates = [
+       "@nodetool-ai/sandbox-zip",
+       "@nodetool-ai/sandbox-diff",
+       "@acme/nope"
+     ];
+     await finish({
+       installed: candidates.filter((name) => installed.indexOf(name) >= 0)
+     });`
+  ],
   "sandbox-pack-docs": [
     `const docs = await tools.${SANDBOX_PACK_DOCS_TOOL}({
        specifier: "@nodetool-ai/sandbox-xml"

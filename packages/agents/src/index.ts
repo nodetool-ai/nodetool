@@ -424,6 +424,17 @@ export {
 } from "./codeact/sandbox-package-docs.js";
 export type { SandboxPackageDocs } from "./codeact/sandbox-package-docs.js";
 export {
+  SANDBOX_PACKAGE_LIST_TOOL_NAME,
+  SandboxPackageListTool,
+  scanModuleExports
+} from "./codeact/sandbox-package-listing.js";
+export type {
+  SandboxModuleExports,
+  SandboxPackageEntry,
+  SandboxPackageListing,
+  SandboxPlatformEntry
+} from "./codeact/sandbox-package-listing.js";
+export {
   buildToolBridge,
   renderToolCatalog,
   renderToolSignature,

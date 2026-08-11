@@ -360,7 +360,7 @@ describe("CodeAct progressive tool disclosure", () => {
     expect(prompt).toContain("await tools.web_search(");
     expect(prompt).toContain("lookup_customer");
     expect(prompt).not.toContain("await tools.lookup_customer(");
-    expect(prompt).toContain('searchTools("query")');
+    expect(prompt).toContain('nodetool.searchTools("query")');
   });
 
   it("tells the model that independent calls run concurrently", async () => {
@@ -400,7 +400,7 @@ describe("CodeAct progressive tool disclosure", () => {
     }
   });
 
-  it("discovers a deferred tool via searchTools and calls it", async () => {
+  it("discovers a deferred tool via nodetool.searchTools and calls it", async () => {
     const { step, task } = makeStep(ANSWER_SCHEMA);
     const context = createMockContext();
     const provider = createLoopProvider([
@@ -408,7 +408,7 @@ describe("CodeAct progressive tool disclosure", () => {
         toolCalls: [
           codeAction(
             "tc_1",
-            `const hits = await searchTools("+lookup customer");
+            `const hits = await nodetool.searchTools("+lookup customer");
              const name = hits[0].name;
              const r = await tools[name]({value: "c42"});
              await finish({answer: r.echoed === "c42" && r.via === "lookup_customer" ? 1 : 0});`

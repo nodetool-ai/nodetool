@@ -1274,8 +1274,8 @@ raw tool it wraps.
 - \`tools.plan_workflow_graph\` and \`tools.run_search\` are the delegation
   tools with no \`nodetool.*\` form.
 - Everything else — the \`ui_*\` resource editors above all — is name-only in the
-  catalog. Find it inside an action with \`await searchTools("query")\`, then
-  call it as \`tools.<name>()\`. Raise \`max_results\` (\`searchTools("+timeline",
+  catalog. Find it inside an action with \`await nodetool.searchTools("query")\`, then
+  call it as \`tools.<name>()\`. Raise \`max_results\` (\`nodetool.searchTools("+timeline",
   20)\`) to see a whole family instead of concluding a capability is missing.
 
 # Working in actions
@@ -1293,30 +1293,30 @@ of assuming the only way forward is a workflow.
   \`@nodetool-ai/sandbox-dsl\` package for authoring one; see "Building
   workflows".
 - **app** — a mini app: widgets bound to workflow operations and variables.
-  Author with the \`ui_app_*\` family (\`searchTools("+ui_app", 20)\`), verify
+  Author with the \`ui_app_*\` family (\`nodetool.searchTools("+ui_app", 20)\`), verify
   with \`nodetool.apps.debug\`, or generate a whole one from a prompt with
   \`nodetool.apps.build\`.
 - **storyboard** — a brief or screenplay broken into shots, each with a
   keyframe image and a generated clip. \`nodetool.storyboards\` reads a board,
   edits the shot list, renders stills and clips, and assembles them into a
-  timeline without an open editor; \`searchTools("+ui_storyboard", 20)\` edits
+  timeline without an open editor; \`nodetool.searchTools("+ui_storyboard", 20)\` edits
   the open one.
 - **script** — speakers, lines, and a voice take per line. \`nodetool.scripts\`
   reads any script by id and reports which lines still need voicing, edits the
   words, voices the takes, and cuts them into a timeline — no workflow, no open
-  editor. \`searchTools("+ui_script", 20)\` edits the open one.
+  editor. \`nodetool.searchTools("+ui_script", 20)\` edits the open one.
 - **timeline** — tracks and clips that render to video. \`nodetool.timelines\`
   lists, validates (statically check a sequence before the user renders it),
   edits tracks and clips server-side, and keeps a snapshot history
   (\`versions\`/\`getVersion\`/\`snapshot\`/\`restore\`) — none of it needs an open
-  editor. \`searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
+  editor. \`nodetool.searchTools("+ui_timeline", 20)\` edits the open one. A timeline can
   be previewed inline in chat; see "Linking resources".
 - **sketch** — a layered image document. \`nodetool.sketches\` lists, validates,
   edits the layer stack, and keeps the same snapshot history — but never
   touches pixels. Painting, generating into a layer, and rendering to an asset
-  live in \`searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
+  live in \`nodetool.searchTools("+ui_sketch", 20)\`, on the open document. A sketch can
   be previewed inline in chat; see "Linking resources".
-- **model3d** — a 3D scene. Family \`searchTools("+ui_3d", 20)\`: add and
+- **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
   transform objects, set materials, capture a view as an image.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,
   search, hybrid search, query.
@@ -1325,7 +1325,7 @@ of assuming the only way forward is a workflow.
 - **thread** — this conversation and its memory; see "Memory and resources".
 The \`ui_*\` families act on a document the user has open and take its id — the
 open ids are listed under "What the user is looking at", and the exact tools in
-a family differ per surface, so \`searchTools\` rather than guessing names. Chat
+a family differ per surface, so \`nodetool.searchTools\` rather than guessing names. Chat
 has no way to create a storyboard, script, timeline, sketch, or 3D scene from
 nothing: when none is open, name the one you need and ask the user to open or
 create it, instead of falling back to a workflow that approximates it.
@@ -1444,7 +1444,7 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
  * The chat turn's resident toolbelt: the tools documented in full in the
  * CodeAct prompt's catalog, on top of `CODEACT_RESIDENT_TOOL_NAMES`; the long
  * tail (other MCP tools and all client `ui_*` tools) is name-only and found
- * in-sandbox with `searchTools()`.
+ * in-sandbox with `nodetool.searchTools()`.
  *
  * Only tools the `nodetool.*` object model does NOT wrap belong here. Workflow
  * building, node discovery, apps, assets and memory are documented once, as
@@ -1531,7 +1531,7 @@ const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
  * Render the user's open documents into the system prompt. The `ui_*` tools all
  * take a required document id, so this block is how the agent learns which ids
  * are valid — without it the tools are unusable even though they're discoverable
- * through `searchTools()`.
+ * through `nodetool.searchTools()`.
  */
 function formatUiContext(uiContext?: UiContext | null): string {
   if (!uiContext) return "";
@@ -5485,7 +5485,7 @@ export class UnifiedWebSocketRunner {
     );
     // Every client tool the connected UI registered is exposed. They used to be
     // gated on an active workflow, which made the editor tools unreachable from
-    // plain chat; they are deferred behind `searchTools()` anyway, and each one now
+    // plain chat; they are deferred behind `nodetool.searchTools()` anyway, and each one now
     // takes an explicit document id, so the gate cost reach without buying
     // safety. Which ids are valid comes from `ui_context` in the system prompt.
     const clientToolNames = Object.keys(this.clientToolsManifest);
@@ -5514,7 +5514,7 @@ export class UnifiedWebSocketRunner {
 
     // A chat turn with tools always runs in CodeAct: the model acts by writing
     // sandboxed JavaScript over the toolbelt (docs/codeact-design.md), and the
-    // session's in-sandbox `searchTools()` is the discovery path. The session
+    // session's in-sandbox `nodetool.searchTools()` is the discovery path. The session
     // is created below, once the tool router and processing context exist.
     const useCodeAct = allSchemas.length > 0;
 

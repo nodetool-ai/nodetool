@@ -2,8 +2,8 @@
  * The `tools.<name>()` wrapper prelude — a leaf module with no imports, so a
  * browser bundle can carry it without dragging in the toolbelt or any host
  * bridge machinery. `CODEACT_PRELUDE` (codeact executors) layers `finish()`
- * and `searchTools()` on top; `nodetool.code.Code` prepends this plus the
- * `nodetool` object-model prelude directly.
+ * on top; `nodetool.code.Code` prepends this plus the `nodetool` object-model
+ * prelude directly.
  *
  * Guest contract: the host installs `__toolNames` (string[]) and `__callTool`
  * (a never-rejecting bridge resolving `{ok, result|error}` envelopes) as

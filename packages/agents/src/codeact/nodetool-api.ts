@@ -30,6 +30,10 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "resolve_workflow_escalation",
     "get_example_workflow"
   ],
+  // Documented in the sandbox-packages section rather than in the namespace
+  // list, but covered here so the two discovery tools are not also catalogued
+  // as raw `tools.*` signatures.
+  packs: ["list_sandbox_packages", "get_sandbox_package_docs"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
   models: ["find_model", "list_models", "list_provider_models"],
@@ -163,7 +167,7 @@ const nodetool = (() => {
     if (typeof fn !== "function") {
       throw new Error(
         'nodetool: tool "' + name + '" is not in this toolbelt, so this ' +
-        "method is unavailable here. searchTools() lists what is."
+        "method is unavailable here. nodetool.searchTools() lists what is."
       );
     }
     return fn;
@@ -260,6 +264,138 @@ const nodetool = (() => {
           : __secretScope.slice();
       }
     },
+
+    /**
+     * Find a tool the prompt lists by name only, or does not list at all.
+     * Takes the ToolSearch grammar ("select:a,b" for exact names, "+term" to
+     * require one) and returns each match's name, signature and description.
+     * Call it before calling a tool whose arguments you have not seen.
+     */
+    async searchTools(query, maxResults) {
+      if (typeof __searchTools !== "function") {
+        throw new Error(
+          "nodetool.searchTools: this run has no tool catalog to search."
+        );
+      }
+      const r = await __searchTools(
+        String(query === undefined || query === null ? "" : query),
+        maxResults === undefined ? 5 : maxResults
+      );
+      if (!r || r.ok !== true) {
+        throw new Error(r && r.error ? r.error : "nodetool.searchTools failed");
+      }
+      return r.result;
+    },
+
+    /**
+     * What this action can import: the sandbox packs installed here, the
+     * modules each declares, the functions those export, and each pack's own
+     * documentation. A pack marked allowed:false is installed but off this
+     * session's allowlist — importing it is refused.
+     */
+    packs: (() => {
+      let cached = null;
+      const load = async (refresh) => {
+        if (cached === null || refresh === true) {
+          cached = await __need("list_sandbox_packages")({});
+        }
+        return cached;
+      };
+      const packOf = (entry) => entry.packName;
+      return {
+        /**
+         * One entry per pack: {packName, description, allowed, kinds,
+         * specifiers}. Pass {refresh: true} to re-read the catalog.
+         */
+        async list(opts) {
+          const listing = await load(opts && opts.refresh);
+          const byPack = {};
+          const order = [];
+          for (const entry of listing.packages) {
+            const name = packOf(entry);
+            if (byPack[name] === undefined) {
+              byPack[name] = {
+                packName: name,
+                packVersion: entry.packVersion,
+                description: entry.description || "",
+                allowed: false,
+                kinds: [],
+                specifiers: []
+              };
+              order.push(name);
+            }
+            const pack = byPack[name];
+            if (!pack.description && entry.description) {
+              pack.description = entry.description;
+            }
+            if (entry.allowed) pack.allowed = true;
+            if (pack.kinds.indexOf(entry.kind) < 0) pack.kinds.push(entry.kind);
+            pack.specifiers.push(entry.specifier);
+          }
+          const packs = order.map((name) => byPack[name]);
+          if (listing.platform && listing.platform.length > 0) {
+            packs.push({
+              packName: "@nodetool-ai/sandbox-nodetool",
+              description:
+                "NodeTool's own surface — the same gated calls as nodetool.*.",
+              allowed: true,
+              kinds: ["platform"],
+              specifiers: listing.platform.map((entry) => entry.specifier)
+            });
+          }
+          return packs;
+        },
+        /**
+         * The importable module specifiers of one pack, each with its kind and
+         * whether this session allows it. Takes a pack name or any specifier
+         * inside the pack.
+         */
+        async modules(pack, opts) {
+          const listing = await load(opts && opts.refresh);
+          const name = String(pack === undefined || pack === null ? "" : pack);
+          const platform = (listing.platform || []).filter(
+            (entry) => entry.specifier === name || entry.specifier.indexOf(name) === 0
+          );
+          if (platform.length > 0) {
+            return platform.map((entry) => ({
+              specifier: entry.specifier,
+              kind: "platform",
+              allowed: true
+            }));
+          }
+          return listing.packages
+            .filter(
+              (entry) =>
+                packOf(entry) === name ||
+                entry.specifier === name ||
+                entry.specifier.indexOf(name + "/") === 0
+            )
+            .map((entry) => ({
+              specifier: entry.specifier,
+              kind: entry.kind,
+              description: entry.description,
+              allowed: entry.allowed
+            }));
+        },
+        /**
+         * The function names one module exports: {specifier, kind, exports,
+         * complete, note?}. A module whose exports cannot be read answers
+         * exports:null with the reason in note — read docs() instead of
+         * guessing.
+         */
+        exports(specifier) {
+          return __need("list_sandbox_packages")({
+            specifier: String(specifier === undefined ? "" : specifier)
+          });
+        },
+        /** A pack's SKILL.md, for the specifier you are about to import. */
+        docs(specifier) {
+          return __need("get_sandbox_package_docs")({
+            specifier: String(specifier === undefined ? "" : specifier)
+          });
+        }
+      };
+    })(),
 
     /** What this belt supports, namespace by namespace. */
     capabilities() {

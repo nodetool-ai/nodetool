@@ -770,8 +770,23 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `asset_search`/`grep`/`glob`, the Claude-agent file set
   (`read_file`/`write_file`/`edit_file`/`list_directory`), browser, HTTP,
   memory, `run_subtask`) are documented in full; past `CODEACT_DEFER_THRESHOLD` tools, the rest is name-only in the
-  prompt and discovered in-sandbox with `await searchTools("query")`
-  (ToolSearch grammar). All tools stay callable either way.
+  prompt and discovered in-sandbox with `await nodetool.searchTools("query")`
+  (ToolSearch grammar). All tools stay callable either way. Discovery lives on
+  the object model and nowhere else: the bare `searchTools()` global is gone,
+  because a model that knows `nodetool.*` looked for it there and burned two
+  rounds finding out it was elsewhere.
+- Imports are discoverable too: `nodetool.packs.list()` reports every installed
+  pack and whether this session allows it, `modules(pack)` the specifiers it
+  declares, `exports(specifier)` the function names one module exports, and
+  `docs(specifier)` the pack's SKILL.md. A pack installed but off the allowlist
+  is listed as `allowed: false` rather than hidden — hiding it teaches the model
+  the pack does not exist. The data reaches the guest as a tool
+  (`list_sandbox_packages`, `codeact/sandbox-package-listing.ts`), which is the
+  only path the object model has: it owns no host bridge. Exports are exact for
+  host modules (`SANDBOX_HOST_MODULES`), WASM modules (the manifest contract)
+  and platform modules (the capability registry); for a guest JS module they are
+  read off its own `export` statements with acorn, and a module that re-exports
+  with `export *` answers `complete: false` instead of a short list.
 - Every step executor is one: `TaskExecutor`, `ParallelTaskExecutor`,
   `run_subtask`, and `run_search` all construct `CodeActExecutor`. `StepExecutor` — the older one-JSON-tool-call
   loop — is no longer exported; two callers keep it because they are one-shot
@@ -825,7 +840,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   per capability: tools the object model wraps
   (`nodetoolApiCoveredToolNames`, plus `GRAPH_MODEL_TOOL_NAMES` when the graph
   model loads) are filtered out of the prompt's tool catalog — they stay
-  callable through the bridge and findable via `searchTools()`, but the
+  callable through the bridge and findable via `nodetool.searchTools()`, but the
   `nodetool.*` form is the only documented one. Workspace files are the
   deliberate exception: they are not wrapped, because the sandbox's own
   `workspace.*` API is in-process and costs no tool call — the action contract

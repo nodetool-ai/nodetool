@@ -32,6 +32,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const PACKS_ROOT = join(here, "..", "..", "..", "sandbox-packs");
 
 export const SANDBOX_PACK_DOCS_TOOL = "get_sandbox_package_docs";
+export const SANDBOX_PACK_LIST_TOOL = "list_sandbox_packages";
 
 /**
  * The packs these cases allow. Three host packs plus the workflow DSL, whose
@@ -67,6 +68,8 @@ export function shippedPackCatalog(): SandboxModuleCatalog {
 const CSV = "@nodetool-ai/sandbox-csv";
 const XML = "@nodetool-ai/sandbox-xml";
 const ZIP = "@nodetool-ai/sandbox-zip";
+const DIFF = "@nodetool-ai/sandbox-diff";
+const ABSENT = "@acme/nope";
 
 /** Six orders; EMEA totals 405.50, which is the answer only parsing produces. */
 const ORDERS_CSV = [
@@ -138,6 +141,46 @@ export const CODEACT_SANDBOX_PACK_EVAL_CASES: readonly CodeActEvalCase[] = [
         r !== null &&
         String((r as { prefix?: unknown }).prefix).trim() === "@_",
       resultCheckLabel: 'prefix="@_"',
+      maxActions: 4
+    }
+  },
+  {
+    id: "sandbox-pack-discover",
+    description: "Read the catalog instead of guessing what is installed",
+    objective:
+      "Three sandbox packages might exist on this machine: `" +
+      ZIP +
+      "`, `" +
+      DIFF +
+      "` and `" +
+      ABSENT +
+      "`. Find out which of them are actually installed here — the answer is " +
+      "not in this prompt, and being off this session's allowlist is not the " +
+      "same as being absent. Finish with {installed: <the specifiers that are " +
+      "installed, as an array>}.",
+    sandboxPackages: [CSV],
+    namespaces: ["packs"],
+    outputSchema: {
+      type: "object",
+      properties: { installed: { type: "array", items: { type: "string" } } },
+      required: ["installed"]
+    },
+    expect: {
+      // Only zip is installed, and this session does not allow it — a listing
+      // that hid what it cannot import would answer with an empty array.
+      requiredSessionTools: [SANDBOX_PACK_LIST_TOOL],
+      resultCheck: (r) => {
+        const installed =
+          typeof r === "object" && r !== null
+            ? (r as { installed?: unknown }).installed
+            : undefined;
+        return (
+          Array.isArray(installed) &&
+          installed.length === 1 &&
+          String(installed[0]) === ZIP
+        );
+      },
+      resultCheckLabel: `installed=[${ZIP}]`,
       maxActions: 4
     }
   },
