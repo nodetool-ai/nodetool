@@ -1,8 +1,13 @@
 import { useEffect } from "react";
-import { Navigate, useParams } from "react-router-dom";
+import { Navigate, useParams, useSearchParams } from "react-router-dom";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { usePanelStore } from "../../stores/PanelStore";
+import {
+  SETTINGS_SECTIONS,
+  useSettingsPageStore,
+  type SettingsSection
+} from "../../stores/SettingsPageStore";
 
 /**
  * Legacy `/editor/:workflow` links now resolve into the workspace: open the
@@ -23,6 +28,27 @@ export const WorkflowEditorRedirect = () => {
       openTab({ type: "workflow", ref, mode: "edit" });
     }
   }, [ref, openTab]);
+
+  return <Navigate to="/workspace" replace />;
+};
+
+/**
+ * Settings used to be its own page at `/settings?tab=<n>`. It is a workspace
+ * tab now, so the old links — Electron deep links, bookmarks — open that tab
+ * and land in the workspace. The legacy tab index maps back to a section.
+ */
+export const SettingsRedirect = () => {
+  const [searchParams] = useSearchParams();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const setSection = useSettingsPageStore((state) => state.setSection);
+  const legacyTab = Number(searchParams.get("tab"));
+
+  useEffect(() => {
+    const section: SettingsSection =
+      SETTINGS_SECTIONS[legacyTab] ?? "general";
+    setSection(section);
+    openTab({ type: "page", ref: "settings", mode: "view", title: "Settings" });
+  }, [legacyTab, openTab, setSection]);
 
   return <Navigate to="/workspace" replace />;
 };

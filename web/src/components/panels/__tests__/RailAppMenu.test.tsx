@@ -22,6 +22,12 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => mockNavigate
 }));
 
+// Page tabs are opened through the router singleton, which no test registers.
+const mockNavigateTo = jest.fn();
+jest.mock("../../../lib/appNavigation", () => ({
+  navigateTo: (to: string) => mockNavigateTo(to)
+}));
+
 jest.mock("../../content/Help/Help", () => () => null);
 jest.mock("../../Logo", () => () => <span data-testid="logo" />);
 
@@ -51,6 +57,7 @@ const renderMenu = (onAction?: () => void) =>
 
 beforeEach(() => {
   mockNavigate.mockClear();
+  mockNavigateTo.mockClear();
   useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
 });
 
@@ -73,7 +80,7 @@ it("opens Settings as a page tab and focuses the workspace", async () => {
     })
   ]);
   expect(activeTabId).toBe(expectedId);
-  expect(mockNavigate).toHaveBeenCalledWith("/workspace");
+  expect(mockNavigateTo).toHaveBeenCalledWith("/workspace");
 });
 
 it("keeps Dashboard on its route (not a tab)", async () => {

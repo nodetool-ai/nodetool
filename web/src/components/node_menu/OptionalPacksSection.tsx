@@ -23,6 +23,7 @@ import { memo, useCallback, useMemo, useState, type MouseEvent } from "react";
 import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { useNavigate } from "react-router-dom";
+import { openSettingsTab } from "../workspace/openPageTab";
 import { useShallow } from "zustand/react/shallow";
 
 import {
@@ -196,8 +197,8 @@ const OptionalPacksSection = () => {
   const openApiKeys = useCallback(() => {
     setAnchorEl(null);
     closeNodeMenu();
-    navigate("/settings?tab=1");
-  }, [navigate, closeNodeMenu]);
+    openSettingsTab("providers");
+  }, [closeNodeMenu]);
 
   const handleManagePacks = useCallback(() => {
     setAnchorEl(null);

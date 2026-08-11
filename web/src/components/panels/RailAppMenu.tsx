@@ -22,11 +22,8 @@ import { isProduction } from "../../lib/env";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useAppHeaderStore } from "../../stores/AppHeaderStore";
 import { useModelDownloadStore } from "../../stores/ModelDownloadStore";
-import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
-import {
-  PAGE_TAB_TITLES,
-  type PageTabKey
-} from "../workspace/pageTabs";
+import { openPageTab, openSettingsTab } from "../workspace/openPageTab";
+import { type PageTabKey } from "../workspace/pageTabs";
 import PermMediaOutlinedIcon from "@mui/icons-material/PermMediaOutlined";
 import Help from "../content/Help/Help";
 import Logo from "../Logo";
@@ -104,28 +101,29 @@ const RailAppMenu: React.FC<RailAppMenuProps> = ({ onAction }) => {
   useCombo(["Meta", "/"], handleShowKeyboardShortcuts);
   useCombo(["Control", "/"], handleShowKeyboardShortcuts);
 
+  // Cmd+, (Mac) or Ctrl+, (Win/Linux) opens Settings as a workspace tab. The
+  // rail is mounted for every surface, so the shortcut works on any tab — not
+  // only while the node editor has focus.
+  const handleOpenSettingsShortcut = useCallback(() => {
+    openSettingsTab();
+  }, []);
+  useCombo(["Meta", ","], handleOpenSettingsShortcut);
+  useCombo(["Control", ","], handleOpenSettingsShortcut);
+
   const close = useCallback(() => setOpen(false), []);
   // Closing after an item was picked, as opposed to dismissing the popover.
   const finish = useCallback(() => {
     setOpen(false);
     onAction?.();
   }, [onAction]);
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
-
   // Open an app page (Settings, Costs, …) as a workspace tab and focus the
   // workspace, instead of navigating to a dedicated route.
   const openPage = useCallback(
     (key: PageTabKey) => {
-      openTab({
-        type: "page",
-        ref: key,
-        mode: "view",
-        title: PAGE_TAB_TITLES[key]
-      });
-      navigate("/workspace");
+      openPageTab(key);
       finish();
     },
-    [openTab, navigate, finish]
+    [finish]
   );
 
   const goDashboard = useCallback(() => {

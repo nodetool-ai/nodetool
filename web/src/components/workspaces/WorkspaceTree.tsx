@@ -16,7 +16,7 @@ import AddIcon from "@mui/icons-material/Add";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 import { RefreshButton, SettingsButton } from "../ui_primitives";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
-import { useNavigate } from "react-router-dom";
+import { openPageTab } from "../workspace/openPageTab";
 import { useCurrentWorkspace } from "../../hooks/useCurrentWorkspace";
 import WorkspaceSelect from "./WorkspaceSelect";
 import PanelHeadline from "../ui/PanelHeadline";
@@ -286,7 +286,6 @@ const WorkspaceTree: React.FC = () => {
     }))
   );
 
-  const navigate = useNavigate();
 
   const currentWorkflow = getCurrentWorkflow();
   const workflowId = currentWorkflowId ?? currentWorkflow?.id;
@@ -381,9 +380,10 @@ const WorkspaceTree: React.FC = () => {
     refetchFiles();
   }, [refetchFiles]);
 
+  // Workspaces left the settings page — they are their own workspace tab now.
   const handleManageWorkspace = useCallback(() => {
-    navigate("/settings?tab=5");
-  }, [navigate]);
+    openPageTab("workspaces");
+  }, []);
 
   const handleTreeDoubleClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
