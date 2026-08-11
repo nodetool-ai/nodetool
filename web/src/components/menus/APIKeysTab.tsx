@@ -17,6 +17,7 @@ import useSecretsStore from "../../stores/SecretsStore";
 import type { SecretValidation } from "../../stores/SecretsStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useOAuthConnection } from "../../hooks/useOAuthConnection";
+import { useProviders } from "../../hooks/useProviders";
 import type { SecretResponse } from "../../stores/ApiTypes";
 import {
   FlexColumn,
@@ -112,6 +113,25 @@ export const ProviderCard = memo(function ProviderCard({
   // OAuth-only providers have no stored secret — the sign-in itself is the
   // connection.
   const isConnected = meta.oauthOnly ? oauth.isConnected : secret.is_configured;
+
+  // A credential says nothing about whether the server offers the provider.
+  // A cloud profile prunes the local and OAuth-backed providers, and a build
+  // can ship without one, so a card can read "Connected" while the model menu
+  // stays empty. `models.providers` is what the model menu itself reads.
+  const { providers, isLoading: providersLoading } = useProviders();
+  const isUnavailable = useMemo(() => {
+    if (!isConnected || !meta.providerId) return false;
+    // Unknown is not absent: while the query is in flight, say nothing.
+    if (providersLoading || providers.length === 0) return false;
+    return !providers.some((p) => p.provider === meta.providerId);
+  }, [isConnected, meta.providerId, providers, providersLoading]);
+
+  const statusTone = isUnavailable ? "warning" : isConnected ? "success" : "error";
+  const statusLabel = isUnavailable
+    ? "Unavailable"
+    : isConnected
+      ? "Connected"
+      : "Not connected";
 
   const handleConnect = useCallback(() => {
     onConnect(secret);
@@ -252,11 +272,7 @@ export const ProviderCard = memo(function ProviderCard({
             sx={{
               padding: theme.spacing(0.5, 2),
               borderRadius: BORDER_RADIUS.pill,
-              backgroundColor: `rgba(${
-                isConnected
-                  ? theme.vars.palette.success.mainChannel
-                  : theme.vars.palette.error.mainChannel
-              } / 0.1)`
+              backgroundColor: `rgba(${theme.vars.palette[statusTone].mainChannel} / 0.1)`
             }}
           >
             <span
@@ -264,22 +280,20 @@ export const ProviderCard = memo(function ProviderCard({
                 width: STATUS_DOT_PX,
                 height: STATUS_DOT_PX,
                 borderRadius: BORDER_RADIUS.circle,
-                backgroundColor: isConnected
-                  ? theme.vars.palette.success.main
-                  : theme.vars.palette.error.main,
+                backgroundColor: theme.vars.palette[statusTone].main,
                 display: "inline-block"
               }}
             />
             <Caption
               size="smaller"
-              color={isConnected ? "success" : "error"}
+              color={statusTone}
               sx={{
                 fontWeight: 500,
                 lineHeight: 1.6,
                 whiteSpace: "nowrap"
               }}
             >
-              {isConnected ? "Connected" : "Not connected"}
+              {statusLabel}
             </Caption>
           </FlexRow>
           {oauth.isConnected && !meta.oauthOnly && (
@@ -305,7 +319,22 @@ export const ProviderCard = memo(function ProviderCard({
               </Caption>
             </FlexRow>
           )}
-          {isConnected && secret.updated_at && (
+          {isUnavailable && (
+            <Caption
+              size="smaller"
+              color="warning"
+              sx={{
+                lineHeight: 1.5,
+                maxWidth: 280,
+                textAlign: { xs: "left", sm: "right" }
+              }}
+            >
+              {meta.oauthOnly ? "Signed in" : "Key stored"}, but this server
+              does not offer {meta.name}. Its models stay out of the model
+              menu.
+            </Caption>
+          )}
+          {isConnected && !isUnavailable && secret.updated_at && (
             <Caption size="smaller" sx={{ opacity: 0.45, whiteSpace: "nowrap" }}>
               Last used{" "}
               {new Date(secret.updated_at).toLocaleDateString()}

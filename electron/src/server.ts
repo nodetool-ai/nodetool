@@ -293,6 +293,12 @@ async function startServer(): Promise<void> {
     // Electron's optional-node directory holds user-installed code in every
     // build mode; host packs need an explicit allowlist even during app development.
     NODETOOL_ENV: "production",
+    // The line above asks for the pack allowlist, not for the curated cloud
+    // catalog. Without an explicit profile, production alone would activate it
+    // and unregister every local and OAuth-backed provider — Ollama, LM Studio,
+    // llama.cpp, vLLM, and the Claude subscription — on the one surface where
+    // they are the point. Set `NODETOOL_NODE_PROFILE=cloud` to opt back in.
+    NODETOOL_NODE_PROFILE: getProcessEnv()["NODETOOL_NODE_PROFILE"] ?? "full",
     NODE_OPTIONS: nodeOptionsParts.filter(Boolean).join(" "),
     NODE_PATH: backendNodePath,
     NODETOOL_OPTIONAL_NODE_MODULES: optionalNodeModules,

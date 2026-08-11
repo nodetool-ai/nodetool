@@ -12,6 +12,14 @@ jest.mock("../../../lib/env", () => ({
   isElectron: false
 }));
 jest.mock("../../../hooks/useOAuthConnection");
+jest.mock("../../../hooks/useProviders", () => ({
+  useProviders: () => ({
+    providers: [],
+    isLoading: true,
+    isFetching: true,
+    error: null
+  })
+}));
 jest.mock("../GoogleWorkspaceCard", () => () => null);
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,

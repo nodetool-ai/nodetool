@@ -6,6 +6,7 @@
  * signal the dashboard checklist and the empty workspace read — has one source
  * to read instead of its own hardcoded list.
  */
+import { PROVIDER_IDS, type ProviderId } from "@nodetool-ai/protocol";
 import { isElectron, isLocalhost } from "../../lib/env";
 
 // Provider icons vendored from @lobehub/icons-static-svg (see src/icons/providers/README.md)
@@ -68,6 +69,15 @@ export interface ProviderMeta {
   localOnly?: boolean;
   /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
   fields?: Array<{ key: string; label: string; secret?: boolean }>;
+  /**
+   * The registry provider this card credentials, when there is one. A card can
+   * hold a valid credential for a provider the server does not offer — a cloud
+   * profile prunes the local and OAuth-backed providers, and a build may ship
+   * without one — so the card reads `models.providers` and says so instead of
+   * claiming a connection that yields no models. Entries with no registry
+   * provider behind them (web search, GPU rental, tracing) leave this unset.
+   */
+  providerId?: ProviderId;
 }
 
 /** Hosted deployments can't finish a same-machine sign-in — hide those cards. */
@@ -76,6 +86,7 @@ export const isProviderAvailable = (meta: ProviderMeta): boolean =>
 export const PROVIDER_META: ProviderMeta[] = [
   {
     key: "OPENAI_API_KEY",
+    providerId: PROVIDER_IDS.OPENAI,
     name: "OpenAI",
     description: "GPT models, images, embeddings, and more.",
     section: "popular",
@@ -87,6 +98,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "CLAUDE_SUBSCRIPTION",
+    providerId: PROVIDER_IDS.CLAUDE_AGENT_SDK,
     name: "Claude",
     description: "Use a Claude Pro or Max subscription instead of API credits.",
     section: "popular",
@@ -100,6 +112,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "ANTHROPIC_API_KEY",
+    providerId: PROVIDER_IDS.ANTHROPIC,
     name: "Anthropic",
     description: "Claude models for advanced reasoning.",
     section: "popular",
@@ -109,6 +122,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "OPENROUTER_API_KEY",
+    providerId: PROVIDER_IDS.OPENROUTER,
     name: "OpenRouter",
     description: "Access multiple AI models through one API.",
     section: "popular",
@@ -118,6 +132,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "GEMINI_API_KEY",
+    providerId: PROVIDER_IDS.GEMINI,
     name: "Gemini",
     description: "Google Gemini AI models and services.",
     section: "popular",
@@ -126,6 +141,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "GROQ_API_KEY",
+    providerId: PROVIDER_IDS.GROQ,
     name: "Groq",
     description: "Ultra-fast LLM inference on LPU hardware.",
     section: "language",
@@ -135,6 +151,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "MISTRAL_API_KEY",
+    providerId: PROVIDER_IDS.MISTRAL,
     name: "Mistral",
     description: "Mistral AI models and embeddings.",
     section: "language",
@@ -143,6 +160,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "DEEPSEEK_API_KEY",
+    providerId: PROVIDER_IDS.DEEPSEEK,
     name: "DeepSeek",
     description: "State-of-the-art open models.",
     section: "language",
@@ -151,6 +169,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "XAI_API_KEY",
+    providerId: PROVIDER_IDS.XAI,
     name: "xAI",
     description: "Grok models via xAI's API.",
     section: "language",
@@ -160,6 +179,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "META_API_KEY",
+    providerId: PROVIDER_IDS.META,
     name: "Meta AI",
     description: "Meta's Muse Spark models for agentic and coding work.",
     section: "language",
@@ -168,6 +188,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "CEREBRAS_API_KEY",
+    providerId: PROVIDER_IDS.CEREBRAS,
     name: "Cerebras",
     description: "Fast LLM inference on Cerebras hardware.",
     section: "language",
@@ -176,6 +197,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "TOGETHER_API_KEY",
+    providerId: PROVIDER_IDS.TOGETHER,
     name: "Together AI",
     description: "Open-source models through Together API.",
     section: "language",
@@ -184,6 +206,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "KIMI_API_KEY",
+    providerId: PROVIDER_IDS.MOONSHOT,
     name: "Kimi",
     description: "Moonshot AI models via Kimi API.",
     section: "language",
@@ -201,6 +224,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "MINIMAX_API_KEY",
+    providerId: PROVIDER_IDS.MINIMAX,
     name: "MiniMax",
     description: "MiniMax AI models.",
     section: "language",
@@ -209,6 +233,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "DASHSCOPE_API_KEY",
+    providerId: PROVIDER_IDS.ALIBABA,
     name: "Alibaba Cloud",
     description: "Qwen models via Alibaba Cloud Model Studio.",
     section: "language",
@@ -217,6 +242,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "HF_TOKEN",
+    providerId: PROVIDER_IDS.HUGGINGFACE,
     name: "HuggingFace",
     description: "Inference providers and model hub access.",
     section: "language",
@@ -226,6 +252,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "COHERE_API_KEY",
+    providerId: PROVIDER_IDS.COHERE,
     name: "Cohere",
     description: "Embed v4 text embeddings and reranking.",
     section: "language",
@@ -234,6 +261,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "JINA_API_KEY",
+    providerId: PROVIDER_IDS.JINA,
     name: "Jina AI",
     description: "Jina embeddings and reranker models.",
     section: "language",
@@ -243,6 +271,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "VOYAGE_API_KEY",
+    providerId: PROVIDER_IDS.VOYAGE,
     name: "Voyage AI",
     description: "High-quality text and multimodal embeddings.",
     section: "language",
@@ -251,6 +280,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "FAL_API_KEY",
+    providerId: PROVIDER_IDS.FAL_AI,
     name: "FAL",
     description: "Serverless AI image and video generation.",
     section: "media",
@@ -260,6 +290,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "REPLICATE_API_TOKEN",
+    providerId: PROVIDER_IDS.REPLICATE,
     name: "Replicate",
     description: "Run models on Replicate's cloud infrastructure.",
     section: "media",
@@ -269,6 +300,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "ELEVENLABS_API_KEY",
+    providerId: PROVIDER_IDS.ELEVENLABS,
     name: "ElevenLabs",
     description: "High-quality text-to-speech services.",
     section: "media",
@@ -278,6 +310,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "TOPAZ_API_KEY",
+    providerId: PROVIDER_IDS.TOPAZ,
     name: "Topaz",
     description: "Topaz Labs image and video enhancement.",
     section: "media",
@@ -287,6 +320,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "ATLASCLOUD_API_KEY",
+    providerId: PROVIDER_IDS.ATLASCLOUD,
     name: "AtlasCloud",
     description: "Chat, image, and video models behind one key.",
     section: "gateways",
@@ -295,6 +329,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "REVE_API_KEY",
+    providerId: PROVIDER_IDS.REVE,
     name: "Reve",
     description: "Image creation, editing, and remix with strong prompt adherence.",
     section: "media",
@@ -302,6 +337,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "MESHY_API_KEY",
+    providerId: PROVIDER_IDS.MESHY,
     name: "Meshy",
     description: "3D model generation.",
     section: "media",
@@ -310,6 +346,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "RODIN_API_KEY",
+    providerId: PROVIDER_IDS.RODIN,
     name: "Rodin",
     description: "Rodin AI 3D model generation.",
     section: "media",
@@ -317,6 +354,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "EVOLINK_API_KEY",
+    providerId: PROVIDER_IDS.EVOLINK,
     name: "Evolink",
     description: "GPT, Claude, Gemini, DeepSeek and more through one gateway.",
     section: "gateways",
@@ -325,6 +363,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "GMI_API_KEY",
+    providerId: PROVIDER_IDS.GMI,
     name: "GMI Cloud",
     description: "Open-weight LLMs through GMI's OpenAI-compatible API.",
     section: "gateways",
@@ -333,6 +372,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "AKI_API_KEY",
+    providerId: PROVIDER_IDS.AKI,
     name: "AKI",
     description: "AKI.IO AI Model Hub.",
     section: "gateways",
@@ -340,6 +380,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "KIE_API_KEY",
+    providerId: PROVIDER_IDS.KIE,
     name: "Kie.ai",
     description: "Kie.ai unified model access.",
     section: "gateways",
@@ -393,6 +434,7 @@ export const PROVIDER_META: ProviderMeta[] = [
   },
   {
     key: "LLAMA_API_KEY",
+    providerId: PROVIDER_IDS.LLAMA_CPP,
     name: "llama.cpp",
     description: "Bearer auth for a local llama-server instance.",
     section: "compute",

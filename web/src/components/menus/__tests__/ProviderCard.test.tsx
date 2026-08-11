@@ -6,17 +6,34 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
 import { ProviderCard } from "../APIKeysTab";
+import type { ProviderMeta } from "../providerCatalog";
 import type { SecretResponse } from "../../../stores/ApiTypes";
 import {
   useOAuthConnection,
   type OAuthConnection
 } from "../../../hooks/useOAuthConnection";
 
+import { useProviders } from "../../../hooks/useProviders";
+import type { ProviderInfo } from "../../../stores/ApiTypes";
+
 jest.mock("../../../hooks/useOAuthConnection");
+jest.mock("../../../hooks/useProviders");
 
 const mockUseOAuthConnection = useOAuthConnection as jest.MockedFunction<
   typeof useOAuthConnection
 >;
+
+const mockUseProviders = useProviders as jest.MockedFunction<typeof useProviders>;
+
+const registryWith = (...ids: string[]) => ({
+  providers: ids.map((provider) => ({
+    provider,
+    capabilities: ["generate_message"]
+  })) as ProviderInfo[],
+  isLoading: false,
+  isFetching: false,
+  error: null
+});
 
 const oauthState = (overrides: Partial<OAuthConnection>): OAuthConnection => ({
   label: "",
@@ -40,6 +57,7 @@ const secret = (isConfigured: boolean): SecretResponse =>
 
 const oauthMeta = {
   key: "OPENAI_API_KEY",
+  providerId: "openai" as const,
   name: "OpenAI",
   description: "GPT models.",
   section: "popular" as const,
@@ -55,7 +73,7 @@ const plainMeta = {
   docsUrl: "https://console.groq.com/docs"
 };
 
-const renderCard = (meta: typeof oauthMeta | typeof plainMeta, isConfigured = false) =>
+const renderCard = (meta: ProviderMeta, isConfigured = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <ProviderCard
@@ -72,6 +90,7 @@ describe("ProviderCard OAuth variant", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseOAuthConnection.mockReturnValue(oauthState({}));
+    mockUseProviders.mockReturnValue(registryWith("openai", "groq"));
   });
 
   it("shows a sign-in action for an OAuth provider that is not connected", () => {
@@ -143,5 +162,58 @@ describe("ProviderCard OAuth variant", () => {
     expect(
       screen.queryByRole("button", { name: /sign in with openai/i })
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("ProviderCard registry availability", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockUseOAuthConnection.mockReturnValue(oauthState({}));
+    mockUseProviders.mockReturnValue(registryWith("openai", "groq"));
+  });
+
+  it("says Unavailable when the server does not offer the connected provider", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnected: true })
+    );
+    mockUseProviders.mockReturnValue(registryWith("groq"));
+
+    renderCard({ ...oauthMeta, oauthOnly: true });
+
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.getByText(/does not offer OpenAI/i)).toBeInTheDocument();
+    expect(screen.queryByText("Connected")).not.toBeInTheDocument();
+  });
+
+  it("says Connected when the server offers the provider", () => {
+    mockUseOAuthConnection.mockReturnValue(
+      oauthState({ label: "OpenAI", isConnected: true })
+    );
+
+    renderCard({ ...oauthMeta, oauthOnly: true });
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+    expect(screen.queryByText("Unavailable")).not.toBeInTheDocument();
+  });
+
+  it("holds the connected state while the provider query is still loading", () => {
+    mockUseProviders.mockReturnValue({
+      providers: [],
+      isLoading: true,
+      isFetching: true,
+      error: null
+    });
+
+    renderCard(plainMeta, true);
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+  });
+
+  it("stays quiet for a card with no registry provider behind it", () => {
+    mockUseProviders.mockReturnValue(registryWith("openai"));
+
+    renderCard({ ...plainMeta, providerId: undefined }, true);
+
+    expect(screen.getByText("Connected")).toBeInTheDocument();
   });
 });
