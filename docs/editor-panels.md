@@ -179,8 +179,6 @@ A stack of toggles along the right canvas edge:
 
 The logo at the top of the left rail opens the app menu: **Dashboard**, **Examples**, **Costs**, **Model Manager**, **Collections**, **Workspaces** (when enabled), **Settings**, **Help**, and **Downloads**.
 
-See [User Interface → App Menu]({{ '/user-interface#the-app-menu' | relative_url }}) for details.
-
 ---
 
 ## Customizing the Layout
