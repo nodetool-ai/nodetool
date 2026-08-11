@@ -321,7 +321,11 @@ describe("WASM worker pool", () => {
     void calls[2]?.catch(() => {
       queuedElapsed = Date.now() - startedAt;
     });
-    setTimeout(() => controller.abort(), 5);
+    // Abort once the two admitted calls are actually on workers, not after a
+    // fixed delay: worker startup is slower than any wall-clock guess on a
+    // loaded runner, and aborting first left nothing dispatched at all.
+    while (factory.dispatched < 2) await new Promise(setImmediate);
+    controller.abort();
     const settled = await Promise.allSettled(calls);
 
     expect(settled[2]?.status).toBe("rejected");
