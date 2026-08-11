@@ -27,6 +27,7 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host | Node's own zip/XML stack |
 | `@nodetool-ai/sandbox-epub` | epub2 | host | reads from a file path, not a buffer |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host | Node's own zip/XML stack |
+| `@nodetool-ai/sandbox-pdf` | pdf-parse | host | pdf.js wants Node builtins and a canvas |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host | signing chain the guest has no library for |
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host | first-party, so a pack cannot bring it |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host | first-party |
@@ -81,18 +82,45 @@ pack cannot reach host execution through this path.
 
 The root `workspaces` array names every workspace by path — there is no
 `packages/*` glob — and these directories are deliberately absent from it. A
-pack is consumed the way any third-party pack is: installed into the
-optional-node root, discovered from disk, and mounted into the guest by the
-loader. Nothing in the repo may `import "@nodetool-ai/sandbox-yaml"` in host
-code, and leaving them out of the workspace list is what makes that impossible
-rather than merely discouraged — npm links no symlink into `node_modules`, so
-the specifier does not resolve for the host at all.
+pack is consumed the way any third-party pack is: discovered from disk and
+mounted into the guest by the loader. Nothing in the repo may
+`import "@nodetool-ai/sandbox-yaml"` in host code, and leaving them out of the
+workspace list is what makes that impossible rather than merely discouraged —
+npm links no symlink into `node_modules`, so the specifier does not resolve for
+the host at all.
 
 The compiler still finds a guest pack's dependency in this tree: esbuild
 resolves from the pack directory upward, and js-yaml and date-fns are hoisted to
 the repo root by the workspaces that already depend on them. A host pack has no
 dependency of its own at all — the library is a dependency of
 `@nodetool-ai/agents`, where the implementation lives.
+
+## Shipped, not installed
+
+Being outside `node_modules` once meant being absent: a checkout, the desktop
+app and the server image all discovered zero of these packs, so every library
+NodeTool documents failed a Code node with "Sandbox module … is not installed".
+Discovery now reads this directory directly. `shippedPackSearchPaths()` in
+`packages/node-sdk/src/pack-loader.ts` returns it — found by walking up from the
+loader module in a checkout, and read from `_sandbox/` beside `server.mjs` in
+the packaged app and the Docker image, where `scripts/bundle-backend.mjs` stages
+every pack here (manifest, declared files, SKILL.md) and
+`scripts/verify-backend-bundle.mjs` fails a build that misses one. Both are
+scans, so a pack added to this directory ships with no list to update.
+`NODETOOL_SHIPPED_PACKS_DIR` overrides the root for a host that stages them
+elsewhere.
+
+The shipped root comes last in the search order. A pack installed from npm
+through the Package Manager therefore shadows the copy that ships with the app,
+with no duplicate-pack diagnostic: that name has an owner, and it is the one the
+user installed.
+
+Availability is not new authority. These packs declare modules; they register no
+nodes and run no code at load, so the pack allowlist that gates node packs has
+nothing to gate here. A host module still resolves only through
+`SANDBOX_HOST_MODULES`, a Code node still has to declare the specifier, and the
+credentials the service packs use still come from `nodetool.secrets.get`,
+narrowed to the names that node declares.
 
 ## Registry metadata
 

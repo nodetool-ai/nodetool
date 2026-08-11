@@ -84,6 +84,10 @@ import {
   toGuestBytesDeep
 } from "./sandbox-bytes.js";
 import {
+  createMediaRefBridge,
+  MEDIA_REF_MEMBERS
+} from "./sandbox-media-ref.js";
+import {
   createSandboxWasmDispatcher,
   type SandboxWasmDispatcher,
   type WasmWorkerPool
@@ -1566,6 +1570,11 @@ export function buildSandbox(
     measureText: mediaMember((m) => m.measureCanvasText)
   };
 
+  // Media refs in and out. Unlike `image`/`canvas` this one needs a
+  // ProcessingContext — it resolves `asset://`, storage keys and package assets
+  // through the host's own resolver — so without one every member throws.
+  const media = createMediaRefBridge(context);
+
   const sandbox: Record<string, unknown> = {
     // Core JS globals are native in QuickJS; we still reflect them in the
     // descriptor so callers that inspect `sandbox.JSON` / `sandbox.Math`
@@ -1628,6 +1637,7 @@ export function buildSandbox(
     format,
     image,
     canvas,
+    media,
     __maxIter: MAX_LOOP_ITERATIONS,
     // The run's declared secret scope, so `nodetool.secrets.list()` can answer
     // without a host call. Reading it is not the check — `getSecret` is.
@@ -2166,6 +2176,7 @@ export const EXPOSED_BRIDGE_NAMES = [
   "format",
   "image",
   "canvas",
+  "media",
   "__maxIter",
   "__secretScope"
 ] as const;
@@ -2358,6 +2369,7 @@ export async function runInSandbox(
         bridges.format = wrapAllMembers(bridges.format);
         bridges.image = wrapAllMembers(bridges.image);
         bridges.canvas = wrapAllMembers(bridges.canvas);
+        bridges.media = wrapAllMembers(bridges.media);
         const hostCrypto = bridges.crypto as {
           randomUUID: () => string;
           getRandomValues: (n: number) => Record<string, string>;
@@ -2564,6 +2576,12 @@ globalThis.canvas = {
   render: __wrapDeep(__canvasBridge.render),
   measureText: __wrapDeep(__canvasBridge.measureText)
 };
+const __mediaBridge = globalThis.media;
+const __mediaOut = {};
+for (const __m of ${JSON.stringify(MEDIA_REF_MEMBERS)}) {
+  __mediaOut[__m] = __wrapDeep(__mediaBridge[__m]);
+}
+globalThis.media = __mediaOut;
 const __canvasProps = ${JSON.stringify(CANVAS_PROPERTIES)};
 const __canvasMethods = ${JSON.stringify(CANVAS_METHODS)};
 const __canvasGradients = ${JSON.stringify(CANVAS_GRADIENT_FACTORIES)};

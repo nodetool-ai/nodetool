@@ -74,6 +74,13 @@ export interface GraphE2eExpectations {
   minOutputs?: number;
   /** No output may be null/undefined/empty-string. */
   requireNonEmptyOutputs?: boolean;
+  /**
+   * Exact value a named output must carry. `requiredOutputPatterns` matches
+   * case-insensitively against *any* output, which cannot pin a formatting
+   * result character for character or tell one deterministic output from
+   * another. A fully deterministic case states its answers here.
+   */
+  expectedOutputs?: Record<string, unknown>;
   /** Regex sources; each must match at least one output rendered as text. */
   requiredOutputPatterns?: string[];
   /** Regex sources; none may match any output rendered as text. */
@@ -229,6 +236,19 @@ function outputText(value: unknown): string {
   }
 }
 
+/**
+ * Compare one output against the value a case pinned. Structural equality on
+ * the text rendering, with one tolerance: a number may arrive as its decimal
+ * string, because a value carried through a text output node comes back as
+ * text. Strings are compared exactly — case and punctuation included.
+ */
+function matchesExactly(actual: unknown, expected: unknown): boolean {
+  if (typeof expected === "number" && typeof actual === "string") {
+    return actual.trim() !== "" && Number(actual) === expected;
+  }
+  return outputText(actual) === outputText(expected);
+}
+
 /** Last write wins, so a streaming output reports its final value. */
 export function outputsByName(
   outputs: readonly GraphRunOutput[]
@@ -259,6 +279,20 @@ export function checkRunOutputs(
         : `run produced no output named "${name}" (got: ${
             Object.keys(byName).join(", ") || "none"
           })`
+    });
+  }
+
+  for (const [name, expected] of Object.entries(expect.expectedOutputs ?? {})) {
+    const present = Object.prototype.hasOwnProperty.call(byName, name);
+    const pass = present && matchesExactly(byName[name], expected);
+    checks.push({
+      name: `equals:${name}`,
+      pass,
+      detail: pass
+        ? undefined
+        : `expected ${outputText(expected)}, got ${
+            present ? outputText(byName[name]) : "no such output"
+          }`
     });
   }
 

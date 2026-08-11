@@ -8,7 +8,11 @@ import { slotTypeToString } from "@nodetool-ai/node-sdk";
 import { TypeMetadata } from "@nodetool-ai/protocol";
 import { Tool } from "./base-tool.js";
 import { type GraphBuilder } from "../graph-builder.js";
-import { toSlotTypeRecord } from "../dynamic-slots.js";
+import {
+  isUndeclaredDynamicOutput,
+  toSlotTypeRecord,
+  UNTYPED_SLOT_TYPE
+} from "../dynamic-slots.js";
 
 /** Render a node's TypeMetadata into the string form TypeMetadata.fromString parses. */
 function typeMetaToString(
@@ -103,6 +107,8 @@ export class AddEdgeTool extends Tool {
     let sourceTypeMeta: NodeMetadata["outputs"][number]["type"] | undefined;
     /** Set when the edge lands on a dynamic input with no declaration yet. */
     let undeclaredDynamicSlot = false;
+    /** Set when the edge reads a dynamic output the source never declared. */
+    let undeclaredDynamicOutput = false;
 
     // A reserved handle like `__value__` is used by dynamic nodes and never
     // appears in static metadata.
@@ -131,6 +137,8 @@ export class AddEdgeTool extends Tool {
         } else if (output) {
           sourceType = typeMetaToString(output.type);
           sourceTypeMeta = output.type;
+        } else if (isUndeclaredDynamicOutput(meta, sourceHandle)) {
+          undeclaredDynamicOutput = !sourceNode.dynamic_outputs?.[sourceHandle];
         }
       }
     }
@@ -210,9 +218,21 @@ export class AddEdgeTool extends Tool {
       declaredType = sourceType;
     }
 
+    // An outgoing edge declares the source's dynamic output handle, the way an
+    // incoming edge declares a dynamic input. The type stays `any`: the source
+    // metadata does not carry one, and the target's expectation is not it.
+    if (undeclaredDynamicOutput) {
+      this.builder.declareDynamicOutput(
+        source,
+        sourceHandle,
+        UNTYPED_SLOT_TYPE
+      );
+    }
+
     return {
       status: "edge_added",
       ...(declaredType ? { declared_dynamic_input: declaredType } : {}),
+      ...(undeclaredDynamicOutput ? { declared_dynamic_output: true } : {}),
       from: `${source}.${sourceHandle}`,
       to: `${target}.${targetHandle}`,
       total_edges: this.builder.edgeCount

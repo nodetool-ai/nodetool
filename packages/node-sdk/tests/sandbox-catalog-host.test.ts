@@ -1,9 +1,18 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdirSync,
+  mkdtempSync,
+  realpathSync,
+  rmSync,
+  writeFileSync
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
-import { discoverSandboxCatalog } from "../src/index.js";
+import {
+  discoverSandboxCatalog,
+  shippedPackSearchPaths
+} from "../src/index.js";
 
 const roots: string[] = [];
 
@@ -105,5 +114,40 @@ describe("discoverSandboxCatalog", () => {
     const host = discoverSandboxCatalog([join(tmpdir(), "sandbox-host-missing")]);
     expect(host.catalog.summaries()).toEqual([]);
     expect(host.catalog.diagnostics()).toEqual([]);
+  });
+
+  it("catalogs the packs shipped with NodeTool", () => {
+    const shipped = makeRoot();
+    writePack(shipped, "@acme/shipped");
+    process.env["NODETOOL_SHIPPED_PACKS_DIR"] = join(shipped, "node_modules");
+    try {
+      const host = discoverSandboxCatalog(shippedPackSearchPaths());
+      expect(host.catalog.summaries().map((s) => s.specifier)).toEqual([
+        "@acme/shipped"
+      ]);
+    } finally {
+      delete process.env["NODETOOL_SHIPPED_PACKS_DIR"];
+    }
+  });
+
+  it("lets an installed pack shadow the shipped copy of the same name", () => {
+    const shipped = makeRoot();
+    const installed = makeRoot();
+    writePack(shipped, "@acme/math");
+    writePack(installed, "@acme/math", { source: "export const value = 2;" });
+    process.env["NODETOOL_SHIPPED_PACKS_DIR"] = join(shipped, "node_modules");
+    try {
+      const host = discoverSandboxCatalog([
+        join(installed, "node_modules"),
+        ...shippedPackSearchPaths()
+      ]);
+
+      expect(host.failures).toEqual([]);
+      expect(host.discoveries.map((d) => d.dir)).toEqual([
+        realpathSync(join(installed, "node_modules", "@acme", "math"))
+      ]);
+    } finally {
+      delete process.env["NODETOOL_SHIPPED_PACKS_DIR"];
+    }
   });
 });

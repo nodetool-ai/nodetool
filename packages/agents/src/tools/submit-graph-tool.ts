@@ -18,7 +18,10 @@ import { Tool } from "./base-tool.js";
 import { GraphBuilder } from "../graph-builder.js";
 import { evaluateGraphDsl } from "../graph-dsl.js";
 import { normalizeModelProperties } from "../normalize-model-properties.js";
-import { declareDynamicSlotsFromEdges } from "../dynamic-slots.js";
+import {
+  declareDynamicOutputsFromEdges,
+  declareDynamicSlotsFromEdges
+} from "../dynamic-slots.js";
 import {
   metadataAwareRegistry,
   supportsDeepValidation
@@ -130,6 +133,10 @@ export class SubmitGraphTool extends Tool {
       // Give every dynamic input an edge lands on the source output's type,
       // so the slot is checked instead of silently accepting anything.
       declareDynamicSlotsFromEdges(builder, this.registry);
+      // An outgoing edge declares the source's dynamic output handle. The DSL
+      // has no other way to say it, so without this a planner can wire a
+      // handle the graph never declares.
+      declareDynamicOutputsFromEdges(builder, this.registry);
       errors.push(...builder.validate());
     }
     if (errors.length === 0 && supportsDeepValidation(this.registry)) {

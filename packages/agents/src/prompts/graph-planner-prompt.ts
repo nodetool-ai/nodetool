@@ -7,6 +7,7 @@
 
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
+import type { InstalledSandboxPack } from "./sandbox-pack-catalog.js";
 
 export type GenericNodeCapability =
   | "text_to_image"
@@ -115,6 +116,7 @@ export const CORE_BASELINE_NAMESPACES: readonly string[] = [
   "nodetool.video",
   "nodetool.audio",
   "nodetool.data",
+  "nodetool.code",
   "nodetool.constant",
   "nodetool.input",
   "nodetool.output",
@@ -191,6 +193,12 @@ export interface BuildPromptOptions {
    * {@link resolveAvailableGenericNodes} to drop nodes the registry lacks.
    */
   genericNodes?: readonly GenericAINode[];
+  /**
+   * Sandbox packs installed on this machine. Only these may appear in a Code
+   * node's `packages`. Empty or absent — the default on a fresh install —
+   * renders no table and forbids `packages` entirely.
+   */
+  sandboxPacks?: readonly InstalledSandboxPack[];
 }
 
 function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
@@ -200,6 +208,31 @@ function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
     (n) => `| ${n.task} | \`${n.type}\` | \`${n.capability}\` |`
   );
   return [header, sep, ...rows].join("\n");
+}
+
+function renderSandboxPackSection(
+  packs: readonly InstalledSandboxPack[]
+): string {
+  const missingRule = `Never declare a specifier that is not listed here — the graph fails validation.
+If a step needs a library nobody installed, say so in your response and build
+the closest thing the sandbox APIs allow.`;
+
+  if (packs.length === 0) {
+    return `No sandbox packages are installed. A Code node body may use only the sandbox
+APIs above (\`fetch\`, \`workspace.*\`, \`crypto.*\`, \`format.*\`, \`JSON\`, \`Math\`,
+...), and \`packages\` must stay empty.
+
+${missingRule}`;
+  }
+
+  const rows = packs.map((p) => `| \`${p.specifier}\` | ${p.summary} |`);
+  return `Libraries are sandbox packs: list the specifier in \`packages\` and \`import\` it at
+the top of the body. Nothing else resolves — no \`require\`, no dynamic \`import()\`.
+These packs are installed:
+
+${["| Specifier | Provides |", "|---|---|", ...rows].join("\n")}
+
+${missingRule}`;
 }
 
 function renderProviderList(): string {
@@ -216,6 +249,7 @@ export function buildGraphPlannerSystemPrompt(
 ): string {
   const hasFindModel = options.hasFindModel ?? true;
   const genericNodes = options.genericNodes ?? GENERIC_AI_NODES;
+  const sandboxPacks = options.sandboxPacks ?? [];
 
   const tools = [
     hasFindModel
@@ -236,6 +270,8 @@ export function buildGraphPlannerSystemPrompt(
 Prefer \`nodetool.*\` core nodes. Deterministic library nodes under \`lib.*\`
 (e.g. \`lib.image.filter.*\`, \`lib.image.color_grading.*\`, \`lib.grid.*\`,
 \`lib.svg.*\`) are also fine — they are not provider-locked.
+\`nodetool.code.Code\` is a core node too, and it is the one to reach for when a
+step is plain data work — see the Code node section below.
 
 Do NOT use provider-specific nodes
 (${renderProviderList()})
@@ -255,6 +291,31 @@ ${hasFindModel ? "use `find_model` to pick a real model+provider." : "an Agent n
 ## Core baseline namespaces (deterministic, non-AI work)
 
 ${CORE_BASELINE_NAMESPACES.join(", ")}, plus any \`lib.*\` library namespace.
+
+## \`nodetool.code.Code\` — the general-purpose transform
+
+Runs vanilla JavaScript in a QuickJS sandbox. Use ONE Code node when the step is
+data shaping, parsing, formatting, arithmetic, or string work — it replaces a
+chain of small nodes. Use a specialized node when the step wraps a model, a
+device, or an external service.
+
+- Inputs: name your own handles (dynamic inputs); the body reads them off the
+  \`inputs\` object.
+- Outputs: return an object — each key becomes an output handle.
+- Properties: \`code\` (the body) and \`packages\` (specifiers the body may import).
+- Sandbox API: \`fetch\`, \`workspace.*\`, \`getSecret\`, \`crypto.*\`, \`format.*\`,
+  \`parallelMap\`, \`sleep\`, \`progress\`, and the \`nodetool\` object model.
+
+\`\`\`js
+const orders = node("nodetool.input.StringInput", { name: "orders" });
+const totals = node("nodetool.code.Code", {
+  orders: orders.output(),
+  code: "const rows = JSON.parse(inputs.orders);\\nconst total = rows.reduce((s, r) => s + r.amount, 0);\\nreturn { total };"
+});
+node("nodetool.output.Output", { name: "total", value: totals.output("total") });
+\`\`\`
+
+${renderSandboxPackSection(sandboxPacks)}
 
 # Graph DSL (how to write the program)
 
@@ -445,7 +506,7 @@ ${tools}
 - For images/audio/video, the generic AI nodes auto-save outputs as assets;
   no separate save node needed.
 - For text artifacts an Agent step produces (reports, summaries, JSON),
-  either use a \`nodetool.code.Code\` node whose body calls
+  either give a \`nodetool.code.Code\` node a body that calls
   \`await workspace.write(path, text)\` OR
   have the Agent call \`save_asset\` from its tool list so the artifact
   shows up in the chat asset browser.`;

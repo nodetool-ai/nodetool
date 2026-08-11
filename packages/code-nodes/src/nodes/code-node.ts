@@ -5,8 +5,8 @@
  * `@nodetool-ai/agents/js-sandbox`) with standard JavaScript plus the bridge
  * APIs: fetch(), workspace (text/bytes/stat/mkdir/remove/copy/move/root),
  * getSecret(), sleep(), progress(), crypto (randomUUID/digest/hmac), format,
- * data (CSV/HTML parsing) and the base64/hex helpers. Dynamic inputs arrive
- * on the `inputs` object.
+ * media (read a media input's bytes, build a media output) and the base64/hex
+ * helpers. Dynamic inputs arrive on the `inputs` object.
  *
  * On a server host the code also gets the `nodetool` object model — the
  * platform as objects (`nodetool.workflows`, `nodetool.assets`, …), backed by
@@ -218,13 +218,18 @@ export class CodeNode extends BaseNode {
     "APIs: fetch(), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root(), " +
     "getSecret(), sleep(), progress(), crypto.digest/hmac/randomUUID/getRandomValues, " +
     "format.number/date/relativeTime/list, " +
+    "media.bytes/text/info to read a document, image, audio or video input and " +
+    "media.toDocument/toImage/toAudio/toVideo to return one, " +
     "toBase64/fromBase64/toHex/fromHex, parallelMap, plus the `nodetool` object model " +
     "(workflows, assets, jobs, …) backed by platform tools on server hosts — " +
     "nodetool.capabilities() reports what is live. Tool-backed calls can spend money " +
     "(media generation, workflow runs) and reach the web; each tool applies its own " +
     "permission gating. " +
     "Dynamic inputs arrive on the `inputs` object; return an object to define outputs." +
-    "\n    code, javascript, function, script, dynamic";
+    "\n    code, javascript, script, function, dynamic, custom, logic, " +
+    "parse, transform, convert, format, compute, calculate, filter, map, " +
+    "merge, extract, json, csv, text, string, math, " +
+    "pdf, document, read document, image bytes, audio, video, file, media";
   static readonly inlineFields = ["code"];
   static readonly inputFields = [];
   static readonly supportsDynamicInputs = true;
@@ -246,10 +251,13 @@ export class CodeNode extends BaseNode {
       "`secrets` when that is set), getSecret(name), sleep(ms), progress(percent, message), " +
       "crypto.randomUUID/getRandomValues/digest/hmac, " +
       "format.number/date/relativeTime/list, " +
+      "media.bytes(ref)/media.text(ref, {encoding})/media.info(ref) to read a document, " +
+      "image, audio or video input, and media.toDocument/toImage/toAudio/toVideo(bytes, " +
+      "{mimeType, filename}) to build one to return, " +
       "toBase64/fromBase64/toHex/fromHex. Libraries — CSV, HTML, XML, XLSX, YAML, zip, dates, " +
       "diffs — are sandbox packages: declare one in `packages` and `import` it at the top. " +
-      "Await fetch, sleep, workspace, getSecret, format, an imported package's calls, " +
-      "and crypto.digest/hmac; the rest are synchronous. " +
+      "Await fetch, sleep, workspace, getSecret, format, media, an imported package's " +
+      "calls, and crypto.digest/hmac; the rest are synchronous. " +
       "Concurrent calls run in parallel: use Promise.all or " +
       "parallelMap(items, fn, concurrency) to fan out fetches. " +
       "The `nodetool` object model exposes platform tools (nodetool.workflows, " +
@@ -270,7 +278,8 @@ export class CodeNode extends BaseNode {
     json_schema_extra: { type: "sandbox_packages" },
     description:
       "Sandbox packages this code may import, as specifiers or " +
-      '{specifier, resolvedPackVersion, contentDigest} objects — e.g. ["@acme/geo"]. ' +
+      "{specifier, resolvedPackVersion, contentDigest} objects — e.g. " +
+      '["@nodetool-ai/sandbox-csv", "@nodetool-ai/sandbox-yaml", "@nodetool-ai/sandbox-html"]. ' +
       "The sandbox resolves only what is listed here; every other `import` fails, " +
       "and dynamic `import()`/`require()` are never available."
   })

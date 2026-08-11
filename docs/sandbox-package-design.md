@@ -1143,8 +1143,12 @@ Presence is never assumed: a missing pack fails validation with
 "Install `<pack>`" (`sandbox-bridge-packs.ts`, now eight rows), prompts
 advertise only installed and session-allowed packs, and the registry marks them
 recommended. Removing `data.*` therefore has a real cost — a workflow that
-parsed CSV now needs a pack installed — and that cost is the point: what a node
-uses is declared on the node.
+parsed CSV now names the pack it parses with — and that cost is the point: what
+a node uses is declared on the node. The pack itself needs no install: every
+pack in `packages/sandbox-packs/` ships with the product and is discovered from
+the shipped root (`shippedPackSearchPaths()` in `pack-loader.ts`), which sits
+last in the search order so an installed pack of the same name shadows it. A
+third-party pack is what the install flow above is for.
 
 Regression suites: `packages/agents/tests/host-modules.test.ts` (the moved
 library cases, the dispatcher's refusals, the forged-manifest cases, and every

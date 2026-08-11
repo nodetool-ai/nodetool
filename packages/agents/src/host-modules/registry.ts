@@ -114,6 +114,10 @@ const LOADERS: Readonly<Record<string, Loader>> = {
       extractChapters: mod.extractChapters
     };
   },
+  pdf: async () => {
+    const mod = await import("./pdf.js");
+    return { extractText: mod.extractText, extractPages: mod.extractPages };
+  },
   pptx: async () => {
     const mod = await import("./pptx.js");
     return { extractText: mod.extractText, extractSlides: mod.extractSlides };

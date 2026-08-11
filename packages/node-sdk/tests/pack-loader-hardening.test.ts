@@ -15,6 +15,7 @@ import {
   discoverPacks,
   loadInstalledPacks,
   resolvePackTrust,
+  shippedPackSearchPaths,
   writePackTrustConfig,
   PACK_API_VERSION
 } from "../src/pack-loader.js";
@@ -26,7 +27,8 @@ const ENV_KEYS = [
   "NODETOOL_PACKS_CONFIG",
   "NODETOOL_ENV",
   "NODETOOL_OPTIONAL_NODE_MODULES",
-  "NODETOOL_PACK_SEARCH_PATHS"
+  "NODETOOL_PACK_SEARCH_PATHS",
+  "NODETOOL_SHIPPED_PACKS_DIR"
 ];
 const saved: Record<string, string | undefined> = {};
 
@@ -548,6 +550,27 @@ describe("defaultPackSearchPaths env handling", () => {
     expect(paths).toContain(nodeModules);
     expect(new Set(paths).size).toBe(paths.length);
     expect(paths.every((p) => existsSync(p))).toBe(true);
+  });
+
+  it("finds the shipped packs of this checkout and puts them last", () => {
+    const shipped = shippedPackSearchPaths();
+    expect(shipped).toHaveLength(1);
+    expect(shipped[0]?.endsWith(join("packages", "sandbox-packs"))).toBe(true);
+    const paths = defaultPackSearchPaths(root);
+    expect(paths[paths.length - 1]).toBe(shipped[0]);
+  });
+
+  it("takes the shipped pack root from NODETOOL_SHIPPED_PACKS_DIR", () => {
+    const staged = join(root, "staged-packs");
+    mkdirSync(staged, { recursive: true });
+    process.env.NODETOOL_SHIPPED_PACKS_DIR = staged;
+    expect(shippedPackSearchPaths()).toEqual([staged]);
+    expect(defaultPackSearchPaths(root)).toContain(staged);
+  });
+
+  it("drops a shipped pack root that does not exist", () => {
+    process.env.NODETOOL_SHIPPED_PACKS_DIR = join(root, "gone");
+    expect(shippedPackSearchPaths()).toEqual([]);
   });
 
   it("walks up to find node_modules in a parent directory", () => {

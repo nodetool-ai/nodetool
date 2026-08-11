@@ -10,6 +10,11 @@
  *
  * Every case that plans an LLM step needs configured model providers: the
  * planner picks a real model via `find_model`, and the run then calls it.
+ *
+ * A `nodetool.code.Code` step is the opposite: it is fully deterministic, so a
+ * Code case pins every output value (`expectedOutputs`), skips the judge, and
+ * needs no model provider for its run. The planner still needs one — it is the
+ * model that writes the graph.
  */
 
 import type { GraphE2eEvalCase } from "./graph-e2e-eval.js";
@@ -33,6 +38,77 @@ export const GRAPH_E2E_EVAL_CASES: readonly GraphE2eEvalCase[] = [
       minOutputs: 1,
       requireNonEmptyOutputs: true,
       requiredOutputPatterns: ["^Hello, world$"]
+    }
+  },
+  {
+    id: "code-parse-json",
+    description: "Code node parses a JSON input and reads two fields out",
+    objective:
+      'The input payload is a JSON string. Parse it with one nodetool.code.Code node and surface two values: create an output node named "order_id" carrying the order id, and an output node named "city" carrying the customer city. This is plain data work — no LLM step, and no Python.',
+    goal: 'order_id is exactly "A-4417" and city is exactly "Porto".',
+    inputs: {
+      payload:
+        '{"order":{"id":"A-4417","items":3},"customer":{"name":"Rui Alves","city":"Porto"}}'
+    },
+    skipJudge: true,
+    expectGraph: {
+      requiredInputNames: ["payload"],
+      requiredNodeTypePatterns: ["^nodetool\\.code\\.Code$"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      minOutputNodes: 2,
+      requireConnected: true
+    },
+    expect: {
+      requiredOutputNames: ["order_id", "city"],
+      expectedOutputs: { order_id: "A-4417", city: "Porto" }
+    }
+  },
+  {
+    id: "code-aggregate",
+    description: "Code node aggregates a structured input into exact numbers",
+    objective:
+      'The input line_items is a JSON string holding an array of objects, each with sku, qty and unit_price. With one nodetool.code.Code node, compute the order total (the sum of qty times unit_price over every item, rounded to two decimal places) and the number of distinct line items. Create an output node named "total" for the total and one named "item_count" for the count. This is arithmetic — no LLM step, and no Python.',
+    goal: "total is 44.85 and item_count is 3.",
+    inputs: {
+      line_items:
+        '[{"sku":"PN-1","qty":3,"unit_price":4.25},{"sku":"PN-2","qty":1,"unit_price":12.6},{"sku":"PN-3","qty":2,"unit_price":9.75}]'
+    },
+    skipJudge: true,
+    expectGraph: {
+      requiredInputNames: ["line_items"],
+      requiredNodeTypePatterns: ["^nodetool\\.code\\.Code$"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      minOutputNodes: 2,
+      requireConnected: true
+    },
+    expect: {
+      requiredOutputNames: ["total", "item_count"],
+      expectedOutputs: { total: 44.85, item_count: 3 }
+    }
+  },
+  {
+    id: "code-format",
+    description: "Code node formats a list input into one pinned string",
+    // The wording pins every character the output must carry, because that is
+    // what the case scores. A formatting rule stated loosely ("tidy the
+    // names") has no single right answer, and nothing deterministic to check.
+    objective:
+      'The input names is a list of strings. With one nodetool.code.Code node, put each name in title case (first letter of every word upper case, the rest lower case), sort the formatted names alphabetically, and build one line: the number of names, then " attendees: ", then the names joined by "; ". For three names Ann Lee, Bo Fry and Cy Ray the line reads "3 attendees: Ann Lee; Bo Fry; Cy Ray". Create one output node named "roster" carrying that line. This is string work — no LLM step, and no Python.',
+    goal: 'roster is exactly "3 attendees: June Okafor; Omar Haddad; Priya Sharma".',
+    inputs: { names: ["priya sharma", "OMAR HADDAD", "june okafor"] },
+    skipJudge: true,
+    expectGraph: {
+      requiredInputNames: ["names"],
+      requiredNodeTypePatterns: ["^nodetool\\.code\\.Code$"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
+      requireOutputNode: true
+    },
+    expect: {
+      requiredOutputNames: ["roster"],
+      expectedOutputs: {
+        roster: "3 attendees: June Okafor; Omar Haddad; Priya Sharma"
+      }
     }
   },
   {
@@ -147,6 +223,64 @@ export const GRAPH_E2E_EVAL_CASES: readonly GraphE2eEvalCase[] = [
       requiredOutputNames: ["total"],
       requireNonEmptyOutputs: true,
       requiredOutputPatterns: ["101\\.4"]
+    }
+  },
+  {
+    id: "agent-constraint-reasoning",
+    description: "One Agent step reasons over constraints to a single answer",
+    objective:
+      'Take the input constraints text and work out, with one nodetool.agents.Agent step, the one weekday the team can meet. Create an output node named "answer" carrying just the weekday, and an output node named "reasoning" carrying the short explanation that rules the other days out.',
+    goal:
+      'The answer output names Wednesday and nothing else. The reasoning output explains why each other weekday is ruled out: Dana is away Monday and Tuesday, the room is taken on Thursday, and Elias never meets on a Friday.',
+    inputs: {
+      constraints:
+        "The team meets exactly once next week, on a weekday from Monday to Friday. Dana must attend and is away on Monday and Tuesday. The meeting room is already booked all day Thursday. Elias must attend and never meets on a Friday."
+    },
+    needsModelProviders: true,
+    expectGraph: {
+      requiredInputNames: ["constraints"],
+      requiredNodeTypePatterns: ["^nodetool\\.agents\\.Agent$"],
+      minAgentSteps: 1,
+      minOutputNodes: 2,
+      requireConnected: true
+    },
+    expect: {
+      requiredOutputNames: ["answer", "reasoning"],
+      requireNonEmptyOutputs: true,
+      requiredOutputPatterns: ["Wednesday"]
+    }
+  },
+  {
+    id: "code-then-agent",
+    description: "Deterministic Code prep feeds an Agent step; prep is pinned",
+    objective:
+      'The input reviews is a JSON string holding an array of objects, each with author, rating and text. Do two steps. First, with one nodetool.code.Code node, keep only the reviews whose rating is 2 or lower, in the order they appear, and build one block of text: one line per kept review, each line the position among the kept reviews starting at 1, then ". ", then the author, then ": ", then the review text, with the lines joined by a single newline. For two kept reviews by Ann and Bo the block reads "1. Ann: Too loud.\\n2. Bo: It leaks." Second, pass that block to one nodetool.agents.Agent step that writes a single paragraph summarizing what the unhappy customers complain about. Create an output node named "complaints" carrying the block from the Code node, and an output node named "summary" carrying the paragraph.',
+    goal:
+      'The complaints output is the two low-rated reviews, numbered 1 and 2, and the summary output is one paragraph of prose that names both problems — the cracked lid and the unit that stopped charging. The summary must be prose, not a copy of the numbered block.',
+    inputs: {
+      reviews:
+        '[{"author":"Rui","rating":5,"text":"Fast and tidy."},{"author":"Mina","rating":2,"text":"The lid arrived cracked."},{"author":"Tomas","rating":4,"text":"Good value."},{"author":"Aya","rating":1,"text":"It stopped charging after a week."}]'
+    },
+    needsModelProviders: true,
+    expectGraph: {
+      requiredInputNames: ["reviews"],
+      requiredNodeTypePatterns: [
+        "^nodetool\\.code\\.Code$",
+        "^nodetool\\.agents\\.Agent$"
+      ],
+      minAgentSteps: 1,
+      minOutputNodes: 2,
+      requireConnected: true
+    },
+    expect: {
+      requiredOutputNames: ["complaints", "summary"],
+      requireNonEmptyOutputs: true,
+      // The Code half is deterministic, so it is pinned; the paragraph the
+      // Agent writes is the judge's half.
+      expectedOutputs: {
+        complaints:
+          "1. Mina: The lid arrived cracked.\n2. Aya: It stopped charging after a week."
+      }
     }
   }
 ];

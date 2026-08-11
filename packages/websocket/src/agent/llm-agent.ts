@@ -75,6 +75,7 @@ import {
   type AgentSdkProvider
 } from "./sdk-provider.js";
 import type { AgentTransport } from "./transport.js";
+import { getSandboxCatalog } from "../sandbox-catalog.js";
 
 const log = createLogger("nodetool.websocket.agent.llm");
 
@@ -276,7 +277,10 @@ class GraphPlannerUiTool extends Tool {
       model: this.opts.model,
       registry: graphPlannerRegistry,
       tools: [],
-      providers
+      providers,
+      // The server's own catalog, so the prompt advertises the packs this
+      // machine installed rather than every pack NodeTool ships.
+      sandboxModuleCatalog: getSandboxCatalog()
     });
 
     let deferredComplete: ProcessingMessage | null = null;
