@@ -119,6 +119,28 @@ F2 wires this table into the actual gates:
   today, so no real spend yet — its header comment requires an explicit
   per-run cost budget on any future paid-model addition).
 
+## Documentation-only pushes
+
+A change to prose runs no code CI. Most workflows already carry a `paths`
+filter that prose cannot match. `test.yml` cannot: its `quality` job is a
+required status check, and a path-filtered required check is left Pending
+forever on a push that matches nothing. So it triggers on every PR and decides
+inside: a `changes` job classifies the diff, and the gate, the integration
+tests and the browser E2E job skip when nothing but prose changed. A skipped
+job counts as a pass for a required check, so the check still lands.
+
+The prose set is `docs/**`, the Markdown at the repo root, `AGENTS.md` and
+`CLAUDE.md` anywhere, and the Markdown under `.github/`. Markdown that code
+reads at run time is deliberately outside it — a sandbox pack's `SKILL.md` or a
+package `README.md` runs the full gate.
+
+It fails safe in both directions: the filter step is `continue-on-error` and
+its output falls back to "there is code here", and the legs skip only on an
+explicit "prose only", so a `changes` job that never reported runs everything.
+
+Prose still gets its own checks: `docs-lint.yml` on any `**/*.md`, and
+`docs-ci.yml` (site build plus link check) on `docs/**`.
+
 ## Manual Trigger
 
 ```bash
