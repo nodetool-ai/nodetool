@@ -12,7 +12,7 @@ const STATEMENT_KEYWORDS =
 /** Strip string literals and comments to avoid false-positive keyword detection. */
 function stripStringsAndComments(code: string): string {
   return code
-    .replace(/\/\/.*$/gm, "")
+    .replace(/\/\/[^\n]*/g, "")
     .replace(/\/\*[\s\S]*?\*\//g, "")
     .replace(/"(?:[^"\\]|\\.)*"/g, '""')
     .replace(/'(?:[^'\\]|\\.)*'/g, "''")
