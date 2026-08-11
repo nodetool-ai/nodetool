@@ -715,13 +715,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.ToString",
-        "label": "To String",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -744,8 +744,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "str",
-          "type": "nodetool.text.ToString",
-          "title": "To String",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 330,
           "y": 120,
           "width": 240
@@ -3250,8 +3250,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
-        "type": "nodetool.text.Chunk",
-        "label": "Chunk",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -3285,8 +3285,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "ch",
-          "type": "nodetool.text.Chunk",
-          "title": "Chunk",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -4449,6 +4449,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 6
+      },
+      {
         "type": "nodetool.control.If",
         "label": "If",
         "count": 4
@@ -4464,28 +4469,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 4
       },
       {
-        "type": "nodetool.text.Compare",
-        "label": "Compare",
-        "count": 2
-      },
-      {
-        "type": "nodetool.text.Equals",
-        "label": "Equals",
-        "count": 2
-      },
-      {
         "type": "nodetool.input.IntegerInput",
         "label": "Integer Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.PadText",
-        "label": "Pad Text",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.ToString",
-        "label": "To String",
         "count": 1
       }
     ],
@@ -4539,40 +4524,40 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "pad_value",
-          "type": "nodetool.text.PadText",
-          "title": "Pad Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 280,
           "y": 560,
           "width": 280
         },
         {
           "id": "cmp_low",
-          "type": "nodetool.text.Compare",
-          "title": "Compare",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 610,
           "y": 660,
           "width": 280
         },
         {
           "id": "cmp_high",
-          "type": "nodetool.text.Compare",
-          "title": "Compare",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 610,
           "y": 480,
           "width": 280
         },
         {
           "id": "is_low",
-          "type": "nodetool.text.Equals",
-          "title": "Equals",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 940,
           "y": 660,
           "width": 280
         },
         {
           "id": "is_high",
-          "type": "nodetool.text.Equals",
-          "title": "Equals",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 940,
           "y": 480,
           "width": 280
@@ -4646,8 +4631,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "int_to_str",
-          "type": "nodetool.text.ToString",
-          "title": "To String",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 140,
           "y": 620,
           "width": 200
@@ -4696,28 +4681,28 @@ export const templateEntries: TemplateEntry[] = [
           "source": "pad_value",
           "sourceHandle": "output",
           "target": "cmp_low",
-          "targetHandle": "text_a",
+          "targetHandle": "a",
           "color": "any"
         },
         {
           "source": "pad_value",
           "sourceHandle": "output",
           "target": "cmp_high",
-          "targetHandle": "text_a",
+          "targetHandle": "a",
           "color": "any"
         },
         {
           "source": "cmp_low",
           "sourceHandle": "output",
           "target": "is_low",
-          "targetHandle": "text_a",
+          "targetHandle": "a",
           "color": "any"
         },
         {
           "source": "cmp_high",
           "sourceHandle": "output",
           "target": "is_high",
-          "targetHandle": "text_a",
+          "targetHandle": "a",
           "color": "any"
         },
         {
@@ -6177,8 +6162,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.text.Contains",
-        "label": "Contains",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -6207,8 +6192,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "c",
-          "type": "nodetool.text.Contains",
-          "title": "Contains",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -7085,13 +7070,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 2
       },
       {
-        "type": "nodetool.triggers.IntervalTrigger",
-        "label": "Interval Trigger",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.ToString",
-        "label": "To String",
+        "type": "nodetool.triggers.IntervalTrigger",
+        "label": "Interval Trigger",
         "count": 1
       }
     ],
@@ -7109,8 +7094,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "label",
-          "type": "nodetool.text.ToString",
-          "title": "To String",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 330,
           "y": 40,
           "width": 240
@@ -7765,8 +7750,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.text.FindAllRegex",
-        "label": "Find All Regex",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -7795,8 +7780,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "fa",
-          "type": "nodetool.text.FindAllRegex",
-          "title": "Find All Regex",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -7851,13 +7836,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 3
       },
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.Replace",
-        "label": "Replace",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       }
     ],
@@ -7894,8 +7879,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "rp",
-          "type": "nodetool.text.Replace",
-          "title": "Replace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 400,
           "y": 300,
           "width": 280
@@ -7921,14 +7906,14 @@ export const templateEntries: TemplateEntry[] = [
           "source": "old",
           "sourceHandle": "output",
           "target": "rp",
-          "targetHandle": "old",
+          "targetHandle": "search",
           "color": "any"
         },
         {
           "source": "new",
           "sourceHandle": "output",
           "target": "rp",
-          "targetHandle": "new_value",
+          "targetHandle": "replacement",
           "color": "any"
         },
         {
@@ -8988,8 +8973,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.text.Length",
-        "label": "Length",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -9018,8 +9003,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "ln",
-          "type": "nodetool.text.Length",
-          "title": "Length",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -10650,13 +10635,13 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.generators.DataGenerator",
-        "label": "Data Generator",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.IsEmpty",
-        "label": "Is Empty",
+        "type": "nodetool.generators.DataGenerator",
+        "label": "Data Generator",
         "count": 1
       },
       {
@@ -10720,8 +10705,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "is_transcript_empty",
-          "type": "nodetool.text.IsEmpty",
-          "title": "Is Empty",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 400,
           "y": 300,
           "width": 280
@@ -12078,6 +12063,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Audio & Music",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 2
+      },
+      {
         "type": "nodetool.text.AutomaticSpeechRecognition",
         "label": "Automatic Speech Recognition",
         "count": 1
@@ -12090,16 +12080,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.output.Output",
         "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Slugify",
-        "label": "Slugify",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.TruncateText",
-        "label": "Truncate Text",
         "count": 1
       },
       {
@@ -12139,16 +12119,16 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "tr",
-          "type": "nodetool.text.TruncateText",
-          "title": "Truncate Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 960,
           "y": 120,
           "width": 280
         },
         {
           "id": "sl",
-          "type": "nodetool.text.Slugify",
-          "title": "Slugify",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 0,
           "y": 340,
           "width": 280
@@ -14987,8 +14967,8 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.text.ExtractJSON",
-        "label": "Extract JSON",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -15017,8 +14997,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "ej",
-          "type": "nodetool.text.ExtractJSON",
-          "title": "Extract JSON",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -15494,6 +15474,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
         "type": "nodetool.text.Join",
         "label": "Join",
         "count": 1
@@ -15501,11 +15486,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.output.Output",
         "label": "Output",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.Split",
-        "label": "Split",
         "count": 1
       },
       {
@@ -15529,8 +15509,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "sp",
-          "type": "nodetool.text.Split",
-          "title": "Split",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 340,
           "y": 180,
           "width": 280
@@ -15673,13 +15653,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.RegexReplace",
-        "label": "Regex Replace",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -15703,8 +15683,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "rr",
-          "type": "nodetool.text.RegexReplace",
-          "title": "Regex Replace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -15753,24 +15733,14 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 4
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 2
-      },
-      {
-        "type": "nodetool.text.RegexReplace",
-        "label": "Regex Replace",
-        "count": 2
-      },
-      {
-        "type": "nodetool.text.CollapseWhitespace",
-        "label": "Collapse Whitespace",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.FindAllRegex",
-        "label": "Find All Regex",
-        "count": 1
       },
       {
         "type": "nodetool.constant.String",
@@ -15793,32 +15763,32 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "mail",
-          "type": "nodetool.text.RegexReplace",
-          "title": "Regex Replace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
         },
         {
           "id": "ip",
-          "type": "nodetool.text.RegexReplace",
-          "title": "Regex Replace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 640,
           "y": 120,
           "width": 280
         },
         {
           "id": "tidy",
-          "type": "nodetool.text.CollapseWhitespace",
-          "title": "Collapse Whitespace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 960,
           "y": 120,
           "width": 280
         },
         {
           "id": "nums",
-          "type": "nodetool.text.FindAllRegex",
-          "title": "Find All Regex",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 0,
           "y": 340,
           "width": 280
@@ -18382,13 +18352,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.Slice",
-        "label": "Slice",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -18412,8 +18382,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "sl",
-          "type": "nodetool.text.Slice",
-          "title": "Slice",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 340,
           "y": 180,
           "width": 280
@@ -18961,13 +18931,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.RegexSplit",
-        "label": "Regex Split",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -18991,8 +18961,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "rs",
-          "type": "nodetool.text.RegexSplit",
-          "title": "Regex Split",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -19202,6 +19172,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Agents & Research",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -19209,11 +19184,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.constant.String",
         "label": "String",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.StripAccents",
-        "label": "Strip Accents",
         "count": 1
       }
     ],
@@ -19232,8 +19202,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "sa",
-          "type": "nodetool.text.StripAccents",
-          "title": "Strip Accents",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -20262,9 +20232,9 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.text.CollapseWhitespace",
-        "label": "Collapse Whitespace",
-        "count": 1
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 3
       },
       {
         "type": "nodetool.output.Output",
@@ -20272,18 +20242,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "nodetool.text.RemovePunctuation",
-        "label": "Remove Punctuation",
-        "count": 1
-      },
-      {
         "type": "nodetool.constant.String",
         "label": "String",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.ToLowercase",
-        "label": "To Lowercase",
         "count": 1
       }
     ],
@@ -20302,24 +20262,24 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "cw",
-          "type": "nodetool.text.CollapseWhitespace",
-          "title": "Collapse Whitespace",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
         },
         {
           "id": "rp",
-          "type": "nodetool.text.RemovePunctuation",
-          "title": "Remove Punctuation",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 640,
           "y": 120,
           "width": 280
         },
         {
           "id": "lc",
-          "type": "nodetool.text.ToLowercase",
-          "title": "To Lowercase",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 960,
           "y": 120,
           "width": 280
@@ -20382,6 +20342,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -20389,11 +20354,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.constant.String",
         "label": "String",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.ToTitlecase",
-        "label": "To Titlecase",
         "count": 1
       }
     ],
@@ -20412,8 +20372,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "tc",
-          "type": "nodetool.text.ToTitlecase",
-          "title": "To Titlecase",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -20914,6 +20874,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -20921,11 +20886,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.constant.String",
         "label": "String",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.TruncateText",
-        "label": "Truncate Text",
         "count": 1
       }
     ],
@@ -20944,8 +20904,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "tr",
-          "type": "nodetool.text.TruncateText",
-          "title": "Truncate Text",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -21677,13 +21637,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
-        "type": "nodetool.output.Output",
-        "label": "Output",
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
-        "type": "nodetool.text.RegexValidate",
-        "label": "Regex Validate",
+        "type": "nodetool.output.Output",
+        "label": "Output",
         "count": 1
       },
       {
@@ -21707,8 +21667,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "rv",
-          "type": "nodetool.text.RegexValidate",
-          "title": "Regex Validate",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
@@ -22719,6 +22679,11 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Text & Data",
     "nodeTypes": [
       {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -22726,11 +22691,6 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.constant.String",
         "label": "String",
-        "count": 1
-      },
-      {
-        "type": "nodetool.text.SurroundWith",
-        "label": "Surround With",
         "count": 1
       }
     ],
@@ -22749,8 +22709,8 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "id": "sw",
-          "type": "nodetool.text.SurroundWith",
-          "title": "Surround With",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 320,
           "y": 120,
           "width": 280
