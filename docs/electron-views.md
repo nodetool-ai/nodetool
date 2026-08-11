@@ -73,7 +73,7 @@ A self-contained Mini-App launched from the tray. Maximum size 1200×900. Closin
 
 ### Chat Window
 
-Standalone chat opened from the tray. Same content as [/standalone-chat]({{ '/user-interface#standalone-chat-window' | relative_url }}) but in its own window.
+Standalone chat opened from the tray. Same content as the [Chats panel]({{ '/user-interface#chat' | relative_url }}) but in its own window, and threads sync with the main app.
 
 ---
 
