@@ -34,7 +34,7 @@ see below.
 | Workflow | Purpose | Ring | Required today? |
 |---|---|---|---|
 | `test.yml` | Full quality gate (typecheck, lint, tests) via `quality-checks.yml` | 0 | Required |
-| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, typecheck/parity/package+app/reliability test legs, and a `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
+| `quality-checks.yml` | Reusable gate: deps/lint static legs, one shared build, five `built` legs (typecheck+parity+examples, test-packages, test-app, bundle+ring0, app-build), and a path-gated `docker` leg that builds the image, boots it, and loads the app in a browser | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `chromatic.yml` | Storybook visual regression via Chromatic (TurboSnap) | 0 | Advisory (`exitZeroOnChanges`) |
 | `visual-regression.yml` | Playwright screenshot diffs for the web UI | 0 | Advisory (`continue-on-error`, baselines still maturing) |
@@ -81,8 +81,8 @@ see below.
 
 F2 wires this table into the actual gates:
 
-- **Ring 0**: `quality-checks.yml`'s `built` matrix gained a `reliability`
-  leg (`npm run reliability:ring0`) running the five journeys that exist
+- **Ring 0**: `quality-checks.yml`'s `built` matrix runs `npm run
+  reliability:ring0` (in the `bundle` leg) over the five journeys that exist
   under `reliability/journeys/` — linear-text-pipeline, fan-out-fan-in-dag,
   error-in-one-branch, mid-run-cancel-node, mid-run-cancel-streaming
   (journeys 1/3/6a/6b/13) — on the kernel surface, strict lifecycle mode
@@ -91,7 +91,7 @@ F2 wires this table into the actual gates:
   `ExecutionSessionOptions.strict` → `WorkflowRunnerOptions.strict`). Journey
   14 (malformed-protocol) has no harness journey directory yet — that
   coverage lives as `packages/websocket` tests. The leg counts toward the
-  aggregate `quality` job the same way `bundle`/`examples` do.
+  aggregate `quality` job like every other one.
 - **Ring 1**: `user-journeys.yml` gained a `reliability-ring1` job (`npm run
   reliability:ring1 -- --packaged`) — every journey's cross-surface diff
   (kernel oracle vs. ws-server, `--diff`) plus one packaged-backend journey

@@ -28,6 +28,14 @@ on:
 permissions:
   contents: write # so the update-baselines job can push back to the branch
 
+# Cancel superseded runs for the same branch/PR; the latest push is what matters.
+# The event is part of the group so a push to main can never cancel a dispatched
+# baseline update on the same ref — that run commits and pushes baselines, and
+# killing it mid-regeneration wastes the whole regeneration.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   visual:
     name: Playwright visual snapshots
