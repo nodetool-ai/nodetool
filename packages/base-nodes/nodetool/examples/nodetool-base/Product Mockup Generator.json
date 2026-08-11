@@ -209,13 +209,9 @@
           },
           "negative_prompt": "",
           "strength": 0.65,
-          "guidance_scale": 7.5,
-          "num_inference_steps": 30,
-          "target_width": 1200,
-          "target_height": 1200,
-          "seed": -1,
           "scheduler": "",
-          "safety_check": true
+          "aspect_ratio": "1:1",
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {
@@ -486,12 +482,8 @@
             "supported_tasks": []
           },
           "negative_prompt": "",
-          "width": 1200,
-          "height": 1200,
-          "guidance_scale": 7,
-          "num_inference_steps": 25,
-          "seed": -1,
-          "safety_check": true
+          "aspect_ratio": "1:1",
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

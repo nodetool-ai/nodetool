@@ -308,12 +308,8 @@
             "supported_tasks": []
           },
           "negative_prompt": "text, watermark, logo, blurry, low quality",
-          "width": 1024,
-          "height": 1024,
-          "guidance_scale": 7.5,
-          "num_inference_steps": 30,
-          "seed": -1,
-          "safety_check": true
+          "aspect_ratio": "1:1",
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

@@ -689,6 +689,36 @@ export function validateGraph(
       });
     }
 
+    // ── Properties the node does not have. A misspelled name is dead data:
+    // the value sits in the graph, the real property keeps its default, and
+    // nothing reports it. A required property left unset is already an error
+    // above, so what reaches here is an optional one silently ignored — a
+    // warning, not a refusal. Nodes taking dynamic properties are exempt:
+    // an undeclared name is the feature there.
+    const meta = registry.getMetadata(type);
+    if (meta && meta.supports_dynamic_inputs !== true) {
+      const declaredNames = new Set(meta.properties.map((prop) => prop.name));
+      const dynamic = readDynamicProperties(node);
+      const unknown = Object.keys(readProperties(node)).filter(
+        (name) =>
+          !declaredNames.has(name) &&
+          !isReservedHandle(name) &&
+          dynamic[name] === undefined
+      );
+      if (unknown.length > 0) {
+        const plural = unknown.length > 1;
+        const named = unknown.map((name) => `"${name}"`).join(", ");
+        const known = [...declaredNames].sort().join(", ");
+        issues.push({
+          severity: "warning",
+          code: "unknown_property",
+          nodeId: id,
+          nodeType: type,
+          message: `${named} ${plural ? "are" : "is"} not a property of ${type}, so ${plural ? "they are" : "it is"} ignored at run time.${known ? ` It takes: ${known}.` : ""}`
+        });
+      }
+    }
+
     // ── Dynamic slot types: a JSON-Schema/TypeScript spelling of a type
     // NodeTool already has passes the transport schema, then silently refuses
     // to connect. Custom names stay legal — only known aliases are flagged.

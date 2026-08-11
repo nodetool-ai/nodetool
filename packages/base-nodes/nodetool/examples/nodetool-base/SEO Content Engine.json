@@ -654,8 +654,7 @@
           },
           "negative_prompt": "",
           "aspect_ratio": "16:9",
-          "resolution": "1K",
-          "timeout_seconds": 0
+          "resolution": "1K"
         },
         "ui_properties": {
           "position": {

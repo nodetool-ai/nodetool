@@ -271,8 +271,7 @@
           },
           "negative_prompt": "on-screen text, titles, logos, watermark, distorted anatomy",
           "aspect_ratio": "16:9",
-          "resolution": "2K",
-          "timeout_seconds": 0
+          "resolution": "2K"
         },
         "ui_properties": {
           "selected": false,
