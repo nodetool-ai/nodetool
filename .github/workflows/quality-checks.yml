@@ -17,6 +17,17 @@ on:
         required: false
         type: boolean
         default: false
+      docs-only:
+        description: >-
+          Whether this push changes documentation only. When true every check
+          leg is skipped — none of them has anything to say about prose — while
+          the `quality` gate job still runs and reports, so a required status
+          check that must land on every push is not left Pending. The caller
+          decides (test.yml computes it from the diff); the default runs
+          everything.
+        required: false
+        type: boolean
+        default: false
     outputs:
       all-passed:
         description: 'Whether every quality check leg passed.'
@@ -45,6 +56,9 @@ jobs:
   # cannot resolve a base builds the image rather than waving it through.
   changes:
     name: changes
+    # Nothing to decide when the caller already knows the diff is prose: the
+    # only consumer of this job is the `docker` leg, which is skipped too.
+    if: ${{ !inputs.docs-only }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
     outputs:
@@ -77,6 +91,7 @@ jobs:
   # ~minutes-long package build. Each leg surfaces its own status check.
   static:
     name: ${{ matrix.check }}
+    if: ${{ !inputs.docs-only }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
@@ -129,6 +144,9 @@ jobs:
   # as a cache hit rather than rebuilding its `^build` dependencies.
   build:
     name: build
+    # `built` needs this job, so skipping it skips every leg that consumes the
+    # dist artifact too.
+    if: ${{ !inputs.docs-only }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -346,7 +364,7 @@ jobs:
   docker:
     name: docker
     needs: changes
-    if: needs.changes.outputs.docker == 'true'
+    if: ${{ !inputs.docs-only && needs.changes.outputs.docker == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

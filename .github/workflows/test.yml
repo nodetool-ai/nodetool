@@ -39,8 +39,52 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # Does this push touch anything but prose? A documentation-only change has
+  # nothing for typecheck, lint, the test suites, the image build or the
+  # browser E2E runs to say, and every leg it starts holds a runner other PRs
+  # queue behind (the account cap is ~20 concurrent jobs). The workflow still
+  # triggers on every PR — see the `paths` note above — so the required check
+  # is always reported; the legs inside it skip instead, and a skipped job
+  # counts as a pass for a required check.
+  #
+  # The prose set is deliberately narrow: `docs/**` (the Jekyll site), the
+  # Markdown at the repo root, the agent instruction files anywhere, and the
+  # Markdown under `.github/`. Markdown that code reads at run time — a
+  # sandbox pack's `SKILL.md`, a package `README.md` — is NOT in it and keeps
+  # running the full gate.
+  #
+  # Fails open: the step is `continue-on-error` and the output falls back to
+  # "true", so a filter that cannot resolve a base runs everything rather than
+  # waving a change through.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.filter.outputs.code || 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Detect non-documentation changes
+        id: filter
+        continue-on-error: true
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            code:
+              - '!{docs/**,*.md,**/AGENTS.md,**/CLAUDE.md,.github/**/*.md}'
+
   quality:
     name: Quality Gate (npm run check)
+    needs: changes
+    # `always()` plus the explicit `== 'false'` test below so a `changes` job
+    # that never reported (infrastructure failure, not a filter result) runs the
+    # full gate. Only an explicit "this diff is prose" skips work — a required
+    # check must never go green because the job that decides was broken.
+    if: always()
     uses: ./.github/workflows/quality-checks.yml
     # A called workflow's permissions are capped by the caller's, so the gate's
     # `docker` leg only gets its read-only GHCR buildcache access if it is
@@ -55,8 +99,12 @@ jobs:
       # job, surfaced unchanged as "Quality Gate (npm run check) / quality".
       fail-fast: false
       skip-tests: false
+      # A documentation-only push skips every leg inside the gate. The gate job
+      # itself still runs and reports, so the required check lands green.
+      docs-only: ${{ needs.changes.outputs.code == 'false' }}
 
-  # Heavy jobs run concurrently with the quality gate rather than after it, so
+  # Heavy jobs run concurrently with the quality gate (both wait only on the
+  # seconds-long `changes` job) rather than after it, so
   # the critical path is max(quality, integration, e2e) instead of
   # quality + max(integration, e2e). Trade-off: a PR that fails a static check
   # still spends these runner minutes. They build packages themselves (they are
@@ -65,6 +113,9 @@ jobs:
   # the decoupling).
   integration:
     name: Workflow Integration Tests
+    needs: changes
+    # Same fail-safe reading as the gate above: skip only on an explicit "prose".
+    if: ${{ always() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -80,6 +131,8 @@ jobs:
 
   workflow-runner-e2e:
     name: Workflow Runner Browser E2E
+    needs: changes
+    if: ${{ always() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
