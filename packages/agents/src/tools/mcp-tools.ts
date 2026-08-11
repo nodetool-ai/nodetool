@@ -20,8 +20,7 @@ import {
   listOfflineModelIds,
   listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
-import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
-import { Workflow } from "@nodetool-ai/models";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { findModel, listModels } from "../capabilities/models.js";
 import {
@@ -33,18 +32,11 @@ import {
   generateVideo,
   transcribeAudio
 } from "../capabilities/media.js";
-import type { ProcessingMessage } from "@nodetool-ai/protocol";
-import { uiToolSchemas } from "@nodetool-ai/protocol";
-import { graph as workflowGraphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import {
-  applyWorkflowDocumentTool,
   WORKFLOW_DOCUMENT_TOOL_NAMES,
   type WorkflowDocumentToolName
 } from "@nodetool-ai/node-sdk";
-import { z } from "zod";
-import { GraphPlanner } from "../graph-planner.js";
-import { TOOL_CALL_ID_FIELD } from "./subtask-fields.js";
-import { forwardSubAgentStream } from "../subagent.js";
+import type { ZodType } from "zod";
 import {
   CapabilityTool,
   UNGATED,
@@ -84,9 +76,12 @@ import {
 } from "../capabilities/workflows.js";
 import { NODE_CAPABILITIES } from "../capabilities/nodes.js";
 import {
+  workflowDocumentCapability,
+  workflowDocumentCore,
+  workflowDocumentSchema
+} from "../capabilities/ui.js";
+import {
   RUNTIME_MODEL_CATALOGS,
-  userIdOf,
-  workflowRecord,
   type ExampleWorkflowCatalog,
   type ModelCatalogs,
   type WorkflowEnvironmentProvider
@@ -152,100 +147,35 @@ export class GetWorkflowTool extends CapabilityTool {
   }
 }
 
-export class WorkflowDocumentTool extends Tool {
-  readonly description: string;
+/**
+ * @deprecated Ported to the `ui` capability module
+ * (`../capabilities/ui.ts`). Kept as a thin subclass so existing constructors
+ * keep working; there is one implementation behind both.
+ *
+ * The class keeps the Zod schema on `schema` and runs the *unvalidated* core:
+ * `Tool.execute` validates once on the way in, exactly where it always did.
+ * The capability's own `impl` carries the same check for callers that reach it
+ * through `invoke`.
+ */
+export class WorkflowDocumentTool extends CapabilityTool {
+  private readonly documentSchema: ZodType;
 
-  constructor(
-    readonly name: WorkflowDocumentToolName,
-    private readonly registry?: NodeRegistry
-  ) {
-    super();
-    this.description = uiToolSchemas[name].description;
+  constructor(name: WorkflowDocumentToolName, registry?: NodeRegistry) {
+    super(
+      workflowDocumentCapability(name).spec,
+      workflowDocumentCore(name),
+      (context) =>
+        createCapabilityRun({
+          context,
+          gate: UNGATED,
+          nodeRegistry: registry
+        })
+    );
+    this.documentSchema = workflowDocumentSchema(name);
   }
 
-  override get schema(): z.ZodType {
-    return z.object(uiToolSchemas[this.name].parameters);
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const workflowId =
-      typeof params["workflow_id"] === "string"
-        ? params["workflow_id"]
-        : context.workflowId;
-    if (!workflowId) {
-      return {
-        error: "workflow_id_required",
-        message: "workflow_id is required when no workflow is active."
-      };
-    }
-
-    const userId = userIdOf(context);
-    const stored = await Workflow.find(userId, workflowId);
-    if (!stored) return { error: `Workflow ${workflowId} was not found.` };
-    const workflow = workflowRecord(stored);
-    const parsedGraph = workflowGraphSchema.safeParse(workflow["graph"]);
-    if (!parsedGraph.success) {
-      return { error: "Workflow has an invalid graph" };
-    }
-
-    const metadataByType = new Map<string, NodeMetadata>();
-    const loadMetadata = async (nodeType: string): Promise<void> => {
-      const local = this.registry?.resolveMetadata(nodeType);
-      if (local) metadataByType.set(nodeType, local);
-    };
-
-    if (this.name === "ui_add_node" && typeof params["type"] === "string") {
-      await loadMetadata(params["type"]);
-    } else if (this.name === "ui_connect_nodes") {
-      const sourceId = String(params["source_node_id"]);
-      const targetId = String(params["target_node_id"]);
-      const source = parsedGraph.data.nodes.find(
-        (node) => node.id === sourceId
-      );
-      const target = parsedGraph.data.nodes.find(
-        (node) => node.id === targetId
-      );
-      await Promise.all(
-        [source?.type, target?.type]
-          .filter((type): type is string => typeof type === "string")
-          .map(loadMetadata)
-      );
-    }
-
-    const applied = applyWorkflowDocumentTool(
-      parsedGraph.data,
-      this.name,
-      params,
-      {
-        workflowId,
-        resolveMetadata: (nodeType) => metadataByType.get(nodeType)
-      }
-    );
-    if (!applied.changed) return applied.result;
-
-    // The same optimistic-concurrency write the PUT route performs: the read
-    // above pinned `updated_at`, so a concurrent editor's save is a conflict
-    // rather than a silent clobber.
-    const persisted = await Workflow.updateFieldsIfUnchanged(
-      workflowId,
-      stored.updated_at,
-      { graph: applied.graph as unknown as Workflow["graph"] }
-    );
-    if (!persisted) {
-      return {
-        error:
-          "Workflow was modified since last read (optimistic concurrency " +
-          "conflict) — re-read it and retry."
-      };
-    }
-    return {
-      ...applied.result,
-      updated_at: persisted.updated_at,
-      etag: persisted.getEtag()
-    };
+  override get schema(): ZodType {
+    return this.documentSchema;
   }
 }
 
@@ -440,131 +370,6 @@ export class ValidateSketchTool extends CapabilityTool {
   }
 }
 
-export interface PlanWorkflowGraphToolOptions {
-  provider: BaseProvider;
-  model: string;
-  registry: NodeRegistry;
-  /** Configured providers by id — enables the planner's `find_model` tool. */
-  providers?: Record<string, BaseProvider>;
-  /**
-   * Forwards planner progress events (planning_update, tool_call_update,
-   * chunk) to the client. Events arrive tagged with `parent_tool_call_id`
-   * so the UI can nest them under this tool's call card.
-   */
-  forwardMessage?: (msg: ProcessingMessage) => Promise<void> | void;
-  /**
-   * Resolves the abort signal for the *current* chat turn. Read lazily on each
-   * call: the tool outlives a single turn, and each turn installs a fresh
-   * controller, so a captured signal would go stale after the first Stop.
-   */
-  signal?: () => AbortSignal | undefined;
-}
-
-export class PlanWorkflowGraphTool extends Tool {
-  readonly name = "plan_workflow_graph";
-  readonly needsToolCallId = true;
-  readonly description =
-    "Build a complete workflow graph ({nodes, edges}) from a natural-language " +
-    "objective using the backend GraphPlanner: it searches the node registry, " +
-    "inspects node metadata, and wires a validated DAG node-by-node. Returns " +
-    "the graph without saving or running it — pass the result to " +
-    "`create_workflow` to save, then `run_workflow` to execute.";
-  readonly jsonSchema = {
-    type: "object" as const,
-    properties: {
-      objective: {
-        type: "string" as const,
-        description:
-          "Natural-language description of what the workflow should do."
-      },
-      inputs: {
-        type: "object" as const,
-        description:
-          "Runtime parameters the workflow should accept, keyed by input " +
-          "name with example values. Each becomes an input node in the graph."
-      }
-    },
-    required: ["objective"]
-  };
-
-  constructor(private readonly opts: PlanWorkflowGraphToolOptions) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const objective =
-      typeof params["objective"] === "string" ? params["objective"].trim() : "";
-    if (!objective) {
-      return {
-        error: "`objective` is required and must be a non-empty string."
-      };
-    }
-    const parentToolCallId =
-      typeof params[TOOL_CALL_ID_FIELD] === "string"
-        ? (params[TOOL_CALL_ID_FIELD] as string)
-        : null;
-
-    const signal = this.opts.signal?.();
-    if (signal?.aborted) {
-      return { error: "Graph planning was cancelled." };
-    }
-
-    const planner = new GraphPlanner({
-      provider: this.opts.provider,
-      model: this.opts.model,
-      registry: this.opts.registry,
-      tools: [],
-      inputs: (params["inputs"] as Record<string, unknown>) ?? {},
-      providers: this.opts.providers,
-      signal
-    });
-
-    // The planner is not a CodeAct loop, but it IS a sub-agent in the core's
-    // sense — an async generator of ProcessingMessages with a settled return
-    // value — so the shared stream pipe drives it: tagging for UI nesting,
-    // forward-failure tolerance, and the between-rounds abort check (the
-    // planner's own abort stops its LLM loop, but a tool call already in
-    // flight still resolves — stop driving the generator so a Stop ends the
-    // turn promptly instead of after the current round).
-    const { aborted, value: graph } = await forwardSubAgentStream(
-      planner.plan(objective, context),
-      {
-        forward: this.opts.forwardMessage,
-        parentToolCallId,
-        signal,
-        label: this.name
-      }
-    );
-    if (aborted) {
-      return { error: "Graph planning was cancelled." };
-    }
-    if (!graph) {
-      return {
-        error:
-          "GraphPlanner failed to build a graph after multiple attempts. " +
-          "Refine the objective (name concrete inputs/outputs) and retry."
-      };
-    }
-
-    return {
-      graph,
-      node_count: graph.nodes.length,
-      edge_count: graph.edges.length
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const objective =
-      typeof params["objective"] === "string"
-        ? params["objective"].slice(0, 80)
-        : "workflow";
-    return `Planning workflow graph: ${objective}`;
-  }
-}
-
 /**
  * @deprecated Ported to the `workflows` capability module
  * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
@@ -755,8 +560,10 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       listPackageAssets: options.listPackageAssets
     });
 
-  const asTool = (entry: { spec: CapabilitySpec; impl: CapabilityImpl }): Tool =>
-    toolFromCapability(entry.spec, entry.impl, workflowRun);
+  const asTool = (entry: {
+    spec: CapabilitySpec;
+    impl: CapabilityImpl;
+  }): Tool => toolFromCapability(entry.spec, entry.impl, workflowRun);
 
   const tools: Tool[] = [
     ...WORKFLOW_CAPABILITIES.map(asTool),

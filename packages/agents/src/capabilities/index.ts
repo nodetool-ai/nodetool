@@ -15,6 +15,7 @@ export type {
   CapabilityLoaders,
   ClientToolRouter,
   SubAgentRuntime,
+  GraphPlannerRuntime,
   PermissionCategory
 } from "./types.js";
 export {

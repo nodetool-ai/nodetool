@@ -3,7 +3,13 @@
  * must end it promptly instead of letting every remaining LLM call finish.
  */
 import { describe, it, expect } from "vitest";
-import { PlanWorkflowGraphTool } from "../src/tools/mcp-tools.js";
+import { planWorkflowGraph } from "../src/capabilities/workflows.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolFromCapability
+} from "../src/capabilities/index.js";
+import type { Tool } from "../src/tools/base-tool.js";
 import { AGENT_NODE_TYPE } from "../src/graph-builder.js";
 import type {
   BaseProvider,
@@ -31,10 +37,7 @@ return graph();`
 };
 
 /** Provider that drives the tool loop itself, one scripted call at a time. */
-function createProvider(
-  script: ToolCall[],
-  onLoop?: () => void
-): BaseProvider {
+function createProvider(script: ToolCall[], onLoop?: () => void): BaseProvider {
   return {
     provider: "scripted",
     hasToolSupport: async () => true,
@@ -59,7 +62,8 @@ function createProvider(
       for (const tc of script) {
         if (args.signal?.aborted) break;
         yield tc;
-        const content = (await toolMap.get(tc.name)?.execute?.(tc.args, tc.id)) ?? "";
+        const content =
+          (await toolMap.get(tc.name)?.execute?.(tc.args, tc.id)) ?? "";
         yield {
           type: "message",
           message: {
@@ -79,17 +83,26 @@ function createTool(opts: {
   provider: BaseProvider;
   signal?: () => AbortSignal | undefined;
   forwardMessage?: (msg: ProcessingMessage) => void;
-}): PlanWorkflowGraphTool {
-  return new PlanWorkflowGraphTool({
-    provider: opts.provider,
-    model: "test-model",
-    registry: stubRegistry,
-    signal: opts.signal,
-    forwardMessage: opts.forwardMessage
-  });
+}): Tool {
+  return toolFromCapability(
+    planWorkflowGraph.spec,
+    planWorkflowGraph.impl,
+    (context) =>
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        nodeRegistry: stubRegistry,
+        graphPlanner: {
+          provider: opts.provider,
+          model: "test-model",
+          signal: opts.signal,
+          forwardMessage: opts.forwardMessage
+        }
+      })
+  );
 }
 
-describe("PlanWorkflowGraphTool cancellation", () => {
+describe("plan_workflow_graph cancellation", () => {
   it("plans normally when the turn is not aborted", async () => {
     const tool = createTool({ provider: createProvider([SUBMIT_CALL]) });
 

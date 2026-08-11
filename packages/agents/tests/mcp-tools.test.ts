@@ -9,7 +9,6 @@ import {
 } from "@nodetool-ai/execution/service";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import {
-  PlanWorkflowGraphTool,
   ListWorkflowsTool,
   GetWorkflowTool,
   CreateWorkflowTool,
@@ -32,6 +31,13 @@ import {
   getAllMcpTools,
   type ExampleWorkflowCatalog
 } from "../src/tools/mcp-tools.js";
+import type { Tool } from "../src/tools/base-tool.js";
+import { planWorkflowGraph } from "../src/capabilities/workflows.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolFromCapability
+} from "../src/capabilities/index.js";
 
 const USER = "user-1";
 
@@ -1396,10 +1402,10 @@ describe("getAllMcpTools", () => {
 
 
 // ---------------------------------------------------------------------------
-// PlanWorkflowGraphTool
+// plan_workflow_graph
 // ---------------------------------------------------------------------------
 
-describe("PlanWorkflowGraphTool", () => {
+describe("plan_workflow_graph", () => {
   // A provider whose tool loop ends immediately without calling finish_graph,
   // so the planner exhausts its retries and returns null.
   function makeEmptyLoopProvider(): BaseProvider {
@@ -1409,16 +1415,36 @@ describe("PlanWorkflowGraphTool", () => {
     } as unknown as BaseProvider;
   }
 
-  function makeTool(
-    forwardMessage?: (msg: ProcessingMessage) => void
-  ): PlanWorkflowGraphTool {
-    return new PlanWorkflowGraphTool({
-      provider: makeEmptyLoopProvider(),
-      model: "mock-model",
-      registry: {} as never,
-      forwardMessage
-    });
+  function makeTool(forwardMessage?: (msg: ProcessingMessage) => void): Tool {
+    return toolFromCapability(
+      planWorkflowGraph.spec,
+      planWorkflowGraph.impl,
+      (context) =>
+        createCapabilityRun({
+          context,
+          gate: UNGATED,
+          nodeRegistry: {} as never,
+          graphPlanner: {
+            provider: makeEmptyLoopProvider(),
+            model: "mock-model",
+            forwardMessage
+          }
+        })
+    );
   }
+
+  it("asks for the runtime a host must supply", async () => {
+    const withoutRuntime = toolFromCapability(
+      planWorkflowGraph.spec,
+      planWorkflowGraph.impl,
+      (context) => createCapabilityRun({ context, gate: UNGATED })
+    );
+    expect(
+      await withoutRuntime.process(ctx, { objective: "do things" })
+    ).toMatchObject({
+      error: expect.stringContaining("graphPlanner")
+    });
+  });
 
   it("rejects a missing or empty objective", async () => {
     const tool = makeTool();
@@ -1443,10 +1469,14 @@ describe("PlanWorkflowGraphTool", () => {
     const tool = makeTool((msg) => {
       forwarded.push(msg);
     });
-    await tool.process(ctx, {
-      objective: "do things",
-      _tool_call_id: "call-1"
-    });
+    // The wrapper declares `needsToolCallId`, so the id the caller passes to
+    // `execute` reaches the implementation in the args.
+    expect(tool.needsToolCallId).toBe(true);
+    await tool.execute(
+      ctx,
+      { objective: "do things" },
+      { toolCallId: "call-1" }
+    );
     expect(forwarded.length).toBeGreaterThan(0);
     expect(forwarded.some((m) => m.type === "planning_update")).toBe(true);
     for (const msg of forwarded) {

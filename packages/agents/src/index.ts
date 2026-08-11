@@ -90,7 +90,6 @@ export {
   ValidateWorkflowTool,
   ValidateTimelineTool,
   ValidateSketchTool,
-  PlanWorkflowGraphTool,
   GetExampleWorkflowTool,
   ExportWorkflowDigraphTool,
   ListJobsTool,
@@ -103,7 +102,6 @@ export {
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
 export type {
-  PlanWorkflowGraphToolOptions,
   GetAllMcpToolsOptions,
   ExampleWorkflowCatalog,
   WorkflowDslExporter,
@@ -162,8 +160,12 @@ export {
   toolFromCapability,
   capabilityFromTool,
   createCapabilityRun,
-  resolveCapabilityMessage
+  resolveCapabilityMessage,
+  UNGATED
 } from "./capabilities/index.js";
+// `plan_workflow_graph` is served by a host that can build a `graphPlanner`
+// run — the chat runner — rather than by the belt every surface assembles.
+export { planWorkflowGraph } from "./capabilities/workflows.js";
 export type {
   CapabilitySpec,
   CapabilityImpl,
@@ -174,6 +176,7 @@ export type {
   CapabilityLoaders,
   ClientToolRouter,
   SubAgentRuntime,
+  GraphPlannerRuntime,
   CapabilityRunSource,
   CreateCapabilityRunOptions
 } from "./capabilities/index.js";

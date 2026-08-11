@@ -43,6 +43,12 @@ function isRunFactory(
 export class CapabilityTool extends Tool {
   readonly name: string;
   readonly description: string;
+  /**
+   * A capability that nests what it runs under the caller's card declares the
+   * need in its spec, so the wrapper asks `Tool.execute` for the id the same
+   * way the class it replaces did.
+   */
+  override readonly needsToolCallId: boolean;
 
   constructor(
     private readonly spec: CapabilitySpec,
@@ -52,6 +58,7 @@ export class CapabilityTool extends Tool {
     super();
     this.name = spec.name;
     this.description = spec.description;
+    this.needsToolCallId = spec.needsToolCallId === true;
   }
 
   override get inputSchema(): JsonSchema {
@@ -98,6 +105,7 @@ export function capabilityFromTool(tool: Tool): CapabilityExport {
     description: tool.description,
     inputSchema: tool.inputSchema,
     category: permissionCategoryFor(tool.name),
+    needsToolCallId: tool.needsToolCallId,
     userMessage: (args) => tool.userMessage(args)
   };
   return {

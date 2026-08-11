@@ -42,7 +42,8 @@ const MODULES: Readonly<Record<string, Loader>> = {
   sketches: () => import("./sketches.js").then((m) => m.module),
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
-  code: () => import("./code.js").then((m) => m.module)
+  code: () => import("./code.js").then((m) => m.module),
+  ui: () => import("./ui.js").then((m) => m.module)
 };
 
 /**
@@ -73,7 +74,8 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "sketches",
   "scripts",
   "storyboards",
-  "code"
+  "code",
+  "ui"
 ];
 
 const cache = new Map<string, Promise<CapabilityModule>>();

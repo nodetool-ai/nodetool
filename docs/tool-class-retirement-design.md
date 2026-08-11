@@ -735,6 +735,20 @@ PRs 1–11 landed on this branch, in this order:
 - `agents+websocket: the permission gate moves into CapabilityRun.invoke (PR 10 of tool-class retirement)`
 - `agents+protocol+websocket: the platform is importable in the sandbox (PR 11 of tool-class retirement)`
 - `agents: break the tool-permissions/capabilities import cycle that deadlocked the bundled backend`
+- `agents+websocket: the ui and graph-planner capabilities leave mcp-tools (PR 13 of tool-class retirement)`
+
+PR 13 ported the last two capability-shaped `Tool` classes in `mcp-tools.ts`.
+`WorkflowDocumentTool` became the **`ui`** module — one capability per
+document-tool name, the registry on the run instead of in a constructor — and
+survives as a thin `CapabilityTool` subclass that keeps the Zod schema, so the
+class path still validates exactly once. `PlanWorkflowGraphTool` was deleted
+outright: its spec and implementation are `plan_workflow_graph` in the
+`workflows` module, and its constructor options became
+`CapabilityRun.graphPlanner` (provider, model, forwardMessage, signal), built
+where the constructor stood, in `unified-websocket-runner.ts`. The wrapper
+reads a new `CapabilitySpec.needsToolCallId`, which is how the planner's events
+keep nesting under the caller's card. The capability is registry-visible but
+not on the belt: only a host that can build a `graphPlanner` run can serve it.
 
 ### The esbuild async-cycle lesson
 
@@ -780,20 +794,20 @@ and records the rest as named debt:
 
 ### Measured `extends Tool`
 
-Before (recorded above): **180 occurrences across 77 files**. After PR 12:
-**84 across 52 files** (64 of them in `packages/agents`, tests included), plus
-**88 `extends CapabilityTool` across 30 files** — the deprecated subclasses that
-now carry no implementation of their own. Outside `packages/agents` the
-remaining `Tool` subclasses are the ones listed above, and the fake tools in the
-`chat` and `code-nodes` test suites.
+Before (recorded above): **180 occurrences across 77 files**. After PR 13
+landed on top of the fifteen deletions below: **32 across 24 files** (source
+only — `packages/**`, no `dist/`, no test directories), plus
+**92 `extends CapabilityTool` across 31 files** — the deprecated subclasses
+that carry no implementation of their own. Outside `packages/agents` the
+remaining `Tool` subclasses are the ones listed above, and the fake tools in
+the `chat` and `code-nodes` test suites.
 
 `packages/agents/tests/capabilities-coverage.test.ts` is what keeps the count
 from growing back: everything `getBuiltinTools()` and `getAllMcpTools({})`
-assemble must resolve through `findCapability`, and the seventeen that do not
-are pinned by name with a reason — the eight workflow-document `ui_*` schemas,
-which route to a renderer or a direct registry write rather than to a host
-function, and the nine provider-specific duplicates in
-`AGENT_TOOLBELT_EXCLUDED`, each of which a routed capability already covers.
+assemble must resolve through `findCapability`. Its exception list is
+**empty** — PR 13 unpinned the eight workflow-document `ui_*` schemas and the
+deletions below retired the nine `AGENT_TOOLBELT_EXCLUDED` names, so every
+belt name is a capability.
 
 ### Two counters, not one (2026-08-11)
 

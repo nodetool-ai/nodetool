@@ -138,11 +138,7 @@ import {
   type ControlMessageInType
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import {
-  RunSubtaskTool,
-  RunSearchTool,
-  PlanWorkflowGraphTool
-} from "@nodetool-ai/agents";
+import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
@@ -163,9 +159,13 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
+  toolFromCapability,
+  planWorkflowGraph,
+  UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
   type CapabilityRun,
+  type GraphPlannerRuntime,
   type PermissionGateOptions,
   type SubAgentRuntime,
   type PermissionMode,
@@ -2953,7 +2953,8 @@ export class UnifiedWebSocketRunner {
       );
       const total = items.reduce(
         (sum, item) =>
-          sum + (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
+          sum +
+          (Number.isFinite(item.estimated_cost) ? item.estimated_cost : 0),
         0
       );
       return { usesNodetool: items.length > 0, estimatedUsd: total };
@@ -5242,9 +5243,7 @@ export class UnifiedWebSocketRunner {
         uiContext,
         workflowId
       );
-      return codeactPromptSection
-        ? `${base}\n\n${codeactPromptSection}`
-        : base;
+      return codeactPromptSection ? `${base}\n\n${codeactPromptSection}` : base;
     };
     const systemChatMessage = (): ProviderMessage => ({
       role: "system",
@@ -5361,28 +5360,41 @@ export class UnifiedWebSocketRunner {
     ];
     // GraphPlanner as a chat tool: builds a workflow graph from an objective
     // using the session's provider/model. Needs the in-process node registry.
+    let graphPlanner: GraphPlannerRuntime | undefined;
     if (this.nodeRegistry) {
+      const graphPlannerRegistry = this.nodeRegistry;
+      graphPlanner = {
+        provider,
+        model,
+        signal: () => this.chatAbort?.signal,
+        forwardMessage: async (msg: ProcessingMessage) => {
+          const enriched: Record<string, unknown> = {
+            ...(msg as unknown as Record<string, unknown>)
+          };
+          if (enriched.thread_id == null) enriched.thread_id = threadId;
+          if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
+          await this.sendMessage(enriched);
+          // The planner's discovery/submit tool calls arrive as transient
+          // tool_call_update events. Emit a persistent card so the chat UI
+          // shows what the planner is doing, nested under the parent
+          // plan_workflow_graph card.
+          await this.emitSyntheticToolCallCard(enriched);
+        }
+      };
+      const planning = graphPlanner;
       rawToolbelt.push(
-        new PlanWorkflowGraphTool({
-          provider,
-          model,
-          registry: this.nodeRegistry,
-          providers: chatProviders,
-          signal: () => this.chatAbort?.signal,
-          forwardMessage: async (msg) => {
-            const enriched: Record<string, unknown> = {
-              ...(msg as unknown as Record<string, unknown>)
-            };
-            if (enriched.thread_id == null) enriched.thread_id = threadId;
-            if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
-            await this.sendMessage(enriched);
-            // The planner's discovery/submit tool calls arrive as transient
-            // tool_call_update events. Emit a persistent card so the chat UI
-            // shows what the planner is doing, nested under the parent
-            // plan_workflow_graph card.
-            await this.emitSyntheticToolCallCard(enriched);
-          }
-        })
+        toolFromCapability(
+          planWorkflowGraph.spec,
+          planWorkflowGraph.impl,
+          (context) =>
+            createCapabilityRun({
+              context,
+              gate: UNGATED,
+              nodeRegistry: graphPlannerRegistry,
+              providers: chatProviders,
+              graphPlanner: planning
+            })
+        )
       );
     }
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
@@ -5563,6 +5575,7 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
+      graphPlanner,
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });

@@ -7,6 +7,11 @@
  * — and asserts each name resolves through `findCapability`, unless it sits in
  * the pinned exception list below with a reason a reviewer can read.
  *
+ * The list is empty now. The eight workflow-document `ui_*` schemas became the
+ * `ui` capability module, and the nine provider-specific duplicates were
+ * retired outright — the media four deleted, the search five converted to the
+ * backend functions `web_search` / `google_news` / `google_images` call.
+ *
  * The reverse direction is asserted too: where a deprecated `Tool` subclass
  * still stands in front of a capability, its wire identity and description
  * must be the capability's, or the two have drifted and a caller sees a
@@ -14,7 +19,6 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { getBuiltinTools } from "../src/tools/builtin-tools.js";
 import { getAllMcpTools } from "../src/tools/mcp-tools.js";
 import { findCapability } from "../src/capabilities/registry.js";
@@ -28,19 +32,7 @@ const REGISTER_A_CAPABILITY =
  * Names in the assembled belt that no capability module owns. Each line states
  * why. Anything else missing is a regression, and the failure names this list.
  */
-const PINNED_EXCEPTIONS: Readonly<Record<string, string>> = {
-  // The eight workflow-document tools are schemas, not host functions: the MCP
-  // mount routes them to a connected renderer and `WorkflowDocumentTool` falls
-  // back to a direct registry write. They become the pack's `ui` module.
-  ui_add_node: "workflow document schema, routed to a renderer/registry",
-  ui_connect_nodes: "workflow document schema, routed to a renderer/registry",
-  ui_delete_edge: "workflow document schema, routed to a renderer/registry",
-  ui_delete_node: "workflow document schema, routed to a renderer/registry",
-  ui_get_graph: "workflow document schema, routed to a renderer/registry",
-  ui_move_node: "workflow document schema, routed to a renderer/registry",
-  ui_set_node_title: "workflow document schema, routed to a renderer/registry",
-  ui_update_node_data: "workflow document schema, routed to a renderer/registry"
-};
+const PINNED_EXCEPTIONS: Readonly<Record<string, string>> = {};
 
 function assembleBelt(): Map<string, Tool> {
   const byName = new Map<string, Tool>();
@@ -80,10 +72,8 @@ describe("capability coverage", () => {
     expect(stale).toEqual([]);
   });
 
-  it("pins what the exceptions are: the workflow document schemas, nothing else", () => {
-    const pinned = new Set(Object.keys(PINNED_EXCEPTIONS));
-    const expected = new Set<string>(WORKFLOW_DOCUMENT_TOOL_NAMES);
-    expect([...pinned].sort()).toEqual([...expected].sort());
+  it("pins nothing — every belt name is a capability", () => {
+    expect(Object.keys(PINNED_EXCEPTIONS)).toEqual([]);
   });
 
   it("a class in front of a capability keeps the capability's identity", async () => {
