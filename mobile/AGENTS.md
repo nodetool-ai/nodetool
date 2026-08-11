@@ -1,6 +1,6 @@
 # Mobile App
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Mobile**
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile**
 
 > **Read [docs/DEVELOPMENT_STANDARDS.md](../docs/DEVELOPMENT_STANDARDS.md) first** for the shared
 > TypeScript / React / Zustand / TanStack Query / testing standards. This file is the

@@ -47,4 +47,4 @@ schemas in `@nodetool-ai/protocol` (`webSocketCommandEnvelopeSchema`,
 that isn't rejected is exactly what a real client should never be able to send.
 
 API reference: see the `nodetool-api-reference` skill and the root
-[CLAUDE.md](../../CLAUDE.md).
+[AGENTS.md](../../AGENTS.md).

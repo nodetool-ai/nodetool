@@ -6,7 +6,7 @@ allowed-tools: Bash, Read, Grep, Glob, Agent
 Give a working orientation for someone about to change: **$ARGUMENTS**
 (if that is empty, orient on the repo generally).
 
-Read `CLAUDE.md` first — it is the source of truth for commands, architecture,
+Read `AGENTS.md` first — it is the source of truth for commands, architecture,
 and pitfalls. Then find and report:
 
 - **Which workspace owns this.** 55 packages under `packages/`, plus `web/`,
@@ -19,7 +19,7 @@ and pitfalls. Then find and report:
   ones.
 - **What to run to see it work.** The specific command — `./start.sh`, a
   targeted test file, `npm run dev:nodetool -- node run <type>`.
-- **The pitfalls that apply here.** From `CLAUDE.md § Common Pitfalls`: the
+- **The pitfalls that apply here.** From `AGENTS.md § Common Pitfalls`: the
   `dist/` decorator packages, MsgPack framing on the WebSocket, `ui_primitives`
   and design tokens for anything in `web/`, ESM `.js` import extensions.
 

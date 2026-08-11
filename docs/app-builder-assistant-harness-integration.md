@@ -3,7 +3,7 @@
 **Status:** Draft — for review
 **Related:** [mini-app-build-harness-prd.md](mini-app-build-harness-prd.md) ·
 [mini-app-build-harness-design.md](mini-app-build-harness-design.md) ·
-[app-builder.md](app-builder.md) · `nodetool app debug` (CLAUDE.md)
+[app-builder.md](app-builder.md) · `nodetool app debug` (AGENTS.md)
 
 The best way to give the in-editor App Builder assistant the harness's
 feedback loop, and the ways that look right but aren't.
