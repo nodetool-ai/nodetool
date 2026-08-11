@@ -5,9 +5,7 @@ import { tmpdir } from "node:os";
 import {
   ListDocumentsNode,
   LoadDocumentFileNode,
-  SaveDocumentFileNode,
-  SplitMarkdownNode,
-  SplitRecursivelyNode
+  SaveDocumentFileNode
 } from "@nodetool-ai/document-nodes";
 
 async function collectGen<T>(iter: AsyncGenerator<T>): Promise<T[]> {
@@ -58,74 +56,5 @@ describe("document node parity", () => {
     const recursiveItems = recursive.filter((item) => "document" in item);
     expect(recursiveItems).toHaveLength(1);
     expect(String(recursiveItems[0]?.document?.uri)).toContain("deep.md");
-  });
-
-  it("matches Python-style recursive and markdown split metadata", async () => {
-    const splitRecNode = new SplitRecursivelyNode();
-    Object.assign(splitRecNode, {
-      document: {
-        uri: "test-doc",
-        text: "First line\nSecond line\nThird line"
-      },
-      chunk_size: 20,
-      chunk_overlap: 0,
-      separators: ["\n\n", "\n", "."]
-    });
-    const recursiveChunks = await collectGen(splitRecNode.genProcess());
-    // Last yield is the collected chunks list
-    const recursiveItems = recursiveChunks.filter((item) => !("chunks" in item));
-
-    expect(recursiveItems).toEqual([
-      {
-        chunk: "First line",
-        text: "First line",
-        source_id: "test-doc:0",
-        start_index: 0
-      },
-      {
-        chunk: "Second line",
-        text: "Second line",
-        source_id: "test-doc:1",
-        start_index: 11
-      },
-      {
-        chunk: "Third line",
-        text: "Third line",
-        source_id: "test-doc:2",
-        start_index: 23
-      }
-    ]);
-
-    const splitMdNode = new SplitMarkdownNode();
-    Object.assign(splitMdNode, {
-      document: {
-        uri: "test-md-doc",
-        text: "# Header 1\nContent 1\n## Header 2\nContent 2"
-      },
-      headers_to_split_on: [
-        ["#", "Header 1"],
-        ["##", "Header 2"]
-      ],
-      strip_headers: true
-    });
-    const markdownChunks = await collectGen(splitMdNode.genProcess());
-    const markdownItems = markdownChunks.filter((item) => !("chunks" in item));
-
-    expect(markdownItems).toEqual([
-      {
-        chunk: "Content 1",
-        text: "Content 1",
-        source_id: "test-md-doc",
-        start_index: 0,
-        metadata: { "Header 1": "Header 1" }
-      },
-      {
-        chunk: "Content 2",
-        text: "Content 2",
-        source_id: "test-md-doc",
-        start_index: 1,
-        metadata: { "Header 1": "Header 1", "Header 2": "Header 2" }
-      }
-    ]);
   });
 });

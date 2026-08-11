@@ -42,17 +42,8 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "documents",
     label: "Documents",
-    description:
-      "Read, write, and convert PDF, Word, PowerPoint, EPUB, Markdown, and HTML.",
-    namespaces: [
-      "lib.pdf",
-      "lib.docx",
-      "lib.pptx",
-      "lib.epub",
-      "lib.markdown",
-      "lib.html",
-      "lib.convert"
-    ]
+    description: "Rasterize a PDF.",
+    namespaces: ["lib.pdf"]
   },
   {
     id: "imaging",

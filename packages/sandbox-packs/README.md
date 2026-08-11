@@ -22,6 +22,10 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-zip` | fflate | host | the 50 MB inflation cap (below) |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host | WASM engine, workers, downloads its language data |
 | `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host | model weights outlive a run and outsize the guest heap |
+| `@nodetool-ai/sandbox-docx` | docx | host | builds from class instances, not data |
+| `@nodetool-ai/sandbox-mammoth` | mammoth | host | Node's own zip/XML stack |
+| `@nodetool-ai/sandbox-epub` | epub2 | host | reads from a file path, not a buffer |
+| `@nodetool-ai/sandbox-pptx` | office-text-extractor | host | Node's own zip/XML stack |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host | signing chain the guest has no library for |
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host | first-party, so a pack cannot bring it |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host | first-party |

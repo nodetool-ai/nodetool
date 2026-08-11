@@ -4,25 +4,20 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tmpdir } from "node:os";
-import { mkdtempSync, writeFileSync, mkdirSync } from "node:fs";
+import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 
 import {
   // lib-pedalboard-extra
   PitchShiftNode,
   TimeStretchNode,
-  // lib-pdf (ExtractTablesPdfPlumberNode, ExtractMarkdownPyMuPdfNode removed)
-  // lib-docx
-  AddImageLibNode,
   // lib-ytdlp
   YtDlpDownloadLibNode,
   // lib-audio-dsp
   GainNode_,
   // lib-grid
   SliceImageGridLibNode,
-  CombineImageGridLibNode,
-  // lib-markitdown
-  ConvertToMarkdownLibNode
+  CombineImageGridLibNode
 } from "../src/index.js";
 
 // ── WAV helper: create WAV with configurable bits/channels ──────
@@ -186,90 +181,6 @@ describe("lib-pedalboard-extra coverage", () => {
     }).process();
     const output = result.output as Record<string, unknown>;
     expect(output).toHaveProperty("data");
-  });
-});
-
-// ── lib-os: openPath ─────────────────────────────────────────────
-
-// ── lib-docx: AddImage edge cases ────────────────────────────────
-
-describe("lib-docx AddImage coverage", () => {
-  it("AddImage with string path", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "docx-test-"));
-    const imgPath = join(tmpDir, "test.png");
-    // Create a minimal PNG (1x1 pixel)
-    const sharp = (await import("sharp")).default;
-    const pngBuf = await sharp({
-      create: {
-        width: 1,
-        height: 1,
-        channels: 3,
-        background: { r: 255, g: 0, b: 0 }
-      }
-    })
-      .png()
-      .toBuffer();
-    writeFileSync(imgPath, pngBuf);
-
-    const result = await new AddImageLibNode({
-      document: { elements: [] },
-      image: imgPath,
-      width: 100,
-      height: 100
-    }).process();
-    expect((result.output as any).elements.length).toBe(1);
-  });
-
-  it("AddImage with image object with uri", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "docx-test-"));
-    const imgPath = join(tmpDir, "test.png");
-    const sharp = (await import("sharp")).default;
-    const pngBuf = await sharp({
-      create: {
-        width: 1,
-        height: 1,
-        channels: 3,
-        background: { r: 0, g: 255, b: 0 }
-      }
-    })
-      .png()
-      .toBuffer();
-    writeFileSync(imgPath, pngBuf);
-
-    const result = await new AddImageLibNode({
-      document: { elements: [] },
-      image: { uri: `file://${imgPath}` },
-      width: 50,
-      height: 50
-    }).process();
-    expect((result.output as any).elements.length).toBe(1);
-  });
-
-  it("AddImage with image object with empty uri throws", async () => {
-    await expect(
-      new AddImageLibNode({
-        document: { elements: [] },
-        image: { uri: "" }
-      }).process()
-    ).rejects.toThrow("Image path is not set");
-  });
-
-  it("AddImage with invalid image input throws", async () => {
-    await expect(
-      new AddImageLibNode({
-        document: { elements: [] },
-        image: 12345
-      }).process()
-    ).rejects.toThrow("Invalid image input");
-  });
-
-  it("AddImage with no elements in document", async () => {
-    await expect(
-      new AddImageLibNode({
-        document: "not_a_doc",
-        image: 12345
-      }).process()
-    ).rejects.toThrow("Invalid image input");
   });
 });
 
@@ -437,34 +348,5 @@ describe("lib-grid coverage", () => {
     const output = result.output as { type: string; data: Uint8Array };
     expect(output.type).toBe("image");
     expect(output.data.length).toBeGreaterThan(0);
-  });
-});
-
-// ── lib-markitdown: unreachable throw ────────────────────────────
-
-describe("lib-markitdown coverage", () => {
-  it("ConvertToMarkdown with non-DOCX URI (file read, HTML content)", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "markitdown-test-"));
-    const htmlPath = join(tmpDir, "test.html");
-    writeFileSync(htmlPath, "<h1>Hello</h1><p>World</p>");
-
-    const result = await new ConvertToMarkdownLibNode({
-      document: { uri: htmlPath, data: "" }
-    }).process();
-    const output = result.output as string;
-    expect(typeof output).toBe("string");
-    expect(output.length).toBeGreaterThan(0);
-    expect(output).toContain("Hello");
-  });
-
-  it("ConvertToMarkdown with non-DOCX URI (file read, plain text)", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "markitdown-test-"));
-    const txtPath = join(tmpDir, "test.txt");
-    writeFileSync(txtPath, "Just plain text without any HTML");
-
-    const result = await new ConvertToMarkdownLibNode({
-      document: { uri: txtPath, data: "" }
-    }).process();
-    expect(result.output).toContain("Just plain text");
   });
 });

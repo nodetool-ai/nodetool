@@ -2,7 +2,7 @@
 
 Visual AI workflow platform. TypeScript monorepo with React frontend, Electron desktop app, and Node.js backend.
 
-> _Last updated: 2026-07-11._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
+> _Last updated: 2026-08-10._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
 
 ## Communication Style
 
@@ -959,7 +959,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships sixteen packs in
+global — the `data.*` namespace is gone. NodeTool ships twenty packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
 installed like any third-party pack and never a workspace:
 
@@ -976,6 +976,10 @@ installed like any third-party pack and never a workspace:
 | `@nodetool-ai/sandbox-markdown` | marked | guest |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host |
 | `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host |
+| `@nodetool-ai/sandbox-docx` | docx | host |
+| `@nodetool-ai/sandbox-mammoth` | mammoth | host |
+| `@nodetool-ai/sandbox-epub` | epub2 | host |
+| `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |

@@ -155,11 +155,6 @@ export {
   LoadDocumentFileNode,
   SaveDocumentFileNode,
   ListDocumentsNode,
-  SplitDocumentNode,
-  SplitHTMLNode,
-  SplitJSONNode,
-  SplitRecursivelyNode,
-  SplitMarkdownNode,
   DOCUMENT_NODES
 } from "@nodetool-ai/document-nodes/nodes/document";
 export {
@@ -349,11 +344,6 @@ export {
 } from "@nodetool-ai/video-nodes/nodes/model3d";
 export { GetSecretLibNode, LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
 export {
-  ConvertFilePandocLibNode,
-  ConvertTextPandocLibNode,
-  LIB_PANDOC_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-doc-transform";
-export {
   YtDlpDownloadLibNode,
   LIB_YTDLP_NODES
 } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
@@ -404,10 +394,6 @@ export {
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
-export {
-  ConvertToMarkdownLibNode,
-  LIB_MARKITDOWN_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
 export { ChartRendererLibNode, LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 export {
   GainNode_,
@@ -441,18 +427,6 @@ export {
   LIB_GOOGLE_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 export {
-  CreateDocumentLibNode,
-  LoadWordDocumentLibNode,
-  AddHeadingLibNode,
-  AddParagraphLibNode,
-  AddTableLibNode,
-  AddImageLibNode,
-  AddPageBreakLibNode,
-  SetDocumentPropertiesLibNode,
-  SaveDocumentLibNode,
-  LIB_DOCX_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-docx";
-export {
   BitcrushNode,
   CompressNode,
   DistortionNode,
@@ -465,30 +439,10 @@ export {
   LIB_PEDALBOARD_EXTRA_NODES
 } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 export {
-  PdfPageCountNode,
-  PdfExtractTextNode,
-  PdfExtractMarkdownNode,
-  PdfExtractTablesNode,
-  PdfExtractTextBlocksNode,
-  PdfExtractStyledTextNode,
-  PdfPageMetadataNode,
   PdfScreenshotNode,
-  PdfSearchTextNode,
-  PdfExtractOcrNode,
+  PdfToppmNode,
   LIB_PDF_NODES
 } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
-export {
-  EpubMetadataLibNode,
-  EpubTableOfContentsLibNode,
-  EpubExtractTextLibNode,
-  EpubExtractChaptersLibNode,
-  LIB_EPUB_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-epub";
-export {
-  PptxExtractTextLibNode,
-  PptxExtractSlidesLibNode,
-  LIB_PPTX_NODES
-} from "@nodetool-ai/document-nodes/nodes/lib-pptx";
 export {
   KieAINode,
   KIE_DYNAMIC_NODES,
@@ -570,7 +524,6 @@ import { SHOTS_NODES } from "@nodetool-ai/llm-nodes/nodes/shots";
 import { MODEL3D_NODES } from "@nodetool-ai/video-nodes/nodes/model3d";
 import { LIB_APPLE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-apple";
 import { LIB_SECRET_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-secret";
-import { LIB_PANDOC_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-transform";
 import { LIB_YTDLP_NODES } from "@nodetool-ai/video-nodes/nodes/lib-video-download";
 import { LIB_GRID_NODES } from "@nodetool-ai/image-nodes/nodes/lib-grid";
 import { LIB_SVG_NODES } from "@nodetool-ai/text-nodes/nodes/lib-svg";
@@ -580,15 +533,11 @@ import { LIB_IMAGE_DRAW_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-d
 import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color-grading";
 import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
-import { LIB_DOCX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-docx";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
-import { LIB_MARKITDOWN_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
-import { LIB_EPUB_NODES } from "@nodetool-ai/document-nodes/nodes/lib-epub";
-import { LIB_PPTX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
 import { LIB_GOOGLE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
@@ -642,7 +591,6 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...MODEL3D_NODES,
   ...(process.platform === "darwin" ? LIB_APPLE_NODES : []),
   ...LIB_SECRET_NODES,
-  ...LIB_PANDOC_NODES,
   ...LIB_YTDLP_NODES,
   ...LIB_GRID_NODES,
   ...LIB_SVG_NODES,
@@ -652,15 +600,11 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_COLOR_GRADING_NODES,
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
-  ...LIB_DOCX_NODES,
   ...LIB_BROWSER_NODES,
   ...LIB_MAIL_NODES,
-  ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
-  ...LIB_EPUB_NODES,
-  ...LIB_PPTX_NODES,
   ...LIB_GOOGLE_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,

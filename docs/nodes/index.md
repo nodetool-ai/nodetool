@@ -3,7 +3,7 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 560 NodeTool nodes across 77 namespaces.
+Complete reference documentation for all 528 NodeTool nodes across 72 namespaces.
 
 ## Namespaces
 
@@ -37,10 +37,6 @@ Complete reference documentation for all 560 NodeTool nodes across 77 namespaces
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
-- **[lib.convert](lib/convert/)** - 1 node(s)
-- **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
-- **[lib.docx](lib/docx/)** - 9 node(s)
-- **[lib.epub](lib/epub/)** - 4 node(s)
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)
@@ -52,8 +48,7 @@ Complete reference documentation for all 560 NodeTool nodes across 77 namespaces
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
 - **[lib.mail](lib/mail/)** - 3 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
-- **[lib.pdf](lib/pdf/)** - 11 node(s)
-- **[lib.pptx](lib/pptx/)** - 2 node(s)
+- **[lib.pdf](lib/pdf/)** - 2 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
 - **[lib.svg](lib/svg/)** - 14 node(s)
@@ -85,7 +80,7 @@ Complete reference documentation for all 560 NodeTool nodes across 77 namespaces
 - **[nodetool.constant](nodetool/constant/)** - 30 node(s)
 - **[nodetool.control](nodetool/control/)** - 22 node(s)
 - **[nodetool.data](nodetool/data/)** - 2 node(s)
-- **[nodetool.document](nodetool/document/)** - 8 node(s)
+- **[nodetool.document](nodetool/document/)** - 3 node(s)
 - **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
