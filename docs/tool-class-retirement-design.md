@@ -369,8 +369,20 @@ three must hold:
   `capabilities-coverage.test.ts` does not and should not see it.
 
 Named instances: `submit_graph`, `submit_code`, `add_task` / `remove_task` /
-`finish_plan`, `create_task`, `finish_step`, the per-edge `control_*` tools, and the
-eval fakes.
+`finish_plan`, `create_task`, `finish_step`, the per-edge `control_*` tools,
+`get_run_state` / `read_node_output`, and the eval fakes.
+
+The supervisor pair reads least like the others, so state why it belongs.
+`createSupervisorTools` builds a `GetRunStateTool` and a `ReadNodeOutputTool`
+**per decision**, bound to that decision's `Escalation` and the run's
+`RunStateReader` (`supervisor/supervisor-agent.ts:150-158`), and hands them to
+a `StepExecutor` that never calls `gateTools`. All three properties hold: the
+state is the loop instance's, read back by the code that constructed it;
+nothing gates them, because the scoping *is* the control — `read_node_output`
+refuses a read outside the failing invocation's causal lineage, which no
+permission category expresses; and no belt assembles them, so
+`capabilities-coverage.test.ts` never sees them. Registering them would put one
+escalation on the run, which is the shape this design rejects.
 
 Schema-per-tool is the mechanism here, not an artifact of the old design, because
 **the provider owns the loop** — the comment at `graph-planner.ts:441` records that
@@ -996,3 +1008,70 @@ way every wrapped tool does. The CodeAct executor's upstream-context line
 teaches `await nodetool.shared.read([...])` instead of
 `await tools.read_shared({keys: [...]})`, and a `shared-handoff` eval case keeps
 the namespace covered.
+
+### The survey, the sandbox packs, and what the count is made of (2026-08-12)
+
+Eager specs left thirty-five `extends Tool` subclasses. A survey classified
+every one of them, which is the first time the second counter has an itemized
+answer rather than a total:
+
+| Kind | Count | Where it goes |
+|---|---|---|
+| Loop-protocol | 12 | Exempt by kind — the enumeration above, plus the eval and harness fakes |
+| Supervisor | 2 | Exempt by kind; tracked nowhere until now, hence the paragraph above |
+| Infrastructure | 3 | `CapabilityTool`, `LazyCapabilityTool`, `GatedCapabilityTool` — the wrappers that *serve* capabilities |
+| Sandbox packs | 2 | Ported by this commit |
+| Run-scoped memory | 3 | `list_shared` / `read_shared` / `share_result` — ported by the `shared` module above |
+| Genuinely dynamic / host bridge | 13 | Pending an interface conversion, not a port |
+
+The last row is the honest remainder: the websocket UI bridges and
+`list_renderers`, `RunNodeTool`, `SandboxTool`, `SubAgentTool`, the two
+browser-agent factories, the Code-node tool factory, and the CLI's
+`execute_code` shim. None is a spec plus a function. Each is either a *factory*
+whose identity is built at run time from something no spec table can hold (a
+node's dynamic slots, a pack's manifest), or a bridge whose implementation is a
+transport. They move when the interface they sit on moves — a `Tool[]` belt
+becoming a capability list — not by being rewritten as capabilities first.
+
+**What this commit ported.** `SandboxPackageDocsTool` and
+`SandboxPackageListTool` become the **`packs`** module — the namespace
+`nodetool.packs.*` already wrapped them under. Their three constructor
+arguments (allowlist, catalog, whether the host mounts platform modules) are
+per-*session* state, not per-run: the allowlist is computed where the session
+is built. So it rides in the implementation's closure and reaches a belt
+through `toolFromCapability`, the shape `createSearchTool` uses, instead of
+becoming three fields on `CapabilityRun` for two capabilities. The registry
+serves the specs — wire names, Zod schemas, `read` classification, the drift
+walk — behind an implementation that fails closed naming
+`nodetool.packs.list()`, which is what the dispatcher's contract asks of a
+capability whose dependency the run does not carry. `CapabilityTool` gained the
+`zodSchema` accessor `toolFromLazyCapability` already had, so a malformed call
+still comes back as `invalid_tool_arguments`.
+
+The two `SubAgentTool` belt sites — `unified-websocket-runner.ts` and the CLI's
+`stdin.ts` — now name `run_subtask` / `run_search` over a run carrying that
+turn's `subAgent`. The classes still run, one per call, so the depth gate, the
+read-only filter, and `buildChildToolset`'s self-stitching are untouched; both
+hosts still snapshot the parent belt *before* the unshift, which is what makes
+that stitching necessary and correct. The move surfaced a real gap: neither
+spec carried `needsToolCallId`, which `SubAgentTool` declares, so a belt built
+from the specs would have dropped `parent_tool_call_id` and un-nested every
+child card in the chat UI. Both specs declare it now.
+
+**Re-measured** (source only — `packages/**`, no `dist/`, no test
+directories): **31 `extends Tool` across 23 files**, down from 33 across 25.
+Three of the thirty-one are the wrappers, and the loop-protocol group is the
+bulk of the rest.
+
+**`capabilityFromTool` must live until belts stop being `Tool[]`.** PR 12
+recorded it as load-bearing in `gateTools`; the survey says why more precisely.
+The two `gateTools` call sites — `agent.ts:426` and
+`unified-websocket-runner.ts:5428` — gate *heterogeneous* belts: registry-backed
+tools next to host-constructed ones (`RunNodeTool`, the UI bridges, a
+Code-node's dynamic tool). `capabilityFromTool` is what gives a non-registry
+tool a category at all, by reading the classification map. Delete it and those
+tools reach `invoke` with no category, which is exactly the fail-open the
+required `CapabilitySpec.category` exists to prevent. The runner uses it a
+third time on purpose, at `:5589`, to hand `run_node` to a `CapabilityRun` as a
+host-supplied capability. It goes when a belt is a capability list, and not
+before.
