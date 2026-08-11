@@ -70,6 +70,9 @@ export const runSubtaskSpec: CapabilitySpec = {
   name: "run_subtask",
   description: RUN_SUBTASK_DESCRIPTION,
   inputSchema: RUN_SUBTASK_SCHEMA,
+  // The child's events nest under the caller's card, which needs the caller's
+  // tool-call id. `SubAgentTool` declares the same thing on the class path.
+  needsToolCallId: true,
   // The child loop's own tools are gated inside it, so spawning one has no
   // side effect of its own.
   category: "read",
@@ -88,6 +91,8 @@ export const runSearchSpec: CapabilitySpec = {
   // class cannot drift apart.
   description: READ_ONLY_SEARCH_DESCRIPTION,
   inputSchema: RUN_SEARCH_SCHEMA,
+  // As for `run_subtask`: the search loop's events nest under the caller.
+  needsToolCallId: true,
   // The child loop is filtered to a read-only allowlist and cannot recurse.
   category: "read",
   userMessage: (params) => {

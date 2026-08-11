@@ -138,7 +138,6 @@ import {
   type ControlMessageInType
 } from "@nodetool-ai/protocol";
 import { Tool } from "@nodetool-ai/agents";
-import { RunSubtaskTool, RunSearchTool } from "@nodetool-ai/agents";
 import {
   createChatCodeActSession,
   createSandboxClock,
@@ -5465,19 +5464,30 @@ export class UnifiedWebSocketRunner {
         parentTools: () => baseTools,
         forwardMessage: forwardSubtaskMessage
       };
-      serverTools.unshift(new RunSubtaskTool(subAgentRuntime));
+      // Both delegation tools reach the belt as capabilities over this
+      // runtime. The class is still what runs — the `agents` module builds one
+      // per call — so the depth gate, the child's inherited belt (with a
+      // `run_subtask` of its own stitched in by `buildChildToolset`, since this
+      // snapshot deliberately predates the unshift), and the
+      // `parent_tool_call_id` / `subtask_depth` tagging are unchanged.
+      const delegationRun = (context: ProcessingContext) =>
+        createCapabilityRun({
+          context,
+          // Ungated on purpose, as before: spawning a child loop has no side
+          // effect of its own, and the child's tools are the gated `baseTools`.
+          gate: UNGATED,
+          subAgent: subAgentRuntime
+        });
+      serverTools.unshift(
+        toolForCapabilityName("run_subtask", delegationRun)
+      );
 
-      // Read-only fan-out search (opt-in). Reuses the same forwarder and the
-      // baseTools snapshot — RunSearchTool internally filters baseTools to its
-      // read-only allowlist, so passing the full snapshot is correct.
+      // Read-only fan-out search (opt-in). Reuses the same runtime — the
+      // capability filters the parent belt to its read-only allowlist
+      // internally, so passing the full snapshot is correct.
       if (enableReadOnlySearch) {
         serverTools.unshift(
-          new RunSearchTool({
-            provider,
-            model,
-            parentTools: () => baseTools,
-            forwardMessage: forwardSubtaskMessage
-          })
+          toolForCapabilityName("run_search", delegationRun)
         );
       }
     }
