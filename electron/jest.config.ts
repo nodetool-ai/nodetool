@@ -35,6 +35,9 @@ export default {
   modulePathIgnorePatterns: [
     '<rootDir>/backend-bundle/',
     '<rootDir>/dist/',
+    // The downloaded Node runtime. Gitignored, which Jest does not read, so
+    // without this it collects npm's own `lib/commands/test.js` as a suite.
+    '<rootDir>/.node-runtime/',
   ],
   collectCoverageFrom: [
     'src/**/*.{js,ts}',
@@ -54,5 +57,6 @@ export default {
     '/dist-electron/',
     '/dist-web/',
     '/tests/e2e/',
+    '/\\.node-runtime/',
   ],
 }
