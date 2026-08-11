@@ -35,6 +35,7 @@ import {
   NodeRegistry,
   createGraphNodeTypeResolver
 } from "@nodetool-ai/node-sdk";
+import { NODE_TYPE_MIGRATIONS } from "@nodetool-ai/protocol";
 import { registerBaseNodes } from "../src/index.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -88,7 +89,14 @@ const ALLOWED_UNREGISTERED_TYPES = new Set<string>([
   "nodetool.lib.image.draw.RenderText",
 
   // ── 5. Test-only input marker recognised by the kernel runner ──────────
-  "test.Input"
+  "test.Input",
+
+  // ── 6. Removed nodes with a graph migration ─────────────────────────────
+  // `NODE_TYPE_MIGRATIONS` (packages/protocol) rewrites these to a
+  // registered type — nodetool.code.Code for the Tier 1 text-node removals —
+  // during `Graph.loadFromDict`, so the raw type in a saved template is
+  // expected to look unregistered here.
+  ...NODE_TYPE_MIGRATIONS.map((m) => m.from)
 ]);
 
 interface WorkflowFile {
@@ -126,6 +134,7 @@ const registry = new NodeRegistry();
 registerBaseNodes(registry);
 const registeredTypes = new Set(registry.list());
 const resolver = createGraphNodeTypeResolver(registry);
+const migratedFromTypes = new Set(NODE_TYPE_MIGRATIONS.map((m) => m.from));
 
 function isKnownType(nodeType: string): boolean {
   return registeredTypes.has(nodeType) || ALLOWED_UNREGISTERED_TYPES.has(nodeType);
@@ -246,8 +255,14 @@ describe.each(workflows)("workflow $fileName", ({ data, fileName }) => {
       skipErrors: true,
       allowUndefinedProperties: true
     });
-    const expectedSurvivors = nodes.filter((n) =>
-      registeredTypes.has(n.type as string)
+    // A node whose raw type has a NODE_TYPE_MIGRATIONS entry survives
+    // hydration too — Graph.loadFromDict rewrites it to a registered type
+    // (e.g. nodetool.code.Code) before validating, so it is not dropped by
+    // skipErrors the way a genuinely unknown type would be.
+    const expectedSurvivors = nodes.filter(
+      (n) =>
+        registeredTypes.has(n.type as string) ||
+        migratedFromTypes.has(n.type as string)
     ).length;
     expect(graph.nodes.length).toBe(expectedSurvivors);
   });

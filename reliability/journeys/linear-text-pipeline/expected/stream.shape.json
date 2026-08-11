@@ -14,11 +14,14 @@
       "type": "node_update",
       "node_id": "<node:0>",
       "node_name": "upper1",
-      "node_type": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.code.Code",
       "status": "running",
       "result": null,
       "error": null,
-      "properties": {},
+      "properties": {
+        "code": "return { output: inputs.text.toUpperCase() };",
+        "packages": []
+      },
       "provider_cost": null
     }
   },
@@ -74,11 +77,12 @@
       "type": "generation_complete",
       "node_id": "<node:0>",
       "node_name": "upper1",
-      "node_type": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.code.Code",
       "outputs": {
         "output": "HELLO RELIABILITY"
       },
       "properties": {
+        "code": "return { output: inputs.text.toUpperCase() };",
         "text": "hello reliability"
       }
     }
@@ -89,13 +93,16 @@
       "type": "node_update",
       "node_id": "<node:0>",
       "node_name": "upper1",
-      "node_type": "nodetool.text.ToUppercase",
+      "node_type": "nodetool.code.Code",
       "status": "completed",
       "result": {
         "output": "HELLO RELIABILITY"
       },
       "error": null,
-      "properties": {},
+      "properties": {
+        "code": "return { output: inputs.text.toUpperCase() };",
+        "packages": []
+      },
       "provider_cost": null
     }
   },

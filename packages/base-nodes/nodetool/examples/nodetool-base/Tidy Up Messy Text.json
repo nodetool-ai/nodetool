@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Tidy Up Messy Text",
   "tool_name": null,
-  "description": "Three cleanups in a row \u2014 collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
+  "description": "Three cleanups in a row — collapse runs of whitespace, strip punctuation, then lowercase. The order matters, which is the point of showing it as a chain rather than one node.",
   "tags": [
     "text",
     "example"
@@ -35,9 +35,10 @@
       },
       {
         "id": "cw",
-        "type": "nodetool.text.CollapseWhitespace",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": ""
+          "code": "const text = String(inputs.text ?? \"\");\nconst preserveNewlines = Boolean(inputs.preserve_newlines ?? false);\nconst replacement = String(inputs.replacement ?? \" \");\nconst trimEdges = inputs.trim_edges === undefined ? true : Boolean(inputs.trim_edges);\nconst value = trimEdges ? text.trim() : text;\nconst pattern = preserveNewlines ? /[^\\S\\r\\n]+/g : /\\s+/g;\nreturn { output: value.replace(pattern, replacement) };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -49,14 +50,26 @@
           "selectable": true,
           "title": "2  Collapse spaces"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "preserve_newlines": false,
+          "replacement": " ",
+          "trim_edges": true
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "rp",
-        "type": "nodetool.text.RemovePunctuation",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": ""
+          "code": "return { output: inputs.text.replace(/[!\"#$%&'()*+,\\-./:;<=>?@[\\\\\\]^_`{|}~]/g, \"\") };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -68,14 +81,23 @@
           "selectable": true,
           "title": "3  Strip punctuation"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "lc",
-        "type": "nodetool.text.ToLowercase",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": ""
+          "code": "return { output: inputs.text.toLowerCase() };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -87,8 +109,16 @@
           "selectable": true,
           "title": "4  Lowercase"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",

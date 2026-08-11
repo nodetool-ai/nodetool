@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Wrap a Value in Quotes",
   "tool_name": null,
-  "description": "SurroundWith builds a fragment from a value \u2014 the small assembly step between a model's answer and a template that expects delimiters.",
+  "description": "SurroundWith builds a fragment from a value — the small assembly step between a model's answer and a template that expects delimiters.",
   "tags": [
     "text",
     "example"
@@ -35,11 +35,10 @@
       },
       {
         "id": "sw",
-        "type": "nodetool.text.SurroundWith",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "prefix": "\"",
-          "suffix": "\""
+          "code": "return { output: inputs.prefix + inputs.text + inputs.suffix };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -51,8 +50,18 @@
           "selectable": true,
           "title": "2  Add quotes"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "prefix": "\"",
+          "suffix": "\""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",

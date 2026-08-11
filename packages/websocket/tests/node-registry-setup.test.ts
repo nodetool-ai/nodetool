@@ -254,7 +254,7 @@ describe("applyCloudNodePolicy", () => {
     expect(remaining).toContain("nodetool.code.Code");
     // …the text namespace stays whole (toolkit + ASR + utilities)…
     expect(remaining).toContain("nodetool.text.Prompt");
-    expect(remaining).toContain("nodetool.text.RegexMatch");
+    expect(remaining).toContain("nodetool.text.Embedding");
     expect(remaining).toContain("nodetool.text.CountTokens");
     expect(remaining).toContain("nodetool.text.AutomaticSpeechRecognition");
     // …except the host-filesystem text nodes, which are denied…

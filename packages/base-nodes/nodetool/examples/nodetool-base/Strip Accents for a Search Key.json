@@ -18,7 +18,7 @@
         "id": "s",
         "type": "nodetool.constant.String",
         "data": {
-          "value": "Caf\u00e9 Gr\u00f6\u00dfe \u00c5ngstr\u00f6m"
+          "value": "Café Größe Ångström"
         },
         "ui_properties": {
           "position": {
@@ -35,9 +35,10 @@
       },
       {
         "id": "sa",
-        "type": "nodetool.text.StripAccents",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": ""
+          "code": "return { output: inputs.text.normalize(\"NFKD\").replace(/[\\u0300-\\u036f]/g, \"\") };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -49,8 +50,16 @@
           "selectable": true,
           "title": "2  Strip accents"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",

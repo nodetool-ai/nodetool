@@ -119,4 +119,218 @@ describe("migrateGraphNodeTypes", () => {
     expect(m?.to).toBe("nodetool.text.Prompt");
     expect(m?.renameProperties).toEqual({ template: "prompt" });
   });
+
+  // -------------------------------------------------------------------------
+  // Tier 1 (docs/CODE_NODE_COVERAGE.md) — removed nodetool.text.* nodes
+  // rewritten to nodetool.code.Code with the matching snippet's code.
+  // -------------------------------------------------------------------------
+  describe("Tier 1 text-node -> Code node migrations", () => {
+    it("migrates Split to Code with text preserved as a dynamic input", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.Split",
+            data: { text: "a,b,c", delimiter: "," }
+          }
+        ],
+        edges: []
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toContain("inputs.text.split");
+      expect(node.data.packages).toEqual([]);
+      // The old node's properties become dynamic inputs — no declared props
+      // survive on a node whose config the Code node reads dynamically.
+      expect(node.data.text).toBeUndefined();
+      expect(node.data.delimiter).toBeUndefined();
+      expect(node.dynamic_properties).toEqual({
+        text: "a,b,c",
+        delimiter: ","
+      });
+    });
+
+    it("migrates RegexReplace to Code, wiring text/pattern/replacement as dynamic inputs", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.RegexReplace",
+            properties: {
+              text: "abc-123",
+              pattern: "\\d+",
+              replacement: "X",
+              count: 0
+            }
+          }
+        ],
+        edges: []
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.properties.code).toContain("inputs.pattern");
+      expect(node.dynamic_properties).toEqual({
+        text: "abc-123",
+        pattern: "\\d+",
+        replacement: "X",
+        count: 0
+      });
+    });
+
+    it("migrates ExtractRegex to Code and renames the regex property to pattern", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.ExtractRegex",
+            data: { text: "Hello World", regex: "(\\w+)" }
+          }
+        ],
+        edges: [
+          {
+            source: "src",
+            sourceHandle: "output",
+            target: "n1",
+            targetHandle: "regex"
+          }
+        ]
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toContain("inputs.pattern");
+      // The old `regex` prop is renamed to `pattern` before becoming a
+      // dynamic input, matching the snippet's inputs.pattern reference.
+      expect(node.dynamic_properties).toEqual({
+        text: "Hello World",
+        pattern: "(\\w+)"
+      });
+      expect(result.edges[0].targetHandle).toBe("pattern");
+    });
+
+    it("migrates ParseJSON to Code with the json-parse snippet", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.ParseJSON",
+            data: { text: '{"a":1}' }
+          }
+        ],
+        edges: []
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toBe("return { output: JSON.parse(inputs.text) };");
+      expect(node.dynamic_properties).toEqual({ text: '{"a":1}' });
+    });
+
+    it("migrates Compare to Code and renames text_a/text_b to a/b", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.Compare",
+            data: {
+              text_a: "Alpha",
+              text_b: "alpha",
+              case_sensitive: false
+            }
+          }
+        ],
+        edges: []
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toContain("inputs.a");
+      expect(node.data.code).toContain("inputs.b");
+      expect(node.dynamic_properties).toEqual({
+        a: "Alpha",
+        b: "alpha",
+        case_sensitive: false
+      });
+    });
+
+    it("migrates Replace to Code and renames old/new_value to search/replacement", () => {
+      const graph = {
+        nodes: [
+          {
+            id: "n1",
+            type: "nodetool.text.Replace",
+            data: { text: "hello world", old: "world", new_value: "there" }
+          }
+        ],
+        edges: []
+      };
+      const result = migrateGraphNodeTypes(graph);
+      const node = result.nodes[0];
+
+      expect(node.type).toBe("nodetool.code.Code");
+      expect(node.data.code).toBe(
+        "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };"
+      );
+      expect(node.dynamic_properties).toEqual({
+        text: "hello world",
+        search: "world",
+        replacement: "there"
+      });
+    });
+
+    it("covers every Tier 1 nodetool.text.* removal with a Code node migration", () => {
+      const expectedFromTypes = [
+        "nodetool.text.Split",
+        "nodetool.text.Extract",
+        "nodetool.text.Chunk",
+        "nodetool.text.ExtractRegex",
+        "nodetool.text.FindAllRegex",
+        "nodetool.text.ParseJSON",
+        "nodetool.text.ExtractJSON",
+        "nodetool.text.RegexMatch",
+        "nodetool.text.RegexReplace",
+        "nodetool.text.RegexSplit",
+        "nodetool.text.RegexValidate",
+        "nodetool.text.Compare",
+        "nodetool.text.Equals",
+        "nodetool.text.ToUppercase",
+        "nodetool.text.ToLowercase",
+        "nodetool.text.ToTitlecase",
+        "nodetool.text.CapitalizeText",
+        "nodetool.text.Slice",
+        "nodetool.text.StartsWith",
+        "nodetool.text.EndsWith",
+        "nodetool.text.Contains",
+        "nodetool.text.TrimWhitespace",
+        "nodetool.text.CollapseWhitespace",
+        "nodetool.text.IsEmpty",
+        "nodetool.text.RemovePunctuation",
+        "nodetool.text.StripAccents",
+        "nodetool.text.Slugify",
+        "nodetool.text.HasLength",
+        "nodetool.text.TruncateText",
+        "nodetool.text.PadText",
+        "nodetool.text.Length",
+        "nodetool.text.IndexOf",
+        "nodetool.text.SurroundWith",
+        "nodetool.text.Replace",
+        "nodetool.text.ToString"
+      ];
+
+      for (const from of expectedFromTypes) {
+        const m = NODE_TYPE_MIGRATIONS.find((x) => x.from === from);
+        expect(m, `missing migration for ${from}`).toBeDefined();
+        expect(m?.to).toBe("nodetool.code.Code");
+        expect(typeof m?.setProperties?.code).toBe("string");
+        expect(m?.moveRemainingPropertiesToDynamic).toBe(true);
+      }
+    });
+  });
 });

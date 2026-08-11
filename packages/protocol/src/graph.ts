@@ -289,6 +289,21 @@ export interface NodeTypeMigration {
    * `targetHandle` matches an old name.
    */
   renameProperties?: Record<string, string>;
+  /**
+   * Move every remaining `data`/`properties` entry (after `renameProperties`
+   * runs) into `dynamic_properties` — used when `to` is a node that reads its
+   * configuration through a dynamic `inputs` bag rather than declared static
+   * fields, e.g. the Code node. The old node's saved values survive the
+   * migration as dynamic inputs under their (possibly renamed) keys, wired to
+   * the same edges since edge `targetHandle`s are renamed alongside.
+   */
+  moveRemainingPropertiesToDynamic?: boolean;
+  /**
+   * Static properties merged onto the migrated node's `data`/`properties`
+   * unconditionally, applied after `moveRemainingPropertiesToDynamic` — e.g.
+   * the Code node's `code` and `packages`.
+   */
+  setProperties?: Record<string, unknown>;
 }
 
 /**
@@ -297,13 +312,408 @@ export interface NodeTypeMigration {
  * (server-side in `Graph.fromDict`, client-side when a workflow enters the
  * editor store).
  */
+const CODE_NODE_TYPE = "nodetool.code.Code";
+
+/**
+ * Build a `nodetool.text.*` → Code node migration. The removed node classes
+ * in Tier 1 of docs/CODE_NODE_COVERAGE.md are pure functions with an
+ * equivalent snippet already shipping in `web/src/config/codeSnippets.ts`;
+ * migrating a saved graph means pointing the node at `nodetool.code.Code`
+ * with that snippet's body preloaded as `code` and the old node's saved
+ * values carried forward as dynamic inputs (renamed where the snippet's
+ * `inputs.*` names differ from the old property names).
+ */
+function textToCodeMigration(
+  from: string,
+  code: string,
+  renameProperties?: Record<string, string>
+): NodeTypeMigration {
+  return {
+    from,
+    to: CODE_NODE_TYPE,
+    renameProperties,
+    moveRemainingPropertiesToDynamic: true,
+    setProperties: { code, packages: [] }
+  };
+}
+
 export const NODE_TYPE_MIGRATIONS: readonly NodeTypeMigration[] = [
   // FormatText was identical to Prompt apart from its input field name.
   {
     from: "nodetool.text.FormatText",
     to: "nodetool.text.Prompt",
     renameProperties: { template: "prompt" }
+  },
+
+  // Tier 1 of docs/CODE_NODE_COVERAGE.md — hand-written nodes whose behavior
+  // is already covered by a shipping Code node snippet. See
+  // `web/src/config/codeSnippets.ts` for the snippet source of truth; the
+  // code strings below are copied from there (kept in sync by
+  // `packages/protocol/tests/node-migrations.test.ts`).
+  textToCodeMigration(
+    "nodetool.text.Split",
+    // Split's delimiter was a real per-instance property, not a demo
+    // constant — read it from the dynamic input.
+    'return { output: inputs.text.split(inputs.delimiter ?? ",") };'
+  ),
+  textToCodeMigration(
+    "nodetool.text.Extract",
+    // end=0 meant "unset" (props default to 0) and sliced to the end of the
+    // text — honor that instead of always slicing to end=0.
+    `const end = Number(inputs.end ?? 0);
+return { output: inputs.text.slice(inputs.start, end === 0 ? undefined : end) };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.Chunk",
+    // Chunk's length/overlap/separator were real per-instance properties, not
+    // demo constants — read them from the dynamic inputs the shared "Chunk
+    // Text" snippet only hardcodes as a starting example.
+    `const chunkSize = Number(inputs.length ?? 100);
+const overlap = Number(inputs.overlap ?? 0);
+const separator = String(inputs.separator ?? " ");
+const words = String(inputs.text ?? "").split(separator);
+const step = chunkSize - overlap;
+const chunks = [];
+for (let i = 0; i < words.length; i += step) {
+  chunks.push(words.slice(i, i + chunkSize).join(separator));
+}
+return { output: chunks };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.ExtractRegex",
+    // dotall/ignorecase/multiline were real per-instance properties — build
+    // the flag string from them rather than always matching plain.
+    `let flags = "";
+if (inputs.ignorecase) flags += "i";
+if (inputs.multiline) flags += "m";
+if (inputs.dotall) flags += "s";
+const match = new RegExp(inputs.pattern, flags).exec(inputs.text);
+return { output: match ? match.slice(1) : [] };`,
+    { regex: "pattern" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.FindAllRegex",
+    // dotall/ignorecase/multiline were real per-instance properties — build
+    // the flag string from them rather than always matching plain.
+    `let flags = "g";
+if (inputs.ignorecase) flags += "i";
+if (inputs.multiline) flags += "m";
+if (inputs.dotall) flags += "s";
+const matches = [...inputs.text.matchAll(new RegExp(inputs.pattern, flags))].map(m => m[0]);
+return { output: matches };`,
+    { regex: "pattern" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.ParseJSON",
+    "return { output: JSON.parse(inputs.text) };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.ExtractJSON",
+    // The shared "Get JSON Path" snippet in codeSnippets.ts references a bare
+    // \`data\` global that the Code node sandbox never provides (pre-existing
+    // bug, out of this migration's scope) — parse \`inputs.text\` locally
+    // instead so the migrated node actually runs.
+    `const data = JSON.parse(inputs.text);
+const value = String(inputs.path).split(".").reduce(
+  (acc, k) => (acc == null ? acc : acc[k]),
+  data
+);
+return { output: value };`,
+    { json_path: "path" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.RegexMatch",
+    // RegexMatch's `group` picked which capture to return (0 = full match),
+    // and defaulted to the full match when unset — read it from the dynamic
+    // input rather than the shared snippet's hardcoded example group.
+    `const group = inputs.group ?? 0;
+const matches = [...inputs.text.matchAll(new RegExp(inputs.pattern, "g"))]
+  .map(m => m[group])
+  .filter(v => v !== undefined);
+return { output: matches };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.RegexReplace",
+    // count was a real per-instance property that capped how many matches
+    // got replaced (0 = unlimited) — honor it instead of always replacing
+    // every match.
+    `const text = String(inputs.text ?? "");
+const pattern = new RegExp(inputs.pattern, "g");
+const replacement = String(inputs.replacement ?? "");
+const count = Number(inputs.count ?? 0);
+if (count <= 0) {
+  return { output: text.replace(pattern, replacement) };
+}
+let remaining = count;
+const output = text.replace(pattern, (matched) => {
+  if (remaining <= 0) return matched;
+  remaining--;
+  return matched.replace(new RegExp(inputs.pattern), replacement);
+});
+return { output };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.RegexSplit",
+    // maxsplit was a real per-instance property that capped how many splits
+    // happened (0 = unlimited) — honor it instead of always splitting on
+    // every match.
+    `const text = String(inputs.text ?? "");
+const pattern = String(inputs.pattern ?? "");
+const maxsplit = Number(inputs.maxsplit ?? 0);
+if (maxsplit <= 0) {
+  return { output: text.split(new RegExp(pattern)) };
+}
+const result = [];
+let remaining = text;
+let count = 0;
+const re = new RegExp(pattern);
+let match;
+while (count < maxsplit && (match = re.exec(remaining)) !== null) {
+  result.push(remaining.slice(0, match.index));
+  remaining = remaining.slice(match.index + match[0].length);
+  count++;
+}
+result.push(remaining);
+return { output: result };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.RegexValidate",
+    "return { output: new RegExp(inputs.pattern).test(inputs.text) };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.Compare",
+    `const result = inputs.a < inputs.b ? "less" : inputs.a > inputs.b ? "greater" : "equal";
+return { output: result, equal: inputs.a === inputs.b };`,
+    { text_a: "a", text_b: "b" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.Equals",
+    // Equals always exposed a boolean `output`, unlike Compare's ordering
+    // string — reuse Compare's a/b naming but keep the boolean contract.
+    "return { output: inputs.a === inputs.b };",
+    { text_a: "a", text_b: "b" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.ToUppercase",
+    // The shared "Upper / Lower Case" snippet returns both cases on separate
+    // handles; ToUppercase only ever exposed a single `output`, so keep that
+    // contract for old edges wired to it rather than the two-handle snippet.
+    "return { output: inputs.text.toUpperCase() };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.ToLowercase",
+    "return { output: inputs.text.toLowerCase() };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.ToTitlecase",
+    `return { output: inputs.text.replace(/\\w\\S*/g, w =>
+  w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
+) };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.CapitalizeText",
+    "return { output: inputs.text.charAt(0).toUpperCase() + inputs.text.slice(1).toLowerCase() };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.Slice",
+    // Python-style slice(start:stop:step) on code points — stop=0 meant
+    // "unset" (slice to the end), and a negative step reversed the text.
+    // Read the real per-instance properties rather than a plain slice.
+    `const text = String(inputs.text ?? "");
+const start = Number(inputs.start ?? 0);
+const stop = Number(inputs.end ?? 0);
+const step = Number(inputs.step ?? 1);
+if (step === 0) throw new Error("slice step cannot be zero");
+const chars = [...text];
+if (step === 1) {
+  const effectiveStop = stop === 0 ? undefined : stop;
+  return { output: chars.slice(start, effectiveStop).join("") };
+}
+const result = [];
+const len = chars.length;
+if (step > 0) {
+  const normStart = start < 0 ? len + start : start;
+  const effectiveStop = stop === 0 ? len : stop;
+  const normStop = effectiveStop < 0 ? len + effectiveStop : effectiveStop;
+  for (let i = Math.max(0, normStart); i < Math.min(len, normStop); i += step) {
+    result.push(chars[i]);
   }
+} else {
+  const normStart = start === 0 ? len - 1 : start < 0 ? len + start : start;
+  const normStop = stop === 0 ? -1 : stop < 0 ? len + stop : stop;
+  for (let i = Math.min(len - 1, normStart); i > Math.max(-1, normStop); i += step) {
+    if (i >= 0 && i < len) result.push(chars[i]);
+  }
+}
+return { output: result.join("") };`,
+    { stop: "end" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.StartsWith",
+    "return { output: inputs.text.startsWith(inputs.prefix) };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.EndsWith",
+    "return { output: inputs.text.endsWith(inputs.suffix) };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.Contains",
+    // search_values/case_sensitive/match_mode were real per-instance
+    // properties — honor them instead of a plain case-sensitive includes.
+    `const text = String(inputs.text ?? "");
+const substring = String(inputs.substring ?? "");
+const searchValues = Array.isArray(inputs.search_values) ? inputs.search_values.map(v => String(v)) : [];
+const caseSensitive = inputs.case_sensitive === undefined ? true : Boolean(inputs.case_sensitive);
+const matchMode = String(inputs.match_mode ?? "any");
+const targets = searchValues.length > 0 ? searchValues : substring ? [substring] : [];
+if (targets.length === 0) return { output: false };
+const haystack = caseSensitive ? text : text.toLowerCase();
+const needles = caseSensitive ? targets : targets.map(n => n.toLowerCase());
+if (matchMode === "all") return { output: needles.every(needle => haystack.includes(needle)) };
+if (matchMode === "none") return { output: needles.every(needle => !haystack.includes(needle)) };
+return { output: needles.some(needle => haystack.includes(needle)) };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.TrimWhitespace",
+    "return { output: inputs.text.trim() };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.CollapseWhitespace",
+    // preserve_newlines/replacement/trim_edges were real per-instance
+    // properties — read them from the dynamic inputs rather than the shared
+    // snippet's hardcoded defaults.
+    `const text = String(inputs.text ?? "");
+const preserveNewlines = Boolean(inputs.preserve_newlines ?? false);
+const replacement = String(inputs.replacement ?? " ");
+const trimEdges = inputs.trim_edges === undefined ? true : Boolean(inputs.trim_edges);
+const value = trimEdges ? text.trim() : text;
+const pattern = preserveNewlines ? /[^\\S\\r\\n]+/g : /\\s+/g;
+return { output: value.replace(pattern, replacement) };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.IsEmpty",
+    // trim_whitespace was a real per-instance property, default true — honor
+    // it rather than always trimming.
+    `const text = String(inputs.text ?? "");
+const trimWhitespace = inputs.trim_whitespace === undefined ? true : Boolean(inputs.trim_whitespace);
+return { output: (trimWhitespace ? text.trim() : text).length === 0 };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.RemovePunctuation",
+    'return { output: inputs.text.replace(/[!"#$%&\'()*+,\\-./:;<=>?@[\\\\\\]^_`{|}~]/g, "") };'
+  ),
+  textToCodeMigration(
+    "nodetool.text.StripAccents",
+    'return { output: inputs.text.normalize("NFKD").replace(/[\\u0300-\\u036f]/g, "") };'
+  ),
+  textToCodeMigration(
+    "nodetool.text.Slugify",
+    // separator/lowercase/allow_unicode were real per-instance properties —
+    // read them from the dynamic inputs rather than the shared snippet's
+    // hardcoded defaults.
+    `const text = String(inputs.text ?? "");
+const separator = String(inputs.separator ?? "-");
+const lowercase = inputs.lowercase === undefined ? true : Boolean(inputs.lowercase);
+const allowUnicode = Boolean(inputs.allow_unicode ?? false);
+let value = text.normalize("NFKD");
+if (!allowUnicode) {
+  value = value.replace(/[^\\x00-\\x7F]/g, "");
+}
+value = value.replace(/[^\\w\\s-]/g, "");
+value = value.replace(/[\\s_-]+/g, separator).replace(/^[-_]+|[-_]+$/g, "");
+if (lowercase) value = value.toLowerCase();
+return { output: value };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.HasLength",
+    // min_length/max_length/exact_length were real per-instance properties —
+    // read them from the dynamic inputs rather than the shared snippet's demo
+    // bounds (0 means unset; an exact length wins over min/max).
+    `const minLength = Number(inputs.min_length ?? 0);
+const maxLength = Number(inputs.max_length ?? 0);
+const exactLength = Number(inputs.exact_length ?? 0);
+const len = String(inputs.text ?? "").length;
+if (exactLength > 0) return { output: len === exactLength };
+if (minLength > 0 && len < minLength) return { output: false };
+if (maxLength > 0 && len > maxLength) return { output: false };
+return { output: true };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.TruncateText",
+    // max_length/ellipsis were real per-instance properties — read them from
+    // the dynamic inputs rather than the shared snippet's demo values.
+    `const text = String(inputs.text ?? "");
+const maxLen = Number(inputs.max_length ?? 100);
+const ellipsis = String(inputs.ellipsis ?? "");
+if (text.length <= maxLen) return { output: text };
+return { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.PadText",
+    // The shared "Pad String" snippet returns padStart/padEnd separately;
+    // PadText picked one via a `direction` property and exposed it as a
+    // single `output`, so keep that contract for old edges wired to it.
+    `const text = String(inputs.text ?? "");
+const len = Number(inputs.length ?? 0);
+const ch = String(inputs.pad_character ?? " ");
+const dir = String(inputs.direction ?? "right");
+let output = text;
+if (len > text.length) {
+  if (dir === "left") output = text.padStart(len, ch);
+  else if (dir === "both") {
+    const total = len - text.length;
+    const left = Math.floor(total / 2);
+    output = ch.repeat(left) + text + ch.repeat(total - left);
+  } else output = text.padEnd(len, ch);
+}
+return { output };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.Length",
+    // The shared "Measure Length" snippet returns chars/words/lines
+    // separately; Length picked one via a `measure` property and exposed it
+    // as a single `output`, so keep that contract for old edges wired to it.
+    `const text = String(inputs.text ?? "");
+const measure = String(inputs.measure ?? "characters");
+let output = text.length;
+if (measure === "words") output = text.split(/\\s+/).filter(Boolean).length;
+else if (measure === "lines") output = text.split(/\\r?\\n/).length;
+return { output };`
+  ),
+  textToCodeMigration(
+    "nodetool.text.IndexOf",
+    "return { output: inputs.text.indexOf(inputs.substring) };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.SurroundWith",
+    "return { output: inputs.prefix + inputs.text + inputs.suffix };"
+  ),
+  textToCodeMigration(
+    "nodetool.text.Replace",
+    "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };",
+    { old: "search", new_value: "replacement" }
+  ),
+  textToCodeMigration(
+    "nodetool.text.ToString",
+    // mode was a real per-instance property ("str" for a plain string, "repr"
+    // for a JSON-quoted one) — honor it instead of always JSON-stringifying,
+    // which would wrap every already-string value in extra quotes.
+    `const v = inputs.value;
+const mode = String(inputs.mode ?? "str");
+const toJsonString = (value) => {
+  if (value === undefined) return "";
+  try {
+    const json = JSON.stringify(value);
+    return json === undefined ? "" : json;
+  } catch (_error) {
+    return String(value);
+  }
+};
+if (mode === "repr") return { output: toJsonString(v) };
+if (v === null || v === undefined) return { output: "" };
+if (typeof v === "object") return { output: toJsonString(v) };
+return { output: String(v) };`
+  )
 ];
 
 const MIGRATION_BY_FROM: ReadonlyMap<string, NodeTypeMigration> = new Map(
@@ -368,6 +778,45 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
         handleRenamesByNodeId.set(next.id, migration.renameProperties);
       }
     }
+
+    if (migration.moveRemainingPropertiesToDynamic) {
+      const moved: Record<string, unknown> = {};
+      if (isPlainObject(next.data)) {
+        Object.assign(moved, next.data);
+        next.data = {};
+      }
+      if (isPlainObject(next.properties)) {
+        Object.assign(moved, next.properties);
+        next.properties = {};
+      }
+      if (Object.keys(moved).length > 0) {
+        next.dynamic_properties = {
+          ...(isPlainObject(next.dynamic_properties)
+            ? next.dynamic_properties
+            : {}),
+          ...moved
+        };
+      }
+    }
+
+    if (migration.setProperties) {
+      if (isPlainObject(next.data) || "data" in next) {
+        next.data = {
+          ...(isPlainObject(next.data) ? next.data : {}),
+          ...migration.setProperties
+        };
+      }
+      if (isPlainObject(next.properties) || "properties" in next) {
+        next.properties = {
+          ...(isPlainObject(next.properties) ? next.properties : {}),
+          ...migration.setProperties
+        };
+      }
+      if (!("data" in next) && !("properties" in next)) {
+        next.properties = { ...migration.setProperties };
+      }
+    }
+
     return next;
   });
 

@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Does This Text Mention the Deadline",
   "tool_name": null,
-  "description": "A containment check returning a boolean \u2014 the branch condition for a workflow that routes on what a document says.",
+  "description": "A containment check returning a boolean — the branch condition for a workflow that routes on what a document says.",
   "tags": [
     "text",
     "example"
@@ -35,11 +35,10 @@
       },
       {
         "id": "c",
-        "type": "nodetool.text.Contains",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "substring": "close",
-          "case_sensitive": false
+          "code": "const text = String(inputs.text ?? \"\");\nconst substring = String(inputs.substring ?? \"\");\nconst searchValues = Array.isArray(inputs.search_values) ? inputs.search_values.map(v => String(v)) : [];\nconst caseSensitive = inputs.case_sensitive === undefined ? true : Boolean(inputs.case_sensitive);\nconst matchMode = String(inputs.match_mode ?? \"any\");\nconst targets = searchValues.length > 0 ? searchValues : substring ? [substring] : [];\nif (targets.length === 0) return { output: false };\nconst haystack = caseSensitive ? text : text.toLowerCase();\nconst needles = caseSensitive ? targets : targets.map(n => n.toLowerCase());\nif (matchMode === \"all\") return { output: needles.every(needle => haystack.includes(needle)) };\nif (matchMode === \"none\") return { output: needles.every(needle => !haystack.includes(needle)) };\nreturn { output: needles.some(needle => haystack.includes(needle)) };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -51,8 +50,20 @@
           "selectable": true,
           "title": "2  Contains 'close'"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "substring": "close",
+          "case_sensitive": false,
+          "search_values": [],
+          "match_mode": "any"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",

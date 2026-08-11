@@ -8,23 +8,11 @@ import {
   ForEachNode,
   RerouteNode,
   CollectNode,
-  SplitTextNode,
-  ExtractTextNode,
-  ChunkTextNode,
-  ExtractJSONNode,
   CountTokensNode,
   SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
   EmbeddingTextNode,
-  RegexReplaceNode,
-  CompareTextNode,
-  ContainsTextNode,
-  TrimWhitespaceNode,
-  SlugifyNode,
-  PadTextNode,
-  LengthTextNode,
-  SurroundWithTextNode,
   FilterStringNode,
   FilterRegexStringNode,
   ConstantIntegerNode,
@@ -499,65 +487,6 @@ describe("control nodes", () => {
 });
 
 describe("text nodes", () => {
-  it("basic text transform nodes work", async () => {
-    const _sp = new SplitTextNode();
-    _sp.assign({ text: "a,b,c", delimiter: "," });
-    await expect(_sp.process()).resolves.toEqual({ output: ["a", "b", "c"] });
-    const _ex = new ExtractTextNode();
-    _ex.assign({ text: "abcdef", start: 1, end: 4 });
-    await expect(_ex.process()).resolves.toEqual({ output: "bcd" });
-    const _ch = new ChunkTextNode();
-    _ch.assign({ text: "a b c d", length: 2, overlap: 1, separator: " " });
-    await expect(_ch.process()).resolves.toEqual({
-      output: ["a b", "b c", "c d", "d"]
-    });
-  });
-
-  it("regex/text comparison helpers work", async () => {
-    const _rr = new RegexReplaceNode();
-    _rr.assign({ text: "abc-123-def", pattern: "\\d+", replacement: "X" });
-    await expect(_rr.process()).resolves.toEqual({ output: "abc-X-def" });
-
-    const _ct = new CompareTextNode();
-    _ct.assign({ text_a: "Alpha", text_b: "alpha", case_sensitive: false });
-    await expect(_ct.process()).resolves.toEqual({ output: "equal" });
-  });
-
-  it("contains/trim/slugify/pad/length/surround helpers work", async () => {
-    const _cn = new ContainsTextNode();
-    _cn.assign({
-      text: "hello world",
-      search_values: ["hello", "world"],
-      match_mode: "all"
-    });
-    await expect(_cn.process()).resolves.toEqual({ output: true });
-
-    const _tw = new TrimWhitespaceNode();
-    _tw.assign({ text: "  hi  ", trim_start: true, trim_end: false });
-    await expect(_tw.process()).resolves.toEqual({ output: "hi  " });
-
-    const _sl = new SlugifyNode();
-    _sl.assign({ text: "Hello, World!", separator: "-", lowercase: true });
-    await expect(_sl.process()).resolves.toEqual({ output: "hello-world" });
-
-    const _pd = new PadTextNode();
-    _pd.assign({ text: "x", length: 3, pad_character: ".", direction: "both" });
-    await expect(_pd.process()).resolves.toEqual({ output: ".x." });
-
-    const _lt = new LengthTextNode();
-    _lt.assign({ text: "a b c", measure: "words" });
-    await expect(_lt.process()).resolves.toEqual({ output: 3 });
-
-    const _sw = new SurroundWithTextNode();
-    _sw.assign({
-      text: "value",
-      prefix: "[",
-      suffix: "]",
-      skip_if_wrapped: true
-    });
-    await expect(_sw.process()).resolves.toEqual({ output: "[value]" });
-  });
-
   it("stream-style text filters keep state", async () => {
     const filter = new FilterStringNode();
     filter.assign({ filter_type: "contains", criteria: "ok" });
@@ -580,15 +509,7 @@ describe("text nodes", () => {
     await expect(regexFilter.process()).resolves.toEqual({});
   });
 
-  it("extract json / token count", async () => {
-    const _ej = new ExtractJSONNode();
-    _ej.assign({
-      text: '{"a":{"b":[1,2]}}',
-      json_path: "$.a.b[1]",
-      find_all: false
-    });
-    await expect(_ej.process()).resolves.toEqual({ output: 2 });
-
+  it("token count", async () => {
     const _ct = new CountTokensNode();
     _ct.assign({ text: "hello, world!" });
     await expect(_ct.process()).resolves.toEqual({ output: 4 });

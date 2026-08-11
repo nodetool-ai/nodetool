@@ -83,11 +83,10 @@
       },
       {
         "id": "tr",
-        "type": "nodetool.text.TruncateText",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "max_length": 60,
-          "ellipsis": ""
+          "code": "const text = String(inputs.text ?? \"\");\nconst maxLen = Number(inputs.max_length ?? 100);\nconst ellipsis = String(inputs.ellipsis ?? \"\");\nif (text.length <= maxLen) return { output: text };\nreturn { output: text.slice(0, maxLen - ellipsis.length) + ellipsis };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -99,17 +98,25 @@
           "selectable": true,
           "title": "4  First 60 chars"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "max_length": 60,
+          "ellipsis": ""
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "sl",
-        "type": "nodetool.text.Slugify",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "separator": "-",
-          "lowercase": true,
-          "allow_unicode": false
+          "code": "const text = String(inputs.text ?? \"\");\nconst separator = String(inputs.separator ?? \"-\");\nconst lowercase = inputs.lowercase === undefined ? true : Boolean(inputs.lowercase);\nconst allowUnicode = Boolean(inputs.allow_unicode ?? false);\nlet value = text.normalize(\"NFKD\");\nif (!allowUnicode) {\n  value = value.replace(/[^\\x00-\\x7F]/g, \"\");\n}\nvalue = value.replace(/[^\\w\\s-]/g, \"\");\nvalue = value.replace(/[\\s_-]+/g, separator).replace(/^[-_]+|[-_]+$/g, \"\");\nif (lowercase) value = value.toLowerCase();\nreturn { output: value };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -121,8 +128,19 @@
           "selectable": true,
           "title": "5  Slugify"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "separator": "-",
+          "lowercase": true,
+          "allow_unicode": false
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",
