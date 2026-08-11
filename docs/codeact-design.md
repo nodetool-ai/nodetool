@@ -129,7 +129,7 @@ provider transcript only carries `execute_code`.
    browser, HTTP, memory, `run_subtask` — `CODEACT_RESIDENT_TOOL_NAMES`,
    overridable per executor) stay fully documented; once the belt exceeds `CODEACT_DEFER_THRESHOLD` (16),
    everything else is listed by name only and discovered in-sandbox via
-   `await searchTools("query")`, which reuses the ToolSearch query grammar
+   `await nodetool.searchTools("query")`, which reuses the ToolSearch query grammar
    (`select:`, keywords, `+substr`) and returns each match's signature and
    description. Deferred tools remain callable — the split spends prompt
    tokens, not capability. This is the progressive-disclosure half of the
@@ -176,7 +176,7 @@ The action executes with the same privileges tool mode already grants:
 A chat turn with tools presents `execute_code` (plus `view_image`, the one
 channel that puts pixels into context and so cannot ride the JSON observation
 envelope) instead of the toolbelt; discovery is the in-sandbox
-`searchTools()`. The adapter is
+`nodetool.searchTools()`. The adapter is
 `createChatCodeActSession` (`packages/agents/src/codeact/chat-codeact.ts`): a
 chat toolbelt mixes server tools with client (`ui_*`) tools that exist
 server-side only as schemas, so instead of `buildToolBridge` the session
@@ -251,7 +251,7 @@ accumulated taste, `email` the Gmail three.
 
 Every wrapped tool is filtered out of the prompt's tool catalog
 (`nodetoolApiCoveredToolNames`) — it stays callable through the bridge and
-findable via `searchTools()`, but `nodetool.*` is its one documented form.
+findable via `nodetool.searchTools()`, but `nodetool.*` is its one documented form.
 Workspace files are the exception on purpose: they go through the sandbox's own
 in-process `workspace.*` API, which costs no tool call, and the prompt's action
 contract says so.

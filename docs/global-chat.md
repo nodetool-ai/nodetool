@@ -231,6 +231,6 @@ The standalone window is useful for:
 - [Chat & Agents](global-chat-agents.md) -- Agent CLI and API integration
 - [Chat API](chat-api.md) -- Programmatic access for running chats
 - [Chat CLI](chat-cli.md) -- Command-line chat interface
-- [Agent CLI](agent-cli.md) -- Run autonomous agents from the terminal
+- [Agent CLI](agent-cli.md) -- Run the agent loop from the terminal
 - [Models & Providers](models-and-providers.md) -- Configure AI providers
 - [Cookbook](cookbook.md) -- Agent workflow patterns

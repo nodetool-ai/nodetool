@@ -28,8 +28,7 @@ hand.
 
 - **[Chat](global-chat.md)** — The composer, threads, permission modes, and the agent loop.
 - **[Agent Memory](agent-memory.md)** & **[Long-Term Memory](long-term-memory.md)** — What it carries between turns and between threads.
-- **[Agent Config](agent-config-schema.md)** — The YAML schema behind configured agents.
-- **[Agent CLI](agent-cli.md)** — Run agents from the command line with a config file.
+- **[Agent CLI](agent-cli.md)** — Run the agent loop from the command line.
 - **[Chat CLI](chat-cli.md)** & **[Chat Server](chat-server.md)** — Automate conversations or drive a custom frontend.
 - **[Chat API](chat-api.md)** — Run chats, stream output, and issue tool calls from your own code.
 

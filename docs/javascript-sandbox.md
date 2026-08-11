@@ -377,9 +377,13 @@ What an action gets on top of the standard surface:
 - **`finish(result)`** — completes the step. For schema'd steps the host
   validates, and an invalid result throws in the guest with the violation list,
   so the same action can repair.
-- **`searchTools(query)`** — in-sandbox discovery for tools the prompt lists by
+- **`nodetool.searchTools(query)`** — in-sandbox discovery for tools the prompt lists by
   name only, past the disclosure threshold. Deferred tools stay callable; the
   split spends prompt tokens, not capability.
+- **`nodetool.packs`** — what this action may import: `list()` reports every
+  installed pack and whether the session allows it, `modules(pack)` the
+  specifiers it declares, `exports(specifier)` the function names one module
+  exports, and `docs(specifier)` the pack's SKILL.md.
 - **`nodetool.*`** — the platform as objects (`workflows`, `graph()`, `nodes`,
   `agents`, `models`, `media`, `assets`, `jobs`, `collections`, `web`, `memory`,
   and the rest), each method wrapping a belt tool. A method whose backing tool

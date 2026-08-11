@@ -15,124 +15,52 @@ Task description → Agent → (Plan steps → Use browser tools → Extract/int
 
 # Available Browser Tools
 
-These are the web-related tools the agent CLI resolves from the YAML `tools:` list:
+These are the web-related tools the agent belt offers. Pass them to
+`nodetool agent run --tools` to narrow the belt to just these:
 
 | Tool name | Description |
 |-----------|-------------|
 | `browser` | Fetch and render web page content (executes JavaScript), extract text/links |
 | `screenshot` | Capture a screenshot of a page |
 | `download_file` | Download a file from a URL into the workspace |
-| `google_search` | Web search to discover URLs |
+| `web_search` | Web search to discover URLs |
 | `google_news` / `google_images` | News / image search |
 | `http_request` | Raw HTTP GET/POST for APIs and simple fetches |
-| `openai_web_search` | OpenAI-hosted web search (needs an OpenAI key) |
 
 > There are no `dom_examine`, `dom_search`, or `dom_extract` tools. The `browser`
 > tool handles rendering and content extraction; instruct the agent in natural
 > language (e.g. "extract every product title and price") and pair it with
 > `write_file` to save structured results.
 
-# Agent YAML Config for Browser Automation
-
-```yaml
-name: browser-agent
-description: AI-powered browser automation agent
-
-system_prompt: |
-  You are a web automation agent. You navigate websites, interact with pages,
-  and extract information based on user instructions.
-
-  Workflow:
-  1. Analyze the task to determine what pages to visit
-  2. Use the browser tool to fetch and read pages
-  3. Extract the relevant content
-  4. Report findings in a structured format
-
-  Guidelines:
-  - Start by browsing the target URL to understand page structure
-  - Use screenshot to verify visual state when needed
-  - Validate extracted data before reporting
-
-model:
-  provider: openai
-  id: gpt-5.4
-
-planning_agent:
-  enabled: true
-  model:
-    provider: openai
-    id: gpt-5.4-mini
-
-tools:
-  - browser
-  - screenshot
-  - download_file
-  - http_request
-  - google_search
-  - write_file
-
-max_steps: 15
-```
-
-# Quick Recipes
-
-## Web Scraper Agent
-```yaml
-name: web-scraper
-description: Extract structured data from websites
-system_prompt: |
-  You extract structured data from websites. For each URL:
-  1. Browse the page to understand its structure
-  2. Identify the data elements (titles, prices, dates)
-  3. Extract them into structured JSON
-  4. Save results with write_file
-model: { provider: openai, id: gpt-5.4 }
-tools: [browser, write_file]
-max_steps: 20
-```
-
-## Research Agent with Browser
-```yaml
-name: web-researcher
-description: Research topics using web search and browsing
-system_prompt: |
-  You are a research agent. For each topic:
-  1. Search the web for relevant sources
-  2. Browse promising results for detailed content
-  3. Extract key information and verify facts
-  4. Compile findings into a structured report
-model: { provider: openai, id: gpt-5.4 }
-tools: [google_search, browser, write_file]
-max_steps: 15
-```
-
-## Price Comparison Agent
-```yaml
-name: price-compare
-description: Compare prices across websites
-system_prompt: |
-  You compare product prices across websites:
-  1. Search for the product on each site
-  2. Extract price, availability, and shipping info
-  3. Create a comparison table
-  4. Recommend the best deal
-model: { provider: openai, id: gpt-5.4 }
-tools: [google_search, browser, write_file]
-max_steps: 20
-```
-
 # CLI Usage
 
-```bash
-# Run a browser task (objective via flag, stdin, or `objective:` in the YAML)
-nodetool agent run browser-agent.yaml \
-  --objective "Go to example.com and extract all product names and prices"
+`nodetool agent` takes arguments only — there is no config file. Put the
+instructions in the objective, and narrow the toolbelt with `--tools`.
 
-# Research task — final answer to stdout, trace to stderr
-nodetool agent run web-researcher.yaml \
-  --objective "Research the latest developments in WebAssembly" \
+```bash
+# Scrape a page
+nodetool agent run -p openai -m gpt-5.4 \
+  --tools browser,write_file \
+  --objective "Go to example.com, extract every product name and price, and save them as JSON with write_file"
+
+# Research a topic — final answer to stdout, trace to stderr
+nodetool agent run -p openai -m gpt-5.4 \
+  --tools web_search,browser,write_file \
+  --objective "Research the latest developments in WebAssembly. Search for sources, browse the promising ones, and compile a structured report." \
   > research-report.md
+
+# Compare prices
+nodetool agent run -p openai -m gpt-5.4 \
+  --tools web_search,browser,write_file \
+  --objective "Compare the price, availability, and shipping of <product> across three retailers, then recommend the best deal"
+
+# Objective via stdin
+echo "Screenshot example.com and describe the layout" | \
+  nodetool agent run -p openai -m gpt-5.4 --tools browser,screenshot
 ```
+
+Omit `--tools` to give the agent the whole default belt.
+
 
 # Browser Agent as a Workflow Node
 

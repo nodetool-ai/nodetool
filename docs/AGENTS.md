@@ -568,5 +568,4 @@ which the web sandbox does. Two ways out:
 - [Agent Memory System](agent-memory.md) — Unified memory across all agent types: API, propagation, examples
 - [Chat & Agents](global-chat-agents.md) — Using agents in the chat interface
 - [Agent CLI](agent-cli.md) — Running agents from the command line
-- [Agent Configuration Schema](agent-config-schema.md) — YAML configuration reference
 - [Custom Nodes Guide](developer/custom-nodes-guide.md) — Building custom workflow nodes

@@ -512,19 +512,20 @@ mount, or an authenticated session). File tools read and write under a per-user 
 
 ### `nodetool agent`
 
-Run YAML-defined autonomous agents from the command line.
+Run the agent loop from the command line, over the default toolbelt.
 
-**Subcommands:** `run`, `test`, `list`, `diagnose`
+**Subcommands:** `run`, `diagnose`
 
 ```bash
 # Run an agent with an objective
-nodetool agent run agent.yaml --objective "Research AI trends"
+nodetool agent run -p anthropic -m claude-sonnet-5 --objective "Research AI trends"
 
-# Validate a config
-nodetool agent test agent.yaml
+# Or pipe the objective
+echo "Research AI trends" | nodetool agent run -p anthropic -m claude-sonnet-5
 
-# List configs in a directory
-nodetool agent list examples/agents/
+# Narrow the toolbelt
+nodetool agent run -p openai -m gpt-5.4-mini -o "Summarize the README" \
+  --tools read_file,write_file
 
 # Aggregate a failed run into one report
 nodetool agent diagnose <job_id>

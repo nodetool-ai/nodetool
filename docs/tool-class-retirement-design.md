@@ -145,7 +145,7 @@ table above lists. The class dissolves into data plus a function.
 export interface CapabilitySpec {
   readonly name: string;                 // wire name, unchanged: "list_workflows"
   readonly description: string;
-  readonly inputSchema: JsonSchema;      // rendered for prompts, searchTools(), MCP
+  readonly inputSchema: JsonSchema;      // rendered for prompts, nodetool.searchTools(), MCP
   readonly category: PermissionCategory; // REQUIRED — no default-to-external fallback
   userMessage?(args: Record<string, unknown>): string;
 }
@@ -350,7 +350,7 @@ Two provider tools survive, and neither needs the class:
   `mcp-agent-tools.ts:456-459`). That rule is unchanged.
 
 `CapabilitySpec` also feeds everything else that consumes schemas today: prompt
-signature rendering (`toolSignature`, `tool-api.ts:351`), in-sandbox `searchTools()`
+signature rendering (`toolSignature`, `tool-api.ts:351`), in-sandbox `nodetool.searchTools()`
 (`chat-codeact.ts:299-328`), and the chat direct-tool set (`CORE_TOOL_NAMES` members
 offered as plain provider tools, `tool-api.ts:204`, `:223`). The core set is a chat
 concern and is not touched by Decision 2 — see the MCP section.
