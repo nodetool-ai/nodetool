@@ -97,6 +97,11 @@ const PROBES: Record<string, CredentialProbe> = {
     url: () => "https://api.cerebras.ai/v1/models",
     headers: (v) => ({ Authorization: `Bearer ${v}` })
   },
+  META_API_KEY: {
+    label: "Meta AI",
+    url: () => "https://api.meta.ai/v1/models",
+    headers: (v) => ({ Authorization: `Bearer ${v}` })
+  },
   TOGETHER_API_KEY: {
     label: "Together AI",
     url: () => "https://api.together.xyz/v1/models",
