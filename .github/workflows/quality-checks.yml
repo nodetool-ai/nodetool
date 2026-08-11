@@ -222,8 +222,17 @@ jobs:
           #      --warnings-as-errors (set in the script) so a warning-level
           #      drift fails the gate too. File targets need no DB, only the
           #      built node registry from the `build` job's dist.
+          #   4. `npm run codegen:dsl:check` — the same rot detector for the
+          #      generated TypeScript DSL (packages/dsl/src/generated). It is
+          #      the graph-authoring surface agents write against, so a node
+          #      the registry no longer has must not survive there. Reads the
+          #      built node registry, writes nothing.
+          #   5. `npm run build:sandbox-dsl:check` — the same detector one layer
+          #      down. `@nodetool-ai/sandbox-dsl` ships its own built copy of
+          #      that DSL, and the copy is what a Code node imports, so it must
+          #      not drift from `packages/dsl` either. Writes nothing.
           - check: typecheck
-            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples
+            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run codegen:dsl:check && npm run build:sandbox-dsl:check
             mobile-deps: "true"
             extra-apt: ""
             is-test: "false"

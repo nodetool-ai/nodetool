@@ -3,11 +3,11 @@
 import { createNode, Connectable, DslNode } from "../core.js";
 
 // SandboxShell — nodetool.sandbox.SandboxShell
-export interface SandboxShellInputs {
+export type SandboxShellInputs = {
   workspace_dir?: Connectable<string>;
   command?: Connectable<string>;
   wait_seconds?: Connectable<number>;
-}
+};
 
 export interface SandboxShellOutputs {
   output: string;
@@ -17,20 +17,20 @@ export interface SandboxShellOutputs {
 }
 
 export function sandboxShell(inputs: SandboxShellInputs): DslNode<SandboxShellOutputs> {
-  return createNode("nodetool.sandbox.SandboxShell", inputs as Record<string, unknown>, { outputNames: ["output", "running", "exit_code", "timed_out"] });
+  return createNode("nodetool.sandbox.SandboxShell", inputs, { outputNames: ["output", "running", "exit_code", "timed_out"] });
 }
 
 // SandboxFile — nodetool.sandbox.SandboxFile
-export interface SandboxFileInputs {
+export type SandboxFileInputs = {
   workspace_dir?: Connectable<string>;
   action?: Connectable<"read" | "write" | "str_replace" | "find_in_content" | "find_by_name">;
   params?: Connectable<Record<string, unknown>>;
-}
+};
 
 export interface SandboxFileOutputs {
   output: Record<string, unknown>;
 }
 
 export function sandboxFile(inputs: SandboxFileInputs): DslNode<SandboxFileOutputs, "output"> {
-  return createNode("nodetool.sandbox.SandboxFile", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
+  return createNode("nodetool.sandbox.SandboxFile", inputs, { outputNames: ["output"], defaultOutput: "output" });
 }
