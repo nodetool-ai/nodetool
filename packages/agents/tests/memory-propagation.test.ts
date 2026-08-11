@@ -8,10 +8,10 @@
  *   1. Every step / task / input is written to `context.memory` under a
  *      canonical namespaced key.
  *   2. Memory contents are NOT auto-injected into prompts; the agent
- *      discovers them via `memory_list` / `memory_read` tools.
+ *      discovers them via `list_shared` / `read_shared` tools.
  *   3. Downstream tasks see only specific upstream key hints (the planner's
  *      declared `dependsOn` IDs), not full values.
- *   4. The progressive-disclosure round trip (`memory_list` → `memory_read`
+ *   4. The progressive-disclosure round trip (`list_shared` → `read_shared`
  *      → `finish_step`) works end-to-end with a fake provider.
  */
 
@@ -202,14 +202,14 @@ describe("Agent memory propagation", () => {
     expect(context.memory.getValue(memoryKeys.input("customer"))).toBe("Acme");
     expect(context.memory.getValue(memoryKeys.input("region"))).toBe("EU");
     // Inputs are NOT auto-injected into the user message — the agent must
-    // discover them via memory_list / memory_read (progressive disclosure).
+    // discover them via list_shared / read_shared (progressive disclosure).
     const userMsg = provider.calls[0].userContent;
     expect(userMsg).not.toContain("Acme");
     expect(userMsg).not.toContain("EU");
     // The system prompt always advertises the memory tools.
     const sysPrompt = provider.calls[0].systemPrompt;
-    expect(sysPrompt).toContain("memory_list");
-    expect(sysPrompt).toContain("memory_read");
+    expect(sysPrompt).toContain("list_shared");
+    expect(sysPrompt).toContain("read_shared");
   });
 
   it("makes upstream task results visible in downstream task prompts (plan mode)", async () => {
@@ -288,7 +288,7 @@ describe("Agent memory propagation", () => {
     expect(firstUserMsg).not.toContain("Required upstream context");
 
     // Second call (report) names the upstream task as a memory hint —
-    // values are NOT included; the agent fetches via memory_read.
+    // values are NOT included; the agent fetches via read_shared.
     const secondUserMsg = provider.calls[1].userContent;
     expect(secondUserMsg).toContain("Required upstream context");
     expect(secondUserMsg).toContain("- task:task_research");
@@ -411,7 +411,7 @@ describe("Agent memory propagation", () => {
     void agent;
   });
 
-  it("agent discovers and reads memory via memory_list → memory_read → finish_step", async () => {
+  it("agent discovers and reads memory via list_shared → read_shared → finish_step", async () => {
     // Pre-populate memory with two upstream task results — neither auto-
     // injected. The agent must list, read the relevant one, and finish.
     const context = createMockContext();
@@ -430,13 +430,13 @@ describe("Agent memory propagation", () => {
       title: "Upstream B"
     });
 
-    // Scripted provider: turn 1 → memory_list, turn 2 → memory_read, turn 3 → finish_step.
+    // Scripted provider: turn 1 → list_shared, turn 2 → read_shared, turn 3 → finish_step.
     const provider = createRecordingProvider([
       // Turn 1: list memory
       [
         {
           id: "tc_list",
-          name: "memory_list",
+          name: "list_shared",
           args: { kind: ["task_result"] }
         }
       ],
@@ -444,7 +444,7 @@ describe("Agent memory propagation", () => {
       [
         {
           id: "tc_read",
-          name: "memory_read",
+          name: "read_shared",
           args: { keys: ["task:upstream_a"] }
         }
       ],
@@ -491,10 +491,10 @@ describe("Agent memory propagation", () => {
 
     // System prompt advertises the tools.
     const sys = provider.calls[0].systemPrompt;
-    expect(sys).toContain("memory_list");
-    expect(sys).toContain("memory_read");
+    expect(sys).toContain("list_shared");
+    expect(sys).toContain("read_shared");
 
-    // After the agent fetched via memory_read, the conversation history
+    // After the agent fetched via read_shared, the conversation history
     // (turn 3) must include the value as a tool result.
     const turn3 = provider.calls[2].fullMessages;
     const toolMessages = turn3.filter((m) => m.role === "tool");
@@ -510,15 +510,15 @@ describe("Agent memory propagation", () => {
     expect(executor.getResult()).toEqual({ summary: "alpha, beta" });
   });
 
-  it("memory_write publishes shared facts that subsequent steps see in memory_list", async () => {
+  it("share_result publishes shared facts that subsequent steps see in list_shared", async () => {
     const context = createMockContext();
 
-    // Step 1 publishes a fact via memory_write, then finishes.
+    // Step 1 publishes a fact via share_result, then finishes.
     const provider = createRecordingProvider([
       [
         {
           id: "tc_write",
-          name: "memory_write",
+          name: "share_result",
           args: {
             key: "top_source",
             value: "https://example.com/article",

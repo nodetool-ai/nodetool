@@ -10,9 +10,9 @@ Memory contents are NOT auto-injected into prompts. Agents access memory through
 
 | Tool | Purpose |
 |---|---|
-| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
-| `memory_read` | Fetch full values for specific keys |
-| `memory_write` | Publish a value under `shared:<key>` |
+| `list_shared` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `read_shared` | Fetch full values for specific keys |
+| `share_result` | Publish a value under `shared:<key>` |
 
 The default execution system prompt documents these tools. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
 
@@ -35,9 +35,9 @@ memoryKeys.shared("note");         // "shared:note"  — cross-agent scratch
 | `CodeActExecutor` | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
 | `TaskExecutor` | Startup / process-mode aggregation | `input:<key>` / `step:<step.id>` | `input` / `step_result` |
 | `ParallelTaskExecutor` | After a task completes (idempotent) | `task:<task.id>` | `task_result` |
-| `memory_write` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
+| `share_result` tool | Agent / sub-agent publish | `shared:<key>` | `shared` |
 
-`memory_write` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
+`share_result` is restricted to the `shared:` namespace so agents can't spoof step / task / input results. Internal executors write directly through `context.memory.set` for their owned namespaces.
 
 ### Custom prompts are preambles, not replacements
 
@@ -45,7 +45,7 @@ A step executor always builds the default execution prompt (the CodeAct action c
 
 ### Final synthesis: CompilerAgent
 
-`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `memory_read`, and produces the final deliverable:
+`Agent` ends with a dedicated `CompilerAgent` pass after `ParallelTaskExecutor` finishes. The compiler reads the gathered memory snapshot, fetches values via `read_shared`, and produces the final deliverable:
 
 - **Structured mode** (an `outputSchema` is set): `finish_step` is included in the toolset, and the compiler returns a schema-conformant value.
 - **Prose mode** (no `outputSchema`): `finish_step` is omitted; the compiler emits a final assistant message and the absence of any tool call ends the loop. The text becomes the result.
@@ -54,13 +54,13 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 
 ### Threading task-level deps through executors
 
-`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every step executor. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `memory_read` when it needs the values.
+`ParallelTaskExecutor` derives `task.dependsOn.map(memoryKeys.task)` and forwards it as `upstreamMemoryKeys` to `TaskExecutor`, which forwards it verbatim to every step executor. The step's user message renders these as `- task:<id>` hints next to the intra-task `step:<id>` deps. The agent calls `read_shared` when it needs the values.
 
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-tools.test.ts` — unit tests for `memory_list` / `memory_read` / `memory_write`
-- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `memory_list` → `memory_read` → `finish_step`
+- `packages/agents/tests/memory-tools.test.ts` — unit tests for `list_shared` / `read_shared` / `share_result`
+- `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
 When asserting memory writes in tests, prefer `context.memory.has(memoryKeys.task("..."))` and `context.memory.subscribe(...)` over spies on `set` / `storeStepResult`.
@@ -953,7 +953,7 @@ inside an `execute_code` action:
 | `await pipeline(items, ...stages)` | `nodetool.batch(items, async (item) => …)` |
 | `log(message)` | `console.log(message)` |
 | `budget` | the run's own `AgentPolicy` bounds, enforced host-side |
-| `inputs` | the step's inputs, read from `context.memory` via `memory_read` |
+| `inputs` | the step's inputs, read from `context.memory` via `read_shared` |
 
 The difference that mattered — one authored artifact reviewed before anything
 ran — is not lost: a plan still goes through the approval gate, and an action's

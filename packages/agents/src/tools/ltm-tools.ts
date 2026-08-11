@@ -3,8 +3,8 @@
  * can call when they want fine-grained control over what gets persisted or
  * what context they pull in.
  *
- * These are distinct from the in-session `memory_list` / `memory_read` /
- * `memory_write` tools (`./memory-tools.ts`), which operate on the
+ * These are distinct from the in-session `list_shared` / `read_shared` /
+ * `share_result` tools (`./memory-tools.ts`), which operate on the
  * per-context {@link AgentMemory} that lives only for the duration of a
  * single agent run. The LTM tools persist through the configured
  * {@link VectorProvider} (sqlite-vec by default, Pinecone or Supabase when

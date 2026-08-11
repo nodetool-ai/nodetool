@@ -1,5 +1,5 @@
 /**
- * Unit tests for the memory tools (memory_list / memory_read / memory_write).
+ * Unit tests for the memory tools (list_shared / read_shared / share_result).
  *
  * These are the progressive-disclosure interface that agents use to access
  * shared agent memory without paying the token cost of an auto-injected
@@ -9,9 +9,9 @@
 import { describe, expect, it } from "vitest";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import {
-  MemoryListTool,
-  MemoryReadTool,
-  MemoryWriteTool,
+  ListSharedTool,
+  ReadSharedTool,
+  ShareResultTool,
   MEMORY_TOOL_NAMES,
   getMemoryTools
 } from "../src/tools/memory-tools.js";
@@ -43,7 +43,7 @@ function seed(context: ReturnType<typeof createMockContext>): void {
     key: memoryKeys.shared("note"),
     kind: "shared",
     value: "user-published note",
-    source: "memory_write",
+    source: "share_result",
     title: "note"
   });
 }
@@ -55,9 +55,9 @@ describe("getMemoryTools", () => {
   });
 });
 
-describe("MemoryListTool", () => {
+describe("ListSharedTool", () => {
   it("returns metadata for every entry without values", async () => {
-    const tool = new MemoryListTool();
+    const tool = new ListSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -88,7 +88,7 @@ describe("MemoryListTool", () => {
       "task:research"
     ]);
 
-    // No `value` field in entries — values must be fetched via memory_read.
+    // No `value` field in entries — values must be fetched via read_shared.
     for (const e of result.entries) {
       expect(e).not.toHaveProperty("value");
       expect(typeof e.valueBytes).toBe("number");
@@ -97,7 +97,7 @@ describe("MemoryListTool", () => {
   });
 
   it("filters by kind", async () => {
-    const tool = new MemoryListTool();
+    const tool = new ListSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -108,7 +108,7 @@ describe("MemoryListTool", () => {
   });
 
   it("filters by key_prefix", async () => {
-    const tool = new MemoryListTool();
+    const tool = new ListSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -119,7 +119,7 @@ describe("MemoryListTool", () => {
   });
 
   it("filters by sources", async () => {
-    const tool = new MemoryListTool();
+    const tool = new ListSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -130,7 +130,7 @@ describe("MemoryListTool", () => {
   });
 
   it("returns empty list when memory is empty", async () => {
-    const tool = new MemoryListTool();
+    const tool = new ListSharedTool();
     const context = createMockContext();
 
     const result = (await tool.process(context, {})) as {
@@ -143,9 +143,9 @@ describe("MemoryListTool", () => {
   });
 });
 
-describe("MemoryReadTool", () => {
+describe("ReadSharedTool", () => {
   it("returns full values for requested keys, with missing keys reported", async () => {
-    const tool = new MemoryReadTool();
+    const tool = new ReadSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -169,7 +169,7 @@ describe("MemoryReadTool", () => {
   });
 
   it("treats an empty keys array as a no-op", async () => {
-    const tool = new MemoryReadTool();
+    const tool = new ReadSharedTool();
     const context = createMockContext();
     seed(context);
 
@@ -182,9 +182,9 @@ describe("MemoryReadTool", () => {
   });
 });
 
-describe("MemoryWriteTool", () => {
+describe("ShareResultTool", () => {
   it("publishes a value under the shared: namespace", async () => {
-    const tool = new MemoryWriteTool();
+    const tool = new ShareResultTool();
     const context = createMockContext();
 
     const result = (await tool.process(context, {
@@ -202,11 +202,11 @@ describe("MemoryWriteTool", () => {
     expect(entry?.value).toBe("https://example.com");
     expect(entry?.title).toBe("Top source URL");
     expect(entry?.description).toBe("Picked by the researcher agent.");
-    expect(entry?.source).toBe("memory_write");
+    expect(entry?.source).toBe("share_result");
   });
 
   it("only writes under shared: even when caller specifies a different prefix", async () => {
-    const tool = new MemoryWriteTool();
+    const tool = new ShareResultTool();
     const context = createMockContext();
 
     // The schema doesn't let the agent pick a kind, and the suffix is

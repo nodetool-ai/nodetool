@@ -232,9 +232,9 @@ export const CODEACT_RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   "edit_file",
   "list_directory",
   // Shared agent memory.
-  "memory_list",
-  "memory_read",
-  "memory_write",
+  "list_shared",
+  "read_shared",
+  "share_result",
   // Delegation.
   "run_subtask"
 ]);
@@ -881,7 +881,7 @@ export class CodeActExecutor {
     if (keys.length > 0) {
       parts.push(
         `Required upstream context — read these before acting (via ` +
-          `\`await tools.memory_read({keys: [...]})\`):\n` +
+          `\`await tools.read_shared({keys: [...]})\`):\n` +
           keys.map((k) => `- ${k}`).join("\n")
       );
     }

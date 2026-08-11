@@ -8,11 +8,11 @@
  * The 2026 pattern is **progressive disclosure**: the model receives a tiny
  * "what's available" hint up front and pulls full values on demand:
  *
- *   1. `memory_list` — returns metadata for all entries (key, kind, title,
+ *   1. `list_shared` — returns metadata for all entries (key, kind, title,
  *      description, source, byte size). No values. Cheap to call.
- *   2. `memory_read` — returns full values for a list of keys.
- *   3. `memory_write` — publishes a value to the `shared:` namespace so other
- *      agents and steps can discover it via `memory_list`.
+ *   2. `read_shared` — returns full values for a list of keys.
+ *   3. `share_result` — publishes a value to the `shared:` namespace so other
+ *      agents and steps can discover it via `list_shared`.
  *
  * These three tools are auto-attached to every {@link StepExecutor}. Authors
  * of custom executors should call `getMemoryTools()` and append the result to
@@ -24,10 +24,10 @@ import type { MemoryEntry, MemoryKind } from "@nodetool-ai/runtime";
 import { memoryKeys } from "@nodetool-ai/runtime";
 import { Tool } from "./base-tool.js";
 
-/** Maximum bytes of `description` returned per entry from memory_list. */
+/** Maximum bytes of `description` returned per entry from list_shared. */
 const MAX_DESCRIPTION_CHARS = 240;
 
-/** Hard upper bound on entries returned in a single memory_list call. */
+/** Hard upper bound on entries returned in a single list_shared call. */
 const MAX_LIST_ENTRIES = 200;
 
 interface MemoryListEntry {
@@ -68,15 +68,15 @@ function describeEntry(entry: MemoryEntry): MemoryListEntry {
 }
 
 /**
- * `memory_list` — discover what's in shared agent memory. Returns metadata
+ * `list_shared` — discover what's in shared agent memory. Returns metadata
  * only (no values). Filter by kind, key prefix, or producer source.
  */
-export class MemoryListTool extends Tool {
-  readonly name = "memory_list";
+export class ListSharedTool extends Tool {
+  readonly name = "list_shared";
   readonly description =
     "List entries in shared agent memory (results from prior steps and tasks, " +
     "inputs, and shared facts published by other agents). Returns metadata " +
-    "only — call `memory_read` to fetch full values. Use this when you need " +
+    "only — call `read_shared` to fetch full values. Use this when you need " +
     "context from upstream work but don't yet know which entry holds it.";
 
   readonly jsonSchema: Record<string, unknown> = {
@@ -150,16 +150,16 @@ export class MemoryListTool extends Tool {
 }
 
 /**
- * `memory_read` — fetch full values for one or more memory keys.
+ * `read_shared` — fetch full values for one or more memory keys.
  *
  * The response maps each requested key to its full entry. Missing keys are
  * reported in `missing` so the agent can decide whether to retry or proceed.
  */
-export class MemoryReadTool extends Tool {
-  readonly name = "memory_read";
+export class ReadSharedTool extends Tool {
+  readonly name = "read_shared";
   readonly description =
     "Read full values from shared agent memory by key. Use the keys returned " +
-    "by `memory_list`. Returns each requested entry with its value, kind, " +
+    "by `list_shared`. Returns each requested entry with its value, kind, " +
     "title, and source. Missing keys are reported in `missing`.";
 
   readonly jsonSchema: Record<string, unknown> = {
@@ -209,20 +209,22 @@ export class MemoryReadTool extends Tool {
 }
 
 /**
- * `memory_write` — publish a value to the `shared:` namespace so other agents
- * and steps can discover it via `memory_list`.
+ * `share_result` — publish a value to the `shared:` namespace so other agents
+ * and steps can discover it via `list_shared`.
  *
  * Writes are restricted to `shared:` keys to prevent agents from spoofing
  * step / task / input results. The `key` argument is the suffix after
  * `shared:` and is passed through `memoryKeys.shared()`.
  */
-export class MemoryWriteTool extends Tool {
-  readonly name = "memory_write";
+export class ShareResultTool extends Tool {
+  readonly name = "share_result";
   readonly description =
     "Publish a value to shared agent memory under the `shared:` namespace. " +
-    "Other agents and downstream steps can discover it via `memory_list` and " +
-    "fetch it via `memory_read`. Use this to broadcast facts, intermediate " +
-    "findings, or coordination signals to the rest of the team.";
+    "Other agents and downstream steps can discover it via `list_shared` and " +
+    "fetch it via `read_shared`. Use this to broadcast facts, intermediate " +
+    "findings, or coordination signals to the rest of the team. Shared memory " +
+    "lives only for the current run — to keep something past it, use " +
+    "`thread_memory_save` instead.";
 
   readonly jsonSchema: Record<string, unknown> = {
     type: "object",
@@ -265,7 +267,7 @@ export class MemoryWriteTool extends Tool {
       title: typeof params.title === "string" ? params.title : suffix,
       description:
         typeof params.description === "string" ? params.description : undefined,
-      source: "memory_write"
+      source: "share_result"
     });
     return {
       ok: true,
@@ -287,12 +289,12 @@ export class MemoryWriteTool extends Tool {
  * mutable state (none currently exists, but this future-proofs).
  */
 export function getMemoryTools(): Tool[] {
-  return [new MemoryListTool(), new MemoryReadTool(), new MemoryWriteTool()];
+  return [new ListSharedTool(), new ReadSharedTool(), new ShareResultTool()];
 }
 
 /** Names of the auto-attached memory tools. Useful for filtering / detection. */
 export const MEMORY_TOOL_NAMES = [
-  "memory_list",
-  "memory_read",
-  "memory_write"
+  "list_shared",
+  "read_shared",
+  "share_result"
 ] as const;

@@ -84,9 +84,9 @@ const PROMPT_TOOL_USE = `# Tool Use
 ## Memory Tools (progressive disclosure)
 - Shared agent memory holds results from prior steps and tasks, original inputs, and facts published by other agents.
 - Memory contents are NOT auto-included in your prompt. If you need upstream context, discover it on demand:
-  1. Call \`memory_list\` to see what's available (returns metadata only — keys, titles, kinds, byte sizes).
-  2. Call \`memory_read\` with the specific keys you actually need; it returns full values.
-  3. Call \`memory_write\` to publish a value under \`shared:<key>\` so other agents can find it via \`memory_list\`.
+  1. Call \`list_shared\` to see what's available (returns metadata only — keys, titles, kinds, byte sizes).
+  2. Call \`read_shared\` with the specific keys you actually need; it returns full values.
+  3. Call \`share_result\` to publish a value under \`shared:<key>\` so other agents can find it via \`list_shared\`.
 - Pull only what you need — don't fetch every entry by reflex.
 
 ## File Tools
@@ -104,7 +104,7 @@ const PROMPT_TOOL_USE = `# Tool Use
 const PROMPT_FINISH_STEP = `# Completion
 - When you have everything you need, call \`finish_step\` exactly once with
   \`{"result": <result>}\` matching the declared schema.
-- Use \`memory_read\` to fetch any upstream values you still need before
+- Use \`read_shared\` to fetch any upstream values you still need before
   finishing.`;
 
 // ---------------------------------------------------------------------------
@@ -806,7 +806,7 @@ export class StepExecutor {
    * Build the initial user message.
    *
    * Memory contents are NOT auto-included — callers fetch on demand via the
-   * `memory_list` / `memory_read` tools (progressive disclosure; tool usage
+   * `list_shared` / `read_shared` tools (progressive disclosure; tool usage
    * is documented in the default system prompt).
    *
    * The only memory information the user message carries is a short list of
@@ -817,7 +817,7 @@ export class StepExecutor {
    *     (typically `task:<id>` entries from the parent task's `dependsOn`).
    *
    * Only keys that actually exist in `context.memory` are listed. The LLM
-   * is expected to call `memory_read` with whichever subset it needs.
+   * is expected to call `read_shared` with whichever subset it needs.
    */
   private buildUserMessage(): string {
     const parts: string[] = [this.step.instructions];
@@ -839,7 +839,7 @@ export class StepExecutor {
     if (hints.length > 0) {
       parts.push("");
       parts.push(
-        "# Required upstream memory (call `memory_read` with these keys):"
+        "# Required upstream memory (call `read_shared` with these keys):"
       );
       for (const hint of hints) {
         parts.push(`- ${hint.key}${hint.title ? ` — ${hint.title}` : ""}`);

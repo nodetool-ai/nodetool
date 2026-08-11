@@ -7,8 +7,8 @@ plus `ParallelTaskExecutor`, skills, and agent tools.
 
 - Decompose an objective into a DAG of tasks/steps and execute them (parallel
   where dependencies allow).
-- Tool integration and progressive-disclosure memory tools (`memory_list`,
-  `memory_read`, `memory_write`).
+- Tool integration and progressive-disclosure memory tools (`list_shared`,
+  `read_shared`, `share_result`).
 
 ## Usage
 

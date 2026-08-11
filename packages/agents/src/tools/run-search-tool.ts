@@ -8,7 +8,7 @@
  * two deliberate differences:
  *
  * 1. The child toolset is FILTERED to a strictly read-only allowlist by tool
- *    name (read_file, glob, grep, list_directory, memory_read). It does NOT
+ *    name (read_file, glob, grep, list_directory, read_shared). It does NOT
  *    stitch in `run_subtask` / `run_search`, so a search loop can never reach
  *    a write-capable or recursive tool.
  * 2. A `breadth` hint ("medium" | "very thorough") selects an adapted
@@ -44,8 +44,8 @@ const DEFAULT_MAX_ITERATIONS = 20;
  * to be available inside a search; anything not listed (write/edit/execute/
  * spawn) is excluded by construction.
  *
- * Note: the executor auto-attaches memory_list/memory_read/memory_write to
- * every step regardless of this array. memory_write only touches the shared
+ * Note: the executor auto-attaches list_shared/read_shared/share_result to
+ * every step regardless of this array. share_result only touches the shared
  * memory namespace (no filesystem/state mutation), and the prompt forbids
  * writes; combined with the absence of any forwarded filesystem-write tool,
  * the read-only guarantee about the workspace holds.
@@ -55,7 +55,7 @@ export const READ_ONLY_TOOL_NAMES: ReadonlySet<string> = new Set([
   "glob",
   "grep",
   "list_directory",
-  "memory_read",
+  "read_shared",
   // Read-only discovery over the thread's memory and the asset library, so a
   // fan-out search sub-agent can find prior notes and generated media.
   "thread_memory_list",

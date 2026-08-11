@@ -136,9 +136,9 @@ context.memory.getValue(memoryKeys.task("research"));
 
 | Tool | Purpose |
 |---|---|
-| `memory_list` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
-| `memory_read` | Fetch full values for specific keys |
-| `memory_write` | Publish a value under `shared:<key>` for other agents to discover |
+| `list_shared` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `read_shared` | Fetch full values for specific keys |
+| `share_result` | Publish a value under `shared:<key>` for other agents to discover |
 
 The default execution system prompt explains these tools; the user message names only the **specific** upstream keys the planner declared as required for the step. Values are pulled on demand.
 

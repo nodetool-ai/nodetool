@@ -5,7 +5,7 @@
  *
  * The compiler must:
  *   1. List memory, decide which keys to read.
- *   2. Read those keys via `memory_read`.
+ *   2. Read those keys via `read_shared`.
  *   3. Call `finish_step` exactly once with a result matching the schema.
  *
  * These tests drive the compiler with a scripted fake provider that walks
@@ -87,7 +87,7 @@ describe("CompilerAgent", () => {
         toolCalls: [
           {
             id: "tc_1",
-            name: "memory_read",
+            name: "read_shared",
             args: { keys: ["task:research", "task:analyze"] }
           }
         ]
@@ -141,13 +141,13 @@ describe("CompilerAgent", () => {
       score: 0.87
     });
 
-    // Compiler should yield at least one tool_call_update for memory_read,
+    // Compiler should yield at least one tool_call_update for read_shared,
     // one for finish_step, and a step_result.
     const tcUpdates = events.filter(
       (e) => (e as { type?: string }).type === "tool_call_update"
     );
     const names = tcUpdates.map((e) => (e as { name: string }).name);
-    expect(names).toContain("memory_read");
+    expect(names).toContain("read_shared");
     expect(names).toContain("finish_step");
     expect(
       events.some(

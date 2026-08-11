@@ -294,7 +294,7 @@ is *the policy*; tools are the *enforcement points*.
 ```ts
 const all = [
   new RunSubtaskTool(),
-  new MemoryListTool(), new MemoryReadTool(), new MemoryWriteTool(),
+  new ListSharedTool(), new ReadSharedTool(), new ShareResultTool(),
   new ReadFileTool(), new WriteFileTool(),
   new BrowserTool(), new GoogleSearchTool(),
   ...getAllMcpTools({ registry, providers, allowedServers: policy.allowedMcpServers }),

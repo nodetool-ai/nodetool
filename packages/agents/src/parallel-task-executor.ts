@@ -313,7 +313,7 @@ export class ParallelTaskExecutor {
     } satisfies TaskUpdate;
 
     // Create TaskExecutor for this task's steps. Each step discovers
-    // upstream context on demand via the `memory_list` / `memory_read` tools
+    // upstream context on demand via the `list_shared` / `read_shared` tools
     // (progressive disclosure). The task's declared `dependsOn` IDs are
     // forwarded as `upstreamMemoryKeys` so every step's user message names
     // them explicitly without dumping their values.

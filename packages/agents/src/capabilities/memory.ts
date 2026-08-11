@@ -7,8 +7,8 @@
  * unchanged; the classes survive as thin subclasses over these
  * implementations.
  *
- * Scope is the AgentMemory-free half of memory: `memory_list` / `memory_read`
- * / `memory_write` stay executor-internal and are not capabilities.
+ * Scope is the AgentMemory-free half of memory: `list_shared` / `read_shared`
+ * / `share_result` stay executor-internal and are not capabilities.
  *
  * `@nodetool-ai/models` is imported inside each implementation, so loading
  * this module never opens a database.

@@ -225,7 +225,7 @@ describe("RunSearchTool", () => {
         makeTool("glob"),
         makeTool("grep"),
         makeTool("list_directory"),
-        makeTool("memory_read"),
+        makeTool("read_shared"),
         makeTool("run_subtask")
       ];
 

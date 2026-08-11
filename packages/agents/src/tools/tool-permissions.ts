@@ -107,9 +107,9 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   vector_hybrid_search: "read",
   // --- read: internal agent bookkeeping (no external side effects) ---
   todo_write: "read",
-  memory_list: "read",
-  memory_read: "read",
-  memory_write: "read",
+  list_shared: "read",
+  read_shared: "read",
+  share_result: "read",
   ltm_recall: "read",
   ltm_remember: "read",
   // Thread-memory reads + asset-library discovery have no side effects.
@@ -134,7 +134,7 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // through the gated `create_workflow`.
   plan_workflow_graph: "read",
   // run_search spawns a read-only child loop (read_file/glob/grep/
-  // list_directory/memory_read only); the call itself has no side effects, so
+  // list_directory/read_shared only); the call itself has no side effects, so
   // it always runs ungated.
   run_search: "read",
 

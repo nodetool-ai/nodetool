@@ -3,7 +3,7 @@
  *
  * A `run_search` call spins up a depth-bounded child agent loop restricted to
  * a strictly read-only toolset (read_file, glob, grep, list_directory,
- * memory_read). This module supplies:
+ * read_shared). This module supplies:
  *
  * - {@link READ_ONLY_SEARCH_DESCRIPTION} — the tool's user/LLM-facing
  *   description string.
@@ -27,7 +27,7 @@ export const READ_ONLY_SEARCH_DESCRIPTION = [
   "not raw file dumps. Use this when answering a question requires fanning out",
   "across many files or directories to locate where something lives or how it",
   "is wired. A focused child loop runs with read-only tools only (read_file,",
-  "glob, grep, list_directory, memory_read); it cannot edit, create, delete,",
+  "glob, grep, list_directory, read_shared); it cannot edit, create, delete,",
   "or run anything, and it cannot spawn further work. It reads excerpts rather",
   "than whole files, so it is for locating code, not for reviewing or auditing",
   "it. Provide a precise `query`. Set `breadth` to \"medium\" for a targeted",
@@ -74,7 +74,7 @@ export function buildReadOnlySearchPrompt(
     "",
     "# Hard constraints",
     "- You are running in strictly read-only mode. You may ONLY use: read_file,",
-    "  glob, grep, list_directory, and memory_read.",
+    "  glob, grep, list_directory, and read_shared.",
     "- You must NOT create, modify, move, or delete files, and you must NOT",
     "  execute code or commands. No tool that changes state is available to you;",
     "  do not ask for one.",
@@ -97,7 +97,7 @@ export function buildReadOnlySearchPrompt(
     "- Open the most promising matches with read_file to confirm context and",
     "  capture exact line numbers. Confirm before you report; do not guess line",
     "  numbers.",
-    "- If memory_read may hold relevant prior findings for this query, consult",
+    "- If read_shared may hold relevant prior findings for this query, consult",
     "  it.",
     "",
     "# Breadth",
