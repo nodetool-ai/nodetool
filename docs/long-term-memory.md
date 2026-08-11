@@ -44,7 +44,7 @@ The extraction prompt explicitly requires user-explicit content only and forbids
 
 ## Trust boundary: secret/credential redaction
 
-Every write goes through `looksLikeSecret()` — extraction, the `ltm_remember` agent tool, and any direct programmatic caller. Anything matching a credential shape is silently dropped:
+Every write goes through `looksLikeSecret()` — extraction and any direct programmatic caller. Anything matching a credential shape is silently dropped:
 
 - OpenAI-style `sk-…`, Anthropic `sk-ant-…`, GitHub `ghp_…`/`gho_…`/etc.
 - Stripe `sk_live_…` / `pk_live_…`
@@ -96,12 +96,12 @@ if (memory && memory.isReady()) {
 - `enabled === false` (caller veto)
 - no embedding model can be resolved (no `OPENAI_API_KEY` / `GEMINI_API_KEY` / `OLLAMA_API_URL` / `NODETOOL_MEMORY_EMBEDDING_MODEL`)
 
-### Agent tools
+### How an agent reaches the store
 
-Agents can drive the store directly via two auto-attached tools when LTM is wired into their session:
-
-- `ltm_recall(query, k?)` — return ranked memories for a query.
-- `ltm_remember(text, kind?, importance?)` — persist a fact. The same secret filter applies.
+There are no `ltm_*` tools. `Agent` recalls into the run's prompt and persists
+from the run itself, calling `LongTermMemory` directly (`src/agent.ts`). Code
+that holds only a `ProcessingContext` finds the user's instance through
+`getLongTermMemory(userId)`, which `setLongTermMemory` fills in.
 
 Agent runs do **not** auto-mine the objective + final result by default. To re-enable that for a specific agent, pass `autoPersistMemory: true` in `AgentOptions`.
 

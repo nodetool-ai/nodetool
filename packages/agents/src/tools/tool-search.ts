@@ -1,18 +1,14 @@
 /**
- * ToolSearch — load deferred tool schemas on demand.
+ * Tool search — load deferred tool schemas on demand.
  *
- * Mirrors the Claude Code / Claude Agent SDK `ToolSearch` tool exactly so a
- * single system prompt describes both paths:
+ * A session keeps a small resident toolbelt and defers the long tail,
+ * announcing it by name in a `<system-reminder>`. The model pulls a schema in
+ * with `nodetool.searchTools()`, which reaches this ranking through the
+ * `__searchTools` host bridge and answers in the `<functions>` format the
+ * reminder promises. A provider that runs its own agent loop with native tool
+ * search (the Claude Agent SDK) uses its own built-in instead.
  *
- *  - On a provider that runs its own agent loop with native tool search
- *    (the Claude Agent SDK), the SDK defers tool schemas and exposes its own
- *    built-in `ToolSearch`; we do NOT register this tool there.
- *  - On every other provider, the harness keeps a small resident toolbelt,
- *    defers the long tail (announced by name in a `<system-reminder>`), and
- *    registers THIS tool so the model can pull schemas in with the same query
- *    grammar and the same `<functions>` result format.
- *
- * Query grammar (identical to Claude Code):
+ * Query grammar:
  *   - `select:Name1,Name2`  — fetch these exact tools by name.
  *   - `keyword words`        — keyword search over names + descriptions,
  *                              best `max_results` matches.
@@ -20,8 +16,7 @@
  *                              remaining terms.
  */
 
-import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
-import { Tool } from "./base-tool.js";
+import type { JsonSchema } from "@nodetool-ai/runtime";
 
 /** A deferred tool the model can load: name, description, and full schema. */
 export interface ToolSearchEntry {
@@ -42,24 +37,6 @@ export const TOOL_SEARCH_DESCRIPTION =
   '- "select:Read,Edit,Grep" — fetch these exact tools by name\n' +
   '- "notebook jupyter" — keyword search, up to max_results best matches\n' +
   '- "+slack send" — require "slack" in the name, rank by remaining terms';
-
-const TOOL_SEARCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "string",
-      description:
-        'Query to find deferred tools. Use "select:<tool_name>" for direct ' +
-        "selection, or keywords to search."
-    },
-    max_results: {
-      type: "number",
-      description: "Maximum number of results to return (default: 5)",
-      default: 5
-    }
-  },
-  required: ["query"]
-} as JsonSchema;
 
 /**
  * Rank `catalog` against `query` per the Claude Code grammar and return the
@@ -135,7 +112,7 @@ export function formatToolSearchResult(entries: ToolSearchEntry[]): string {
 
 /**
  * The `<system-reminder>` that announces deferred tools by name. The model
- * loads any it needs via {@link ToolSearchTool} before calling them.
+ * loads any it needs with `nodetool.searchTools()` before calling them.
  */
 export function formatDeferredToolsReminder(
   catalog: readonly ToolSearchEntry[]
@@ -151,39 +128,4 @@ export function formatDeferredToolsReminder(
     names +
     "\n</system-reminder>"
   );
-}
-
-/**
- * The `ToolSearch` tool. Constructed with the deferred-tool `catalog` and an
- * `onReveal` callback the harness uses to make the matched tools callable
- * (e.g. by appending their schemas to the live tool list).
- */
-export class ToolSearchTool extends Tool {
-  readonly name = "ToolSearch";
-  readonly description = TOOL_SEARCH_DESCRIPTION;
-  protected readonly jsonSchema = TOOL_SEARCH_SCHEMA;
-
-  constructor(
-    private readonly catalog: readonly ToolSearchEntry[],
-    private readonly onReveal: (entries: ToolSearchEntry[]) => void
-  ) {
-    super();
-  }
-
-  async process(
-    _context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const query = typeof params["query"] === "string" ? params["query"] : "";
-    const maxResults =
-      typeof params["max_results"] === "number" ? params["max_results"] : 5;
-    const matches = searchTools(this.catalog, query, maxResults);
-    if (matches.length > 0) this.onReveal(matches);
-    return formatToolSearchResult(matches);
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const q = typeof params["query"] === "string" ? params["query"] : "";
-    return `Searching tools: ${q}`;
-  }
 }

@@ -49,8 +49,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_directory: "read",
   glob: "read",
   grep: "read",
-  workspace_read: "read",
-  workspace_list: "read",
   // --- read: web & document reads ---
   web_search: "read",
   google_news: "read",
@@ -110,8 +108,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   list_shared: "read",
   read_shared: "read",
   share_result: "read",
-  ltm_recall: "read",
-  ltm_remember: "read",
   // Thread-memory reads + asset-library discovery have no side effects.
   thread_memory_list: "read",
   asset_search: "read",
@@ -141,7 +137,6 @@ export const TOOL_PERMISSION_CATEGORIES: Readonly<
   // --- write: produces files / artifacts / costly media ---
   write_file: "write",
   edit_file: "write",
-  workspace_write: "write",
   download_file: "write",
   convert_markdown_to_pdf: "write",
   convert_document: "write",

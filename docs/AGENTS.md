@@ -180,7 +180,6 @@ abstract class Tool {
 | **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |
 | **PDF** | `ExtractPDFTextTool`, `ConvertPDFToMarkdownTool`, and more | `pdf-tools.ts` |
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |
-| **Workspace** | `WorkspaceReadTool`, `WorkspaceWriteTool`, `WorkspaceListTool` | `workspace-tools.ts` |
 | **Assets** | `SaveAssetTool`, `ReadAssetTool` | `asset-tools.ts` |
 | **Workflow / MCP** | `ValidateWorkflowTool`, `DebugWorkflowTool`, `BuildAppTool`, `RunWorkflowTool`, `StartBackgroundJobTool`, `CreateWorkflowTool`, `ListWorkflowsTool`, `GetWorkflowTool`, `GetExampleWorkflowTool`, `ExportWorkflowDigraphTool`, `ListJobsTool`, `GetJobTool`, `GetJobLogsTool`, `ListAssetsTool`, `GetAssetTool` | `mcp-tools.ts` |
 | **Node registry** | `LocalSearchNodesTool`, `LocalListNodesTool`, `LocalGetNodeInfoTool` | `local-search-nodes-tool.ts`, `local-list-nodes-tool.ts`, `local-get-node-info-tool.ts` |

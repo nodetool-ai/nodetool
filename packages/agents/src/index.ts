@@ -15,7 +15,6 @@ export { PLAN_APPROVAL_CONTEXT_KEY } from "./types.js";
 // Tools
 export { Tool } from "./tools/base-tool.js";
 export {
-  ToolSearchTool,
   searchTools,
   formatToolSearchResult,
   formatDeferredToolsReminder,
@@ -227,11 +226,6 @@ export {
   registerGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
 
-export {
-  WorkspaceReadTool,
-  WorkspaceWriteTool,
-  WorkspaceListTool
-} from "./tools/workspace-tools.js";
 export { ListProviderModelsTool } from "./tools/model-tools.js";
 export { FindModelTool } from "./tools/find-model-tool.js";
 export { ListModelsTool } from "./tools/list-models-tool.js";
@@ -472,7 +466,9 @@ export type { AgentSkill, AgentOptions } from "./agent.js";
 export {
   LongTermMemory,
   formatMemoryForPrompt,
-  createDefaultLongTermMemory
+  createDefaultLongTermMemory,
+  setLongTermMemory,
+  getLongTermMemory
 } from "./long-term-memory.js";
 export type {
   LongTermMemoryItem,
@@ -485,14 +481,6 @@ export type {
   SynthesizedFact,
   FactUtility
 } from "./prompts/memory-synthesis-prompt.js";
-export {
-  LtmRecallTool,
-  LtmRememberTool,
-  getLongTermMemoryTools,
-  LTM_TOOL_NAMES,
-  setLongTermMemory,
-  getLongTermMemory
-} from "./tools/ltm-tools.js";
 export {
   ThreadMemorySaveTool,
   ThreadMemoryListTool,

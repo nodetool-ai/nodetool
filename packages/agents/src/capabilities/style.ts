@@ -28,7 +28,7 @@ async function resolveMemory(
   run: CapabilityRun
 ): Promise<LongTermMemory | null> {
   if (run.memory) return run.memory;
-  const { getLongTermMemory } = await import("../tools/ltm-tools.js");
+  const { getLongTermMemory } = await import("../long-term-memory.js");
   return getLongTermMemory(run.context.userId);
 }
 

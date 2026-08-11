@@ -5,8 +5,8 @@
  * These persist to the relational `ThreadMemory` store scoped to the current
  * chat thread (`context.threadId`). Unlike the in-session `list_shared` /
  * `read_shared` / `share_result` tools (ephemeral, one agent run) and the
- * vector-backed `ltm_recall` / `ltm_remember` tools (fuzzy, cross-session,
- * embedding-gated), thread memories are deterministic, editable rows that live
+ * vector-backed long-term memory (fuzzy, cross-session, embedding-gated),
+ * thread memories are deterministic, editable rows that live
  * and die with the thread — and each one can reference resources of any kind
  * (the assets it generates, a workflow it built, a collection, an external URL)
  * by a typed `{ type, id }` handle, so an agent can record and reuse them

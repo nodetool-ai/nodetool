@@ -1,9 +1,8 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import {
   searchTools,
   formatToolSearchResult,
   formatDeferredToolsReminder,
-  ToolSearchTool,
   type ToolSearchEntry
 } from "../src/tools/tool-search.js";
 
@@ -80,27 +79,5 @@ describe("formatDeferredToolsReminder", () => {
 
   it("is empty when nothing is deferred", () => {
     expect(formatDeferredToolsReminder([])).toBe("");
-  });
-});
-
-describe("ToolSearchTool", () => {
-  it("reveals matched tools and returns the <functions> block", async () => {
-    const revealed: string[] = [];
-    const tool = new ToolSearchTool(CATALOG, (entries) =>
-      revealed.push(...entries.map((e) => e.name))
-    );
-    const result = await tool.process({} as never, {
-      query: "select:ui_app_get_snapshot"
-    });
-    expect(revealed).toEqual(["ui_app_get_snapshot"]);
-    expect(String(result)).toContain("ui_app_get_snapshot");
-  });
-
-  it("does not reveal when there are no matches", async () => {
-    const onReveal = vi.fn();
-    const tool = new ToolSearchTool(CATALOG, onReveal);
-    const result = await tool.process({} as never, { query: "select:missing" });
-    expect(onReveal).not.toHaveBeenCalled();
-    expect(String(result)).toMatch(/no matching tools/i);
   });
 });
