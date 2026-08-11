@@ -36,7 +36,7 @@ import { linkAbort } from "./utils/link-abort.js";
 import {
   metadataAwareRegistry,
   supportsDeepValidation
-} from "./tools/finish-graph-tool.js";
+} from "./tools/graph-validation-registry.js";
 
 const log = createLogger("nodetool.agents.code-node-refine");
 

@@ -277,7 +277,6 @@ export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
-export { CreatePlanTool } from "./tools/create-plan-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
 export {
   runSubAgent,
@@ -325,11 +324,6 @@ export {
 
 // Graph-native planner tools
 export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
-export { AddNodeTool } from "./tools/add-node-tool.js";
-export { AddEdgeTool } from "./tools/add-edge-tool.js";
-export { RemoveNodeTool } from "./tools/remove-node-tool.js";
-export { RemoveEdgeTool } from "./tools/remove-edge-tool.js";
-export { FinishGraphTool } from "./tools/finish-graph-tool.js";
 export { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
 export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
 export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";

@@ -25,7 +25,7 @@ import {
 import {
   metadataAwareRegistry,
   supportsDeepValidation
-} from "./finish-graph-tool.js";
+} from "./graph-validation-registry.js";
 
 const SUBMIT_GRAPH_INPUT_SCHEMA = {
   type: "object" as const,

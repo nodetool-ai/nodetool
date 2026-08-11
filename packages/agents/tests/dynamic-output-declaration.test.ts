@@ -7,9 +7,8 @@
 import { describe, it, expect } from "vitest";
 import { validateGraph } from "@nodetool-ai/node-sdk";
 import { GraphBuilder } from "../src/graph-builder.js";
-import { AddEdgeTool } from "../src/tools/add-edge-tool.js";
 import { SubmitGraphTool } from "../src/tools/submit-graph-tool.js";
-import { metadataAwareRegistry } from "../src/tools/finish-graph-tool.js";
+import { metadataAwareRegistry } from "../src/tools/graph-validation-registry.js";
 import { declareDynamicOutputsInGraph } from "../src/dynamic-slots.js";
 
 const CODE_META = {
@@ -101,30 +100,6 @@ describe("a Code node's returned key wired onward", () => {
       line: { type: "any" }
     });
     expect(outputIssueCodes(tool.graph)).not.toContain("code_undeclared_output");
-  });
-
-  it("validates through add_edge with no undeclared-output issue", async () => {
-    const builder = new GraphBuilder();
-    builder.addNode("code", "nodetool.code.Code", {
-      code: CODE_BODY
-    });
-    builder.addNode("out", "nodetool.output.Output", { name: "line" });
-    const tool = new AddEdgeTool(builder, registry);
-
-    const result = (await tool.process({} as never, {
-      source: "code",
-      source_handle: "line",
-      target: "out",
-      target_handle: "value"
-    })) as { status: string };
-
-    expect(result.status).toBe("edge_added");
-    expect(builder.getNode("code")?.dynamic_outputs).toEqual({
-      line: { type: "any" }
-    });
-    expect(outputIssueCodes(builder.snapshot())).not.toContain(
-      "code_undeclared_output"
-    );
   });
 
   it("validates as plain JSON with no undeclared-output issue", () => {

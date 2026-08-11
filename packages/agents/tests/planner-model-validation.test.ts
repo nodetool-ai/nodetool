@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { validateNodeProperties } from "@nodetool-ai/node-sdk";
-import { metadataAwareRegistry } from "../src/tools/finish-graph-tool.js";
+import { metadataAwareRegistry } from "../src/tools/graph-validation-registry.js";
 import { SubmitGraphTool } from "../src/tools/submit-graph-tool.js";
 
 // `validateNodeProperties` consumes @prop declarations; `getMetadata`
