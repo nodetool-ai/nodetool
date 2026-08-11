@@ -6,7 +6,7 @@
  * with the descriptor as the hover title so pick decisions don't need a
  * round-trip to the library.
  */
-import React from "react";
+import React, { useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -86,13 +86,14 @@ export interface MentionEntityTileProps {
   onMouseEnter: () => void;
 }
 
-export const MentionEntityTile: React.FC<MentionEntityTileProps> = ({
+export const MentionEntityTile: React.FC<MentionEntityTileProps> = React.memo(({
   entity,
   selected,
   onSelect,
   onMouseEnter
 }) => {
   const theme = useTheme();
+  const tileStyles = useMemo(() => styles(theme), [theme]);
   const thumb = entity.reference_images?.[0]?.uri;
   const Icon = ENTITY_KIND_ICON[entity.kind];
   const kindPaletteKey = ENTITY_KIND_COLOR[entity.kind];
@@ -102,7 +103,7 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = ({
       type="button"
       role="option"
       aria-selected={selected}
-      css={styles(theme)}
+      css={tileStyles}
       className={`mention-entity-tile${selected ? " selected" : ""}`}
       title={entity.descriptor || entity.name}
       // preventDefault keeps focus in the composer so selection inserts at the
@@ -127,6 +128,8 @@ export const MentionEntityTile: React.FC<MentionEntityTileProps> = ({
       </span>
     </button>
   );
-};
+});
+
+MentionEntityTile.displayName = "MentionEntityTile";
 
 export default MentionEntityTile;

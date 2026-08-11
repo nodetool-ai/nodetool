@@ -2,7 +2,9 @@ import React, { ReactNode, useMemo } from 'react';
 import { StyleSheet, View, ScrollView, Platform, ViewStyle } from 'react-native';
 import Markdown, { ASTNode, RenderRules } from 'react-native-markdown-display';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
-import { atomDark, tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism';
+// Deep imports: the `styles/prism` barrel pulls all 47 themes into the bundle.
+import atomDark from 'react-syntax-highlighter/dist/esm/styles/prism/atom-dark';
+import tomorrow from 'react-syntax-highlighter/dist/esm/styles/prism/tomorrow';
 import { useTheme } from '../hooks/useTheme';
 
 interface MarkdownRendererProps {

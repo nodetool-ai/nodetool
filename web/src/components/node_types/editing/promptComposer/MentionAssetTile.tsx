@@ -10,7 +10,13 @@
  * the picker wires to `AssetStore.update({ id, name })` so the change syncs to
  * the asset library.
  */
-import React, { useCallback, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -218,7 +224,7 @@ export interface MentionAssetTileProps {
   onRename: (id: string, name: string) => Promise<void>;
 }
 
-export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
+export const MentionAssetTile: React.FC<MentionAssetTileProps> = React.memo(({
   asset,
   selected,
   onSelect,
@@ -226,6 +232,7 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
   onRename
 }) => {
   const theme = useTheme();
+  const tileStyles = useMemo(() => styles(theme), [theme]);
   const kind = mediaKindOf(asset);
   const previewUrl =
     kind === "image" || kind === "video"
@@ -270,7 +277,7 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
 
   return (
     <div
-      css={styles(theme)}
+      css={tileStyles}
       className={`mention-asset-tile${selected ? " selected" : ""}`}
       role="option"
       aria-selected={selected}
@@ -352,6 +359,8 @@ export const MentionAssetTile: React.FC<MentionAssetTileProps> = ({
       </div>
     </div>
   );
-};
+});
+
+MentionAssetTile.displayName = "MentionAssetTile";
 
 export default MentionAssetTile;

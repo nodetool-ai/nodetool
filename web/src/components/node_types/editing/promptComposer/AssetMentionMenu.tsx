@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useCallback, useMemo } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -111,6 +111,68 @@ export interface AssetMentionMenuProps {
   className?: string;
 }
 
+// Binding a tile's index into its handlers here rather than in the grid's map
+// is what makes the tile's memo hold: an arrow-key move now repaints the two
+// tiles whose `selected` flipped instead of the whole grid.
+const EntityRow = React.memo(function EntityRow({
+  entity,
+  index,
+  selected,
+  onSelect,
+  onHighlight
+}: {
+  entity: Entity;
+  index: number;
+  selected: boolean;
+  onSelect: (index: number) => void;
+  onHighlight: (index: number) => void;
+}) {
+  const handleSelect = useCallback(() => onSelect(index), [onSelect, index]);
+  const handleHighlight = useCallback(
+    () => onHighlight(index),
+    [onHighlight, index]
+  );
+  return (
+    <MentionEntityTile
+      entity={entity}
+      selected={selected}
+      onSelect={handleSelect}
+      onMouseEnter={handleHighlight}
+    />
+  );
+});
+
+const AssetRow = React.memo(function AssetRow({
+  asset,
+  index,
+  selected,
+  onSelect,
+  onHighlight,
+  onRename
+}: {
+  asset: Asset;
+  index: number;
+  selected: boolean;
+  onSelect: (index: number) => void;
+  onHighlight: (index: number) => void;
+  onRename: (id: string, name: string) => Promise<void>;
+}) {
+  const handleSelect = useCallback(() => onSelect(index), [onSelect, index]);
+  const handleHighlight = useCallback(
+    () => onHighlight(index),
+    [onHighlight, index]
+  );
+  return (
+    <MentionAssetTile
+      asset={asset}
+      selected={selected}
+      onSelect={handleSelect}
+      onMouseEnter={handleHighlight}
+      onRename={onRename}
+    />
+  );
+});
+
 /**
  * The `@`-mention picker body: Recent/Saved tabs over a grid of scannable asset
  * tiles. Purely presentational — the caller owns the trigger, the search
@@ -133,6 +195,7 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
   className
 }) => {
   const theme = useTheme();
+  const menuStyles = useMemo(() => assetMentionMenuStyles(theme), [theme]);
   const entityCount = entities.length;
   const emptyMessage =
     activeTab === "recent"
@@ -155,19 +218,20 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
 
   return (
     <div
-      css={assetMentionMenuStyles(theme)}
+      css={menuStyles}
       className={`asset-mention-menu nowheel${className ? ` ${className}` : ""}`}
     >
       {entityCount > 0 && (
         <div className="mention-entities" role="listbox" aria-label="Entities">
           <span className="mention-entities-label">Entities</span>
           {entities.map((entity, index) => (
-            <MentionEntityTile
+            <EntityRow
               key={entity.id}
               entity={entity}
+              index={index}
               selected={index === selectedIndex}
-              onSelect={() => onSelect(index)}
-              onMouseEnter={() => onHighlight(index)}
+              onSelect={onSelect}
+              onHighlight={onHighlight}
             />
           ))}
         </div>
@@ -196,12 +260,13 @@ export const AssetMentionMenu: React.FC<AssetMentionMenuProps> = ({
           <div className="mention-empty">{emptyMessage}</div>
         ) : (
           assets.map((asset, index) => (
-            <MentionAssetTile
+            <AssetRow
               key={asset.id}
               asset={asset}
+              index={entityCount + index}
               selected={entityCount + index === selectedIndex}
-              onSelect={() => onSelect(entityCount + index)}
-              onMouseEnter={() => onHighlight(entityCount + index)}
+              onSelect={onSelect}
+              onHighlight={onHighlight}
               onRename={onRename}
             />
           ))

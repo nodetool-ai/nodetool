@@ -10,7 +10,7 @@
 
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { memo } from "react";
+import React, { memo, useMemo } from "react";
 import type { Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import { FlexRow, BORDER_RADIUS, SPACING, getSpacingPx } from "../ui_primitives";
@@ -186,6 +186,9 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
     } = props;
 
     const theme = useTheme();
+    // Pan and zoom re-render this every wheel tick and every frame of a pan
+    // drag, each one re-serializing the whole root style block.
+    const rootStyles = useMemo(() => styles(theme), [theme]);
     const canvasStyle = canvasTransformStyle(pan, zoom);
     const selectionAntMarginPx = selectionAntCanvasMarginCssPx(zoom);
 
@@ -195,7 +198,7 @@ const SketchCanvasPresentation = memo<SketchCanvasPresentationProps>(
         className={
           rootClassName ? `sketch-canvas ${rootClassName}` : "sketch-canvas"
         }
-        css={styles(theme)}
+        css={rootStyles}
         style={{ cursor: containerCursor }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
