@@ -6,15 +6,15 @@ Every `ProcessingContext` carries an `AgentMemory` instance at `context.memory`.
 
 ### Access pattern: progressive disclosure via tools
 
-Memory contents are NOT auto-injected into prompts. Agents access memory through three tools that are auto-attached to every step (and to every team iteration):
+Memory contents are NOT auto-injected into prompts. Agents access memory through three capabilities that are auto-attached to every step (and to every team iteration). They are the `shared` capability module (`src/capabilities/shared.ts`) — kept apart from `memory`, which is thread memory and a different lifetime — and `getMemoryTools()` (`src/tools/memory-tools.ts`) is the belt the executors mount them from:
 
-| Tool | Purpose |
-|---|---|
-| `list_shared` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
-| `read_shared` | Fetch full values for specific keys |
-| `share_result` | Publish a value under `shared:<key>` |
+| Tool | Object model | Purpose |
+|---|---|---|
+| `list_shared` | `nodetool.shared.list(filters)` | Discover available entries (metadata only — keys, titles, kinds, byte sizes) |
+| `read_shared` | `nodetool.shared.read(keys)` | Fetch full values for specific keys |
+| `share_result` | `nodetool.shared.publish(key, value, {title, description})` | Publish a value under `shared:<key>` |
 
-The default execution system prompt documents these tools. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
+The default execution system prompt documents the `nodetool.shared` form, and the three wire names drop out of the raw tool catalog the way every other wrapped tool does. The user message names only **specific** upstream keys the planner pinned (`step.dependsOn` plus parent-task `dependsOn` via `upstreamMemoryKeys`) — values are pulled on demand.
 
 ### Key namespaces
 
@@ -59,7 +59,7 @@ The planner is told NOT to create an aggregation/synthesis step — final assemb
 ### Tests
 
 - `packages/runtime/tests/agent-memory.test.ts` — unit tests for `AgentMemory`
-- `packages/agents/tests/memory-tools.test.ts` — unit tests for `list_shared` / `read_shared` / `share_result`
+- `packages/agents/tests/memory-tools.test.ts` — unit tests for the `shared` capabilities `list_shared` / `read_shared` / `share_result`, and the belt `getMemoryTools()` builds from them
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end through `Agent`, including a fake-provider round trip that drives `list_shared` → `read_shared` → `finish_step`
 - `packages/agents/tests/_helpers/mock-context.ts` — shared mock context with a real `AgentMemory` for executor tests
 
@@ -845,7 +845,9 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   backend host-side, and `provider` pins one: `"default"`, `"openai"`,
   `"google"`, `"dataforseo"` — plus
   `browse(url)`, `fetch(url)`, `download`, `screenshot`), `nodetool.memory`
-  (`save/list/update/remove` over `thread_memory_*`), `nodetool.style`
+  (`save/list/update/remove` over `thread_memory_*`), `nodetool.shared`
+  (`list/read/publish` over `list_shared`/`read_shared`/`share_result` — the
+  run's own scratchpad, beside thread-scoped `nodetool.memory`), `nodetool.style`
   (`profile/record`), `nodetool.email` (`search/archive/label`), plus `assets`
   (`list/search/images/get/save/read`), `jobs` (with
   `wait(id, {timeoutMs, pollMs})` polling a background job to settlement),

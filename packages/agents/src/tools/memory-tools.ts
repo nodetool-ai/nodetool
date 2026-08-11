@@ -1,5 +1,6 @@
 /**
- * Memory tools — progressive disclosure access to the shared agent memory.
+ * Run-scoped memory tools — progressive-disclosure access to the shared agent
+ * memory a run carries at `context.memory`.
  *
  * Earlier versions auto-injected every memory entry into every step's user
  * message. That worked but was wasteful: large upstream results bloated every
@@ -14,307 +15,15 @@
  *   3. `share_result` — publishes a value to the `shared:` namespace so other
  *      agents and steps can discover it via `list_shared`.
  *
- * These three tools are auto-attached to every {@link StepExecutor}. Authors
- * of custom executors should call `getMemoryTools()` and append the result to
- * their tool array.
+ * The three live in the `shared` capability module
+ * (`../capabilities/shared.ts`); this file keeps only the belt they are mounted
+ * from, because mount policy stays with the executor. They are auto-attached to
+ * every {@link StepExecutor}; authors of custom executors call
+ * `getMemoryTools()` and append the result to their tool array.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { MemoryEntry, MemoryKind } from "@nodetool-ai/runtime";
-import { memoryKeys } from "@nodetool-ai/runtime";
-import { Tool } from "./base-tool.js";
-
-/** Maximum bytes of `description` returned per entry from list_shared. */
-const MAX_DESCRIPTION_CHARS = 240;
-
-/**
- * Normalize the key argument of `share_result`, which takes the suffix after
- * `shared:` while `read_shared` and `list_shared` deal in full keys. A model
- * that hands a full key back to the write side minted `shared:shared:<key>` —
- * observed in a live run. Stripping the prefix makes the write idempotent
- * under a round trip through either read tool.
- *
- * The cost is that a literal key `shared:shared:x` can no longer be created.
- * Nothing wants one, and the tool description now says the prefix is optional.
- */
-function sharedSuffix(key: string): string {
-  return key.startsWith("shared:") ? key.slice("shared:".length) : key;
-}
-
-/** Hard upper bound on entries returned in a single list_shared call. */
-const MAX_LIST_ENTRIES = 200;
-
-interface MemoryListEntry {
-  key: string;
-  kind: MemoryKind;
-  title?: string;
-  description?: string;
-  source?: string;
-  /** Approximate size of the value when JSON-serialized (in characters). */
-  valueBytes: number;
-  /** ISO timestamp when the entry was first written. */
-  createdAt: string;
-}
-
-function describeEntry(entry: MemoryEntry): MemoryListEntry {
-  const serialized =
-    typeof entry.value === "string"
-      ? entry.value
-      : (() => {
-          try {
-            return JSON.stringify(entry.value);
-          } catch {
-            return String(entry.value);
-          }
-        })();
-  return {
-    key: entry.key,
-    kind: entry.kind,
-    title: entry.title,
-    description:
-      entry.description && entry.description.length > MAX_DESCRIPTION_CHARS
-        ? entry.description.slice(0, MAX_DESCRIPTION_CHARS) + "…"
-        : entry.description,
-    source: entry.source,
-    valueBytes: serialized.length,
-    createdAt: new Date(entry.createdAt).toISOString()
-  };
-}
-
-/**
- * `list_shared` — discover what's in shared agent memory. Returns metadata
- * only (no values). Filter by kind, key prefix, or producer source.
- */
-export class ListSharedTool extends Tool {
-  readonly name = "list_shared";
-  readonly description =
-    "List entries in shared agent memory (results from prior steps and tasks, " +
-    "inputs, and shared facts published by other agents). Returns metadata " +
-    "only — call `read_shared` to fetch full values. Use this when you need " +
-    "context from upstream work but don't yet know which entry holds it.";
-
-  readonly jsonSchema: Record<string, unknown> = {
-    type: "object",
-    properties: {
-      kind: {
-        type: "array",
-        items: {
-          type: "string",
-          enum: ["task_result", "step_result", "input", "shared"]
-        },
-        description:
-          "Optional filter — restrict results to the listed kinds. Omit to list everything."
-      },
-      key_prefix: {
-        type: "string",
-        description:
-          "Optional filter — only entries whose key starts with this prefix (e.g. \"task:\")."
-      },
-      sources: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Optional filter — only entries produced by one of these source IDs."
-      }
-    },
-    additionalProperties: false
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const kindFilter = Array.isArray(params.kind)
-      ? (params.kind as MemoryKind[])
-      : undefined;
-    const keyPrefix =
-      typeof params.key_prefix === "string"
-        ? (params.key_prefix as string)
-        : undefined;
-    const sources = Array.isArray(params.sources)
-      ? (params.sources as string[])
-      : undefined;
-
-    const entries = context.memory.list({
-      kind: kindFilter,
-      keyPrefix,
-      sources
-    });
-    const truncated = entries.length > MAX_LIST_ENTRIES;
-    const sliced = truncated ? entries.slice(0, MAX_LIST_ENTRIES) : entries;
-    return {
-      total: entries.length,
-      returned: sliced.length,
-      truncated,
-      entries: sliced.map(describeEntry)
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const parts: string[] = [];
-    if (Array.isArray(params.kind))
-      parts.push(`kinds=${(params.kind as string[]).join(",")}`);
-    if (params.key_prefix) parts.push(`prefix=${params.key_prefix}`);
-    if (Array.isArray(params.sources))
-      parts.push(`sources=${(params.sources as string[]).join(",")}`);
-    return parts.length > 0
-      ? `Listing memory (${parts.join(" ")})`
-      : "Listing memory";
-  }
-}
-
-/**
- * `read_shared` — fetch full values for one or more memory keys.
- *
- * The response maps each requested key to its full entry. Missing keys are
- * reported in `missing` so the agent can decide whether to retry or proceed.
- */
-export class ReadSharedTool extends Tool {
-  readonly name = "read_shared";
-  readonly description =
-    "Read full values from shared agent memory by key. Use the keys returned " +
-    "by `list_shared`. Returns each requested entry with its value, kind, " +
-    "title, and source. Missing keys are reported in `missing`.";
-
-  readonly jsonSchema: Record<string, unknown> = {
-    type: "object",
-    properties: {
-      keys: {
-        type: "array",
-        items: { type: "string" },
-        description:
-          "Memory keys to read (e.g. [\"task:research\", \"step:summary\"]). " +
-          "A key with no `<namespace>:` prefix is also looked up under " +
-          "`shared:`, so a suffix passed to `share_result` reads back as-is."
-      }
-    },
-    required: ["keys"],
-    additionalProperties: false
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const keys = Array.isArray(params.keys)
-      ? (params.keys as unknown[]).map(String)
-      : [];
-
-    const found: Record<string, MemoryEntry> = {};
-    const missing: string[] = [];
-    for (const key of keys) {
-      // A bare suffix is what `share_result` accepts, so a model that reads
-      // back what it just wrote often asks for one. Retry the miss under the
-      // `shared:` namespace before reporting it, and report under the key that
-      // was asked for either way.
-      const entry =
-        context.memory.get(key) ??
-        (key.includes(":") ? undefined : context.memory.get(memoryKeys.shared(key)));
-      if (entry) {
-        found[key] = entry;
-      } else {
-        missing.push(key);
-      }
-    }
-
-    return { entries: found, missing };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const keys = Array.isArray(params.keys)
-      ? (params.keys as unknown[]).map(String)
-      : [];
-    if (keys.length === 0) return "Reading memory";
-    if (keys.length === 1) return `Reading memory: ${keys[0]}`;
-    return `Reading memory: ${keys.length} entries`;
-  }
-}
-
-/**
- * `share_result` — publish a value to the `shared:` namespace so other agents
- * and steps can discover it via `list_shared`.
- *
- * Writes are restricted to `shared:` keys to prevent agents from spoofing
- * step / task / input results. The `key` argument is the suffix after
- * `shared:` and is passed through `memoryKeys.shared()`.
- */
-export class ShareResultTool extends Tool {
-  readonly name = "share_result";
-  readonly description =
-    "Publish a value to shared agent memory under the `shared:` namespace. " +
-    "Other agents and downstream steps can discover it via `list_shared` and " +
-    "fetch it via `read_shared`. Use this to broadcast facts, intermediate " +
-    "findings, or coordination signals to the rest of the team. Shared memory " +
-    "lives only for the current run — to keep something past it, use " +
-    "`thread_memory_save` instead.";
-
-  readonly jsonSchema: Record<string, unknown> = {
-    type: "object",
-    properties: {
-      key: {
-        type: "string",
-        minLength: 1,
-        description:
-          "Suffix for the memory key. Stored as `shared:<key>`. Use a short, " +
-          "descriptive identifier (e.g. \"top_sources\"). A leading " +
-          "`shared:` is optional and stripped, so passing a key straight " +
-          "back from `list_shared` writes the same entry."
-      },
-      value: {
-        description:
-          "The value to publish. Any JSON-serializable structure or string."
-      },
-      title: {
-        type: "string",
-        description:
-          "Optional human-readable title shown when the entry is listed."
-      },
-      description: {
-        type: "string",
-        description: "Optional brief description shown alongside the title."
-      }
-    },
-    required: ["key", "value"],
-    additionalProperties: false
-  };
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const suffix = sharedSuffix(String(params.key));
-    const fullKey = memoryKeys.shared(suffix);
-    const entry = context.memory.set({
-      key: fullKey,
-      kind: "shared",
-      value: params.value,
-      title: typeof params.title === "string" ? params.title : suffix,
-      description:
-        typeof params.description === "string" ? params.description : undefined,
-      source: "share_result"
-    });
-    return {
-      ok: true,
-      key: entry.key,
-      kind: entry.kind,
-      createdAt: new Date(entry.createdAt).toISOString()
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const key = typeof params.key === "string" ? params.key : "(no key)";
-    return `Publishing to memory: shared:${key}`;
-  }
-}
-
-/**
- * Returns fresh instances of the three memory tools. Call this once per
- * executor — every executor needs its own instances so they don't share
- * mutable state (none currently exists, but this future-proofs).
- */
-export function getMemoryTools(): Tool[] {
-  return [new ListSharedTool(), new ReadSharedTool(), new ShareResultTool()];
-}
+import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
+import type { Tool } from "./base-tool.js";
 
 /** Names of the auto-attached memory tools. Useful for filtering / detection. */
 export const MEMORY_TOOL_NAMES = [
@@ -322,3 +31,12 @@ export const MEMORY_TOOL_NAMES = [
   "read_shared",
   "share_result"
 ] as const;
+
+/**
+ * Returns fresh instances of the three memory tools. Call this once per
+ * executor — every executor needs its own instances so they don't share
+ * mutable state (none currently exists, but this future-proofs).
+ */
+export function getMemoryTools(): Tool[] {
+  return MEMORY_TOOL_NAMES.map((name) => toolForCapabilityName(name));
+}

@@ -838,7 +838,9 @@ references left were the `src/index.ts` re-exports and their own tests. The two 
 helpers in `finish-graph-tool.ts` moved to `tools/graph-validation-registry.ts`,
 which is what `submit_graph` and the Code-node refiner actually import.
 
-**The run-scoped memory tools are a real gap, and stay open.** `list_shared` /
+**The run-scoped memory tools are a real gap, and stay open.** *(Closed
+2026-08-12 — see [The `shared` module](#the-shared-module-2026-08-12) below.)*
+`list_shared` /
 `read_shared` / `share_result` (renamed from `memory_list` / `memory_read` /
 `memory_write`) are not loop-protocol tools: they are prompt-documented,
 permission-classified, and the model calls them from inside the sandbox as
@@ -965,3 +967,32 @@ workflow naming a retired tool would have hydrated to nothing and been
 uncallable without an error. `RETIRED_TOOL_NAMES`
 (`packages/llm-nodes/src/nodes/agent-tool-hydration.ts`) maps all nine onto
 their replacements.
+
+### The `shared` module (2026-08-12)
+
+The gap the previous section left open is closed. `list_shared` / `read_shared`
+/ `share_result` are a capability module, `shared`, built on the eager-specs
+pattern: `shared.specs.ts` holds the three wire names, descriptions and schemas
+unchanged, `shared.ts` attaches each to an implementation reading
+`run.context.memory`, and both halves appear in `MODULES`,
+`DECLARED_CAPABILITY_MODULES` and the spec table, so `eagerSpecDrift` and the
+category snapshot cover them like every other namespace.
+
+Not folded into `memory`. That module is thread memory — a database row that
+outlives the run — and these are the run's own `AgentMemory`, discarded with it.
+The naming now shows the lifetimes: `nodetool.shared` run-scoped beside
+`nodetool.memory` thread-scoped.
+
+Mount policy did not move. `getMemoryTools()` keeps its signature and its
+callers, and now assembles the belt from the specs with
+`toolFromLazyCapability`; every step executor still pushes it onto its own
+toolset, and the host still mounts nothing. What eager specs changed is that a
+synchronous constructor can build that belt from the registry — the sync-belt
+problem that kept this port waiting.
+
+The three joined the object model as `nodetool.shared.list/read/publish` and
+therefore `nodetoolApiCoveredToolNames`, so they leave the raw tool catalog the
+way every wrapped tool does. The CodeAct executor's upstream-context line
+teaches `await nodetool.shared.read([...])` instead of
+`await tools.read_shared({keys: [...]})`, and a `shared-handoff` eval case keeps
+the namespace covered.

@@ -136,11 +136,15 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   convert_pdf_to_markdown: "read",
   convert_markdown_to_pdf: "write",
   convert_document: "write",
-  // --- memory (thread memory; the AgentMemory tools stay executor-internal) ---
+  // --- memory (thread memory: outlives the run, lives in the database) ---
   thread_memory_save: "write",
   thread_memory_list: "read",
   thread_memory_update: "write",
   thread_memory_delete: "write",
+  // --- shared (run-scoped AgentMemory; the executors mount these) ---
+  list_shared: "read",
+  read_shared: "read",
+  share_result: "read",
   // --- email ---
   search_email: "read",
   archive_email: "external",

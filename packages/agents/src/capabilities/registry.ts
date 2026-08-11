@@ -34,6 +34,7 @@ import { memorySpecs } from "./memory.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
 import { scriptsSpecs } from "./scripts.specs.js";
+import { sharedSpecs } from "./shared.specs.js";
 import { sketchesSpecs } from "./sketches.specs.js";
 import { storyboardsSpecs } from "./storyboards.specs.js";
 import { styleSpecs } from "./style.specs.js";
@@ -58,6 +59,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   documents: () => import("./documents.js").then((m) => m.module),
   email: () => import("./email.js").then((m) => m.module),
   memory: () => import("./memory.js").then((m) => m.module),
+  shared: () => import("./shared.js").then((m) => m.module),
   web: () => import("./web.js").then((m) => m.module),
   files: () => import("./files.js").then((m) => m.module),
   agents: () => import("./agents.js").then((m) => m.module),
@@ -90,6 +92,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "documents",
   "email",
   "memory",
+  "shared",
   "web",
   "files",
   "agents",
@@ -127,6 +130,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   documents: documentsSpecs,
   email: emailSpecs,
   memory: memorySpecs,
+  shared: sharedSpecs,
   web: webSpecs,
   files: filesSpecs,
   agents: agentsSpecs,

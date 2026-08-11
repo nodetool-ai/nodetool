@@ -265,13 +265,13 @@ The execution engine for a single step.
 
 **LLM access**:
 
-- The memory tools ride in the toolbelt like any other, so the prompt's tool catalog documents them as `tools.list_shared()` / `tools.read_shared()` / `tools.share_result()`.
+- The memory tools ride in the toolbelt like any other, but the object model is their one documented form: the prompt teaches `nodetool.shared.list()` / `nodetool.shared.read(keys)` / `nodetool.shared.publish(key, value)`, and the three wire names drop out of the raw tool catalog like every other wrapped tool.
 - The user message includes only **specific declared upstream keys** as a hint:
   - `step:<id>` for every entry of the step's `dependsOn` (intra-task deps).
   - any key supplied via `CodeActExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
 - Values are not included; the agent calls `read_shared` to fetch them.
 
-**Tool attachment**: `getMemoryTools()` is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
+**Tool attachment**: `getMemoryTools()` — a belt built from the `shared` capability module's specs — is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Mount policy stays with the executor: the host never mounts these. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
 
 **Custom prompts are preambles, not replacements**: A caller-supplied `systemPrompt` is layered before the default execution prompt, so the contract — including the tool catalog and the `finish()` discipline — is non-bypassable.
 
@@ -543,7 +543,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 
 - [Chat & Agents](global-chat-agents.md) — agents overview
 - `packages/runtime/src/agent-memory.ts` — `AgentMemory` implementation
-- `packages/agents/src/tools/memory-tools.ts` — `list_shared` / `read_shared` / `share_result`
+- `packages/agents/src/capabilities/shared.ts` — `list_shared` / `read_shared` / `share_result` (the `shared` capability module; `packages/agents/src/tools/memory-tools.ts` is the belt executors mount them from)
 - `packages/agents/tests/memory-propagation.test.ts` — end-to-end propagation tests including the tool round-trip
 - `packages/agents/tests/memory-tools.test.ts` — unit tests for the memory tools
 - `packages/runtime/tests/agent-memory.test.ts` — `AgentMemory` unit tests

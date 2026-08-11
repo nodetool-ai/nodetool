@@ -71,6 +71,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "thread_memory_update",
     "thread_memory_delete"
   ],
+  shared: ["list_shared", "read_shared", "share_result"],
   email: ["search_email", "archive_email", "add_label_to_email"],
   style: ["get_style_profile", "record_style_preference"],
   assets: [
@@ -734,6 +735,19 @@ const nodetool = (() => {
         __need("thread_memory_delete")({ memory_id: memoryId })
     },
 
+    shared: {
+      /** Metadata for every entry this run shares — no values. */
+      list: (opts) => __need("list_shared")(__merge(opts)),
+      /** Full values for the keys you name; misses come back in \`missing\`. */
+      read: (keys) =>
+        __need("read_shared")({
+          keys: Array.isArray(keys) ? keys : [keys]
+        }),
+      /** Publish under \`shared:<key>\` for the rest of this run to find. */
+      publish: (key, value, opts) =>
+        __need("share_result")(__merge(opts, { key: key, value: value }))
+    },
+
     email: {
       search: (opts) => __need("search_email")(__merge(opts)),
       archive: (messageIds) =>
@@ -1046,6 +1060,17 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   put the assets, workflows and collections you produce in \`resources\` so you
   can reuse them later — plus \`list({limit})\`, \`update(memoryId, {content,
   title, resources})\`, and \`remove(memoryId)\`.`
+  },
+  {
+    namespace: "shared",
+    doc: `- \`nodetool.shared\` — the scratchpad for THIS run, gone when it ends (use
+  \`nodetool.memory\` for anything that must outlive it). \`list({kind,
+  key_prefix, sources})\` returns metadata only — keys, titles, kinds, byte
+  sizes — so discovery costs no tokens; \`read(keys)\` fetches the full values
+  of the keys you name and reports misses in \`missing\`; \`publish(key, value,
+  {title, description})\` stores under \`shared:<key>\` for later steps and
+  sub-agents to find. Upstream step and task results land here, so read them
+  rather than asking for them again.`
   },
   {
     namespace: "style",

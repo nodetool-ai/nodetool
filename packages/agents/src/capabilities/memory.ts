@@ -7,8 +7,9 @@
  * names, descriptions and schemas are unchanged; a belt builds all four from
  * `memory.specs.ts` by name.
  *
- * Scope is the AgentMemory-free half of memory: `list_shared` / `read_shared`
- * / `share_result` stay executor-internal and are not capabilities.
+ * Scope is the AgentMemory-free half of memory. The run-scoped half —
+ * `list_shared` / `read_shared` / `share_result` over `context.memory` — is the
+ * `shared` module, kept apart because its lifetime is the run, not the thread.
  *
  * `@nodetool-ai/models` is imported inside each implementation, so loading
  * this module never opens a database.

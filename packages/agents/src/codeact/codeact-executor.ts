@@ -881,7 +881,7 @@ export class CodeActExecutor {
     if (keys.length > 0) {
       parts.push(
         `Required upstream context — read these before acting (via ` +
-          `\`await tools.read_shared({keys: [...]})\`):\n` +
+          `\`await nodetool.shared.read([...])\`):\n` +
           keys.map((k) => `- ${k}`).join("\n")
       );
     }

@@ -34,7 +34,7 @@ import type {
 } from "@nodetool-ai/protocol";
 
 import { FinishStepTool } from "./tools/finish-step-tool.js";
-import { ListSharedTool, ReadSharedTool } from "./tools/memory-tools.js";
+import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
 import { Tool } from "./tools/base-tool.js";
 import type { TaskPlan } from "./types.js";
 import { truncateToolResult } from "./constants.js";
@@ -188,8 +188,8 @@ export class CompilerAgent {
   }
 
   private async *_compileImpl(): AsyncGenerator<ProcessingMessage, unknown> {
-    const memoryList = new ListSharedTool();
-    const memoryRead = new ReadSharedTool();
+    const memoryList = toolForCapabilityName("list_shared");
+    const memoryRead = toolForCapabilityName("read_shared");
     const finishStepTool = this.outputSchema
       ? new FinishStepTool(this.outputSchema)
       : null;

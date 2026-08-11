@@ -306,7 +306,7 @@ describe("RunSubtaskTool", () => {
       // All parent tools are inherited; run_subtask is stitched in so the
       // child can itself recurse. The core tools are documented as direct
       // calls, the rest as sandbox signatures.
-      expect(capturedPrompt).toContain("tools.read_shared(");
+      expect(capturedPrompt).toContain("nodetool.shared");
       expect(capturedPrompt).toContain("# Direct tools");
       for (const name of ["read_file", "write_file"]) {
         expect(capturedPrompt).toContain(name);

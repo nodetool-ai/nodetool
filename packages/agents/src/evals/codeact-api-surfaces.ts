@@ -1,6 +1,6 @@
 /**
  * CodeAct eval cases for the `nodetool.*` object model — data and creative
- * namespaces: collections, memory, web, documents, email, style, apps,
+ * namespaces: collections, memory, shared, web, documents, email, style, apps,
  * timelines, sketches, scripts, storyboards.
  *
  * The fakes here are named EXACTLY like the belt tools those namespaces wrap
@@ -92,6 +92,13 @@ interface MemoryEntry {
   content: string;
   kind: string;
   resources: unknown[];
+}
+
+interface SharedEntry {
+  key: string;
+  kind: string;
+  title: string;
+  value: unknown;
 }
 
 interface WebPage {
@@ -248,6 +255,22 @@ function createWorld() {
       }
     ] as MemoryEntry[],
     memorySeq: 1,
+    // Run-scoped agent memory, seeded with what upstream steps left behind:
+    // the numbers are only here, so the case has to read them.
+    shared: [
+      {
+        key: "task:pricing",
+        kind: "task_result",
+        title: "Pricing research",
+        value: { tier: "pro", monthly_usd: 49 }
+      },
+      {
+        key: "step:draft",
+        kind: "step_result",
+        title: "Announcement draft",
+        value: "The pro tier is our best value."
+      }
+    ] as SharedEntry[],
     emails: [
       {
         message_id: "msg_1",
@@ -986,6 +1009,71 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           throw new Error(`no memory with id "${id}"`);
         }
         return { deleted: true, memory_id: id };
+      }
+    ),
+
+    // -- shared -----------------------------------------------------------
+    tool(
+      "list_shared",
+      "List entries in shared agent memory (metadata only).",
+      obj({ kind: ANY_ARRAY, key_prefix: S, sources: ANY_ARRAY }),
+      (params) => {
+        const kinds = strList(params["kind"]);
+        const prefix = str(params["key_prefix"]);
+        const entries = world.shared
+          .filter((e) => kinds.length === 0 || kinds.includes(e.kind))
+          .filter((e) => !prefix || e.key.startsWith(prefix))
+          .map((e) => ({
+            key: e.key,
+            kind: e.kind,
+            title: e.title,
+            valueBytes: JSON.stringify(e.value).length
+          }));
+        return { total: entries.length, returned: entries.length, entries };
+      }
+    ),
+    tool(
+      "read_shared",
+      "Read full values from shared agent memory by key.",
+      obj({ keys: ANY_ARRAY }, ["keys"]),
+      (params) => {
+        const entries: Record<string, unknown> = {};
+        const missing: string[] = [];
+        for (const key of strList(params["keys"])) {
+          // A bare suffix falls back to the `shared:` namespace, the way the
+          // real capability does.
+          const hit =
+            world.shared.find((e) => e.key === key) ??
+            (key.includes(":")
+              ? undefined
+              : world.shared.find((e) => e.key === `shared:${key}`));
+          if (hit) entries[key] = clone(hit);
+          else missing.push(key);
+        }
+        return { entries, missing };
+      }
+    ),
+    tool(
+      "share_result",
+      "Publish a value under the `shared:` namespace.",
+      obj({ key: S, value: {}, title: S, description: S }, ["key", "value"]),
+      (params) => {
+        const raw = str(params["key"]);
+        if (!raw) throw new Error("share_result needs a key");
+        const suffix = raw.startsWith("shared:")
+          ? raw.slice("shared:".length)
+          : raw;
+        const key = `shared:${suffix}`;
+        const entry: SharedEntry = {
+          key,
+          kind: "shared",
+          title: str(params["title"], suffix),
+          value: params["value"]
+        };
+        const existing = world.shared.findIndex((e) => e.key === key);
+        if (existing >= 0) world.shared[existing] = entry;
+        else world.shared.push(entry);
+        return { ok: true, key, kind: "shared" };
       }
     ),
 
@@ -1891,6 +1979,34 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         );
       },
       resultCheckLabel: "corrected note, 2 memories total"
+    }
+  },
+  {
+    id: "shared-handoff",
+    description: "Read what upstream steps shared, then publish a derived value",
+    namespaces: ["shared"],
+    objective:
+      "Earlier steps of this run left their results in shared memory. Find " +
+      "the pricing result among them and read it — the numbers are only " +
+      "there, so do not invent them. Work out the annual price at twelve " +
+      "times the monthly one, and publish it into shared memory under the " +
+      'key "annual_price" so later steps can use it. Finish with ' +
+      "{monthlyUsd, annualUsd, publishedKey} — the monthly price you read, " +
+      "the annual price you worked out, and the FULL key the publish call " +
+      "reported back.",
+    outputSchema: obj({ monthlyUsd: N, annualUsd: N, publishedKey: S }, [
+      "monthlyUsd",
+      "annualUsd",
+      "publishedKey"
+    ]),
+    expect: {
+      requiredTools: ["list_shared", "read_shared", "share_result"],
+      maxActions: 4,
+      resultCheck: (r: unknown) =>
+        asNumber(field(r, "monthlyUsd")) === 49 &&
+        asNumber(field(r, "annualUsd")) === 588 &&
+        asString(field(r, "publishedKey")) === "shared:annual_price",
+      resultCheckLabel: "49/588 published as shared:annual_price"
     }
   },
   {

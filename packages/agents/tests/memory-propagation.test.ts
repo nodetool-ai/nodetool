@@ -206,10 +206,11 @@ describe("Agent memory propagation", () => {
     const userMsg = provider.calls[0].userContent;
     expect(userMsg).not.toContain("Acme");
     expect(userMsg).not.toContain("EU");
-    // The system prompt always advertises the memory tools.
+    // The system prompt always advertises the memory capabilities, in their
+    // one documented form: the `nodetool.shared` object model.
     const sysPrompt = provider.calls[0].systemPrompt;
-    expect(sysPrompt).toContain("list_shared");
-    expect(sysPrompt).toContain("read_shared");
+    expect(sysPrompt).toContain("nodetool.shared");
+    expect(sysPrompt).toContain("read(keys)");
   });
 
   it("makes upstream task results visible in downstream task prompts (plan mode)", async () => {
@@ -489,7 +490,8 @@ describe("Agent memory propagation", () => {
     expect(firstUser).not.toContain("alpha");
     expect(firstUser).not.toContain("beta");
 
-    // System prompt advertises the tools.
+    // This step runs the older StepExecutor loop, which carries no object
+    // model, so its prompt still advertises the tools by wire name.
     const sys = provider.calls[0].systemPrompt;
     expect(sys).toContain("list_shared");
     expect(sys).toContain("read_shared");
