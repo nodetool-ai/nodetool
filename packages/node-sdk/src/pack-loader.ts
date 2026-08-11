@@ -39,7 +39,11 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  SHIPPED_SANDBOX_PACKS_BUNDLE_DIR,
+  SHIPPED_SANDBOX_PACKS_SOURCE_DIR
+} from "@nodetool-ai/config";
 import {
   NodePackHostManifestSchema,
   type NodePackHostManifest
@@ -158,12 +162,16 @@ interface PackageJsonShape {
 }
 
 /**
- * Walk up from `start` collecting each `node_modules` directory that exists.
+ * Walk up from `start` collecting each `node_modules` directory that exists,
+ * then add the root holding the packs that ship with NodeTool.
  *
  * Also includes any extra `node_modules` directories named in the
  * `NODETOOL_OPTIONAL_NODE_MODULES` or `NODETOOL_PACK_SEARCH_PATHS` env vars
  * (comma- or platform-separator-delimited). These are how the Electron app and
  * other hosts hand the loader an install root outside the project tree.
+ *
+ * The shipped root comes last, so a pack of the same name found in any
+ * `node_modules` wins: what the user installed shadows the copy in the app.
  */
 export function defaultPackSearchPaths(start: string = process.cwd()): string[] {
   const paths: string[] = [];
@@ -178,8 +186,55 @@ export function defaultPackSearchPaths(start: string = process.cwd()): string[] 
     if (parent === dir) break;
     dir = parent;
   }
+  paths.push(...shippedPackSearchPaths());
   // Dedupe — an env-supplied path may also be on the cwd walk.
   return [...new Set(paths)];
+}
+
+/**
+ * Roots holding the sandbox packs that ship with NodeTool.
+ *
+ * They are config-only packages no host code may import, so they are not
+ * workspaces and npm links nothing into `node_modules`. Every host therefore
+ * reads them from where its own build put them, found relative to this module:
+ *
+ *   - the bundled backend inlines this file into `server.mjs`, and
+ *     `bundle-backend.mjs` stages the packs in `_sandbox/` beside it — the
+ *     layout the packaged desktop app and the Docker/Fly image both run;
+ *   - a checkout resolves this file inside `packages/node-sdk`, so the source
+ *     directory is on the way up to the repo root.
+ *
+ * `NODETOOL_SHIPPED_PACKS_DIR` overrides both, for a host that stages them
+ * somewhere else. Non-existent candidates are dropped, so a host that ships no
+ * packs at all gets an empty list rather than a bad root.
+ */
+export function shippedPackSearchPaths(): string[] {
+  const override = process.env["NODETOOL_SHIPPED_PACKS_DIR"];
+  if (override) return splitPathList(override).filter((p) => existsSync(p));
+
+  const here = dirname(fileURLToPath(import.meta.url));
+  const bundled = join(here, SHIPPED_SANDBOX_PACKS_BUNDLE_DIR);
+  if (existsSync(bundled)) return [bundled];
+
+  const segments = SHIPPED_SANDBOX_PACKS_SOURCE_DIR.split("/");
+  let dir = here;
+  for (;;) {
+    const candidate = join(dir, ...segments);
+    if (existsSync(candidate)) return [candidate];
+    const parent = dirname(dir);
+    if (parent === dir) return [];
+    dir = parent;
+  }
+}
+
+function splitPathList(list: string): string[] {
+  // Comma, semicolon, or the platform PATH separator. ":" must not split
+  // on Windows — it would shear drive letters off absolute paths (C:\…).
+  const separators = process.platform === "win32" ? /[,;]/ : /[,;:]/;
+  return list
+    .split(separators)
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
 }
 
 function readEnvPackPaths(): string[] {
@@ -189,16 +244,7 @@ function readEnvPackPaths(): string[] {
   // Stryker disable next-line ConditionalExpression: forcing this pushes an undefined single, which the existsSync filter downstream discards (equivalent).
   if (single) out.push(single);
   const list = process.env["NODETOOL_PACK_SEARCH_PATHS"];
-  if (list) {
-    // Comma, semicolon, or the platform PATH separator. ":" must not split
-    // on Windows — it would shear drive letters off absolute paths (C:\…).
-    const separators = process.platform === "win32" ? /[,;]/ : /[,;:]/;
-    for (const entry of list.split(separators)) {
-      const trimmed = entry.trim();
-      // Stryker disable next-line ConditionalExpression: forcing this pushes an empty string, which the existsSync filter downstream discards (equivalent).
-      if (trimmed) out.push(trimmed);
-    }
-  }
+  if (list) out.push(...splitPathList(list));
   return out;
 }
 

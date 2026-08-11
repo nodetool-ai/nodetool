@@ -101,6 +101,12 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-pdf",
+    packName: "@nodetool-ai/sandbox-pdf",
+    library: "pdf-parse",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-pptx",
     packName: "@nodetool-ai/sandbox-pptx",
     library: "office-text-extractor",

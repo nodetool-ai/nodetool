@@ -451,53 +451,60 @@ async function dirSize(dir) {
 }
 
 /**
- * Stage the sandbox module files of every bundled builtin pack under
- * `_sandbox/<pack>/`, next to a copy of the pack's package.json.
+ * Stage every sandbox pack NodeTool ships under `_sandbox/<pack>/`, next to a
+ * copy of the pack's package.json.
  *
  * The package.json travels with the files because the pack manifest *is* the
  * declaration: `discoverSandboxPack` reads `nodetool.sandboxModules` from it,
  * so a staged pack directory stays discoverable exactly like an installed one.
- * A declared file that is missing from the package fails the build — a pack
- * half-staged into the artifact is worse than one left out.
+ * SKILL.md travels too — it is what an agent reads before importing the pack.
+ * A declared file that is missing from the package fails the build; so does an
+ * empty source directory, because a bundle that silently ships no pack is the
+ * failure this staging exists to prevent.
+ *
+ * The pack list is the source directory itself, so a new pack ships with no
+ * change here. These packages are not workspaces (no host code may import
+ * them), which is why the directory is read by path instead of resolved.
  */
-async function stageBundledSandboxPacks(packs) {
-  console.log("\nStaging sandbox modules of bundled builtin packs...");
-  if (packs.length === 0) {
-    console.log("  No builtin pack declares sandbox modules");
-    return 0;
+async function stageShippedSandboxPacks(sourceDirRel) {
+  console.log("\nStaging the sandbox packs NodeTool ships...");
+  const sourceDir = path.join(ROOT_DIR, sourceDirRel);
+  let entries;
+  try {
+    entries = await fsp.readdir(sourceDir, { withFileTypes: true });
+  } catch {
+    throw new Error(`Shipped sandbox pack directory not found: ${sourceDir}`);
   }
+
   let staged = 0;
-  for (const pack of packs) {
-    const pkgRoot = resolvePackageRoot(pack);
-    if (!pkgRoot) {
-      throw new Error(
-        `Bundled sandbox pack not found: ${pack}. ` +
-        `Run 'npm install' and 'npm run build:packages' first.`
-      );
-    }
-    const manifestPath = path.join(pkgRoot, "package.json");
+  let packCount = 0;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const packRoot = path.join(sourceDir, entry.name);
+    const manifestPath = path.join(packRoot, "package.json");
+    if (!fs.existsSync(manifestPath)) continue;
     const pkgJson = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
     const nodetool = pkgJson.nodetool ?? {};
     const modules = nodetool.sandboxModules;
-    if (!Array.isArray(modules) || modules.length === 0) {
-      throw new Error(
-        `Bundled sandbox pack ${pack} declares no nodetool.sandboxModules. ` +
-        `Remove it from BUNDLED_SANDBOX_PACKS in ` +
-        `packages/config/src/package-asset-registry.ts.`
-      );
+    if (!Array.isArray(modules) || modules.length === 0) continue;
+    if (typeof pkgJson.name !== "string" || pkgJson.name.length === 0) {
+      throw new Error(`Sandbox pack ${packRoot} has no package name.`);
     }
+
     const files = [
       ...modules.map((module) => module?.file).filter(Boolean),
       ...(Array.isArray(nodetool.internal) ? nodetool.internal : []),
     ];
-    const destRoot = path.join(BUNDLE_DIR, "_sandbox", ...pack.split("/"));
+    if (fs.existsSync(path.join(packRoot, "SKILL.md"))) files.push("SKILL.md");
+
+    const destRoot = path.join(BUNDLE_DIR, "_sandbox", ...pkgJson.name.split("/"));
     await fsp.mkdir(destRoot, { recursive: true });
     await fsp.copyFile(manifestPath, path.join(destRoot, "package.json"));
     for (const file of new Set(files)) {
-      const src = path.join(pkgRoot, file);
+      const src = path.join(packRoot, file);
       if (!fs.existsSync(src)) {
         throw new Error(
-          `Sandbox pack ${pack} declares ${file}, which is not in the package.`
+          `Sandbox pack ${pkgJson.name} declares ${file}, which is not in the package.`
         );
       }
       const dest = path.join(destRoot, ...file.split("/"));
@@ -505,8 +512,17 @@ async function stageBundledSandboxPacks(packs) {
       await fsp.copyFile(src, dest);
       staged += 1;
     }
-    console.log(`  Staged ${pack} (${new Set(files).size} sandbox file(s))`);
+    packCount += 1;
+    console.log(`  Staged ${pkgJson.name} (${new Set(files).size} file(s))`);
   }
+
+  if (packCount === 0) {
+    throw new Error(
+      `No sandbox pack found in ${sourceDir}. The packaged backend would ship ` +
+      `no sandbox library at all.`
+    );
+  }
+  console.log(`  Total: ${packCount} sandbox pack(s)`);
   return staged;
 }
 
@@ -1001,7 +1017,7 @@ async function main() {
     "dist",
     "package-asset-registry.js"
   );
-  const { PACKAGE_RUNTIME_ASSETS, BUNDLED_SANDBOX_PACKS } = await import(
+  const { PACKAGE_RUNTIME_ASSETS, SHIPPED_SANDBOX_PACKS_SOURCE_DIR } = await import(
     pathToFileURL(registryPath).href
   );
 
@@ -1035,15 +1051,16 @@ async function main() {
   }
   console.log(`  Total: ${stagedAssets.size} registered asset(s) staged`);
 
-  // --- Stage sandbox modules of bundled builtin packs ---
-  // A pack that ships inside the app carries guest module sources the backend
-  // never imports, so esbuild does not see them and nothing else copies them.
-  // The pack list is the explicit BUNDLED_SANDBOX_PACKS registry (empty today);
-  // the *file* list is data-driven — each pack's own `nodetool.sandboxModules`
-  // manifest, the same declaration the catalog's discovery reads — so adding a
-  // module to a listed pack needs no change here. Installed packs are
-  // unaffected: they resolve through the optional-node root at runtime.
-  await stageBundledSandboxPacks(BUNDLED_SANDBOX_PACKS ?? []);
+  // --- Stage the sandbox packs NodeTool ships ---
+  // A pack that ships inside the app carries manifest and guest sources the
+  // backend never imports, so esbuild does not see them and nothing else copies
+  // them. Both the pack list and the file list are data-driven — the source
+  // directory, and each pack's own `nodetool.sandboxModules` manifest, which is
+  // the declaration the catalog's discovery reads. The staged tree is where
+  // `shippedPackSearchPaths()` looks in the packaged app. Installed packs are
+  // unaffected: they resolve through the optional-node root at runtime, and
+  // shadow the shipped copy when they carry the same name.
+  await stageShippedSandboxPacks(SHIPPED_SANDBOX_PACKS_SOURCE_DIR);
 
   // Cross-check: any *-manifest.json in a package's dist/ that is NOT in the
   // registry is almost certainly a new provider manifest someone forgot to

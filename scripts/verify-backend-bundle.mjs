@@ -81,6 +81,32 @@ function listStagedSandboxPacks(bundleDir) {
 }
 
 /**
+ * Package names of the sandbox packs this repo ships, or null when the source
+ * directory is absent — the artifact can be verified outside a checkout.
+ *
+ * The path repeats SHIPPED_SANDBOX_PACKS_SOURCE_DIR
+ * (`packages/config/src/package-asset-registry.ts`) rather than importing it,
+ * so this check keeps working against a bundle with no build tree beside it.
+ */
+function listShippedSandboxPackNames() {
+  const sourceDir = path.join(
+    path.dirname(path.dirname(fileURLToPath(import.meta.url))),
+    "packages",
+    "sandbox-packs"
+  );
+  const entries = listFiles(sourceDir);
+  if (entries === null) return null;
+  const names = [];
+  for (const entry of entries) {
+    const pkgJson = readPackageJson(path.join(sourceDir, entry));
+    if (Array.isArray(pkgJson?.nodetool?.sandboxModules) && pkgJson.name) {
+      names.push(pkgJson.name);
+    }
+  }
+  return names;
+}
+
+/**
  * Verify the staged bundle layout. Returns human-readable summary lines on
  * success; throws an Error listing every failed check otherwise.
  * `requireWebgpu` is true for the desktop profile; the server profile does no
@@ -180,7 +206,25 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
   //     manifest that travels with them is what discovery reads, so every file
   //     it declares has to be there. A pack whose sources are half-staged
   //     resolves in dev and fails at import time in the packaged app.
-  for (const pack of listStagedSandboxPacks(bundleDir)) {
+  //     The set must also match the packs the repo ships — a bundle missing one
+  //     offers a library the product documents and the Code node cannot import.
+  const stagedPacks = listStagedSandboxPacks(bundleDir);
+  const shippedPacks = listShippedSandboxPackNames();
+  if (shippedPacks !== null) {
+    const absentPacks = shippedPacks.filter((name) => !stagedPacks.includes(name));
+    if (absentPacks.length > 0) {
+      errors.push(
+        `Sandbox pack(s) not staged under _sandbox/: ${absentPacks.join(", ")}. ` +
+          "Check stageShippedSandboxPacks in bundle-backend.mjs."
+      );
+    }
+  } else if (stagedPacks.length === 0) {
+    errors.push(
+      "No sandbox pack is staged under _sandbox/, so the packaged backend ships " +
+        "no sandbox library at all."
+    );
+  }
+  for (const pack of stagedPacks) {
     const packDir = path.join(bundleDir, "_sandbox", ...pack.split("/"));
     const pkgJson = readPackageJson(packDir);
     const declared = pkgJson?.nodetool?.sandboxModules;
@@ -203,7 +247,10 @@ export function verifyBackendBundle(bundleDir, { requireWebgpu = true } = {}) {
         `_sandbox/${pack} declares file(s) that are not staged: ${absent.join(", ")}.`
       );
     } else {
-      summary.push(`sandbox pack ${pack} staged with ${new Set(files).size} file(s)`);
+      summary.push(
+        `sandbox pack ${pack} staged: ${declared.length} module(s), ` +
+          `${new Set(files).size} declared file(s)`
+      );
     }
   }
 

@@ -982,8 +982,8 @@ modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
 global — the `data.*` namespace is gone. NodeTool ships twenty packs in
-`packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
-installed like any third-party pack and never a workspace:
+`packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
+every one of them is available out of the box:
 
 | Pack | Library | Runs |
 |---|---|---|
@@ -1032,8 +1032,16 @@ The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 near-identical nodes that one script now expresses; only `lib.browser.Screenshot`
 (a real page over CDP) and `lib.sqlite.GetDatabasePath` stayed nodes.
 
-Declaring a specifier NodeTool ships but nobody installed fails validation with
-"Install `<pack>`". See
+These packs are still not workspaces — no host code may import one — so npm
+links nothing into `node_modules` and discovery reads them from disk instead:
+`packages/sandbox-packs/` in a checkout, and `_sandbox/` next to `server.mjs`
+in the packaged desktop app and the Docker image, where `bundle-backend.mjs`
+stages every pack in that directory and `verify-backend-bundle.mjs` fails a
+build that misses one. `shippedPackSearchPaths()`
+(`packages/node-sdk/src/pack-loader.ts`) resolves both, and puts the shipped
+root last: a pack of the same name installed through the Package Manager
+shadows the copy in the app. Declaring a specifier from a pack this host does
+not carry still fails validation with "Install `<pack>`". See
 [packages/sandbox-packs/README.md](packages/sandbox-packs/README.md).
 
 ### nodetool affected (Changed-File → Workspace Mapping)

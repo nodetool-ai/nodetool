@@ -32,6 +32,7 @@ import {
   MAX_HOST_INPUT_BYTES,
   MAX_HOST_INPUT_CHARS
 } from "../src/host-modules/limits.js";
+import { buildPdf } from "./_helpers/fixture-pdf.js";
 
 const DIGEST = "b".repeat(64);
 
@@ -858,6 +859,90 @@ describe("@nodetool-ai/sandbox-epub", () => {
     expect(chapters).toHaveLength(2);
     expect(chapters[0].title).toBe("Chapter One");
     expect(chapters[0].text).toContain("first chapter content");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pdf
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-pdf", () => {
+  function pdfBase64(): string {
+    return Buffer.from(buildPdf(["Hello from page one", "Second page text here"])).toString(
+      "base64"
+    );
+  }
+
+  it("extracts full text from all pages", async () => {
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pdf";
+       return await extractText(fromBase64("${pdfBase64()}"));`,
+      "pdf"
+    );
+    expect(result.success).toBe(true);
+    const text = String(result.result);
+    expect(text).toContain("Hello from page one");
+    expect(text).toContain("Second page text here");
+    // pdf-parse's own "-- 1 of 2 --" page marker is not the document's text.
+    expect(text).not.toMatch(/-- \d+ of \d+ --/);
+  });
+
+  it("extracts text per page, preserving order", async () => {
+    const result = await run(
+      `import { extractPages } from "@nodetool-ai/sandbox-pdf";
+       return await extractPages(fromBase64("${pdfBase64()}"));`,
+      "pdf"
+    );
+    expect(result.success).toBe(true);
+    const pages = result.result as Array<{ index: number; pageNumber: number; text: string }>;
+    expect(pages).toHaveLength(2);
+    expect(pages[0]).toMatchObject({ index: 0, pageNumber: 1 });
+    expect(pages[0].text).toContain("Hello from page one");
+    expect(pages[1]).toMatchObject({ index: 1, pageNumber: 2 });
+    expect(pages[1].text).toContain("Second page text here");
+  });
+
+  it("leaves the guest's own bytes intact", async () => {
+    // pdf.js transfers the buffer it is handed; the copy is what keeps a
+    // second read of the same input from seeing an empty array.
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pdf";
+       const bytes = fromBase64("${pdfBase64()}");
+       await extractText(bytes);
+       return bytes.length;`,
+      "pdf"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBeGreaterThan(0);
+  });
+
+  it("reports a malformed document by name", async () => {
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pdf";
+       try { await extractText(new Uint8Array([1, 2, 3, 4])); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "pdf"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/^pdf\.extractText: /);
+  });
+
+  it("rejects non-binary input", async () => {
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pdf";
+       try { await extractText("text"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "pdf"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/must be a Uint8Array/);
+  });
+
+  it("refuses oversized input by name", async () => {
+    const { extractText } = await import("../src/host-modules/pdf.js");
+    await expect(extractText(new Uint8Array(MAX_HOST_INPUT_BYTES + 1))).rejects.toThrow(
+      /pdf\.extractText: input exceeds the 10485760 byte limit/
+    );
   });
 });
 

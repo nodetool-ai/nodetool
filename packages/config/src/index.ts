@@ -49,6 +49,8 @@ export { importOptionalModule } from "./optional-modules.js";
 
 export {
   PACKAGE_RUNTIME_ASSETS,
+  SHIPPED_SANDBOX_PACKS_SOURCE_DIR,
+  SHIPPED_SANDBOX_PACKS_BUNDLE_DIR,
   findPackageAsset,
   type PackageAssetRef
 } from "./package-asset-registry.js";

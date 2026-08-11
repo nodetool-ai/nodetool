@@ -169,6 +169,14 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     description: "Read an EPUB's metadata, table of contents, and chapter text.",
     exports: ["metadata", "tableOfContents", "extractText", "extractChapters"]
   },
+  pdf: {
+    id: "pdf",
+    packName: "@nodetool-ai/sandbox-pdf",
+    library: "pdf-parse",
+    description:
+      "Extract a PDF's embedded text, whole or per page. No OCR of scanned pages.",
+    exports: ["extractText", "extractPages"]
+  },
   pptx: {
     id: "pptx",
     packName: "@nodetool-ai/sandbox-pptx",

@@ -8,13 +8,19 @@
  * that violates the static contract, and a package name found under two roots,
  * both become catalog diagnostics. Shadowing is deliberately *not* resolved by
  * scan order: two roots claiming one package name is an error the operator has
- * to fix, not a silent nearest-wins pick.
+ * to fix, not a silent nearest-wins pick. The one exception is the root of
+ * packs shipped with NodeTool, which every host carries and nobody chose: an
+ * installed pack of the same name simply wins.
  */
 
 import type { SandboxModuleStatus } from "@nodetool-ai/protocol";
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";
 
-import { defaultPackSearchPaths, listPackageDirs } from "./pack-loader.js";
+import {
+  defaultPackSearchPaths,
+  listPackageDirs,
+  shippedPackSearchPaths
+} from "./pack-loader.js";
 import { createSandboxModuleCatalog } from "./sandbox-module-catalog.js";
 import {
   discoverSandboxPack,
@@ -40,10 +46,15 @@ export function discoverSandboxCatalog(
   options: SandboxPackDiscoveryOptions = {}
 ): SandboxCatalogHost {
   const failures: SandboxModuleStatus[] = [];
-  const byName = new Map<string, SandboxPackDiscovery>();
+  const byName = new Map<
+    string,
+    { discovery: SandboxPackDiscovery; shipped: boolean }
+  >();
   const duplicated = new Set<string>();
+  const shippedRoots = new Set(shippedPackSearchPaths());
 
   for (const nodeModules of searchPaths) {
+    const shipped = shippedRoots.has(nodeModules);
     for (const packageDir of listPackageDirs(nodeModules)) {
       let discovery: SandboxPackDiscovery | undefined;
       try {
@@ -60,23 +71,30 @@ export function discoverSandboxCatalog(
       if (discovery === undefined) continue;
       const existing = byName.get(discovery.name);
       if (existing === undefined) {
-        byName.set(discovery.name, discovery);
+        byName.set(discovery.name, { discovery, shipped });
         continue;
       }
-      if (existing.dir === discovery.dir) continue;
+      if (existing.discovery.dir === discovery.dir) continue;
+      // A pack that ships with the app is the fallback copy, not a rival claim:
+      // when the same name is also installed, the installed one wins and no
+      // diagnostic is raised. Only two claims of equal standing are an error.
+      if (existing.shipped !== shipped) {
+        if (existing.shipped) byName.set(discovery.name, { discovery, shipped });
+        continue;
+      }
       duplicated.add(discovery.name);
       failures.push({
         packName: discovery.name,
         status: "error",
         code: "duplicate-pack",
-        message: `Sandbox package ${discovery.name} was found in ${existing.dir} and ${discovery.dir}. Remove one before its modules can resolve.`
+        message: `Sandbox package ${discovery.name} was found in ${existing.discovery.dir} and ${discovery.dir}. Remove one before its modules can resolve.`
       });
     }
   }
 
   for (const name of duplicated) byName.delete(name);
 
-  const discoveries = [...byName.values()];
+  const discoveries = [...byName.values()].map((entry) => entry.discovery);
   return {
     catalog: createSandboxModuleCatalog(discoveries, failures),
     discoveries,

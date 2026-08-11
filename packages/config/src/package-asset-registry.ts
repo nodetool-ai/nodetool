@@ -42,21 +42,27 @@ export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
 ];
 
 /**
- * Bundled builtin packs whose sandbox modules ship inside the desktop artifact.
+ * Where the sandbox packs that ship with NodeTool live, in the repo and in the
+ * packaged artifact. Every host reads one of these two locations, so both names
+ * live here rather than in each script.
  *
- * Installed packs are unaffected — they resolve through the optional-node root
- * at runtime. Only a pack that ships *inside* the app needs staging, because
- * esbuild bundles the backend into one file and nothing else copies a pack's
- * `nodetool.sandboxModules` files. `bundle-backend.mjs` reads each listed
- * package's own manifest for the file list (so adding a module to a listed pack
- * needs no change here) and stages them under `_sandbox/<pack>/`;
- * `verify-backend-bundle.mjs` checks the staged tree against that manifest.
+ * The packs are config-only npm packages (a `nodetool.sandboxModules` manifest
+ * plus a SKILL.md) that no host code may import, so they are not workspaces and
+ * npm never links them into `node_modules`. Discovery therefore reads them from
+ * disk: `packages/sandbox-packs/` in a checkout, and `_sandbox/` next to
+ * `server.mjs` in the bundle, where `bundle-backend.mjs` stages every one of
+ * them and `verify-backend-bundle.mjs` checks the staged tree against each
+ * pack's own manifest. Both are directories of package directories, which is
+ * what {@link listPackageDirs} in `@nodetool-ai/node-sdk` enumerates — scoped
+ * names sit one level deeper, exactly as in `node_modules`.
  *
- * The list is empty because no builtin ships sandbox modules yet. It is an
- * explicit registry rather than a scan so that shipping guest code inside the
- * app stays a deliberate, reviewable act.
+ * Staging is a scan, not a list: a pack added to the source directory ships
+ * without touching this file.
  */
-export const BUNDLED_SANDBOX_PACKS: readonly string[] = [];
+export const SHIPPED_SANDBOX_PACKS_SOURCE_DIR = "packages/sandbox-packs";
+
+/** The staged copy's directory name, relative to the bundled `server.mjs`. */
+export const SHIPPED_SANDBOX_PACKS_BUNDLE_DIR = "_sandbox";
 
 /** Registry lookup by exact pkg + path. */
 export function findPackageAsset(

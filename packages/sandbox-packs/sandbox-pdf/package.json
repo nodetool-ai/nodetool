@@ -1,0 +1,39 @@
+{
+  "name": "@nodetool-ai/sandbox-pdf",
+  "version": "0.7.0-rc.34",
+  "description": "Extract text from PDF files inside the NodeTool sandbox, from pdf-parse running on the host",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "pdf"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-pdf"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "pdf",
+    "text-extraction"
+  ]
+}
