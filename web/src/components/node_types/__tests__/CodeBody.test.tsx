@@ -119,7 +119,7 @@ jest.mock("../../node/ExposedLabeledInputs", () => ({
   default: () => <div data-testid="exposed-labeled-inputs" />
 }));
 
-jest.mock("../code_gen/CodeGenDialog", () => ({
+jest.mock("../code_assistant/CodeAssistantDialog", () => ({
   __esModule: true,
   default: ({ nodeId }: { nodeId: string }) => (
     <div data-testid="code-gen-dialog" data-node-id={nodeId} />

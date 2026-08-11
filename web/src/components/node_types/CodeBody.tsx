@@ -58,7 +58,7 @@ import {
 } from "../node/codeNodeUi";
 import { resolveExposedInputNames } from "../../utils/exposedInputs";
 import { nodeInputsToCodeGenPorts } from "../../utils/codeGenSubmission";
-import CodeGenDialog from "./code_gen/CodeGenDialog";
+import CodeAssistantDialog from "./code_assistant/CodeAssistantDialog";
 
 export interface CodeBodyProps {
   id: string;
@@ -489,7 +489,7 @@ const CodeBodyInner: React.FC<CodeBodyProps> = ({
       )}
 
       {supportsCodeGen && isCodeGenOpen && (
-        <CodeGenDialog
+        <CodeAssistantDialog
           open
           nodeId={id}
           onClose={closeCodeGen}

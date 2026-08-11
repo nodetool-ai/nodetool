@@ -114,6 +114,11 @@ import {
   RestoreTimelineVersionTool
 } from "./timeline-version-tools.js";
 import { EditTimelineTool } from "./timeline-edit-tools.js";
+import {
+  ValidateCodeTool,
+  RunCodeTool,
+  TestCodeTool
+} from "./code-authoring-tools.js";
 
 export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   // Filesystem (workspace-relative)
@@ -168,6 +173,11 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   CreateTimelineVersionTool,
   RestoreTimelineVersionTool,
   EditTimelineTool,
+
+  // Code-node authoring harness (validate → run → test a Code body)
+  ValidateCodeTool,
+  RunCodeTool,
+  TestCodeTool,
 
   // Vision (lazy image loading: handles → pixels on demand)
   ListImagesTool,

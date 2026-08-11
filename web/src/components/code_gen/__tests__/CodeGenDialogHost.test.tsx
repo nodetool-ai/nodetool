@@ -1,6 +1,6 @@
 jest.mock("../../node_types/PlaceholderNode", () => () => null);
 
-jest.mock("../../node_types/code_gen/CodeGenDialog", () => ({
+jest.mock("../../node_types/code_assistant/CodeAssistantDialog", () => ({
   __esModule: true,
   default: ({
     nodeId,
