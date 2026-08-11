@@ -180,6 +180,37 @@ describe("ReadSharedTool", () => {
     expect(result.entries).toEqual({});
     expect(result.missing).toEqual([]);
   });
+
+  it("resolves a bare suffix under shared:, reported under the asked-for key", async () => {
+    const context = createMockContext();
+    await new ShareResultTool().process(context, {
+      key: "top_source",
+      value: "https://example.com"
+    });
+
+    const result = (await new ReadSharedTool().process(context, {
+      keys: ["top_source"]
+    })) as {
+      entries: Record<string, { value: unknown }>;
+      missing: string[];
+    };
+
+    expect(result.entries["top_source"].value).toBe("https://example.com");
+    expect(result.missing).toEqual([]);
+  });
+
+  it("does not fall back for a key that names another namespace", async () => {
+    const context = createMockContext();
+    seed(context);
+
+    const result = (await new ReadSharedTool().process(context, {
+      keys: ["task:does_not_exist"]
+    })) as { entries: Record<string, unknown>; missing: string[] };
+
+    // `shared:task:does_not_exist` must never answer a `task:` read.
+    expect(result.entries).toEqual({});
+    expect(result.missing).toEqual(["task:does_not_exist"]);
+  });
 });
 
 describe("ShareResultTool", () => {
@@ -219,5 +250,33 @@ describe("ShareResultTool", () => {
     expect(result.key).toBe("shared:task:bogus");
     expect(context.memory.has("task:bogus")).toBe(false);
     expect(context.memory.has("shared:task:bogus")).toBe(true);
+  });
+
+  it("strips a leading shared: instead of doubling the prefix", async () => {
+    const tool = new ShareResultTool();
+    const context = createMockContext();
+
+    // A live run handed back a key from list_shared and minted
+    // `shared:shared:best_language_model`. The write is now idempotent.
+    const result = (await tool.process(context, {
+      key: "shared:best_language_model",
+      value: "openai/gpt-5-mini"
+    })) as { key: string };
+
+    expect(result.key).toBe("shared:best_language_model");
+    expect(context.memory.has("shared:shared:best_language_model")).toBe(false);
+  });
+
+  it("writes the same entry whether the key carries the prefix or not", async () => {
+    const context = createMockContext();
+
+    await new ShareResultTool().process(context, { key: "pick", value: 1 });
+    await new ShareResultTool().process(context, {
+      key: "shared:pick",
+      value: 2
+    });
+
+    expect(context.memory.get("shared:pick")?.value).toBe(2);
+    expect(context.memory.has("shared:shared:pick")).toBe(false);
   });
 });

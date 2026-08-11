@@ -27,6 +27,20 @@ import { Tool } from "./base-tool.js";
 /** Maximum bytes of `description` returned per entry from list_shared. */
 const MAX_DESCRIPTION_CHARS = 240;
 
+/**
+ * Normalize the key argument of `share_result`, which takes the suffix after
+ * `shared:` while `read_shared` and `list_shared` deal in full keys. A model
+ * that hands a full key back to the write side minted `shared:shared:<key>` —
+ * observed in a live run. Stripping the prefix makes the write idempotent
+ * under a round trip through either read tool.
+ *
+ * The cost is that a literal key `shared:shared:x` can no longer be created.
+ * Nothing wants one, and the tool description now says the prefix is optional.
+ */
+function sharedSuffix(key: string): string {
+  return key.startsWith("shared:") ? key.slice("shared:".length) : key;
+}
+
 /** Hard upper bound on entries returned in a single list_shared call. */
 const MAX_LIST_ENTRIES = 200;
 
@@ -169,7 +183,9 @@ export class ReadSharedTool extends Tool {
         type: "array",
         items: { type: "string" },
         description:
-          "Memory keys to read (e.g. [\"task:research\", \"step:summary\"])."
+          "Memory keys to read (e.g. [\"task:research\", \"step:summary\"]). " +
+          "A key with no `<namespace>:` prefix is also looked up under " +
+          "`shared:`, so a suffix passed to `share_result` reads back as-is."
       }
     },
     required: ["keys"],
@@ -187,7 +203,13 @@ export class ReadSharedTool extends Tool {
     const found: Record<string, MemoryEntry> = {};
     const missing: string[] = [];
     for (const key of keys) {
-      const entry = context.memory.get(key);
+      // A bare suffix is what `share_result` accepts, so a model that reads
+      // back what it just wrote often asks for one. Retry the miss under the
+      // `shared:` namespace before reporting it, and report under the key that
+      // was asked for either way.
+      const entry =
+        context.memory.get(key) ??
+        (key.includes(":") ? undefined : context.memory.get(memoryKeys.shared(key)));
       if (entry) {
         found[key] = entry;
       } else {
@@ -234,7 +256,9 @@ export class ShareResultTool extends Tool {
         minLength: 1,
         description:
           "Suffix for the memory key. Stored as `shared:<key>`. Use a short, " +
-          "descriptive identifier (e.g. \"top_sources\")."
+          "descriptive identifier (e.g. \"top_sources\"). A leading " +
+          "`shared:` is optional and stripped, so passing a key straight " +
+          "back from `list_shared` writes the same entry."
       },
       value: {
         description:
@@ -258,7 +282,7 @@ export class ShareResultTool extends Tool {
     context: ProcessingContext,
     params: Record<string, unknown>
   ): Promise<unknown> {
-    const suffix = String(params.key);
+    const suffix = sharedSuffix(String(params.key));
     const fullKey = memoryKeys.shared(suffix);
     const entry = context.memory.set({
       key: fullKey,
