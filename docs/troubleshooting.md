@@ -201,7 +201,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 **Cause 2: Poor chunking strategy**
 - **Symptoms:** Retrieved text is too short/long or cuts off mid-sentence
 - **Fix:** 
-  - Use `nodetool.document.SplitRecursively` (or `SplitDocument` / `nodetool.text.RegexSplit`) for semantic chunking
+  - Use `nodetool.text.RegexSplit` for semantic chunking
   - Adjust chunk size (typical: 500-1000 tokens)
   - Add overlap between chunks (typical: 50-100 tokens)
 

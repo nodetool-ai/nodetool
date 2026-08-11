@@ -68,6 +68,55 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   diff: async () => {
     const mod = await import("./diff.js");
     return { unified: mod.unified };
+  },
+  aws: async () => {
+    const mod = await import("./aws.js");
+    return { sigv4: mod.sigv4, presign: mod.presign };
+  },
+  notion: async () => {
+    const mod = await import("./notion.js");
+    return {
+      request: mod.request,
+      plainText: mod.plainText,
+      toMarkdown: mod.toMarkdown
+    };
+  },
+  supabase: async () => {
+    const mod = await import("./supabase.js");
+    return { from: mod.from, rpc: mod.rpc };
+  },
+  twilio: async () => {
+    const mod = await import("./twilio.js");
+    return { request: mod.request };
+  },
+  apify: async () => {
+    const mod = await import("./apify.js");
+    return {
+      startRun: mod.startRun,
+      runStatus: mod.runStatus,
+      datasetItems: mod.datasetItems
+    };
+  },
+  docx: async () => {
+    const mod = await import("./docx.js");
+    return { build: mod.build };
+  },
+  mammoth: async () => {
+    const mod = await import("./mammoth.js");
+    return { extractRawText: mod.extractRawText, convertToHtml: mod.convertToHtml };
+  },
+  epub: async () => {
+    const mod = await import("./epub.js");
+    return {
+      metadata: mod.metadata,
+      tableOfContents: mod.tableOfContents,
+      extractText: mod.extractText,
+      extractChapters: mod.extractChapters
+    };
+  },
+  pptx: async () => {
+    const mod = await import("./pptx.js");
+    return { extractText: mod.extractText, extractSlides: mod.extractSlides };
   }
 };
 

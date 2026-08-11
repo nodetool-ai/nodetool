@@ -5,7 +5,7 @@
   "updated_at": "2026-08-02T10:00:00.000Z",
   "name": "Chunk a Transcript for Indexing",
   "tool_name": null,
-  "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters \u2014 a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
+  "description": "Split a long passage into overlapping windows the way a RAG ingest does, then count them. `length` and `overlap` are counted in WORDS, not characters — a 90 here would swallow this whole passage into one chunk. Overlap is the point: a boundary landing mid-sentence loses the claim that straddles it, so neighbouring chunks share a tail. Counting needs Collection first, because Count consumes a stream and a list handed to it arrives as a single item.",
   "tags": [
     "text",
     "example"
@@ -35,11 +35,10 @@
       },
       {
         "id": "ch",
-        "type": "nodetool.text.Chunk",
+        "type": "nodetool.code.Code",
         "data": {
-          "length": 12,
-          "overlap": 3,
-          "separator": " "
+          "code": "const chunkSize = Number(inputs.length ?? 100);\nconst overlap = Number(inputs.overlap ?? 0);\nconst separator = String(inputs.separator ?? \" \");\nconst words = String(inputs.text ?? \"\").split(separator);\nconst step = chunkSize - overlap;\nconst chunks = [];\nfor (let i = 0; i < words.length; i += step) {\n  chunks.push(words.slice(i, i + chunkSize).join(separator));\n}\nreturn { output: chunks };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -51,8 +50,18 @@
           "selectable": true,
           "title": "2  12 words, 3 overlap"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "length": 12,
+          "overlap": 3,
+          "separator": " "
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "fan",

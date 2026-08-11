@@ -6,7 +6,12 @@
   "name": "Every Hour, On the Hour",
   "tool_name": null,
   "description": "A clock, and the two numbers a schedule actually needs: which tick this is, and when it fired. Set `interval_seconds` and the trigger emits on its own — no input, no caller. Everything downstream of it becomes a cron job. Leave `max_events` at 0 to run forever, or set it to stop after N.",
-  "tags": ["example", "trigger", "interval", "automation"],
+  "tags": [
+    "example",
+    "trigger",
+    "interval",
+    "automation"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -22,7 +27,10 @@
           "max_events": 0
         },
         "ui_properties": {
-          "position": { "x": 0, "y": 120 },
+          "position": {
+            "x": 0,
+            "y": 120
+          },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
@@ -33,25 +41,45 @@
       },
       {
         "id": "label",
-        "type": "nodetool.text.ToString",
-        "data": { "mode": "str" },
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const v = inputs.value;\nconst mode = String(inputs.mode ?? \"str\");\nconst toJsonString = (value) => {\n  if (value === undefined) return \"\";\n  try {\n    const json = JSON.stringify(value);\n    return json === undefined ? \"\" : json;\n  } catch (_error) {\n    return String(value);\n  }\n};\nif (mode === \"repr\") return { output: toJsonString(v) };\nif (v === null || v === undefined) return { output: \"\" };\nif (typeof v === \"object\") return { output: toJsonString(v) };\nreturn { output: String(v) };",
+          "packages": []
+        },
         "ui_properties": {
-          "position": { "x": 330, "y": 40 },
+          "position": {
+            "x": 330,
+            "y": 40
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
           "title": "2  Tick as text"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "mode": "str"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "tick",
         "type": "nodetool.output.Output",
         "name": "tick",
-        "data": { "name": "tick", "description": "Sequential tick counter" },
+        "data": {
+          "name": "tick",
+          "description": "Sequential tick counter"
+        },
         "ui_properties": {
-          "position": { "x": 620, "y": 40 },
+          "position": {
+            "x": 620,
+            "y": 40
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
@@ -64,9 +92,15 @@
         "id": "at",
         "type": "nodetool.output.Output",
         "name": "fired_at",
-        "data": { "name": "fired_at", "description": "ISO time the tick fired" },
+        "data": {
+          "name": "fired_at",
+          "description": "ISO time the tick fired"
+        },
         "ui_properties": {
-          "position": { "x": 620, "y": 220 },
+          "position": {
+            "x": 620,
+            "y": 220
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,

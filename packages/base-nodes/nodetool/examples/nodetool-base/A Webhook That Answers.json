@@ -6,7 +6,12 @@
   "name": "A Webhook That Answers",
   "tool_name": null,
   "description": "An HTTP POST arrives and the graph replies in prose. The trigger hands you the request body, headers and method; this one reads the body and writes a one-line summary a human can act on. Register the workflow to get a delivery URL, or drive it from the CLI with `--trigger-event '{\"node_id\":\"hook\",\"payload\":{\"body\":{...}}}'`.",
-  "tags": ["example", "trigger", "webhook", "llm"],
+  "tags": [
+    "example",
+    "trigger",
+    "webhook",
+    "llm"
+  ],
   "thumbnail": null,
   "thumbnail_url": null,
   "graph": {
@@ -16,7 +21,10 @@
         "type": "nodetool.triggers.WebhookTrigger",
         "data": {},
         "ui_properties": {
-          "position": { "x": 0, "y": 120 },
+          "position": {
+            "x": 0,
+            "y": 120
+          },
           "zIndex": 0,
           "width": 280,
           "selectable": true,
@@ -27,17 +35,31 @@
       },
       {
         "id": "str",
-        "type": "nodetool.text.ToString",
-        "data": { "mode": "repr" },
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const v = inputs.value;\nconst mode = String(inputs.mode ?? \"str\");\nconst toJsonString = (value) => {\n  if (value === undefined) return \"\";\n  try {\n    const json = JSON.stringify(value);\n    return json === undefined ? \"\" : json;\n  } catch (_error) {\n    return String(value);\n  }\n};\nif (mode === \"repr\") return { output: toJsonString(v) };\nif (v === null || v === undefined) return { output: \"\" };\nif (typeof v === \"object\") return { output: toJsonString(v) };\nreturn { output: String(v) };",
+          "packages": []
+        },
         "ui_properties": {
-          "position": { "x": 330, "y": 120 },
+          "position": {
+            "x": 330,
+            "y": 120
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,
           "title": "2  Body as text"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "mode": "repr"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "ag",
@@ -63,7 +85,10 @@
           "max_turns": 100
         },
         "ui_properties": {
-          "position": { "x": 620, "y": 120 },
+          "position": {
+            "x": 620,
+            "y": 120
+          },
           "zIndex": 0,
           "width": 300,
           "selectable": true,
@@ -76,9 +101,15 @@
         "id": "out",
         "type": "nodetool.output.Output",
         "name": "summary",
-        "data": { "name": "summary", "description": "One line about the event" },
+        "data": {
+          "name": "summary",
+          "description": "One line about the event"
+        },
         "ui_properties": {
-          "position": { "x": 970, "y": 120 },
+          "position": {
+            "x": 970,
+            "y": 120
+          },
           "zIndex": 0,
           "width": 240,
           "selectable": true,

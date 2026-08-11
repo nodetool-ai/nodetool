@@ -11,16 +11,6 @@ import {
   HighShelfFilterNode,
   LowShelfFilterNode,
   PeakFilterNode,
-  // lib-docx
-  CreateDocumentLibNode,
-  LoadWordDocumentLibNode,
-  AddHeadingLibNode,
-  AddParagraphLibNode,
-  AddTableLibNode,
-  AddImageLibNode,
-  AddPageBreakLibNode,
-  SetDocumentPropertiesLibNode,
-  SaveDocumentLibNode,
   // lib-seaborn
   ChartRendererLibNode,
   // lib-pedalboard-extra
@@ -39,12 +29,7 @@ import {
   // document
   LoadDocumentFileNode,
   SaveDocumentFileNode,
-  ListDocumentsNode,
-  SplitDocumentNode,
-  SplitHTMLNode,
-  SplitJSONNode,
-  SplitRecursivelyNode,
-  SplitMarkdownNode
+  ListDocumentsNode
 } from "../src/index.js";
 
 // ============================================================================
@@ -829,305 +814,6 @@ describe.skip("lib-numpy gaps (removed)", () => {
 */
 
 // ============================================================================
-// lib-pdf.ts gaps (via pdfjs-dist)
-// ============================================================================
-
-describe.skip("lib-pdf gaps - node class names differ from test imports", () => {
-  // Create a minimal valid PDF
-  function makePdf(): { data: string } {
-    // Minimal PDF
-    const pdf = `%PDF-1.0
-1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
-2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
-3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
-4 0 obj<</Length 44>>stream
-BT /F1 12 Tf 100 700 Td (Hello World) Tj ET
-endstream
-endobj
-5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
-xref
-0 6
-0000000000 65535 f
-0000000009 00000 n
-0000000058 00000 n
-0000000115 00000 n
-0000000266 00000 n
-0000000360 00000 n
-trailer<</Size 6/Root 1 0 R>>
-startxref
-431
-%%EOF`;
-    return { data: Buffer.from(pdf).toString("base64") };
-  }
-
-  it("GetPageCount", async () => {
-    const __n69 = new GetPageCountPdfPlumberNode();
-    __n69.assign({ pdf: makePdf() });
-    const res = await __n69.process();
-    expect(res.output).toBe(1);
-  });
-
-  it("ExtractText", async () => {
-    const __n70 = new ExtractTextPdfPlumberNode();
-    __n70.assign({ pdf: makePdf() });
-    const res = await __n70.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("ExtractPageMetadata", async () => {
-    const __n71 = new ExtractPageMetadataPdfPlumberNode();
-    __n71.assign({ pdf: makePdf() });
-    const res = await __n71.process();
-    const out = res.output as any[];
-    expect(out.length).toBe(1);
-    expect(out[0]).toHaveProperty("width");
-  });
-
-  it("ExtractTables", async () => {
-    const __n72 = new ExtractTablesPdfPlumberNode();
-    __n72.assign({ pdf: makePdf() });
-    const res = await __n72.process();
-    expect(Array.isArray(res.output)).toBe(true);
-  });
-
-  it("ExtractImages returns empty", async () => {
-    const __n73 = new ExtractImagesPdfPlumberNode();
-    __n73.assign({ pdf: makePdf() });
-    const res = await __n73.process();
-    expect(res.output).toEqual([]);
-  });
-
-  it("ExtractTextPyMuPdf", async () => {
-    const __n74 = new ExtractTextPyMuPdfNode();
-    __n74.assign({ pdf: makePdf() });
-    const res = await __n74.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("ExtractMarkdownPyMuPdf", async () => {
-    const __n75 = new ExtractMarkdownPyMuPdfNode();
-    __n75.assign({ pdf: makePdf() });
-    const res = await __n75.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("ExtractTextBlocksPyMuPdf", async () => {
-    const __n76 = new ExtractTextBlocksPyMuPdfNode();
-    __n76.assign({ pdf: makePdf() });
-    const res = await __n76.process();
-    expect(Array.isArray(res.output)).toBe(true);
-  });
-
-  it("ExtractTextWithStylePyMuPdf", async () => {
-    const __n77 = new ExtractTextWithStylePyMuPdfNode();
-    __n77.assign({ pdf: makePdf() });
-    const res = await __n77.process();
-    expect(Array.isArray(res.output)).toBe(true);
-  });
-
-  it("ExtractTablesPyMuPdf", async () => {
-    const __n78 = new ExtractTablesPyMuPdfNode();
-    __n78.assign({ pdf: makePdf() });
-    const res = await __n78.process();
-    expect(Array.isArray(res.output)).toBe(true);
-  });
-
-  it("defaults for all pdf nodes", () => {
-    expect(new GetPageCountPdfPlumberNode().serialize()).toHaveProperty("pdf");
-    expect(new ExtractTextPdfPlumberNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractPageMetadataPdfPlumberNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractTablesPdfPlumberNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractImagesPdfPlumberNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractTextPyMuPdfNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractMarkdownPyMuPdfNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractTextBlocksPyMuPdfNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractTextWithStylePyMuPdfNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-    expect(new ExtractTablesPyMuPdfNode().serialize()).toHaveProperty(
-      "start_page"
-    );
-  });
-});
-// ============================================================================
-// lib-docx.ts gaps
-// ============================================================================
-
-describe("lib-docx gaps", () => {
-  it("CreateDocument", async () => {
-    const res = await new CreateDocumentLibNode().process();
-    expect((res.output as any).elements).toEqual([]);
-  });
-
-  it("AddHeading", async () => {
-    const doc = { elements: [] };
-    const __n94 = new AddHeadingLibNode();
-    __n94.assign({ document: doc, text: "Title", level: 1 });
-    const res = await __n94.process();
-    expect((res.output as any).elements.length).toBe(1);
-  });
-
-  it("AddParagraph", async () => {
-    const doc = { elements: [] };
-    const __n95 = new AddParagraphLibNode();
-    __n95.assign({
-      document: doc,
-      text: "Hello",
-      alignment: "CENTER",
-      bold: true,
-      italic: true,
-      font_size: 14
-    });
-    const res = await __n95.process();
-    expect((res.output as any).elements.length).toBe(1);
-  });
-
-  it("AddTable with rows", async () => {
-    const doc = { elements: [] };
-    const __n96 = new AddTableLibNode();
-    __n96.assign({
-      document: doc,
-      data: { rows: [{ a: "1", b: "2" }] }
-    });
-    const res = await __n96.process();
-    expect((res.output as any).elements.length).toBe(1);
-  });
-
-  it("AddTable with data array", async () => {
-    const doc = { elements: [] };
-    const __n97 = new AddTableLibNode();
-    __n97.assign({
-      document: doc,
-      data: {
-        data: [
-          ["a", "b"],
-          ["c", "d"]
-        ]
-      }
-    });
-    const res = await __n97.process();
-    expect((res.output as any).elements[0].type).toBe("table");
-  });
-
-  it("AddPageBreak", async () => {
-    const doc = { elements: [] };
-    const __n98 = new AddPageBreakLibNode();
-    __n98.assign({ document: doc });
-    const res = await __n98.process();
-    expect((res.output as any).elements[0].type).toBe("page_break");
-  });
-
-  it("SetDocumentProperties", async () => {
-    const doc = { elements: [] };
-    const __n99 = new SetDocumentPropertiesLibNode();
-    __n99.assign({
-      document: doc,
-      title: "My Doc",
-      author: "Author",
-      subject: "Test",
-      keywords: "kw"
-    });
-    const res = await __n99.process();
-    expect((res.output as any).properties.title).toBe("My Doc");
-  });
-
-  it("AddImage with buffer data", async () => {
-    const doc = { elements: [] };
-    const imgData = Buffer.alloc(10, 0xff);
-    const __n100 = new AddImageLibNode();
-    __n100.assign({
-      document: doc,
-      image: { data: imgData },
-      width: 1,
-      height: 1
-    });
-    const res = await __n100.process();
-    expect((res.output as any).elements[0].type).toBe("image");
-  });
-
-  it("AddImage invalid throws", async () => {
-    const doc = { elements: [] };
-    const __n101 = new AddImageLibNode();
-    __n101.assign({ document: doc, image: {}, width: 0, height: 0 });
-    await expect(__n101.process()).rejects.toThrow("path");
-  });
-
-  it("SaveDocument renders all element types", async () => {
-    const dir = tmpDir();
-    const doc = {
-      elements: [
-        { type: "heading", text: "Title", level: 1 },
-        {
-          type: "paragraph",
-          text: "Para",
-          alignment: "LEFT",
-          bold: false,
-          italic: false,
-          font_size: 12
-        },
-        {
-          type: "table",
-          data: [
-            ["a", "b"],
-            ["c", "d"]
-          ]
-        },
-        { type: "page_break" },
-        {
-          type: "image",
-          image_data: Buffer.alloc(100, 0xff),
-          width: 0,
-          height: 0
-        }
-      ],
-      properties: { title: "T", author: "A", subject: "S", keywords: "K" }
-    };
-    const __n102 = new SaveDocumentLibNode();
-    __n102.assign({
-      document: doc,
-      path: { path: dir },
-      filename: "test.docx"
-    });
-    const res = await __n102.process();
-    expect(typeof res.output).toBe("string");
-  });
-
-  it("SaveDocument no path throws", async () => {
-    const __n103 = new SaveDocumentLibNode();
-    __n103.assign({ document: { elements: [] }, path: "", filename: "x.docx" });
-    await expect(__n103.process()).rejects.toThrow("Path");
-  });
-
-  it("defaults for all docx nodes", () => {
-    expect(new CreateDocumentLibNode().serialize()).toBeDefined();
-    expect(new LoadWordDocumentLibNode().serialize()).toHaveProperty("path");
-    expect(new AddHeadingLibNode().serialize()).toHaveProperty("text");
-    expect(new AddParagraphLibNode().serialize()).toHaveProperty("alignment");
-    expect(new AddTableLibNode().serialize()).toHaveProperty("data");
-    expect(new AddImageLibNode().serialize()).toHaveProperty("width");
-    expect(new AddPageBreakLibNode().serialize()).toHaveProperty("document");
-    expect(new SetDocumentPropertiesLibNode().serialize()).toHaveProperty(
-      "title"
-    );
-    expect(new SaveDocumentLibNode().serialize()).toHaveProperty("filename");
-  });
-});
-
-// ============================================================================
 // lib-seaborn.ts gaps
 // ============================================================================
 
@@ -1436,72 +1122,10 @@ describe("document.ts gaps", () => {
     expect(docItems.length).toBe(1);
   });
 
-  it("SplitDocument genProcess", async () => {
-    const node = new SplitDocumentNode();
-    node.assign({ document: { text: "A".repeat(100) } });
-    // chunk_size and chunk_overlap are accessed via (this as any), not declared props
-    (node as any).chunk_size = 50;
-    (node as any).chunk_overlap = 10;
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(1);
-  });
-
-  it("SplitHTML genProcess", async () => {
-    const node = new SplitHTMLNode();
-    node.assign({
-      document: { text: "<p>" + "word ".repeat(50) + "</p>" },
-      chunk_size: 50
-    });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("SplitJSON genProcess", async () => {
-    const node = new SplitJSONNode();
-    node.assign({
-      document: { text: JSON.stringify({ a: "b".repeat(100) }) },
-      chunk_size: 50
-    });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("SplitJSON with invalid JSON", async () => {
-    const node = new SplitJSONNode();
-    node.assign({
-      document: { text: "not json " + "x".repeat(100) },
-      chunk_size: 50
-    });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("SplitRecursively genProcess", async () => {
-    const node = new SplitRecursivelyNode();
-    node.assign({ document: { text: "A\n\nB\n\nC" }, chunk_size: 5 });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(0);
-  });
-
-  it("SplitMarkdown genProcess", async () => {
-    const node = new SplitMarkdownNode();
-    node.assign({
-      document: { text: "# Title\n" + "word ".repeat(300) },
-      chunk_size: 50
-    });
-    const items = await collectGen(node.genProcess());
-    expect(items.length).toBeGreaterThan(1);
-  });
-
   it("defaults for document nodes", () => {
     expect(new LoadDocumentFileNode().serialize()).toHaveProperty("path");
     expect(new SaveDocumentFileNode().serialize()).toHaveProperty("document");
     expect(new ListDocumentsNode().serialize()).toHaveProperty("recursive");
-    expect(new SplitDocumentNode().serialize()).toHaveProperty("buffer_size");
-    expect(new SplitHTMLNode().serialize()).toHaveProperty("document");
-    expect(new SplitJSONNode().serialize()).toHaveProperty("include_metadata");
-    expect(new SplitRecursivelyNode().serialize()).toHaveProperty("chunk_size");
-    expect(new SplitMarkdownNode().serialize()).toHaveProperty("chunk_size");
   });
 });
 
@@ -1774,53 +1398,6 @@ describe("lib-pedalboard-extra round 2", () => {
     await expect(__n227.process()).rejects.toThrow("Invalid audio data");
   });
 });
-describe("lib-docx round 2", () => {
-  it("LoadWordDocument loads .docx file", async () => {
-    // Create a minimal docx using the create + save pipeline first
-    const dir = tmpDir();
-    const doc = await new CreateDocumentLibNode().process();
-    const __n231 = new AddHeadingLibNode();
-    __n231.assign({
-      document: doc.output,
-      text: "Test",
-      level: 1
-    });
-    const withHeading = await __n231.process();
-    const __n232 = new SaveDocumentLibNode();
-    __n232.assign({
-      document: withHeading.output,
-      path: { path: dir },
-      filename: "load_test.docx"
-    });
-    const saved = await __n232.process();
-    // Now load it
-    const __n233 = new LoadWordDocumentLibNode();
-    __n233.assign({
-      path: String(saved.output)
-    });
-    const loaded = await __n233.process();
-    expect(typeof loaded.output).toBe("string");
-  });
-
-  it("AddImage with Buffer data", async () => {
-    const doc = await new CreateDocumentLibNode().process();
-    // Create a tiny 1x1 PNG
-    const png = Buffer.from(
-      "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==",
-      "base64"
-    );
-    const __n234 = new AddImageLibNode();
-    __n234.assign({
-      document: doc.output,
-      image: { data: png },
-      width: 100,
-      height: 100
-    });
-    const res = await __n234.process();
-    expect((res.output as any).elements.length).toBe(1);
-  });
-});
-
 
 describe("data.ts round 2", () => {
   it("ForEachRow genProcess yields rows", async () => {
@@ -1873,80 +1450,6 @@ describe("document.ts round 2", () => {
     // Last yield is the collected documents list
     const docItems = results.filter((item) => "document" in item);
     expect(docItems.length).toBe(2); // .txt and .md
-  });
-
-  it("SplitDocument genProcess splits text", async () => {
-    const node = new SplitDocumentNode();
-    node.assign({
-      document: { text: "A".repeat(100) + " " + "B".repeat(100) },
-      chunk_size: 80,
-      chunk_overlap: 10
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("SplitHTML genProcess splits HTML", async () => {
-    const node = new SplitHTMLNode();
-    node.assign({
-      document: { text: "<p>" + "Hello world. ".repeat(50) + "</p>" },
-      chunk_size: 100,
-      chunk_overlap: 10
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("SplitJSON genProcess splits JSON", async () => {
-    const node = new SplitJSONNode();
-    node.assign({
-      document: { text: JSON.stringify({ data: "x".repeat(200) }) },
-      chunk_size: 50,
-      chunk_overlap: 5
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("SplitRecursively genProcess splits by paragraphs", async () => {
-    const node = new SplitRecursivelyNode();
-    node.assign({
-      document: {
-        text: "Para one content.\n\nPara two content.\n\nPara three content."
-      },
-      chunk_size: 30,
-      chunk_overlap: 5
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("SplitMarkdown genProcess splits by headings", async () => {
-    const node = new SplitMarkdownNode();
-    node.assign({
-      document: {
-        text: "# Title\n\nSome text content here.\n\n## Subtitle\n\nMore content."
-      },
-      chunk_size: 200
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("readDocumentText with data bytes", async () => {
-    const node = new SplitDocumentNode();
-    node.assign({
-      document: { data: Buffer.from("Hello from bytes").toString("base64") },
-      chunk_size: 100
-    });
-    const gen = node.genProcess();
-    const results = await collectGen(gen);
-    expect(results.length).toBeGreaterThan(0);
   });
 });
 
@@ -2386,7 +1889,6 @@ import {
   GetAudioInfoNode,
   JoinTextNode,
   PromptNode,
-  ReplaceTextNode,
   SwitchNode,
   TemplateTextNode,
   TryCatchNode
@@ -2420,11 +1922,6 @@ describe("missing exported node smoke tests", () => {
 
   it("PromptNode defaults", () => {
     const n = new PromptNode();
-    expect(n.serialize()).toBeDefined();
-  });
-
-  it("ReplaceTextNode defaults", () => {
-    const n = new ReplaceTextNode();
     expect(n.serialize()).toBeDefined();
   });
 

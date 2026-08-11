@@ -51,16 +51,14 @@ or `vector.faiss.*`).
 Query nodes (`QueryText`, `QueryImage`, `HybridSearch`) output `ids`,
 `documents`, `metadatas`, and `distances` (HybridSearch also returns `scores`).
 
-# Document Loading & Splitting (`nodetool.document.*`)
+# Document Loading & Splitting
 
 | Node | Namespace | Purpose |
 |------|-----------|---------|
 | `Code` | `nodetool.code` | Enumerate files with `await workspace.list(dir)` |
-| `LoadDocumentFile` | `nodetool.document` | Load a PDF/DOCX/TXT/MD into a document |
-| `SplitRecursively` | `nodetool.document` | Recursive character/token splitting (general purpose) |
-| `SplitMarkdown` | `nodetool.document` | Split Markdown by structure |
-| `SplitHTML` / `SplitJSON` | `nodetool.document` | Structure-aware splitting |
-| `SplitDocument` | `nodetool.document` | Split a loaded document |
+| `LoadDocumentFile` | `nodetool.document` | Load a PDF/TXT/MD into a document |
+| `Chunk` | `nodetool.text` | Fixed-size word chunking with overlap (general purpose) |
+| `RegexSplit` | `nodetool.text` | Structure-aware splitting on a delimiter pattern |
 
 ## Chunk Size Guidance
 
@@ -73,7 +71,7 @@ Query nodes (`QueryText`, `QueryImage`, `HybridSearch`) output `ids`,
 # Indexing — Workflow Pattern
 
 ```
-ListFiles → LoadDocumentFile → SplitRecursively → IndexTextChunk(collection)
+ListFiles → LoadDocumentFile → Chunk → IndexTextChunk(collection)
 ```
 
 Pair every index/query node with a `vector.Collection` node (or a collection
@@ -112,7 +110,7 @@ ChatInput → HybridSearch(collection, top_k) → FormatText → Agent → Outpu
 
 ## Index
 ```
-ListFiles("/docs/") → LoadDocumentFile → SplitRecursively(chunk_size=400, overlap=50)
+ListFiles("/docs/") → LoadDocumentFile → Chunk(length=400, overlap=50)
                                                   ↓
                                   IndexTextChunk(collection="my-docs")
 ```

@@ -242,7 +242,8 @@ export class CodeNode extends BaseNode {
       "Dynamic inputs arrive on the `inputs` object. " +
       "APIs: fetch(url, options), workspace.read/write/list/readBytes/writeBytes/stat/mkdir/remove/copy/move/root, " +
       "workspace.stat(path) returns {exists, size, isDirectory, isFile, isSymlink, modifiedMs, createdMs, accessedMs}, " +
-      "getSecret(name), sleep(ms), progress(percent, message), " +
+      "nodetool.secrets.get(name) (throws when unset; limited to the names in " +
+      "`secrets` when that is set), getSecret(name), sleep(ms), progress(percent, message), " +
       "crypto.randomUUID/getRandomValues/digest/hmac, " +
       "format.number/date/relativeTime/list, " +
       "toBase64/fromBase64/toHex/fromHex. Libraries — CSV, HTML, XML, XLSX, YAML, zip, dates, " +
@@ -274,6 +275,19 @@ export class CodeNode extends BaseNode {
       "and dynamic `import()`/`require()` are never available."
   })
   declare packages: unknown[];
+
+  @prop({
+    type: "list[str]",
+    default: [],
+    title: "Secrets",
+    description:
+      "Secret names this code may read, e.g. [\"NOTION_API_KEY\"]. " +
+      "nodetool.secrets.get(name) and getSecret(name) refuse every other name, " +
+      "so a node that talks to one service cannot read the credentials of " +
+      "another. Empty means unscoped — the whole secret store, which is what a " +
+      "node written before scopes existed still gets."
+  })
+  declare secrets: string[];
 
   @prop({
     type: "int",
@@ -350,13 +364,19 @@ export class CodeNode extends BaseNode {
    */
   private sandboxLimits(): SandboxLimits {
     const mb = Number(this.max_response_mb ?? 1);
+    const declared = (Array.isArray(this.secrets) ? this.secrets : [])
+      .map((name) => String(name).trim())
+      .filter((name) => name !== "");
     return {
       maxResponseBodyBytes: Number.isFinite(mb)
         ? Math.round(mb * 1024 * 1024)
         : undefined,
       allowPrivateNetwork: this.allow_local_network === true,
       filesystemAccess:
-        this.allow_host_filesystem === true ? "host" : "workspace"
+        this.allow_host_filesystem === true ? "host" : "workspace",
+      // An empty list is "no scope declared", not "no secrets": scoping is
+      // opt-in, so a node authored before it existed keeps the reach it had.
+      secretScope: declared.length > 0 ? declared : null
     };
   }
 
@@ -544,6 +564,7 @@ function extractDynamicInputs(
   const reserved = new Set([
     "code",
     "packages",
+    "secrets",
     "timeout",
     "max_response_mb",
     "allow_local_network",

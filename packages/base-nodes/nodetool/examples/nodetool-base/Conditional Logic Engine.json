@@ -32,28 +32,28 @@
         "source": "pad_value",
         "sourceHandle": "output",
         "target": "cmp_low",
-        "targetHandle": "text_a"
+        "targetHandle": "a"
       },
       {
         "id": "4",
         "source": "pad_value",
         "sourceHandle": "output",
         "target": "cmp_high",
-        "targetHandle": "text_a"
+        "targetHandle": "a"
       },
       {
         "id": "5",
         "source": "cmp_low",
         "sourceHandle": "output",
         "target": "is_low",
-        "targetHandle": "text_a"
+        "targetHandle": "a"
       },
       {
         "id": "6",
         "source": "cmp_high",
         "sourceHandle": "output",
         "target": "is_high",
-        "targetHandle": "text_a"
+        "targetHandle": "a"
       },
       {
         "id": "11",
@@ -317,11 +317,10 @@
       },
       {
         "id": "pad_value",
-        "type": "nodetool.text.PadText",
+        "type": "nodetool.code.Code",
         "data": {
-          "length": 3,
-          "pad_character": "0",
-          "direction": "left"
+          "code": "const text = String(inputs.text ?? \"\");\nconst len = Number(inputs.length ?? 0);\nconst ch = String(inputs.pad_character ?? \" \");\nconst dir = String(inputs.direction ?? \"right\");\nlet output = text;\nif (len > text.length) {\n  if (dir === \"left\") output = text.padStart(len, ch);\n  else if (dir === \"both\") {\n    const total = len - text.length;\n    const left = Math.floor(total / 2);\n    output = ch.repeat(left) + text + ch.repeat(total - left);\n  } else output = text.padEnd(len, ch);\n}\nreturn { output };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -334,14 +333,25 @@
           "bypassed": false,
           "title": "Pad to 3 digits"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "length": 3,
+          "pad_character": "0",
+          "direction": "left"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "cmp_low",
-        "type": "nodetool.text.Compare",
+        "type": "nodetool.code.Code",
         "data": {
-          "text_b": "050"
+          "code": "const result = inputs.a < inputs.b ? \"less\" : inputs.a > inputs.b ? \"greater\" : \"equal\";\nreturn { output: result, equal: inputs.a === inputs.b };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -354,14 +364,28 @@
           "bypassed": false,
           "title": "Compare: vs 050"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "b": "050"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "equal": {
+            "type": "bool",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "cmp_high",
-        "type": "nodetool.text.Compare",
+        "type": "nodetool.code.Code",
         "data": {
-          "text_b": "100"
+          "code": "const result = inputs.a < inputs.b ? \"less\" : inputs.a > inputs.b ? \"greater\" : \"equal\";\nreturn { output: result, equal: inputs.a === inputs.b };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -374,14 +398,28 @@
           "bypassed": false,
           "title": "Compare: vs 100"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "b": "100"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          },
+          "equal": {
+            "type": "bool",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "is_low",
-        "type": "nodetool.text.Equals",
+        "type": "nodetool.code.Code",
         "data": {
-          "text_b": "less"
+          "code": "return { output: inputs.a === inputs.b };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -394,14 +432,23 @@
           "bypassed": false,
           "title": "< 50?"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "b": "less"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "is_high",
-        "type": "nodetool.text.Equals",
+        "type": "nodetool.code.Code",
         "data": {
-          "text_b": "greater"
+          "code": "return { output: inputs.a === inputs.b };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -414,8 +461,16 @@
           "bypassed": false,
           "title": "> 100?"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "b": "greater"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "outer_true",
@@ -577,10 +632,10 @@
       },
       {
         "id": "int_to_str",
-        "type": "nodetool.text.ToString",
+        "type": "nodetool.code.Code",
         "data": {
-          "value": "",
-          "mode": "str"
+          "code": "const v = inputs.value;\nconst mode = String(inputs.mode ?? \"str\");\nconst toJsonString = (value) => {\n  if (value === undefined) return \"\";\n  try {\n    const json = JSON.stringify(value);\n    return json === undefined ? \"\" : json;\n  } catch (_error) {\n    return String(value);\n  }\n};\nif (mode === \"repr\") return { output: toJsonString(v) };\nif (v === null || v === undefined) return { output: \"\" };\nif (typeof v === \"object\") return { output: toJsonString(v) };\nreturn { output: String(v) };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -592,6 +647,17 @@
           "selectable": true,
           "bypassed": false,
           "title": "Number → text (so PadText can format it)"
+        },
+        "dynamic_properties": {
+          "value": "",
+          "mode": "str"
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
         }
       },
       {

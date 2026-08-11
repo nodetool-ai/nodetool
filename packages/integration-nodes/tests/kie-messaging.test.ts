@@ -2,9 +2,7 @@ import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 import {
   DiscordBotTrigger,
-  DiscordSendMessage,
-  TelegramBotTrigger,
-  TelegramSendMessage
+  TelegramBotTrigger
 } from "@nodetool-ai/integration-nodes";
 
 const originalFetch = globalThis.fetch;
@@ -93,95 +91,6 @@ describe("DiscordBotTrigger", () => {
     await expect(node.process()).rejects.toThrow(
       "Discord token validation failed (401)"
     );
-  });
-});
-
-// ── DiscordSendMessage ─────────────────────────────────────────────────────
-
-describe("DiscordSendMessage", () => {
-  it("sends message and returns message_id", async () => {
-    const node = new DiscordSendMessage();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "msg123" }));
-
-    node.assign({
-      token: "bot-token",
-      channel_id: "ch456",
-      content: "Hello!"
-    });
-
-    const result = await node.process();
-    expect(result.message_id).toBe("msg123");
-  });
-
-  it("includes embeds when provided", async () => {
-    const node = new DiscordSendMessage();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "msg2" }));
-
-    node.assign({
-      token: "bot-token",
-      channel_id: "ch1",
-      content: "text",
-      embeds: [{ title: "embed" }]
-    });
-
-    await node.process();
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.embeds).toEqual([{ title: "embed" }]);
-  });
-
-  it("throws when no token", async () => {
-    const node = new DiscordSendMessage();
-
-    node.assign({
-      channel_id: "ch1",
-      content: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow(
-      "Discord bot token is required"
-    );
-  });
-
-  it("throws when no channel_id", async () => {
-    const node = new DiscordSendMessage();
-
-    node.assign({
-      token: "tok",
-      content: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow(
-      "Discord channel ID is required"
-    );
-  });
-
-  it("throws on API error", async () => {
-    const node = new DiscordSendMessage();
-    mockFetch.mockResolvedValueOnce(jsonResponse("forbidden", 403));
-
-    node.assign({
-      token: "tok",
-      channel_id: "ch1",
-      content: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow(
-      "Discord sendMessage failed (403)"
-    );
-  });
-
-  it("uses token from _secrets", async () => {
-    const node = new DiscordSendMessage();
-    mockFetch.mockResolvedValueOnce(jsonResponse({ id: "msg3" }));
-
-    node.assign({
-      channel_id: "ch1",
-      content: "hi"
-    });
-
-    node.setDynamic("_secrets", { DISCORD_BOT_TOKEN: "secret-tok" });
-    const result = await node.process();
-    expect(result.message_id).toBe("msg3");
   });
 });
 
@@ -275,141 +184,6 @@ describe("TelegramBotTrigger", () => {
   });
 });
 
-// ── TelegramSendMessage ────────────────────────────────────────────────────
-
-describe("TelegramSendMessage", () => {
-  it("sends message and returns result", async () => {
-    const node = new TelegramSendMessage();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        ok: true,
-        result: {
-          message_id: 42,
-          date: 1234567890,
-          chat: { id: 100 }
-        }
-      })
-    );
-
-    node.assign({
-      token: "tg-token",
-      chat_id: 100,
-      text: "Hello!"
-    });
-
-    const result = await node.process();
-    expect(result.message_id).toBe(42);
-    expect(result.date).toBe(1234567890);
-    expect(result.chat_id).toBe(100);
-  });
-
-  it("includes parse_mode when set", async () => {
-    const node = new TelegramSendMessage();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        ok: true,
-        result: { message_id: 1, date: 0, chat: { id: 1 } }
-      })
-    );
-
-    node.assign({
-      token: "tok",
-      chat_id: 1,
-      text: "hi",
-      parse_mode: "HTML"
-    });
-
-    await node.process();
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.parse_mode).toBe("HTML");
-  });
-
-  it("includes reply_to_message_id when set", async () => {
-    const node = new TelegramSendMessage();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        ok: true,
-        result: { message_id: 2, date: 0, chat: { id: 1 } }
-      })
-    );
-
-    node.assign({
-      token: "tok",
-      chat_id: 1,
-      text: "reply",
-      reply_to_message_id: 99
-    });
-
-    await node.process();
-    const body = JSON.parse(mockFetch.mock.calls[0][1].body);
-    expect(body.reply_to_message_id).toBe(99);
-  });
-
-  it("throws when no token", async () => {
-    const node = new TelegramSendMessage();
-
-    node.assign({
-      chat_id: 1,
-      text: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow(
-      "Telegram bot token is required"
-    );
-  });
-
-  it("throws when no chat_id", async () => {
-    const node = new TelegramSendMessage();
-
-    node.assign({
-      token: "tok",
-      text: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow(
-      "Telegram chat ID is required"
-    );
-  });
-
-  it("throws when API returns ok: false", async () => {
-    const node = new TelegramSendMessage();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        ok: false,
-        description: "Bad Request: chat not found"
-      })
-    );
-
-    node.assign({
-      token: "tok",
-      chat_id: 999,
-      text: "hi"
-    });
-
-    await expect(node.process()).rejects.toThrow("Telegram sendMessage failed");
-  });
-
-  it("uses token from _secrets", async () => {
-    const node = new TelegramSendMessage();
-    mockFetch.mockResolvedValueOnce(
-      jsonResponse({
-        ok: true,
-        result: { message_id: 5, date: 0, chat: { id: 1 } }
-      })
-    );
-
-    node.assign({
-      chat_id: 1,
-      text: "hi"
-    });
-
-    node.setDynamic("_secrets", { TELEGRAM_BOT_TOKEN: "secret" });
-    await node.process();
-    const url = mockFetch.mock.calls[0][0] as string;
-    expect(url).toContain("botsecret/sendMessage");
-  });
-});
-
 // ── Defaults coverage ────────────────────────────────────────────────────
 
 describe("Node defaults coverage", () => {
@@ -417,15 +191,7 @@ describe("Node defaults coverage", () => {
     expectMetadataDefaults(DiscordBotTrigger);
   });
 
-  it("DiscordSendMessage defaults", () => {
-    expectMetadataDefaults(DiscordSendMessage);
-  });
-
   it("TelegramBotTrigger defaults", () => {
     expectMetadataDefaults(TelegramBotTrigger);
-  });
-
-  it("TelegramSendMessage defaults", () => {
-    expectMetadataDefaults(TelegramSendMessage);
   });
 });

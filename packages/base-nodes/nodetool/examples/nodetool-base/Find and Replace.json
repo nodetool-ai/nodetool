@@ -80,8 +80,11 @@
       },
       {
         "id": "rp",
-        "type": "nodetool.text.Replace",
-        "data": {},
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "return { output: inputs.text.replaceAll(inputs.search, inputs.replacement) };",
+          "packages": []
+        },
         "ui_properties": {
           "position": {
             "x": 400,
@@ -93,7 +96,13 @@
           "title": "4  Replace"
         },
         "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",
@@ -128,14 +137,14 @@
         "source": "old",
         "sourceHandle": "output",
         "target": "rp",
-        "targetHandle": "old"
+        "targetHandle": "search"
       },
       {
         "id": "e3",
         "source": "new",
         "sourceHandle": "output",
         "target": "rp",
-        "targetHandle": "new_value"
+        "targetHandle": "replacement"
       },
       {
         "id": "e4",

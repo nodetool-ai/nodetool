@@ -320,7 +320,7 @@ return { output: Math.random() * (max - min) + min };`,
   upper: inputs.text.toUpperCase(),
   lower: inputs.text.toLowerCase()
 };`,
-    tags: ["upper", "lower", "case", "capitalize"],
+    tags: ["upper", "lower", "case", "capitalize", "uppercase", "lowercase"],
   },
   {
     id: "text-trim",
@@ -345,7 +345,7 @@ return { output: Math.random() * (max - min) + min };`,
     category: "Text",
     code: `const matches = inputs.text.match(/pattern/g) || [];
 return { output: matches, found: matches.length > 0 };`,
-    tags: ["regex", "match", "pattern", "regular expression"],
+    tags: ["regex", "match", "pattern", "regular expression", "search"],
   },
   {
     id: "text-to-string",
@@ -353,7 +353,7 @@ return { output: matches, found: matches.length > 0 };`,
     description: "Convert any value to a string representation",
     category: "Text",
     code: "return { output: JSON.stringify(inputs.value, null, 2) };",
-    tags: ["toString", "stringify", "convert", "repr"],
+    tags: ["toString", "stringify", "convert", "repr", "cast"],
   },
   {
     id: "text-pad",
@@ -904,7 +904,7 @@ return { output: re.test(inputs.value) };`,
     description: "Parse a JSON string into an object",
     category: "JSON",
     code: "return { output: JSON.parse(inputs.text) };",
-    tags: ["json", "parse", "decode", "string"],
+    tags: ["json", "parse", "decode", "string", "convert"],
   },
   {
     id: "json-stringify",
@@ -924,7 +924,7 @@ return { output: re.test(inputs.value) };`,
   data
 );
 return { output: value };`,
-    tags: ["json", "path", "dot", "nested", "extract", "get"],
+    tags: ["json", "path", "dot", "nested", "extract", "get", "jsonpath"],
   },
   {
     id: "json-filter",
@@ -1258,7 +1258,7 @@ return { output: chunks };`,
     code: `return { output: inputs.text.replace(/\\w\\S*/g, w =>
   w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()
 ) };`,
-    tags: ["title", "case", "capitalize", "words"],
+    tags: ["title", "case", "capitalize", "words", "titlecase"],
   },
   {
     id: "text-capitalize",
@@ -1337,7 +1337,7 @@ return { output: inputs.text.includes(inputs.substring) };`,
   .replace(/^-+|-+$/g, "")
   .toLowerCase()
 };`,
-    tags: ["slug", "url", "normalize", "id", "kebab"],
+    tags: ["slug", "url", "normalize", "id", "kebab", "slugify"],
   },
   {
     id: "text-length",
@@ -1384,7 +1384,7 @@ return { output: inputs.text.slice(0, maxLen - ellipsis.length) + ellipsis };`,
     category: "Text",
     code: `const result = inputs.a < inputs.b ? "less" : inputs.a > inputs.b ? "greater" : "equal";
 return { output: result, equal: inputs.a === inputs.b };`,
-    tags: ["compare", "sort", "order", "equal", "lexical"],
+    tags: ["compare", "sort", "order", "equal", "lexical", "equals"],
   },
   {
     id: "text-has-length",
