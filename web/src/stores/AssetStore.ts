@@ -390,7 +390,7 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
         ...(query.page_size ? { page_size: query.page_size } : {}),
         ...(query.cursor ? { cursor: query.cursor } : {})
       });
-      const result = data as unknown as AssetSearchResult;
+      const result = data as AssetSearchResult;
       return { ...result, assets: normalizeAssetList(result.assets) };
     } catch (error) {
       if (
@@ -622,6 +622,6 @@ export const useAssetStore = create<AssetStore>((set, get) => ({
     const data = await trpcClient.assets.recursive.query({ id: folderId });
     // The tRPC `recursive` procedure returns a flat array — convert it to the
     // tree shape expected by downstream code.
-    return normalizeAssetList((data.assets ?? []) as unknown as AssetTreeNode[]);
+    return normalizeAssetList((data.assets ?? []) as AssetTreeNode[]);
   }
 }));

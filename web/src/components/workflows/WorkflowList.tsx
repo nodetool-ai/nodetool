@@ -50,7 +50,7 @@ const loadWorkflows = async (cursor?: string, limit?: number) => {
   return trpcClient.workflows.list.query({
     cursor: cursor ?? "",
     limit: limit ?? 100
-  }) as unknown as WorkflowListType;
+  }) as Promise<WorkflowListType>;
 };
 
 const WorkflowList = () => {

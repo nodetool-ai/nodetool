@@ -348,7 +348,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         trpcClient.workflows.list.query({
           cursor: "",
           limit: 200
-        }) as unknown as Promise<WorkflowList>,
+        }) as Promise<WorkflowList>,
       enabled: open && view === "workflows",
       staleTime: 30_000
     });

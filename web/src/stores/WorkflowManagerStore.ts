@@ -512,7 +512,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       loadTemplates: async () => {
         try {
           const data = await trpcClient.workflows.examples.query({});
-          return data as unknown as WorkflowList;
+          return data as WorkflowList;
         } catch (err) {
           throw createErrorMessage(err, "Failed to load templates");
         }
@@ -522,7 +522,7 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
       searchTemplates: async (query: string) => {
         try {
           const data = await trpcClient.workflows.examples.query({ query });
-          return data as unknown as WorkflowList;
+          return data as WorkflowList;
         } catch (err) {
           console.error("[WorkflowManagerStore] searchTemplates error:", err);
           throw createErrorMessage(err, "Failed to search templates");
