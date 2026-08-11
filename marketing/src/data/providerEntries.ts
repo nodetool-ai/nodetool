@@ -708,7 +708,7 @@ const llmProviders: ProviderEntry[] = [
     name: "Meta AI",
     url: "https://dev.meta.ai",
     byokEnv: "META_API_KEY",
-    accent: "sky",
+    accent: "blue",
     tagline:
       "Run Meta's Muse Spark models in NodeTool for agentic and coding work, called with your own Meta key.",
     blurb: [
