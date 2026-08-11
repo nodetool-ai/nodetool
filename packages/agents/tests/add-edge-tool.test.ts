@@ -208,3 +208,89 @@ describe("AddEdgeTool typed dynamic slots", () => {
     expect(builder.getNode("tpl")?.dynamic_inputs).toBeUndefined();
   });
 });
+
+describe("AddEdgeTool dynamic outputs", () => {
+  function outputSetup() {
+    const builder = new GraphBuilder();
+    const registry = mockRegistry({
+      "test.Code": {
+        properties: [{ name: "code", type: { type: "str" } }],
+        outputs: [{ name: "output", type: { type: "any" } }],
+        supports_dynamic_inputs: true,
+        supports_dynamic_outputs: true
+      },
+      "test.Sink": { properties: [{ name: "value", type: { type: "any" } }] },
+      "test.StringSource": {
+        outputs: [{ name: "output", type: { type: "str" } }]
+      }
+    });
+    builder.addNode("code", "test.Code");
+    builder.addNode("sink", "test.Sink");
+    builder.addNode("sink2", "test.Sink");
+    builder.addNode("str", "test.StringSource");
+    return { builder, tool: new AddEdgeTool(builder, registry) };
+  }
+
+  it("declares the handle the edge reads", async () => {
+    const { builder, tool } = outputSetup();
+    const result = (await tool.process(ctx, {
+      source: "code",
+      source_handle: "line",
+      target: "sink",
+      target_handle: "value"
+    })) as { status: string; declared_dynamic_output?: boolean };
+
+    expect(result.status).toBe("edge_added");
+    expect(result.declared_dynamic_output).toBe(true);
+    expect(builder.getNode("code")?.dynamic_outputs).toEqual({
+      line: { type: "any" }
+    });
+  });
+
+  it("declares one entry for two edges off the same handle", async () => {
+    const { builder, tool } = outputSetup();
+    await tool.process(ctx, {
+      source: "code",
+      source_handle: "line",
+      target: "sink",
+      target_handle: "value"
+    });
+    const second = (await tool.process(ctx, {
+      source: "code",
+      source_handle: "line",
+      target: "sink2",
+      target_handle: "value"
+    })) as { status: string; declared_dynamic_output?: boolean };
+
+    expect(second.status).toBe("edge_added");
+    expect(second.declared_dynamic_output).toBeUndefined();
+    expect(builder.getNode("code")?.dynamic_outputs).toEqual({
+      line: { type: "any" }
+    });
+  });
+
+  it("never declares a static handle on an ordinary node", async () => {
+    const { builder, tool } = outputSetup();
+    const result = (await tool.process(ctx, {
+      source: "str",
+      source_handle: "output",
+      target: "sink",
+      target_handle: "value"
+    })) as { status: string; declared_dynamic_output?: boolean };
+
+    expect(result.status).toBe("edge_added");
+    expect(result.declared_dynamic_output).toBeUndefined();
+    expect(builder.getNode("str")?.dynamic_outputs).toBeUndefined();
+  });
+
+  it("never declares a static handle on a dynamic-output node", async () => {
+    const { builder, tool } = outputSetup();
+    await tool.process(ctx, {
+      source: "code",
+      source_handle: "output",
+      target: "sink",
+      target_handle: "value"
+    });
+    expect(builder.getNode("code")?.dynamic_outputs).toBeUndefined();
+  });
+});

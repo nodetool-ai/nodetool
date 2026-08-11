@@ -16,6 +16,11 @@ import type {
 /** The node type used for LLM-driven steps in planned graphs. */
 export const AGENT_NODE_TYPE = "nodetool.agents.Agent";
 
+/** The value a `dynamic_outputs` entry carries: the slot's type. */
+export type DynamicOutputType = NonNullable<
+  NodeDescriptor["dynamic_outputs"]
+>[string];
+
 export class GraphBuilder {
   private readonly _nodes = new Map<string, NodeDescriptor>();
   private readonly _edges: Edge[] = [];
@@ -114,6 +119,42 @@ export class GraphBuilder {
     const slots = node.dynamic_inputs ?? {};
     if (slots[name]) return [];
     node.dynamic_inputs = { ...slots, [name]: meta };
+    return [];
+  }
+
+  /**
+   * Declare a dynamic output slot on a node.
+   *
+   * Dynamic nodes emit output handles that aren't in their static metadata.
+   * A handle nothing declares is invisible to the validator, so a body that
+   * returns it reads as returning something nothing downstream can consume.
+   * Declaring it records the handle, so an edge off it validates like any
+   * other output. An existing declaration is never overwritten — the first one
+   * wins.
+   *
+   * The slot value is the type itself, not a `DynamicSlotMeta` wrapper: that
+   * is the shape `NodeDescriptor.dynamic_outputs` carries.
+   *
+   * Returns an array of validation errors (empty = success).
+   */
+  declareDynamicOutput(
+    nodeId: string,
+    name: string,
+    type: DynamicOutputType
+  ): string[] {
+    if (this._built) {
+      return ["Graph has already been finalized."];
+    }
+    const node = this._nodes.get(nodeId);
+    if (!node) {
+      return [`Node '${nodeId}' does not exist.`];
+    }
+    if (!name) {
+      return ["Dynamic output name must be a non-empty string."];
+    }
+    const slots = node.dynamic_outputs ?? {};
+    if (slots[name]) return [];
+    node.dynamic_outputs = { ...slots, [name]: type };
     return [];
   }
 
