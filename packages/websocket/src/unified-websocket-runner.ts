@@ -154,8 +154,7 @@ import {
   registerBuiltinTools,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools,
-  ListCollectionsTool,
-  QueryCollectionTool,
+  toolForCapabilityName,
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
@@ -5354,8 +5353,8 @@ export class UnifiedWebSocketRunner {
         providers: chatProviders,
         ...mcpToolHostDeps()
       }),
-      new ListCollectionsTool(),
-      new QueryCollectionTool(),
+      toolForCapabilityName("list_collections"),
+      toolForCapabilityName("query_collection"),
       runNodeTool
     ];
     // GraphPlanner as a chat tool: builds a workflow graph from an objective

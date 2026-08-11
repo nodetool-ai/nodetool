@@ -16,11 +16,7 @@ import {
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
-import {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "../src/tools/edit-search-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 let workspace: string;
 
@@ -40,7 +36,7 @@ afterEach(async () => {
 
 describe("EditFileTool", () => {
   it("creates a new file when old_string is empty", async () => {
-    const tool = new EditFileTool();
+    const tool = toolForCapabilityName("edit_file");
     const res: any = await tool.process(ctxFor(workspace), {
       path: "new.txt",
       old_string: "",
@@ -55,7 +51,7 @@ describe("EditFileTool", () => {
 
   it("refuses to create when the file already exists", async () => {
     await writeFile(join(workspace, "exists.txt"), "old");
-    const tool = new EditFileTool();
+    const tool = toolForCapabilityName("edit_file");
     const res: any = await tool.process(ctxFor(workspace), {
       path: "exists.txt",
       old_string: "",
@@ -67,7 +63,7 @@ describe("EditFileTool", () => {
 
   it("consumes the trailing newline when deleting a line", async () => {
     await writeFile(join(workspace, "list.txt"), "a\nb\nc\n");
-    const tool = new EditFileTool();
+    const tool = toolForCapabilityName("edit_file");
     const res: any = await tool.process(ctxFor(workspace), {
       path: "list.txt",
       old_string: "b",
@@ -82,7 +78,7 @@ describe("EditFileTool", () => {
     // match had a newline) left the newline-less "foo" inside "foobar" intact
     // while still reporting 2 replacements.
     await writeFile(join(workspace, "d.txt"), "foo\nfoobar");
-    const res: any = await new EditFileTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
       path: "d.txt",
       old_string: "foo",
       new_string: "",
@@ -95,7 +91,7 @@ describe("EditFileTool", () => {
 
   it("replaces a unique substring in place", async () => {
     await writeFile(join(workspace, "f.txt"), "foo bar baz");
-    const tool = new EditFileTool();
+    const tool = toolForCapabilityName("edit_file");
     const res: any = await tool.process(ctxFor(workspace), {
       path: "f.txt",
       old_string: "bar",
@@ -117,7 +113,7 @@ describe("GlobTool", () => {
     await utimes(older, new Date(1000), new Date(1000));
     await utimes(newer, new Date(2000), new Date(2000));
 
-    const tool = new GlobTool();
+    const tool = toolForCapabilityName("glob");
     const res: any = await tool.process(ctxFor(workspace), {
       pattern: "**/*.ts"
     });
@@ -132,7 +128,7 @@ describe("GlobTool", () => {
 describe("GrepTool", () => {
   it("finds matches in a normal workspace file", async () => {
     await writeFile(join(workspace, "a.txt"), "hello\nworld\nhello again\n");
-    const res: any = await new GrepTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
       pattern: "hello"
     });
     expect(res.success).toBe(true);
@@ -147,7 +143,7 @@ describe("GrepTool", () => {
     const nestedQuantifier = ["(a+)", "+", "$"].join("");
     await writeFile(join(workspace, "victim.txt"), "a".repeat(50));
     const started = Date.now();
-    const res: any = await new GrepTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
       pattern: nestedQuantifier
     });
     expect(res.success).toBe(false);
@@ -160,7 +156,7 @@ describe("GrepTool", () => {
     const big = "needle\n".repeat(Math.ceil((11 * 1024 * 1024) / 7));
     await writeFile(join(workspace, "big.log"), big);
     await writeFile(join(workspace, "small.txt"), "needle here\n");
-    const res: any = await new GrepTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
       pattern: "needle"
     });
     expect(res.success).toBe(true);
@@ -178,14 +174,14 @@ describe("GrepTool", () => {
       await symlink(secret, join(workspace, "notes"));
 
       // Directory walk must not surface the symlink's target contents.
-      const walk: any = await new GrepTool().process(ctxFor(workspace), {
+      const walk: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
         pattern: "SUPER_SECRET"
       });
       expect(walk.success).toBe(true);
       expect(walk.match_count).toBe(0);
 
       // Targeting the symlink directly must be refused as outside the workspace.
-      const direct: any = await new GrepTool().process(ctxFor(workspace), {
+      const direct: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
         pattern: ".",
         path: "notes"
       });
@@ -203,7 +199,7 @@ describe("GrepTool", () => {
     const overlappingAlternation = ["(a|a)", "*", "b"].join("");
     await writeFile(join(workspace, "victim.txt"), "a".repeat(50));
     const started = Date.now();
-    const res: any = await new GrepTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("grep").process(ctxFor(workspace), {
       pattern: overlappingAlternation
     });
     expect(res.success).toBe(false);
@@ -220,7 +216,7 @@ describe("EditFileTool symlink containment", () => {
       await writeFile(secret, "original secret\n");
       await symlink(secret, join(workspace, "link.txt"));
 
-      const res: any = await new EditFileTool().process(ctxFor(workspace), {
+      const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
         path: "link.txt",
         old_string: "original secret",
         new_string: "PWNED"
@@ -238,7 +234,7 @@ describe("EditFileTool symlink containment", () => {
     const outside = await mkdtemp(join(tmpdir(), "cc-outdir-"));
     try {
       await symlink(outside, join(workspace, "outdir"));
-      const res: any = await new EditFileTool().process(ctxFor(workspace), {
+      const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
         path: "outdir/new.txt",
         old_string: "",
         new_string: "should not be written"
@@ -260,7 +256,7 @@ describe("EditFileTool symlink containment", () => {
       "evil.txt"
     );
     await symlink(outsideTarget, join(workspace, "link.txt"));
-    const res: any = await new EditFileTool().process(ctxFor(workspace), {
+    const res: any = await toolForCapabilityName("edit_file").process(ctxFor(workspace), {
       path: "link.txt",
       old_string: "",
       new_string: "should not escape"
@@ -276,7 +272,7 @@ describe("GlobTool symlink containment", () => {
     try {
       await writeFile(join(outside, "leak.txt"), "x");
       await symlink(outside, join(workspace, "out"));
-      const res: any = await new GlobTool().process(ctxFor(workspace), {
+      const res: any = await toolForCapabilityName("glob").process(ctxFor(workspace), {
         pattern: "**/*",
         path: "out"
       });

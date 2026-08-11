@@ -2,14 +2,29 @@
  * Tests for agent utility gaps: T-AG-3, T-AG-7, T-AG-8.
  */
 import { describe, it, expect } from "vitest";
-import { ListProviderModelsTool } from "../src/tools/model-tools.js";
 import { removeBase64Images } from "../src/utils/remove-base64-images.js";
 import { wrapGeneratorsParallel } from "../src/utils/wrap-generators-parallel.js";
-import type { MessageContent } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  MessageContent,
+  ProcessingContext
+} from "@nodetool-ai/runtime";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolForCapabilityName
+} from "../src/capabilities/index.js";
 
 // ── T-AG-3 — Model listing tool ─────────────────────────────────────
 
-describe("T-AG-3: ListProviderModelsTool", () => {
+/** `list_provider_models` over a run carrying the providers map. */
+function listProviderModelsTool(providers: Record<string, BaseProvider>) {
+  return toolForCapabilityName("list_provider_models", (context) =>
+    createCapabilityRun({ context, gate: UNGATED, providers })
+  );
+}
+
+describe("T-AG-3: list_provider_models", () => {
   it("returns models from a mock provider", async () => {
     const mockProvider = {
       getAvailableLanguageModels: async () => [
@@ -17,15 +32,13 @@ describe("T-AG-3: ListProviderModelsTool", () => {
         { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" }
       ]
     };
-    const tool = new ListProviderModelsTool({
-      openai:
-        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
+    const tool = listProviderModelsTool({
+      openai: mockProvider as unknown as BaseProvider
     });
 
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "openai" }
-    )) as Record<string, unknown>;
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "openai"
+    })) as Record<string, unknown>;
 
     expect(result.success).toBe(true);
     const models = result.models as Array<{ id: string }>;
@@ -34,25 +47,22 @@ describe("T-AG-3: ListProviderModelsTool", () => {
   });
 
   it("returns error for unknown provider", async () => {
-    const tool = new ListProviderModelsTool({});
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "unknown" }
-    )) as Record<string, unknown>;
+    const tool = listProviderModelsTool({});
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "unknown"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(false);
     expect(result.error).toContain("unknown");
   });
 
   it("returns error when provider has no getAvailableLanguageModels", async () => {
     const mockProvider = {};
-    const tool = new ListProviderModelsTool({
-      openai:
-        mockProvider as unknown as import("@nodetool-ai/runtime").BaseProvider
+    const tool = listProviderModelsTool({
+      openai: mockProvider as unknown as BaseProvider
     });
-    const result = (await tool.process(
-      {} as import("@nodetool-ai/runtime").ProcessingContext,
-      { provider: "openai" }
-    )) as Record<string, unknown>;
+    const result = (await tool.process({} as ProcessingContext, {
+      provider: "openai"
+    })) as Record<string, unknown>;
     expect(result.success).toBe(false);
   });
 });

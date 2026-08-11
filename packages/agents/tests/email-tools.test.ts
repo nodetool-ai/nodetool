@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool
-} from "../src/tools/email-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 // Shared mock client accessible from tests
 const mockClient = {
@@ -51,7 +47,7 @@ const mockContext = {
 // ---------------------------------------------------------------------------
 
 describe("SearchEmailTool", () => {
-  const tool = new SearchEmailTool();
+  const tool = toolForCapabilityName("search_email");
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -162,7 +158,7 @@ describe("SearchEmailTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ArchiveEmailTool", () => {
-  const tool = new ArchiveEmailTool();
+  const tool = toolForCapabilityName("archive_email");
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -245,7 +241,7 @@ describe("ArchiveEmailTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("AddLabelToEmailTool", () => {
-  const tool = new AddLabelToEmailTool();
+  const tool = toolForCapabilityName("add_label_to_email");
 
   beforeEach(() => {
     vi.clearAllMocks();

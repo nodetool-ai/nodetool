@@ -1,9 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  BrowserTool,
-  ScreenshotTool,
-  htmlToText
-} from "../src/tools/browser-tools.js";
+import { htmlToText } from "../src/tools/browser-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 const mockContext = {} as any;
 
@@ -83,7 +80,7 @@ describe("htmlToText", () => {
 // ---------------------------------------------------------------------------
 
 describe("BrowserTool", () => {
-  const tool = new BrowserTool();
+  const tool = toolForCapabilityName("browser");
 
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -196,7 +193,7 @@ describe("BrowserTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ScreenshotTool", () => {
-  const tool = new ScreenshotTool();
+  const tool = toolForCapabilityName("take_screenshot");
   const originalEnv = process.env.BROWSER_URL;
 
   beforeEach(() => {

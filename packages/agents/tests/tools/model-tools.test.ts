@@ -3,8 +3,16 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
-import { ListProviderModelsTool } from "../../src/tools/model-tools.js";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
+import { UNGATED, createCapabilityRun } from "../../src/capabilities/index.js";
+import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+
+/** The provider map was a constructor argument; it now rides on the run. */
+function listProviderModelsTool(providers: Record<string, BaseProvider>) {
+  return toolForCapabilityName("list_provider_models", (context) =>
+    createCapabilityRun({ context, gate: UNGATED, providers })
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                           */
@@ -24,23 +32,23 @@ function makeProvider(models: string[]) {
 
 describe("ListProviderModelsTool metadata", () => {
   it("has correct name", () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     expect(tool.name).toBe("list_provider_models");
   });
 
   it("has a description", () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     expect(tool.description).toBeTruthy();
   });
 
   it("inputSchema requires 'provider' property", () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     const schema = tool.inputSchema as Record<string, unknown>;
     expect(schema.required).toContain("provider");
   });
 
   it("toProviderTool returns correct shape", () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     const pt = tool.toProviderTool();
     expect(pt.name).toBe("list_provider_models");
     expect(pt.inputSchema).toBeDefined();
@@ -54,7 +62,7 @@ describe("ListProviderModelsTool metadata", () => {
 describe("ListProviderModelsTool process — happy path", () => {
   it("returns models from the specified provider", async () => {
     const provider = makeProvider(["gpt-4", "gpt-3.5-turbo"]);
-    const tool = new ListProviderModelsTool({ openai: provider as any });
+    const tool = listProviderModelsTool({ openai: provider as any });
 
     const result = (await tool.process(mockContext, {
       provider: "openai"
@@ -67,7 +75,7 @@ describe("ListProviderModelsTool process — happy path", () => {
 
   it("calls getAvailableLanguageModels on the provider", async () => {
     const provider = makeProvider(["claude-3"]);
-    const tool = new ListProviderModelsTool({ anthropic: provider as any });
+    const tool = listProviderModelsTool({ anthropic: provider as any });
 
     await tool.process(mockContext, { provider: "anthropic" });
 
@@ -81,7 +89,7 @@ describe("ListProviderModelsTool process — happy path", () => {
 
 describe("ListProviderModelsTool process — errors", () => {
   it("returns error when provider param is not a string", async () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     const result = (await tool.process(mockContext, {
       provider: 42
     })) as Record<string, unknown>;
@@ -91,7 +99,7 @@ describe("ListProviderModelsTool process — errors", () => {
   });
 
   it("returns error for unknown provider ID", async () => {
-    const tool = new ListProviderModelsTool({});
+    const tool = listProviderModelsTool({});
     const result = (await tool.process(mockContext, {
       provider: "unknown_xyz"
     })) as Record<string, unknown>;
@@ -102,7 +110,7 @@ describe("ListProviderModelsTool process — errors", () => {
 
   it("returns error when provider lacks getAvailableLanguageModels", async () => {
     const providerWithoutMethod = { someOtherMethod: vi.fn() };
-    const tool = new ListProviderModelsTool({
+    const tool = listProviderModelsTool({
       broken: providerWithoutMethod as any
     });
 
@@ -120,7 +128,7 @@ describe("ListProviderModelsTool process — errors", () => {
         .fn()
         .mockRejectedValue(new Error("API unavailable"))
     };
-    const tool = new ListProviderModelsTool({ failing: provider as any });
+    const tool = listProviderModelsTool({ failing: provider as any });
 
     const result = (await tool.process(mockContext, {
       provider: "failing"
@@ -134,7 +142,7 @@ describe("ListProviderModelsTool process — errors", () => {
     const provider = {
       getAvailableLanguageModels: vi.fn().mockRejectedValue("string error")
     };
-    const tool = new ListProviderModelsTool({ failing: provider as any });
+    const tool = listProviderModelsTool({ failing: provider as any });
 
     const result = (await tool.process(mockContext, {
       provider: "failing"

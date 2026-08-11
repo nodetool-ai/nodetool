@@ -15,38 +15,18 @@
 import type { JsonSchema } from "@nodetool-ai/runtime";
 import { jobRecord, userIdOf } from "../tools/mcp-tool-support.js";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
+import {
+  listJobsSpec,
+  getJobSpec,
+  getJobLogsSpec,
+  LIST_JOBS_SCHEMA,
+  GET_JOB_LOGS_SCHEMA
+} from "./jobs.specs.js";
 
-// ---------------------------------------------------------------------------
-// list_jobs
-// ---------------------------------------------------------------------------
-
-const LIST_JOBS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    workflow_id: {
-      type: "string",
-      description: "Optional workflow ID to filter by"
-    },
-    limit: {
-      type: "number",
-      description: "Maximum number of jobs to return",
-      default: 100
-    }
-  },
-  required: [] as string[]
-};
+export { LIST_JOBS_SCHEMA, GET_JOB_LOGS_SCHEMA } from "./jobs.specs.js";
 
 const listJobs: CapabilityExport = {
-  spec: {
-    name: "list_jobs",
-    description: "List jobs (workflow executions) with optional filtering.",
-    inputSchema: LIST_JOBS_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const wfId = params["workflow_id"];
-      return wfId ? `Listing jobs for workflow ${wfId}` : "Listing jobs";
-    }
-  },
+  spec: listJobsSpec,
   impl: async (run, params) => {
     const { Job } = await import("@nodetool-ai/models");
     const workflowId = params["workflow_id"];
@@ -63,23 +43,7 @@ const listJobs: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const getJob: CapabilityExport = {
-  spec: {
-    name: "get_job",
-    description:
-      "Get details about a specific job including status, timing, and error info.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        job_id: {
-          type: "string",
-          description: "The job ID"
-        }
-      },
-      required: ["job_id"]
-    },
-    category: "read",
-    userMessage: (params) => `Getting job ${params["job_id"]}`
-  },
+  spec: getJobSpec,
   impl: async (run, params) => {
     const { Job } = await import("@nodetool-ai/models");
     const jobId = String(params["job_id"]);
@@ -89,34 +53,8 @@ const getJob: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_job_logs
-// ---------------------------------------------------------------------------
-
-const GET_JOB_LOGS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    job_id: {
-      type: "string",
-      description: "The job ID"
-    },
-    limit: {
-      type: "number",
-      description: "Maximum number of log entries to return",
-      default: 200
-    }
-  },
-  required: ["job_id"]
-};
-
 const getJobLogs: CapabilityExport = {
-  spec: {
-    name: "get_job_logs",
-    description: "Get logs for a job to debug workflow executions.",
-    inputSchema: GET_JOB_LOGS_SCHEMA,
-    category: "read",
-    userMessage: (params) => `Getting logs for job ${params["job_id"]}`
-  },
+  spec: getJobLogsSpec,
   impl: async (run, params) => {
     const { Job } = await import("@nodetool-ai/models");
     const jobId = String(params["job_id"]);

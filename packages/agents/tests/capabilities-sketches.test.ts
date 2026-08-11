@@ -2,7 +2,7 @@
  * The `sketches` capability module.
  *
  * Same three assertions the timelines port makes: a well-formed, correctly
- * classified module, specs byte-identical to the deprecated classes, and
+ * classified module, specs byte-identical to the wire surface they replaced, and
  * implementations that still do the work. `tests/sketch-version-tools.test.ts`
  * and `tests/document-edit-tools.test.ts` run unmodified against those classes.
  */
@@ -13,17 +13,9 @@ import { ImageDocument, ModelObserver, initTestDb } from "@nodetool-ai/models";
 import { module as sketches } from "../src/capabilities/sketches.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 import { capabilityModuleIssues } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool
-} from "../src/tools/sketch-version-tools.js";
-import { EditSketchTool } from "../src/tools/sketch-edit-tools.js";
-import { ValidateSketchTool } from "../src/tools/mcp-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -67,15 +59,21 @@ async function makeSketch(
   });
 }
 
-/** Every capability paired with the class it replaced. */
+/** Every capability paired with the `Tool` the belt builds for it. */
 const PAIRS: Array<[string, () => Tool]> = [
-  ["list_sketches", () => new ListSketchesTool()],
-  ["list_sketch_versions", () => new ListSketchVersionsTool()],
-  ["get_sketch_version", () => new GetSketchVersionTool()],
-  ["create_sketch_version", () => new CreateSketchVersionTool()],
-  ["restore_sketch_version", () => new RestoreSketchVersionTool()],
-  ["edit_sketch", () => new EditSketchTool()],
-  ["validate_sketch", () => new ValidateSketchTool()]
+  ["list_sketches", () => toolForCapabilityName("list_sketches")],
+  ["list_sketch_versions", () => toolForCapabilityName("list_sketch_versions")],
+  ["get_sketch_version", () => toolForCapabilityName("get_sketch_version")],
+  [
+    "create_sketch_version",
+    () => toolForCapabilityName("create_sketch_version")
+  ],
+  [
+    "restore_sketch_version",
+    () => toolForCapabilityName("restore_sketch_version")
+  ],
+  ["edit_sketch", () => toolForCapabilityName("edit_sketch")],
+  ["validate_sketch", () => toolForCapabilityName("validate_sketch")]
 ];
 
 describe("sketches capability module", () => {
@@ -101,7 +99,7 @@ describe("sketches capability module", () => {
     }
   });
 
-  it("keeps each deprecated class's wire surface", () => {
+  it("keeps the wire surface the belt offers", () => {
     for (const [name, make] of PAIRS) {
       const spec = sketches.exports.find((e) => e.spec.name === name)?.spec;
       const tool = make();
@@ -112,7 +110,7 @@ describe("sketches capability module", () => {
     }
   });
 
-  it("renders the same user messages the classes rendered", () => {
+  it("renders the user-facing messages", () => {
     const args = {
       image_document_id: "s1",
       version: 2,

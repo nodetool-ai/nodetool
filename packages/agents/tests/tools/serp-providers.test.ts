@@ -15,7 +15,22 @@ import type {
   SerpProvider,
   SearchResult
 } from "../../src/tools/serp-providers/index.js";
-import { WebSearchTool } from "../../src/tools/search-tools.js";
+import {
+  toolFromCapability,
+  ungatedCapabilityRun
+} from "../../src/capabilities/index.js";
+import { toolForCapabilityName } from "../../src/capabilities/lazy-tool.js";
+import { webSearch, webSearchImpl } from "../../src/capabilities/web.js";
+import type { Tool } from "../../src/tools/base-tool.js";
+
+/** `web_search` over an injected SERP provider — what `createSearchTool` builds. */
+function webSearchTool(provider?: SerpProvider): Tool {
+  return toolFromCapability(
+    webSearch.spec,
+    webSearchImpl(provider),
+    ungatedCapabilityRun
+  );
+}
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Buffer } from "buffer";
 
@@ -250,7 +265,7 @@ describe("WebSearchTool with SerpProvider", () => {
       }
     ];
     const provider = createMockProvider(mockResults);
-    const tool = new WebSearchTool(provider);
+    const tool = webSearchTool(provider);
     const ctx = makeContext();
 
     const result = (await tool.process(ctx, {
@@ -267,7 +282,7 @@ describe("WebSearchTool with SerpProvider", () => {
 
   it("returns error string when query is missing", async () => {
     const provider = createMockProvider([]);
-    const tool = new WebSearchTool(provider);
+    const tool = webSearchTool(provider);
     const ctx = makeContext();
 
     const result = await tool.process(ctx, {});
@@ -524,7 +539,6 @@ describe("GoogleNewsTool", () => {
   });
 
   it("extracts news_results from SerpAPI response", async () => {
-    const { GoogleNewsTool } = await import("../../src/tools/search-tools.js");
     const rawResponse = {
       news_results: [
         {
@@ -547,7 +561,7 @@ describe("GoogleNewsTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new GoogleNewsTool();
+      const tool = toolForCapabilityName("google_news");
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
       const result = (await tool.process(ctx, {
         keyword: "breaking news",
@@ -578,8 +592,6 @@ describe("GoogleImagesTool", () => {
   });
 
   it("extracts images_results from SerpAPI response", async () => {
-    const { GoogleImagesTool } =
-      await import("../../src/tools/search-tools.js");
     const rawResponse = {
       images_results: [
         {
@@ -600,7 +612,7 @@ describe("GoogleImagesTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new GoogleImagesTool();
+      const tool = toolForCapabilityName("google_images");
       const ctx = makeContext({ SERPAPI_API_KEY: "test-key" });
       const result = (await tool.process(ctx, {
         keyword: "cats",
@@ -780,7 +792,7 @@ describe("WebSearchTool legacy path (no provider)", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new WebSearchTool(); // no provider
+      const tool = webSearchTool(); // no provider
       const ctx = makeContext({ SERPAPI_API_KEY: "legacy-key" });
       const result = (await tool.process(ctx, {
         query: "test",
@@ -803,7 +815,7 @@ describe("WebSearchTool legacy path (no provider)", () => {
 
 describe("WebSearchTool userMessage", () => {
   it("falls back to short form when the query is too long", () => {
-    const tool = new WebSearchTool();
+    const tool = webSearchTool();
     const longQuery = "a".repeat(100);
     const msg = tool.userMessage({ query: longQuery });
     expect(msg).toBe("Searching the web");
@@ -811,14 +823,14 @@ describe("WebSearchTool userMessage", () => {
   });
 
   it("includes short query in userMessage", () => {
-    const tool = new WebSearchTool();
+    const tool = webSearchTool();
     expect(tool.userMessage({ query: "cats" })).toBe(
       "Searching the web for 'cats'"
     );
   });
 
   it("accepts the legacy `keyword` arg in userMessage too", () => {
-    const tool = new WebSearchTool();
+    const tool = webSearchTool();
     expect(tool.userMessage({ keyword: "cats" })).toBe(
       "Searching the web for 'cats'"
     );

@@ -9,12 +9,9 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import type { Shot } from "@nodetool-ai/protocol";
-import { EditTimelineTool } from "../src/tools/timeline-edit-tools.js";
-import { EditSketchTool } from "../src/tools/sketch-edit-tools.js";
-import { EditScriptTool } from "../src/tools/script-voice-tools.js";
-import { EditStoryboardTool } from "../src/tools/storyboard-render-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { BUILTIN_TOOL_CLASSES } from "../src/tools/builtin-tools.js";
+import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
 const ctx = (userId = "u1") => ({ userId }) as unknown as ProcessingContext;
 
@@ -51,7 +48,7 @@ describe("document edit tools", () => {
   afterEach(() => ModelObserver.clear());
 
   it("registers as built-ins with write permissions", () => {
-    const names = BUILTIN_TOOL_CLASSES.map((Cls) => new Cls().name);
+    const names = BUILTIN_TOOL_NAMES;
     expect(names).toEqual(
       expect.arrayContaining([
         "edit_timeline",
@@ -68,7 +65,7 @@ describe("document edit tools", () => {
   describe("edit_timeline", () => {
     it("applies ops and persists the new document", async () => {
       const sequence = await makeTimeline();
-      const result = (await new EditTimelineTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_timeline").process(ctx(), {
         timeline_id: sequence.id,
         ops: [
           { op: "add_track", type: "audio", name: "Music" },
@@ -90,7 +87,7 @@ describe("document edit tools", () => {
 
     it("records a failing op and still applies the rest", async () => {
       const sequence = await makeTimeline();
-      const result = (await new EditTimelineTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_timeline").process(ctx(), {
         timeline_id: sequence.id,
         ops: [
           { op: "delete_clip", target: "nope" },
@@ -106,7 +103,7 @@ describe("document edit tools", () => {
 
     it("refuses the browser-only and generation ops", async () => {
       const sequence = await makeTimeline();
-      const result = (await new EditTimelineTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_timeline").process(ctx(), {
         timeline_id: sequence.id,
         ops: [{ op: "generate_clip", prompt: "a fox" }]
       })) as Result;
@@ -115,7 +112,7 @@ describe("document edit tools", () => {
 
     it("reads a sequence owned by someone else as missing", async () => {
       const sequence = await makeTimeline();
-      const result = (await new EditTimelineTool().process(ctx("other"), {
+      const result = (await toolForCapabilityName("edit_timeline").process(ctx("other"), {
         timeline_id: sequence.id,
         ops: [{ op: "add_track", type: "audio" }]
       })) as Result;
@@ -132,7 +129,7 @@ describe("document edit tools", () => {
       });
       const before = sketch.toDocumentData().sketch.layers[0];
 
-      const result = (await new EditSketchTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_sketch").process(ctx(), {
         image_document_id: sketch.id,
         ops: [
           { op: "add_layer", name: "Shadow" },
@@ -157,7 +154,7 @@ describe("document edit tools", () => {
         project_id: "default",
         name: "Sketch"
       });
-      const result = (await new EditSketchTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_sketch").process(ctx(), {
         image_document_id: sketch.id,
         ops: [
           { op: "add_layer", name: "Glow" },
@@ -175,7 +172,7 @@ describe("document edit tools", () => {
         project_id: "default",
         name: "Sketch"
       });
-      const result = (await new EditSketchTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_sketch").process(ctx(), {
         image_document_id: sketch.id,
         ops: [{ op: "remove_layer", target: "active" }]
       })) as Result;
@@ -194,7 +191,7 @@ describe("document edit tools", () => {
 
     it("adds cast and lines, and rewriting a line keeps its takes", async () => {
       const script = await makeScript();
-      const added = (await new EditScriptTool().process(ctx(), {
+      const added = (await toolForCapabilityName("edit_script").process(ctx(), {
         script_id: script.id,
         ops: [
           { op: "add_speaker", name: "Narrator" },
@@ -221,7 +218,7 @@ describe("document edit tools", () => {
         document: JSON.stringify(doc)
       });
 
-      const rewritten = (await new EditScriptTool().process(ctx(), {
+      const rewritten = (await toolForCapabilityName("edit_script").process(ctx(), {
         script_id: script.id,
         ops: [{ op: "set_line_text", target: "0", text: "Once, at the end." }]
       })) as Result;
@@ -237,7 +234,7 @@ describe("document edit tools", () => {
 
     it("refuses a half-specified voice", async () => {
       const script = await makeScript();
-      const result = (await new EditScriptTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_script").process(ctx(), {
         script_id: script.id,
         ops: [{ op: "add_speaker", name: "Narrator", provider: "openai" }]
       })) as Result;
@@ -274,7 +271,7 @@ describe("document edit tools", () => {
 
     it("adds and reorders shots, renumbering the index", async () => {
       const board = await makeBoard();
-      const result = (await new EditStoryboardTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_storyboard").process(ctx(), {
         storyboard_id: board.id,
         ops: [
           { op: "add_shot", action: "Wide of the lighthouse", duration_seconds: 4 },
@@ -292,7 +289,7 @@ describe("document edit tools", () => {
 
     it("names an unknown shot instead of guessing", async () => {
       const board = await makeBoard();
-      const result = (await new EditStoryboardTool().process(ctx(), {
+      const result = (await toolForCapabilityName("edit_storyboard").process(ctx(), {
         storyboard_id: board.id,
         ops: [{ op: "update_shot", target: "nope", action: "x" }]
       })) as Result;

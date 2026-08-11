@@ -8,7 +8,12 @@
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { SerpProvider } from "./serp-providers/index.js";
 import { createSerpProvider } from "./serp-providers/index.js";
-import { WebSearchTool } from "./search-tools.js";
+import type { Tool } from "./base-tool.js";
+import {
+  toolFromCapability,
+  ungatedCapabilityRun
+} from "../capabilities/index.js";
+import { webSearch, webSearchImpl } from "../capabilities/web.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -33,13 +38,21 @@ async function getSerpProviderSetting(
 
 /**
  * Create a search tool based on the configured SERP_PROVIDER setting.
- * Returns a tool with an injected provider instance.
+ *
+ * This is the one `web_search` a belt cannot assemble from the registry: the
+ * resolved provider is bound into the implementation, not into the run, so the
+ * tool is built from the capability's spec over an implementation this factory
+ * closes over.
  */
 export async function createSearchTool(
   context: ProcessingContext
-): Promise<WebSearchTool> {
+): Promise<Tool> {
   const provider = await resolveSerpProvider(context);
-  return new WebSearchTool(provider);
+  return toolFromCapability(
+    webSearch.spec,
+    webSearchImpl(provider),
+    ungatedCapabilityRun
+  );
 }
 
 /**

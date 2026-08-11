@@ -13,11 +13,7 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { mkdtemp, rm, readFile, writeFile, mkdir, utimes } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, isAbsolute } from "node:path";
-import {
-  EditFileTool,
-  GlobTool,
-  GrepTool
-} from "../src/tools/edit-search-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 let workspace: string;
 
@@ -45,7 +41,7 @@ afterEach(async () => {
 });
 
 describe("EditFileTool — validation and error paths", () => {
-  const tool = new EditFileTool();
+  const tool = toolForCapabilityName("edit_file");
 
   it("rejects a non-string path", async () => {
     const res: any = await tool.process(ctxFor(workspace), {
@@ -185,7 +181,7 @@ describe("EditFileTool — validation and error paths", () => {
 });
 
 describe("GlobTool", () => {
-  const tool = new GlobTool();
+  const tool = toolForCapabilityName("glob");
 
   it("rejects a non-string pattern", async () => {
     const res: any = await tool.process(ctxFor(workspace), { pattern: 42 });
@@ -274,7 +270,7 @@ describe("GlobTool", () => {
 });
 
 describe("GrepTool", () => {
-  const tool = new GrepTool();
+  const tool = toolForCapabilityName("grep");
 
   it("rejects a non-string pattern", async () => {
     const res: any = await tool.process(ctxFor(workspace), { pattern: 1 });

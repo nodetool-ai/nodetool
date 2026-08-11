@@ -16,72 +16,18 @@
  */
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  listOfflineModelIds,
-  listRegisteredProviderIds
-} from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { Tool } from "./base-tool.js";
-import { findModel, listModels } from "../capabilities/models.js";
+import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
+import type { Tool } from "./base-tool.js";
 import {
-  animateImage,
-  editImage,
-  embedText,
-  generateImage,
-  generateSpeech,
-  generateVideo,
-  transcribeAudio
-} from "../capabilities/media.js";
-import {
-  WORKFLOW_DOCUMENT_TOOL_NAMES,
-  type WorkflowDocumentToolName
-} from "@nodetool-ai/node-sdk";
-import type { ZodType } from "zod";
-import {
-  CapabilityTool,
   UNGATED,
   createCapabilityRun,
-  toolFromCapability,
-  type CapabilityImpl,
-  type CapabilityRun,
-  type CapabilitySpec
+  toolFromLazyCapability,
+  type CapabilityRun
 } from "../capabilities/index.js";
-import { validateTimeline } from "../capabilities/timelines.js";
-import { validateSketch } from "../capabilities/sketches.js";
+import { capabilitySpec } from "../capabilities/registry.js";
+import { workflowDocumentSpec } from "../capabilities/ui.specs.js";
 import {
-  JOB_CAPABILITIES,
-  getJob,
-  getJobLogs,
-  listJobs
-} from "../capabilities/jobs.js";
-import {
-  getAsset,
-  listAssets,
-  readAsset,
-  saveAsset
-} from "../capabilities/assets.js";
-import { APP_CAPABILITIES, buildApp, debugApp } from "../capabilities/apps.js";
-import {
-  WORKFLOW_CAPABILITIES,
-  createWorkflow,
-  debugWorkflow,
-  exportWorkflowDigraph,
-  getExampleWorkflow,
-  getWorkflow,
-  listWorkflows,
-  resolveWorkflowEscalation,
-  runWorkflowCapability,
-  startBackgroundJob,
-  validateWorkflow
-} from "../capabilities/workflows.js";
-import { NODE_CAPABILITIES } from "../capabilities/nodes.js";
-import {
-  workflowDocumentCapability,
-  workflowDocumentCore,
-  workflowDocumentSchema
-} from "../capabilities/ui.js";
-import {
-  RUNTIME_MODEL_CATALOGS,
   type ExampleWorkflowCatalog,
   type ModelCatalogs,
   type WorkflowEnvironmentProvider
@@ -92,6 +38,9 @@ export type {
   ModelCatalogs,
   WorkflowEnvironmentProvider
 } from "./mcp-tool-support.js";
+
+/** How a capability on this belt gets its run. */
+type RunSource = (context: ProcessingContext) => CapabilityRun;
 
 /** What a host injects into the workflow capabilities. */
 interface WorkflowCapabilityDeps {
@@ -121,186 +70,19 @@ function workflowCapabilityRun(
   });
 }
 
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ListWorkflowsTool extends CapabilityTool {
-  constructor(examples?: ExampleWorkflowCatalog) {
-    super(listWorkflows.spec, listWorkflows.impl, (context) =>
-      workflowCapabilityRun(context, { examples })
-    );
-  }
-}
 
 /**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
+ * The eight `ui_*` workflow-document tools, built from the `ui` module's eager
+ * specs. Each carries that tool's Zod schema, so `Tool.execute` validates once
+ * on the way in exactly where the class this replaced did; the node registry
+ * that was a constructor argument rides on the run.
  */
-export class GetWorkflowTool extends CapabilityTool {
-  constructor() {
-    super(getWorkflow.spec, getWorkflow.impl, (context) =>
-      workflowCapabilityRun(context, {})
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `ui` capability module
- * (`../capabilities/ui.ts`). Kept as a thin subclass so existing constructors
- * keep working; there is one implementation behind both.
- *
- * The class keeps the Zod schema on `schema` and runs the *unvalidated* core:
- * `Tool.execute` validates once on the way in, exactly where it always did.
- * The capability's own `impl` carries the same check for callers that reach it
- * through `invoke`.
- */
-export class WorkflowDocumentTool extends CapabilityTool {
-  private readonly documentSchema: ZodType;
-
-  constructor(name: WorkflowDocumentToolName, registry?: NodeRegistry) {
-    super(
-      workflowDocumentCapability(name).spec,
-      workflowDocumentCore(name),
-      (context) =>
-        createCapabilityRun({
-          context,
-          gate: UNGATED,
-          nodeRegistry: registry
-        })
-    );
-    this.documentSchema = workflowDocumentSchema(name);
-  }
-
-  override get schema(): ZodType {
-    return this.documentSchema;
-  }
-}
-
-export function createWorkflowDocumentTools(
-  registry?: NodeRegistry
-): WorkflowDocumentTool[] {
-  return WORKFLOW_DOCUMENT_TOOL_NAMES.map(
-    (name) => new WorkflowDocumentTool(name, registry)
+export function createWorkflowDocumentTools(registry?: NodeRegistry): Tool[] {
+  return WORKFLOW_DOCUMENT_TOOL_NAMES.map((name) =>
+    toolFromLazyCapability(workflowDocumentSpec(name), (context) =>
+      createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry })
+    )
   );
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class CreateWorkflowTool extends CapabilityTool {
-  constructor(catalogs: ModelCatalogs = RUNTIME_MODEL_CATALOGS) {
-    super(createWorkflow.spec, createWorkflow.impl, (context) =>
-      workflowCapabilityRun(context, { modelCatalogs: catalogs })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class RunWorkflowTool extends CapabilityTool {
-  constructor(
-    registry?: NodeRegistry,
-    environment?: WorkflowEnvironmentProvider
-  ) {
-    super(runWorkflowCapability.spec, runWorkflowCapability.impl, (context) =>
-      workflowCapabilityRun(context, {
-        registry,
-        workflowEnvironment: environment
-      })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class DebugWorkflowTool extends CapabilityTool {
-  constructor(
-    registry?: NodeRegistry,
-    environment?: WorkflowEnvironmentProvider
-  ) {
-    super(debugWorkflow.spec, debugWorkflow.impl, (context) =>
-      workflowCapabilityRun(context, {
-        registry,
-        workflowEnvironment: environment
-      })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ResolveWorkflowEscalationTool extends CapabilityTool {
-  constructor() {
-    super(
-      resolveWorkflowEscalation.spec,
-      resolveWorkflowEscalation.impl,
-      (context) => workflowCapabilityRun(context, {})
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `apps` capability module
- * (`../capabilities/apps.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class BuildAppTool extends CapabilityTool {
-  constructor(registry?: NodeRegistry) {
-    super(buildApp.spec, buildApp.impl, (context) =>
-      workflowCapabilityRun(context, { registry })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `apps` capability module
- * (`../capabilities/apps.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class DebugAppTool extends CapabilityTool {
-  constructor(registry?: NodeRegistry) {
-    super(debugApp.spec, debugApp.impl, (context) =>
-      workflowCapabilityRun(context, { registry })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ValidateWorkflowTool extends CapabilityTool {
-  constructor(
-    registry?: NodeRegistry,
-    listProviderIds: () => readonly string[] = () =>
-      listRegisteredProviderIds(),
-    listModelIds: (
-      provider: string,
-      modelType: string
-    ) => readonly string[] | undefined = listOfflineModelIds
-  ) {
-    super(validateWorkflow.spec, validateWorkflow.impl, (context) =>
-      workflowCapabilityRun(context, {
-        registry,
-        modelCatalogs: { listProviderIds, listModelIds }
-      })
-    );
-  }
 }
 
 /** What a host must hand back for a saved timeline row. */
@@ -333,160 +115,6 @@ export type SketchLoader = (
   context: ProcessingContext,
   id: string
 ) => Promise<SketchToolRecord | null>;
-
-/**
- * @deprecated Ported to the `timelines` capability module
- * (`../capabilities/timelines.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both. The
- * loader that was a constructor argument rides on the run.
- */
-export class ValidateTimelineTool extends CapabilityTool {
-  constructor(loadTimeline?: TimelineLoader) {
-    super(validateTimeline.spec, validateTimeline.impl, (context) =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        loaders: { timeline: loadTimeline }
-      })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `sketches` capability module
- * (`../capabilities/sketches.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both. The
- * loader that was a constructor argument rides on the run.
- */
-export class ValidateSketchTool extends CapabilityTool {
-  constructor(loadSketch?: SketchLoader) {
-    super(validateSketch.spec, validateSketch.impl, (context) =>
-      createCapabilityRun({
-        context,
-        gate: UNGATED,
-        loaders: { sketch: loadSketch }
-      })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class GetExampleWorkflowTool extends CapabilityTool {
-  constructor(examples?: ExampleWorkflowCatalog) {
-    super(getExampleWorkflow.spec, getExampleWorkflow.impl, (context) =>
-      workflowCapabilityRun(context, { examples })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ExportWorkflowDigraphTool extends CapabilityTool {
-  constructor(exportDsl?: WorkflowDslExporter) {
-    super(exportWorkflowDigraph.spec, exportWorkflowDigraph.impl, (context) =>
-      workflowCapabilityRun(context, { exportDsl })
-    );
-  }
-}
-
-// ============================================================================
-// Job Tools
-// ============================================================================
-
-/**
- * @deprecated Ported to the `jobs` capability module
- * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ListJobsTool extends CapabilityTool {
-  constructor() {
-    super(listJobs.spec, listJobs.impl, (context) =>
-      workflowCapabilityRun(context, {})
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `jobs` capability module
- * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class GetJobTool extends CapabilityTool {
-  constructor() {
-    super(getJob.spec, getJob.impl, (context) =>
-      workflowCapabilityRun(context, {})
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `jobs` capability module
- * (`../capabilities/jobs.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class GetJobLogsTool extends CapabilityTool {
-  constructor() {
-    super(getJobLogs.spec, getJobLogs.impl, (context) =>
-      workflowCapabilityRun(context, {})
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `workflows` capability module
- * (`../capabilities/workflows.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class StartBackgroundJobTool extends CapabilityTool {
-  constructor(
-    registry?: NodeRegistry,
-    environment?: WorkflowEnvironmentProvider
-  ) {
-    super(startBackgroundJob.spec, startBackgroundJob.impl, (context) =>
-      workflowCapabilityRun(context, {
-        registry,
-        workflowEnvironment: environment
-      })
-    );
-  }
-}
-
-// ============================================================================
-// Asset Tools
-// ============================================================================
-
-/**
- * @deprecated Ported to the `assets` capability module
- * (`../capabilities/assets.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class ListAssetsTool extends CapabilityTool {
-  constructor(listPackageAssets?: PackageAssetLister) {
-    super(listAssets.spec, listAssets.impl, (context) =>
-      workflowCapabilityRun(context, { listPackageAssets })
-    );
-  }
-}
-
-/**
- * @deprecated Ported to the `assets` capability module
- * (`../capabilities/assets.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class GetAssetTool extends CapabilityTool {
-  constructor() {
-    super(getAsset.spec, getAsset.impl, (context) =>
-      workflowCapabilityRun(context, {})
-    );
-  }
-}
 
 // ============================================================================
 // Helper
@@ -547,10 +175,11 @@ export interface GetAllMcpToolsOptions {
 }
 
 export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
-  // The workflow namespace is a capability module now: one spec + impl per
-  // capability, wrapped as a `Tool` so every consumer — runner, MCP, CLI,
-  // evals — keeps the surface it had. The dependencies that used to be
-  // constructor arguments ride on the run instead.
+  // Every name here is a capability. The belt is assembled from the registry's
+  // eager spec table — synchronously, because only the spec has to be there at
+  // assembly time — and each implementation loads from its own module at first
+  // call. The dependencies that used to be constructor arguments ride on the
+  // run instead.
   const workflowRun = (context: ProcessingContext): CapabilityRun =>
     workflowCapabilityRun(context, {
       registry: options.registry,
@@ -560,24 +189,41 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
       listPackageAssets: options.listPackageAssets
     });
 
-  const asTool = (entry: {
-    spec: CapabilitySpec;
-    impl: CapabilityImpl;
-  }): Tool => toolFromCapability(entry.spec, entry.impl, workflowRun);
+  const withRun = (name: string, run: RunSource): Tool => {
+    const spec = capabilitySpec(name);
+    if (spec === undefined) {
+      throw new Error(`no capability is registered for "${name}"`);
+    }
+    return toolFromLazyCapability(spec, run);
+  };
 
   const tools: Tool[] = [
-    ...WORKFLOW_CAPABILITIES.map(asTool),
-    ...APP_CAPABILITIES.map(asTool),
-    ...JOB_CAPABILITIES.map(asTool),
-    asTool(listAssets),
-    asTool(getAsset),
-    // Asset persistence — used by the agent to surface artifacts (text
-    // reports, images, audio) into the chat. Media-generation tools save
-    // their outputs as assets automatically; use save_asset for anything
-    // else worth keeping.
-    asTool(saveAsset),
-    asTool(readAsset)
-  ];
+    // workflows
+    "list_workflows",
+    "get_workflow",
+    "create_workflow",
+    "run_workflow",
+    "debug_workflow",
+    "resolve_workflow_escalation",
+    "validate_workflow",
+    "get_example_workflow",
+    "export_workflow_digraph",
+    "start_background_job",
+    // apps
+    "build_app",
+    "debug_app",
+    // jobs
+    "list_jobs",
+    "get_job",
+    "get_job_logs",
+    // assets. `save_asset` is how the agent surfaces an artifact (a text
+    // report, an image, audio) into the chat; media generation saves its own
+    // output already.
+    "list_assets",
+    "get_asset",
+    "save_asset",
+    "read_asset"
+  ].map((name) => withRun(name, workflowRun));
 
   // Node discovery reads the registry directly; there is no registry-free
   // variant, because the only other way to answer was an HTTP call to a server
@@ -590,8 +236,8 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
         nodeRegistry: options.registry
       });
     tools.push(
-      ...NODE_CAPABILITIES.map((entry) =>
-        toolFromCapability(entry.spec, entry.impl, nodeRun)
+      ...["list_nodes", "search_nodes", "get_node_info"].map((name) =>
+        withRun(name, nodeRun)
       )
     );
   }
@@ -606,17 +252,17 @@ export function getAllMcpTools(options: GetAllMcpToolsOptions = {}): Tool[] {
     const mediaRun = (context: ProcessingContext): CapabilityRun =>
       createCapabilityRun({ context, gate: UNGATED });
     tools.push(
-      toolFromCapability(findModel.spec, findModel.impl, modelRun),
-      toolFromCapability(listModels.spec, listModels.impl, modelRun),
+      withRun("find_model", modelRun),
+      withRun("list_models", modelRun),
       ...[
-        generateImage,
-        editImage,
-        generateVideo,
-        animateImage,
-        generateSpeech,
-        transcribeAudio,
-        embedText
-      ].map((entry) => toolFromCapability(entry.spec, entry.impl, mediaRun))
+        "generate_image",
+        "edit_image",
+        "generate_video",
+        "animate_image",
+        "generate_speech",
+        "transcribe_audio",
+        "embed_text"
+      ].map((name) => withRun(name, mediaRun))
     );
   }
 

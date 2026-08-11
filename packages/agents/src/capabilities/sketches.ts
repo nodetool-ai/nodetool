@@ -3,7 +3,7 @@
  *
  * Seven capabilities that used to be seven `Tool` subclasses: the five version
  * tools (`../tools/sketch-version-tools.ts`), the headless layer editor
- * (`../tools/sketch-edit-tools.ts`), and `validate_sketch`, which lived beside
+ * (`sketch-edit-tools.ts`), and `validate_sketch`, which lived beside
  * the workflow tools in `../tools/mcp-tools.ts`.
  *
  * Wire names, descriptions and schemas are unchanged: the old classes survive
@@ -28,10 +28,38 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  listSketchesSpec,
+  listSketchVersionsSpec,
+  getSketchVersionSpec,
+  createSketchVersionSpec,
+  restoreSketchVersionSpec,
+  editSketchSpec,
+  validateSketchSpec,
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
+  SAVE_TYPE_PROPERTY,
+  LIST_SKETCHES_SCHEMA,
+  LIST_SKETCH_VERSIONS_SCHEMA,
+  GET_SKETCH_VERSION_SCHEMA,
+  CREATE_SKETCH_VERSION_SCHEMA,
+  RESTORE_SKETCH_VERSION_SCHEMA,
+  EDIT_SKETCH_SCHEMA,
+  VALIDATE_SKETCH_SCHEMA
+} from "./sketches.specs.js";
 
-/** Versions one call may return, so a long history cannot flood the context. */
-const DEFAULT_VERSION_LIMIT = 20;
-const MAX_VERSION_LIMIT = 100;
+export {
+  DEFAULT_VERSION_LIMIT,
+  MAX_VERSION_LIMIT,
+  SAVE_TYPE_PROPERTY,
+  LIST_SKETCHES_SCHEMA,
+  LIST_SKETCH_VERSIONS_SCHEMA,
+  GET_SKETCH_VERSION_SCHEMA,
+  CREATE_SKETCH_VERSION_SCHEMA,
+  RESTORE_SKETCH_VERSION_SCHEMA,
+  EDIT_SKETCH_SCHEMA,
+  VALIDATE_SKETCH_SCHEMA
+} from "./sketches.specs.js";
 
 type ToolError = { error: string };
 
@@ -46,8 +74,7 @@ async function loadSketch(
 ): Promise<ImageDocument | ToolError> {
   if (typeof sketchId !== "string" || !sketchId) {
     return {
-      error:
-        "image_document_id is required (use list_sketches to find one)."
+      error: "image_document_id is required (use list_sketches to find one)."
     };
   }
   const { ImageDocument } = await import("@nodetool-ai/models");
@@ -114,44 +141,8 @@ function versionNumber(value: unknown): number | ToolError {
   return n;
 }
 
-const SAVE_TYPE_PROPERTY = {
-  type: "string" as const,
-  enum: ["manual", "autosave", "restore"],
-  description:
-    "Only versions of this kind: 'manual' (a save someone asked for), " +
-    "'autosave' (taken on a document write), 'restore' (the pre-restore " +
-    "snapshot). Omit for all of them."
-};
-
-// ---------------------------------------------------------------------------
-// list_sketches
-// ---------------------------------------------------------------------------
-
-const LIST_SKETCHES_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "string",
-      description: "Only sketches whose name contains this text (case-insensitive)."
-    },
-    limit: {
-      type: "number",
-      description: "Max sketches to return (default 20)."
-    }
-  }
-};
-
 const listSketches: CapabilityExport = {
-  spec: {
-    name: "list_sketches",
-    description:
-      "List the caller's sketches (image documents), most recently updated " +
-      "first: id, name, canvas size, and when it last changed. Start here when " +
-      "the user names a sketch but not its id.",
-    inputSchema: LIST_SKETCHES_SCHEMA,
-    category: "read",
-    userMessage: () => "Listing sketches"
-  },
+  spec: listSketchesSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
@@ -179,40 +170,8 @@ const listSketches: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// list_sketch_versions
-// ---------------------------------------------------------------------------
-
-const LIST_SKETCH_VERSIONS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: {
-      type: "string",
-      description: "Sketch (image document) id."
-    },
-    save_type: SAVE_TYPE_PROPERTY,
-    limit: {
-      type: "number",
-      description: `Max versions to return (default ${DEFAULT_VERSION_LIMIT}, max ${MAX_VERSION_LIMIT}).`
-    }
-  },
-  required: ["image_document_id"]
-};
-
 const listSketchVersions: CapabilityExport = {
-  spec: {
-    name: "list_sketch_versions",
-    description:
-      "List a sketch's whole-document snapshots, newest first: version number, " +
-      "name, save type ('manual', 'autosave', 'restore'), canvas settings, and " +
-      "when it was taken. These are document snapshots, not the per-layer " +
-      "generation history. Call this before restoring — restore_sketch_version " +
-      "addresses a snapshot by its version number.",
-    inputSchema: LIST_SKETCH_VERSIONS_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Listing versions of sketch ${String(params["image_document_id"])}`
-  },
+  spec: listSketchVersionsSpec,
   impl: async (run, params) => {
     const doc = await loadSketch(run, params["image_document_id"]);
     if (isError(doc)) return doc;
@@ -220,7 +179,10 @@ const listSketchVersions: CapabilityExport = {
     const { ImageDocumentVersion } = await import("@nodetool-ai/models");
     const limit = Math.max(
       1,
-      Math.min(Number(params["limit"]) || DEFAULT_VERSION_LIMIT, MAX_VERSION_LIMIT)
+      Math.min(
+        Number(params["limit"]) || DEFAULT_VERSION_LIMIT,
+        MAX_VERSION_LIMIT
+      )
     );
     const saveType =
       typeof params["save_type"] === "string"
@@ -238,37 +200,8 @@ const listSketchVersions: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// get_sketch_version
-// ---------------------------------------------------------------------------
-
-const GET_SKETCH_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: {
-      type: "string",
-      description: "Sketch (image document) id."
-    },
-    version: {
-      type: "number",
-      description: "Version number to read, from list_sketch_versions."
-    }
-  },
-  required: ["image_document_id", "version"]
-};
-
 const getSketchVersion: CapabilityExport = {
-  spec: {
-    name: "get_sketch_version",
-    description:
-      "Read one snapshot of a sketch without restoring it: the version's " +
-      "metadata plus the full document it stored. Use this to inspect or " +
-      "compare versions before deciding which one to restore.",
-    inputSchema: GET_SKETCH_VERSION_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Reading v${String(params["version"])} of sketch ${String(params["image_document_id"])}`
-  },
+  spec: getSketchVersionSpec,
   impl: async (run, params) => {
     const doc = await loadSketch(run, params["image_document_id"]);
     if (isError(doc)) return doc;
@@ -295,38 +228,8 @@ const getSketchVersion: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// create_sketch_version
-// ---------------------------------------------------------------------------
-
-const CREATE_SKETCH_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: {
-      type: "string",
-      description: "Sketch (image document) id."
-    },
-    name: {
-      type: "string",
-      description: "Label for the snapshot, e.g. 'before the repaint'."
-    }
-  },
-  required: ["image_document_id"]
-};
-
 const createSketchVersion: CapabilityExport = {
-  spec: {
-    name: "create_sketch_version",
-    description:
-      "Snapshot a sketch's current document as a manual version, so it can be " +
-      "restored later. Manual snapshots are never pruned (autosaves are), so " +
-      "take one before an edit the user may want undone. Returns the new " +
-      "version's number.",
-    inputSchema: CREATE_SKETCH_VERSION_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Snapshotting sketch ${String(params["image_document_id"])}`
-  },
+  spec: createSketchVersionSpec,
   impl: async (run, params) => {
     const doc = await loadSketch(run, params["image_document_id"]);
     if (isError(doc)) return doc;
@@ -348,40 +251,8 @@ const createSketchVersion: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// restore_sketch_version
-// ---------------------------------------------------------------------------
-
-const RESTORE_SKETCH_VERSION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: {
-      type: "string",
-      description: "Sketch (image document) id."
-    },
-    version: {
-      type: "number",
-      description: "Version number to restore, from list_sketch_versions."
-    }
-  },
-  required: ["image_document_id", "version"]
-};
-
 const restoreSketchVersion: CapabilityExport = {
-  spec: {
-    name: "restore_sketch_version",
-    description:
-      "Roll a sketch's document and canvas settings back to one of its " +
-      "snapshots, addressed by version number (from list_sketch_versions). The " +
-      "state being overwritten is snapshotted first, so the restore is itself " +
-      "undoable — restore that snapshot to come back. An old document is " +
-      "restored against today's schema, so the result is validated afterwards " +
-      "and the findings are returned with it.",
-    inputSchema: RESTORE_SKETCH_VERSION_SCHEMA,
-    category: "write",
-    userMessage: (params) =>
-      `Restoring sketch ${String(params["image_document_id"])} to v${String(params["version"])}`
-  },
+  spec: restoreSketchVersionSpec,
   impl: async (run, params) => {
     const doc = await loadSketch(run, params["image_document_id"]);
     if (isError(doc)) return doc;
@@ -389,9 +260,8 @@ const restoreSketchVersion: CapabilityExport = {
     const number = versionNumber(params["version"]);
     if (isError(number)) return number;
 
-    const { ImageDocument, ImageDocumentVersion } = await import(
-      "@nodetool-ai/models"
-    );
+    const { ImageDocument, ImageDocumentVersion } =
+      await import("@nodetool-ai/models");
     const version = await ImageDocumentVersion.findByVersion(doc.id, number);
     if (!version) {
       return {
@@ -426,9 +296,8 @@ const restoreSketchVersion: CapabilityExport = {
       };
     }
 
-    const { validateSketchDocument } = await import(
-      "@nodetool-ai/execution/sketch-debug"
-    );
+    const { validateSketchDocument } =
+      await import("@nodetool-ai/execution/sketch-debug");
     const validation = validateSketchDocument(document, {
       width: version.width,
       height: version.height,
@@ -495,7 +364,9 @@ function parseOps(raw: unknown): ParsedOp[] | ToolError {
     };
   }
   if (raw.length > MAX_OPS) {
-    return { error: `ops holds ${raw.length} entries; at most ${MAX_OPS} per call.` };
+    return {
+      error: `ops holds ${raw.length} entries; at most ${MAX_OPS} per call.`
+    };
   }
   const parsed: ParsedOp[] = [];
   for (const [index, entry] of raw.entries()) {
@@ -605,7 +476,8 @@ function applyOp(
         throw new Error("A sketch must keep at least one layer.");
       }
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       const [removed] = layers.splice(index, 1);
       state.bindings = state.bindings.filter(
         (binding) => binding.layerId !== removed.id
@@ -618,7 +490,8 @@ function applyOp(
 
     case "rename_layer": {
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       const name = args["name"];
       if (typeof name !== "string" || name.trim() === "") {
         throw new Error("rename_layer needs a non-empty `name`.");
@@ -629,7 +502,8 @@ function applyOp(
 
     case "set_layer_props": {
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       const next: SketchLayer = { ...layers[index] };
       if (args["visible"] !== undefined) next.visible = !!args["visible"];
       if (args["locked"] !== undefined) next.locked = !!args["locked"];
@@ -661,7 +535,8 @@ function applyOp(
 
     case "reorder_layer": {
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       const to = Number(args["index"]);
       if (!Number.isInteger(to) || to < 0 || to >= layers.length) {
         throw new Error(
@@ -675,7 +550,8 @@ function applyOp(
 
     case "duplicate_layer": {
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       const source = layers[index];
       // The bitmap is copied by reference to the same data URL — the copy is a
       // duplicate, not a fork, and nothing here decodes pixels.
@@ -691,7 +567,8 @@ function applyOp(
 
     case "select_layer": {
       const index = findLayerIndex(layers, state.activeLayerId, args["target"]);
-      if (index < 0) throw new Error(`No layer matches "${String(args["target"])}".`);
+      if (index < 0)
+        throw new Error(`No layer matches "${String(args["target"])}".`);
       state.activeLayerId = layers[index].id;
       return { activeLayerId: state.activeLayerId };
     }
@@ -723,45 +600,8 @@ interface OpRecord {
   error?: string;
 }
 
-const EDIT_SKETCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: { type: "string", description: "Sketch (image document) id." },
-    ops: {
-      type: "array",
-      description:
-        'Operations in order. Each is {"op": <name>, ...arguments}: ' +
-        'add_layer {name?, type?: "raster"|"mask", index?}, ' +
-        "remove_layer {target}, rename_layer {target, name}, " +
-        "set_layer_props {target, visible?, locked?, opacity?, blendMode?}, " +
-        "reorder_layer {target, index}, duplicate_layer {target}, " +
-        "select_layer {target}, resize_canvas {width, height}. " +
-        '`target` is a layer id, its name, or "active". Layer index 0 is the ' +
-        "bottom layer.",
-      items: { type: "object" }
-    }
-  },
-  required: ["image_document_id", "ops"]
-};
-
 const editSketch: CapabilityExport = {
-  spec: {
-    name: "edit_sketch",
-    description:
-      "Edit a saved sketch's layer structure headlessly: add, remove, rename, " +
-      "reorder and duplicate layers, set visibility/lock/opacity/blend mode, " +
-      "choose the active layer, and resize the canvas. Operations run in order " +
-      "against the stored document and the result is saved; an open editor " +
-      "picks the change up live. Pixels are never read or written — painting " +
-      "and generation happen in an open editor or a workflow run. Call " +
-      "list_sketches to find one and validate_sketch afterwards.",
-    inputSchema: EDIT_SKETCH_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
-      return `Editing sketch ${String(params["image_document_id"])} (${count} ops)`;
-    }
-  },
+  spec: editSketchSpec,
   impl: async (run, params) => {
     const sketchId = params["image_document_id"];
     if (typeof sketchId !== "string" || !sketchId) {
@@ -772,9 +612,8 @@ const editSketch: CapabilityExport = {
     const ops = parseOps(params["ops"]);
     if (isError(ops)) return ops;
 
-    const { ImageDocument, ImageDocumentConflictError } = await import(
-      "@nodetool-ai/models"
-    );
+    const { ImageDocument, ImageDocumentConflictError } =
+      await import("@nodetool-ai/models");
     const { SKETCH_BLEND_MODES } = await import("../evals/surfaces/sketch.js");
 
     const existing = await ImageDocument.findById(sketchId);
@@ -878,59 +717,8 @@ function parseStoredDocument(document: unknown): unknown {
   }
 }
 
-const VALIDATE_SKETCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    image_document_id: {
-      type: "string",
-      description: "The ID of a saved sketch (image document) to validate"
-    },
-    document: {
-      type: "object",
-      description:
-        "Inline ImageDocumentData to validate ({ sketch, layerBindings }). " +
-        "Takes precedence over image_document_id."
-    },
-    width: {
-      type: "number",
-      description:
-        "Canvas width the inline document is stored against. The canvas " +
-        "size lives on the row, not in the document, so without it a " +
-        "mismatch between the two cannot be reported. Ignored for " +
-        "image_document_id."
-    },
-    height: {
-      type: "number",
-      description:
-        "Canvas height the inline document is stored against. Ignored for image_document_id."
-    },
-    background_color: {
-      type: "string",
-      description:
-        "Canvas background color the inline document is stored against. Ignored for image_document_id."
-    }
-  }
-};
-
 const validateSketch: CapabilityExport = {
-  spec: {
-    name: "validate_sketch",
-    description:
-      "Statically validate a sketch (image document) WITHOUT rendering it: " +
-      "duplicate layer ids, an active or mask layer the stack lacks, unknown " +
-      "blend modes, opacities and transforms that cannot render, generation " +
-      "bindings pointing at missing layers, unknown binding kinds and statuses, " +
-      "canvas settings that disagree with the stored ones, and fields a schema " +
-      "round trip would strip. Pass an inline `document` to check one you are " +
-      "building, or `image_document_id` to validate a saved sketch. Run it after " +
-      "sketch edits and before handing the document back.",
-    inputSchema: VALIDATE_SKETCH_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      params["image_document_id"]
-        ? `Validating sketch ${params["image_document_id"]}`
-        : "Validating sketch document"
-  },
+  spec: validateSketchSpec,
   // The sketch API is tRPC-only, so there is no REST route to fall back on: a
   // host that wants the `image_document_id` path puts a loader on the run.
   // Without one this still validates inline documents.
@@ -987,9 +775,8 @@ const validateSketch: CapabilityExport = {
       };
     }
 
-    const { validateSketchDocument } = await import(
-      "@nodetool-ai/execution/sketch-debug"
-    );
+    const { validateSketchDocument } =
+      await import("@nodetool-ai/execution/sketch-debug");
     const validation = validateSketchDocument(document, meta);
     return {
       ...validation,

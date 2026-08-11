@@ -12,83 +12,14 @@
  * by a typed `{ type, id }` handle, so an agent can record and reuse them
  * across a creative project.
  *
- * The four tools are @deprecated: they are ported to the `memory` capability
- * module (`../capabilities/memory.ts`) and survive as thin subclasses so
- * existing constructors keep working. The prompt renderer below is not a tool
- * and stays here.
+ * The four tools live in the `memory` capability module
+ * (`../capabilities/memory.ts`); this module keeps the names, the getter, and
+ * the prompt renderer, which is not a tool.
  */
 
 import type { ThreadMemoryResource } from "@nodetool-ai/models";
-import { CapabilityTool, ungatedCapabilityRun } from "../capabilities/index.js";
-import {
-  threadMemoryDelete,
-  threadMemoryList,
-  threadMemorySave,
-  threadMemoryUpdate
-} from "../capabilities/memory.js";
+import { toolForCapabilityName } from "../capabilities/lazy-tool.js";
 import type { Tool } from "./base-tool.js";
-
-/**
- * `thread_memory_save` — persist a memory to the current thread.
- *
- * @deprecated Ported to the `memory` capability module.
- */
-export class ThreadMemorySaveTool extends CapabilityTool {
-  constructor() {
-    super(threadMemorySave.spec, threadMemorySave.impl, ungatedCapabilityRun);
-  }
-}
-
-/**
- * `thread_memory_list` — list the current thread's memories.
- *
- * @deprecated Ported to the `memory` capability module.
- */
-export class ThreadMemoryListTool extends CapabilityTool {
-  constructor() {
-    super(threadMemoryList.spec, threadMemoryList.impl, ungatedCapabilityRun);
-  }
-}
-
-/**
- * `thread_memory_update` — edit an existing memory.
- *
- * @deprecated Ported to the `memory` capability module.
- */
-export class ThreadMemoryUpdateTool extends CapabilityTool {
-  constructor() {
-    super(
-      threadMemoryUpdate.spec,
-      threadMemoryUpdate.impl,
-      ungatedCapabilityRun
-    );
-  }
-}
-
-/**
- * `thread_memory_delete` — remove a memory.
- *
- * @deprecated Ported to the `memory` capability module.
- */
-export class ThreadMemoryDeleteTool extends CapabilityTool {
-  constructor() {
-    super(
-      threadMemoryDelete.spec,
-      threadMemoryDelete.impl,
-      ungatedCapabilityRun
-    );
-  }
-}
-
-/** Fresh instances of the four thread-memory tools. */
-export function getThreadMemoryTools(): Tool[] {
-  return [
-    new ThreadMemorySaveTool(),
-    new ThreadMemoryListTool(),
-    new ThreadMemoryUpdateTool(),
-    new ThreadMemoryDeleteTool()
-  ];
-}
 
 /** Names of the thread-memory tools. */
 export const THREAD_MEMORY_TOOL_NAMES = [
@@ -97,6 +28,11 @@ export const THREAD_MEMORY_TOOL_NAMES = [
   "thread_memory_update",
   "thread_memory_delete"
 ] as const;
+
+/** Fresh instances of the four thread-memory tools. */
+export function getThreadMemoryTools(): Tool[] {
+  return THREAD_MEMORY_TOOL_NAMES.map((name) => toolForCapabilityName(name));
+}
 
 /**
  * Render a thread's memories as a system-message block for injection at the

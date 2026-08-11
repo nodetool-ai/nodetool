@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { LocalSearchNodesTool } from "../src/tools/local-search-nodes-tool.js";
-import { LocalGetNodeInfoTool } from "../src/tools/local-get-node-info-tool.js";
-import { LocalListNodesTool } from "../src/tools/local-list-nodes-tool.js";
-import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
+import type { NodeMetadata, NodeRegistry } from "@nodetool-ai/node-sdk";
+
+/** The registry was a constructor argument; it now rides on the run. */
+function nodeTool(name: string, nodeRegistry: NodeRegistry) {
+  return toolForCapabilityName(name, (context) =>
+    createCapabilityRun({ context, gate: UNGATED, nodeRegistry })
+  );
+}
 
 function createMetadata(overrides: Partial<NodeMetadata> = {}): NodeMetadata {
   return {
@@ -35,7 +41,7 @@ function mockContext() {
   return {} as any;
 }
 
-describe("LocalSearchNodesTool", () => {
+describe("search_nodes", () => {
   const allNodes = [
     createMetadata({
       node_type: "nodetool.text.Split",
@@ -73,7 +79,7 @@ describe("LocalSearchNodesTool", () => {
   ];
 
   it("searches by keyword", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["split"]
     })) as Record<string, unknown>;
@@ -84,7 +90,7 @@ describe("LocalSearchNodesTool", () => {
   });
 
   it("searches with multiple terms", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["resize", "image"]
     })) as Record<string, unknown>;
@@ -95,7 +101,7 @@ describe("LocalSearchNodesTool", () => {
   });
 
   it("returns compact results with inputs and outputs", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["text"]
     })) as Record<string, unknown>;
@@ -107,7 +113,7 @@ describe("LocalSearchNodesTool", () => {
   });
 
   it("limits results", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["text"],
       n_results: 1
@@ -118,7 +124,7 @@ describe("LocalSearchNodesTool", () => {
   });
 
   it("filters by output type", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["resize"],
       output_type: "image"
@@ -140,7 +146,7 @@ describe("LocalSearchNodesTool", () => {
         namespace: "openai"
       })
     ];
-    const tool = new LocalSearchNodesTool(mockRegistry(mixed));
+    const tool = nodeTool("search_nodes", mockRegistry(mixed));
     const result = (await tool.process(mockContext(), {
       query: ["image"]
     })) as Record<string, unknown>;
@@ -163,7 +169,7 @@ describe("LocalSearchNodesTool", () => {
         namespace: "openai"
       })
     ];
-    const tool = new LocalSearchNodesTool(mockRegistry(mixed));
+    const tool = nodeTool("search_nodes", mockRegistry(mixed));
     const result = (await tool.process(mockContext(), {
       query: ["image"],
       include_provider_nodes: true
@@ -180,7 +186,7 @@ describe("LocalSearchNodesTool", () => {
   });
 
   it("scopes by namespace prefix", async () => {
-    const tool = new LocalSearchNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("search_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       query: ["text"],
       namespace: "nodetool.text"
@@ -193,7 +199,7 @@ describe("LocalSearchNodesTool", () => {
   });
 });
 
-describe("LocalGetNodeInfoTool", () => {
+describe("get_node_info", () => {
   const meta = createMetadata({
     node_type: "nodetool.text.Split",
     title: "Split Text",
@@ -219,7 +225,7 @@ describe("LocalGetNodeInfoTool", () => {
   });
 
   it("returns full metadata for a known type", async () => {
-    const tool = new LocalGetNodeInfoTool(mockRegistry([meta]));
+    const tool = nodeTool("get_node_info", mockRegistry([meta]));
     const result = (await tool.process(mockContext(), {
       node_type: "nodetool.text.Split"
     })) as Record<string, unknown>;
@@ -235,7 +241,7 @@ describe("LocalGetNodeInfoTool", () => {
   });
 
   it("returns error for unknown type", async () => {
-    const tool = new LocalGetNodeInfoTool(mockRegistry([]));
+    const tool = nodeTool("get_node_info", mockRegistry([]));
     const result = (await tool.process(mockContext(), {
       node_type: "unknown.Node"
     })) as Record<string, unknown>;
@@ -244,7 +250,7 @@ describe("LocalGetNodeInfoTool", () => {
   });
 });
 
-describe("LocalListNodesTool", () => {
+describe("list_nodes", () => {
   const allNodes = [
     createMetadata({ node_type: "nodetool.text.Split", namespace: "nodetool.text" }),
     createMetadata({ node_type: "nodetool.text.Concat", namespace: "nodetool.text" }),
@@ -252,7 +258,7 @@ describe("LocalListNodesTool", () => {
   ];
 
   it("lists all nodes", async () => {
-    const tool = new LocalListNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("list_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {})) as Record<
       string,
       unknown
@@ -266,7 +272,7 @@ describe("LocalListNodesTool", () => {
   });
 
   it("filters by namespace", async () => {
-    const tool = new LocalListNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("list_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       namespace: "nodetool.text"
     })) as Record<string, unknown>;
@@ -275,7 +281,7 @@ describe("LocalListNodesTool", () => {
   });
 
   it("limits results", async () => {
-    const tool = new LocalListNodesTool(mockRegistry(allNodes));
+    const tool = nodeTool("list_nodes", mockRegistry(allNodes));
     const result = (await tool.process(mockContext(), {
       limit: 1
     })) as Record<string, unknown>;

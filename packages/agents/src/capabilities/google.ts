@@ -48,6 +48,67 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  driveSearchSpec,
+  driveReadFileCapabilitySpec,
+  driveGetFileCapabilitySpec,
+  driveCreateFileCapabilitySpec,
+  gmailSearchSpec,
+  gmailGetMessageCapabilitySpec,
+  gmailSendMessageCapabilitySpec,
+  gmailModifyLabelsCapabilitySpec,
+  gmailListLabelsCapabilitySpec,
+  docsReadSpec,
+  docsCreateSpec,
+  docsAppendSpec,
+  sheetsReadSpec,
+  sheetsAppendSpec,
+  sheetsUpdateSpec,
+  sheetsCreateSpec,
+  calendarListSpec,
+  calendarEventsSpec,
+  calendarCreateSpec,
+  calendarDeleteSpec,
+  str,
+  DRIVE_SEARCH_SCHEMA,
+  DRIVE_FILE_ID_SCHEMA,
+  DRIVE_CREATE_SCHEMA,
+  GMAIL_SEARCH_SCHEMA,
+  GMAIL_MESSAGE_ID_SCHEMA,
+  GMAIL_SEND_SCHEMA,
+  GMAIL_MODIFY_LABELS_SCHEMA,
+  DOCS_READ_SCHEMA,
+  DOCS_CREATE_SCHEMA,
+  DOCS_APPEND_SCHEMA,
+  SHEETS_READ_SCHEMA,
+  SHEETS_APPEND_SCHEMA,
+  SHEETS_UPDATE_SCHEMA,
+  SHEETS_CREATE_SCHEMA,
+  CALENDAR_LIST_EVENTS_SCHEMA,
+  CALENDAR_CREATE_EVENT_SCHEMA,
+  CALENDAR_DELETE_EVENT_SCHEMA
+} from "./google.specs.js";
+
+export {
+  str,
+  DRIVE_SEARCH_SCHEMA,
+  DRIVE_FILE_ID_SCHEMA,
+  DRIVE_CREATE_SCHEMA,
+  GMAIL_SEARCH_SCHEMA,
+  GMAIL_MESSAGE_ID_SCHEMA,
+  GMAIL_SEND_SCHEMA,
+  GMAIL_MODIFY_LABELS_SCHEMA,
+  DOCS_READ_SCHEMA,
+  DOCS_CREATE_SCHEMA,
+  DOCS_APPEND_SCHEMA,
+  SHEETS_READ_SCHEMA,
+  SHEETS_APPEND_SCHEMA,
+  SHEETS_UPDATE_SCHEMA,
+  SHEETS_CREATE_SCHEMA,
+  CALENDAR_LIST_EVENTS_SCHEMA,
+  CALENDAR_CREATE_EVENT_SCHEMA,
+  CALENDAR_DELETE_EVENT_SCHEMA
+} from "./google.specs.js";
 
 /**
  * Shared plumbing: resolve the token, run the call, and turn a failure into a
@@ -74,11 +135,6 @@ export function googleCapabilityRun(context: ProcessingContext): CapabilityRun {
   return createCapabilityRun({ context, gate: UNGATED });
 }
 
-const str = (params: Record<string, unknown>, key: string): string => {
-  const value = params[key];
-  return typeof value === "string" ? value.trim() : "";
-};
-
 const num = (
   params: Record<string, unknown>,
   key: string,
@@ -100,31 +156,8 @@ const strList = (params: Record<string, unknown>, key: string): string[] => {
   return value.filter((v): v is string => typeof v === "string");
 };
 
-// ── Drive ────────────────────────────────────────────────────────────
-
-const DRIVE_SEARCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: { type: "string", description: "Search phrase or Drive query" },
-    max_results: {
-      type: "integer",
-      description: "Maximum files to return (1-100)",
-      default: 20
-    }
-  },
-  required: ["query"]
-};
-
 const driveSearch: CapabilityExport = {
-  spec: {
-    name: "google_drive_search",
-    description:
-      "Search the user's Google Drive. Accepts a plain phrase (full-text " +
-      "search) or Drive query syntax such as \"mimeType = 'application/vnd.google-apps.spreadsheet'\".",
-    inputSchema: DRIVE_SEARCH_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Searching Drive for "${str(params, "query")}"`
-  },
+  spec: driveSearchSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => ({
       files: await driveSearchFiles(token, {
@@ -134,66 +167,20 @@ const driveSearch: CapabilityExport = {
     }))
 };
 
-const DRIVE_FILE_ID_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    file_id: { type: "string", description: "Drive file id" }
-  },
-  required: ["file_id"]
-};
-
 const driveReadFileCapability: CapabilityExport = {
-  spec: {
-    name: "google_drive_read_file",
-    description:
-      "Read a Google Drive file as text. Google Docs, Sheets and Slides are " +
-      "exported to plain text/CSV; other files are downloaded as-is.",
-    inputSchema: DRIVE_FILE_ID_SCHEMA,
-    category: "external",
-    userMessage: () => "Reading a Drive file"
-  },
+  spec: driveReadFileCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) => driveReadFile(token, str(params, "file_id")))
 };
 
 const driveGetFileCapability: CapabilityExport = {
-  spec: {
-    name: "google_drive_get_file",
-    description:
-      "Get metadata (name, mime type, size, owners, link) for a Drive file.",
-    inputSchema: DRIVE_FILE_ID_SCHEMA,
-    category: "external",
-    userMessage: () => "Fetching Drive file details"
-  },
+  spec: driveGetFileCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) => driveGetFile(token, str(params, "file_id")))
 };
 
-const DRIVE_CREATE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    name: { type: "string", description: "File name" },
-    content: { type: "string", description: "File contents" },
-    mime_type: {
-      type: "string",
-      description: "MIME type (default text/plain)"
-    },
-    folder_id: {
-      type: "string",
-      description: "Parent folder id (default: My Drive root)"
-    }
-  },
-  required: ["name", "content"]
-};
-
 const driveCreateFileCapability: CapabilityExport = {
-  spec: {
-    name: "google_drive_create_file",
-    description: "Create a text file in the user's Google Drive.",
-    inputSchema: DRIVE_CREATE_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Creating "${str(params, "name")}" in Drive`
-  },
+  spec: driveCreateFileCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       driveCreateFile(token, {
@@ -205,32 +192,8 @@ const driveCreateFileCapability: CapabilityExport = {
     )
 };
 
-// ── Gmail ────────────────────────────────────────────────────────────
-
-const GMAIL_SEARCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: { type: "string", description: "Gmail search query" },
-    max_results: {
-      type: "integer",
-      description: "Maximum messages to return (1-50)",
-      default: 10
-    }
-  },
-  required: ["query"]
-};
-
 const gmailSearch: CapabilityExport = {
-  spec: {
-    name: "gmail_search",
-    description:
-      "Search the user's Gmail with Gmail query syntax (e.g. " +
-      "'from:alice@example.com is:unread newer_than:7d'). Returns parsed " +
-      "messages with subject, sender, date and body.",
-    inputSchema: GMAIL_SEARCH_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Searching Gmail for "${str(params, "query")}"`
-  },
+  spec: gmailSearchSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => ({
       messages: await gmailSearchMessages(token, {
@@ -240,51 +203,16 @@ const gmailSearch: CapabilityExport = {
     }))
 };
 
-const GMAIL_MESSAGE_ID_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    message_id: { type: "string", description: "Gmail message id" }
-  },
-  required: ["message_id"]
-};
-
 const gmailGetMessageCapability: CapabilityExport = {
-  spec: {
-    name: "gmail_get_message",
-    description: "Fetch one Gmail message by id, fully parsed.",
-    inputSchema: GMAIL_MESSAGE_ID_SCHEMA,
-    category: "external",
-    userMessage: () => "Reading an email"
-  },
+  spec: gmailGetMessageCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       gmailGetMessage(token, str(params, "message_id"))
     )
 };
 
-const GMAIL_SEND_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    to: {
-      type: "string",
-      description: "Recipient address(es), comma-separated"
-    },
-    subject: { type: "string", description: "Subject line" },
-    body: { type: "string", description: "Plain-text body" },
-    cc: { type: "string", description: "Cc address(es), comma-separated" },
-    bcc: { type: "string", description: "Bcc address(es), comma-separated" }
-  },
-  required: ["to", "subject", "body"]
-};
-
 const gmailSendMessageCapability: CapabilityExport = {
-  spec: {
-    name: "gmail_send_message",
-    description: "Send a plain-text email from the user's Gmail account.",
-    inputSchema: GMAIL_SEND_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Sending an email to ${str(params, "to")}`
-  },
+  spec: gmailSendMessageCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       gmailSendMessage(token, {
@@ -297,34 +225,8 @@ const gmailSendMessageCapability: CapabilityExport = {
     )
 };
 
-const GMAIL_MODIFY_LABELS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    message_id: { type: "string", description: "Gmail message id" },
-    add_label_ids: {
-      type: "array",
-      items: { type: "string" },
-      description: "Label ids to add"
-    },
-    remove_label_ids: {
-      type: "array",
-      items: { type: "string" },
-      description: "Label ids to remove"
-    }
-  },
-  required: ["message_id"]
-};
-
 const gmailModifyLabelsCapability: CapabilityExport = {
-  spec: {
-    name: "gmail_modify_labels",
-    description:
-      "Add or remove Gmail labels on a message. Archive by removing 'INBOX'; " +
-      "mark read by removing 'UNREAD'.",
-    inputSchema: GMAIL_MODIFY_LABELS_SCHEMA,
-    category: "external",
-    userMessage: () => "Updating email labels"
-  },
+  spec: gmailModifyLabelsCapabilitySpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       gmailModifyLabels(token, {
@@ -336,62 +238,23 @@ const gmailModifyLabelsCapability: CapabilityExport = {
 };
 
 const gmailListLabelsCapability: CapabilityExport = {
-  spec: {
-    name: "gmail_list_labels",
-    description:
-      "List the Gmail labels available in the user's mailbox (id and name).",
-    inputSchema: { type: "object", properties: {} },
-    category: "external",
-    userMessage: () => "Listing Gmail labels"
-  },
+  spec: gmailListLabelsCapabilitySpec,
   impl: async (run) =>
     googleCall(run, async (token) => ({
       labels: await gmailListLabels(token)
     }))
 };
 
-// ── Docs ─────────────────────────────────────────────────────────────
-
-const DOCS_READ_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    document_id: { type: "string", description: "Google Docs document id" }
-  },
-  required: ["document_id"]
-};
-
 const docsRead: CapabilityExport = {
-  spec: {
-    name: "google_docs_read",
-    description: "Read a Google Doc's title and full text.",
-    inputSchema: DOCS_READ_SCHEMA,
-    category: "external",
-    userMessage: () => "Reading a Google Doc"
-  },
+  spec: docsReadSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       docsGetDocument(token, str(params, "document_id"))
     )
 };
 
-const DOCS_CREATE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    title: { type: "string", description: "Document title" },
-    text: { type: "string", description: "Initial body text" }
-  },
-  required: ["title"]
-};
-
 const docsCreate: CapabilityExport = {
-  spec: {
-    name: "google_docs_create",
-    description:
-      "Create a Google Doc, optionally seeded with text. Returns its id and URL.",
-    inputSchema: DOCS_CREATE_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Creating the doc "${str(params, "title")}"`
-  },
+  spec: docsCreateSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       docsCreateDocument(token, {
@@ -401,23 +264,8 @@ const docsCreate: CapabilityExport = {
     )
 };
 
-const DOCS_APPEND_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    document_id: { type: "string", description: "Google Docs document id" },
-    text: { type: "string", description: "Text to append" }
-  },
-  required: ["document_id", "text"]
-};
-
 const docsAppend: CapabilityExport = {
-  spec: {
-    name: "google_docs_append",
-    description: "Append text to the end of a Google Doc.",
-    inputSchema: DOCS_APPEND_SCHEMA,
-    category: "external",
-    userMessage: () => "Appending to a Google Doc"
-  },
+  spec: docsAppendSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => {
       await docsAppendText(token, {
@@ -428,28 +276,8 @@ const docsAppend: CapabilityExport = {
     })
 };
 
-// ── Sheets ───────────────────────────────────────────────────────────
-
-const SHEETS_READ_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    spreadsheet_id: { type: "string", description: "Spreadsheet id" },
-    range: { type: "string", description: "A1 range, e.g. Sheet1!A1:D50" }
-  },
-  required: ["spreadsheet_id", "range"]
-};
-
 const sheetsRead: CapabilityExport = {
-  spec: {
-    name: "google_sheets_read",
-    description:
-      "Read a range from a Google Sheet in A1 notation (e.g. 'Sheet1!A1:D50'). " +
-      "Returns rows of cell values.",
-    inputSchema: SHEETS_READ_SCHEMA,
-    category: "external",
-    userMessage: (params) =>
-      `Reading ${str(params, "range")} from a Google Sheet`
-  },
+  spec: sheetsReadSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => {
       const values = await sheetsReadRange(token, {
@@ -460,32 +288,8 @@ const sheetsRead: CapabilityExport = {
     })
 };
 
-const SHEETS_APPEND_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    spreadsheet_id: { type: "string", description: "Spreadsheet id" },
-    range: {
-      type: "string",
-      description: "A1 range identifying the table, e.g. Sheet1!A:D"
-    },
-    values: {
-      type: "array",
-      items: { type: "array", items: {} },
-      description: "Rows to append, each an array of cell values"
-    }
-  },
-  required: ["spreadsheet_id", "range", "values"]
-};
-
 const sheetsAppend: CapabilityExport = {
-  spec: {
-    name: "google_sheets_append",
-    description:
-      "Append rows below the last populated row of a Google Sheet range.",
-    inputSchema: SHEETS_APPEND_SCHEMA,
-    category: "external",
-    userMessage: () => "Appending rows to a Google Sheet"
-  },
+  spec: sheetsAppendSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       sheetsAppendRows(token, {
@@ -496,28 +300,8 @@ const sheetsAppend: CapabilityExport = {
     )
 };
 
-const SHEETS_UPDATE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    spreadsheet_id: { type: "string", description: "Spreadsheet id" },
-    range: { type: "string", description: "A1 range to overwrite" },
-    values: {
-      type: "array",
-      items: { type: "array", items: {} },
-      description: "Rows of cell values"
-    }
-  },
-  required: ["spreadsheet_id", "range", "values"]
-};
-
 const sheetsUpdate: CapabilityExport = {
-  spec: {
-    name: "google_sheets_update",
-    description: "Overwrite a Google Sheet range with new values.",
-    inputSchema: SHEETS_UPDATE_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Updating ${str(params, "range")} in a Google Sheet`
-  },
+  spec: sheetsUpdateSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       sheetsUpdateRange(token, {
@@ -528,28 +312,8 @@ const sheetsUpdate: CapabilityExport = {
     )
 };
 
-const SHEETS_CREATE_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    title: { type: "string", description: "Spreadsheet title" },
-    values: {
-      type: "array",
-      items: { type: "array", items: {} },
-      description: "Initial rows, written starting at A1"
-    }
-  },
-  required: ["title"]
-};
-
 const sheetsCreate: CapabilityExport = {
-  spec: {
-    name: "google_sheets_create",
-    description:
-      "Create a Google Sheet, optionally seeded with rows. Returns id and URL.",
-    inputSchema: SHEETS_CREATE_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Creating the sheet "${str(params, "title")}"`
-  },
+  spec: sheetsCreateSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       sheetsCreateSpreadsheet(token, {
@@ -562,47 +326,15 @@ const sheetsCreate: CapabilityExport = {
 // ── Calendar ─────────────────────────────────────────────────────────
 
 const calendarList: CapabilityExport = {
-  spec: {
-    name: "google_calendar_list_calendars",
-    description: "List the user's Google calendars (id and name).",
-    inputSchema: { type: "object", properties: {} },
-    category: "external",
-    userMessage: () => "Listing Google calendars"
-  },
+  spec: calendarListSpec,
   impl: async (run) =>
     googleCall(run, async (token) => ({
       calendars: await calendarListCalendars(token)
     }))
 };
 
-const CALENDAR_LIST_EVENTS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    calendar_id: {
-      type: "string",
-      description: "Calendar id (default: primary)"
-    },
-    time_min: { type: "string", description: "RFC3339 window start" },
-    time_max: { type: "string", description: "RFC3339 window end" },
-    query: { type: "string", description: "Free-text event filter" },
-    max_results: {
-      type: "integer",
-      description: "Maximum events to return (1-250)",
-      default: 20
-    }
-  }
-};
-
 const calendarEvents: CapabilityExport = {
-  spec: {
-    name: "google_calendar_list_events",
-    description:
-      "List Google Calendar events in a time window, soonest first. Times are " +
-      "RFC3339 timestamps; `time_min` defaults to now.",
-    inputSchema: CALENDAR_LIST_EVENTS_SCHEMA,
-    category: "external",
-    userMessage: () => "Checking the calendar"
-  },
+  spec: calendarEventsSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => ({
       events: await calendarListEvents(token, {
@@ -615,37 +347,8 @@ const calendarEvents: CapabilityExport = {
     }))
 };
 
-const CALENDAR_CREATE_EVENT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    summary: { type: "string", description: "Event title" },
-    start: { type: "string", description: "RFC3339 start time" },
-    end: { type: "string", description: "RFC3339 end time" },
-    calendar_id: {
-      type: "string",
-      description: "Calendar id (default: primary)"
-    },
-    description: { type: "string", description: "Event description" },
-    location: { type: "string", description: "Event location" },
-    attendees: {
-      type: "array",
-      items: { type: "string" },
-      description: "Attendee email addresses"
-    }
-  },
-  required: ["summary", "start", "end"]
-};
-
 const calendarCreate: CapabilityExport = {
-  spec: {
-    name: "google_calendar_create_event",
-    description:
-      "Create a Google Calendar event. `start` and `end` are RFC3339 timestamps " +
-      "with an offset, e.g. '2026-07-27T15:00:00-07:00'.",
-    inputSchema: CALENDAR_CREATE_EVENT_SCHEMA,
-    category: "external",
-    userMessage: (params) => `Creating the event "${str(params, "summary")}"`
-  },
+  spec: calendarCreateSpec,
   impl: async (run, params) =>
     googleCall(run, (token) =>
       calendarCreateEvent(token, {
@@ -660,26 +363,8 @@ const calendarCreate: CapabilityExport = {
     )
 };
 
-const CALENDAR_DELETE_EVENT_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    event_id: { type: "string", description: "Event id" },
-    calendar_id: {
-      type: "string",
-      description: "Calendar id (default: primary)"
-    }
-  },
-  required: ["event_id"]
-};
-
 const calendarDelete: CapabilityExport = {
-  spec: {
-    name: "google_calendar_delete_event",
-    description: "Delete a Google Calendar event by id.",
-    inputSchema: CALENDAR_DELETE_EVENT_SCHEMA,
-    category: "external",
-    userMessage: () => "Deleting a calendar event"
-  },
+  spec: calendarDeleteSpec,
   impl: async (run, params) =>
     googleCall(run, async (token) => {
       await calendarDeleteEvent(token, {

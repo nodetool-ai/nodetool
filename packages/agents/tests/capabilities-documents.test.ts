@@ -2,7 +2,7 @@
  * The `documents` capability module: PDF extraction and Pandoc conversion.
  *
  * Same three questions as every ported namespace — clean module walk, category
- * parity with the map the gate reads, and a deprecated class that still renders
+ * parity with the map the gate reads, and a Tool built from the spec that renders
  * the spec it was ported from — plus one round trip over a stubbed parser.
  */
 
@@ -23,15 +23,9 @@ import type {
   CapabilityExport,
   CapabilityGate
 } from "../src/capabilities/types.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
-import {
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
-} from "../src/tools/pdf-tools.js";
 
 const { mockParse } = vi.hoisted(() => ({ mockParse: vi.fn() }));
 
@@ -108,13 +102,19 @@ describe("documents capability module", () => {
   });
 });
 
-describe("wire compatibility with the deprecated classes", () => {
+describe("wire compatibility: a Tool built from the spec", () => {
   const pairs: Array<[Tool, string]> = [
-    [new ExtractPDFTextTool(), "extract_pdf_text"],
-    [new ExtractPDFTablesTool(), "extract_pdf_tables"],
-    [new ConvertPDFToMarkdownTool(), "convert_pdf_to_markdown"],
-    [new ConvertMarkdownToPDFTool(), "convert_markdown_to_pdf"],
-    [new ConvertDocumentTool(), "convert_document"]
+    [toolForCapabilityName("extract_pdf_text"), "extract_pdf_text"],
+    [toolForCapabilityName("extract_pdf_tables"), "extract_pdf_tables"],
+    [
+      toolForCapabilityName("convert_pdf_to_markdown"),
+      "convert_pdf_to_markdown"
+    ],
+    [
+      toolForCapabilityName("convert_markdown_to_pdf"),
+      "convert_markdown_to_pdf"
+    ],
+    [toolForCapabilityName("convert_document"), "convert_document"]
   ];
 
   it.each(pairs)("%o keeps its name, description and schema", (tool, name) => {
@@ -125,11 +125,11 @@ describe("wire compatibility with the deprecated classes", () => {
   });
 
   it("keeps the userMessage templates", () => {
-    expect(new ExtractPDFTextTool().userMessage({ path: "doc.pdf" })).toBe(
-      "Extracting text from doc.pdf..."
-    );
     expect(
-      new ConvertDocumentTool().userMessage({
+      toolForCapabilityName("extract_pdf_text").userMessage({ path: "doc.pdf" })
+    ).toBe("Extracting text from doc.pdf...");
+    expect(
+      toolForCapabilityName("convert_document").userMessage({
         input_file: "a.md",
         output_file: "a.html",
         to_format: "html"

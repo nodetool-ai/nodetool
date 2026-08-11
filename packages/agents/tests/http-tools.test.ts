@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { mkdtempSync, rmSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { DownloadFileTool, HttpRequestTool } from "../src/tools/http-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
@@ -54,7 +54,7 @@ function mockFetchResponse(
 // ---------------------------------------------------------------------------
 
 describe("DownloadFileTool", () => {
-  const tool = new DownloadFileTool();
+  const tool = toolForCapabilityName("download_file");
 
   it("has correct tool name and schema", () => {
     expect(tool.name).toBe("download_file");
@@ -213,7 +213,7 @@ describe("DownloadFileTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("HttpRequestTool", () => {
-  const tool = new HttpRequestTool();
+  const tool = toolForCapabilityName("http_request");
 
   it("has correct tool name and schema", () => {
     expect(tool.name).toBe("http_request");

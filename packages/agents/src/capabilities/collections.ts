@@ -3,7 +3,7 @@
  * store behind them.
  *
  * Eight capabilities that used to be eight `Tool` subclasses: the two
- * zero-arg discovery/query tools from `../tools/collection-tools.ts`, and the
+ * zero-arg discovery/query tools from `collection-tools.ts`, and the
  * six `vector_*` tools from `../tools/vector-tools.ts`.
  *
  * What was a constructor argument is now a field on the run. The six vector
@@ -29,6 +29,19 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  listCollectionsSpec,
+  queryCollectionSpec,
+  vectorTextSearchSpec,
+  vectorIndexSpec,
+  vectorHybridSearchSpec,
+  vectorRecursiveSplitAndIndexSpec,
+  vectorMarkdownSplitAndIndexSpec,
+  vectorBatchIndexSpec,
+  QUERY_COLLECTION_SCHEMA
+} from "./collections.specs.js";
+
+export { QUERY_COLLECTION_SCHEMA } from "./collections.specs.js";
 
 interface CollectionSummary {
   name: string;
@@ -59,23 +72,10 @@ function collectionOf(run: CapabilityRun): VectorCollection | undefined {
 // ---------------------------------------------------------------------------
 
 const listCollections: CapabilityExport = {
-  spec: {
-    name: "list_collections",
-    description:
-      "List the available knowledge collections (vector stores) the user has. " +
-      "Use this to discover what you can search before calling query_collection.",
-    inputSchema: {
-      type: "object",
-      properties: {},
-      required: [] as string[]
-    },
-    category: "read",
-    userMessage: () => "Listing knowledge collections"
-  },
+  spec: listCollectionsSpec,
   impl: async () => {
-    const { getDefaultVectorProvider } = await import(
-      "@nodetool-ai/vectorstore"
-    );
+    const { getDefaultVectorProvider } =
+      await import("@nodetool-ai/vectorstore");
     const provider = getDefaultVectorProvider();
     const infos = await provider.listCollections();
     const collections: CollectionSummary[] = infos.map((info) => ({
@@ -86,44 +86,8 @@ const listCollections: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// query_collection
-// ---------------------------------------------------------------------------
-
-const QUERY_COLLECTION_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    collection: {
-      type: "string",
-      description: "Name of the collection to search"
-    },
-    query: {
-      type: "string",
-      description: "The text to search for"
-    },
-    n_results: {
-      type: "number",
-      description: "Maximum number of chunks to return",
-      default: 5
-    }
-  },
-  required: ["collection", "query"]
-};
-
 const queryCollection: CapabilityExport = {
-  spec: {
-    name: "query_collection",
-    description:
-      "Semantic search within a named knowledge collection. Returns the most " +
-      "relevant document chunks. Call list_collections first if you don't know " +
-      "the collection name.",
-    inputSchema: QUERY_COLLECTION_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const name = params["collection"];
-      return name ? `Searching collection '${name}'` : "Searching collection";
-    }
-  },
+  spec: queryCollectionSpec,
   impl: async (_run, params) => {
     const name = String(params["collection"] ?? "");
     const query = String(params["query"] ?? "");
@@ -153,29 +117,7 @@ const queryCollection: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const vectorTextSearch: CapabilityExport = {
-  spec: {
-    name: "vector_text_search",
-    description:
-      "Search all vector database collections for similar text using semantic search",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string", description: "The text to search for" },
-        n_results: {
-          type: "integer",
-          description: "Number of results to return",
-          default: 10
-        }
-      },
-      required: ["text"]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const text = (params["text"] as string) ?? "something";
-      const msg = `Performing semantic search for '${text}'...`;
-      return msg.length > 80 ? "Performing semantic search..." : msg;
-    }
-  },
+  spec: vectorTextSearchSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("search the vector store");
@@ -197,32 +139,7 @@ const vectorTextSearch: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const vectorIndex: CapabilityExport = {
-  spec: {
-    name: "vector_index",
-    description: "Index a text chunk into a vector database collection",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string", description: "The text content to index" },
-        source_id: {
-          type: "string",
-          description: "Unique identifier for the source of the text"
-        },
-        metadata: {
-          type: "object",
-          description: "Metadata to associate with the text chunk",
-          default: {}
-        }
-      },
-      required: ["text", "source_id"]
-    },
-    category: "write",
-    userMessage: (params) => {
-      const sourceId = (params["source_id"] as string) ?? "a source";
-      const msg = `Indexing text chunk from ${sourceId}...`;
-      return msg.length > 80 ? "Indexing text chunk..." : msg;
-    }
-  },
+  spec: vectorIndexSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("index a text chunk");
@@ -239,7 +156,9 @@ const vectorIndex: CapabilityExport = {
         id: documentId,
         document: text,
         metadata:
-          Object.keys(metadata).length > 0 ? flattenMetadata(metadata) : undefined
+          Object.keys(metadata).length > 0
+            ? flattenMetadata(metadata)
+            : undefined
       }
     ]);
 
@@ -280,39 +199,7 @@ function keywordFilter(
 }
 
 const vectorHybridSearch: CapabilityExport = {
-  spec: {
-    name: "vector_hybrid_search",
-    description:
-      "Search all vector database collections using both semantic and keyword-based search",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: { type: "string", description: "The text to search for" },
-        n_results: {
-          type: "integer",
-          description: "Number of results to return per collection",
-          default: 5
-        },
-        k_constant: {
-          type: "number",
-          description: "Constant for reciprocal rank fusion",
-          default: 60.0
-        },
-        min_keyword_length: {
-          type: "integer",
-          description: "Minimum length for keyword tokens",
-          default: 3
-        }
-      },
-      required: ["text"]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const text = (params["text"] as string) ?? "something";
-      const msg = `Performing hybrid search for '${text}'...`;
-      return msg.length > 80 ? "Performing hybrid search..." : msg;
-    }
-  },
+  spec: vectorHybridSearchSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("run a hybrid search");
@@ -370,54 +257,7 @@ const vectorHybridSearch: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const vectorRecursiveSplitAndIndex: CapabilityExport = {
-  spec: {
-    name: "vector_recursive_split_and_index",
-    description:
-      "Split text into chunks recursively and index them into a vector database collection",
-    inputSchema: {
-      type: "object",
-      properties: {
-        text: {
-          type: "string",
-          description: "The text content to split and index"
-        },
-        document_id: {
-          type: "string",
-          description: "Base identifier for the source document"
-        },
-        chunk_size: {
-          type: "integer",
-          description: "Maximum size of each chunk in characters",
-          default: 1000
-        },
-        chunk_overlap: {
-          type: "integer",
-          description: "Number of characters to overlap between chunks",
-          default: 200
-        },
-        separators: {
-          type: "array",
-          items: { type: "string" },
-          description: "List of separators for recursive splitting",
-          default: ["\n\n", "\n", "."]
-        },
-        metadata: {
-          type: "object",
-          description: "Additional metadata to associate with all chunks",
-          default: {}
-        }
-      },
-      required: ["text", "document_id"]
-    },
-    category: "write",
-    userMessage: (params) => {
-      const sourceId = (params["source_id"] as string) ?? "a source";
-      const msg = `Recursively splitting and indexing text from ${sourceId}...`;
-      return msg.length > 80
-        ? "Recursively splitting and indexing text..."
-        : msg;
-    }
-  },
+  spec: vectorRecursiveSplitAndIndexSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("split and index text");
@@ -473,41 +313,7 @@ const vectorRecursiveSplitAndIndex: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const vectorMarkdownSplitAndIndex: CapabilityExport = {
-  spec: {
-    name: "vector_markdown_split_and_index",
-    description:
-      "Split markdown text into chunks based on headers and index them into a vector database collection",
-    inputSchema: {
-      type: "object",
-      properties: {
-        file_path: {
-          type: "string",
-          description: "The path to the markdown file to split and index"
-        },
-        text: {
-          type: "string",
-          description: "Raw markdown content if no file_path provided"
-        },
-        chunk_size: {
-          type: "integer",
-          description: "Maximum size of each chunk in characters",
-          default: 1000
-        },
-        chunk_overlap: {
-          type: "integer",
-          description: "Number of characters to overlap between chunks",
-          default: 200
-        }
-      },
-      required: []
-    },
-    category: "write",
-    userMessage: (params) => {
-      const sourceId = (params["source_id"] as string) ?? "a source";
-      const msg = `Splitting and indexing Markdown from ${sourceId}...`;
-      return msg.length > 80 ? "Splitting and indexing Markdown..." : msg;
-    }
-  },
+  spec: vectorMarkdownSplitAndIndexSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("split and index Markdown");
@@ -566,40 +372,7 @@ const vectorMarkdownSplitAndIndex: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const vectorBatchIndex: CapabilityExport = {
-  spec: {
-    name: "vector_batch_index",
-    description:
-      "Index a batch of text chunks into a vector database collection",
-    inputSchema: {
-      type: "object",
-      properties: {
-        chunks: {
-          type: "array",
-          items: {
-            type: "object",
-            properties: {
-              text: { type: "string" },
-              source_id: { type: "string" },
-              metadata: { type: "object", default: {} }
-            },
-            required: ["text", "source_id"]
-          },
-          description: "List of text chunks to index"
-        },
-        base_metadata: {
-          type: "object",
-          description: "Base metadata to add to all chunks",
-          default: {}
-        }
-      },
-      required: ["chunks"]
-    },
-    category: "write",
-    userMessage: (params) => {
-      const chunks = (params["chunks"] as unknown[]) ?? [];
-      return `Indexing a batch of ${chunks.length} text chunks...`;
-    }
-  },
+  spec: vectorBatchIndexSpec,
   impl: async (run, params) => {
     const collection = collectionOf(run);
     if (!collection) return noCollectionError("index a batch of chunks");

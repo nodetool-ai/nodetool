@@ -11,14 +11,21 @@
 
 import { describe, it, expect, vi } from "vitest";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
-import {
-  CritiqueImageTool,
-  CompareImagesTool,
-  ScoreImageAdherenceTool,
-  RecordStylePreferenceTool,
-  GetStyleProfileTool
-} from "../src/tools/creative-critique-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+import { UNGATED, createCapabilityRun } from "../src/capabilities/index.js";
 import type { LongTermMemory } from "../src/long-term-memory.js";
+
+const critiqueImageTool = () => toolForCapabilityName("critique_image");
+const compareImagesTool = () => toolForCapabilityName("compare_images");
+const scoreImageAdherenceTool = () =>
+  toolForCapabilityName("score_image_adherence");
+
+/** The bound memory was a constructor argument; it now rides on the run. */
+function styleTool(name: string, memory?: LongTermMemory) {
+  return toolForCapabilityName(name, (context) =>
+    createCapabilityRun({ context, gate: UNGATED, memory })
+  );
+}
 
 function makeContext(runProviderPrediction?: ReturnType<typeof vi.fn>): any {
   return { runProviderPrediction, userId: "user-1" };
@@ -49,9 +56,9 @@ function promptText(call: unknown[]): string {
 
 /* ---------------- critique_image ---------------- */
 
-describe("CritiqueImageTool", () => {
+describe("critique_image", () => {
   it("validates provider/model/image/brief", async () => {
-    const tool = new CritiqueImageTool();
+    const tool = critiqueImageTool();
     expect(
       ((await tool.process(makeContext(), { model: "m", image: "i", brief: "b" })) as any)
         .error
@@ -82,7 +89,7 @@ describe("CritiqueImageTool", () => {
         strengths: ["strong palette"]
       })
     );
-    const tool = new CritiqueImageTool();
+    const tool = critiqueImageTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "openai",
       model: "gpt-5",
@@ -105,7 +112,7 @@ describe("CritiqueImageTool", () => {
 
   it("errors on unparseable judge output", async () => {
     const rpp = vi.fn().mockResolvedValue({ role: "assistant", content: "nope" });
-    const tool = new CritiqueImageTool();
+    const tool = critiqueImageTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -118,9 +125,9 @@ describe("CritiqueImageTool", () => {
 
 /* ---------------- compare_images ---------------- */
 
-describe("CompareImagesTool", () => {
+describe("compare_images", () => {
   it("rejects bad image lists", async () => {
-    const tool = new CompareImagesTool();
+    const tool = compareImagesTool();
     const one = (await tool.process(makeContext(), {
       provider: "p",
       model: "m",
@@ -144,7 +151,7 @@ describe("CompareImagesTool", () => {
       const winner = uris.indexOf("asset://a.png") === 0 ? 1 : 2;
       return reply({ winner, reason: "cleaner composition" });
     });
-    const tool = new CompareImagesTool();
+    const tool = compareImagesTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -167,7 +174,7 @@ describe("CompareImagesTool", () => {
     const rpp = vi
       .fn()
       .mockImplementation(async () => reply({ winner: 1, reason: "first looks best" }));
-    const tool = new CompareImagesTool();
+    const tool = compareImagesTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -193,7 +200,7 @@ describe("CompareImagesTool", () => {
       const winner = rank[uris[0]] < rank[uris[1]] ? 1 : 2;
       return reply({ winner, reason: "better" });
     });
-    const tool = new CompareImagesTool();
+    const tool = compareImagesTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -209,7 +216,7 @@ describe("CompareImagesTool", () => {
 
   it("surfaces judge failures as an error", async () => {
     const rpp = vi.fn().mockRejectedValue(new Error("provider down"));
-    const tool = new CompareImagesTool();
+    const tool = compareImagesTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -222,7 +229,7 @@ describe("CompareImagesTool", () => {
 
 /* ---------------- score_image_adherence ---------------- */
 
-describe("ScoreImageAdherenceTool", () => {
+describe("score_image_adherence", () => {
   it("decomposes the brief, answers each check, and scores", async () => {
     const rpp = vi
       .fn()
@@ -238,7 +245,7 @@ describe("ScoreImageAdherenceTool", () => {
           ]
         })
       );
-    const tool = new ScoreImageAdherenceTool();
+    const tool = scoreImageAdherenceTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -262,7 +269,7 @@ describe("ScoreImageAdherenceTool", () => {
     const rpp = vi.fn().mockResolvedValue(
       reply({ answers: [{ question: "Is it a logo?", answer: "yes", note: "" }] })
     );
-    const tool = new ScoreImageAdherenceTool();
+    const tool = scoreImageAdherenceTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -277,7 +284,7 @@ describe("ScoreImageAdherenceTool", () => {
 
   it("errors when decomposition yields no checks", async () => {
     const rpp = vi.fn().mockResolvedValue({ role: "assistant", content: "??" });
-    const tool = new ScoreImageAdherenceTool();
+    const tool = scoreImageAdherenceTool();
     const r = (await tool.process(makeContext(rpp), {
       provider: "p",
       model: "m",
@@ -299,12 +306,12 @@ function makeMemory(overrides: Partial<Record<"remember" | "recall", any>> = {})
   } as unknown as LongTermMemory;
 }
 
-describe("RecordStylePreferenceTool", () => {
+describe("record_style_preference", () => {
   it("stores the takeaway with choice context appended", async () => {
     const remember = vi
       .fn()
       .mockResolvedValue({ id: "mem-1", kind: "preference", importance: 0.6 });
-    const tool = new RecordStylePreferenceTool(makeMemory({ remember }));
+    const tool = styleTool("record_style_preference", makeMemory({ remember }));
     const r = (await tool.process(makeContext(), {
       takeaway: "User prefers muted palettes.",
       chosen: "variant B",
@@ -324,28 +331,28 @@ describe("RecordStylePreferenceTool", () => {
   });
 
   it("reports duplicates and missing configuration", async () => {
-    const dupTool = new RecordStylePreferenceTool(
+    const dupTool = styleTool("record_style_preference",
       makeMemory({ remember: vi.fn().mockResolvedValue(null) })
     );
     const dup = (await dupTool.process(makeContext(), { takeaway: "t" })) as any;
     expect(dup.stored).toBe(false);
     expect(dup.note).toContain("duplicate");
 
-    const unbound = new RecordStylePreferenceTool();
+    const unbound = styleTool("record_style_preference");
     const r = (await unbound.process(makeContext(), { takeaway: "t" })) as any;
     expect(r.stored).toBe(false);
     expect(r.note).toContain("not configured");
   });
 });
 
-describe("GetStyleProfileTool", () => {
+describe("get_style_profile", () => {
   it("returns only preference memories formatted as a profile block", async () => {
     const recall = vi.fn().mockResolvedValue([
       { id: "1", text: "Prefers muted palettes.", kind: "preference", importance: 0.8 },
       { id: "2", text: "Works at a design studio.", kind: "fact", importance: 0.5 },
       { id: "3", text: "Dislikes drop shadows.", kind: "preference", importance: 0.6 }
     ]);
-    const tool = new GetStyleProfileTool(makeMemory({ recall }));
+    const tool = styleTool("get_style_profile", makeMemory({ recall }));
     const r = (await tool.process(makeContext(), {})) as any;
 
     expect(r.profile).toBe("- Prefers muted palettes.\n- Dislikes drop shadows.");
@@ -358,7 +365,7 @@ describe("GetStyleProfileTool", () => {
 
   it("passes a custom query and k through to recall", async () => {
     const recall = vi.fn().mockResolvedValue([]);
-    const tool = new GetStyleProfileTool(makeMemory({ recall }));
+    const tool = styleTool("get_style_profile", makeMemory({ recall }));
     await tool.process(makeContext(), { query: "typography", k: 3 });
     expect(recall).toHaveBeenCalledWith("typography", { k: 3 });
   });

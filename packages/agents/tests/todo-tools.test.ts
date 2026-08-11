@@ -1,10 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
-  TodoWriteTool,
   getThreadTodos,
   clearThreadTodos,
   _resetTodoStoreForTests
 } from "../src/tools/todo-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { createMockContext } from "./_helpers/mock-context.js";
 
 describe("TodoWriteTool", () => {
@@ -13,7 +13,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("stores todos per thread and emits a todo_update", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx = createMockContext();
     ctx.threadId = "thread-1";
 
@@ -47,7 +47,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("rejects invalid status values", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx = createMockContext();
     ctx.threadId = "t";
     await expect(
@@ -58,7 +58,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("rejects empty content", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx = createMockContext();
     ctx.threadId = "t";
     await expect(
@@ -69,7 +69,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("replaces — does not merge — on subsequent calls", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx = createMockContext();
     ctx.threadId = "t2";
     await tool.process(ctx, {
@@ -87,7 +87,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("scopes storage by thread id", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx1 = createMockContext();
     ctx1.threadId = "thread-A";
     const ctx2 = createMockContext();
@@ -109,7 +109,7 @@ describe("TodoWriteTool", () => {
   });
 
   it("still emits todo_update when threadId is missing (but does not store)", async () => {
-    const tool = new TodoWriteTool();
+    const tool = toolForCapabilityName("todo_write");
     const ctx = createMockContext();
     await tool.process(ctx, {
       todos: [{ content: "no-thread", status: "pending" }]

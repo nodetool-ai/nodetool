@@ -1,13 +1,11 @@
 /**
  * The `assets` capability module — everything an agent does with stored media.
  *
- * Eight capabilities that used to be eight `Tool` subclasses spread over three
- * files: `list_assets` / `get_asset` (`../tools/mcp-tools.ts`), `save_asset` /
- * `read_asset` (`../tools/asset-tools.ts`), `asset_search` / `asset_list`
- * (`../tools/asset-library-tools.ts`), and `list_images` / `view_image`
- * (`../tools/view-image-tool.ts`). The design's mapping table folds the
- * library and image tools in here rather than leaving them beside the file
- * tools.
+ * Eight capabilities that used to be eight `Tool` subclasses spread over four
+ * files: `list_assets` / `get_asset`, `save_asset` / `read_asset`,
+ * `asset_search` / `asset_list`, and `list_images` / `view_image`. The
+ * design's mapping table folds the library and image tools in here rather
+ * than leaving them beside the file tools.
  *
  * Wire names, descriptions and schemas are unchanged. `view_image` keeps its
  * result shape to the byte: the executors strip `image_content` out of the
@@ -39,6 +37,37 @@ import type {
   CapabilityImpl,
   CapabilityModule
 } from "./types.js";
+import {
+  listAssetsSpec,
+  getAssetSpec,
+  saveAssetSpec,
+  readAssetSpec,
+  assetSearchSpec,
+  assetListSpec,
+  listImagesSpec,
+  viewImageSpec,
+  DEFAULT_LIMIT,
+  MAX_LIMIT,
+  LIST_ASSETS_SCHEMA,
+  SAVE_ASSET_SCHEMA,
+  ASSET_SEARCH_SCHEMA,
+  ASSET_LIST_SCHEMA,
+  LIST_IMAGES_SCHEMA,
+  REGION_SCHEMA,
+  VIEW_IMAGE_SCHEMA
+} from "./assets.specs.js";
+
+export {
+  DEFAULT_LIMIT,
+  MAX_LIMIT,
+  LIST_ASSETS_SCHEMA,
+  SAVE_ASSET_SCHEMA,
+  ASSET_SEARCH_SCHEMA,
+  ASSET_LIST_SCHEMA,
+  LIST_IMAGES_SCHEMA,
+  REGION_SCHEMA,
+  VIEW_IMAGE_SCHEMA
+} from "./assets.specs.js";
 
 // ---------------------------------------------------------------------------
 // Shared projections
@@ -90,9 +119,6 @@ function toHandle(asset: AssetRow): Record<string, unknown> {
   };
 }
 
-const DEFAULT_LIMIT = 25;
-const MAX_LIMIT = 100;
-
 function resolveLimit(raw: unknown): number {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0
@@ -140,46 +166,8 @@ function withZodValidation(
   };
 }
 
-// ---------------------------------------------------------------------------
-// list_assets
-// ---------------------------------------------------------------------------
-
-const LIST_ASSETS_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    source: {
-      type: "string",
-      enum: ["user", "package"],
-      default: "user"
-    },
-    query: {
-      type: "string",
-      description: "Search query for asset names (min 2 chars)"
-    },
-    content_type: {
-      type: "string",
-      description: "Filter by content type (image, video, audio, text, folder)"
-    },
-    limit: {
-      type: "number",
-      description: "Maximum number of assets to return",
-      default: 100
-    }
-  },
-  required: [] as string[]
-};
-
 const listAssets: CapabilityExport = {
-  spec: {
-    name: "list_assets",
-    description: "List or search assets with flexible filtering options.",
-    inputSchema: LIST_ASSETS_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const query = params["query"];
-      return query ? `Searching assets for '${query}'` : "Listing assets";
-    }
-  },
+  spec: listAssetsSpec,
   impl: async (run, params) => {
     const source = String(params["source"] ?? "user");
     const query = params["query"] as string | undefined;
@@ -223,22 +211,7 @@ const listAssets: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const getAsset: CapabilityExport = {
-  spec: {
-    name: "get_asset",
-    description: "Get detailed information about a specific asset.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        asset_id: {
-          type: "string",
-          description: "The ID of the asset"
-        }
-      },
-      required: ["asset_id"]
-    },
-    category: "read",
-    userMessage: (params) => `Getting asset ${params["asset_id"]}`
-  },
+  spec: getAssetSpec,
   impl: async (run, params) => {
     const { Asset } = await import("@nodetool-ai/models");
     const assetId = String(params["asset_id"]);
@@ -249,53 +222,8 @@ const getAsset: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// save_asset
-// ---------------------------------------------------------------------------
-
-const SAVE_ASSET_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    name: {
-      type: "string",
-      description:
-        "Display name of the asset (e.g. 'summary.md', 'report.json', 'cover.png')."
-    },
-    content: {
-      type: "string",
-      description:
-        "Text content. Use this for text/markdown/JSON. Mutually exclusive with content_base64."
-    },
-    content_base64: {
-      type: "string",
-      description:
-        "Binary content as a base64 string. Use this for images/audio/video bytes returned by other tools."
-    },
-    content_type: {
-      type: "string",
-      description:
-        "MIME type (e.g. 'text/markdown', 'application/json', 'image/png'). Defaults to text/plain for text and application/octet-stream for binary."
-    }
-  },
-  required: ["name"] as string[]
-};
-
 const saveAsset: CapabilityExport = {
-  spec: {
-    name: "save_asset",
-    description:
-      "Save content as an asset. Use this for any artifact you want to surface in the chat (text reports, JSON, manifests, images, audio). Pass `content_base64` for binary data and `content` for text. Returns an asset_id and asset:// URI you can reference in later steps.",
-    inputSchema: SAVE_ASSET_SCHEMA,
-    category: "write",
-    userMessage: (params) => {
-      const name = params.name;
-      if (typeof name === "string" && name) {
-        const msg = `Saving asset as ${name}...`;
-        return msg.length > 80 ? "Saving asset..." : msg;
-      }
-      return "Saving asset...";
-    }
-  },
+  spec: saveAssetSpec,
   impl: async (run, params) => {
     const context = run.context;
     try {
@@ -393,29 +321,7 @@ const saveAsset: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const readAsset: CapabilityExport = {
-  spec: {
-    name: "read_asset",
-    description: "Read an asset file",
-    inputSchema: {
-      type: "object",
-      properties: {
-        name: {
-          type: "string",
-          description: "Name of the asset file to read"
-        }
-      },
-      required: ["name"] as string[]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const name = params.name;
-      if (typeof name === "string" && name) {
-        const msg = `Reading asset ${name}...`;
-        return msg.length > 80 ? "Reading an asset..." : msg;
-      }
-      return "Reading an asset...";
-    }
-  },
+  spec: readAssetSpec,
   impl: async (run, params) => {
     const context = run.context;
     try {
@@ -489,51 +395,15 @@ const readAsset: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// asset_search
-// ---------------------------------------------------------------------------
-
-const ASSET_SEARCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "string",
-      description:
-        "Name substring to match. Empty matches everything (recent first)."
-    },
-    content_type: {
-      type: "string",
-      description:
-        "Optional MIME prefix filter (e.g. 'image/', 'video/', 'audio/', 'application/pdf')."
-    },
-    limit: {
-      type: "number",
-      description: `Maximum results (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).`
-    }
-  },
-  required: [] as string[]
-};
-
 const assetSearch: CapabilityExport = {
-  spec: {
-    name: "asset_search",
-    description:
-      "Search the user's assets by name (case-insensitive substring), across " +
-      "every media type, so you can find and reuse something already generated " +
-      "or uploaded — a rendered video, a generated image, an audio clip. " +
-      "Returns lightweight handles with asset:// uris. Filter by content_type " +
-      "prefix (e.g. 'image/', 'video/', 'audio/').",
-    inputSchema: ASSET_SEARCH_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const q = typeof params.query === "string" ? params.query : "";
-      return q ? `Searching assets: ${q.slice(0, 50)}` : "Searching assets";
-    }
-  },
+  spec: assetSearchSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) {
-      return { success: false, error: "No user context; cannot search assets." };
+      return {
+        success: false,
+        error: "No user context; cannot search assets."
+      };
     }
 
     const query = typeof params.query === "string" ? params.query.trim() : "";
@@ -562,42 +432,8 @@ const assetSearch: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// asset_list
-// ---------------------------------------------------------------------------
-
-const ASSET_LIST_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    content_type: {
-      type: "string",
-      description:
-        "Optional MIME prefix filter (e.g. 'image/', 'video/', 'audio/'). " +
-        "Omit to list every type."
-    },
-    limit: {
-      type: "number",
-      description: `Maximum results (default ${DEFAULT_LIMIT}, max ${MAX_LIMIT}).`
-    }
-  },
-  required: [] as string[]
-};
-
 const assetList: CapabilityExport = {
-  spec: {
-    name: "asset_list",
-    description:
-      "List the user's most recent assets (newest first) so you can see and " +
-      "reuse what has already been generated or uploaded. Filter by content_type " +
-      "prefix (e.g. 'video/' for rendered videos). Returns handles with asset:// uris.",
-    inputSchema: ASSET_LIST_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const ct =
-        typeof params.content_type === "string" ? params.content_type : "";
-      return ct ? `Listing ${ct} assets` : "Listing recent assets";
-    }
-  },
+  spec: assetListSpec,
   impl: async (run, params) => {
     const userId = run.context.userId;
     if (!userId) {
@@ -630,27 +466,6 @@ const assetList: CapabilityExport = {
     }
   }
 };
-
-// ---------------------------------------------------------------------------
-// list_images
-// ---------------------------------------------------------------------------
-
-/** The Zod identity of `list_images`. The deprecated class keeps it on `schema`. */
-export const LIST_IMAGES_SCHEMA = z
-  .object({
-    query: z
-      .string()
-      .optional()
-      .describe("Filter image names by substring (case-insensitive)."),
-    limit: z
-      .number()
-      .int()
-      .positive()
-      .max(100)
-      .optional()
-      .describe("Max handles to return (default 25).")
-  })
-  .loose();
 
 const DEFAULT_LIST_LIMIT = 25;
 
@@ -691,7 +506,8 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
           name: a.name,
           content_type: a.content_type,
           size: a.size ?? null,
-          width: typeof metadata["width"] === "number" ? metadata["width"] : null,
+          width:
+            typeof metadata["width"] === "number" ? metadata["width"] : null,
           height:
             typeof metadata["height"] === "number" ? metadata["height"] : null
         };
@@ -710,16 +526,7 @@ export const listImagesCore: CapabilityImpl = async (run, params) => {
 };
 
 const listImages: CapabilityExport = {
-  spec: {
-    name: "list_images",
-    description:
-      "List available image assets as lightweight handles — id, name, type, size, " +
-      "dimensions. No pixels are loaded, so this is cheap. Call view_image with an " +
-      "id when you need to actually see one.",
-    inputSchema: zodToJsonSchema(LIST_IMAGES_SCHEMA),
-    category: "read",
-    userMessage: () => "Listing image assets"
-  },
+  spec: listImagesSpec,
   impl: withZodValidation("list_images", LIST_IMAGES_SCHEMA, listImagesCore)
 };
 
@@ -772,42 +579,6 @@ function parseDataUri(
     : new TextEncoder().encode(decodeURIComponent(payload));
   return { bytes, mimeType };
 }
-
-const REGION_SCHEMA = z
-  .object({
-    x: z.number().describe("Left edge of the crop, in source pixels."),
-    y: z.number().describe("Top edge of the crop, in source pixels."),
-    width: z.number().describe("Crop width in source pixels."),
-    height: z.number().describe("Crop height in source pixels.")
-  })
-  .describe(
-    "Optional crop box, in source-image pixels. When set, only this region is " +
-      "loaded into view — useful for zooming into part of a large image."
-  );
-
-/** The Zod identity of `view_image`. The deprecated class keeps it on `schema`. */
-export const VIEW_IMAGE_SCHEMA = z
-  .object({
-    image_id: z
-      .string()
-      .describe(
-        "Which image to view: an asset id, an asset:// URI, an http(s) URL, or " +
-          "a data: URI. Use an id from list_images or from a prior tool result."
-      ),
-    question: z
-      .string()
-      .optional()
-      .describe("What to look for; shown to you alongside the image."),
-    detail: z
-      .enum(["low", "high"])
-      .optional()
-      .describe(
-        "high (default) keeps full resolution; low downsamples the longest side " +
-          "to ~768px to spend fewer tokens."
-      ),
-    region: REGION_SCHEMA.optional()
-  })
-  .loose();
 
 const LOW_DETAIL_MAX_SIDE = 768;
 
@@ -952,17 +723,7 @@ export const viewImageCore: CapabilityImpl = async (run, params) => {
 };
 
 const viewImage: CapabilityExport = {
-  spec: {
-    name: "view_image",
-    description:
-      "Load the actual pixels of an image into your view so you can inspect it. " +
-      "You normally hold only image handles (id, size, type) — call view_image " +
-      "when you genuinely need to see one. Pass a region to zoom into part of it, " +
-      "or detail:'low' to save tokens. The image appears in your next turn.",
-    inputSchema: zodToJsonSchema(VIEW_IMAGE_SCHEMA),
-    category: "read",
-    userMessage: (params) => `Viewing image ${String(params["image_id"] ?? "")}`
-  },
+  spec: viewImageSpec,
   impl: withZodValidation("view_image", VIEW_IMAGE_SCHEMA, viewImageCore)
 };
 

@@ -12,11 +12,9 @@ import { describe, expect, it, beforeEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Job, initTestDb } from "@nodetool-ai/models";
 import {
-  GetJobLogsTool,
-  GetJobTool,
-  ListJobsTool
-} from "../src/tools/mcp-tools.js";
-import { JOB_CAPABILITIES, module as jobsModule } from "../src/capabilities/jobs.js";
+  JOB_CAPABILITIES,
+  module as jobsModule
+} from "../src/capabilities/jobs.js";
 import {
   UNGATED,
   createCapabilityRun,
@@ -26,6 +24,7 @@ import {
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
 
@@ -66,8 +65,12 @@ describe("jobs capability module", () => {
     }
   });
 
-  it("matches the deprecated classes, spec for spec", () => {
-    const classes = [new ListJobsTool(), new GetJobTool(), new GetJobLogsTool()];
+  it("renders as a Tool, spec for spec", () => {
+    const classes = [
+      toolForCapabilityName("list_jobs"),
+      toolForCapabilityName("get_job"),
+      toolForCapabilityName("get_job_logs")
+    ];
     for (const tool of classes) {
       const entry = JOB_CAPABILITIES.find((e) => e.spec.name === tool.name);
       expect(entry).toBeDefined();

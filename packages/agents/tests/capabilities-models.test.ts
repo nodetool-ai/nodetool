@@ -26,9 +26,7 @@ import {
 } from "../src/capabilities/models.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
-import { FindModelTool } from "../src/tools/find-model-tool.js";
-import { ListModelsTool } from "../src/tools/list-models-tool.js";
-import { ListProviderModelsTool } from "../src/tools/model-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { Tool } from "../src/tools/base-tool.js";
 
 const ctx = { userId: "u1" } as ProcessingContext;
@@ -85,11 +83,11 @@ describe("models capability module", () => {
   });
 });
 
-describe("wire identity against the deprecated classes", () => {
+describe("wire identity: a Tool built from the spec", () => {
   const pairs: [CapabilityExport, Tool][] = [
-    [findModel, new FindModelTool({})],
-    [listModels, new ListModelsTool({})],
-    [listProviderModels, new ListProviderModelsTool({})]
+    [findModel, toolForCapabilityName("find_model")],
+    [listModels, toolForCapabilityName("list_models")],
+    [listProviderModels, toolForCapabilityName("list_provider_models")]
   ];
 
   it.each(

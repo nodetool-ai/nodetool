@@ -23,18 +23,9 @@ export {
 export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
 export {
-  ReadFileTool,
-  WriteFileTool,
-  ListDirectoryTool
-} from "./tools/filesystem-tools.js";
-export { DownloadFileTool, HttpRequestTool } from "./tools/http-tools.js";
-export { EditFileTool, GlobTool, GrepTool } from "./tools/edit-search-tools.js";
-export {
-  TodoWriteTool,
   getThreadTodos,
   clearThreadTodos
 } from "./tools/todo-tools.js";
-export { ViewImageTool, ListImagesTool } from "./tools/view-image-tool.js";
 export {
   IMAGE_CONTENT_FIELD,
   IMAGE_CONTENTS_FIELD,
@@ -45,11 +36,6 @@ export type {
   InjectableImage,
   ExtractedImages
 } from "./tools/image-injection.js";
-export {
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool
-} from "./tools/search-tools.js";
 export type {
   SerpProvider,
   SearchResult,
@@ -68,36 +54,8 @@ export {
   getConfiguredSerpProvider,
   resolveSerpProvider
 } from "./tools/serp-tool-factory.js";
+export { htmlToText } from "./tools/browser-tools.js";
 export {
-  BrowserTool,
-  ScreenshotTool,
-  htmlToText
-} from "./tools/browser-tools.js";
-export {
-  SearchEmailTool,
-  ArchiveEmailTool,
-  AddLabelToEmailTool
-} from "./tools/email-tools.js";
-export {
-  ListWorkflowsTool,
-  GetWorkflowTool,
-  CreateWorkflowTool,
-  RunWorkflowTool,
-  DebugWorkflowTool,
-  ResolveWorkflowEscalationTool,
-  BuildAppTool,
-  DebugAppTool,
-  ValidateWorkflowTool,
-  ValidateTimelineTool,
-  ValidateSketchTool,
-  GetExampleWorkflowTool,
-  ExportWorkflowDigraphTool,
-  ListJobsTool,
-  GetJobTool,
-  GetJobLogsTool,
-  StartBackgroundJobTool,
-  ListAssetsTool,
-  GetAssetTool,
   getAllMcpTools,
   createWorkflowDocumentTools
 } from "./tools/mcp-tools.js";
@@ -112,26 +70,7 @@ export type {
   SketchLoader,
   SketchToolRecord
 } from "./tools/mcp-tools.js";
-export {
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
-} from "./tools/pdf-tools.js";
-export {
-  VecTextSearchTool,
-  VecIndexTool,
-  VecHybridSearchTool,
-  VecRecursiveSplitAndIndexTool,
-  VecMarkdownSplitAndIndexTool,
-  VecBatchIndexTool
-} from "./tools/vector-tools.js";
 export type { VecCollection } from "./tools/vector-tools.js";
-export {
-  ListCollectionsTool,
-  QueryCollectionTool
-} from "./tools/collection-tools.js";
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
@@ -158,7 +97,11 @@ export {
   capabilityModuleDrift,
   DECLARED_CAPABILITY_MODULES,
   toolFromCapability,
+  toolFromLazyCapability,
+  toolForCapabilityName,
   capabilityFromTool,
+  capabilitySpec,
+  listCapabilitySpecs,
   createCapabilityRun,
   resolveCapabilityMessage,
   UNGATED
@@ -202,39 +145,20 @@ export {
   getAllTools
 } from "./tools/tool-registry.js";
 export {
-  BUILTIN_TOOL_CLASSES,
+  BUILTIN_TOOL_NAMES,
   getBuiltinTools,
   getAgentToolbelt,
   registerBuiltinTools,
   resetBuiltinToolsRegistration
 } from "./tools/builtin-tools.js";
 export {
-  GOOGLE_WORKSPACE_TOOL_CLASSES,
+  GOOGLE_WORKSPACE_TOOL_NAMES,
   getGoogleWorkspaceTools,
   registerGoogleWorkspaceTools
 } from "./tools/google-workspace-tools.js";
 
-export { ListProviderModelsTool } from "./tools/model-tools.js";
-export { FindModelTool } from "./tools/find-model-tool.js";
-export { ListModelsTool } from "./tools/list-models-tool.js";
-export {
-  GenerateImageTool,
-  EditImageTool,
-  GenerateVideoTool,
-  AnimateImageTool,
-  GenerateSpeechTool,
-  TranscribeAudioTool,
-  EmbedTextTool,
-  getMediaTools
-} from "./tools/media-tools.js";
-export {
-  CritiqueImageTool,
-  CompareImagesTool,
-  ScoreImageAdherenceTool,
-  RecordStylePreferenceTool,
-  GetStyleProfileTool,
-  CREATIVE_CRITIQUE_TOOL_NAMES
-} from "./tools/creative-critique-tools.js";
+export { getMediaTools } from "./tools/media-tools.js";
+export { CREATIVE_CRITIQUE_TOOL_NAMES } from "./tools/creative-critique-tools.js";
 export {
   persistOutput,
   workspaceDir as workspaceDirFromContext,
@@ -256,7 +180,6 @@ export type {
 } from "./prompts/graph-planner-prompt.js";
 export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
 export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
-export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
 export { CreateTaskPlanTool } from "./tools/create-task-tool.js";
@@ -306,9 +229,6 @@ export {
 
 // Graph-native planner tools
 export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
-export { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
-export { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
-export { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
 
 // Shared JS sandbox engine
 export {
@@ -470,61 +390,18 @@ export type {
   FactUtility
 } from "./prompts/memory-synthesis-prompt.js";
 export {
-  ThreadMemorySaveTool,
-  ThreadMemoryListTool,
-  ThreadMemoryUpdateTool,
-  ThreadMemoryDeleteTool,
   getThreadMemoryTools,
   formatThreadMemoriesForPrompt,
   THREAD_MEMORY_TOOL_NAMES
 } from "./tools/thread-memory-tools.js";
 export {
-  AssetSearchTool,
-  AssetListTool,
   getAssetLibraryTools,
   ASSET_LIBRARY_TOOL_NAMES
 } from "./tools/asset-library-tools.js";
-export {
-  ListScriptsTool,
-  GetScriptTool,
-  VoiceScriptLinesTool,
-  AssembleScriptTimelineTool,
-  EditScriptTool,
-  SCRIPT_VOICE_TOOL_NAMES
-} from "./tools/script-voice-tools.js";
-export {
-  ValidateCodeTool,
-  RunCodeTool,
-  TestCodeTool
-} from "./tools/code-authoring-tools.js";
-export {
-  ListStoryboardsTool,
-  GetStoryboardTool,
-  RenderStoryboardStillsTool,
-  RenderStoryboardClipsTool,
-  ReviseStoryboardClipTool,
-  AssembleStoryboardTimelineTool,
-  EditStoryboardTool,
-  STORYBOARD_RENDER_TOOL_NAMES
-} from "./tools/storyboard-render-tools.js";
-export {
-  ListSketchesTool,
-  ListSketchVersionsTool,
-  GetSketchVersionTool,
-  CreateSketchVersionTool,
-  RestoreSketchVersionTool,
-  SKETCH_VERSION_TOOL_NAMES
-} from "./tools/sketch-version-tools.js";
-export {
-  ListTimelinesTool,
-  ListTimelineVersionsTool,
-  GetTimelineVersionTool,
-  CreateTimelineVersionTool,
-  RestoreTimelineVersionTool,
-  TIMELINE_VERSION_TOOL_NAMES
-} from "./tools/timeline-version-tools.js";
-export { EditTimelineTool } from "./tools/timeline-edit-tools.js";
-export { EditSketchTool } from "./tools/sketch-edit-tools.js";
+export { SCRIPT_VOICE_TOOL_NAMES } from "./tools/script-voice-tools.js";
+export { STORYBOARD_RENDER_TOOL_NAMES } from "./tools/storyboard-render-tools.js";
+export { SKETCH_VERSION_TOOL_NAMES } from "./tools/sketch-version-tools.js";
+export { TIMELINE_VERSION_TOOL_NAMES } from "./tools/timeline-version-tools.js";
 
 // Plan cache + checkpoint store (opt-in planning/execution persistence)
 export {

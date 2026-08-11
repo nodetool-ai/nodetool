@@ -12,22 +12,8 @@
  * callers.
  */
 
-import { CapabilityTool } from "../capabilities/index.js";
-import { fileCapabilityRun, todoWrite } from "../capabilities/files.js";
-
 export {
   getThreadTodos,
   clearThreadTodos,
   _resetTodoStoreForTests
 } from "../capabilities/files.js";
-
-/**
- * @deprecated Ported to the `files` capability module
- * (`../capabilities/files.ts`). Kept as a thin subclass so existing
- * constructors keep working; there is one implementation behind both.
- */
-export class TodoWriteTool extends CapabilityTool {
-  constructor() {
-    super(todoWrite.spec, todoWrite.impl, fileCapabilityRun);
-  }
-}

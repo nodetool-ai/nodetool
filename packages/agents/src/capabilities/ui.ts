@@ -40,40 +40,19 @@ import {
   WORKFLOW_DOCUMENT_TOOL_NAMES,
   type WorkflowDocumentToolName
 } from "@nodetool-ai/node-sdk";
-import { uiToolSchemas } from "@nodetool-ai/protocol";
 import { graph as workflowGraphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { userIdOf, workflowRecord } from "../tools/mcp-tool-support.js";
+import {
+  workflowDocumentSchema,
+  workflowDocumentSpec
+} from "./ui.specs.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
-  CapabilityModule,
-  PermissionCategory
+  CapabilityModule
 } from "./types.js";
 
-/**
- * What each document tool costs. Reading the graph is a read; the seven
- * mutators rewrite a stored workflow, so they are `write` — the classes'
- * classification, carried over name for name.
- */
-const UI_CATEGORIES: Readonly<
-  Record<WorkflowDocumentToolName, PermissionCategory>
-> = {
-  ui_get_graph: "read",
-  ui_add_node: "write",
-  ui_connect_nodes: "write",
-  ui_update_node_data: "write",
-  ui_delete_node: "write",
-  ui_delete_edge: "write",
-  ui_move_node: "write",
-  ui_set_node_title: "write"
-};
-
-/** The Zod schema one document tool validates its arguments against. */
-export function workflowDocumentSchema(
-  name: WorkflowDocumentToolName
-): ZodType {
-  return z.object(uiToolSchemas[name].parameters);
-}
+export { workflowDocumentSchema } from "./ui.specs.js";
 
 /**
  * Apply one document op to the stored workflow. The unvalidated core: the
@@ -206,12 +185,7 @@ for (const name of WORKFLOW_DOCUMENT_TOOL_NAMES) {
   const core = documentCore(name);
   CORE_BY_NAME.set(name, core);
   SPEC_BY_NAME.set(name, {
-    spec: {
-      name,
-      description: uiToolSchemas[name].description,
-      inputSchema: zodToJsonSchema(schema),
-      category: UI_CATEGORIES[name]
-    },
+    spec: workflowDocumentSpec(name),
     impl: withZodValidation(name, schema, core)
   });
 }

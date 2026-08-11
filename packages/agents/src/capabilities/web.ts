@@ -2,11 +2,9 @@
  * The `web` capability module — everything the agent reaches over the network.
  *
  * Seven capabilities that used to be seven `Tool` subclasses across three
- * files: the three search tools (`../tools/search-tools.ts`), the two browser
- * tools (`../tools/browser-tools.ts`), and the two HTTP tools
- * (`../tools/http-tools.ts`). Wire names, descriptions and schemas are
- * unchanged; the classes survive as thin subclasses over these
- * implementations.
+ * files: the three search tools, the two browser tools, and the two HTTP
+ * tools. Wire names, descriptions and schemas are unchanged; a belt builds
+ * all seven from `web.specs.ts` by name.
  *
  * The provider-specific backends are plain functions, not tools. They have no
  * wire name of their own: `web_search`, `google_news` and `google_images`
@@ -35,6 +33,18 @@ import type {
   CapabilityRun
 } from "./types.js";
 import { stripElement, stripTags, stripToFixpoint } from "./html-text.js";
+import {
+  webSearchSpec,
+  googleNewsSpec,
+  googleImagesSpec,
+  browserSpec,
+  takeScreenshotSpec,
+  downloadFileSpec,
+  httpRequestSpec,
+  WEB_SEARCH_SCHEMA
+} from "./web.specs.js";
+
+export { WEB_SEARCH_SCHEMA } from "./web.specs.js";
 
 // ---------------------------------------------------------------------------
 // Shared plumbing
@@ -206,39 +216,6 @@ function domainOf(link: string | null | undefined): string {
   }
 }
 
-// ---------------------------------------------------------------------------
-// web_search
-// ---------------------------------------------------------------------------
-
-const WEB_SEARCH_SCHEMA: JsonSchema = {
-  type: "object",
-  properties: {
-    query: {
-      type: "string",
-      description: "The search query to use.",
-      minLength: 2
-    },
-    allowed_domains: {
-      type: "array",
-      items: { type: "string" },
-      description: "Only include results from these domains."
-    },
-    blocked_domains: {
-      type: "array",
-      items: { type: "string" },
-      description: "Never include results from these domains."
-    },
-    backend: {
-      type: "string",
-      enum: ["serpapi", "openai", "gemini", "dataforseo"],
-      description:
-        "Pin one search backend instead of routing to the first " +
-        "configured one."
-    }
-  },
-  required: ["query"]
-};
-
 /**
  * Web search, modeled on Claude Code's `WebSearch` tool: a `query` plus
  * optional `allowed_domains` / `blocked_domains` filters. Routes host-side
@@ -388,7 +365,8 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return dataForSeoConfigured(ctx);
         },
         run: async (ctx) => {
-          const { dataForSeoSearch } = await import("../tools/dataseo-tools.js");
+          const { dataForSeoSearch } =
+            await import("../tools/dataseo-tools.js");
           const result = unwrapBackendResult(
             await dataForSeoSearch(ctx, {
               keyword: effectiveQuery,
@@ -419,26 +397,7 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
 }
 
 const webSearch: CapabilityExport = {
-  spec: {
-    name: WEB_SEARCH_TOOL_NAME,
-    description:
-      "Search the web and use the results to inform responses. Returns up-to-date " +
-      "information for current events and recent data beyond the model's training " +
-      "cutoff. Each result includes the title, URL, and snippet. Optionally scope " +
-      "results with allowed_domains (only these domains) or blocked_domains " +
-      "(never these domains). Runs on the first configured backend; `backend` " +
-      "pins one.",
-    inputSchema: WEB_SEARCH_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const query =
-        (params.query as string | undefined) ??
-        (params.keyword as string | undefined) ??
-        "something";
-      const msg = `Searching the web for '${query}'`;
-      return msg.length > 80 ? "Searching the web" : msg;
-    }
-  },
+  spec: webSearchSpec,
   impl: webSearchImpl()
 };
 
@@ -447,40 +406,7 @@ const webSearch: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const googleNews: CapabilityExport = {
-  spec: {
-    name: "google_news",
-    description:
-      "Search Google News to retrieve live news articles. Runs on the first " +
-      "configured backend (SerpAPI, then DataForSEO); `backend` pins one.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        keyword: {
-          type: "string",
-          description: "The keyword to search for in Google News."
-        },
-        num_results: {
-          type: "integer",
-          description: "Number of news results to retrieve.",
-          default: 10
-        },
-        backend: {
-          type: "string",
-          enum: ["serpapi", "dataforseo"],
-          description:
-            "Pin one search backend instead of routing to the first " +
-            "configured one."
-        }
-      },
-      required: ["keyword"]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const keyword = (params.keyword as string) ?? "something";
-      const msg = `Searching Google News for '${keyword}'...`;
-      return msg.length > 80 ? "Searching Google News..." : msg;
-    }
-  },
+  spec: googleNewsSpec,
   impl: async (run, params) => {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -558,40 +484,7 @@ const googleNews: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const googleImages: CapabilityExport = {
-  spec: {
-    name: "google_images",
-    description:
-      "Search Google Images to retrieve image results. Runs on the first " +
-      "configured backend (SerpAPI, then DataForSEO); `backend` pins one.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        keyword: {
-          type: "string",
-          description: "Keyword for image search."
-        },
-        num_results: {
-          type: "integer",
-          description: "Number of image results to retrieve.",
-          default: 20
-        },
-        backend: {
-          type: "string",
-          enum: ["serpapi", "dataforseo"],
-          description:
-            "Pin one search backend instead of routing to the first " +
-            "configured one."
-        }
-      },
-      required: ["keyword"]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const keyword = (params.keyword as string) ?? "something";
-      const msg = `Searching Google Images for '${keyword}'...`;
-      return msg.length > 80 ? "Searching Google Images..." : msg;
-    }
-  },
+  spec: googleImagesSpec,
   impl: async (run, params) => {
     const keyword = params.keyword as string | undefined;
     if (!keyword) return { error: "keyword is required" };
@@ -632,7 +525,8 @@ const googleImages: CapabilityExport = {
           return dataForSeoConfigured(ctx);
         },
         run: async (ctx) => {
-          const { dataForSeoImages } = await import("../tools/dataseo-tools.js");
+          const { dataForSeoImages } =
+            await import("../tools/dataseo-tools.js");
           const result = unwrapBackendResult(
             await dataForSeoImages(ctx, {
               keyword,
@@ -749,29 +643,7 @@ function isSearchEngine(hostname: string): boolean {
 }
 
 const browser: CapabilityExport = {
-  spec: {
-    name: "browser",
-    description:
-      "Fetches a web page and returns its readable text content (HTML " +
-      "stripped). Returns plain text. Errors include a short reason. Search " +
-      "engine result pages are blocked — use `google_search` instead.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: {
-          type: "string",
-          description: "URL to fetch."
-        }
-      },
-      required: ["url"]
-    },
-    category: "external",
-    userMessage: (params) => {
-      const url = (params.url as string) ?? "a specific URL";
-      const msg = `Fetching ${url}`;
-      return msg.length > 160 ? "Fetching a URL" : msg;
-    }
-  },
+  spec: browserSpec,
   impl: async (run, params) => {
     const context = run.context;
     const url = params.url as string | undefined;
@@ -822,35 +694,7 @@ const browser: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const takeScreenshot: CapabilityExport = {
-  spec: {
-    name: "take_screenshot",
-    description:
-      "Take a screenshot of a web page. Requires a remote browser service (BROWSER_URL).",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: {
-          type: "string",
-          description: "URL to navigate to before taking screenshot"
-        },
-        output_file: {
-          type: "string",
-          description: "Workspace relative path to save the screenshot",
-          default: "screenshot.png"
-        }
-      },
-      required: ["url", "output_file"]
-    },
-    category: "read",
-    userMessage: (params) => {
-      const url = (params.url as string) ?? "a page";
-      const output = (params.output_file as string) ?? "screenshot.png";
-      const msg = `Taking screenshot of ${url} and saving to ${output}.`;
-      return msg.length > 160
-        ? `Taking screenshot of a page and saving to ${output}.`
-        : msg;
-    }
-  },
+  spec: takeScreenshotSpec,
   impl: async (run, params) => {
     const context = run.context;
     const url = params.url as string | undefined;
@@ -900,43 +744,7 @@ const takeScreenshot: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const downloadFile: CapabilityExport = {
-  spec: {
-    name: "download_file",
-    description:
-      "Download a text or binary file from a URL and save it to the workspace. " +
-      "For images / audio / video / pdf, the result includes a `display_markdown` " +
-      "field with a ready-to-paste markdown snippet that embeds the asset via a " +
-      "UI-fetchable URL (`asset_url`). When narrating the result to the user, " +
-      "include `display_markdown` verbatim — never construct your own markdown " +
-      "from `output_file`, which is a workspace storage key, not a URL.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: {
-          type: "string",
-          description: "URL of the file to download"
-        },
-        output_file: {
-          type: "string",
-          description: "Workspace relative path where to save the file"
-        }
-      },
-      required: ["url", "output_file"]
-    },
-    category: "write",
-    userMessage: (params) => {
-      const url = String(params["url"] ?? "a URL");
-      const output = String(params["output_file"] ?? "a file");
-      let msg = `Downloading from ${url} to ${output}...`;
-      if (msg.length > 80) {
-        msg = `Downloading file to ${output}...`;
-      }
-      if (msg.length > 80) {
-        msg = "Downloading a file...";
-      }
-      return msg;
-    }
-  },
+  spec: downloadFileSpec,
   impl: async (run, params) => {
     const context = run.context;
     try {
@@ -1011,43 +819,7 @@ const downloadFile: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const httpRequest: CapabilityExport = {
-  spec: {
-    name: "http_request",
-    description: "Make an HTTP request and return the response body as text",
-    inputSchema: {
-      type: "object",
-      properties: {
-        url: {
-          type: "string",
-          description: "URL to send the request to"
-        },
-        method: {
-          type: "string",
-          description:
-            "HTTP method (GET, POST, PUT, DELETE, PATCH). Defaults to GET."
-        },
-        headers: {
-          type: "object",
-          description: "Optional HTTP headers"
-        },
-        body: {
-          type: "string",
-          description: "Optional request body (for POST/PUT/PATCH)"
-        }
-      },
-      required: ["url"]
-    },
-    category: "external",
-    userMessage: (params) => {
-      const method = String(params["method"] ?? "GET").toUpperCase();
-      const url = String(params["url"] ?? "a URL");
-      let msg = `${method} ${url}`;
-      if (msg.length > 80) {
-        msg = `${method} request...`;
-      }
-      return msg;
-    }
-  },
+  spec: httpRequestSpec,
   impl: async (run, params) => {
     const context = run.context;
     try {

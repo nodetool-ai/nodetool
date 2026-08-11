@@ -15,13 +15,6 @@ import { Buffer } from "node:buffer";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
 import { Asset, initTestDb } from "@nodetool-ai/models";
-import { GetAssetTool, ListAssetsTool } from "../src/tools/mcp-tools.js";
-import { ReadAssetTool, SaveAssetTool } from "../src/tools/asset-tools.js";
-import {
-  AssetListTool,
-  AssetSearchTool
-} from "../src/tools/asset-library-tools.js";
-import { ListImagesTool, ViewImageTool } from "../src/tools/view-image-tool.js";
 import {
   ASSET_CAPABILITIES,
   module as assetsModule
@@ -36,6 +29,7 @@ import {
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
 import type { PackageAssetLister } from "../src/tools/mcp-tools.js";
@@ -97,18 +91,18 @@ describe("assets capability module", () => {
     }
   });
 
-  it("matches the deprecated classes, spec for spec", () => {
-    const classes: Tool[] = [
-      new ListAssetsTool(),
-      new GetAssetTool(),
-      new SaveAssetTool(),
-      new ReadAssetTool(),
-      new AssetSearchTool(),
-      new AssetListTool(),
-      new ListImagesTool(),
-      new ViewImageTool()
+  it("renders as a Tool, spec for spec", () => {
+    const belt: Tool[] = [
+      toolForCapabilityName("list_assets"),
+      toolForCapabilityName("get_asset"),
+      toolForCapabilityName("save_asset"),
+      toolForCapabilityName("read_asset"),
+      toolForCapabilityName("asset_search"),
+      toolForCapabilityName("asset_list"),
+      toolForCapabilityName("list_images"),
+      toolForCapabilityName("view_image")
     ];
-    for (const tool of classes) {
+    for (const tool of belt) {
       const entry = ASSET_CAPABILITIES.find((e) => e.spec.name === tool.name);
       expect(entry).toBeDefined();
       expect(tool.description).toBe(entry!.spec.description);
@@ -217,22 +211,25 @@ describe("view_image", () => {
       unknown
     >;
     expect(result.error).toBe("invalid_tool_arguments");
-    expect(String(result.message)).toContain("Invalid arguments for view_image");
+    expect(String(result.message)).toContain(
+      "Invalid arguments for view_image"
+    );
   });
 
-  it("leaves the class path validating exactly once, where it always did", async () => {
+  it("validates once, whichever entrance the caller takes", async () => {
     const ctx = makeContext();
-    // `process()` is the unvalidated core, as before the port.
-    const direct = (await new ViewImageTool().process(ctx, {})) as Record<
-      string,
-      unknown
-    >;
-    expect(direct.error).toBe("image_id is required");
-    // `execute()` is where `Tool` validated, and still does.
-    const executed = (await new ViewImageTool().execute(ctx, {})) as Record<
-      string,
-      unknown
-    >;
-    expect(executed.error).toBe("invalid_tool_arguments");
+    // The check lives in the implementation now, so `process()` and
+    // `execute()` answer with the same envelope — a tool built from the spec
+    // carries no schema of its own to validate against first.
+    const direct = (await toolForCapabilityName("view_image").process(
+      ctx,
+      {}
+    )) as Record<string, unknown>;
+    const executed = (await toolForCapabilityName("view_image").execute(
+      ctx,
+      {}
+    )) as Record<string, unknown>;
+    expect(direct.error).toBe("invalid_tool_arguments");
+    expect(executed).toEqual(direct);
   });
 });

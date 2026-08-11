@@ -15,10 +15,10 @@ vi.mock("@nodetool-ai/vectorstore", () => ({
   resolveCollection
 }));
 
-import {
-  ListCollectionsTool,
-  QueryCollectionTool
-} from "../src/tools/collection-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
+
+const listCollectionsTool = () => toolForCapabilityName("list_collections");
+const queryCollectionTool = () => toolForCapabilityName("query_collection");
 
 const mockContext = {} as never;
 
@@ -27,12 +27,12 @@ beforeEach(() => {
   getDefaultVectorProvider.mockReturnValue({ listCollections });
 });
 
-describe("ListCollectionsTool", () => {
+describe("list_collections", () => {
   it("has the expected name, schema and user message", () => {
-    const tool = new ListCollectionsTool();
+    const tool = listCollectionsTool();
     expect(tool.name).toBe("list_collections");
     expect(tool.inputSchema.required).toEqual([]);
-    expect(tool.userMessage()).toBe("Listing knowledge collections");
+    expect(tool.userMessage({})).toBe("Listing knowledge collections");
   });
 
   it("maps provider infos to name + metadata summaries", async () => {
@@ -40,7 +40,7 @@ describe("ListCollectionsTool", () => {
       { name: "docs", metadata: { owner: "a" } },
       { name: "notes", metadata: undefined }
     ]);
-    const tool = new ListCollectionsTool();
+    const tool = listCollectionsTool();
     const result = (await tool.process(mockContext, {})) as {
       collections: Array<{ name: string; metadata?: unknown }>;
     };
@@ -54,7 +54,7 @@ describe("ListCollectionsTool", () => {
 
   it("returns an empty list when the provider has no collections", async () => {
     listCollections.mockResolvedValue([]);
-    const tool = new ListCollectionsTool();
+    const tool = listCollectionsTool();
     const result = (await tool.process(mockContext, {})) as {
       collections: unknown[];
     };
@@ -63,20 +63,20 @@ describe("ListCollectionsTool", () => {
 
   it("propagates provider errors", async () => {
     listCollections.mockRejectedValue(new Error("provider down"));
-    const tool = new ListCollectionsTool();
+    const tool = listCollectionsTool();
     await expect(tool.process(mockContext, {})).rejects.toThrow("provider down");
   });
 });
 
-describe("QueryCollectionTool", () => {
+describe("query_collection", () => {
   it("has the expected name and required params", () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     expect(tool.name).toBe("query_collection");
     expect(tool.inputSchema.required).toEqual(["collection", "query"]);
   });
 
   it("returns error when collection is missing", async () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, { query: "x" })) as {
       error?: string;
     };
@@ -85,7 +85,7 @@ describe("QueryCollectionTool", () => {
   });
 
   it("returns error when collection is empty string", async () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, {
       collection: "",
       query: "x"
@@ -94,7 +94,7 @@ describe("QueryCollectionTool", () => {
   });
 
   it("returns error when query is missing", async () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, {
       collection: "docs"
     })) as { error?: string };
@@ -103,7 +103,7 @@ describe("QueryCollectionTool", () => {
   });
 
   it("returns error when query is empty string", async () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, {
       collection: "docs",
       query: ""
@@ -117,7 +117,7 @@ describe("QueryCollectionTool", () => {
       { id: "2", document: "world", score: 0.5 }
     ]);
     resolveCollection.mockResolvedValue({ query });
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, {
       collection: "docs",
       query: "greeting",
@@ -138,7 +138,7 @@ describe("QueryCollectionTool", () => {
   it("defaults n_results to 5 when omitted", async () => {
     const query = vi.fn().mockResolvedValue([]);
     resolveCollection.mockResolvedValue({ query });
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     await tool.process(mockContext, { collection: "docs", query: "q" });
     expect(query).toHaveBeenCalledWith({ text: "q", topK: 5 });
   });
@@ -151,7 +151,7 @@ describe("QueryCollectionTool", () => {
       { id: "4", document: "also kept", score: 0.1 }
     ]);
     resolveCollection.mockResolvedValue({ query });
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     const result = (await tool.process(mockContext, {
       collection: "docs",
       query: "q"
@@ -165,21 +165,21 @@ describe("QueryCollectionTool", () => {
   it("propagates errors thrown by the resolved collection query", async () => {
     const query = vi.fn().mockRejectedValue(new Error("query boom"));
     resolveCollection.mockResolvedValue({ query });
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     await expect(
       tool.process(mockContext, { collection: "docs", query: "q" })
     ).rejects.toThrow("query boom");
   });
 
   it("userMessage includes the collection name when present", () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     expect(tool.userMessage({ collection: "docs" })).toBe(
       "Searching collection 'docs'"
     );
   });
 
   it("userMessage falls back to a generic message when collection absent", () => {
-    const tool = new QueryCollectionTool();
+    const tool = queryCollectionTool();
     expect(tool.userMessage({})).toBe("Searching collection");
   });
 });

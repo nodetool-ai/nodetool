@@ -15,6 +15,7 @@ import type {
   JsonSchema,
   ProcessingContext
 } from "@nodetool-ai/runtime";
+import type { ZodType } from "zod";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
@@ -41,6 +42,15 @@ export interface CapabilitySpec {
   readonly description: string;
   /** Rendered for prompts, `searchTools()`, and MCP. */
   readonly inputSchema: JsonSchema;
+  /**
+   * The Zod schema behind {@link inputSchema}, for the handful of capabilities
+   * whose identity is that schema. A `Tool` built from the spec validates with
+   * it on the way in, so a malformed call comes back as
+   * `invalid_tool_arguments` instead of reaching the implementation — the
+   * behaviour the classes these replaced had. The implementation carries the
+   * same check for callers that reach it through `invoke`.
+   */
+  readonly zodSchema?: ZodType;
   /**
    * REQUIRED — there is no default-to-`external` fallback here. The string-keyed
    * map's conservative default is right for a map and wrong for a typed

@@ -8,9 +8,7 @@ import {
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { ReadFileTool } from "../src/tools/filesystem-tools.js";
-import { WriteFileTool } from "../src/tools/filesystem-tools.js";
-import { ListDirectoryTool } from "../src/tools/filesystem-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import {
   registerTool,
   resolveTool,
@@ -69,7 +67,7 @@ afterEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("ReadFileTool", () => {
-  const tool = new ReadFileTool();
+  const tool = toolForCapabilityName("read_file");
 
   it("declares the read_file name and required field", () => {
     expect(tool.name).toBe("read_file");
@@ -171,8 +169,8 @@ describe("ReadFileTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("WriteFileTool", () => {
-  const readTool = new ReadFileTool();
-  const writeTool = new WriteFileTool();
+  const readTool = toolForCapabilityName("read_file");
+  const writeTool = toolForCapabilityName("write_file");
 
   it("declares the write_file name and required fields", () => {
     expect(writeTool.name).toBe("write_file");
@@ -257,7 +255,7 @@ describe("WriteFileTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ListDirectoryTool", () => {
-  const tool = new ListDirectoryTool();
+  const tool = toolForCapabilityName("list_directory");
 
   it("declares the list_directory name and required field", () => {
     expect(tool.name).toBe("list_directory");
@@ -333,7 +331,7 @@ describe("ListDirectoryTool", () => {
 
 describe("ToolRegistry", () => {
   it("registers and resolves tools", () => {
-    const tool = new ReadFileTool();
+    const tool = toolForCapabilityName("read_file");
     registerTool(tool);
     expect(resolveTool("read_file")).toBe(tool);
   });
@@ -343,14 +341,14 @@ describe("ToolRegistry", () => {
   });
 
   it("lists registered tool names", () => {
-    const tool = new WriteFileTool();
+    const tool = toolForCapabilityName("write_file");
     registerTool(tool);
     const names = listTools();
     expect(names).toContain("write_file");
   });
 
   it("gets all tools", () => {
-    const tool = new ListDirectoryTool();
+    const tool = toolForCapabilityName("list_directory");
     registerTool(tool);
     const all = getAllTools();
     expect(all.length).toBeGreaterThan(0);

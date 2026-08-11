@@ -39,24 +39,9 @@ import {
 } from "../src/capabilities/style.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
 import type { LongTermMemory } from "../src/long-term-memory.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import { Tool } from "../src/tools/base-tool.js";
-import {
-  AnimateImageTool,
-  EditImageTool,
-  EmbedTextTool,
-  GenerateImageTool,
-  GenerateSpeechTool,
-  GenerateVideoTool,
-  TranscribeAudioTool
-} from "../src/tools/media-tools.js";
-import {
-  CompareImagesTool,
-  CritiqueImageTool,
-  GetStyleProfileTool,
-  RecordStylePreferenceTool,
-  ScoreImageAdherenceTool
-} from "../src/tools/creative-critique-tools.js";
 
 function makeContext(
   runProviderPrediction?: ReturnType<typeof vi.fn>
@@ -107,20 +92,20 @@ describe("media and style capability modules", () => {
   });
 });
 
-describe("wire identity against the deprecated classes", () => {
+describe("wire identity: a Tool built from the spec", () => {
   const pairs: [CapabilityExport, Tool][] = [
-    [generateImage, new GenerateImageTool()],
-    [editImage, new EditImageTool()],
-    [generateVideo, new GenerateVideoTool()],
-    [animateImage, new AnimateImageTool()],
-    [generateSpeech, new GenerateSpeechTool()],
-    [transcribeAudio, new TranscribeAudioTool()],
-    [embedText, new EmbedTextTool()],
-    [critiqueImage, new CritiqueImageTool()],
-    [compareImages, new CompareImagesTool()],
-    [scoreImageAdherence, new ScoreImageAdherenceTool()],
-    [recordStylePreference, new RecordStylePreferenceTool()],
-    [getStyleProfile, new GetStyleProfileTool()]
+    [generateImage, toolForCapabilityName("generate_image")],
+    [editImage, toolForCapabilityName("edit_image")],
+    [generateVideo, toolForCapabilityName("generate_video")],
+    [animateImage, toolForCapabilityName("animate_image")],
+    [generateSpeech, toolForCapabilityName("generate_speech")],
+    [transcribeAudio, toolForCapabilityName("transcribe_audio")],
+    [embedText, toolForCapabilityName("embed_text")],
+    [critiqueImage, toolForCapabilityName("critique_image")],
+    [compareImages, toolForCapabilityName("compare_images")],
+    [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
+    [recordStylePreference, toolForCapabilityName("record_style_preference")],
+    [getStyleProfile, toolForCapabilityName("get_style_profile")]
   ];
 
   it.each(

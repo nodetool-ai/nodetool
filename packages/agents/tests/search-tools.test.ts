@@ -1,9 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import {
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool
-} from "../src/tools/search-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 vi.mock("openai", () => ({
   OpenAI: class {
@@ -70,7 +66,7 @@ function stubFetch(body: unknown, status = 200) {
 /* ------------------------------------------------------------------ */
 
 describe("WebSearchTool", () => {
-  const tool = new WebSearchTool();
+  const tool = toolForCapabilityName("web_search");
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -220,7 +216,7 @@ describe("WebSearchTool", () => {
 /* ------------------------------------------------------------------ */
 
 describe("GoogleNewsTool", () => {
-  const tool = new GoogleNewsTool();
+  const tool = toolForCapabilityName("google_news");
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -300,7 +296,7 @@ describe("GoogleNewsTool", () => {
 /* ------------------------------------------------------------------ */
 
 describe("GoogleImagesTool", () => {
-  const tool = new GoogleImagesTool();
+  const tool = toolForCapabilityName("google_images");
   let fetchSpy: ReturnType<typeof vi.spyOn>;
 
   afterEach(() => {
@@ -402,14 +398,14 @@ describe("search backend routing", () => {
   });
 
   it("web_search falls to the OpenAI backend when SerpAPI is unconfigured", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({ OPENAI_API_KEY: "ok" });
     const result = await tool.process(ctx, { query: "fox" });
     expect(result).toBe("openai backend answer");
   });
 
   it("web_search falls to DataForSEO when only its credentials exist", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
@@ -442,7 +438,7 @@ describe("search backend routing", () => {
   });
 
   it("web_search pinned to the Gemini backend formats text plus sources", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       SERPAPI_API_KEY: "serp",
       GEMINI_API_KEY: "gem"
@@ -471,7 +467,7 @@ describe("search backend routing", () => {
   });
 
   it("a pin overrides preference order even when earlier backends are configured", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       SERPAPI_API_KEY: "serp",
       DATA_FOR_SEO_LOGIN: "user",
@@ -488,13 +484,13 @@ describe("search backend routing", () => {
   });
 
   it("a pinned unconfigured backend is an error naming the missing key", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
     await expect(
       tool.process(ctx, { query: "fox", backend: "openai" })
     ).rejects.toThrow(/openai.*OPENAI_API_KEY/);
     await expect(
-      new GoogleNewsTool().process(ctx, {
+      toolForCapabilityName("google_news").process(ctx, {
         keyword: "fox",
         backend: "dataforseo"
       })
@@ -502,7 +498,7 @@ describe("search backend routing", () => {
   });
 
   it("an unknown backend pin is an error listing the valid ones", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
     await expect(
       tool.process(ctx, { query: "fox", backend: "bing" })
@@ -510,7 +506,7 @@ describe("search backend routing", () => {
   });
 
   it('backend "default" means the tool\'s own first backend', async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({ SERPAPI_API_KEY: "serp" });
     fetchSpy = stubFetch({ organic_results: [] });
     const result = await tool.process(ctx, {
@@ -522,7 +518,7 @@ describe("search backend routing", () => {
   });
 
   it("a real error from a configured backend does not fall through", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({
       SERPAPI_API_KEY: "serp",
       DATA_FOR_SEO_LOGIN: "user",
@@ -538,7 +534,7 @@ describe("search backend routing", () => {
   });
 
   it("google_news routes to DataForSEO and keeps its result shape", async () => {
-    const tool = new GoogleNewsTool();
+    const tool = toolForCapabilityName("google_news");
     const ctx = makeContext({
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
@@ -582,7 +578,7 @@ describe("search backend routing", () => {
   });
 
   it("google_images routes to DataForSEO and keeps its result shape", async () => {
-    const tool = new GoogleImagesTool();
+    const tool = toolForCapabilityName("google_images");
     const ctx = makeContext({
       DATA_FOR_SEO_LOGIN: "user",
       DATA_FOR_SEO_PASSWORD: "pass"
@@ -624,7 +620,7 @@ describe("search backend routing", () => {
   });
 
   it("no configured backend at all names every missing key", async () => {
-    const tool = new WebSearchTool();
+    const tool = toolForCapabilityName("web_search");
     const ctx = makeContext({});
     await expect(tool.process(ctx, { query: "fox" })).rejects.toThrow(
       /no search backend is configured.*SERPAPI_API_KEY.*OPENAI_API_KEY.*GEMINI_API_KEY.*DATA_FOR_SEO_LOGIN/

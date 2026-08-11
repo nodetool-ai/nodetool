@@ -1,13 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { join, resolve } from "node:path";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  ExtractPDFTextTool,
-  ExtractPDFTablesTool,
-  ConvertPDFToMarkdownTool,
-  ConvertMarkdownToPDFTool,
-  ConvertDocumentTool
-} from "../src/tools/pdf-tools.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 
 // Hoist mock variable so it's available inside the vi.mock factory
 const { mockParse } = vi.hoisted(() => ({ mockParse: vi.fn() }));
@@ -80,7 +74,7 @@ beforeEach(() => {
 // ---------------------------------------------------------------------------
 
 describe("ExtractPDFTextTool", () => {
-  const tool = new ExtractPDFTextTool();
+  const tool = toolForCapabilityName("extract_pdf_text");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("extract_pdf_text");
@@ -143,7 +137,7 @@ describe("ExtractPDFTextTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ExtractPDFTablesTool", () => {
-  const tool = new ExtractPDFTablesTool();
+  const tool = toolForCapabilityName("extract_pdf_tables");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("extract_pdf_tables");
@@ -194,7 +188,7 @@ describe("ExtractPDFTablesTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ConvertPDFToMarkdownTool", () => {
-  const tool = new ConvertPDFToMarkdownTool();
+  const tool = toolForCapabilityName("convert_pdf_to_markdown");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_pdf_to_markdown");
@@ -264,7 +258,7 @@ describe("ConvertPDFToMarkdownTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ConvertMarkdownToPDFTool", () => {
-  const tool = new ConvertMarkdownToPDFTool();
+  const tool = toolForCapabilityName("convert_markdown_to_pdf");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_markdown_to_pdf");
@@ -332,7 +326,7 @@ describe("ConvertMarkdownToPDFTool", () => {
 // ---------------------------------------------------------------------------
 
 describe("ConvertDocumentTool", () => {
-  const tool = new ConvertDocumentTool();
+  const tool = toolForCapabilityName("convert_document");
 
   it("has correct name and schema", () => {
     expect(tool.name).toBe("convert_document");

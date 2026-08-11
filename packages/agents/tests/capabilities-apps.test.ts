@@ -10,7 +10,6 @@ import { describe, expect, it, beforeEach } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { initTestDb } from "@nodetool-ai/models";
-import { BuildAppTool, DebugAppTool } from "../src/tools/mcp-tools.js";
 import {
   APP_CAPABILITIES,
   module as appsModule
@@ -24,6 +23,7 @@ import {
   capabilityModuleIssues,
   loadCapabilityModule
 } from "../src/capabilities/registry.js";
+import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
 import type { Tool } from "../src/tools/base-tool.js";
 
@@ -72,8 +72,11 @@ describe("apps capability module", () => {
     }
   });
 
-  it("matches the deprecated classes, spec for spec", () => {
-    for (const tool of [new BuildAppTool(), new DebugAppTool()] as Tool[]) {
+  it("renders as a Tool, spec for spec", () => {
+    for (const tool of [
+      toolForCapabilityName("build_app"),
+      toolForCapabilityName("debug_app")
+    ] as Tool[]) {
       const entry = APP_CAPABILITIES.find((e) => e.spec.name === tool.name);
       expect(entry).toBeDefined();
       expect(tool.description).toBe(entry!.spec.description);

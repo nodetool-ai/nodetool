@@ -2,10 +2,9 @@
  * The `models` capability module — model discovery over the configured
  * providers.
  *
- * Three capabilities that used to be three `Tool` subclasses
- * (`../tools/find-model-tool.ts`, `../tools/list-models-tool.ts`,
- * `../tools/model-tools.ts`). Wire names, descriptions and schemas are
- * unchanged: `getAllMcpTools` builds them through `toolFromCapability`.
+ * Three capabilities that used to be three `Tool` subclasses, one per file.
+ * Wire names, descriptions and schemas are unchanged: a belt builds them
+ * from `models.specs.ts` by name.
  *
  * The providers map was a constructor argument and is now `run.providers`. It
  * is read at call time, so a host that fills the map lazily — the MCP mount
@@ -33,27 +32,27 @@ import type {
   CapabilityModule,
   CapabilityRun
 } from "./types.js";
+import {
+  findModelSpec,
+  listModelsSpec,
+  listProviderModelsSpec,
+  SUPPORTED_CAPABILITIES,
+  FIND_MODEL_INPUT_SCHEMA,
+  MODEL_TYPES,
+  LIST_MODELS_SCHEMA
+} from "./models.specs.js";
+
+export {
+  SUPPORTED_CAPABILITIES,
+  FIND_MODEL_INPUT_SCHEMA,
+  MODEL_TYPES,
+  LIST_MODELS_SCHEMA
+} from "./models.specs.js";
 
 /** Providers this run can reach. Empty when the host wired none. */
 function providersOf(run: CapabilityRun): Record<string, BaseProvider> {
   return run.providers ?? {};
 }
-
-// ---------------------------------------------------------------------------
-// find_model
-// ---------------------------------------------------------------------------
-
-const SUPPORTED_CAPABILITIES = [
-  "text_to_image",
-  "image_to_image",
-  "text_to_video",
-  "image_to_video",
-  "text_to_speech",
-  "text_to_music",
-  "automatic_speech_recognition",
-  "generate_embedding",
-  "generate_message"
-] as const;
 
 type SupportedCapability = (typeof SUPPORTED_CAPABILITIES)[number];
 
@@ -86,46 +85,6 @@ interface FindModelResult {
   recommended: boolean;
   score: number;
 }
-
-const FIND_MODEL_INPUT_SCHEMA: JsonSchema = {
-  type: "object" as const,
-  properties: {
-    capability: {
-      type: "string" as const,
-      enum: [...SUPPORTED_CAPABILITIES],
-      description:
-        "Provider capability needed by the generic AI node (e.g. text_to_image, generate_embedding)."
-    },
-    task: {
-      type: "string" as const,
-      description:
-        "Optional task hint matched against model.supportedTasks (e.g. 'text_to_image' vs 'image_to_image')."
-    },
-    provider_hint: {
-      type: "string" as const,
-      description:
-        "Optional preferred provider id (e.g. 'openai'). Boosts matching providers."
-    },
-    model_hint: {
-      type: "array" as const,
-      items: { type: "string" as const },
-      description:
-        "Optional preferred model ids. Strongly boosts matching models in the ranking."
-    },
-    prefer_local: {
-      type: "boolean" as const,
-      description:
-        "If true, ranks local providers (ollama, lmstudio, vllm, llama_cpp, node_llama_cpp, huggingface) above hosted ones.",
-      default: false
-    },
-    limit: {
-      type: "number" as const,
-      description: "Maximum number of results to return (default 5).",
-      default: 5
-    }
-  },
-  required: ["capability"] as string[]
-};
 
 function getRecommendedSet(capability: SupportedCapability): Set<string> {
   const wantedTasks = capabilityToRecommendedTasks(capability);
@@ -217,15 +176,7 @@ function taskMatch(model: AnyModel, task: string | undefined): boolean {
 }
 
 const findModel: CapabilityExport = {
-  spec: {
-    name: "find_model",
-    description:
-      "Find a real {provider, model_id} for a generic AI node by capability. Returns models from providers the user has configured, ranked by recommended/downloaded/preferences. Call this before adding any generic AI node (TextToImage, TextToVideo, TextToSpeech, etc.).",
-    inputSchema: FIND_MODEL_INPUT_SCHEMA,
-    category: "read",
-    userMessage: (params) =>
-      `Looking up models for capability: ${String(params["capability"])}`
-  },
+  spec: findModelSpec,
   impl: async (run, params) => {
     const capability = params["capability"] as SupportedCapability | undefined;
     if (!capability || !SUPPORTED_CAPABILITIES.includes(capability)) {
@@ -330,20 +281,6 @@ const findModel: CapabilityExport = {
   }
 };
 
-// ---------------------------------------------------------------------------
-// list_models
-// ---------------------------------------------------------------------------
-
-const MODEL_TYPES = [
-  "language",
-  "image",
-  "video",
-  "tts",
-  "music",
-  "asr",
-  "embedding"
-] as const;
-
 type ModelType = (typeof MODEL_TYPES)[number];
 
 /** Names an agent is likely to guess, mapped onto the canonical type. */
@@ -417,53 +354,8 @@ function normalizeModelType(raw: unknown): ModelType | null | "invalid" {
   return MODEL_TYPE_ALIASES[key] ?? "invalid";
 }
 
-const LIST_MODELS_SCHEMA: JsonSchema = {
-  type: "object" as const,
-  properties: {
-    provider: {
-      type: "string" as const,
-      description:
-        "Filter by provider id (e.g. openai, anthropic, ollama). Omit or pass 'all' for every configured provider.",
-      default: "all"
-    },
-    model_type: {
-      type: "string" as const,
-      enum: [...MODEL_TYPES],
-      description:
-        "Filter by model type. Omit to list every type the providers offer."
-    },
-    downloaded_only: {
-      type: "boolean" as const,
-      description:
-        "Only return models served by a local provider (ollama, lmstudio, vllm, llama.cpp, huggingface).",
-      default: false
-    },
-    limit: {
-      type: "number" as const,
-      description: "Maximum number of models to return (default 50).",
-      default: 50
-    }
-  },
-  required: [] as string[]
-};
-
 const listModels: CapabilityExport = {
-  spec: {
-    name: "list_models",
-    description:
-      "List the AI models available from the providers the user has configured, " +
-      "optionally filtered by provider, model type, and download status. Use " +
-      "`find_model` instead when you need one model for a specific capability.",
-    inputSchema: LIST_MODELS_SCHEMA,
-    category: "read",
-    userMessage: (params) => {
-      const provider = params["provider"] ?? "all";
-      const type = params["model_type"];
-      return type
-        ? `Listing ${String(type)} models from ${String(provider)}`
-        : `Listing models from ${String(provider)}`;
-    }
-  },
+  spec: listModelsSpec,
   impl: async (run, params) => {
     const providers = providersOf(run);
     const modelType = normalizeModelType(params["model_type"]);
@@ -564,21 +456,7 @@ const listModels: CapabilityExport = {
 // ---------------------------------------------------------------------------
 
 const listProviderModels: CapabilityExport = {
-  spec: {
-    name: "list_provider_models",
-    description: "List available language models from a provider.",
-    inputSchema: {
-      type: "object" as const,
-      properties: {
-        provider: {
-          type: "string" as const,
-          description: "Provider ID (e.g. 'openai', 'anthropic')"
-        }
-      },
-      required: ["provider"]
-    },
-    category: "read"
-  },
+  spec: listProviderModelsSpec,
   impl: async (run, params) => {
     const providerId = params["provider"];
     if (typeof providerId !== "string") {

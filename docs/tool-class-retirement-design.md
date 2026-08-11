@@ -779,7 +779,9 @@ and records the rest as named debt:
   synchronously, while capability modules load through `import()`. A belt
   cannot be built from the registry alone until either the belt assembly turns
   async or the registry gains eager specs. That is its own PR, with its own
-  callers to touch.
+  callers to touch. *(Resolved — see
+  [Eager specs](#eager-specs-and-the-ninety-two-that-went-with-them-2026-08-12)
+  below: the registry gained eager specs and all ninety-two are gone.)*
 - **The `nodetool` global stays.** The design gives the generated shim over the
   imports at least one release before it dies; PR 11 shipped the import form,
   and this is that release.
@@ -885,6 +887,77 @@ Both counters move: the capability-shaped counter loses nine and
 what `getBuiltinTools()` returns and `capabilities-coverage.test.ts` pins only
 the eight workflow-document `ui_*` schemas. The loop-protocol counter loses the
 six dead ones.
+
+### Eager specs, and the ninety-two that went with them (2026-08-12)
+
+The sync-belt problem PR 12 named is solved, and the way out was the third
+option: not an async belt, and not a spec on every class, but a **spec table
+the registry can read synchronously**.
+
+Each capability module gained a data-only sibling — `workflows.specs.ts`,
+`media.specs.ts`, one per namespace — holding the wire name, description, JSON
+schema, category and message template, and nothing else. A spec file imports
+`types.ts`, `zod`, and the schema constants it needs; it imports no
+implementation, so importing all twenty-two costs one object graph and no
+`import()`. `registry.ts` imports them eagerly beside its lazy loader table and
+exposes `capabilitySpec(name)` / `listCapabilitySpecs()`. The module file
+imports its own specs back and attaches each to an implementation, so there is
+one spec *object* behind both halves — and `eagerSpecDrift` compares them by
+identity, not by field, because a module that copied its spec would pass a
+field check and still be two things to keep in step.
+
+`toolFromLazyCapability(spec, run)` and `toolForCapabilityName(name, run)`
+(`capabilities/lazy-tool.ts`) are the wrapper. `Tool.process()` is already
+async, so only the spec has to be there when a belt is assembled: the name, the
+description and the schema are what a provider list and a permission prompt
+read. The implementation arrives on the first invoke, from the one module that
+owns it — `loadCapabilityImpl` resolves the owning module from the eager table
+and loads only that one, where `findCapability` would have loaded all
+twenty-two. Gating stays single-pass: like `CapabilityTool` before it, the
+wrapper calls the implementation directly, because a belt is gated from the
+outside by `gateTools`, which runs the one ladder in `invoke.ts`.
+
+`CapabilitySpec` grew one optional field, `zodSchema`, for the handful of
+capabilities whose identity is a Zod schema — `view_image`, `list_images` and
+the eight `ui_*` document tools. The wrapper returns it from `Tool.schema`, so
+a malformed call still comes back as `invalid_tool_arguments` from
+`Tool.execute` instead of reaching the implementation, which is what the
+classes did.
+
+`getBuiltinTools()` is now a list of **names**, `getAllMcpTools()` a list of
+names plus the run each group needs, and `getGoogleWorkspaceTools()` a walk
+over `googleSpecs`. The belt is unchanged name for name.
+
+**All ninety-two deprecated `extends CapabilityTool` subclasses are gone**, and
+with them sixteen files that held nothing else. What each file still owned that
+was not a class stayed: `htmlToText`, `requestSignal`, `serpApiConfigured`,
+`splitTextRecursive`, `getThreadTodos`/`clearThreadTodos`,
+`formatThreadMemoriesForPrompt`, `VecCollection`, and the five `*_TOOL_NAMES`
+lists. Three constructor call sites outside `packages/agents` moved to the name
+form: `mcp-agent-tools.ts` (the two validators, the seven media capabilities,
+`find_model`/`list_models`), `unified-websocket-runner.ts` (the two collection
+capabilities), and `graph-planner.ts` (the three discovery capabilities plus
+`find_model`). `runBridgedTool`'s `instanceof FindModelTool` became a name
+check, which is what it meant.
+
+One capability could not be built from the spec table, and stayed as it was:
+`createSearchTool` (`tools/serp-tool-factory.ts`) binds a resolved SERP
+provider into the *implementation*, not into the run, so it builds its tool
+with `toolFromCapability(webSearch.spec, webSearchImpl(provider), …)`.
+
+Measured after: **33 `extends Tool` across 25 files** and **zero
+`extends CapabilityTool`** (source only — `packages/**`, no `dist/`, no test
+directories). The one new `extends Tool` is the lazy wrapper itself. The
+capability-shaped counter is now zero on both halves: nothing
+`getBuiltinTools()` or `getAllMcpTools({})` assembles is a class any more.
+`base-tool.ts` stays for the loop-protocol tools and the five subclasses
+outside this package.
+
+`npm run backend:smoke` is green, which is the only check that would have seen
+a new cycle across the `tools/` ↔ `capabilities/` seam. The eager spec table
+does not pull an implementation into the entry graph, so laziness is stronger
+than it was: before this, `mcp-tools.ts` imported ten implementation modules
+statically to build its belt.
 
 One thing a deletion could have broken quietly: an AgentNode saves its tools as
 bare name stubs and `resolveBuiltinAgentTool` hydrates them by wire name, so a

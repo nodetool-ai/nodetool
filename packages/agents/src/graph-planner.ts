@@ -35,10 +35,12 @@ import type {
 
 import { Tool } from "./tools/base-tool.js";
 import { SubmitGraphTool } from "./tools/submit-graph-tool.js";
-import { LocalSearchNodesTool } from "./tools/local-search-nodes-tool.js";
-import { LocalGetNodeInfoTool } from "./tools/local-get-node-info-tool.js";
-import { LocalListNodesTool } from "./tools/local-list-nodes-tool.js";
-import { FindModelTool } from "./tools/find-model-tool.js";
+import { toolForCapabilityName } from "./capabilities/lazy-tool.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  type CapabilityRun
+} from "./capabilities/index.js";
 import {
   buildGraphPlannerSystemPrompt,
   resolveAvailableGenericNodes
@@ -421,15 +423,26 @@ export class GraphPlanner {
       signal: abort.signal
     });
 
+    // The three discovery capabilities read the registry off the run, so the
+    // planner builds one that carries its own.
+    const registry = this.registry;
+    const discoveryRun = (context: ProcessingContext): CapabilityRun =>
+      createCapabilityRun({ context, gate: UNGATED, nodeRegistry: registry });
+
     const allTools: Tool[] = [
-      new LocalSearchNodesTool(this.registry),
-      new LocalGetNodeInfoTool(this.registry),
-      new LocalListNodesTool(this.registry),
+      toolForCapabilityName("search_nodes", discoveryRun),
+      toolForCapabilityName("get_node_info", discoveryRun),
+      toolForCapabilityName("list_nodes", discoveryRun),
       submitGraphTool
     ];
 
     if (this.hasFindModel && this.providers) {
-      allTools.unshift(new FindModelTool(this.providers));
+      const providers = this.providers;
+      allTools.unshift(
+        toolForCapabilityName("find_model", (context: ProcessingContext) =>
+          createCapabilityRun({ context, gate: UNGATED, providers })
+        )
+      );
     }
 
     let totalToolCalls = 0;
