@@ -39,7 +39,7 @@ const APP = "app-under-build";
 // Deterministic case 1 — one operation, exact output
 // ---------------------------------------------------------------------------
 
-/** StringInput → SurroundWith → Output. "Ada" becomes "Hello, Ada!". */
+/** StringInput → Code (surround) → Output. "Ada" becomes "Hello, Ada!". */
 const GREETING_GRAPH: AppBuildGraph = {
   nodes: [
     {
@@ -49,13 +49,13 @@ const GREETING_GRAPH: AppBuildGraph = {
     },
     {
       id: "wrap",
-      type: "nodetool.text.SurroundWith",
+      type: "nodetool.code.Code",
       properties: {
-        text: "",
-        prefix: "Hello, ",
-        suffix: "!",
-        skip_if_wrapped: false
-      }
+        code: "return { output: inputs.prefix + inputs.text + inputs.suffix };",
+        packages: []
+      },
+      dynamic_properties: { text: "", prefix: "Hello, ", suffix: "!" },
+      dynamic_outputs: { output: { type: "any", type_args: [], optional: false } }
     },
     {
       id: "greeting_out",
@@ -181,7 +181,7 @@ const GREETING_SCRIPT: ScriptedToolCall[] = [
 // Deterministic case 2 — two operations, a gate, and a condition
 // ---------------------------------------------------------------------------
 
-/** StringInput → ToUppercase → Output. "ship it" becomes "SHIP IT". */
+/** StringInput → Code (uppercase) → Output. "ship it" becomes "SHIP IT". */
 const DRAFT_GRAPH: AppBuildGraph = {
   nodes: [
     {
@@ -191,8 +191,13 @@ const DRAFT_GRAPH: AppBuildGraph = {
     },
     {
       id: "upper",
-      type: "nodetool.text.ToUppercase",
-      properties: { text: "" }
+      type: "nodetool.code.Code",
+      properties: {
+        code: "return { output: inputs.text.toUpperCase() };",
+        packages: []
+      },
+      dynamic_properties: { text: "" },
+      dynamic_outputs: { output: { type: "any", type_args: [], optional: false } }
     },
     {
       id: "draft_out",
@@ -218,7 +223,7 @@ const DRAFT_GRAPH: AppBuildGraph = {
   ]
 };
 
-/** StringInput → SurroundWith → Output. "SHIP IT" becomes "PUBLISHED: SHIP IT". */
+/** StringInput → Code (surround) → Output. "SHIP IT" becomes "PUBLISHED: SHIP IT". */
 const PUBLISH_GRAPH: AppBuildGraph = {
   nodes: [
     {
@@ -228,13 +233,13 @@ const PUBLISH_GRAPH: AppBuildGraph = {
     },
     {
       id: "stamp",
-      type: "nodetool.text.SurroundWith",
+      type: "nodetool.code.Code",
       properties: {
-        text: "",
-        prefix: "PUBLISHED: ",
-        suffix: "",
-        skip_if_wrapped: false
-      }
+        code: "return { output: inputs.prefix + inputs.text + inputs.suffix };",
+        packages: []
+      },
+      dynamic_properties: { text: "", prefix: "PUBLISHED: ", suffix: "" },
+      dynamic_outputs: { output: { type: "any", type_args: [], optional: false } }
     },
     {
       id: "published_out",

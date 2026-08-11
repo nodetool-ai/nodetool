@@ -1889,7 +1889,6 @@ import {
   GetAudioInfoNode,
   JoinTextNode,
   PromptNode,
-  ReplaceTextNode,
   SwitchNode,
   TemplateTextNode,
   TryCatchNode
@@ -1923,11 +1922,6 @@ describe("missing exported node smoke tests", () => {
 
   it("PromptNode defaults", () => {
     const n = new PromptNode();
-    expect(n.serialize()).toBeDefined();
-  });
-
-  it("ReplaceTextNode defaults", () => {
-    const n = new ReplaceTextNode();
     expect(n.serialize()).toBeDefined();
   });
 

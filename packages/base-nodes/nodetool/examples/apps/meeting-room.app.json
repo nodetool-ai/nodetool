@@ -618,9 +618,10 @@
           {
             "id": "is_transcript_empty",
             "parent_id": null,
-            "type": "nodetool.text.IsEmpty",
+            "type": "nodetool.code.Code",
             "data": {
-              "trim_whitespace": true
+              "code": "const text = String(inputs.text ?? \"\");\nconst trimWhitespace = inputs.trim_whitespace === undefined ? true : Boolean(inputs.trim_whitespace);\nreturn { output: (trimWhitespace ? text.trim() : text).length === 0 };",
+              "packages": []
             },
             "ui_properties": {
               "selected": false,
@@ -633,8 +634,16 @@
               "selectable": true,
               "title": "Check: transcript pasted?"
             },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
+            "dynamic_properties": {
+              "trim_whitespace": true
+            },
+            "dynamic_outputs": {
+              "output": {
+                "type": "any",
+                "type_args": [],
+                "optional": false
+              }
+            }
           },
           {
             "id": "use_transcribed_audio",
