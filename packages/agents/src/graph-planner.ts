@@ -13,10 +13,14 @@ import type {
   BaseProvider,
   ProcessingContext,
   Message,
+  SandboxModuleCatalog,
   ToolCall,
   TurnBudget
 } from "@nodetool-ai/runtime";
-import { withAgentSpanGen } from "@nodetool-ai/runtime";
+import {
+  getProcessSandboxModuleCatalog,
+  withAgentSpanGen
+} from "@nodetool-ai/runtime";
 import { linkAbort } from "./utils/link-abort.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createLogger } from "@nodetool-ai/config";
@@ -39,6 +43,8 @@ import {
   buildGraphPlannerSystemPrompt,
   resolveAvailableGenericNodes
 } from "./prompts/graph-planner-prompt.js";
+import { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
+import { refineCodeNodes } from "./code-node-refine.js";
 
 const log = createLogger("nodetool.agents.graph-planner");
 
@@ -86,6 +92,21 @@ export interface GraphPlannerOptions {
    * loop, so the planner returns null rather than overrunning a caller's cap.
    */
   turnBudget?: TurnBudget;
+  /**
+   * Re-author every `nodetool.code.Code` body through `CodePlanner` once the
+   * graph is accepted. On by default: a body written inline as one string in a
+   * whole-graph program gets none of the sandbox reference or the feedback
+   * rounds the code path has. Turn it off to keep graph planning to one model
+   * loop — an eval measuring the planner alone, or a caller on a tight budget.
+   */
+  refineCodeNodes?: boolean;
+  /**
+   * The sandbox packs the prompt may advertise. Omit it and the planner reads
+   * the catalog off the {@link ProcessingContext} it plans with, then off this
+   * process — which is what a server or CLI run wants. Pass `null` to
+   * advertise no pack at all.
+   */
+  sandboxModuleCatalog?: SandboxModuleCatalog | null;
 }
 
 export class GraphPlanner {
@@ -93,7 +114,10 @@ export class GraphPlanner {
   private readonly model: string;
   private readonly registry: NodeRegistry;
   private readonly tools: Tool[];
-  private readonly systemPrompt: string;
+  private readonly explicitSystemPrompt: string | undefined;
+  private readonly sandboxModuleCatalog: SandboxModuleCatalog | null | undefined;
+  /** Built on the first `plan`, once a context can supply the catalog. */
+  private defaultSystemPrompt: string | undefined;
   private readonly outputSchema: Record<string, unknown> | undefined;
   private readonly inputs: Record<string, unknown>;
   private readonly maxRetries: number;
@@ -102,6 +126,7 @@ export class GraphPlanner {
   private readonly turnBudget?: TurnBudget;
   private readonly providers?: Record<string, BaseProvider>;
   private readonly hasFindModel: boolean;
+  private readonly refineCode: boolean;
 
   constructor(opts: GraphPlannerOptions) {
     this.provider = opts.provider;
@@ -111,13 +136,15 @@ export class GraphPlanner {
     this.providers = opts.providers;
     this.hasFindModel =
       !!opts.providers && Object.keys(opts.providers).length > 0;
-    this.systemPrompt = opts.systemPrompt ?? this.buildDefaultSystemPrompt();
+    this.explicitSystemPrompt = opts.systemPrompt;
+    this.sandboxModuleCatalog = opts.sandboxModuleCatalog;
     this.outputSchema = opts.outputSchema;
     this.inputs = opts.inputs ?? {};
     this.maxRetries = opts.maxRetries ?? MAX_RETRIES;
     this.threadId = opts.threadId;
     this.signal = opts.signal;
     this.turnBudget = opts.turnBudget;
+    this.refineCode = opts.refineCodeNodes ?? true;
 
     if (!this.hasFindModel) {
       log.warn(
@@ -127,12 +154,39 @@ export class GraphPlanner {
   }
 
   /**
-   * Build the default planner prompt, advertising only the generic AI nodes
-   * the registry actually has. A renamed/removed catalog entry is logged
-   * rather than offered to the agent (which would waste a build attempt on an
-   * unknown node type).
+   * The prompt this run plans with: the caller's, else the default one built
+   * once against the catalog in force.
    */
-  private buildDefaultSystemPrompt(): string {
+  private resolveSystemPrompt(context: ProcessingContext): string {
+    if (this.explicitSystemPrompt !== undefined) return this.explicitSystemPrompt;
+    this.defaultSystemPrompt ??= this.buildDefaultSystemPrompt(
+      this.resolveCatalog(context)
+    );
+    return this.defaultSystemPrompt;
+  }
+
+  /**
+   * The catalog in force: the caller's option, else the context's, else this
+   * process's. A caller that means "no packs" says so with `null`; only an
+   * absent value falls through to the next source.
+   */
+  private resolveCatalog(context: ProcessingContext): SandboxModuleCatalog | null {
+    if (this.sandboxModuleCatalog !== undefined) return this.sandboxModuleCatalog;
+    const fromContext: SandboxModuleCatalog | null | undefined =
+      context.sandboxModuleCatalog;
+    if (fromContext !== undefined) return fromContext;
+    return getProcessSandboxModuleCatalog();
+  }
+
+  /**
+   * Build the default planner prompt, advertising only the generic AI nodes
+   * the registry actually has and only the sandbox packs this machine has
+   * installed. A renamed/removed catalog entry is logged rather than offered
+   * to the agent (which would waste a build attempt on an unknown node type).
+   */
+  private buildDefaultSystemPrompt(
+    catalog: SandboxModuleCatalog | null
+  ): string {
     const { available, missing } = resolveAvailableGenericNodes(this.registry);
     if (missing.length > 0) {
       log.warn(
@@ -142,7 +196,8 @@ export class GraphPlanner {
     }
     return buildGraphPlannerSystemPrompt({
       hasFindModel: this.hasFindModel,
-      genericNodes: available
+      genericNodes: available,
+      sandboxPacks: installedSandboxPacks(catalog ?? undefined)
     });
   }
 
@@ -168,7 +223,7 @@ export class GraphPlanner {
 
   private async *_planImpl(
     objective: string,
-    _context: ProcessingContext
+    context: ProcessingContext
   ): AsyncGenerator<ProcessingMessage, GraphData | null> {
     const toolsInfo = this.formatToolsInfo();
 
@@ -186,7 +241,7 @@ export class GraphPlanner {
       );
 
     const messages: Message[] = [
-      { role: "system", content: this.systemPrompt },
+      { role: "system", content: this.resolveSystemPrompt(context) },
       { role: "user", content: userPrompt }
     ];
 
@@ -231,6 +286,10 @@ export class GraphPlanner {
           nodes: result.graph.nodes.length,
           edges: result.graph.edges.length
         });
+
+        if (this.refineCode) {
+          yield* this.refineCodeBodies(result.graph, objective);
+        }
 
         yield {
           type: "planning_update",
@@ -283,6 +342,38 @@ export class GraphPlanner {
     } satisfies PlanningUpdate;
 
     return null;
+  }
+
+  /**
+   * Hand the accepted graph's Code nodes to `CodePlanner`. The pass never
+   * fails the plan: it patches what it can improve, keeps the authored body
+   * for everything else, and reports the rest as warnings.
+   */
+  private async *refineCodeBodies(
+    graph: GraphData,
+    objective: string
+  ): AsyncGenerator<ProcessingMessage, void> {
+    try {
+      const report = yield* refineCodeNodes(graph, {
+        provider: this.provider,
+        model: this.model,
+        registry: this.registry,
+        objective,
+        ...(this.signal ? { signal: this.signal } : {}),
+        ...(this.threadId ? { threadId: this.threadId } : {})
+      });
+      if (report.eligible > 0) {
+        log.info("Code node refinement", {
+          eligible: report.eligible,
+          refined: report.refined,
+          warnings: report.warnings.length
+        });
+      }
+    } catch (error) {
+      log.warn("Code node refinement failed; keeping the authored bodies", {
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   private buildRetryMessage(

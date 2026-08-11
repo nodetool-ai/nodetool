@@ -272,6 +272,8 @@ export type {
   GenericNodeCapability,
   BuildPromptOptions
 } from "./prompts/graph-planner-prompt.js";
+export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
+export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
 export { SaveAssetTool, ReadAssetTool } from "./tools/asset-tools.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";
 export type { ControlNodeInfo } from "./tools/control-tool.js";
@@ -389,6 +391,12 @@ export { SubmitCodeTool } from "./tools/submit-code-tool.js";
 export type { SubmitCodeToolOptions } from "./tools/submit-code-tool.js";
 export { CodePlanner } from "./code-planner.js";
 export type { CodePlannerOptions } from "./code-planner.js";
+export { refineCodeNodes } from "./code-node-refine.js";
+export type {
+  CodeNodeRefinementOptions,
+  CodeNodeRefinementOutcome,
+  CodeNodeRefinementReport
+} from "./code-node-refine.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";

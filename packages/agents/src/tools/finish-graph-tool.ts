@@ -21,7 +21,10 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { Tool } from "./base-tool.js";
 import { type GraphBuilder } from "../graph-builder.js";
-import { declareDynamicSlotsFromEdges } from "../dynamic-slots.js";
+import {
+  declareDynamicOutputsFromEdges,
+  declareDynamicSlotsFromEdges
+} from "../dynamic-slots.js";
 
 const FINISH_GRAPH_INPUT_SCHEMA = {
   type: "object" as const,
@@ -114,6 +117,9 @@ export class FinishGraphTool extends Tool {
       // Safety net for builders fed outside `add_edge`: type any dynamic input
       // slot an edge lands on from the source output.
       declareDynamicSlotsFromEdges(this.builder, this.registry);
+      // Same safety net for the other direction: an outgoing edge declares the
+      // source's dynamic output handle.
+      declareDynamicOutputsFromEdges(this.builder, this.registry);
       const report = validateGraph(
         this.builder.snapshot(),
         metadataAwareRegistry(this.registry)

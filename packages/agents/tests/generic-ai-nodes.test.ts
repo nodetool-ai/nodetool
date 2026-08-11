@@ -113,4 +113,36 @@ describe("buildGraphPlannerSystemPrompt", () => {
       expect(prompt).not.toContain(`| ${node.task} | \`${node.type}\``);
     }
   });
+
+  it("names no sandbox pack when none are installed", () => {
+    const prompt = buildGraphPlannerSystemPrompt();
+    expect(prompt).toContain("No sandbox packages are installed");
+    expect(prompt).toContain("`packages` must stay empty");
+    expect(prompt).not.toContain("@nodetool-ai/sandbox-");
+  });
+
+  it("renders one row per installed pack", () => {
+    const prompt = buildGraphPlannerSystemPrompt({
+      sandboxPacks: [
+        { specifier: "@nodetool-ai/sandbox-csv", summary: "Parse CSV" },
+        { specifier: "@nodetool-ai/sandbox-yaml", summary: "Parse YAML" }
+      ]
+    });
+    expect(prompt).toContain("| `@nodetool-ai/sandbox-csv` | Parse CSV |");
+    expect(prompt).toContain("| `@nodetool-ai/sandbox-yaml` | Parse YAML |");
+    expect(prompt).not.toContain("sandbox-pptx");
+    expect(prompt).not.toContain("No sandbox packages are installed");
+  });
+
+  it("forbids undeclared specifiers in both cases", () => {
+    const rule = "Never declare a specifier that is not listed";
+    expect(buildGraphPlannerSystemPrompt()).toContain(rule);
+    expect(
+      buildGraphPlannerSystemPrompt({
+        sandboxPacks: [
+          { specifier: "@nodetool-ai/sandbox-csv", summary: "Parse CSV" }
+        ]
+      })
+    ).toContain(rule);
+  });
 });
