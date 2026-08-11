@@ -56,8 +56,19 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     id: "html",
     packName: "@nodetool-ai/sandbox-html",
     library: "cheerio + turndown",
-    description: "CSS selection over HTML, and HTML to markdown.",
-    exports: ["select", "toMarkdown"]
+    description:
+      "CSS selection over HTML, HTML to markdown/text, and link/media/metadata extraction.",
+    exports: [
+      "select",
+      "toMarkdown",
+      "toText",
+      "extractLinks",
+      "extractImages",
+      "extractAudio",
+      "extractVideos",
+      "extractMetadata",
+      "extractReadableText"
+    ]
   },
   xml: {
     id: "xml",
@@ -70,8 +81,23 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     id: "xlsx",
     packName: "@nodetool-ai/sandbox-xlsx",
     library: "exceljs",
-    description: "Read an Excel workbook's sheets as records.",
-    exports: ["parse"]
+    description: "Read and write Excel workbooks.",
+    exports: ["parse", "write"]
+  },
+  ocr: {
+    id: "ocr",
+    packName: "@nodetool-ai/sandbox-ocr",
+    library: "tesseract.js",
+    description: "Read text out of an image, with per-word boxes.",
+    exports: ["recognize"]
+  },
+  tfjs: {
+    id: "tfjs",
+    packName: "@nodetool-ai/sandbox-tfjs",
+    library: "@tensorflow/tfjs + the tfjs model zoo",
+    description:
+      "Classify and embed images, detect objects, answer from a passage.",
+    exports: ["classify", "embed", "detect", "answer"]
   },
   zip: {
     id: "zip",
@@ -127,7 +153,7 @@ export function sandboxHostModuleViolation(
  * {@link generateSandboxHostFacade} or {@link SANDBOX_HOST_BRIDGE_SOURCE}
  * changes what the guest sees.
  */
-export const SANDBOX_HOST_FACADE_VERSION = 1;
+export const SANDBOX_HOST_FACADE_VERSION = 2;
 
 /**
  * The guest-visible name the host parks the dispatcher on.

@@ -1,0 +1,37 @@
+{
+  "name": "@nodetool-ai/sandbox-markdown",
+  "version": "0.7.0-rc.34",
+  "description": "Markdown parsing inside the NodeTool sandbox, from marked's lexer running in the guest",
+  "license": "MIT",
+  "dependencies": {
+    "marked": "^12.0.2"
+  },
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      { "name": ".", "kind": "js", "npm": "marked" }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-markdown"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "markdown"
+  ]
+}

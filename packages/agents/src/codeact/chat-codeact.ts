@@ -23,6 +23,8 @@ import {
   type SandboxModuleCatalog
 } from "@nodetool-ai/runtime";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import type { CapabilityRun } from "../capabilities/types.js";
+import { mountCapabilityModules } from "./capability-modules.js";
 import { stripImagePayload } from "../tools/image-injection.js";
 import { searchTools } from "../tools/tool-search.js";
 import { truncateToolResult } from "../constants.js";
@@ -117,6 +119,13 @@ export interface ChatCodeActSessionOptions {
    * there is no other place to read one from. Pass `null` to resolve nothing.
    */
   sandboxModuleCatalog?: SandboxModuleCatalog | null;
+  /**
+   * The session's capability run. With one, an action may import NodeTool's
+   * own modules (`@nodetool-ai/sandbox-nodetool/<namespace>`), which land on
+   * `run.invoke` — the same gate, lookup and implementation `tools.*` reaches.
+   * Without one nothing is mounted and such an import is refused by name.
+   */
+  capabilityRun?: CapabilityRun;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: { name: string; args: Record<string, unknown> }) => void;
 }
@@ -398,10 +407,23 @@ export function createChatCodeActSession(
         toolCalls: 0
       } satisfies ActionObservation);
     }
+    const platform = await mountCapabilityModules(
+      code,
+      options.capabilityRun,
+      options.signal === undefined ? {} : { signal: options.signal }
+    );
+    if (!platform.ok) {
+      return JSON.stringify({
+        ok: false,
+        error: platform.error,
+        toolCalls: 0
+      } satisfies ActionObservation);
+    }
     const mount = mountActionModules(
       code,
       sandboxPackages,
-      sandboxModuleCatalog
+      sandboxModuleCatalog,
+      new Set(platform.mount?.facades.keys() ?? [])
     );
     if (!mount.ok) {
       return JSON.stringify({
@@ -419,6 +441,7 @@ export function createChatCodeActSession(
       clock: options.clock,
       limits: { maxFetchCalls: 0 },
       modules: mount.modules,
+      capabilities: platform.mount,
       globals: {
         __callTool: callTool,
         __toolNames: toolNames,

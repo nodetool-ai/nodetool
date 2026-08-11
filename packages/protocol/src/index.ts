@@ -24,6 +24,7 @@ export * from "./builtin-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
 export * from "./agent-protocol.js";
+export * from "./sandbox-capability.js";
 export * from "./sandbox-host.js";
 export * from "./sandbox-package.js";
 export * from "./sandbox-wasm.js";

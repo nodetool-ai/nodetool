@@ -153,11 +153,13 @@ export class DataForSEOSearchTool extends Tool {
     required: ["keyword"]
   };
 
-  private _provider?: SerpProvider;
-
-  constructor(provider?: SerpProvider) {
+  /**
+   * The SERP provider argument these tools accepted and never used: DataForSEO
+   * is reached over its own REST API below, not through a `SerpProvider`.
+   * Kept in the signature so existing constructor calls compile.
+   */
+  constructor(_provider?: SerpProvider) {
     super();
-    this._provider = provider;
   }
 
   async process(
@@ -235,11 +237,13 @@ export class DataForSEONewsTool extends Tool {
     required: ["keyword"]
   };
 
-  private _provider?: SerpProvider;
-
-  constructor(provider?: SerpProvider) {
+  /**
+   * The SERP provider argument these tools accepted and never used: DataForSEO
+   * is reached over its own REST API below, not through a `SerpProvider`.
+   * Kept in the signature so existing constructor calls compile.
+   */
+  constructor(_provider?: SerpProvider) {
     super();
-    this._provider = provider;
   }
 
   async process(
@@ -328,11 +332,13 @@ export class DataForSEOImagesTool extends Tool {
     }
   };
 
-  private _provider?: SerpProvider;
-
-  constructor(provider?: SerpProvider) {
+  /**
+   * The SERP provider argument these tools accepted and never used: DataForSEO
+   * is reached over its own REST API below, not through a `SerpProvider`.
+   * Kept in the signature so existing constructor calls compile.
+   */
+  constructor(_provider?: SerpProvider) {
     super();
-    this._provider = provider;
   }
 
   async process(

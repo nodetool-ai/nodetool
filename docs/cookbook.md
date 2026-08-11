@@ -25,7 +25,7 @@ first, then follow a beginner example like
 | Generate content with an LLM | [2 · Agent-Driven Generation]({{ '/cookbook/patterns' | relative_url }}#pattern-2-agent-driven-generation) | `Agent`, `ListGenerator`, `TextToSpeech` |
 | Show progress during a long run | [3 · Streaming with Previews]({{ '/cookbook/patterns' | relative_url }}#pattern-3-streaming-with-multiple-previews) | `Agent`, `ListGenerator`, `Preview` |
 | Answer questions about documents | [4 · RAG]({{ '/cookbook/patterns' | relative_url }}#pattern-4-rag-retrieval-augmented-generation) | `HybridSearch`, `FormatText`, `Agent` |
-| Store data persistently | [5 · Database Persistence]({{ '/cookbook/patterns' | relative_url }}#pattern-5-database-persistence) | `CreateTable`, `Insert`, `Query` |
+| Get rows you can compute on | [5 · Structured Records]({{ '/cookbook/patterns' | relative_url }}#pattern-5-database-persistence) | `DataGenerator`, `Code` |
 | Process emails or web content | [6 · Email & Web Integration]({{ '/cookbook/patterns' | relative_url }}#pattern-6-email--web-integration) | `GmailSearch`, `Template`, `Summarizer` |
 | Convert between media types | [7 · Multi-Modal Workflows]({{ '/cookbook/patterns' | relative_url }}#pattern-7-multi-modal-workflows) | `Whisper`, `StableDiffusion`, `TextToSpeech` |
 | Transform images with AI | [8 · Advanced Image Processing]({{ '/cookbook/patterns' | relative_url }}#pattern-8-advanced-image-processing) | `StableDiffusionV3MediumImageToImage`, `ImageToText`, `Canny` |

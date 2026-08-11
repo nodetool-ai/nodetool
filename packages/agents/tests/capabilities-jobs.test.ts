@@ -1,0 +1,124 @@
+/**
+ * The `jobs` capability module.
+ *
+ * Three things must hold for a ported namespace: the module is drift-clean,
+ * every spec's category is the one the gate reads today, and the deprecated
+ * class and the capability are the same identity — because they are the same
+ * spec. One behavioural round trip per module proves the port runs, not just
+ * that it type-checks.
+ */
+
+import { describe, expect, it, beforeEach } from "vitest";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { Job, initTestDb } from "@nodetool-ai/models";
+import {
+  GetJobLogsTool,
+  GetJobTool,
+  ListJobsTool
+} from "../src/tools/mcp-tools.js";
+import { JOB_CAPABILITIES, module as jobsModule } from "../src/capabilities/jobs.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolFromCapability
+} from "../src/capabilities/index.js";
+import {
+  capabilityModuleIssues,
+  loadCapabilityModule
+} from "../src/capabilities/registry.js";
+import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import type { Tool } from "../src/tools/base-tool.js";
+
+const USER = "user-jobs";
+
+const ctx = { userId: USER } as unknown as ProcessingContext;
+
+function asTool(name: string): Tool {
+  const entry = JOB_CAPABILITIES.find((e) => e.spec.name === name);
+  if (!entry) throw new Error(`no jobs capability named "${name}"`);
+  return toolFromCapability(entry.spec, entry.impl, () =>
+    createCapabilityRun({ context: ctx, gate: UNGATED })
+  );
+}
+
+beforeEach(() => {
+  initTestDb();
+});
+
+describe("jobs capability module", () => {
+  it("is registered and drift-clean", async () => {
+    const loaded = await loadCapabilityModule("jobs");
+    expect(loaded).toBe(jobsModule);
+    expect(capabilityModuleIssues("jobs", loaded)).toEqual([]);
+  });
+
+  it("carries the wire names the tools carried", () => {
+    expect(JOB_CAPABILITIES.map((e) => e.spec.name)).toEqual([
+      "list_jobs",
+      "get_job",
+      "get_job_logs"
+    ]);
+  });
+
+  it("classifies every capability the way the gate does today", () => {
+    for (const entry of JOB_CAPABILITIES) {
+      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+    }
+  });
+
+  it("matches the deprecated classes, spec for spec", () => {
+    const classes = [new ListJobsTool(), new GetJobTool(), new GetJobLogsTool()];
+    for (const tool of classes) {
+      const entry = JOB_CAPABILITIES.find((e) => e.spec.name === tool.name);
+      expect(entry).toBeDefined();
+      expect(tool.description).toBe(entry!.spec.description);
+      expect(tool.inputSchema).toEqual(entry!.spec.inputSchema);
+    }
+  });
+
+  it("keeps the user-facing message templates", () => {
+    const listJobs = JOB_CAPABILITIES[0].spec;
+    expect(listJobs.userMessage?.({})).toBe("Listing jobs");
+    expect(listJobs.userMessage?.({ workflow_id: "wf-1" })).toBe(
+      "Listing jobs for workflow wf-1"
+    );
+  });
+});
+
+describe("jobs capabilities against the database", () => {
+  it("lists, reads and tails a job the way the tools did", async () => {
+    const job = (await Job.create({
+      user_id: USER,
+      workflow_id: "wf-1",
+      status: "completed",
+      params: {},
+      graph: { nodes: [], edges: [] },
+      logs: [{ message: "one" }, { message: "two" }, { message: "three" }]
+    })) as Job;
+
+    const listed = (await asTool("list_jobs").process(ctx, {})) as {
+      jobs: Array<Record<string, unknown>>;
+    };
+    expect(listed.jobs.map((j) => j.id)).toContain(job.id);
+
+    const got = (await asTool("get_job").process(ctx, {
+      job_id: job.id
+    })) as Record<string, unknown>;
+    expect(got.id).toBe(job.id);
+    expect(got.status).toBe("completed");
+
+    const tail = (await asTool("get_job_logs").process(ctx, {
+      job_id: job.id,
+      limit: 2
+    })) as Record<string, unknown>;
+    expect(tail.total_logs).toBe(3);
+    expect(tail.logs).toEqual([{ message: "two" }, { message: "three" }]);
+  });
+
+  it("reports a job the user does not own", async () => {
+    const missing = (await asTool("get_job").process(ctx, {
+      job_id: "nope"
+    })) as Record<string, unknown>;
+    expect(String(missing.error)).toContain("was not found");
+  });
+});

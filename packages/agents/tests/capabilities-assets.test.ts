@@ -1,0 +1,238 @@
+/**
+ * The `assets` capability module.
+ *
+ * Beyond the drift/category/spec-parity checks every ported namespace gets,
+ * two things are specific to this module. `view_image`'s result shape is a
+ * contract with the executors — they strip `image_content` out and forward the
+ * pixels as provider image blocks — so it is pinned here. And `list_images` /
+ * `view_image` are the two capabilities whose identity is a Zod schema, so the
+ * argument check that used to live in `Tool.execute` is asserted where it lives
+ * now: inside the implementation, with the same failure envelope.
+ */
+
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { Buffer } from "node:buffer";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { InMemoryStorageAdapter } from "@nodetool-ai/runtime";
+import { Asset, initTestDb } from "@nodetool-ai/models";
+import { GetAssetTool, ListAssetsTool } from "../src/tools/mcp-tools.js";
+import { ReadAssetTool, SaveAssetTool } from "../src/tools/asset-tools.js";
+import {
+  AssetListTool,
+  AssetSearchTool
+} from "../src/tools/asset-library-tools.js";
+import { ListImagesTool, ViewImageTool } from "../src/tools/view-image-tool.js";
+import {
+  ASSET_CAPABILITIES,
+  module as assetsModule
+} from "../src/capabilities/assets.js";
+import { extractInjectableImages } from "../src/tools/image-injection.js";
+import {
+  UNGATED,
+  createCapabilityRun,
+  toolFromCapability
+} from "../src/capabilities/index.js";
+import {
+  capabilityModuleIssues,
+  loadCapabilityModule
+} from "../src/capabilities/registry.js";
+import { permissionCategoryFor } from "../src/tools/tool-permissions.js";
+import type { Tool } from "../src/tools/base-tool.js";
+import type { PackageAssetLister } from "../src/tools/mcp-tools.js";
+
+const USER = "user-assets";
+
+const TINY_PNG_B64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
+
+function makeContext(
+  extra: Partial<Record<string, unknown>> = {}
+): ProcessingContext {
+  return {
+    userId: USER,
+    storage: new InMemoryStorageAdapter(),
+    ...extra
+  } as unknown as ProcessingContext;
+}
+
+function asTool(
+  name: string,
+  context: ProcessingContext,
+  listPackageAssets?: PackageAssetLister
+): Tool {
+  const entry = ASSET_CAPABILITIES.find((e) => e.spec.name === name);
+  if (!entry) throw new Error(`no assets capability named "${name}"`);
+  return toolFromCapability(entry.spec, entry.impl, () =>
+    createCapabilityRun({ context, gate: UNGATED, listPackageAssets })
+  );
+}
+
+beforeEach(() => {
+  initTestDb();
+});
+
+describe("assets capability module", () => {
+  it("is registered and drift-clean", async () => {
+    const loaded = await loadCapabilityModule("assets");
+    expect(loaded).toBe(assetsModule);
+    expect(capabilityModuleIssues("assets", loaded)).toEqual([]);
+  });
+
+  it("carries the wire names the tools carried", () => {
+    expect(ASSET_CAPABILITIES.map((e) => e.spec.name)).toEqual([
+      "list_assets",
+      "get_asset",
+      "save_asset",
+      "read_asset",
+      "asset_search",
+      "asset_list",
+      "list_images",
+      "view_image"
+    ]);
+  });
+
+  it("classifies every capability the way the gate does today", () => {
+    for (const entry of ASSET_CAPABILITIES) {
+      expect(entry.spec.category).toBe(permissionCategoryFor(entry.spec.name));
+    }
+  });
+
+  it("matches the deprecated classes, spec for spec", () => {
+    const classes: Tool[] = [
+      new ListAssetsTool(),
+      new GetAssetTool(),
+      new SaveAssetTool(),
+      new ReadAssetTool(),
+      new AssetSearchTool(),
+      new AssetListTool(),
+      new ListImagesTool(),
+      new ViewImageTool()
+    ];
+    for (const tool of classes) {
+      const entry = ASSET_CAPABILITIES.find((e) => e.spec.name === tool.name);
+      expect(entry).toBeDefined();
+      expect(tool.description).toBe(entry!.spec.description);
+      expect(tool.inputSchema).toEqual(entry!.spec.inputSchema);
+    }
+  });
+
+  it("keeps the user-facing message templates", () => {
+    const byName = (name: string) =>
+      ASSET_CAPABILITIES.find((e) => e.spec.name === name)!.spec;
+    expect(byName("list_assets").userMessage?.({})).toBe("Listing assets");
+    expect(byName("list_assets").userMessage?.({ query: "cat" })).toBe(
+      "Searching assets for 'cat'"
+    );
+    expect(byName("view_image").userMessage?.({ image_id: "a1" })).toBe(
+      "Viewing image a1"
+    );
+  });
+});
+
+describe("assets capabilities against the database", () => {
+  it("lists, searches and reads back an asset row", async () => {
+    const asset = (await Asset.create({
+      user_id: USER,
+      name: "cover.png",
+      content_type: "image/png"
+    })) as Asset;
+
+    const ctx = makeContext();
+    const listed = (await asTool("list_assets", ctx).process(ctx, {})) as {
+      assets: Array<Record<string, unknown>>;
+    };
+    expect(listed.assets.map((a) => a.id)).toContain(asset.id);
+
+    const got = (await asTool("get_asset", ctx).process(ctx, {
+      asset_id: asset.id
+    })) as Record<string, unknown>;
+    expect(got.name).toBe("cover.png");
+    expect(got.uri).toBe(`asset://${asset.id}.png`);
+
+    const searched = (await asTool("asset_search", ctx).process(ctx, {
+      query: "cover"
+    })) as { assets: Array<Record<string, unknown>> };
+    expect(searched.assets.map((a) => a.asset_id)).toContain(asset.id);
+  });
+
+  it("routes package assets to the injected lister", async () => {
+    const ctx = makeContext();
+    const lister = vi.fn(async () => [{ name: "shipped.png" }]);
+    const result = (await asTool("list_assets", ctx, lister).process(ctx, {
+      source: "package"
+    })) as Record<string, unknown>;
+    expect(lister).toHaveBeenCalled();
+    expect(result.assets).toEqual([{ name: "shipped.png" }]);
+  });
+
+  it("says so when no package lister is on the run", async () => {
+    const ctx = makeContext();
+    const result = (await asTool("list_assets", ctx).process(ctx, {
+      source: "package"
+    })) as Record<string, unknown>;
+    expect(String(result.error)).toContain("not available in this process");
+  });
+
+  it("round-trips content through save_asset and read_asset", async () => {
+    const ctx = makeContext();
+    const saved = (await asTool("save_asset", ctx).process(ctx, {
+      name: "notes.md",
+      content: "# hello"
+    })) as Record<string, unknown>;
+    expect(saved.success).toBe(true);
+
+    const read = (await asTool("read_asset", ctx).process(ctx, {
+      name: "notes.md"
+    })) as Record<string, unknown>;
+    expect(read.success).toBe(true);
+    expect(read.content).toBe("# hello");
+  });
+});
+
+describe("view_image", () => {
+  it("returns the payload shape the executors forward as image blocks", async () => {
+    const ctx = makeContext({
+      resolveAssetBytes: vi.fn(async () => ({
+        bytes: new Uint8Array(Buffer.from(TINY_PNG_B64, "base64")),
+        attempts: [] as string[]
+      }))
+    });
+    const result = (await asTool("view_image", ctx).process(ctx, {
+      image_id: "asset://abc.png"
+    })) as Record<string, unknown>;
+
+    expect(result.ok).toBe(true);
+    expect(result.mimeType).toBe("image/png");
+    expect(result.image_content).toEqual({
+      uri: `data:image/png;base64,${TINY_PNG_B64}`,
+      mimeType: "image/png"
+    });
+    expect(extractInjectableImages(result)).not.toBeNull();
+  });
+
+  it("runs the argument check the tool ran, with the same envelope", async () => {
+    const ctx = makeContext();
+    const result = (await asTool("view_image", ctx).process(ctx, {})) as Record<
+      string,
+      unknown
+    >;
+    expect(result.error).toBe("invalid_tool_arguments");
+    expect(String(result.message)).toContain("Invalid arguments for view_image");
+  });
+
+  it("leaves the class path validating exactly once, where it always did", async () => {
+    const ctx = makeContext();
+    // `process()` is the unvalidated core, as before the port.
+    const direct = (await new ViewImageTool().process(ctx, {})) as Record<
+      string,
+      unknown
+    >;
+    expect(direct.error).toBe("image_id is required");
+    // `execute()` is where `Tool` validated, and still does.
+    const executed = (await new ViewImageTool().execute(ctx, {})) as Record<
+      string,
+      unknown
+    >;
+    expect(executed.error).toBe("invalid_tool_arguments");
+  });
+});

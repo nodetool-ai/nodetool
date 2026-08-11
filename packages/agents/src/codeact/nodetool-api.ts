@@ -1101,6 +1101,13 @@ driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
 tools are deliberately absent from the tool catalog above; this object model
 is their one documented surface. \`nodetool.capabilities()\` reports what is
 available. A method whose backing tool is missing throws and names the tool.`,
+    `The same capabilities are also importable, one module per namespace:
+\`import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows"\`, or
+\`import workflows from "@nodetool-ai/sandbox-nodetool/workflows"\` for the whole
+namespace. Each export takes the one arguments object its tool takes. This is
+the same gated implementation \`nodetool.*\` calls — \`nodetool.*\` stays
+available, and the two cannot disagree. A module this session does not mount
+fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
   const hasGraph = NODETOOL_API_NAMESPACE_TOOLS["graph"].every((tool) =>

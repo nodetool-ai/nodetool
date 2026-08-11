@@ -14,16 +14,25 @@ export const DEFAULT_SELECT_HTML_LIMIT = 100;
 /** Ceiling for `select`'s `limit` option. */
 export const MAX_SELECT_HTML_LIMIT = 1000;
 
-interface CheerioSelection {
-  length: number;
-  eq: (index: number) => {
-    text: () => string;
-    attr: (name: string) => string | undefined;
-  };
+interface CheerioElement {
+  text: () => string;
+  attr: (name: string) => string | undefined;
+  remove: () => void;
 }
 
+interface CheerioSelection extends CheerioElement {
+  length: number;
+  eq: (index: number) => CheerioElement;
+  first: () => CheerioElement;
+  each: (fn: (index: number, el: unknown) => void) => CheerioSelection;
+}
+
+type CheerioAPI = ((selector: string | unknown, context?: unknown) => CheerioSelection) & {
+  root: () => CheerioElement;
+};
+
 interface CheerioLike {
-  load: (html: string) => (selector: string) => CheerioSelection;
+  load: (html: string) => CheerioAPI;
 }
 
 interface TurndownLike {
@@ -114,4 +123,165 @@ export async function toMarkdown(
       : {})
   });
   return service.turndown(source);
+}
+
+/** Largest number of extracted items any extractor returns. */
+export const MAX_EXTRACT_HTML_ITEMS = 1000;
+
+function resolveUrl(src: string, baseUrl: string): string {
+  try {
+    return new URL(src, baseUrl || undefined).href;
+  } catch {
+    return src;
+  }
+}
+
+/** A whole HTML page as plain text — tags stripped, whitespace collapsed. */
+export async function toText(html: unknown): Promise<string> {
+  const where = "html.toText";
+  const source = requireText(where, html, "html");
+  const cheerio = await loadCheerio(where);
+  const $ = cheerio.load(source);
+  $("script, style").remove();
+  return $.root()
+    .text()
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+interface ExtractedLink {
+  href: string;
+  text: string;
+  type: "internal" | "external";
+}
+
+/** Every `<a href>` in the page, classified internal vs external. */
+export async function extractLinks(
+  html: unknown,
+  baseUrl?: unknown
+): Promise<ExtractedLink[]> {
+  const where = "html.extractLinks";
+  const source = requireText(where, html, "html");
+  const base = baseUrl === undefined || baseUrl === null ? "" : String(baseUrl);
+  const cheerio = await loadCheerio(where);
+  const $ = cheerio.load(source);
+  const isInternal = (href: string): boolean => {
+    if (!href || href.startsWith("#")) return true;
+    if (/^(mailto|tel|javascript):/i.test(href)) return false;
+    if (base) {
+      try {
+        return new URL(href, base).origin === new URL(base).origin;
+      } catch {
+        // Unparseable href/base — fall through to the scheme heuristic.
+      }
+    }
+    return !/^[a-z][a-z0-9+.-]*:|^\/\//i.test(href);
+  };
+  const results: ExtractedLink[] = [];
+  $("a[href]").each((_i, el) => {
+    if (results.length >= MAX_EXTRACT_HTML_ITEMS) return;
+    const $el = $(el);
+    const href = $el.attr("href") ?? "";
+    results.push({
+      href,
+      text: $el.text().trim(),
+      type: isInternal(href) ? "internal" : "external"
+    });
+  });
+  return results;
+}
+
+async function extractSrcAttrs(
+  where: string,
+  html: unknown,
+  baseUrl: unknown,
+  selector: string
+): Promise<string[]> {
+  const source = requireText(where, html, "html");
+  const base = baseUrl === undefined || baseUrl === null ? "" : String(baseUrl);
+  const cheerio = await loadCheerio(where);
+  const $ = cheerio.load(source);
+  const results: string[] = [];
+  $(selector).each((_i, el) => {
+    if (results.length >= MAX_EXTRACT_HTML_ITEMS) return;
+    const src = $(el).attr("src");
+    if (src) results.push(resolveUrl(src, base));
+  });
+  return results;
+}
+
+/** Every `<img src>` in the page, with relative URLs resolved against `baseUrl`. */
+export async function extractImages(
+  html: unknown,
+  baseUrl?: unknown
+): Promise<string[]> {
+  return extractSrcAttrs("html.extractImages", html, baseUrl, "img[src]");
+}
+
+/** Every `<audio src>` / `<audio><source src>` in the page. */
+export async function extractAudio(
+  html: unknown,
+  baseUrl?: unknown
+): Promise<string[]> {
+  return extractSrcAttrs(
+    "html.extractAudio",
+    html,
+    baseUrl,
+    "audio[src], audio source[src]"
+  );
+}
+
+/** Every `<video src>` / `<video><source src>` / `<iframe src>` in the page. */
+export async function extractVideos(
+  html: unknown,
+  baseUrl?: unknown
+): Promise<string[]> {
+  return extractSrcAttrs(
+    "html.extractVideos",
+    html,
+    baseUrl,
+    "video[src], video source[src], iframe[src]"
+  );
+}
+
+interface ExtractedMetadata {
+  title: string | null;
+  description: string | null;
+  keywords: string | null;
+}
+
+/** `<title>` and the description/keywords `<meta>` tags. */
+export async function extractMetadata(html: unknown): Promise<ExtractedMetadata> {
+  const where = "html.extractMetadata";
+  const source = requireText(where, html, "html");
+  const cheerio = await loadCheerio(where);
+  const $ = cheerio.load(source);
+  const title = $("title").first().text() || null;
+  const description =
+    $('meta[name="description"]').first().attr("content") ?? null;
+  const keywords = $('meta[name="keywords"]').first().attr("content") ?? null;
+  return { title, description, keywords };
+}
+
+/**
+ * The page's main readable content: strips script/style/nav/aside/footer/
+ * header, then picks the first of article, main, `[id*=content]`,
+ * `[class*=content]`, or body.
+ */
+export async function extractReadableText(html: unknown): Promise<string> {
+  const where = "html.extractReadableText";
+  const source = requireText(where, html, "html");
+  const cheerio = await loadCheerio(where);
+  const $ = cheerio.load(source);
+  $("script, style, nav, aside, footer, header").remove();
+  const main =
+    $("article").first().text() ||
+    $("main").first().text() ||
+    $('[id*="content"]').first().text() ||
+    $('[class*="content"]').first().text() ||
+    $("body").first().text() ||
+    "";
+  const cleaned = main.replace(/\s+/g, " ").trim();
+  return cleaned || "No main content found";
 }

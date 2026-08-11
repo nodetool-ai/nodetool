@@ -17,11 +17,7 @@
  * `image_content`, and the websocket chat runner materializes any embedded
  * pixels from other tools into temp-asset handles before they reach the model.
  */
-import type {
-  Message,
-  MessageContent,
-  MessageImageContent
-} from "@nodetool-ai/runtime";
+import type { MessageImageContent } from "@nodetool-ai/runtime";
 
 /** Result field carrying a single viewable image. */
 export const IMAGE_CONTENT_FIELD = "image_content";

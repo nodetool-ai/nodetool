@@ -42,7 +42,7 @@ import { CompilerAgent } from "./compiler-agent.js";
 import { GraphPlanner } from "./graph-planner.js";
 import { AgentWorkflowRunner, applyRunPolicy } from "./agent-workflow-runner.js";
 import type { Tool } from "./tools/base-tool.js";
-import { gateTools } from "./tools/tool-permissions.js";
+import { gateTools } from "./capabilities/gate-tools.js";
 import {
   SecurityMonitor,
   createSecurityMonitorConsult

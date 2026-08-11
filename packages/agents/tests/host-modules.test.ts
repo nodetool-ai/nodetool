@@ -263,6 +263,70 @@ describe("@nodetool-ai/sandbox-xlsx", () => {
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/must be a Uint8Array/);
   });
+
+  it("writes records to a workbook the parser reads back", async () => {
+    const result = await run(
+      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
+       const bytes = await write({
+         Costs: [{ item: "Lamp", usd: 49 }, { item: "Desk", usd: 349 }],
+         Notes: [{ note: "draft" }]
+       });
+       return await parse(bytes);`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      Costs: [
+        { item: "Lamp", usd: 49 },
+        { item: "Desk", usd: 349 }
+      ],
+      Notes: [{ note: "draft" }]
+    });
+  });
+
+  it("takes per-sheet column order, header-less rows, and cell styles", async () => {
+    const result = await run(
+      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
+       const bytes = await write([
+         {
+           name: "Costs",
+           rows: [{ usd: 49, item: "Lamp" }],
+           columns: ["item", "usd"],
+           styles: [{ range: "A1:B1", bold: true, background: "#FFE9A8" }]
+         },
+         { name: "Raw", rows: [["a", 1], ["b", 2]], header: false }
+       ]);
+       const sheets = await parse(bytes);
+       const raw = await parse(bytes, { sheet: "Raw", header: false });
+       return { costs: sheets.Costs, raw };`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      costs: [{ item: "Lamp", usd: 49 }],
+      raw: [
+        ["a", 1],
+        ["b", 2]
+      ]
+    });
+  });
+
+  it("refuses a workbook past the cell cap", async () => {
+    const { write, MAX_WRITE_CELLS } = await import("../src/host-modules/xlsx.js");
+    const rows = Array.from({ length: MAX_WRITE_CELLS }, (_, i) => ({ a: i, b: i }));
+    await expect(write({ Big: rows })).rejects.toThrow(/exceeds the 250000 cell limit/);
+  });
+
+  it("refuses a style whose range is not a rectangle of cells", async () => {
+    const result = await run(
+      `import { write } from "@nodetool-ai/sandbox-xlsx";
+       try { await write([{ name: "S", rows: [{ a: 1 }], styles: [{ range: "rows 1-3" }] }]); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/is not a cell range/);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -363,6 +427,73 @@ describe("@nodetool-ai/sandbox-html", () => {
     expect(md).toContain("[docs](https://x.test)");
     expect(md).toMatch(/-\s+one/);
   });
+
+  it("converts a page to plain text", async () => {
+    const result = await run(
+      `import { toText } from "@nodetool-ai/sandbox-html";
+       const html = "<style>p{color:red}</style><p>Hello <b>world</b></p>";
+       return await toText(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Hello world");
+  });
+
+  it("extracts links, classifying internal vs external", async () => {
+    const result = await run(
+      `import { extractLinks } from "@nodetool-ai/sandbox-html";
+       const html = '<a href="/about">About</a><a href="https://other.test">Other</a>';
+       return await extractLinks(html, "https://x.test");`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([
+      { href: "/about", text: "About", type: "internal" },
+      { href: "https://other.test", text: "Other", type: "external" }
+    ]);
+  });
+
+  it("extracts images, audio, and videos with resolved URLs", async () => {
+    const result = await run(
+      `import { extractImages, extractAudio, extractVideos } from "@nodetool-ai/sandbox-html";
+       const html = '<img src="/a.png"><audio src="/a.mp3"></audio>' +
+         '<video><source src="/v.mp4"></video>';
+       return {
+         images: await extractImages(html, "https://x.test"),
+         audio: await extractAudio(html, "https://x.test"),
+         videos: await extractVideos(html, "https://x.test")
+       };`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      images: ["https://x.test/a.png"],
+      audio: ["https://x.test/a.mp3"],
+      videos: ["https://x.test/v.mp4"]
+    });
+  });
+
+  it("extracts title, description, and keywords", async () => {
+    const result = await run(
+      `import { extractMetadata } from "@nodetool-ai/sandbox-html";
+       const html = '<title>Hi</title><meta name="description" content="d">';
+       return await extractMetadata(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ title: "Hi", description: "d", keywords: null });
+  });
+
+  it("extracts the page's readable content", async () => {
+    const result = await run(
+      `import { extractReadableText } from "@nodetool-ai/sandbox-html";
+       const html = "<nav>Menu</nav><article>Main text</article><footer>F</footer>";
+       return await extractReadableText(html);`,
+      "html"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toBe("Main text");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -448,6 +579,71 @@ describe("@nodetool-ai/sandbox-diff", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).not.toContain("@@");
+  });
+});
+// ---------------------------------------------------------------------------
+// ocr and tfjs
+//
+// Both download data on first use — the engine's language file, the models'
+// weights — so what runs here is everything up to that point: the argument
+// contract, the caps, and the refusals.
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-ocr", () => {
+  it("refuses input that is not image bytes", async () => {
+    const result = await run(
+      `import { recognize } from "@nodetool-ai/sandbox-ocr";
+       try { await recognize("a scan"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "ocr"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/ocr\.recognize: image must be a Uint8Array/);
+  });
+
+  it("refuses a language that is not a Tesseract code", async () => {
+    const result = await run(
+      `import { recognize } from "@nodetool-ai/sandbox-ocr";
+       try { await recognize(new Uint8Array([1]), { language: "../etc" }); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "ocr"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/is not a Tesseract language code/);
+  });
+});
+
+describe("@nodetool-ai/sandbox-tfjs", () => {
+  it("refuses an image that is not bytes", async () => {
+    const result = await run(
+      `import { classify } from "@nodetool-ai/sandbox-tfjs";
+       try { await classify("a photo"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/tfjs\.classify: image must be a Uint8Array/);
+  });
+
+  it("answers nothing when the question or the passage is empty", async () => {
+    const result = await run(
+      `import { answer } from "@nodetool-ai/sandbox-tfjs";
+       return await answer("  ", "a passage");`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([]);
+  });
+
+  it("refuses a passage that is not text", async () => {
+    const result = await run(
+      `import { answer } from "@nodetool-ai/sandbox-tfjs";
+       try { await answer("who?", 42); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/passage must be a string/);
   });
 });
 

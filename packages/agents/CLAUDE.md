@@ -97,6 +97,8 @@ column by `resolveSandboxLimits`:
 | Host module byte input | `MAX_HOST_INPUT_BYTES` = 10 MB | check inside `host-modules/limits.ts` | — |
 | `sandbox-html` matches | `DEFAULT_SELECT_HTML_LIMIT` = 100 | `options.limit` | `MAX_SELECT_HTML_LIMIT` = 1000 |
 | `sandbox-zip` inflation | `MAX_UNZIP_TOTAL_BYTES` = 50 MB total | check inside `host-modules/zip.ts` | — |
+| `sandbox-xlsx` write | `MAX_WRITE_SHEETS` = 64, `MAX_WRITE_CELLS` = 250 000 | checks inside `host-modules/xlsx.ts` | — |
+| `sandbox-ocr` words | `MAX_OCR_WORDS` = 20 000 | check inside `host-modules/ocr.ts` | — |
 | `image.*` input | `MAX_IMAGE_INPUT_BYTES` = 25 MB | length check inside each bridge | — |
 | Image / canvas pixels | `MAX_IMAGE_PIXELS` = 32 M, longest edge `MAX_IMAGE_DIMENSION` = 16384 | `assertSurfaceSize` | — |
 | `image.decode` pixels | `MAX_DECODE_PIXELS` = 8 M | check inside the bridge | — |
@@ -173,9 +175,10 @@ body; there is no `data.*` namespace any more. Two kinds:
 - **Host packs** (`src/host-modules/`) — the library runs where the sandbox
   runs, behind a generated ESM facade over a per-run dispatcher:
   `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),
-  `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff). These are the libraries
-  the guest cannot hold — Node builtins, a DOM, or a limit the guest could not
-  enforce on itself.
+  `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js),
+  `-tfjs` (TensorFlow.js and its model zoo). These are the libraries the guest
+  cannot hold — Node builtins, a DOM, a limit the guest could not enforce on
+  itself, or state that has to outlive a run.
 
 ### Host modules (`src/host-modules/`)
 
@@ -203,7 +206,7 @@ bridge follows.
 
 Safety limits live **inside** the implementations, where nothing can route
 around them: `MAX_UNZIP_TOTAL_BYTES` in `zip.ts`, the select limits in
-`html.ts`, the shared input caps in `limits.ts`. Tests:
+`html.ts`, the write caps in `xlsx.ts`, the shared input caps in `limits.ts`. Tests:
 `tests/host-modules.test.ts` (libraries end to end, the dispatcher's refusals,
 a forged manifest, every limit) and
 `packages/sandbox-compiler/tests/packs.test.ts` (every shipped pack through the
@@ -399,6 +402,63 @@ for await (const msg of agent.execute(ctx)) {
 
 const result = agent.getResults();
 ```
+
+## Capability registry (`src/capabilities/`)
+
+A capability is what replaced the `Tool` class: a **spec** (wire name,
+description, input schema, and a required `PermissionCategory`), an **impl**
+`(run, args) => result`, and a **`CapabilityRun`** that carries everything only
+a run knows — the `ProcessingContext`, the permission gate, the browser router
+for `ui_*`, the sub-agent runtime, and the injected singletons
+(`nodeRegistry`, `providers`, `examples`, `exportDsl`, loaders). Per-run state
+arrives at *call* time, not at construction time, which is what lets one
+process-level registry serve every host. Design:
+[docs/tool-class-retirement-design.md](../../docs/tool-class-retirement-design.md).
+
+`registry.ts` is the table: one lazy `import()` per namespace, plus
+`DECLARED_CAPABILITY_MODULES`, the list a reviewer reads. Two drift walks keep
+them honest. `capabilityModuleDrift()` reports a declared module with no loader,
+a loader nobody declared, an export with no category or no schema, and one name
+owned by two modules; `tests/capabilities-registry.test.ts` also pins a
+checked-in `name → category` snapshot, so a reclassification is a one-line diff.
+`tests/capabilities-coverage.test.ts` walks the other way: everything
+`getBuiltinTools()` and `getAllMcpTools({})` assemble must resolve through
+`findCapability`, or sit in that file's pinned exception list with a reason.
+
+`invoke.ts` holds the one ladder — lookup, gate, impl. Every entrance runs it:
+the guest dispatcher, a direct MCP registration, `run_subtask`'s child loop.
+`gateTools` (`capabilities/gate-tools.ts`) is the door a `Tool` walks through:
+it wraps each tool in a subclass whose `process()` builds a one-call run over
+`capabilityFromTool` and calls `invoke`. `tests/capabilities-gate-parity.test.ts`
+drives both entrances and compares transcripts.
+
+The guest reaches a namespace by import, never by a global:
+
+```js
+import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows";
+const { workflows } = await list_workflows({ limit: 20 });
+```
+
+Exports carry the wire name — `list_workflows`, not `listWorkflows` — so the
+prompt, the MCP surface and `tools.*` all say one string. The facade generator
+and specifier shape live in `@nodetool-ai/protocol`
+(`sandbox-capability.ts`); the module list stays in the registry here, and the
+*host* decides which modules a session mounts. A third-party pack can never
+declare one. `createCapabilityDispatcher` validates module key, export name and
+argument list on every call, then delegates to `invoke` — it never gates on its
+own, so the import path and `tools.*` reach one implementation past one gate.
+The `nodetool` global survives as a generated shim over the imports for one
+release.
+
+**Import direction is one-way: `capabilities/` imports
+`tools/tool-permissions.ts`, never the reverse.** That is why `gateTools` sits
+in `capabilities/` and not beside the classification map it uses. The reverse
+edge made the bundled backend's module wrappers an async cycle —
+`init_tool_permissions` awaiting `init_adapters` awaiting
+`init_tool_permissions` — which esbuild's `__esm` cannot break the way real ESM
+breaks a synchronous cycle, and `server.mjs` died on an unsettled top-level
+await before it served `/health`. `npm run backend:smoke` is the check that
+catches it; a passing `vitest` run will not.
 
 ## The core API is in-process (`src/tools/mcp-tools.ts`)
 
@@ -787,6 +847,16 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `codeact-api-surfaces.ts`) whose fakes are named like real belt tools so
   the object-model prelude lights up. `tests/codeact-api-coverage.test.ts`
   fails when a namespace loses its last case.
+  Four more cases (`src/evals/codeact-sandbox-pack-cases.ts`) cover sandbox
+  packages: importing a pack the session allows and computing from what it
+  parses, reading a pack's SKILL.md through `get_sandbox_package_docs` instead
+  of guessing its API, reporting a pack as unavailable rather than working
+  around it, and using two packs in one action. A case names its allowlist in
+  `sandboxPackages`, and the runner puts a catalog over the shipped **host**
+  packs on the context — a guest pack would need `@nodetool-ai/sandbox-compiler`,
+  which this package does not depend on. `requiredSessionTools` scores tools the
+  executor adds rather than the case, which the recorder cannot see.
+  Measured on `claude_agent_sdk`/sonnet: 4/4, mean score 1.00, ~2 actions each.
   `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case
   live and writes every action's code to `nodetool-debug/` — the tool to
   reach for before touching the action-contract prompt. Measured on

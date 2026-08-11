@@ -8183,16 +8183,16 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
-    "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "description": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
-    "summary": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "summary": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "tags": [
       "education",
-      "database",
+      "structured-data",
       "ai",
       "flashcards",
       "learning"
@@ -8200,8 +8200,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Learning & Productivity",
     "nodeTypes": [
       {
-        "type": "lib.sqlite.CreateTable",
-        "label": "Create Table",
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -8210,18 +8215,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.sqlite.Insert",
-        "label": "Insert",
-        "count": 1
-      },
-      {
         "type": "nodetool.input.IntegerInput",
         "label": "Integer Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
         "count": 1
       },
       {
@@ -8230,17 +8225,12 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.sqlite.Query",
-        "label": "Query",
-        "count": 1
-      },
-      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 8,
+    "nodeCount": 7,
     "thumbnail": "/templates/flashcard-generator.jpg",
     "graph": {
       "nodes": [
@@ -8262,14 +8252,6 @@ export const templateEntries: TemplateEntry[] = [
           "width": 280
         },
         {
-          "id": "create_table",
-          "type": "lib.sqlite.CreateTable",
-          "title": "Create Table",
-          "x": 696,
-          "y": 522,
-          "width": 280
-        },
-        {
           "id": "format_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
@@ -8288,20 +8270,12 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "insert_flashcard",
-          "type": "lib.sqlite.Insert",
-          "title": "Insert",
+          "id": "plan_study",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 1126,
-          "y": 220,
-          "width": 280
-        },
-        {
-          "id": "query_all",
-          "type": "lib.sqlite.Query",
-          "title": "Query",
-          "x": 1206,
-          "y": 630,
-          "width": 280
+          "y": 400,
+          "width": 320
         },
         {
           "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
@@ -8319,6 +8293,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1140,
           "y": 65,
           "width": 260
+        },
+        {
+          "id": "plan_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1516,
+          "y": 470,
+          "width": 280
         }
       ],
       "edges": [
@@ -8345,50 +8327,22 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "generate_flashcards",
-          "sourceHandle": "record",
-          "target": "insert_flashcard",
-          "targetHandle": "data",
-          "color": "any"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "database_name",
-          "target": "query_all",
-          "targetHandle": "database_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "table_name",
-          "target": "query_all",
-          "targetHandle": "table_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "database_name",
-          "target": "insert_flashcard",
-          "targetHandle": "database_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "table_name",
-          "target": "insert_flashcard",
-          "targetHandle": "table_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "columns",
-          "target": "query_all",
-          "targetHandle": "columns",
+          "sourceHandle": "dataframe",
+          "target": "flashcards_output",
+          "targetHandle": "value",
           "color": "any"
         },
         {
           "source": "generate_flashcards",
           "sourceHandle": "dataframe",
-          "target": "flashcards_output",
+          "target": "plan_study",
+          "targetHandle": "cards",
+          "color": "any"
+        },
+        {
+          "source": "plan_study",
+          "sourceHandle": "study_plan",
+          "target": "plan_output",
           "targetHandle": "value",
           "color": "any"
         }
@@ -10533,191 +10487,6 @@ export const templateEntries: TemplateEntry[] = [
           "source": "tts",
           "sourceHandle": "audio",
           "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/map-a-readme-s-structure",
-    "title": "Map a README's Structure — NodeTool AI Workflow Template",
-    "description": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
-    "slug": "map-a-readme-s-structure",
-    "name": "Map a README's Structure",
-    "summary": "Read the shape of a Markdown document without parsing it by hand: headings for the outline, links for the reference graph, and fenced blocks for the code it teaches.",
-    "tags": [
-      "text",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 4
-      },
-      {
-        "type": "lib.markdown.ExtractBulletLists",
-        "label": "Extract Bullet Lists",
-        "count": 1
-      },
-      {
-        "type": "lib.markdown.ExtractCodeBlocks",
-        "label": "Extract Code Blocks",
-        "count": 1
-      },
-      {
-        "type": "lib.markdown.ExtractHeaders",
-        "label": "Extract Headers",
-        "count": 1
-      },
-      {
-        "type": "lib.markdown.ExtractLinks",
-        "label": "Extract Links",
-        "count": 1
-      },
-      {
-        "type": "nodetool.constant.String",
-        "label": "String",
-        "count": 1
-      }
-    ],
-    "nodeCount": 9,
-    "thumbnail": null,
-    "graph": {
-      "nodes": [
-        {
-          "id": "md",
-          "type": "nodetool.constant.String",
-          "title": "String",
-          "x": 0,
-          "y": 120,
-          "width": 280,
-          "subtitle": "# NodeTool Visual AI workflows. ## Install See the [docs](https://nodetool.ai/docs) and the [repo](https://github.com/nodetool-ai/nodetool)…"
-        },
-        {
-          "id": "h",
-          "type": "lib.markdown.ExtractHeaders",
-          "title": "Extract Headers",
-          "x": 320,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "l",
-          "type": "lib.markdown.ExtractLinks",
-          "title": "Extract Links",
-          "x": 640,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "c",
-          "type": "lib.markdown.ExtractCodeBlocks",
-          "title": "Extract Code Blocks",
-          "x": 960,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "b",
-          "type": "lib.markdown.ExtractBulletLists",
-          "title": "Extract Bullet Lists",
-          "x": 0,
-          "y": 340,
-          "width": 280
-        },
-        {
-          "id": "o1",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 320,
-          "y": 340,
-          "width": 280
-        },
-        {
-          "id": "o2",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 640,
-          "y": 340,
-          "width": 280
-        },
-        {
-          "id": "o3",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 960,
-          "y": 340,
-          "width": 280
-        },
-        {
-          "id": "o4",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 0,
-          "y": 560,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "md",
-          "sourceHandle": "output",
-          "target": "h",
-          "targetHandle": "markdown",
-          "color": "any"
-        },
-        {
-          "source": "md",
-          "sourceHandle": "output",
-          "target": "l",
-          "targetHandle": "markdown",
-          "color": "any"
-        },
-        {
-          "source": "md",
-          "sourceHandle": "output",
-          "target": "c",
-          "targetHandle": "markdown",
-          "color": "any"
-        },
-        {
-          "source": "md",
-          "sourceHandle": "output",
-          "target": "b",
-          "targetHandle": "markdown",
-          "color": "any"
-        },
-        {
-          "source": "h",
-          "sourceHandle": "output",
-          "target": "o1",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "l",
-          "sourceHandle": "output",
-          "target": "o2",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "c",
-          "sourceHandle": "output",
-          "target": "o3",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "b",
-          "sourceHandle": "output",
-          "target": "o4",
           "targetHandle": "value",
           "color": "any"
         }
@@ -15881,137 +15650,6 @@ export const templateEntries: TemplateEntry[] = [
           "source": "f",
           "sourceHandle": "output",
           "target": "out",
-          "targetHandle": "value",
-          "color": "any"
-        }
-      ]
-    }
-  },
-  {
-    "route": "/templates/read-the-links-out-of-a-page",
-    "title": "Read the Links Out of a Page — NodeTool AI Workflow Template",
-    "description": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
-    "priority": 0.3,
-    "changeFrequency": "monthly",
-    "indexable": false,
-    "slug": "read-the-links-out-of-a-page",
-    "name": "Read the Links Out of a Page",
-    "summary": "Resolve a page's base URL, then pull its anchors against it. `base_url` does not rewrite relative hrefs to absolute — it CLASSIFIES each link as internal or external, which is what you need to decide whether a crawler should follow it. The href comes back exactly as authored.",
-    "tags": [
-      "text",
-      "example"
-    ],
-    "category": "Text & Data",
-    "nodeTypes": [
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
-        "count": 2
-      },
-      {
-        "type": "nodetool.constant.String",
-        "label": "String",
-        "count": 2
-      },
-      {
-        "type": "lib.html.BaseUrl",
-        "label": "Base Url",
-        "count": 1
-      },
-      {
-        "type": "lib.html.ExtractLinks",
-        "label": "Extract Links",
-        "count": 1
-      }
-    ],
-    "nodeCount": 6,
-    "thumbnail": null,
-    "graph": {
-      "nodes": [
-        {
-          "id": "url",
-          "type": "nodetool.constant.String",
-          "title": "String",
-          "x": 0,
-          "y": 120,
-          "width": 280,
-          "subtitle": "https://nodetool.ai/guide/index.html"
-        },
-        {
-          "id": "html",
-          "type": "nodetool.constant.String",
-          "title": "String",
-          "x": 320,
-          "y": 120,
-          "width": 280,
-          "subtitle": "<html><head><title>Guide</title></head><body><a href=\"/docs\">Docs</a><a href=\"https://github.com/nodetool-ai/nodetool\">Source</a></body></h…"
-        },
-        {
-          "id": "base",
-          "type": "lib.html.BaseUrl",
-          "title": "Base Url",
-          "x": 640,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "links",
-          "type": "lib.html.ExtractLinks",
-          "title": "Extract Links",
-          "x": 960,
-          "y": 120,
-          "width": 280
-        },
-        {
-          "id": "o1",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 0,
-          "y": 340,
-          "width": 280
-        },
-        {
-          "id": "o2",
-          "type": "nodetool.output.Output",
-          "title": "Output",
-          "x": 320,
-          "y": 340,
-          "width": 280
-        }
-      ],
-      "edges": [
-        {
-          "source": "url",
-          "sourceHandle": "output",
-          "target": "base",
-          "targetHandle": "url",
-          "color": "any"
-        },
-        {
-          "source": "html",
-          "sourceHandle": "output",
-          "target": "links",
-          "targetHandle": "html",
-          "color": "any"
-        },
-        {
-          "source": "base",
-          "sourceHandle": "output",
-          "target": "links",
-          "targetHandle": "base_url",
-          "color": "any"
-        },
-        {
-          "source": "base",
-          "sourceHandle": "output",
-          "target": "o1",
-          "targetHandle": "value",
-          "color": "any"
-        },
-        {
-          "source": "links",
-          "sourceHandle": "links",
-          "target": "o2",
           "targetHandle": "value",
           "color": "any"
         }

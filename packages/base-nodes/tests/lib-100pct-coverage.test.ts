@@ -23,9 +23,6 @@ import {
   // lib-pdf (ExtractTablesPdfPlumberNode, ExtractMarkdownPyMuPdfNode removed)
   // lib-docx
   AddImageLibNode,
-  // lib-excel
-  SaveWorkbookLibNode,
-  CreateWorkbookLibNode,
   // lib-ytdlp
   YtDlpDownloadLibNode,
   // lib-audio-dsp
@@ -542,51 +539,6 @@ describe("lib-docx AddImage coverage", () => {
         image: 12345
       }).process()
     ).rejects.toThrow("Invalid image input");
-  });
-});
-
-// ── lib-excel: edge cases ────────────────────────────────────────
-
-describe("lib-excel coverage", () => {
-  it("SaveWorkbook with folder as string path", async () => {
-    const tmpDir = mkdtempSync(join(tmpdir(), "excel-test-"));
-
-    // Create a workbook first
-    const wb = await new CreateWorkbookLibNode({
-      sheet_name: "Test"
-    }).process();
-
-    const result = await new SaveWorkbookLibNode({
-      workbook: wb.output,
-      folder: tmpDir,
-      filename: "test_%Y.xlsx"
-    }).process();
-    // output is the full file path string
-    expect(typeof result.output).toBe("string");
-    expect(String(result.output)).toContain("test_");
-  });
-
-  it("getWorkbook with raw Workbook instance", async () => {
-    const ExcelJS = await import("exceljs");
-    const rawWb = new ExcelJS.Workbook();
-    rawWb.addWorksheet("Test");
-
-    const result = await new SaveWorkbookLibNode({
-      workbook: rawWb,
-      folder: mkdtempSync(join(tmpdir(), "excel-test-")),
-      filename: "raw.xlsx"
-    }).process();
-    expect(typeof result.output).toBe("string");
-  });
-
-  it("getWorkbook throws on invalid input", async () => {
-    await expect(
-      new SaveWorkbookLibNode({
-        workbook: "not-a-workbook",
-        folder: "/tmp",
-        filename: "test.xlsx"
-      }).process()
-    ).rejects.toThrow("Workbook is not connected");
   });
 });
 

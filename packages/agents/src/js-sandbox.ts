@@ -61,6 +61,9 @@ import {
   generateSandboxHostFacade,
   generateSandboxWasmFacade,
   sandboxHostModule,
+  SANDBOX_CAPABILITY_BRIDGE_SOURCE,
+  SANDBOX_CAPABILITY_BRIDGE_SPECIFIER,
+  SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
   SANDBOX_HOST_BRIDGE_SOURCE,
   SANDBOX_HOST_BRIDGE_SPECIFIER,
   SANDBOX_HOST_DISPATCH_GLOBAL,
@@ -1720,6 +1723,31 @@ const HOST_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}host-bridge`;
 /** Name the host parks the raw (never-rejecting) host dispatcher bridge on. */
 export const SANDBOX_HOST_BRIDGE_BINDING = "__hostCall";
 
+/**
+ * The private capability-bridge module's guest id.
+ *
+ * Same rule as the host bridge: only a generated capability facade may import
+ * it. What differs is who mounts a capability module — the host, per session,
+ * never a pack's manifest and never the model's consent allowlist.
+ */
+const CAPABILITY_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}capability-bridge`;
+
+/** Name the host parks the raw (never-rejecting) capability dispatcher on. */
+export const SANDBOX_CAPABILITY_BRIDGE_BINDING = "__capabilityCall";
+
+/**
+ * The platform modules one run mounts: guest specifier → generated facade
+ * source, plus the dispatcher every facade call lands on.
+ *
+ * Structural on purpose — `runInSandbox` knows how to mount a facade and
+ * nothing about capabilities; the mount is built where a `CapabilityRun`
+ * exists (`codeact/capability-modules.ts`).
+ */
+export interface SandboxCapabilityMount {
+  readonly facades: ReadonlyMap<string, string>;
+  call(moduleKey: unknown, exportName: unknown, args: unknown): Promise<unknown>;
+}
+
 function guestModuleId(packName: string, fileId: string): string {
   return `${GUEST_MODULE_PREFIX}${packName}${GUEST_MODULE_SEPARATOR}${fileId}`;
 }
@@ -1783,13 +1811,23 @@ export interface GuestModuleHost {
  * init prelude deletes them for the whole context before any user `evalCode`.
  */
 export function createGuestModuleHost(
-  modules: SandboxModuleResolution
+  modules: SandboxModuleResolution | undefined,
+  capabilityFacades?: ReadonlyMap<string, string>
 ): GuestModuleHost | undefined {
   const sources = new Map<string, string>();
   const specifiers = new Map<string, string>();
   const facades = new Set<string>();
   const hostFacades = new Set<string>();
-  for (const module of modules.modules) {
+  const platformFacades = new Set<string>();
+  for (const [specifier, source] of capabilityFacades ?? []) {
+    // A platform module has no pack behind it, so its guest id is derived from
+    // the specifier rather than from a pack/file pair.
+    const entryId = `${GUEST_MODULE_PREFIX}capability${GUEST_MODULE_SEPARATOR}${specifier}`;
+    specifiers.set(specifier, entryId);
+    sources.set(entryId, source);
+    platformFacades.add(entryId);
+  }
+  for (const module of modules?.modules ?? []) {
     const entryId = guestModuleId(module.packName, module.moduleId);
     if (module.kind === "host") {
       // A host entry has no guest source of its own either: its specifier
@@ -1828,6 +1866,9 @@ export function createGuestModuleHost(
   if (hostFacades.size > 0) {
     sources.set(HOST_BRIDGE_MODULE_ID, SANDBOX_HOST_BRIDGE_SOURCE);
   }
+  if (platformFacades.size > 0) {
+    sources.set(CAPABILITY_BRIDGE_MODULE_ID, SANDBOX_CAPABILITY_BRIDGE_SOURCE);
+  }
 
   const hardening = dropTimersStatement();
   let phase: "bootstrap" | "guest" = "bootstrap";
@@ -1849,6 +1890,12 @@ export function createGuestModuleHost(
       if (hostFacades.has(baseName)) return HOST_BRIDGE_MODULE_ID;
       return deny(
         `"${SANDBOX_HOST_BRIDGE_SPECIFIER}" is private to the sandbox's generated host facades and cannot be imported`
+      );
+    }
+    if (requested === SANDBOX_CAPABILITY_BRIDGE_SPECIFIER) {
+      if (platformFacades.has(baseName)) return CAPABILITY_BRIDGE_MODULE_ID;
+      return deny(
+        `"${SANDBOX_CAPABILITY_BRIDGE_SPECIFIER}" is private to the sandbox's generated capability facades and cannot be imported`
       );
     }
     if (requested === SANDBOX_WASM_BRIDGE_SPECIFIER) {
@@ -1998,6 +2045,14 @@ export interface RunSandboxOptions {
    */
   modules?: SandboxModuleResolution;
   /**
+   * NodeTool's own modules — `@nodetool-ai/sandbox-nodetool/<namespace>` — and
+   * the dispatcher behind them. Host-declared: they never pass through the
+   * consent allowlist {@link modules} is resolved against, because consent
+   * gates third-party code and these are the platform's own surface, mounted
+   * only for a session whose host built a capability run.
+   */
+  capabilities?: SandboxCapabilityMount;
+  /**
    * Worker pool for host WASM calls. Defaults to the process-wide pool of
    * four, which is what production wants; a test passes its own to observe
    * the pool without sharing it with every other test in the file.
@@ -2099,7 +2154,9 @@ export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
   ...EXPOSED_BRIDGE_NAMES,
   ...GUEST_HELPER_NAMES,
   SANDBOX_WASM_BRIDGE_BINDING,
-  SANDBOX_WASM_DISPATCH_GLOBAL
+  SANDBOX_WASM_DISPATCH_GLOBAL,
+  SANDBOX_CAPABILITY_BRIDGE_BINDING,
+  SANDBOX_CAPABILITY_DISPATCH_GLOBAL
 ]);
 
 /**
@@ -2122,6 +2179,7 @@ export async function runInSandbox(
     clock,
     suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS,
     modules,
+    capabilities,
     wasmPool
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -2148,7 +2206,10 @@ export async function runInSandbox(
           ...(signal === undefined ? {} : { signal })
         })
       : undefined;
-    moduleHost = modules ? createGuestModuleHost(modules) : undefined;
+    moduleHost =
+      modules || capabilities
+        ? createGuestModuleHost(modules, capabilities?.facades)
+        : undefined;
   } catch (error) {
     return {
       success: false,
@@ -2268,6 +2329,15 @@ export async function runInSandbox(
         if (hostModules !== undefined) {
           const dispatcher = hostModules;
           bridges[SANDBOX_HOST_BRIDGE_BINDING] = wrap(
+            async (moduleKey: unknown, exportName: unknown, args: unknown) =>
+              dispatcher.call(moduleKey, exportName, args)
+          );
+        }
+        // And for the platform's own modules, exposed only when the host
+        // mounted some — a session with no capability run has no such binding.
+        if (capabilities !== undefined) {
+          const dispatcher = capabilities;
+          bridges[SANDBOX_CAPABILITY_BRIDGE_BINDING] = wrap(
             async (moduleKey: unknown, exportName: unknown, args: unknown) =>
               dispatcher.call(moduleKey, exportName, args)
           );
@@ -2534,6 +2604,12 @@ ${
     : `globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL} = __wrapDeep(globalThis.${SANDBOX_HOST_BRIDGE_BINDING});
 delete globalThis.${SANDBOX_HOST_BRIDGE_BINDING};`
 }
+${
+  capabilities === undefined
+    ? ""
+    : `globalThis.${SANDBOX_CAPABILITY_DISPATCH_GLOBAL} = __wrapDeep(globalThis.${SANDBOX_CAPABILITY_BRIDGE_BINDING});
+delete globalThis.${SANDBOX_CAPABILITY_BRIDGE_BINDING};`
+}
 export default true;`,
           "sandbox-init"
         );
@@ -2556,6 +2632,10 @@ export default true;`,
               hostModules === undefined
                 ? ""
                 : ` delete globalThis.${SANDBOX_HOST_DISPATCH_GLOBAL};`
+            }${
+              capabilities === undefined
+                ? ""
+                : ` delete globalThis.${SANDBOX_CAPABILITY_DISPATCH_GLOBAL};`
             }`
           ),
           "user-code"

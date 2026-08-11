@@ -86,8 +86,11 @@ npm run dev:nodetool -- run ./examples/workflows/flux_3_dogs.ts   # needs FAL_AP
 Self-contained: every input is a constant in the graph, so these take no
 `--input` and reach no model, network or disk. Each one covers a cluster of
 nodes that had no example before, and
-`packages/base-nodes/tests/pure-node-examples-run.test.ts` executes all of them and
-asserts the value every node produced.
+`packages/base-nodes/tests/pure-node-examples-run.test.ts` executes all of them
+and asserts the value every node produced. Markdown parsing and HTML scraping
+moved to the `@nodetool-ai/sandbox-markdown` and `@nodetool-ai/sandbox-html`
+sandbox packs — see `packages/sandbox-packs/sandbox-markdown/SKILL.md` and
+`packages/sandbox-packs/sandbox-html/SKILL.md` for the Code-node equivalents.
 
 ```bash
 # string transforms — trim, case, prefix/suffix, index, slice
@@ -95,12 +98,6 @@ npm run workflow -- ./examples/workflows/text_transforms_cli.json
 
 # regex match/extract/filter, JSON parsing, chunking with overlap
 npm run workflow -- ./examples/workflows/text_regex_parse_cli.json
-
-# markdown → headers, bullet and numbered lists, code blocks, tables
-npm run workflow -- ./examples/workflows/markdown_extract_cli.json
-
-# HTML → title/description/keywords, links, images, video, audio, plain text
-npm run workflow -- ./examples/workflows/html_extract_cli.json
 
 # streams: filter, drop-while, tap, collect; plus Switch and fallback routing
 npm run workflow -- ./examples/workflows/control_flow_stream_cli.json

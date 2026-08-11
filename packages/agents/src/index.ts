@@ -152,9 +152,9 @@ export {
 export {
   TOOL_PERMISSION_CATEGORIES,
   permissionCategoryFor,
-  decidePermission,
-  gateTools
+  decidePermission
 } from "./tools/tool-permissions.js";
+export { gateTools } from "./capabilities/gate-tools.js";
 export type {
   PermissionCategory,
   PermissionMode,
@@ -164,6 +164,34 @@ export type {
   RequestApproval,
   PermissionGateOptions
 } from "./tools/tool-permissions.js";
+export {
+  PERMISSION_CATEGORIES,
+  loadCapabilityModule,
+  listCapabilityModules,
+  loadAllCapabilityModules,
+  findCapability,
+  capabilityCategorySnapshot,
+  capabilityModuleIssues,
+  capabilityModuleDrift,
+  DECLARED_CAPABILITY_MODULES,
+  toolFromCapability,
+  capabilityFromTool,
+  createCapabilityRun,
+  resolveCapabilityMessage
+} from "./capabilities/index.js";
+export type {
+  CapabilitySpec,
+  CapabilityImpl,
+  CapabilityRun,
+  CapabilityModule,
+  CapabilityExport,
+  CapabilityGate,
+  CapabilityLoaders,
+  ClientToolRouter,
+  SubAgentRuntime,
+  CapabilityRunSource,
+  CreateCapabilityRunOptions
+} from "./capabilities/index.js";
 export {
   SecurityMonitor,
   createSecurityMonitorConsult
@@ -785,6 +813,11 @@ export {
 } from "./evals/codeact-api-cases.js";
 export { CODEACT_API_CORE_CASES } from "./evals/codeact-api-core.js";
 export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
+export {
+  CODEACT_SANDBOX_PACK_EVAL_CASES,
+  SANDBOX_PACK_DOCS_TOOL,
+  shippedHostPackCatalog
+} from "./evals/codeact-sandbox-pack-cases.js";
 
 // Planning-mode evaluation harness (TaskPlanner DAG)
 export {

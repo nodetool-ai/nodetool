@@ -1,11 +1,10 @@
 /**
- * Coverage tests for lib-browser, lib-mail, lib-supabase, lib-ocr, lib-markitdown.
+ * Coverage tests for lib-browser, lib-mail, lib-supabase, lib-markitdown.
  *
  * Strategy:
- * - lib-browser: Real playwright against a local HTTP server for Browser, Screenshot.
+ * - lib-browser: Real CDP against a local HTTP server for Screenshot.
  * - lib-mail: SendEmail with invalid config → error. Gmail stubs throw.
  * - lib-supabase: All nodes throw when no credentials provided.
- * - lib-ocr: Test error path (no image data/uri). Test with a small sharp-generated PNG.
  * - lib-markitdown: Test HTML conversion, plain text pass-through, error on missing data/uri,
  *   file URI reading, and docx branch (error path).
  */
@@ -17,7 +16,6 @@ import fs from "node:fs/promises";
 import os from "node:os";
 
 import {
-  BrowserLibNode,
   ScreenshotLibNode,
   SendEmailLibNode,
   GmailSearchLibNode,
@@ -26,12 +24,6 @@ import {
   SelectLibNode,
   ConvertToMarkdownLibNode
 } from "../../src/index.js";
-
-import {
-  SpiderCrawlLibNode,
-  WebFetchLibNode,
-  DownloadFileLibNode
-} from "../../src/nodes/lib-browser.js";
 
 // Supabase nodes with qualified imports to avoid name collisions with sqlite
 import {
@@ -94,79 +86,8 @@ function testHandler(req: http.IncomingMessage, res: http.ServerResponse) {
 }
 
 // ---------------------------------------------------------------------------
-// lib-browser — WebFetch / DownloadFile (ensure process body is covered here)
-// ---------------------------------------------------------------------------
-
-describe("lib.browser.WebFetch (coverage)", () => {
-  it("fetches HTML page", async () => {
-    await withServer(testHandler, async (baseUrl) => {
-      const result = await (() => {
-        const _n = new WebFetchLibNode();
-        _n.assign({ url: baseUrl });
-        return _n.process();
-      })();
-      expect(String(result.output)).toContain("Hello Browser");
-    });
-  });
-});
-
-describe("lib.browser.DownloadFile (coverage)", () => {
-  it("downloads content as base64 bytes", async () => {
-    await withServer(testHandler, async (baseUrl) => {
-      const result = await (() => {
-        const _n = new DownloadFileLibNode();
-        _n.assign({
-          url: `${baseUrl}/page2`
-        });
-        return _n.process();
-      })();
-      const output = result.output as { __bytes__: string };
-      expect(output.__bytes__).toBeDefined();
-      expect(output.__bytes__.length).toBeGreaterThan(0);
-    });
-  });
-
-  it("defaults method", () => {
-    const d = new DownloadFileLibNode().serialize();
-    expect(d).toHaveProperty("url");
-  });
-
-  it("WebFetchLibNode defaults", () => {
-    const d = new WebFetchLibNode().serialize();
-    expect(d).toHaveProperty("url");
-    expect(d).toHaveProperty("selector");
-  });
-});
-
-// ---------------------------------------------------------------------------
 // lib-browser — Playwright-based nodes
 // ---------------------------------------------------------------------------
-
-describe.skip("lib.browser.Browser (playwright)", () => {
-  it("fetches page content and returns markdown + metadata", async () => {
-    await withServer(testHandler, async (baseUrl) => {
-      const result = await (() => {
-        const _n = new BrowserLibNode();
-        _n.assign({ url: baseUrl });
-        return _n.process();
-      })();
-      expect(result.success).toBe(true);
-      expect(String(result.content)).toContain("Hello Browser");
-      const meta = result.metadata as { title: string };
-      expect(meta.title).toBe("Test Page");
-    });
-  }, 30_000);
-
-  it("throws on empty URL", async () => {
-    await expect(
-      (() => {
-        const _n = new BrowserLibNode();
-        _n.assign({ url: "" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("URL is required");
-  });
-});
 
 describe.skip("lib.browser.Screenshot (cdp)", () => {
   it("takes a full-page screenshot", async () => {
@@ -202,279 +123,6 @@ describe.skip("lib.browser.Screenshot (cdp)", () => {
         return _n.process();
       })()
     ).rejects.toThrow("URL is required");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// lib-browser — Mocked playwright tests (cover process() bodies)
-// ---------------------------------------------------------------------------
-
-describe("lib.browser.Browser (mocked playwright)", () => {
-  it("fetches page content and returns { success, content, metadata }", async () => {
-    const mockClose = vi.fn();
-    const mockPage = {
-      goto: vi.fn().mockResolvedValue(undefined),
-      content: vi
-        .fn()
-        .mockResolvedValue(
-          "<html><head><title>Mock Title</title></head><body><h1>Hello</h1></body></html>"
-        ),
-      title: vi.fn().mockResolvedValue("Mock Title")
-    };
-    const mockContext = {
-      newPage: vi.fn().mockResolvedValue(mockPage)
-    };
-    const mockBrowser = {
-      newContext: vi.fn().mockResolvedValue(mockContext),
-      close: mockClose
-    };
-
-    vi.doMock("playwright", () => ({
-      chromium: { launch: vi.fn().mockResolvedValue(mockBrowser) }
-    }));
-
-    try {
-      // Re-import to pick up mock
-      const { BrowserLibNode: MockedBrowserLibNode } =
-        await import("../../src/nodes/lib-browser.js");
-      const node = new MockedBrowserLibNode();
-      node.assign({ url: "http://example.com", timeout: 5000 });
-      const result = await node.process();
-
-      expect(result.success).toBe(true);
-      expect(typeof result.content).toBe("string");
-      expect(result.content).toContain("Hello");
-      expect(result.metadata).toBeDefined();
-      expect((result.metadata as Record<string, unknown>).title).toBe(
-        "Mock Title"
-      );
-      expect(mockClose).toHaveBeenCalled();
-    } finally {
-      vi.doUnmock("playwright");
-    }
-  });
-
-  it("throws on empty URL (no playwright needed)", async () => {
-    await expect(
-      (() => {
-        const _n = new BrowserLibNode();
-        _n.assign({ url: "" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("URL is required");
-  });
-});
-
-describe("lib.browser.SpiderCrawl (coverage)", () => {
-  it("crawls with url_pattern filter", async () => {
-    await withServer(testHandler, async (baseUrl) => {
-      const result = await (() => {
-        const _n = new SpiderCrawlLibNode();
-        _n.assign({
-          start_url: baseUrl,
-          max_depth: 2,
-          max_pages: 10,
-          same_domain_only: true,
-          include_html: true,
-          delay_ms: 0,
-          timeout: 5000,
-          url_pattern: "page2"
-        });
-        return _n.process();
-      })();
-      const pages = result.output as Array<Record<string, unknown>>;
-      // url_pattern "page2" means only URLs matching "page2" are crawled.
-      // The start URL does NOT match "page2", so it's skipped.
-      for (const page of pages) {
-        expect(String(page.url)).toContain("page2");
-      }
-    });
-  });
-
-  it("crawls with delay_ms > 0", async () => {
-    await withServer(testHandler, async (baseUrl) => {
-      const result = await (() => {
-        const _n = new SpiderCrawlLibNode();
-        _n.assign({
-          start_url: baseUrl,
-          max_depth: 1,
-          max_pages: 3,
-          same_domain_only: true,
-          include_html: false,
-          delay_ms: 10, // small delay to exercise the branch
-          timeout: 5000
-        });
-        return _n.process();
-      })();
-      const pages = result.output as Array<Record<string, unknown>>;
-      expect(pages.length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it("handles failed requests gracefully", async () => {
-    // Connect to a server that immediately closes connections
-    const server = http.createServer((_req, res) => {
-      res.destroy();
-    });
-    await new Promise<void>((resolve) =>
-      server.listen(0, "127.0.0.1", resolve)
-    );
-    const address = server.address();
-    if (!address || typeof address === "string") {
-      server.close();
-      throw new Error("Could not bind");
-    }
-    const baseUrl = `http://127.0.0.1:${address.port}`;
-    try {
-      const result = await (() => {
-        const _n = new SpiderCrawlLibNode();
-        _n.assign({
-          start_url: baseUrl,
-          max_depth: 0,
-          max_pages: 1,
-          delay_ms: 0,
-          timeout: 2000
-        });
-        return _n.process();
-      })();
-      const pages = result.output as Array<Record<string, unknown>>;
-      expect(pages.length).toBe(1);
-      expect(pages[0].status_code).toBe(0);
-      expect(pages[0].html).toBeNull();
-    } finally {
-      await new Promise<void>((r, e) =>
-        server.close((err) => (err ? e(err) : r()))
-      );
-    }
-  });
-
-  it("skips javascript:, mailto:, and tel: links", async () => {
-    const htmlWithBadLinks = `<!DOCTYPE html>
-<html><head><title>Bad Links</title></head>
-<body>
-  <a href="javascript:void(0)">JS link</a>
-  <a href="mailto:test@test.com">Mail</a>
-  <a href="tel:+1234567890">Phone</a>
-  <a href="/page2">Good link</a>
-</body></html>`;
-
-    await withServer(
-      (req, res) => {
-        if (req.url === "/") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(htmlWithBadLinks);
-        } else if (req.url === "/page2") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(HTML_PAGE2);
-        } else {
-          res.writeHead(404);
-          res.end("not found");
-        }
-      },
-      async (baseUrl) => {
-        const result = await (() => {
-          const _n = new SpiderCrawlLibNode();
-          _n.assign({
-            start_url: baseUrl,
-            max_depth: 1,
-            max_pages: 10,
-            same_domain_only: true,
-            delay_ms: 0,
-            timeout: 5000
-          });
-          return _n.process();
-        })();
-        const pages = result.output as Array<Record<string, unknown>>;
-        const urls = pages.map((p) => String(p.url));
-        // Should NOT have javascript:, mailto:, or tel: URLs
-        expect(urls.every((u) => !u.startsWith("javascript:"))).toBe(true);
-        expect(urls.every((u) => !u.startsWith("mailto:"))).toBe(true);
-        expect(urls.every((u) => !u.startsWith("tel:"))).toBe(true);
-      }
-    );
-  });
-
-  it("skips invalid href values gracefully (catch block)", async () => {
-    const htmlWithInvalidHref = `<!DOCTYPE html>
-<html><head><title>Invalid HREFs</title></head>
-<body>
-  <a href="http://[::1">Bad URL</a>
-  <a href="">Empty</a>
-  <a href="/page2">Good link</a>
-</body></html>`;
-
-    await withServer(
-      (req, res) => {
-        if (req.url === "/") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(htmlWithInvalidHref);
-        } else if (req.url === "/page2") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(HTML_PAGE2);
-        } else {
-          res.writeHead(404);
-          res.end("not found");
-        }
-      },
-      async (baseUrl) => {
-        const result = await (() => {
-          const _n = new SpiderCrawlLibNode();
-          _n.assign({
-            start_url: baseUrl,
-            max_depth: 1,
-            max_pages: 10,
-            same_domain_only: false,
-            delay_ms: 0,
-            timeout: 5000
-          });
-          return _n.process();
-        })();
-        const pages = result.output as Array<Record<string, unknown>>;
-        // Should have crawled at least the start page and page2
-        expect(pages.length).toBeGreaterThanOrEqual(1);
-      }
-    );
-  });
-
-  it("skips cross-domain links when same_domain_only is true", async () => {
-    const htmlCrossDomain = `<!DOCTYPE html>
-<html><head><title>Cross Domain</title></head>
-<body>
-  <a href="http://example.com/other">External</a>
-  <a href="/page2">Internal</a>
-</body></html>`;
-
-    await withServer(
-      (req, res) => {
-        if (req.url === "/") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(htmlCrossDomain);
-        } else if (req.url === "/page2") {
-          res.writeHead(200, { "Content-Type": "text/html" });
-          res.end(HTML_PAGE2);
-        } else {
-          res.writeHead(404);
-          res.end("not found");
-        }
-      },
-      async (baseUrl) => {
-        const result = await (() => {
-          const _n = new SpiderCrawlLibNode();
-          _n.assign({
-            start_url: baseUrl,
-            max_depth: 1,
-            max_pages: 10,
-            same_domain_only: true,
-            delay_ms: 0,
-            timeout: 5000
-          });
-          return _n.process();
-        })();
-        const pages = result.output as Array<Record<string, unknown>>;
-        const urls = pages.map((p) => String(p.url));
-        expect(urls.every((u) => !u.includes("example.com"))).toBe(true);
-      }
-    );
   });
 });
 
@@ -764,12 +412,6 @@ describe("lib.supabase (no credentials)", () => {
 });
 
 // ---------------------------------------------------------------------------
-// lib-ocr
-// ---------------------------------------------------------------------------
-
-// PaddleOCR tests removed — PaddleOCRLibNode is not implemented
-
-// ---------------------------------------------------------------------------
 // lib-markitdown
 // ---------------------------------------------------------------------------
 
@@ -983,24 +625,11 @@ describe("lib.convert.ConvertToMarkdown", () => {
 // ---------------------------------------------------------------------------
 
 describe("defaults() methods", () => {
-  it("BrowserLibNode defaults", () => {
-    const d = new BrowserLibNode().serialize();
-    expect(d).toHaveProperty("url");
-    expect(d).toHaveProperty("timeout");
-  });
-
   it("ScreenshotLibNode defaults", () => {
     const d = new ScreenshotLibNode().serialize();
     expect(d).toHaveProperty("url");
     expect(d).toHaveProperty("selector");
     expect(d).toHaveProperty("timeout");
-  });
-
-  it("SpiderCrawlLibNode defaults", () => {
-    const d = new SpiderCrawlLibNode().serialize();
-    expect(d).toHaveProperty("start_url");
-    expect(d).toHaveProperty("max_depth");
-    expect(d).toHaveProperty("delay_ms");
   });
 
   it("SendEmailLibNode defaults", () => {

@@ -22,11 +22,7 @@ import {
   WORKFLOW_NODES
 } from "@nodetool-ai/core-nodes";
 
-import {
-  LIB_BEAUTIFULSOUP_NODES,
-  LIB_MARKDOWN_NODES,
-  LIB_NLP_NODES
-} from "@nodetool-ai/text-nodes";
+import { LIB_NLP_NODES } from "@nodetool-ai/text-nodes";
 
 import { CodeNode } from "@nodetool-ai/code-nodes";
 
@@ -37,8 +33,6 @@ export {
   EXTENDED_PLACEHOLDER_NODES,
   FAKE_MEDIA_NODES,
   INPUT_NODES,
-  LIB_BEAUTIFULSOUP_NODES,
-  LIB_MARKDOWN_NODES,
   LIB_NLP_NODES,
   SUBGRAPH_NODES,
   VECTOR_NODES,
@@ -57,8 +51,6 @@ export const ALL_BROWSER_NODES: readonly NodeClass[] = [
   ...EXTENDED_PLACEHOLDER_NODES,
   ...FAKE_MEDIA_NODES,
   ...INPUT_NODES,
-  ...LIB_BEAUTIFULSOUP_NODES,
-  ...LIB_MARKDOWN_NODES,
   ...LIB_NLP_NODES,
   ...SUBGRAPH_NODES,
   ...VECTOR_NODES,

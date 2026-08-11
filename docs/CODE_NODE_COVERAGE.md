@@ -165,12 +165,13 @@ equivalent code; the node class is a second implementation of the same thing.
 `HasLength` is the one text node in this class without a snippet; **Measure
 Length** returns chars/words/lines and the comparison is one more expression.
 
-The 15 that stay as classes: `Prompt` and `Template` (variable editors,
+The 14 that stay as classes: `Prompt` and `Template` (variable editors,
 `{{var}}` substitution UI), `Concat` (dynamic-input card), `Collect` (streaming
 fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
-`HtmlToText` (html-to-text), `SaveText`, `SaveTextFile`, `LoadTextAssets`,
+`SaveText`, `SaveTextFile`, `LoadTextAssets`,
 `LoadTextFolder` (asset system), `FilterString`, `FilterRegexString` (stream
-operators).
+operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`
+sandbox pack's `toText` export.
 
 ### `nodetool.list` — removed (was 1 of 4)
 
@@ -294,9 +295,9 @@ now covers this ground from inside a Code node. `ForEachRow` and
 | `nodetool.control.*` (22) | actor-model stream semantics: fan-out, per-item emission, back-pressure. The sandbox runs once and returns once. The five Streaming snippets cover the generator patterns one node can express; the rest is kernel-level. |
 | `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
-| `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.excel` `lib.convert` `lib.ocr` `lib.charts` | native/binary document tooling |
+| `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.convert` `lib.charts` | native/binary document tooling |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.mail` `lib.twilio` `lib.google` `lib.apple` `apify.*` `search.*` `messaging.*` | credential pickers and non-trivial protocol handling; `fetch()` alone is not the same offer |
-| `lib.browser` `lib.sqlite` `lib.tensorflow` | CDP, better-sqlite3, tfjs |
+| `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |
 | all provider/model namespaces | model pickers, streamed output, cost tracking |
 
 ## Totals

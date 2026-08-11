@@ -840,12 +840,12 @@ export const miniAppEntries: MiniAppEntry[] = [
     "tags": [
       "ai",
       "beginner",
-      "database",
       "education",
       "example",
       "flashcards",
       "learning",
       "start",
+      "structured-data",
       "template",
       "tutorial"
     ],

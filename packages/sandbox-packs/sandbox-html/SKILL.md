@@ -38,9 +38,71 @@ return { markdown };
 The usual first step before summarizing or indexing a fetched page. Pass
 `{ turndown: {...} }` to override turndown's own options.
 
+## toText — a whole page as plain text
+
+```js
+import { toText } from "@nodetool-ai/sandbox-html";
+
+const text = await toText(inputs.html);
+return { text };
+```
+
+Strips `<script>`/`<style>` and every tag, then collapses whitespace.
+
+## extractLinks / extractImages / extractAudio / extractVideos
+
+```js
+import {
+  extractLinks,
+  extractImages,
+  extractAudio,
+  extractVideos
+} from "@nodetool-ai/sandbox-html";
+
+const links = await extractLinks(inputs.html, inputs.baseUrl);
+// [{ href, text, type: "internal" | "external" }, ...]
+
+const images = await extractImages(inputs.html, inputs.baseUrl); // string[] of resolved URLs
+const audio = await extractAudio(inputs.html, inputs.baseUrl);
+const videos = await extractVideos(inputs.html, inputs.baseUrl);
+```
+
+`baseUrl` is optional. When set, relative `src`/`href` values resolve against
+it and `extractLinks` classifies same-origin links as `internal`. Each
+extractor returns at most 1000 items.
+
+## extractMetadata — title, description, keywords
+
+```js
+import { extractMetadata } from "@nodetool-ai/sandbox-html";
+
+const { title, description, keywords } = await extractMetadata(inputs.html);
+```
+
+Any field the page doesn't set comes back `null`.
+
+## extractReadableText — strip chrome, keep the article
+
+```js
+import { extractReadableText } from "@nodetool-ai/sandbox-html";
+
+const article = await extractReadableText(inputs.html);
+```
+
+Removes `script`/`style`/`nav`/`aside`/`footer`/`header`, then returns the
+text of the first match among `article`, `main`, `[id*=content]`,
+`[class*=content]`, or `body`. A page with none of those returns
+`"No main content found"`.
+
+## Getting a page's base URL
+
+No import needed — `new URL(pageUrl).origin` gives the base URL to pass into
+the extractors above.
+
 ## Gotchas
 
 - **Every export is async.**
 - **5 MB of HTML per call.** Larger input is refused by name.
 - **A selector that matches nothing returns `[]`**, never `null`. An invalid
   selector throws with cheerio's own message.
+- **Extractors cap at 1000 items.** Anything past that is silently dropped.

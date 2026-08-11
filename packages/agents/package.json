@@ -32,6 +32,10 @@
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
     "@sebastianwessel/quickjs": "^3.0.1",
+    "@tensorflow-models/coco-ssd": "^2.2.3",
+    "@tensorflow-models/mobilenet": "^2.1.1",
+    "@tensorflow-models/qna": "^1.0.2",
+    "@tensorflow/tfjs": "^4.22.0",
     "@types/mailparser": "^3.4.6",
     "acorn": "^8.16.0",
     "cheerio": "^1.2.0",
@@ -44,6 +48,7 @@
     "js-yaml": "^4.3.1",
     "mailparser": "^3.9.3",
     "papaparse": "^5.5.3",
+    "tesseract.js": "^7.0.0",
     "turndown": "^7.2.2"
   },
   "devDependencies": {

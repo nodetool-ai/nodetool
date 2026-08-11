@@ -28,7 +28,6 @@ This namespace contains 52 node(s).
 - **[Find All Regex Matches](findallregexmatches.md)**
 - **[Find Regex Matches](findregexmatches.md)**
 - **[Format Text](formattext.md)**
-- **[HTML to Text](htmltotext.md)**
 - **[Index Of](indexof.md)**
 - **[Is Empty](isempty.md)**
 - **[Join](join.md)**

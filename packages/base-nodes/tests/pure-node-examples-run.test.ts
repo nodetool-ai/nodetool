@@ -101,45 +101,6 @@ describe("text_regex_parse_cli", () => {
   });
 });
 
-describe("markdown_extract_cli", () => {
-  it("pulls headers, lists, code blocks and tables out of one document", async () => {
-    const out = await run("markdown_extract_cli.json");
-
-    expect(out["headers"]).toEqual([
-      [
-        { level: 1, text: "Release Notes", index: 0 },
-        { level: 2, text: "Added", index: 1 },
-        { level: 2, text: "Steps", index: 2 }
-      ]
-    ]);
-    // max_level is a ceiling, so the same document yields only the h1.
-    expect(out["headers_h1"]).toEqual([
-      [{ level: 1, text: "Release Notes", index: 0 }]
-    ]);
-
-    // Lists nest one level: a list *per list block* in the document.
-    expect(out["bullets"]).toEqual([
-      [[{ text: "trigger examples" }, { text: "an executing test" }]]
-    ]);
-    expect(out["numbered"]).toEqual([
-      [["build the packages", "run the suite"]]
-    ]);
-
-    expect(out["code_blocks"]).toEqual([
-      [{ language: "bash", code: "npm run test" }]
-    ]);
-
-    expect(out["tables"]).toEqual([
-      {
-        rows: [
-          { node: "Concat", covered: "yes" },
-          { node: "Chunk", covered: "no" }
-        ]
-      }
-    ]);
-  });
-});
-
 describe("control_flow_stream_cli", () => {
   it("filters, drops, taps and collects a stream, and routes a switch", async () => {
     const out = await run("control_flow_stream_cli.json");
@@ -165,49 +126,6 @@ describe("control_flow_stream_cli", () => {
     expect(out["fallback_flag"]).toEqual([true]);
     expect(out["passthrough"]).toEqual(["present"]);
     expect(out["passthrough_flag"]).toEqual([false]);
-  });
-});
-
-describe("html_extract_cli", () => {
-  it("extracts metadata, links and media from one HTML document", async () => {
-    const out = await run("html_extract_cli.json");
-
-    expect(out["title"]).toEqual(["NodeTool Docs"]);
-    expect(out["description"]).toEqual(["Visual AI workflows"]);
-    expect(out["keywords"]).toEqual(["workflow, nodes, ai"]);
-
-    // href stays relative; base_url is used to classify internal vs external,
-    // not to rewrite the link.
-    expect(out["links"]).toEqual([
-      [
-        { href: "/workflows", text: "workflow guide", type: "internal" },
-        {
-          href: "https://github.com/nodetool-ai/nodetool",
-          text: "source",
-          type: "external"
-        }
-      ]
-    ]);
-
-    // Media refs are the opposite: base_url *is* applied, and each comes back
-    // as a typed asset ref rather than a bare string.
-    expect(out["images"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/img/editor.png", type: "image" }]
-    ]);
-    expect(out["videos"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/media/tour.mp4", type: "video" }]
-    ]);
-    expect(out["audios"]).toEqual([
-      [{ uri: "https://docs.nodetool.ai/media/intro.mp3", type: "audio" }]
-    ]);
-
-    expect(out["text"]).toEqual([
-      "DOCS\n\nStart with the workflow guide [/workflows] or the source " +
-        "[https://github.com/nodetool-ai/nodetool].\n\neditor [/img/editor.png]"
-    ]);
-
-    // BaseUrl drops the path, query and fragment.
-    expect(out["base_url"]).toEqual(["https://docs.nodetool.ai"]);
   });
 });
 

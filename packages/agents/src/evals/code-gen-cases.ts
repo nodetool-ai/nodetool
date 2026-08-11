@@ -74,13 +74,14 @@ export const CODE_GEN_EVAL_CASES: readonly CodeGenEvalCase[] = [
   },
   {
     id: "extract-parse",
-    description: "Parse CSV text with the sandbox's own parser",
+    description: "Parse a delimited text format by hand",
     instruction:
-      "Parse the CSV text into rows using the sandbox's CSV parser, and also return the header names.",
-    inputs: [{ name: "csvText", type: STR }],
+      "Each line of the log text is `level|timestamp|message`. Parse it into one record per line, and also return how many records have level 'ERROR'.",
+    inputs: [{ name: "logText", type: STR }],
     expect: {
       minOutputs: 2,
-      requiredCodePatterns: ["data\\.parseCsv"],
+      // This authoring surface declares no sandbox packages, so `analyzeGeneratedCode`
+      // refuses a module declaration outright. Parsing has to be hand-rolled.
       forbiddenCodePatterns: ["\\brequire\\(", "\\bimport\\s"]
     }
   },
