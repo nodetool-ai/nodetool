@@ -610,14 +610,16 @@ describe("the failure paths a program reaches by guessing", () => {
   });
 
   /**
-   * A misspelled input name is invisible on both sides: the wrapper takes any
-   * object, and `validateGraph` reports nothing for a property the node does
-   * not have. The graph is accepted and the node runs on its default, so the
-   * value the author wrote never reaches anything. The typed `.d.ts` catches
-   * this when a program is compiled, and nothing catches it in the guest, where
-   * the types are erased — which is exactly where a model writes.
+   * A misspelled input name is invisible to the guest: the wrapper takes any
+   * object, and the types that would catch it are erased — which is exactly
+   * where a model writes. So the graph builds, and the node would run on its
+   * default with the author's value reaching nothing.
+   *
+   * `validateGraph` is what catches it, as a warning naming the property and
+   * listing the ones the node really takes. That warning is the only thing
+   * standing between a typo and a silently inert node.
    */
-  it("accepts a misspelled input name in silence, all the way through the validator", async () => {
+  it("builds a misspelled input into the graph, and the validator names it", async () => {
     const graph = await buildGraph(
       `
         import { workflow } from "${SPECIFIER}";
@@ -632,7 +634,17 @@ describe("the failure paths a program reaches by guessing", () => {
     expect(
       graph.nodes.find((node) => node.type === "nodetool.text.CountTokens")?.properties
     ).toEqual({ txt: "a typo for text" });
-    expect(validateGraph(graph, liveRegistry()).issues).toEqual([]);
+
+    const issues = validateGraph(graph, liveRegistry()).issues;
+    const unknown = issues.filter((issue) => issue.code === "unknown_property");
+    expect(unknown).toHaveLength(1);
+    expect(unknown[0]?.severity).toBe("warning");
+    expect(unknown[0]?.message).toContain('"txt"');
+    // The message has to carry the fix, not just the complaint.
+    expect(unknown[0]?.message).toContain("text");
+    // A warning, so the graph is still accepted — a saved workflow carrying a
+    // stale property from a node refactor must not stop running.
+    expect(issues.filter((issue) => issue.severity === "error")).toEqual([]);
   });
 });
 
