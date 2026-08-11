@@ -21,7 +21,7 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       gap: getSpacingPx(SPACING.lg), // was 10px
       padding: `${getSpacingPx(SPACING.md)} 0`,
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary,
       "& svg": {
         width: 17,
@@ -46,7 +46,7 @@ const styles = (theme: Theme) =>
       border: "none",
       padding: 0,
       font: "inherit",
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.primary.main,
       cursor: "pointer",
       "&:hover": { color: theme.vars.palette.primary.light }
