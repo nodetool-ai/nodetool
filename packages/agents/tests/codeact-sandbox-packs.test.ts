@@ -18,7 +18,7 @@ import { runCodeActEval } from "../src/evals/codeact-eval.js";
 import {
   CODEACT_SANDBOX_PACK_EVAL_CASES,
   SANDBOX_PACK_DOCS_TOOL,
-  shippedHostPackCatalog
+  shippedPackCatalog
 } from "../src/evals/codeact-sandbox-pack-cases.js";
 import { mountActionModules } from "../src/codeact/sandbox-packages.js";
 import { createScriptedLoopProvider } from "./_helpers/scripted-loop-provider.js";
@@ -79,7 +79,7 @@ const SOLUTIONS: Record<string, string[]> = {
 
 describe("the shipped host packs, through the CodeAct catalog", () => {
   it("resolves every pack the cases allow", () => {
-    const catalog = shippedHostPackCatalog();
+    const catalog = shippedPackCatalog();
     for (const specifier of [CSV, "@nodetool-ai/sandbox-xml", "@nodetool-ai/sandbox-zip"]) {
       const resolution = catalog.resolveForExecution([{ specifier }]);
       expect(
@@ -91,12 +91,12 @@ describe("the shipped host packs, through the CodeAct catalog", () => {
   });
 
   it("is cached, so a suite compiles the packs once", () => {
-    expect(shippedHostPackCatalog()).toBe(shippedHostPackCatalog());
+    expect(shippedPackCatalog()).toBe(shippedPackCatalog());
   });
 });
 
 describe("the session allowlist decides what an action may import", () => {
-  const catalog = shippedHostPackCatalog();
+  const catalog = shippedPackCatalog();
 
   it("mounts a pack the session allows", () => {
     const mount = mountActionModules(

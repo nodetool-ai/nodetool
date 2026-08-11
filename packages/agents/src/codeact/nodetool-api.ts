@@ -1,7 +1,7 @@
 /**
  * The `nodetool` object model — the agent-facing JS API for the CodeAct
  * sandbox. Where `tools.<name>()` is the raw RPC surface, `nodetool.*` is the
- * platform as objects: workflows, an ad-hoc graph builder, models, assets,
+ * platform as objects: workflows, models, assets,
  * jobs, collections, timelines, sketches, scripts, and storyboards, plus a
  * bounded-concurrency `batch()` for fan-out (run a workflow once per CSV row,
  * validate every timeline, render all boards).
@@ -14,7 +14,8 @@
  * from the graph-model prelude when that is loaded.
  */
 
-import { GRAPH_DSL_CORE_PRELUDE } from "../graph-dsl-core.js";
+import { GRAPH_JSON_PRELUDE } from "../graph-dsl-core.js";
+import { GRAPH_DSL_PROMPT_SECTION } from "./graph-dsl-package.js";
 
 /** Namespace → the belt tools that light it up (any one is enough). */
 export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
@@ -29,7 +30,6 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "resolve_workflow_escalation",
     "get_example_workflow"
   ],
-  graph: ["create_workflow", "validate_workflow", "run_workflow"],
   nodes: ["search_nodes", "get_node_info", "list_nodes", "run_node"],
   agents: ["run_subtask"],
   models: ["find_model", "list_models", "list_provider_models"],
@@ -215,43 +215,6 @@ const nodetool = (() => {
     );
   };
 
-  /**
-   * The graph DSL core (\`__graphDslBuilder\`, shared with the GraphPlanner's
-   * submit_graph programs) plus the tool-backed methods only this sandbox
-   * has: validate, save, and the save-and-run shortcut.
-   */
-  function graphBuilder(base) {
-    const g = __graphDslBuilder();
-    g.validate = () => __need("validate_workflow")({ graph: g.toJSON() });
-    g.save = (name, opts) =>
-      __need("create_workflow")(
-        __merge(opts, { name: name, graph: g.toJSON() })
-      );
-    /**
-     * Run this graph ad hoc: saves it as a workflow (tagged so it is easy
-     * to find and clean up), then runs it. Returns { workflow, result }.
-     * Pass { name } to keep it as a deliberate, named workflow instead.
-     */
-    g.run = async (params, opts) => {
-      const name =
-        (opts && opts.name) || "Ad-hoc graph " + new Date().toISOString();
-      const tags = (opts && opts.tags) || ["codeact-adhoc"];
-      const workflow = await g.save(name, { tags: tags });
-      if (!workflow || !workflow.id) {
-        throw new Error("Ad-hoc run: saving the graph returned no id");
-      }
-      const result = await __need("run_workflow")(
-        __merge(opts && opts.interactive ? { interactive: true } : {}, {
-          workflow_id: workflow.id,
-          params: params || {}
-        })
-      );
-      return { workflow: workflow, result: result };
-    };
-    if (base) g.copyFrom(base, {});
-    return g;
-  }
-
   const api = {
     /**
      * Credentials, through the one bridge that has them.
@@ -354,8 +317,6 @@ const nodetool = (() => {
       return results.filter((entry) => entry !== undefined);
     },
 
-    graph: graphBuilder,
-
     nodes: {
       /**
        * Search the node catalog. \`query\` takes a string or an array of
@@ -438,9 +399,9 @@ const nodetool = (() => {
           })
         ),
       /**
-       * One example workflow, graph included — ready for
-       * nodetool.graph().copyFrom(...). Name is "<package>/<example>", or
-       * pass the package separately as {package}.
+       * One example workflow, graph included — a worked graph to read before
+       * authoring one. Name is "<package>/<example>", or pass the package
+       * separately as {package}.
        */
       example(name, opts) {
         const explicit = (opts && (opts.package || opts.package_name)) || "";
@@ -471,7 +432,8 @@ const nodetool = (() => {
         if (typeof openWorkflow !== "function") {
           throw new Error(
             "nodetool.workflows.open: the graph editing tools (ui_*) are " +
-            "not in this toolbelt. Build with nodetool.graph() instead."
+            "not in this toolbelt. Author a graph with the sandbox DSL " +
+            "package instead, then create() it."
           );
         }
         return openWorkflow(id);
@@ -844,15 +806,14 @@ const NAMESPACE_TOOLS_LITERAL = `const __NT_NAMESPACE_TOOLS = ${JSON.stringify(
   NODETOOL_API_NAMESPACE_TOOLS
 )};`;
 
-/** The full prelude: namespace map, shared graph DSL core, API definition. */
-export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_DSL_CORE_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
+/** The full prelude: namespace map, graph normalizer, API definition. */
+export const NODETOOL_API_PRELUDE_FULL = `${NAMESPACE_TOOLS_LITERAL}\n${GRAPH_JSON_PRELUDE}\n${NODETOOL_API_PRELUDE}`;
 
 /** Guest names {@link NODETOOL_API_PRELUDE_FULL} defines. */
 export const NODETOOL_API_GLOBALS = [
   "nodetool",
   "__NT_NAMESPACE_TOOLS",
-  "__graphJsonOf",
-  "__graphDslBuilder"
+  "__graphJsonOf"
 ] as const;
 
 interface PromptEntry {
@@ -876,27 +837,16 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   run-and-resolve loop (\`while (report.status === "escalated") ...\`) in one
   action. \`list({workflow_type: "example"})\` enumerates the shipped
   example workflows and \`example("<package>/<name>")\` loads one with its
-  graph, ready for \`nodetool.graph().copyFrom(...)\`.`
-  },
-  {
-    namespace: "graph",
-    doc: `- \`nodetool.graph(base?)\` — build an AD-HOC graph in code and run it, no editor
-  needed. \`g.node(type, props)\` returns a ref; pass \`ref.output(slot?)\` as a
-  property value to wire an edge (or \`g.connect(a, "output", b, "text")\`).
-  \`g.copyFrom(workflowOrGraph, {prefix})\` copies another graph in (ids remapped;
-  returns \`{idMap, refs}\` keyed by source id). Wiring is checked as you build:
-  \`connect\` refuses an id the graph does not have, and a handle inside a
-  string throws — a handle wires an edge, it is not text. \`await g.validate()\`
-  before \`await g.run(params)\` (saves it tagged \`codeact-adhoc\`, then runs) or
-  \`await g.save(name)\`.`
+  graph — a worked example to read before authoring one.`
   },
   {
     namespace: "nodes",
-    doc: `- \`nodetool.nodes\` — the graph builder's discovery half. NEVER guess a node
+    doc: `- \`nodetool.nodes\` — the graph author's discovery half. NEVER guess a node
   type: \`await search(["summarize text"], {n_results, input_type, output_type})\`
   (a bare string works too) to find candidates, then
   \`await info("nodetool.text.Concat")\` for the exact properties, inputs and
-  outputs before you write \`g.node(type, props)\`. \`list({namespace, limit})\`
+  outputs before you import that node's namespace from the DSL package.
+  \`list({namespace, limit})\`
   browses a namespace. \`run(type, inputs)\` is the single-node harness — probe
   one node with a property bag before wiring it into a graph.`
   },
@@ -1073,20 +1023,6 @@ const images = await nodetool.batch(shots, (prompt) =>
 return images.map((r) => (r.ok ? r.value.asset_uri : r.error));
 \`\`\``;
 
-const GRAPH_EXAMPLE = `Ad-hoc graph — compose and run a workflow entirely from code:
-
-\`\`\`js
-const g = nodetool.graph();
-const inp = g.node("nodetool.input.StringInput", { name: "prompt" });
-const img = g.node("nodetool.image.TextToImage", {
-  prompt: inp.output(),
-  model: { provider: "fal_ai", id: "fal-ai/flux/schnell" }
-});
-g.node("nodetool.output.ImageOutput", { name: "image", value: img.output() });
-const check = await g.validate();          // fix issues before spending
-const { workflow, result } = await g.run({ prompt: "a red fox in snow" });
-\`\`\``;
-
 /**
  * The `nodetool` API section for codeact system prompts, documenting only the
  * namespaces this belt can actually serve. Empty string when none can.
@@ -1128,8 +1064,19 @@ If you do not know the document's id, find it with \`list()\` on the namespace.`
  */
 export const NODETOOL_API_SECTION_HEADER = "# The `nodetool` object model";
 
+export interface NodetoolApiPromptOptions {
+  /**
+   * Whether this session can author graphs with `@nodetool-ai/sandbox-dsl` —
+   * the belt carries the three workflow verbs AND the pack is installed. The
+   * caller decides it (`withGraphDslPackage`), because only the caller knows
+   * the allowlist and the catalog.
+   */
+  graphDsl?: boolean;
+}
+
 export function buildNodetoolApiPromptSection(
-  toolNames: Iterable<string>
+  toolNames: Iterable<string>,
+  options: NodetoolApiPromptOptions = {}
 ): string {
   const names = new Set(toolNames);
   const active = NAMESPACE_DOCS.filter((entry) =>
@@ -1141,7 +1088,7 @@ export function buildNodetoolApiPromptSection(
 
   const sections: string[] = [
     NODETOOL_API_SECTION_HEADER,
-    `Platform objects — workflows, graphs, models, media, documents — are
+    `Platform objects — workflows, models, media, documents — are
 driven through \`nodetool.*\`, not through raw \`tools.*\` calls. The backing
 tools are deliberately absent from the tool catalog above; this object model
 is their one documented surface. \`nodetool.capabilities()\` reports what is
@@ -1155,10 +1102,7 @@ available, and the two cannot disagree. A module this session does not mount
 fails the action by name, before any code runs.`,
     active.map((entry) => entry.doc).join("\n")
   ];
-  const hasGraph = NODETOOL_API_NAMESPACE_TOOLS["graph"].every((tool) =>
-    names.has(tool)
-  );
-  if (hasGraph) sections.push(GRAPH_EXAMPLE);
+  if (options.graphDsl) sections.push(GRAPH_DSL_PROMPT_SECTION);
   if (names.has("find_model") && names.has("generate_image")) {
     sections.push(MEDIA_EXAMPLE);
   }

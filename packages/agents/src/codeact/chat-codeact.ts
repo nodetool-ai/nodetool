@@ -39,6 +39,10 @@ import {
   SandboxPackageDocsTool
 } from "./sandbox-package-docs.js";
 import {
+  GRAPH_DSL_PACKAGE,
+  withGraphDslPackage
+} from "./graph-dsl-package.js";
+import {
   CODEACT_PRELUDE,
   DEFAULT_MAX_TOOL_CALLS_PER_ACTION,
   extractErrorPayload,
@@ -192,11 +196,20 @@ function normalizeToolResult(raw: unknown): unknown {
 export function createChatCodeActSession(
   options: ChatCodeActSessionOptions
 ): ChatCodeActSession {
-  const sandboxPackages = sessionAllowedPackages(options.sandboxPackages);
   const sandboxModuleCatalog =
     options.sandboxModuleCatalog !== undefined
       ? options.sandboxModuleCatalog
       : getProcessSandboxModuleCatalog();
+
+  // Authoring a graph is a package, not a builder: a turn whose belt can save,
+  // validate and run a workflow gets the DSL pack on its allowlist, provided
+  // this machine installed it.
+  const sandboxPackages = withGraphDslPackage(
+    sessionAllowedPackages(options.sandboxPackages),
+    options.tools.map((t) => t.name),
+    sandboxModuleCatalog
+  );
+  const withGraphDsl = sandboxPackages.includes(GRAPH_DSL_PACKAGE);
 
   // A session that allows packages can read what they document. The tool runs
   // in-session rather than through the chat router: it needs no permission gate
@@ -373,7 +386,7 @@ export function createChatCodeActSession(
   }
 
   const nodetoolApiSection = withNodetoolApi
-    ? buildNodetoolApiPromptSection(toolNames)
+    ? buildNodetoolApiPromptSection(toolNames, { graphDsl: withGraphDsl })
     : "";
   const extraSections: string[] = [];
   if (withGraphModel) extraSections.push(GRAPH_MODEL_PROMPT_SECTION);

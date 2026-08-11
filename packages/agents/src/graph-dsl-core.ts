@@ -1,11 +1,10 @@
 /**
- * Graph DSL core — the one guest-side implementation of node/edge wiring,
- * shared by the two surfaces that let an LLM build a workflow graph in code:
- * the GraphPlanner's `submit_graph` program (`src/graph-dsl.ts`) and the
- * CodeAct sandbox's `nodetool.graph()` builder (`src/codeact/nodetool-api.ts`).
- * One implementation means one wiring semantics — the same auto ids, the same
- * argument validation, the same handle guards — so a program that works in one
- * surface works in the other, and a validation fix lands in both.
+ * Graph DSL core — the guest-side implementation of node/edge wiring behind
+ * the GraphPlanner's `submit_graph` program (`src/graph-dsl.ts`), where the
+ * model writes free `node(type, props)` calls. A CodeAct action authors graphs
+ * the other way, through the generated wrappers in `@nodetool-ai/sandbox-dsl`;
+ * both produce the same `{nodes, edges}` shape, and both refuse a handle
+ * interpolated into a string.
  *
  * `__graphDslBuilder()` returns an instance-based builder: `node(type, props,
  * {id})` registers a node and returns a ref whose `.output(slot?)` produces a
@@ -15,7 +14,14 @@
  * of silently becoming "[object Object]".
  */
 
-export const GRAPH_DSL_CORE_PRELUDE = `function __graphJsonOf(source) {
+/**
+ * The graph normalizer on its own: every shape a caller may hold a graph in —
+ * a builder, a bare `{nodes, edges}`, a workflow record, or what the sandbox
+ * DSL pack's `workflow()` returns — reduced to `{nodes, edges}`. The
+ * `nodetool.workflows` methods take any of them and need nothing else from
+ * this file.
+ */
+export const GRAPH_JSON_PRELUDE = `function __graphJsonOf(source) {
   if (source && typeof source.toJSON === "function") return source.toJSON();
   if (source && Array.isArray(source.nodes)) {
     return { nodes: source.nodes, edges: source.edges || [] };
@@ -28,6 +34,9 @@ export const GRAPH_DSL_CORE_PRELUDE = `function __graphJsonOf(source) {
     "record with a .graph"
   );
 }
+`;
+
+export const GRAPH_DSL_CORE_PRELUDE = `${GRAPH_JSON_PRELUDE}
 function __graphDslBuilder() {
   const nodes = [];
   const edges = [];

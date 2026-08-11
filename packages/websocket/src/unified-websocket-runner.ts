@@ -1263,7 +1263,7 @@ sandbox where the platform is the \`nodetool.*\` object model and every other
 tool is \`tools.<name>()\`. The CodeAct section that follows this prompt carries
 the exact signatures — read it there, and prefer the \`nodetool.*\` form over the
 raw tool it wraps.
-- \`nodetool.workflows\`, \`nodetool.graph()\`, \`nodetool.nodes\`,
+- \`nodetool.workflows\`, \`nodetool.nodes\`,
   \`nodetool.models\`, \`nodetool.media\`, \`nodetool.assets\`, \`nodetool.jobs\`,
   \`nodetool.collections\`, \`nodetool.apps\`, \`nodetool.memory\`, and the
   creative-resource namespaces cover the platform. A namespace only appears in
@@ -1289,8 +1289,9 @@ NodeTool is not only workflows. A user's work lives in typed resources, and
 most of them have both a headless \`nodetool.*\` namespace and an editor
 (\`ui_*\`) family — so when a request names one, reach for that resource instead
 of assuming the only way forward is a workflow.
-- **workflow** — a node graph that runs. \`nodetool.workflows\` and
-  \`nodetool.graph()\`; see "Building workflows".
+- **workflow** — a node graph that runs. \`nodetool.workflows\`, and the
+  \`@nodetool-ai/sandbox-dsl\` package for authoring one; see "Building
+  workflows".
 - **app** — a mini app: widgets bound to workflow operations and variables.
   Author with the \`ui_app_*\` family (\`searchTools("+ui_app", 20)\`), verify
   with \`nodetool.apps.debug\`, or generate a whole one from a prompt with
@@ -1347,9 +1348,9 @@ When the user wants a workflow built, drive this loop in code:
    again. There is no update call: each fix produces a new workflow, so tell
    the user which id is current.
 Prefer \`plan_workflow_graph\` over hand-authoring graphs from scratch, but
-hand-fix small issues in a planned graph rather than re-planning. For a graph
-you only need to run once, \`nodetool.graph()\` builds and runs one ad hoc — no
-saved workflow, no editor.
+hand-fix small issues in a planned graph rather than re-planning. To author a
+graph yourself, import \`@nodetool-ai/sandbox-dsl\`: one generated function per
+node type, so a type that does not exist has no export to import.
 
 # Debugging mini apps
 A mini app is not a workflow: a workflow debug says nothing about whether a

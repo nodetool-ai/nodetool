@@ -33,20 +33,29 @@ const PACKS_ROOT = join(here, "..", "..", "..", "sandbox-packs");
 
 export const SANDBOX_PACK_DOCS_TOOL = "get_sandbox_package_docs";
 
-/** The host packs these cases allow. None needs the compiler. */
-const SHIPPED_HOST_PACKS = ["sandbox-csv", "sandbox-xml", "sandbox-zip"];
+/**
+ * The packs these cases allow. Three host packs plus the workflow DSL, whose
+ * modules are plain guest JavaScript shipped in the pack — no npm dependency,
+ * so no compiler either.
+ */
+const SHIPPED_PACKS = [
+  "sandbox-csv",
+  "sandbox-xml",
+  "sandbox-zip",
+  "sandbox-dsl"
+];
 
 let cached: SandboxModuleCatalog | undefined;
 
 /**
- * A catalog over the shipped host packs, built once per process.
+ * A catalog over the shipped packs, built once per process.
  *
  * Discovery reads the pack directories users install; nothing is stubbed, so a
  * case that imports a pack runs the same library a Code node would.
  */
-export function shippedHostPackCatalog(): SandboxModuleCatalog {
+export function shippedPackCatalog(): SandboxModuleCatalog {
   if (cached) return cached;
-  const discoveries = SHIPPED_HOST_PACKS.map((dir) => {
+  const discoveries = SHIPPED_PACKS.map((dir) => {
     const discovery = discoverSandboxPack(join(PACKS_ROOT, dir));
     if (discovery === undefined) throw new Error(`${dir} is not a sandbox pack`);
     return discovery;

@@ -38,6 +38,7 @@ import {
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
+import { declareDynamicOutputsInGraph } from "../dynamic-slots.js";
 import type {
   CapabilityExport,
   CapabilityModule,
@@ -212,7 +213,13 @@ const createWorkflow: CapabilityExport = {
   },
   impl: async (run, params) => {
     const { Workflow } = await import("@nodetool-ai/models");
-    const graph = normalizeWorkflowGraph(params["graph"]);
+    // Declare before normalizing, so the handle is on the node the editor,
+    // the validator and every later run read. Without a registry this is the
+    // identity function and the graph is stored exactly as it arrived.
+    const authored = run.nodeRegistry
+      ? declareDynamicOutputsInGraph(params["graph"], run.nodeRegistry)
+      : params["graph"];
+    const graph = normalizeWorkflowGraph(authored);
     const badModels = await modelSelectionError(
       graph,
       run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS
@@ -596,9 +603,19 @@ const validateWorkflow: CapabilityExport = {
     // exactly where hallucinated ids come from. This capability always runs
     // server-side, so the runtime's own catalogs are the right default.
     const catalogs = run.modelCatalogs ?? RUNTIME_MODEL_CATALOGS;
+    // An outgoing edge declares the source's dynamic output handle. The tool
+    // path does this in `GraphBuilder`; a graph the DSL pack authors arrives
+    // here as data and has never seen one, so the same rule runs on the JSON.
+    const declared = declareDynamicOutputsInGraph(graph, registry) as {
+      nodes?: unknown[];
+      edges?: unknown[];
+    };
     const { validateGraph } = await import("@nodetool-ai/node-sdk");
     return validateGraph(
-      { nodes: graph.nodes as never[], edges: (graph.edges ?? []) as never[] },
+      {
+        nodes: declared.nodes as never[],
+        edges: (declared.edges ?? []) as never[]
+      },
       {
         has: (type) => registry.has(type),
         getMetadata: (type) => registry.getMetadata(type),

@@ -452,6 +452,12 @@ export {
   hasNodetoolApiTools,
   nodetoolApiCoveredToolNames
 } from "./codeact/nodetool-api.js";
+export {
+  GRAPH_DSL_PACKAGE,
+  GRAPH_DSL_PROMPT_SECTION,
+  hasGraphDslTools,
+  withGraphDslPackage
+} from "./codeact/graph-dsl-package.js";
 
 // Agents
 export { Agent, loadSkillsFromDirectory } from "./agent.js";
@@ -829,7 +835,7 @@ export { CODEACT_API_SURFACE_CASES } from "./evals/codeact-api-surfaces.js";
 export {
   CODEACT_SANDBOX_PACK_EVAL_CASES,
   SANDBOX_PACK_DOCS_TOOL,
-  shippedHostPackCatalog
+  shippedPackCatalog
 } from "./evals/codeact-sandbox-pack-cases.js";
 
 // Planning-mode evaluation harness (TaskPlanner DAG)

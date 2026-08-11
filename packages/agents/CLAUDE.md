@@ -792,13 +792,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
   `tools.*` calls — `nodetool.workflows` (list/get/run/start/debug/validate/
-  create/open), `nodetool.graph()` (an ad-hoc graph builder with
-  `ref.output()` wiring, `copyFrom()` graph-into-graph copying with id
-  remapping, `validate()`, `save()`, and `run()` — save-as-`codeact-adhoc` +
-  run; it runs on the shared graph DSL core in `src/graph-dsl-core.ts`, the
-  same implementation behind the GraphPlanner's `submit_graph`, so wiring
-  semantics and guards — snake_case auto ids, `connect()` id checks, handles
-  that throw when stringified — cannot drift between the two surfaces), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
+  create/open), `nodetool.batch(items, fn, {concurrency})` for bounded fan-out (run a
   workflow once per CSV row), `nodetool.models` (`pick(capability)` resolves
   one ranked model; `find`/`list` for the long form; `forProvider(provider)`
   for one provider's own catalog), and `nodetool.media`
@@ -854,6 +848,21 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   registration and audits. Every surface a model reasons over — chat turns,
   agent steps, and the MCP server — assembles its belt from
   `getAgentToolbelt()`, because all three have the object model.
+- Authoring a graph is a **package**, not a builder. `nodetool.graph()` — a
+  builder taking every node type as a free-form string — is gone; a session
+  authors with `@nodetool-ai/sandbox-dsl`, which ships one generated function
+  per node type with that node's real inputs, one module per namespace. A type
+  the catalog does not have has no export, so a hallucinated type fails at
+  import instead of surviving into a graph nobody checked.
+  `withGraphDslPackage` (`src/codeact/graph-dsl-package.ts`) is the wiring: it
+  puts the pack on the session allowlist when the belt carries
+  `create_workflow`, `validate_workflow` and `run_workflow` **and** the catalog
+  serves the pack, so a machine without it installed is never told to import
+  it. `CodeActExecutor` and `createChatCodeActSession` both call it, and the
+  answer also gates `GRAPH_DSL_PROMPT_SECTION`. Consent is per pack: an
+  allowlist entry covers that specifier's subpaths, which is what makes
+  seventy-two namespace modules one prompt line. Tests:
+  `tests/codeact-graph-dsl.test.ts`.
 - Eval suite `codeact` scores the executor on offline instrumented cases:
   `nodetool eval codeact -p <p> -m <m>`. Beyond the four toy-toolbelt cases
   it covers the full `nodetool.*` API surface: 19 cases over two
@@ -866,9 +875,12 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   parses, reading a pack's SKILL.md through `get_sandbox_package_docs` instead
   of guessing its API, reporting a pack as unavailable rather than working
   around it, and using two packs in one action. A case names its allowlist in
-  `sandboxPackages`, and the runner puts a catalog over the shipped **host**
-  packs on the context — a guest pack would need `@nodetool-ai/sandbox-compiler`,
-  which this package does not depend on. `requiredSessionTools` scores tools the
+  `sandboxPackages`, and the runner puts a catalog over the shipped packs
+  (`shippedPackCatalog()`) on the context: the three host packs plus
+  `@nodetool-ai/sandbox-dsl`, whose modules are guest JavaScript the pack ships
+  outright — a pack with an npm dependency would need
+  `@nodetool-ai/sandbox-compiler`, which this package does not depend on.
+  `requiredSessionTools` scores tools the
   executor adds rather than the case, which the recorder cannot see.
   Measured on `claude_agent_sdk`/sonnet: 4/4, mean score 1.00, ~2 actions each.
   `scripts/dump-codeact-run.ts <case> <provider> <model>` replays one case

@@ -7,6 +7,7 @@
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { discoverSandboxCatalog } from "@nodetool-ai/node-sdk";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { createHarnessContext } from "./harness-context.js";
 
@@ -25,22 +26,25 @@ const SCENARIOS: Scenario[] = [
     name: "workflow-lifecycle",
     what: "discover → build → validate → run → job records, all in-process",
     code: `
-const g = nodetool.graph();
-const name = g.node("nodetool.input.StringInput", { name: "name" });
-const step = g.node("nodetool.text.Replace", {
-  text: "WHO built this pipeline.",
-  old: "WHO",
-  new_value: name.output()
-});
-g.node("nodetool.output.Output", { name: "sentence", value: step.output() });
+import { workflow } from "@nodetool-ai/sandbox-dsl";
+import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
+import { concat } from "@nodetool-ai/sandbox-dsl/nodetool.text";
+import { output } from "@nodetool-ai/sandbox-dsl/nodetool.output";
 
-const check = await nodetool.workflows.validate(g);
+const name = stringInput({ name: "name" });
+const sentence = concat({ a: name.output(), b: " built this pipeline." });
+const graph = workflow(
+  output({ name: "sentence", value: sentence.output() })
+);
+
+const check = await nodetool.workflows.validate(graph);
 if (check.issues && check.issues.length) return { failed: "validate", check };
 
-const { workflow, result } = await g.run({ name: "CodeAct" }, { name: "scenario-1" });
-state.wfId = workflow.id;
+const wf = await nodetool.workflows.create("scenario-1", graph);
+const result = await nodetool.workflows.run(wf.id, { name: "CodeAct" });
+state.wfId = wf.id;
 
-const jobs = await nodetool.jobs.list({ workflow_id: workflow.id, limit: 3 });
+const jobs = await nodetool.jobs.list({ workflow_id: wf.id, limit: 3 });
 const job = jobs.jobs && jobs.jobs[0] ? await nodetool.jobs.get(jobs.jobs[0].id) : null;
 return {
   sentence: result && (result.sentence ?? result),
@@ -148,21 +152,25 @@ return {
 const model = await nodetool.models.pick("text_to_image", { provider: "fal_ai" });
 if (!model) return { skipped: "no fal model" };
 
-const g = nodetool.graph();
-const prompt = g.node("nodetool.input.StringInput", { name: "prompt" });
-const img = g.node("nodetool.image.TextToImage", {
+import { workflow } from "@nodetool-ai/sandbox-dsl";
+import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
+import { textToImage } from "@nodetool-ai/sandbox-dsl/nodetool.image";
+import { output } from "@nodetool-ai/sandbox-dsl/nodetool.output";
+
+const prompt = stringInput({ name: "prompt" });
+const img = textToImage({
   prompt: prompt.output(),
   model: { type: "image_model", provider: model.provider, id: model.model_id }
 });
-g.node("nodetool.output.Output", { name: "image", value: img.output() });
+const graph = workflow(output({ name: "image", value: img.output() }));
 
-const check = await nodetool.workflows.validate(g);
+const check = await nodetool.workflows.validate(graph);
 if (check.issues && check.issues.length) return { failed: "validate", issues: check.issues };
 
-const { workflow, result } = await g.run(
-  { prompt: "isometric pixel-art greenhouse at dusk" },
-  { name: "scenario-5 image" }
-);
+const wf = await nodetool.workflows.create("scenario-5 image", graph);
+const result = await nodetool.workflows.run(wf.id, {
+  prompt: "isometric pixel-art greenhouse at dusk"
+});
 
 // Broken graph → the debug report must carry the failure, not lose it.
 const broken = await nodetool.workflows.create("scenario-5 broken", {
@@ -178,7 +186,7 @@ if (broken && broken.id) {
 }
 return {
   imageProduced: !!(result && (result.image ?? Object.keys(result).length)),
-  runWorkflowId: workflow.id,
+  runWorkflowId: wf.id,
   brokenCreateRefused: !(broken && broken.id),
   brokenError: broken && broken.error ? String(broken.error).slice(0, 140) : null,
   debugVerdict: debugReport && debugReport.run && (debugReport.run.verdict ?? debugReport.run.status ?? null)
@@ -206,6 +214,8 @@ async function main(): Promise<void> {
 
   const session = createChatCodeActSession({
     context: createHarnessContext(),
+    // The graph scenarios author with `@nodetool-ai/sandbox-dsl`.
+    sandboxModuleCatalog: discoverSandboxCatalog().catalog,
     tools,
     executeTool: async (call) => {
       const res = await client.callTool({ name: call.name, arguments: call.args });

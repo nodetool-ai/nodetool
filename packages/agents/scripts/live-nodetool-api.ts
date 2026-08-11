@@ -6,13 +6,14 @@
  *
  *   npx tsx packages/agents/scripts/live-nodetool-api.ts [use-case ...]
  *
- * Use cases: discover-build-run, rows-batch, example-copy, media-pick.
+ * Use cases: discover-build-run, rows-batch, example-inspect, media-pick.
  * No args runs all four. Needs the API server on :7777 (`npm run dev:server`).
  * `media-pick` spends real money (one image) only when a t2i provider is
  * configured; it reports and skips otherwise.
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
+import { discoverSandboxCatalog } from "@nodetool-ai/node-sdk";
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { createHarnessContext } from "./harness-context.js";
 
@@ -25,40 +26,42 @@ interface UseCase {
 
 const CASES: UseCase[] = [
   {
-    // 1. Discovery → ad-hoc graph → validate → run. Deterministic text
-    // pipeline: two chained Replace nodes fill a sentence template.
+    // 1. Discovery → DSL graph → validate → save → run. Deterministic text
+    // pipeline: two chained Concat nodes fill a sentence.
     name: "discover-build-run",
     code: `
-const hits = await nodetool.nodes.search("replace text");
-const info = await nodetool.nodes.info("nodetool.text.Replace");
+import { workflow } from "@nodetool-ai/sandbox-dsl";
+import { stringInput } from "@nodetool-ai/sandbox-dsl/nodetool.input";
+import { concat } from "@nodetool-ai/sandbox-dsl/nodetool.text";
+import { output } from "@nodetool-ai/sandbox-dsl/nodetool.output";
 
-const g = nodetool.graph();
-const name = g.node("nodetool.input.StringInput", { name: "name" });
-const city = g.node("nodetool.input.StringInput", { name: "city" });
-const step1 = g.node("nodetool.text.Replace", {
-  text: "NAME lives in CITY.",
-  old: "NAME",
-  new_value: name.output()
-});
-const step2 = g.node("nodetool.text.Replace", {
-  text: step1.output(),
-  old: "CITY",
-  new_value: city.output()
-});
-g.node("nodetool.output.Output", { name: "sentence", value: step2.output() });
+const hits = await nodetool.nodes.search("concatenate text");
+const info = await nodetool.nodes.info("nodetool.text.Concat");
 
-const check = await nodetool.workflows.validate(g);
-if (check.issues && check.issues.length) return { invalid: check.issues };
-const { workflow, result } = await g.run(
-  { name: "Ada", city: "London" },
-  { name: "live-harness discover-build-run" }
+const name = stringInput({ name: "name" });
+const city = stringInput({ name: "city" });
+const lives = concat({ a: name.output(), b: " lives in " });
+const sentence = concat({ a: lives.output(), b: city.output() });
+const graph = workflow(
+  output({ name: "sentence", value: sentence.output() })
 );
-state.wfId = workflow.id;
+
+const check = await nodetool.workflows.validate(graph);
+if (check.issues && check.issues.length) return { invalid: check.issues };
+const wf = await nodetool.workflows.create(
+  "live-harness discover-build-run",
+  graph
+);
+const result = await nodetool.workflows.run(wf.id, {
+  name: "Ada",
+  city: "London"
+});
+state.wfId = wf.id;
 return {
   searchHits: hits.results ? hits.results.length : hits.length,
   infoOk: !!(info && (info.properties || info.title || info.node_type)),
   validation: check.status || check,
-  workflowId: workflow.id,
+  workflowId: wf.id,
   output: result.results || result.outputs || result
 };`
   },
@@ -83,8 +86,8 @@ return runs.map((r) => ({
 }));`
   },
   {
-    // 3. Examples → copyFrom → inspect + revalidate.
-    name: "example-copy",
+    // 3. Examples → inspect + revalidate.
+    name: "example-inspect",
     code: `
 const examples = await nodetool.workflows.list({ workflow_type: "example", limit: 50 });
 const list = examples.workflows || examples;
@@ -92,16 +95,13 @@ const pick = list.find((w) => /getting|start|hello|text/i.test(w.name)) || list[
 const full = await nodetool.workflows.example(
   (pick.package_name || "nodetool-base") + "/" + pick.name
 );
-const g = nodetool.graph();
-const { idMap } = g.copyFrom(full);
-const json = g.toJSON();
-const check = await nodetool.workflows.validate(g);
+const check = await nodetool.workflows.validate(full);
 return {
   examplesListed: list.length,
   picked: pick.name,
-  copiedNodes: json.nodes.length,
-  copiedEdges: json.edges.length,
-  types: json.nodes.map((n) => n.type).slice(0, 6),
+  nodes: full.graph.nodes.length,
+  edges: full.graph.edges.length,
+  types: full.graph.nodes.map((n) => n.type).slice(0, 6),
   validation: check.status || check.error || check
 };`
   },
@@ -187,8 +187,11 @@ async function main(): Promise<void> {
   }));
   console.log(`connected: ${tools.length} tools from ${SERVER}/mcp`);
 
+  // The graph cases author with `@nodetool-ai/sandbox-dsl`, so this harness
+  // needs the same pack catalog a server builds at startup.
   const session = createChatCodeActSession({
     context: createHarnessContext(),
+    sandboxModuleCatalog: discoverSandboxCatalog().catalog,
     tools,
     executeTool: async (call) => {
       const res = await client.callTool({

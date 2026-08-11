@@ -18,9 +18,9 @@ import { GRAPH_DSL_CORE_PRELUDE } from "./graph-dsl-core.js";
 export const GRAPH_DSL_TIMEOUT_MS = 10_000;
 
 /**
- * Guest-side prelude defining the DSL surface: the shared graph DSL core
- * (`graph-dsl-core.ts` — the same wiring, validation, and handle guards the
- * CodeAct sandbox's `nodetool.graph()` uses) plus the planner's free-function
+ * Guest-side prelude defining the DSL surface: the graph DSL core
+ * (`graph-dsl-core.ts` — the wiring, validation, and handle guards) plus the
+ * planner's free-function
  * form. `node()` registers a node on one implicit builder and returns a ref
  * whose `.output(slot?)` produces a wiring handle; `graph()` collects the
  * result (mirroring how `workflow()` in @nodetool-ai/dsl derives edges from

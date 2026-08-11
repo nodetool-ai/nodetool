@@ -223,19 +223,24 @@ cancels its queued ops instead of issuing a delete. Tests:
 Alongside the graph model, an action gets the `nodetool` object model
 (`packages/agents/src/codeact/nodetool-api.ts`): namespaces wrapping belt
 tools, so gating and routing stay untouched and a method whose backing tool is
-absent throws naming it. The namespaces are `workflows`, `graph()`, `nodes`,
+absent throws naming it. The namespaces are `workflows`, `nodes`,
 `agents`, `models`, `providers`, `media`, `documents`, `web`, `memory`,
 `style`, `email`, `assets`, `jobs`, `collections`, `apps`, `timelines`,
 `sketches`, `scripts`, `storyboards`, plus `batch()` for bounded fan-out.
 
-`nodetool.graph()` is not its own graph language: it is the graph DSL core
-(`src/graph-dsl-core.ts`), the same implementation the GraphPlanner's
-`submit_graph` programs run on. One wiring semantics across both surfaces —
-snake_case auto ids, `node(type, props)` argument validation, `connect()`
-refusing an id the graph does not have, and handles that throw when
-interpolated into a string instead of silently becoming `"[object Object]"`.
-The sandbox layer adds only the tool-backed methods (`validate()`, `save()`,
-`run()`).
+Authoring a graph is not one of them. It is a sandbox package,
+`@nodetool-ai/sandbox-dsl`: one generated function per node type, carrying that
+node's real inputs, one importable module per namespace. A node type the
+catalog does not have has no export, so a hallucinated type fails at import
+rather than at validation — the failure mode the string-typed `nodetool.graph()`
+builder could not close. `workflow(...terminals)` returns the `{nodes, edges}`
+shape `validate_workflow` and `create_workflow` already take.
+
+The pack reaches an action through the session allowlist like any other:
+`withGraphDslPackage` (`src/codeact/graph-dsl-package.ts`) adds it when the belt
+carries `create_workflow`, `validate_workflow` and `run_workflow` and the
+catalog serves the pack. A machine without it installed gets neither the
+specifier nor the prompt section naming it.
 
 `web` is the outside world behind one surface: `search(query, {provider})`
 picks whichever search backend the belt carries (`"default"`, `"openai"`,
