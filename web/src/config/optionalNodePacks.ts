@@ -70,13 +70,8 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "web",
     label: "Web & Scraping",
-    description: "Headless browser, RSS, media download, and Apify scraping.",
-    namespaces: [
-      "lib.browser",
-      "lib.rss",
-      "lib.video.download",
-      "apify"
-    ]
+    description: "Headless browser, media download, and Apify scraping.",
+    namespaces: ["lib.browser", "lib.video.download", "apify"]
   },
   {
     id: "data_stores",
@@ -93,9 +88,8 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "text_data",
     label: "Text & Data Utilities",
-    description:
-      "NLP, date / time math, validation, and grids.",
-    namespaces: ["lib.nlp", "lib.datetime", "lib.validate", "lib.grid"]
+    description: "NLP and grids.",
+    namespaces: ["lib.nlp", "lib.grid"]
   },
   {
     id: "developer",

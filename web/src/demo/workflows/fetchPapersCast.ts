@@ -22,7 +22,7 @@ import { PREVIEW_NODE_TYPE } from "../../constants/nodeTypes";
 
 const CODE = "nodetool.code.Code";
 const EXTRACT_LINKS = "nodetool.generators.DataGenerator";
-const FILTER = "nodetool.data.Filter";
+const FILTER = "nodetool.control.FilterCode";
 const FOR_EACH = "nodetool.control.ForEach";
 const COLLECT = "nodetool.control.Collect";
 
@@ -59,7 +59,7 @@ const nodes = [
     code: 'const res = await fetch(inputs.url);\nreturn { output: await res.text() };',
   }),
   node("links", EXTRACT_LINKS, 360, 170, 300, "Extract Links", {}),
-  node("filter", FILTER, 740, 170, 300, "Keep PDFs", { condition: "href.endswith('.pdf')" }),
+  node("filter", FILTER, 740, 170, 300, "Keep PDFs", { predicate: "item.href.endsWith('.pdf')" }),
   node("foreach", FOR_EACH, 1120, 170, 260, "For Each", {}),
   node("download", CODE, 1440, 20, 280, "Download File", {
     code:
@@ -72,7 +72,7 @@ const nodes = [
 ];
 const edges = [
   edge("e1", "get", "output", "links", "markdown"),
-  edge("e2", "links", "output", "filter", "df"),
+  edge("e2", "links", "output", "filter", "input_item"),
   edge("e3", "filter", "output", "foreach", "input_list"),
   edge("e4", "foreach", "output", "download", "url"),
   edge("e5", "download", "output", "collect", "input_item"),
@@ -153,10 +153,10 @@ export const fetchPapersCast: DemoCast = {
       inputs: ["markdown"],
       properties: [prop("markdown", "str")],
     }),
-    [FILTER]: simpleMeta(FILTER, "Filter", "dataframe", {
-      inputs: ["df"],
-      inline: ["condition"],
-      properties: [prop("df", "dataframe"), prop("condition", "str")],
+    [FILTER]: simpleMeta(FILTER, "Filter (Expression)", "dataframe", {
+      inputs: ["input_item"],
+      inline: ["predicate"],
+      properties: [prop("input_item", "dataframe"), prop("predicate", "str")],
     }),
     [FOR_EACH]: simpleMeta(FOR_EACH, "For Each", "str", {
       inputs: ["input_list"],

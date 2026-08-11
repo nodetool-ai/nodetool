@@ -120,7 +120,7 @@ describe("buildSdkV1StaticPreflight", () => {
         nodes: [
           { id: "input-1", type: "nodetool.input.IntegerInput", data: {} },
           { id: "constant-1", type: "nodetool.constant.Integer", data: {} },
-          { id: "list-1", type: "nodetool.list.RepeatValue", data: {} },
+          { id: "dict-1", type: "nodetool.dictionary.Get", data: {} },
           { id: "output-1", type: "nodetool.output.Output", data: {} }
         ],
         edges: []

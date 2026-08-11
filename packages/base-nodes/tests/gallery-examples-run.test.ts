@@ -54,25 +54,6 @@ async function run(name: string): Promise<Record<string, unknown[]>> {
 }
 
 describe("shipped gallery examples produce what they claim", () => {
-  it("Validate a Signup Payload normalises a messy address", async () => {
-    const out = await run("Validate a Signup Payload");
-    // Leading/trailing space and mixed case, still a valid address.
-    expect(out["is_email"]).toEqual([true]);
-    // '@' and '+' are not alphanumeric — the check that stops people using
-    // is_alphanumeric as a username test on an email field.
-    expect(out["is_alphanumeric"]).toEqual([false]);
-    expect(out["normalized_email"]).toEqual([
-      "ada.lovelace+signup@example.com"
-    ]);
-  });
-
-  it("Check a URL and an IP reports the address family, not just validity", async () => {
-    const out = await run("Check a URL and an IP");
-    expect(out["url_ok"]).toEqual([true]);
-    expect(out["is_ipv6"]).toEqual([true]);
-    expect(out["is_ipv4"]).toEqual([false]);
-  });
-
   it("Keep Only the Long Lines gathers every survivor, not just the last", async () => {
     const out = await run("Keep Only the Long Lines");
     // Without Collect this was ["another long enough line"] — one of two.

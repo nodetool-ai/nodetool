@@ -2,8 +2,8 @@
   "slug": "brand-and-social",
   "name": "Brand & Social",
   "emoji": "🎨",
-  "description": "Fill in your brand once — the asset kit, the thumbnail factory, and the content calendar all read the same values.",
-  "tagline": "One brand identity drives three deliverables.",
+  "description": "Fill in your brand once — the asset kit and the thumbnail factory both read the same values.",
+  "tagline": "One brand identity drives two deliverables.",
   "note": "🔑 Needs OpenAI and FAL keys. Your brand name, audience, and voice persist between sessions.",
   "featured": true,
   "image": "/app-preview/img/brand-and-social.jpg",
@@ -28,7 +28,7 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One brand identity drives three deliverables."
+            "text": "One brand identity drives two deliverables."
           }
         },
         {
@@ -313,131 +313,6 @@
               }
             ]
           }
-        },
-        {
-          "type": "Columns",
-          "props": {
-            "id": "cols-this-month-s-calendar",
-            "gap": 24,
-            "left": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-this-month-s-calendar",
-                  "title": "This month's calendar",
-                  "content": [
-                    {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-calendar-monthly-theme",
-                        "binding": "op:calendar/in:monthly_theme",
-                        "label": "This month's theme",
-                        "multiline": true,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "NumberInput",
-                      "props": {
-                        "id": "in-calendar-posts-per-week",
-                        "binding": "op:calendar/in:posts_per_week",
-                        "label": "Posts per week",
-                        "min": 1,
-                        "max": 7,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "btn-calendar",
-                        "label": "Fill my calendar",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "calendar",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-this-month-s-calendar-results",
-                  "title": "Results",
-                  "content": [
-                    {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-calendar",
-                        "binding": "op:calendar/exec#progress",
-                        "label": "Filling your calendar…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-calendar-content-calendar",
-                        "text": "Content calendar",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Table",
-                      "props": {
-                        "id": "out-calendar-content-calendar",
-                        "binding": "op:calendar/out:output-content-calendar"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-calendar-post-images",
-                        "text": "Post visuals",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-calendar-post-images",
-                        "binding": "op:calendar/out:output-post-images",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-calendar-captions",
-                        "text": "Captions & hashtags",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-calendar-captions",
-                        "binding": "op:calendar/out:output-captions",
-                        "text": ""
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
         }
       ],
       "zones": {}
@@ -464,27 +339,6 @@
           "input_audience": {
             "from": "variable",
             "variableId": "audience"
-          }
-        },
-        "outputs": {},
-        "policy": "replace"
-      },
-      {
-        "id": "calendar",
-        "name": "Calendar",
-        "workflowId": "calendar",
-        "inputs": {
-          "brand_name": {
-            "from": "variable",
-            "variableId": "brandName"
-          },
-          "target_audience": {
-            "from": "variable",
-            "variableId": "audience"
-          },
-          "brand_voice": {
-            "from": "variable",
-            "variableId": "voice"
           }
         },
         "outputs": {},
@@ -801,175 +655,6 @@
         ],
         "edges": []
       }
-    },
-    {
-      "key": "calendar",
-      "name": "Social Media Calendar Filler",
-      "graph": {
-        "nodes": [
-          {
-            "id": "brand_name",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "value": "TechStartup Pro",
-              "name": "brand_name",
-              "description": "Name of the brand the calendar is for"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 0
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "bypassed": false,
-              "title": "1️⃣ Brand name"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "monthly_theme",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "value": "AI productivity tools and workflow automation",
-              "name": "monthly_theme",
-              "description": "Theme that ties the month's posts together"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 941
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "bypassed": false,
-              "title": "5️⃣ Monthly theme"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "target_audience",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "value": "Tech professionals, entrepreneurs, and startup founders aged 25-45",
-              "name": "target_audience",
-              "description": "Audience the content should speak to"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 697
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "bypassed": false,
-              "title": "4️⃣ Target audience"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "brand_voice",
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "value": "Professional yet approachable, educational, inspiring, data-driven",
-              "name": "brand_voice",
-              "description": "Tone and personality for the posts"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 453
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "bypassed": false,
-              "title": "3️⃣ Brand voice"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "posts_per_week",
-            "type": "nodetool.input.IntegerInput",
-            "data": {
-              "value": 4,
-              "name": "posts_per_week",
-              "min": 1,
-              "max": 7,
-              "description": "How many posts to plan each week"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 237
-              },
-              "zIndex": 0,
-              "width": 280,
-              "selectable": true,
-              "bypassed": false,
-              "title": "2️⃣ Posts per week"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "output-content-calendar",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "content_calendar"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 1040,
-                "y": 40
-              },
-              "zIndex": 0,
-              "width": 280,
-              "title": "8️⃣ View calendar table",
-              "selectable": true,
-              "bypassed": false
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "output-post-images",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "post_images"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 2400,
-                "y": 400
-              },
-              "selectable": true
-            }
-          },
-          {
-            "id": "output-captions",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "captions"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 1350,
-                "y": 600
-              },
-              "selectable": true
-            }
-          }
-        ],
-        "edges": []
-      }
     }
   ],
   "values": {
@@ -985,11 +670,6 @@
       "$demo": "image"
     },
     "op:thumbnails/out:preview_hooks": "1. “You're losing $100/month by not knowing this.”\n2. “$5 a day → $1M. Here's the math nobody shows you.”",
-    "op:calendar/in:monthly_theme": "AI productivity tools and workflow automation",
-    "op:calendar/in:posts_per_week": 4,
-    "op:calendar/out:output-post-images": {
-      "$demo": "image"
-    },
     "var:brandName": "Aurora Labs",
     "var:audience": "outdoor-minded people in their 30s",
     "var:voice": "friendly and confident, never corporate"

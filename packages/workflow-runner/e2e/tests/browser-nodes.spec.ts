@@ -46,15 +46,21 @@ test("a real constant node produces its output in-browser", async ({ page }) => 
   expect(result.allStamped).toBe(true);
 });
 
-test("a real compute node (list.Range) runs in-browser", async ({ page }) => {
+test("a real compute node (nodetool.code.Code) runs in-browser", async ({
+  page
+}) => {
   const result = await page.evaluate(() =>
     window.runBrowserNodesInBrowser({
       nodes: [
         {
-          id: "r",
-          type: "nodetool.list.Range",
-          name: "range",
-          properties: { start: 0, stop: 5, step: 1 }
+          id: "c",
+          type: "nodetool.code.Code",
+          name: "doubled",
+          properties: {
+            code: "return { result: [1, 2, 3].map((n) => n * 2) };",
+            packages: [],
+            dynamic_outputs: { result: "list" }
+          }
         }
       ],
       edges: []
@@ -63,7 +69,7 @@ test("a real compute node (list.Range) runs in-browser", async ({ page }) => {
 
   expect(result.error).toBeUndefined();
   expect(result.status).toBe("completed");
-  expect(result.outputs.range).toEqual([[0, 1, 2, 3, 4]]);
+  expect(result.outputs.doubled).toEqual([[2, 4, 6]]);
 });
 
 test("data flows across an edge between two real nodes in-browser", async ({

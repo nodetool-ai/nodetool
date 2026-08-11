@@ -34,7 +34,6 @@ import {
 // imported via core-nodes' per-file subpaths to skip the native-pulling index.
 import * as constantNodes from "@nodetool-ai/core-nodes/nodes/constant";
 import * as controlNodes from "@nodetool-ai/core-nodes/nodes/control";
-import * as listNodes from "@nodetool-ai/core-nodes/nodes/list";
 // The sandbox-module contract fixtures and the Code node that runs them.
 // Imported statically: a dynamic import here is discovered only when the first
 // test calls it, and Vite's dependency pre-bundle then reloads the page out
@@ -397,9 +396,10 @@ function collectNodeClasses(mod: Record<string, unknown>): unknown[] {
 let browserRegistry: ReturnType<typeof createBrowserRegistry> | null = null;
 function getBrowserRegistry(): ReturnType<typeof createBrowserRegistry> {
   if (!browserRegistry) {
-    const classes = [constantNodes, controlNodes, listNodes].flatMap((mod) =>
+    const classes = [constantNodes, controlNodes].flatMap((mod) =>
       collectNodeClasses(mod as Record<string, unknown>)
     );
+    classes.push(CodeNode);
     browserRegistry = createBrowserRegistry(
       classes as Parameters<typeof createBrowserRegistry>[0]
     );

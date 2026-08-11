@@ -1,10 +1,11 @@
 # @nodetool-ai/data-nodes
 
-Dataframe, CSV, RSS, and chart nodes for [NodeTool](https://nodetool.ai).
+Dataframe iteration and chart nodes for [NodeTool](https://nodetool.ai).
 
-Load, transform, and save tabular data in visual AI workflows: parse CSV, run
-dataframe operations (filter, join, aggregate, pivot), fetch RSS feeds, and
-render charts to images.
+Iterate tabular data and render charts to images in visual AI workflows. CSV
+parsing and dataframe shaping (filter, join, aggregate, pivot) now happen
+inside a `nodetool.code.Code` node via the `@nodetool-ai/sandbox-csv`
+(papaparse) sandbox pack instead of dedicated node classes.
 
 ## Install
 
@@ -14,15 +15,8 @@ npm install @nodetool-ai/data-nodes
 
 ## Nodes
 
-**Dataframe** (`nodetool.data.*`) — load and shape tabular data: `ImportCSV`,
-`LoadCSVFile`, `LoadCSVURL`, `LoadCSVAssets`, `JSONToDataframe`, `FromList`,
-`ToList`, `SaveDataframe`, `SaveCSVDataframeFile`. Column operations:
-`SelectColumn`, `ExtractColumn`, `AddColumn`, `Rename`. Rows and filtering:
-`Filter`, `FilterNone`, `Slice`, `FindRow`, `SortByColumn`, `DropDuplicates`,
-`DropNA`, `FillNA`, `ForEachRow`. Combine and reshape: `Merge`, `Append`,
-`Join`, `Aggregate`, `Pivot`. Inspect: `Schema`, `Describe`.
-
-**RSS** (`lib.rss.*`) — `FetchRSSFeed`, `ExtractFeedMetadata`.
+**Dataframe** (`nodetool.data.*`) — `ForEachRow` (stream rows of a dataframe),
+`LoadCSVAssets` (load dataframes from an asset folder).
 
 **Charts** (`lib.charts.ChartRenderer`) — render a Chart.js chart definition to
 a PNG image.

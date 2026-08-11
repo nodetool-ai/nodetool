@@ -12,8 +12,7 @@
  *
  * Nothing here touches a model, the network, or the filesystem — the graphs are
  * string constants and pure transforms, so the assertions are exact and the
- * suite is deterministic. `lib.datetime.Now` is the one exception, and it is
- * asserted on shape.
+ * suite is deterministic.
  *
  * Runs through `ExecutionSession` with `resolveNodeType`: the path
  * `nodetool workflows run` and the websocket server both take.
@@ -102,46 +101,6 @@ describe("text_regex_parse_cli", () => {
   });
 });
 
-describe("validate_strings_cli", () => {
-  it("classifies emails, URLs and IPs, and sanitizes untrusted text", async () => {
-    const out = await run("validate_strings_cli.json");
-
-    expect(out["is_email"]).toEqual([true]);
-    expect(out["is_url"]).toEqual([true]);
-    expect(out["is_url_negative"]).toEqual([false]);
-
-    expect(out["ipv4_flag"]).toEqual([true]);
-    expect(out["ipv6_flag"]).toEqual([true]);
-    // The v4/v6 flags are independent, not a single "is an IP" bit.
-    expect(out["ipv4_is_v6"]).toEqual([false]);
-
-    expect(out["url_is_url"]).toEqual([true]);
-    expect(out["url_is_uuid"]).toEqual([false]);
-
-    // Sanitize does not trim before escaping, and escapes the forward slash
-    // too — both are load-bearing if you compare the output to a fixture.
-    expect(out["escaped"]).toEqual([
-      "  &lt;script&gt;alert(1)&lt;&#x2F;script&gt;  "
-    ]);
-    expect(out["trimmed"]).toEqual(["<script>alert(1)</script>"]);
-    // Normalizing lowercases the address and drops surrounding whitespace.
-    expect(out["normalized_email"]).toEqual(["matti@nodetool.ai"]);
-  });
-});
-
-describe("list_build_cli", () => {
-  it("builds lists by range, repetition and tiling", async () => {
-    const out = await run("list_build_cli.json");
-    // stop is exclusive: 0..10 step 2 stops at 8.
-    expect(out["range"]).toEqual([[0, 2, 4, 6, 8]]);
-    expect(out["repeat_value"]).toEqual([["ok", "ok", "ok"]]);
-    // Tile repeats the whole list; RepeatEach repeats each element in place.
-    // Same inputs, different order — that is the only thing separating them.
-    expect(out["tile"]).toEqual([["a", "b", "a", "b", "a", "b"]]);
-    expect(out["repeat_each"]).toEqual([["a", "a", "a", "b", "b", "b"]]);
-  });
-});
-
 describe("control_flow_stream_cli", () => {
   it("filters, drops, taps and collects a stream, and routes a switch", async () => {
     const out = await run("control_flow_stream_cli.json");
@@ -167,31 +126,6 @@ describe("control_flow_stream_cli", () => {
     expect(out["fallback_flag"]).toEqual([true]);
     expect(out["passthrough"]).toEqual(["present"]);
     expect(out["passthrough_flag"]).toEqual([false]);
-  });
-});
-
-describe("datetime_cli", () => {
-  it("formats, shifts and compares fixed dates", async () => {
-    const out = await run("datetime_cli.json");
-
-    expect(out["formatted"]).toEqual(["2026-08-02"]);
-    // 2026-08-02 + 30 days. August has 31 days, so this lands on Sep 1.
-    expect(out["added_iso"]).toEqual(["2026-09-01T00:00:00.000Z"]);
-
-    // Diff is date_a - date_b, so an earlier `a` gives a negative number.
-    // The sign is the thing worth pinning; is_before says the same in a
-    // form that does not depend on argument order.
-    expect(out["diff_days"]).toEqual([-30]);
-    expect(out["a_is_before_b"]).toEqual([true]);
-
-    // The period end is inclusive, to the last millisecond.
-    expect(out["month_start"]).toEqual(["2026-08-01T00:00:00.000Z"]);
-    expect(out["month_end"]).toEqual(["2026-08-31T23:59:59.999Z"]);
-
-    // Now is the one non-deterministic node here, so it is asserted on shape.
-    const [epoch] = out["now_epoch_ms"] as number[];
-    expect(typeof epoch).toBe("number");
-    expect(epoch).toBeGreaterThan(1_700_000_000_000);
   });
 });
 

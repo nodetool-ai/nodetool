@@ -5,6 +5,14 @@ sandboxed QuickJS JavaScript node. It asks: **which node classes exist only
 because there was no way to write three lines of JavaScript, and which of those
 already have a snippet standing in for them?**
 
+**Status:** `nodetool.list` (`Range`, `Tile`, `RepeatEach`, `RepeatValue`),
+`lib.datetime` (all 5), and `lib.validate` (all 5) have been removed — their
+Tier 1/Tier 2 entries below are historical. `lib.rss` (`FetchRSSFeed`,
+`ExtractFeedMetadata`) and the 27 `nodetool.data.*` dataframe verbs were also
+removed, on the same rationale but outside this audit's original scope: the
+sandbox's `@nodetool-ai/sandbox-xml` and `@nodetool-ai/sandbox-csv` packs
+(papaparse) now cover that ground directly.
+
 Nothing here proposes taking a capability away from the user. The palette entry
 stays. What changes is what is behind it — a TypeScript class with a metadata
 entry, a test, and a registry row, or a Code node with the equivalent JS
@@ -165,15 +173,17 @@ fold), `Embedding`, `CountTokens` (js-tiktoken), `AutomaticSpeechRecognition`,
 operators). HTML-to-text conversion moved to the `@nodetool-ai/sandbox-html`
 sandbox pack's `toText` export.
 
-### `nodetool.list` — 1 of 4
+### `nodetool.list` — removed (was 1 of 4)
 
-`Range` has the **Range** snippet. `RepeatEach`, `RepeatValue`, and `Tile` do
-not, and belong in the List category beside it.
+`Range` had the **Range** snippet. `RepeatEach`, `RepeatValue`, and `Tile` did
+not. All four node classes are now removed; the List category snippets stand
+in for them.
 
-### `lib.datetime` — 4 of 5
+### `lib.datetime` — removed (was 4 of 5)
 
 `Now` → Today / Now, `Add` → Add Time, `Diff` → Date Difference, `Format` →
-Format Date. `StartEnd` (start/end of day, week, month, year) has no snippet.
+Format Date. `StartEnd` (start/end of day, week, month, year) had no snippet.
+All five node classes are now removed.
 
 **Tier 1 total: 39 node classes whose replacement already ships.** Removing them
 is a deletion plus a graph migration, not new authoring.
@@ -189,10 +199,10 @@ category; none fit the ten that exist.
 | `lib.svg` element builders — `Circle` `ClipPath` `DropShadow` `Ellipse` `GaussianBlur` `Gradient` `Line` `Path` `Polygon` `Rect` `Text` `Transform` | 12 | **SVG** (new) |
 | `lib.markdown` — all 6 extractors | 6 | **Markdown** (new) |
 | `lib.html` — `BaseUrl` `ExtractAudio` `ExtractImages` `ExtractLinks` `ExtractMetadata` `ExtractVideos`, via `@nodetool-ai/sandbox-html` | 6 | **HTML** (new) |
-| `lib.validate` — `Email` `IP` `URL` `String` `Sanitize` | 5 | **Validation** (new) |
-| `nodetool.list` — `RepeatEach` `RepeatValue` `Tile` | 3 | List |
+| `lib.validate` — `Email` `IP` `URL` `String` `Sanitize` (removed) | 5 | **Validation** (new) |
+| `nodetool.list` — `RepeatEach` `RepeatValue` `Tile` (removed) | 3 | List |
 | `nodetool.constant.Date` `nodetool.constant.DateTime` — constructors with integer props, not value editors, unlike the rest of `nodetool.constant.*` | 2 | Date & Time |
-| `lib.datetime.StartEnd` | 1 | Date & Time |
+| `lib.datetime.StartEnd` (removed) | 1 | Date & Time |
 | `nodetool.text.HasLength` | 1 | Text |
 
 **Tier 2 total: 51 nodes, 46 snippets.** Three `lib.os` pairs are the same
@@ -262,15 +272,20 @@ so escaping earlier would double-escape.
 
 | Group | Nodes | Blocker |
 | --- | --- | --- |
-| `nodetool.data` transforms — `AddColumn` `Aggregate` `Append` `DropDuplicates` `DropNA` `ExtractColumn` `FillNA` `Filter` `FindRow` `FromList` `ImportCSV` `Join` `JSONToDataframe` `Merge` `Pivot` `Rename` `SelectColumn` `Slice` `SortByColumn` `ToList` | 20 | The `dataframe` type renders as a table. `snippetMetadata.ts` types every output of a snippet from one `CATEGORY_TYPE` entry, so a returned `{columns, data}` cannot declare itself a dataframe and keep the table view. Needs per-snippet output typing. |
 | `lib.os` file operations — `ReadTextFile` `WriteTextFile` `ReadBinaryFile` `WriteBinaryFile` `ListFiles` `FileExists` `CreateDirectory` `GetFileSize` `IsFile` `IsDirectory` `AccessedTime` `CreatedTime` `ModifiedTime` `WorkspaceDirectory` `CopyFile` `MoveFile` | 16 | `workspace` covers read, write, list, `stat`, `mkdir`, `remove`, and the JSON category already ships Read File / Write File / List Files. Missing: **`workspace.copy` and `workspace.move`** — two bridge functions. |
 
 `ShowNotification` and `OpenWorkspaceDirectory` stay — both are UI feedback by
 definition.
 
-Data nodes that stay regardless: `Describe` (content card), `ForEachRow` and
-`FilterNone` (stream operators), `LoadCSVFile` `LoadCSVURL` `LoadCSVAssets`
-`SaveDataframe` `SaveCSVDataframeFile` (asset pickers), `Schema`.
+`nodetool.data` transforms — `AddColumn` `Aggregate` `Append` `DropDuplicates`
+`DropNA` `ExtractColumn` `FillNA` `Filter` `FilterNone` `FindRow` `FromList`
+`ImportCSV` `JSONToDataframe` `Join` `LoadCSVFile` `LoadCSVURL` `Merge` `Pivot`
+`Rename` `SaveCSVDataframeFile` `SaveDataframe` `Schema` `SelectColumn` `Slice`
+`SortByColumn` `ToList` — 27 nodes — were removed outright rather than waiting
+on per-snippet output typing (the blocker this document originally raised for
+the `dataframe` table view): the `@nodetool-ai/sandbox-csv` (papaparse) pack
+now covers this ground from inside a Code node. `ForEachRow` and
+`LoadCSVAssets` stay, as stream operator and asset picker respectively.
 
 ## Keep as node classes
 
@@ -282,7 +297,6 @@ Data nodes that stay regardless: `Describe` (content card), `ForEachRow` and
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
 | `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.convert` `lib.charts` | native/binary document tooling |
 | `lib.s3` `lib.supabase` `lib.notion` `lib.mail` `lib.twilio` `lib.google` `lib.apple` `apify.*` `search.*` `messaging.*` | credential pickers and non-trivial protocol handling; `fetch()` alone is not the same offer |
-| `lib.rss` (2) | XML parsing, which the sandbox has no parser for |
 | `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |
 | all provider/model namespaces | model pickers, streamed output, cost tracking |
 

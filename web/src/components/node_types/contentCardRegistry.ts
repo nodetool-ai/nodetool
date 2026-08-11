@@ -170,7 +170,6 @@ const PROMPT_TEMPLATE_NODES = new Set<string>([
   "nodetool.agents.Extractor",
   "nodetool.agents.Classifier",
   "nodetool.text.Concat",
-  "nodetool.data.Describe",
   "openai.agents.RealtimeAgent",
   "mistral.text.ChatComplete"
 ]);

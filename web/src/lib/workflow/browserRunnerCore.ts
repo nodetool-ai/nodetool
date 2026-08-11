@@ -126,11 +126,8 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
   ["constant", () => import("@nodetool-ai/core-nodes/nodes/constant")],
   ["control", () => import("@nodetool-ai/core-nodes/nodes/control")],
   ["input", () => import("@nodetool-ai/core-nodes/nodes/input")],
-  ["list", () => import("@nodetool-ai/core-nodes/nodes/list")],
   ["compare", () => import("@nodetool-ai/core-nodes/nodes/compare")],
   ["fake-media", () => import("@nodetool-ai/core-nodes/nodes/fake-media")],
-  ["lib-datetime", () => import("@nodetool-ai/core-nodes/nodes/lib-datetime")],
-  ["lib-validate", () => import("@nodetool-ai/core-nodes/nodes/lib-validate")],
   [
     "extended-placeholders",
     () => import("@nodetool-ai/core-nodes/nodes/extended-placeholders")

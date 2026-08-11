@@ -2,9 +2,9 @@
   "slug": "research-desk",
   "name": "Research Desk",
   "emoji": "🕵️",
-  "description": "A research agent, a Hacker News reader, and an RSS digest all take the same topic and stream into their own panel.",
-  "tagline": "One topic, three sources, three briefings side by side.",
-  "note": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button.",
+  "description": "A research agent and a Hacker News reader both take the same topic and stream into their own panel.",
+  "tagline": "One topic, two sources, two briefings side by side.",
+  "note": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button.",
   "featured": true,
   "image": "/app-preview/img/research-desk.jpg",
   "app": {
@@ -28,14 +28,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One topic, three sources, three briefings side by side."
+            "text": "One topic, two sources, two briefings side by side."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "🔑 Needs an OpenAI key. All three briefings run in parallel from one button."
+            "text": "🔑 Needs an OpenAI key. Both briefings run in parallel from one button."
           }
         },
         {
@@ -81,19 +81,9 @@
                       }
                     },
                     {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-digest-feed-url",
-                        "binding": "op:digest/in:input-feed-url",
-                        "label": "RSS feed",
-                        "multiline": false,
-                        "events": []
-                      }
-                    },
-                    {
                       "type": "Button",
                       "props": {
-                        "id": "btn-brief-pulse-digest",
+                        "id": "btn-brief-pulse",
                         "label": "Run the desk",
                         "variant": "contained",
                         "color": "primary",
@@ -109,13 +99,6 @@
                             "trigger": "click",
                             "kind": "run",
                             "operationId": "pulse",
-                            "key": "",
-                            "value": ""
-                          },
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "digest",
                             "key": "",
                             "value": ""
                           }
@@ -208,30 +191,6 @@
                         "binding": "op:pulse/out:output-analysis",
                         "text": ""
                       }
-                    },
-                    {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-digest",
-                        "binding": "op:digest/exec#progress",
-                        "label": "Reading your feed…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-digest-summary",
-                        "text": "Feed digest",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-digest-summary",
-                        "binding": "op:digest/out:output-summary",
-                        "text": ""
-                      }
                     }
                   ]
                 }
@@ -266,14 +225,6 @@
             "variableId": "topic"
           }
         },
-        "outputs": {},
-        "policy": "parallel"
-      },
-      {
-        "id": "digest",
-        "name": "Digest",
-        "workflowId": "rss",
-        "inputs": {},
         "outputs": {},
         "policy": "parallel"
       }
@@ -415,60 +366,12 @@
         ],
         "edges": []
       }
-    },
-    {
-      "key": "rss",
-      "name": "Summarize RSS",
-      "graph": {
-        "nodes": [
-          {
-            "id": "input-feed-url",
-            "parent_id": null,
-            "type": "nodetool.input.StringInput",
-            "data": {
-              "name": "feed_url",
-              "description": "The RSS feed to fetch and summarize.",
-              "value": "https://feeds.bbci.co.uk/news/world/europe/rss.xml"
-            },
-            "ui_properties": {
-              "selected": false,
-              "position": {
-                "x": 20,
-                "y": 403
-              },
-              "zIndex": 0,
-              "width": 220,
-              "title": "1️⃣ Feed URL",
-              "selectable": true
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "output-summary",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "summary"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 1226,
-                "y": 329
-              },
-              "selectable": true
-            }
-          }
-        ],
-        "edges": []
-      }
     }
   ],
   "values": {
     "op:brief/in:input-audience": "a technical product team deciding whether to adopt on-device models",
-    "op:digest/in:input-feed-url": "https://feeds.bbci.co.uk/news/world/europe/rss.xml",
     "op:brief/out:output-brief": "**On-device LLMs — briefing for a product team.**\n\n- **State of play:** 3–8B models now run usably on laptops and high-end phones.\n- **Tradeoff:** roughly half the quality of frontier models, zero API cost, full privacy.",
     "op:pulse/out:output-analysis": "**Today on HN:** local-first software is having a moment — three of the top ten posts cover sync engines.",
-    "op:digest/out:output-summary": "**Today's brief:** the EU passes its AI liability directive; two labs ship smaller on-device models.",
     "var:topic": "on-device language models"
   }
 }

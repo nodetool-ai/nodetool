@@ -37,12 +37,6 @@ npm run workflow -- ./examples/workflows/hello_input_output_cli.json --input tex
 # if_branch_cli.json
 npm run workflow -- ./examples/workflows/if_branch_cli.json --input condition=true --input payload='{"kind":"demo","value":42}'
 
-# import_csv_select_cli.json
-npm run workflow -- ./examples/workflows/import_csv_select_cli.json --input csv_data=$'team,score,city\nA,10,NY\nB,5,SF' --input columns='team,score'
-
-# import_csv_aggregate_cli.json
-npm run workflow -- ./examples/workflows/import_csv_aggregate_cli.json --input csv_data=$'team,score\nA,10\nA,20\nB,5' --input columns='team' --input aggregation='sum'
-
 # wait_node_cli.json
 npm run workflow -- ./examples/workflows/wait_node_cli.json --input input='{"message":"hello"}' --input timeout_seconds=0.02
 ```
@@ -92,7 +86,7 @@ npm run dev:nodetool -- run ./examples/workflows/flux_3_dogs.ts   # needs FAL_AP
 Self-contained: every input is a constant in the graph, so these take no
 `--input` and reach no model, network or disk. Each one covers a cluster of
 nodes that had no example before, and
-`packages/base-nodes/tests/pure-node-examples-run.test.ts` executes all seven
+`packages/base-nodes/tests/pure-node-examples-run.test.ts` executes all of them
 and asserts the value every node produced. Markdown parsing and HTML scraping
 moved to the `@nodetool-ai/sandbox-markdown` and `@nodetool-ai/sandbox-html`
 sandbox packs — see `packages/sandbox-packs/sandbox-markdown/SKILL.md` and
@@ -105,17 +99,8 @@ npm run workflow -- ./examples/workflows/text_transforms_cli.json
 # regex match/extract/filter, JSON parsing, chunking with overlap
 npm run workflow -- ./examples/workflows/text_regex_parse_cli.json
 
-# email / URL / IP validation and sanitizing untrusted text
-npm run workflow -- ./examples/workflows/validate_strings_cli.json
-
-# building lists by range, repetition and tiling
-npm run workflow -- ./examples/workflows/list_build_cli.json
-
 # streams: filter, drop-while, tap, collect; plus Switch and fallback routing
 npm run workflow -- ./examples/workflows/control_flow_stream_cli.json
-
-# formatting, shifting and comparing dates
-npm run workflow -- ./examples/workflows/datetime_cli.json
 
 # writing a workflow variable and reading it back
 npm run workflow -- ./examples/workflows/variables_cli.json
@@ -145,9 +130,6 @@ npm run workflow -- ./examples/workflows/inputs_typed_cli.json
 # language, image, video, ASR, TTS, embedding and HuggingFace model references
 # (selecting a model is not using one — nothing here contacts a provider)
 npm run workflow -- ./examples/workflows/inputs_model_selectors_cli.json
-
-# Pivot, ForEachRow, Schema, RepeatValue
-npm run workflow -- ./examples/workflows/dataframe_reshape_cli.json
 ```
 
 A numeric param outside an input's `min`/`max` is **silently clamped**, not

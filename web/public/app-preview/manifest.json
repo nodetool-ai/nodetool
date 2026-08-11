@@ -25,7 +25,7 @@
     "name": "Research Desk",
     "emoji": "🕵️",
     "featured": true,
-    "workflows": 3
+    "workflows": 2
   },
   {
     "slug": "ask-your-documents",
@@ -39,7 +39,7 @@
     "name": "Brand & Social",
     "emoji": "🎨",
     "featured": true,
-    "workflows": 3
+    "workflows": 2
   },
   {
     "slug": "product-launch-kit",
