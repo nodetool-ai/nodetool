@@ -463,7 +463,7 @@ nodetool models by-provider openai --kind image
 Install, remove, or inspect the NodeTool MCP server configuration for AI coding assistants (Claude Code, Codex,
 OpenCode).
 
-**Subcommands:** `install`, `uninstall`, `status`
+**Subcommands:** `install`, `uninstall`, `status`, `serve`
 
 **Examples:**
 
@@ -485,25 +485,28 @@ The NodeTool server must be running (`nodetool serve`) for MCP to work.
 
 ### What the MCP server exposes
 
-Two layers of tools land on `/mcp`:
+Exactly two tools land on `/mcp`:
 
-- **Native tools** — the read and render surface (`list_workflows`, `get_workflow`, `list_assets`,
-  `get_asset`, `list_jobs`, `get_job`, `list_nodes`, `search_nodes`, `get_node_info`,
-  `run_workflow`, `list_collections`, `query_collection`), which return thumbnails and MCP Apps
-  alongside their JSON.
-- **The agent toolbelt** — the same tools the in-app chat agent runs on, bridged from
-  `@nodetool-ai/agents`: workflow building and debugging (`create_workflow`, `validate_workflow`,
-  `debug_workflow`, `build_app`, `debug_app`, the `ui_*` graph editing tools), media generation
-  (`generate_image`, `generate_video`, `generate_speech`, `transcribe_audio`, …), files
-  (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web (`web_search`, `browser`,
-  `http_request`), documents, math, code execution, image critique, and thread memory. Google
-  Workspace tools appear only on deployments with a Google login.
+- **`execute_code`** — the CodeAct action tool, built by the same
+  `createChatCodeActSession` the in-app chat agent runs on, so the two surfaces cannot drift.
+  Everything NodeTool can do is reached from inside an action: workflow building and debugging
+  (`create_workflow`, `validate_workflow`, `debug_workflow`, `build_app`, `debug_app`, the `ui_*`
+  graph editing tools), media generation (`generate_image`, `generate_video`, `generate_speech`,
+  `transcribe_audio`, …), files (`read_file`, `write_file`, `edit_file`, `glob`, `grep`), web
+  (`web_search`, `browser`, `http_request`), collections, documents, code execution, image
+  critique, and thread memory — as `tools.<name>()`, through the `nodetool.*` object model, or
+  found with `await searchTools("query")`. Google Workspace tools appear only on deployments with
+  a Google login.
+- **`view_image`** — direct, because image content cannot ride a sandbox action's JSON
+  observation envelope.
 
-The bridged half needs a user to run as — its tools touch that user's secrets, assets, and files —
-so it is registered only on a session bound to one (`nodetool mcp serve`, the local `/mcp` mount, or
-an authenticated session). Where a name exists on both layers the native tool wins. File tools read
-and write under a per-user workspace at `<data-dir>/mcp-workspaces/<user-id>`, not the host
-filesystem.
+MCP has no system prompt, so the action contract and tool catalog ride in the `execute_code`
+description; the machine-readable form is the `nodetool://capabilities` resource.
+
+The session needs a user to run as — its tools touch that user's secrets, assets, and files — so
+`createMcpServer` refuses one that is not bound to a user (`nodetool mcp serve`, the local `/mcp`
+mount, or an authenticated session). File tools read and write under a per-user workspace at
+`<data-dir>/mcp-workspaces/<user-id>`, not the host filesystem.
 
 ## Agents
 

@@ -173,7 +173,7 @@ Generate speech through `nodetool.audio.TextToSpeech`, transcribe with `nodetool
 
 ### 3D generation models
 
-Generate 3D assets through `nodetool.3d.TextTo3D` and `nodetool.3d.ImageTo3D`.
+Generate 3D assets through `nodetool.model3d.TextTo3D` and `nodetool.model3d.ImageTo3D`.
 
 | Model | Provider | Capabilities | Key features |
 |-------|----------|-------------|--------------|
@@ -203,7 +203,7 @@ Access these models through NodeTool's **generic nodes**:
 
 1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
 2. **For Images**: Use `nodetool.image.TextToImage`
-3. **For 3D**: Use `nodetool.3d.TextTo3D` or `nodetool.3d.ImageTo3D`
+3. **For 3D**: Use `nodetool.model3d.TextTo3D` or `nodetool.model3d.ImageTo3D`
 4. **For Music**: Use kie.ai-backed Suno nodes (Suno Generate, Extend, Cover)
 5. **Select Provider**: Click the model dropdown in the node properties
 6. **Configure API**: Add provider API keys in `Settings → Providers`

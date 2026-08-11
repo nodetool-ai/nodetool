@@ -98,7 +98,7 @@ const config = yaml.load(inputs.text);
 return { config };
 ```
 
-NodeTool ships sixteen (`packages/sandbox-packs/`): `-dates` (date-fns),
+NodeTool ships twenty (`packages/sandbox-packs/`): `-dates` (date-fns),
 `-yaml` (js-yaml) and `-markdown` (marked) run inside the guest; `-csv`
 (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser), `-xlsx`
 (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js) and `-tfjs`
