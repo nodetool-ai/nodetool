@@ -1,4 +1,4 @@
-import type { TypeMetadata, Workflow } from "../../../stores/ApiTypes";
+import type { TypeMetadata } from "../../../stores/ApiTypes";
 import type { DynamicSlotDeclaration } from "../../../stores/NodeData";
 
 /** Map input node types to TypeMetadata types */
@@ -36,7 +36,19 @@ interface DynamicIO {
   dynamic_properties: Record<string, unknown>;
 }
 
-export function extractDynamicIO(workflow: Workflow): DynamicIO {
+/**
+ * The slice of a workflow this reads. A full `Workflow` satisfies it, and so
+ * does a SubgraphNode's inline `graph` property, which is stored untyped.
+ * Nodes stay `unknown`: an API node keeps its properties on `data` while a
+ * ReactFlow node nests them under `data.properties`, and the loop narrows both.
+ */
+interface DynamicIOSource {
+  graph?: {
+    nodes?: readonly unknown[] | Record<string, unknown> | null;
+  } | null;
+}
+
+export function extractDynamicIO(workflow: DynamicIOSource): DynamicIO {
   const graph = workflow.graph;
   if (!graph || !graph.nodes) {
     return { dynamic_inputs: {}, dynamic_outputs: {}, dynamic_properties: {} };

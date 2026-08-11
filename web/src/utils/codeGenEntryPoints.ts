@@ -118,5 +118,5 @@ export function isCodeGenApplied(node: Node<NodeData> | undefined): boolean {
 export function toCodeGenType(
   type: TypeMetadata
 ): codeGen.CodeGenTypeMetadata {
-  return type as unknown as codeGen.CodeGenTypeMetadata;
+  return type as codeGen.CodeGenTypeMetadata;
 }
