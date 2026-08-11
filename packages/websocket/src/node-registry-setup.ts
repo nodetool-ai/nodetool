@@ -42,12 +42,7 @@ import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
 import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 
 /** Node-type prefixes that require on-demand npm packages; dropped in production. */
-const PRODUCTION_SKIPPED_PREFIXES = [
-  "lib.tensorflow.",
-  "lib.ocr.", // tesseract.js — lazy-imported, not shipped in the cloud image
-  "transformers.",
-  "vector."
-];
+const PRODUCTION_SKIPPED_PREFIXES = ["transformers.", "vector."];
 
 interface BootstrapLogger {
   info: (msg: string) => void;

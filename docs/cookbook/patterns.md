@@ -175,11 +175,11 @@ ______________________________________________________________________
 
 <span id="pattern-5-database-persistence"></span>
 
-### Pattern 5: Database Persistence
+### Pattern 5: Structured Records
 
-**Use Case**: Store generated data for later retrieval
+**Use Case**: Have a model produce rows you can compute on, not prose you have to re-parse
 
-**Example**: AI Flashcard Generator with SQLite
+**Example**: AI Flashcard Generator
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/flashcards-sqlite.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/flashcards-sqlite.mp4' | relative_url }}" type="video/mp4">
@@ -188,40 +188,33 @@ ______________________________________________________________________
 {% mermaid %}
 graph TD
   topic_input["StringInput (Topic)"]
-  create_table["CreateTable"]
   format_prompt["FormatText"]
   generate_flashcards["DataGenerator"]
-  insert_flashcard["Insert"]
-  query_all["Query"]
+  plan_study["Code (dedupe & order)"]
   display_result["Preview"]
   topic_input --> format_prompt
   format_prompt --> generate_flashcards
-  generate_flashcards --> insert_flashcard
-  create_table --> query_all
-  create_table --> insert_flashcard
-  query_all --> display_result
+  generate_flashcards --> plan_study
+  plan_study --> display_result
 {% endmermaid %}
 
 **When to Use**:
 
-- Need persistent storage
-- Building apps with memory
-- Agent workflows that need to recall past interactions
+- The model's answer is a list of things, each with the same fields
+- Something downstream has to sort, filter, group, or count them
+- You would otherwise be parsing a markdown list back into data
 
 **Key Nodes**:
 
-- `CreateTable`: Initialize database schema
-- `Insert`: Add records
-- `Query`: Retrieve records
-- `Update`: Modify records
-- `Delete`: Remove records
+- `DataGenerator`: ask for named columns and get rows, not a blob
+- `Code` (`nodetool.code.Code`): one script that computes on those rows — here
+  it drops repeated questions and deals one card from each category in turn
 
-**Database Flow**:
+**Structured Flow**:
 
-1. Create table structure
-1. Generate data with agent
-1. Insert into database
-1. Query and display results
+1. Name the columns you want
+1. Generate rows against them
+1. Compute on the rows in one script
 
 ______________________________________________________________________
 
@@ -261,7 +254,7 @@ graph TD
 - `GmailSearch` (`lib.mail.GmailSearch`): Search Gmail with queries
 - `Template`: Format email fields into text (lib.mail also provides `AddLabel`, `MoveToArchive`, `SendEmail`)
 - `FetchRSSFeed`: Get RSS feed entries
-- `WebFetch` (`lib.browser.WebFetch`): Fetch web content
+- `Code` (`nodetool.code.Code`): Fetch web content with `fetch` and turn it into markdown with `@nodetool-ai/sandbox-html`
 
 ______________________________________________________________________
 

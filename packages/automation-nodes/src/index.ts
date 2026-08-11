@@ -2,9 +2,6 @@ export * from "./nodes/lib-apple.js";
 export * from "./nodes/lib-browser.js";
 export * from "./nodes/triggers.js";
 export * from "./nodes/lib-sqlite.js";
-export * from "./nodes/lib-ocr.js";
-export * from "./nodes/lib-excel.js";
-export * from "./nodes/lib-tensorflow.js";
 
 // Browser-automation helpers exposed for sibling packages (e.g. code-nodes
 // sandbox uses buildBrowserAgentToolClasses).

@@ -627,6 +627,8 @@ skill with a section per module.
 | Host module byte input | 10 MB | the host implementation |
 | Zip inflation (`sandbox-zip`) | 50 MB total | the host implementation |
 | HTML matches (`sandbox-html`) | 100 default, 1000 ceiling | the host implementation |
+| Workbook write (`sandbox-xlsx`) | 64 sheets, 250 000 cells | the host implementation |
+| OCR words (`sandbox-ocr`) | 20 000 per page | the host implementation |
 | Host module identity | id in NodeTool's registry, declared by the pack that registry pins to it | discovery + dispatcher |
 
 ## Non-goals
@@ -1123,6 +1125,8 @@ The shipped set:
 | `@nodetool-ai/sandbox-xlsx` | exceljs | host | Node streams |
 | `@nodetool-ai/sandbox-diff` | diff | host | schedules with `setTimeout` |
 | `@nodetool-ai/sandbox-zip` | fflate | host | the inflation cap (below) |
+| `@nodetool-ai/sandbox-ocr` | tesseract.js | host | WASM engine, workers, downloads its language data |
+| `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host | model weights outlive a run and outsize the guest heap |
 
 **Why zip moved off the guest.** M3 admitted fflate, and M6 shipped it as a
 guest pack. That is now a host pack, and the reason is the cap: a zip bomb is a

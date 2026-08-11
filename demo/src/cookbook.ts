@@ -121,24 +121,24 @@ export const COOKBOOK: TutorialEntry[] = [
 
   entry("flashcards-sqlite", {
     castId: "cookbook-flashcards-sqlite",
-    title: "AI Flashcards with SQLite",
-    subtitle: "Pattern 5 · Database Persistence",
+    title: "AI Flashcards, Ordered for Study",
+    subtitle: "Pattern 5 · Structured Records",
     replayWindowMs: 16000,
     steps: [
-      { atMs: 1300, label: "Topic & table", focus: "generate", zoom: 1.6 },
+      { atMs: 1300, label: "Topic & prompt", focus: "generate", zoom: 1.6 },
       { atMs: 4100, label: "Generate cards", focus: "generate", zoom: 1.7 },
-      { atMs: 11200, label: "Query & show", focus: "preview", zoom: 1.7 },
+      { atMs: 11200, label: "Plan & show", focus: "preview", zoom: 1.7 },
     ],
     captions: [
-      { fromMs: 1400, toMs: 4000, text: "A topic fills a prompt while a SQLite table is created in parallel." },
-      { fromMs: 4100, toMs: 9000, text: "A Data Generator streams structured flashcards straight into the database." },
-      { fromMs: 11200, toMs: 15500, text: "Query reads them back — persistent data you can recall any time." },
+      { fromMs: 1400, toMs: 4000, text: "A topic fills the prompt that asks for a deck of cards." },
+      { fromMs: 4100, toMs: 9000, text: "A Data Generator streams flashcards as rows — front, back, category." },
+      { fromMs: 11200, toMs: 15500, text: "One script drops repeats and interleaves the categories — rows you can compute on." },
     ],
-    outroTitle: "Give workflows memory",
+    outroTitle: "Generate data, not prose",
     outroPoints: [
-      "Create a table, insert, then query",
-      "Persist generated data across runs",
-      "Build apps that remember",
+      "Ask for rows with named columns",
+      "Compute on them in one Code node",
+      "Feed the result to anything downstream",
     ],
   }),
 

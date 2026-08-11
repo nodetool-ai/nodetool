@@ -263,6 +263,70 @@ describe("@nodetool-ai/sandbox-xlsx", () => {
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/must be a Uint8Array/);
   });
+
+  it("writes records to a workbook the parser reads back", async () => {
+    const result = await run(
+      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
+       const bytes = await write({
+         Costs: [{ item: "Lamp", usd: 49 }, { item: "Desk", usd: 349 }],
+         Notes: [{ note: "draft" }]
+       });
+       return await parse(bytes);`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      Costs: [
+        { item: "Lamp", usd: 49 },
+        { item: "Desk", usd: 349 }
+      ],
+      Notes: [{ note: "draft" }]
+    });
+  });
+
+  it("takes per-sheet column order, header-less rows, and cell styles", async () => {
+    const result = await run(
+      `import { parse, write } from "@nodetool-ai/sandbox-xlsx";
+       const bytes = await write([
+         {
+           name: "Costs",
+           rows: [{ usd: 49, item: "Lamp" }],
+           columns: ["item", "usd"],
+           styles: [{ range: "A1:B1", bold: true, background: "#FFE9A8" }]
+         },
+         { name: "Raw", rows: [["a", 1], ["b", 2]], header: false }
+       ]);
+       const sheets = await parse(bytes);
+       const raw = await parse(bytes, { sheet: "Raw", header: false });
+       return { costs: sheets.Costs, raw };`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({
+      costs: [{ item: "Lamp", usd: 49 }],
+      raw: [
+        ["a", 1],
+        ["b", 2]
+      ]
+    });
+  });
+
+  it("refuses a workbook past the cell cap", async () => {
+    const { write, MAX_WRITE_CELLS } = await import("../src/host-modules/xlsx.js");
+    const rows = Array.from({ length: MAX_WRITE_CELLS }, (_, i) => ({ a: i, b: i }));
+    await expect(write({ Big: rows })).rejects.toThrow(/exceeds the 250000 cell limit/);
+  });
+
+  it("refuses a style whose range is not a rectangle of cells", async () => {
+    const result = await run(
+      `import { write } from "@nodetool-ai/sandbox-xlsx";
+       try { await write([{ name: "S", rows: [{ a: 1 }], styles: [{ range: "rows 1-3" }] }]); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "xlsx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/is not a cell range/);
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -515,6 +579,71 @@ describe("@nodetool-ai/sandbox-diff", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).not.toContain("@@");
+  });
+});
+// ---------------------------------------------------------------------------
+// ocr and tfjs
+//
+// Both download data on first use — the engine's language file, the models'
+// weights — so what runs here is everything up to that point: the argument
+// contract, the caps, and the refusals.
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-ocr", () => {
+  it("refuses input that is not image bytes", async () => {
+    const result = await run(
+      `import { recognize } from "@nodetool-ai/sandbox-ocr";
+       try { await recognize("a scan"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "ocr"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/ocr\.recognize: image must be a Uint8Array/);
+  });
+
+  it("refuses a language that is not a Tesseract code", async () => {
+    const result = await run(
+      `import { recognize } from "@nodetool-ai/sandbox-ocr";
+       try { await recognize(new Uint8Array([1]), { language: "../etc" }); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "ocr"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/is not a Tesseract language code/);
+  });
+});
+
+describe("@nodetool-ai/sandbox-tfjs", () => {
+  it("refuses an image that is not bytes", async () => {
+    const result = await run(
+      `import { classify } from "@nodetool-ai/sandbox-tfjs";
+       try { await classify("a photo"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/tfjs\.classify: image must be a Uint8Array/);
+  });
+
+  it("answers nothing when the question or the passage is empty", async () => {
+    const result = await run(
+      `import { answer } from "@nodetool-ai/sandbox-tfjs";
+       return await answer("  ", "a passage");`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual([]);
+  });
+
+  it("refuses a passage that is not text", async () => {
+    const result = await run(
+      `import { answer } from "@nodetool-ai/sandbox-tfjs";
+       try { await answer("who?", 42); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "tfjs"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/passage must be a string/);
   });
 });
 

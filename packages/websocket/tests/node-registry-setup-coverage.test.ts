@@ -10,7 +10,7 @@ import {
   bootstrapNodeRegistry
 } from "../src/node-registry-setup.js";
 
-const PROD_PREFIXES = ["lib.tensorflow.", "lib.ocr.", "transformers.", "vector."];
+const PROD_PREFIXES = ["transformers.", "vector."];
 
 function allEnabled(): Record<string, boolean> {
   return Object.fromEntries(BUILTIN_NODE_PACKS.map((p) => [p.id, true]));

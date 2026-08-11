@@ -46,7 +46,20 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   },
   xlsx: async () => {
     const mod = await import("./xlsx.js");
-    return { parse: mod.parse };
+    return { parse: mod.parse, write: mod.write };
+  },
+  ocr: async () => {
+    const mod = await import("./ocr.js");
+    return { recognize: mod.recognize };
+  },
+  tfjs: async () => {
+    const mod = await import("./tfjs.js");
+    return {
+      classify: mod.classify,
+      embed: mod.embed,
+      detect: mod.detect,
+      answer: mod.answer
+    };
   },
   zip: async () => {
     const mod = await import("./zip.js");

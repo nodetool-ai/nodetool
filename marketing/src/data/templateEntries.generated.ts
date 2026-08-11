@@ -9347,16 +9347,16 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/flashcard-generator",
     "title": "Flashcard Generator — NodeTool AI Workflow Template",
-    "description": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "description": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "flashcard-generator",
     "name": "Flashcard Generator",
-    "summary": "Generate study flashcards as structured front/back card objects and store them persistently in a database. Enter any topic and get instant flashcards that are saved for future review.",
+    "summary": "Generate study flashcards as structured front/back card objects, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.",
     "tags": [
       "education",
-      "database",
+      "structured-data",
       "ai",
       "flashcards",
       "learning"
@@ -9364,8 +9364,13 @@ export const templateEntries: TemplateEntry[] = [
     "category": "Learning & Productivity",
     "nodeTypes": [
       {
-        "type": "lib.sqlite.CreateTable",
-        "label": "Create Table",
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
         "count": 1
       },
       {
@@ -9374,18 +9379,8 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.sqlite.Insert",
-        "label": "Insert",
-        "count": 1
-      },
-      {
         "type": "nodetool.input.IntegerInput",
         "label": "Integer Input",
-        "count": 1
-      },
-      {
-        "type": "nodetool.output.Output",
-        "label": "Output",
         "count": 1
       },
       {
@@ -9394,17 +9389,12 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
-        "type": "lib.sqlite.Query",
-        "label": "Query",
-        "count": 1
-      },
-      {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 1
       }
     ],
-    "nodeCount": 8,
+    "nodeCount": 7,
     "thumbnail": "/templates/flashcard-generator.jpg",
     "graph": {
       "nodes": [
@@ -9426,14 +9416,6 @@ export const templateEntries: TemplateEntry[] = [
           "width": 280
         },
         {
-          "id": "create_table",
-          "type": "lib.sqlite.CreateTable",
-          "title": "Create Table",
-          "x": 696,
-          "y": 522,
-          "width": 280
-        },
-        {
           "id": "format_prompt",
           "type": "nodetool.text.Prompt",
           "title": "Prompt",
@@ -9452,20 +9434,12 @@ export const templateEntries: TemplateEntry[] = [
           "subtitle": "gpt-5-mini"
         },
         {
-          "id": "insert_flashcard",
-          "type": "lib.sqlite.Insert",
-          "title": "Insert",
+          "id": "plan_study",
+          "type": "nodetool.code.Code",
+          "title": "Code",
           "x": 1126,
-          "y": 220,
-          "width": 280
-        },
-        {
-          "id": "query_all",
-          "type": "lib.sqlite.Query",
-          "title": "Query",
-          "x": 1206,
-          "y": 630,
-          "width": 280
+          "y": 400,
+          "width": 320
         },
         {
           "id": "603e6bfa-2d6d-4aed-81a8-a533b8f77fad",
@@ -9483,6 +9457,14 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1140,
           "y": 65,
           "width": 260
+        },
+        {
+          "id": "plan_output",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1516,
+          "y": 470,
+          "width": 280
         }
       ],
       "edges": [
@@ -9509,50 +9491,22 @@ export const templateEntries: TemplateEntry[] = [
         },
         {
           "source": "generate_flashcards",
-          "sourceHandle": "record",
-          "target": "insert_flashcard",
-          "targetHandle": "data",
-          "color": "any"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "database_name",
-          "target": "query_all",
-          "targetHandle": "database_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "table_name",
-          "target": "query_all",
-          "targetHandle": "table_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "database_name",
-          "target": "insert_flashcard",
-          "targetHandle": "database_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "table_name",
-          "target": "insert_flashcard",
-          "targetHandle": "table_name",
-          "color": "string"
-        },
-        {
-          "source": "create_table",
-          "sourceHandle": "columns",
-          "target": "query_all",
-          "targetHandle": "columns",
+          "sourceHandle": "dataframe",
+          "target": "flashcards_output",
+          "targetHandle": "value",
           "color": "any"
         },
         {
           "source": "generate_flashcards",
           "sourceHandle": "dataframe",
-          "target": "flashcards_output",
+          "target": "plan_study",
+          "targetHandle": "cards",
+          "color": "any"
+        },
+        {
+          "source": "plan_study",
+          "sourceHandle": "study_plan",
+          "target": "plan_output",
           "targetHandle": "value",
           "color": "any"
         }

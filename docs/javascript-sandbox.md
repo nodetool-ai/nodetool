@@ -97,12 +97,14 @@ const config = yaml.load(inputs.text);
 return { config };
 ```
 
-NodeTool ships eight (`packages/sandbox-packs/`): `-dates` (date-fns) and
+NodeTool ships ten (`packages/sandbox-packs/`): `-dates` (date-fns) and
 `-yaml` (js-yaml) run inside the guest; `-csv` (papaparse), `-html` (cheerio +
-turndown), `-xml` (fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff) and
-`-zip` (fflate) run on the host behind a generated facade, because they need
-Node builtins or a DOM, or carry a limit the guest could not enforce on itself
-(zip's 50 MB inflation cap). Third-party packs install the same way. See
+turndown), `-xml` (fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff), `-zip`
+(fflate), `-ocr` (tesseract.js) and `-tfjs` (TensorFlow.js and its model zoo)
+run on the host behind a generated facade, because they need Node builtins or a
+DOM, or carry a limit the guest could not enforce on itself (zip's 50 MB
+inflation cap), or hold state no run can keep alive (the tfjs weights).
+Third-party packs install the same way. See
 [Sandbox packages](sandbox-package-design.md) and
 `packages/sandbox-packs/README.md`.
 

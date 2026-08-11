@@ -42,7 +42,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.code.Code",
   "nodetool.data.Filter",
   "nodetool.control.ForEach",
-  "lib.browser.DownloadFile",
   "nodetool.control.Collect",
 ]);
 
