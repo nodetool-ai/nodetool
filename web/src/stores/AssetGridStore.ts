@@ -24,7 +24,6 @@ interface AssetGridState {
   filteredAssets: Asset[];
   handleDeselectAssets: () => void;
   handleSelectAllAssets: () => void;
-  isHorizontal: boolean;
   openAsset: Asset | null;
   parentFolder: Asset | null;
   searchTerm: string;
@@ -42,7 +41,6 @@ interface AssetGridState {
   setCurrentFolderId: (folderId: string | null) => void;
   setDeleteDialogOpen: (open: boolean) => void;
   setFilteredAssets: (assets: Asset[]) => void;
-  setIsHorizontal: (isHorizontal: boolean) => void;
   setMoveToFolderDialogOpen: (open: boolean) => void;
   setOpenAsset: (asset: Asset | null) => void;
   setParentFolder: (folder: Asset | null) => void;
@@ -108,7 +106,6 @@ const createAssetGridStore = (
   currentFolderId: null,
   deleteDialogOpen: false,
   filteredAssets: [],
-  isHorizontal: true,
   moveToFolderDialogOpen: false,
   openAsset: null,
   parentFolder: null,
@@ -129,7 +126,6 @@ const createAssetGridStore = (
     set({ currentFolderId: folderId, currentFolder: null, parentFolder: null }),
   setDeleteDialogOpen: (open) => set({ deleteDialogOpen: open }),
   setFilteredAssets: (assets) => set({ filteredAssets: assets }),
-  setIsHorizontal: (isHorizontal) => set({ isHorizontal }),
   setMoveToFolderDialogOpen: (open) => set({ moveToFolderDialogOpen: open }),
   setOpenAsset: (asset) => set({ openAsset: asset }),
   setParentFolder: (folder) => set({ parentFolder: folder }),
@@ -222,8 +218,7 @@ const createAssetGridStore = (
           viewMode: state.viewMode,
           typeFilter: state.typeFilter,
           sizeFilter: state.sizeFilter,
-          assetItemSize: state.assetItemSize,
-          isHorizontal: state.isHorizontal
+          assetItemSize: state.assetItemSize
         })
       }
     )

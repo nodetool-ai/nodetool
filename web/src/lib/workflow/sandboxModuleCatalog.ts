@@ -37,7 +37,6 @@ import {
   type ResolvedSandboxModule,
   type SandboxModuleDeclaration,
   type SandboxModuleGraphFile,
-  type SandboxModuleResolution,
   type SandboxModuleStatus,
   type SandboxModuleSummary,
   type SandboxWasmContract,

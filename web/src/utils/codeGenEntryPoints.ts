@@ -18,8 +18,8 @@ const IDENTIFIER = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 const MAX_PORT_NAME_LENGTH = 64;
 
 /** Used when a handle name has no identifier characters left to work with. */
-export const FALLBACK_INPUT_NAME = "value";
-export const FALLBACK_OUTPUT_NAME = "output";
+const FALLBACK_INPUT_NAME = "value";
+const FALLBACK_OUTPUT_NAME = "output";
 
 /**
  * A handle name as a JavaScript identifier: everything outside
@@ -54,7 +54,7 @@ export function uniquePortName(base: string, taken: Iterable<string>): string {
 }
 
 /** Names an input port on this node cannot use. */
-export function takenInputNames(
+function takenInputNames(
   metadata: NodeMetadata,
   node: Node<NodeData>
 ): string[] {
@@ -66,7 +66,7 @@ export function takenInputNames(
 }
 
 /** Names an output port on this node cannot use. */
-export function takenOutputNames(
+function takenOutputNames(
   metadata: NodeMetadata,
   node: Node<NodeData>
 ): string[] {

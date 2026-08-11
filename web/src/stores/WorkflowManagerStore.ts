@@ -171,8 +171,6 @@ export type WorkflowManagerState = {
     limit?: number,
     columns?: string
   ) => Promise<WorkflowList>;
-  loadIDs: (workflowIds: string[]) => Promise<Workflow[]>;
-  loadPublic: (cursor?: string) => Promise<WorkflowList>;
   loadTemplates: () => Promise<WorkflowList>;
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
@@ -486,26 +484,6 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         } catch (err) {
           throw createErrorMessage(err, "Failed to load workflows");
         }
-      },
-
-      /**
-       * Loads multiple workflows by their IDs.
-       * @param {string[]} workflowIds Array of workflow IDs to load
-       * @returns {Promise<Workflow[]>} Array of loaded workflows
-       */
-      loadIDs: async (workflowIds: string[]) => {
-        const getWorkflow = get().getWorkflow;
-        const promises = workflowIds.map((id) => getWorkflow(id));
-        const workflows = await Promise.all(promises);
-        return workflows.filter((w): w is Workflow => w !== undefined);
-      },
-
-      // Loads public workflows available from the API.
-      loadPublic: async (_cursor?: string) => {
-        const data = await trpcClient.workflows.public.list.query({
-          limit: 100
-        });
-        return data as WorkflowList;
       },
 
       // Loads template workflows.

@@ -87,7 +87,7 @@ function readNumber(source: unknown, key: string): number | null {
  * fields; the schedule fields are read defensively so a server that predates
  * them still yields a valid row.
  */
-export function toTriggerRow(raw: unknown): TriggerRow | null {
+function toTriggerRow(raw: unknown): TriggerRow | null {
   const id = readString(raw, 'id');
   const workflowId = readString(raw, 'workflow_id');
   if (!id || !workflowId) {
@@ -159,7 +159,7 @@ export function kindLabel(kind: string): string {
 
 type IoniconName = React.ComponentProps<typeof Ionicons>['name'];
 
-export function kindIcon(kind: string): IoniconName {
+function kindIcon(kind: string): IoniconName {
   switch (kind) {
     case 'schedule': return 'alarm-outline';
     case 'webhook': return 'globe-outline';
@@ -171,7 +171,7 @@ export function kindIcon(kind: string): IoniconName {
 }
 
 /** "in 4m" / "due now" — the countdown to a schedule trigger's next run. */
-export function formatCountdown(iso: string | null | undefined): string | null {
+function formatCountdown(iso: string | null | undefined): string | null {
   if (!iso) { return null; }
   const target = new Date(iso).getTime();
   if (Number.isNaN(target)) { return null; }
