@@ -400,6 +400,63 @@ for await (const msg of agent.execute(ctx)) {
 const result = agent.getResults();
 ```
 
+## Capability registry (`src/capabilities/`)
+
+A capability is what replaced the `Tool` class: a **spec** (wire name,
+description, input schema, and a required `PermissionCategory`), an **impl**
+`(run, args) => result`, and a **`CapabilityRun`** that carries everything only
+a run knows — the `ProcessingContext`, the permission gate, the browser router
+for `ui_*`, the sub-agent runtime, and the injected singletons
+(`nodeRegistry`, `providers`, `examples`, `exportDsl`, loaders). Per-run state
+arrives at *call* time, not at construction time, which is what lets one
+process-level registry serve every host. Design:
+[docs/tool-class-retirement-design.md](../../docs/tool-class-retirement-design.md).
+
+`registry.ts` is the table: one lazy `import()` per namespace, plus
+`DECLARED_CAPABILITY_MODULES`, the list a reviewer reads. Two drift walks keep
+them honest. `capabilityModuleDrift()` reports a declared module with no loader,
+a loader nobody declared, an export with no category or no schema, and one name
+owned by two modules; `tests/capabilities-registry.test.ts` also pins a
+checked-in `name → category` snapshot, so a reclassification is a one-line diff.
+`tests/capabilities-coverage.test.ts` walks the other way: everything
+`getBuiltinTools()` and `getAllMcpTools({})` assemble must resolve through
+`findCapability`, or sit in that file's pinned exception list with a reason.
+
+`invoke.ts` holds the one ladder — lookup, gate, impl. Every entrance runs it:
+the guest dispatcher, a direct MCP registration, `run_subtask`'s child loop.
+`gateTools` (`capabilities/gate-tools.ts`) is the door a `Tool` walks through:
+it wraps each tool in a subclass whose `process()` builds a one-call run over
+`capabilityFromTool` and calls `invoke`. `tests/capabilities-gate-parity.test.ts`
+drives both entrances and compares transcripts.
+
+The guest reaches a namespace by import, never by a global:
+
+```js
+import { list_workflows } from "@nodetool-ai/sandbox-nodetool/workflows";
+const { workflows } = await list_workflows({ limit: 20 });
+```
+
+Exports carry the wire name — `list_workflows`, not `listWorkflows` — so the
+prompt, the MCP surface and `tools.*` all say one string. The facade generator
+and specifier shape live in `@nodetool-ai/protocol`
+(`sandbox-capability.ts`); the module list stays in the registry here, and the
+*host* decides which modules a session mounts. A third-party pack can never
+declare one. `createCapabilityDispatcher` validates module key, export name and
+argument list on every call, then delegates to `invoke` — it never gates on its
+own, so the import path and `tools.*` reach one implementation past one gate.
+The `nodetool` global survives as a generated shim over the imports for one
+release.
+
+**Import direction is one-way: `capabilities/` imports
+`tools/tool-permissions.ts`, never the reverse.** That is why `gateTools` sits
+in `capabilities/` and not beside the classification map it uses. The reverse
+edge made the bundled backend's module wrappers an async cycle —
+`init_tool_permissions` awaiting `init_adapters` awaiting
+`init_tool_permissions` — which esbuild's `__esm` cannot break the way real ESM
+breaks a synchronous cycle, and `server.mjs` died on an unsettled top-level
+await before it served `/health`. `npm run backend:smoke` is the check that
+catches it; a passing `vitest` run will not.
+
 ## The core API is in-process (`src/tools/mcp-tools.ts`)
 
 The workflow/node/job/asset tools call NodeTool's own code, never HTTP. There

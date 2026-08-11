@@ -161,8 +161,13 @@ import {
   ListCollectionsTool,
   QueryCollectionTool,
   gateTools,
+  capabilityFromTool,
+  createCapabilityRun,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
+  type CapabilityRun,
+  type PermissionGateOptions,
+  type SubAgentRuntime,
   type PermissionMode,
   type ApprovalDecision,
   type ApprovalRequest,
@@ -2013,6 +2018,17 @@ export class UnifiedWebSocketRunner {
    * via "Allow for this chat". Persists across messages within a thread.
    */
   private chatSessionAllow = new Map<string, Set<string>>();
+  /**
+   * The capability run for the chat turn this connection is executing — the
+   * gate, the context, and everything a capability needs that only exists per
+   * turn. Built beside the toolbelt; the sandbox still calls the belt, and PR
+   * 11 is what switches the guest onto `run.invoke`.
+   */
+  private chatCapabilityRun: CapabilityRun | null = null;
+  /** The run built for the last chat turn — what PR 11 hands to the sandbox. */
+  getChatCapabilityRun(): CapabilityRun | null {
+    return this.chatCapabilityRun;
+  }
   private observerRegistered = false;
   /**
    * The detachable session for the chat turn THIS connection is executing.
@@ -5293,6 +5309,12 @@ export class UnifiedWebSocketRunner {
     const googleWorkspace = isGoogleWorkspaceEnabled();
     if (googleWorkspace) registerGoogleWorkspaceTools();
     const chatProviders = await this.getConfiguredProviders(userId);
+    // The single-node runner is a closure only this package can build, so
+    // `run_node` reaches a capability run as a host-supplied capability rather
+    // than out of the registry.
+    const runNodeTool = new RunNodeTool((nodeType, inputs) =>
+      this.runSingleNode(nodeType, inputs, userId, threadId)
+    );
     const rawToolbelt: Tool[] = [
       ...getAgentToolbelt(),
       ...(googleWorkspace ? getGoogleWorkspaceTools() : []),
@@ -5303,9 +5325,7 @@ export class UnifiedWebSocketRunner {
       }),
       new ListCollectionsTool(),
       new QueryCollectionTool(),
-      new RunNodeTool((nodeType, inputs) =>
-        this.runSingleNode(nodeType, inputs, userId, threadId)
-      )
+      runNodeTool
     ];
     // GraphPlanner as a chat tool: builds a workflow graph from an objective
     // using the session's provider/model. Needs the in-process node registry.
@@ -5350,31 +5370,28 @@ export class UnifiedWebSocketRunner {
       this.chatSessionAllow.get(threadId) ?? new Set<string>();
     this.chatSessionAllow.set(threadId, sessionAllow);
     // A gated call inside a code action parks the guest program until the user
-    // answers. That wait is the user's, not the program's: charged to the
-    // action's wall clock it kills the very program that asked, and the answer
-    // then resolves nothing. The clock stops for the length of the prompt and
-    // the action resumes with the budget it had.
+    // answers, and the gate stops the clock for exactly that long — the wait is
+    // the user's, not the program's, and charged to the action's wall clock it
+    // would kill the very program that asked.
     const codeactClock = createSandboxClock();
-    const requestApproval = async (
-      request: ApprovalRequest
-    ): Promise<ApprovalDecision> => {
-      const resume = codeactClock.suspend();
-      try {
-        return await this.requestToolApproval(threadId, request);
-      } finally {
-        resume();
-      }
-    };
-    const baseTools = gateTools(dedupedToolbelt, {
+    const chatGate: PermissionGateOptions = {
       mode: permissionMode,
       sessionAllow,
-      requestApproval
-    });
+      requestApproval: async (
+        request: ApprovalRequest
+      ): Promise<ApprovalDecision> =>
+        this.requestToolApproval(threadId, request),
+      clock: codeactClock
+    };
+    const baseTools = gateTools(dedupedToolbelt, chatGate);
 
     // Inject the recursive-decomposition primitive (ungated — it spawns a
     // child loop whose own tools are the gated `baseTools`). Child events
     // stream back tagged with `parent_tool_call_id` so the UI can nest cards.
     const serverTools: Tool[] = baseTools.slice();
+    // The same runtime the delegation tools take, kept for the capability run
+    // below: provider, model, the parent belt, and the event forwarder.
+    let subAgentRuntime: SubAgentRuntime | undefined;
     {
       const subtaskThreadId = threadId;
       const subtaskWorkflowId = workflowId;
@@ -5399,14 +5416,13 @@ export class UnifiedWebSocketRunner {
           });
         }
       };
-      serverTools.unshift(
-        new RunSubtaskTool({
-          provider,
-          model,
-          parentTools: () => baseTools,
-          forwardMessage: forwardSubtaskMessage
-        })
-      );
+      subAgentRuntime = {
+        provider,
+        model,
+        parentTools: () => baseTools,
+        forwardMessage: forwardSubtaskMessage
+      };
+      serverTools.unshift(new RunSubtaskTool(subAgentRuntime));
 
       // Read-only fan-out search (opt-in). Reuses the same forwarder and the
       // baseTools snapshot — RunSearchTool internally filters baseTools to its
@@ -5503,6 +5519,22 @@ export class UnifiedWebSocketRunner {
       model
     } satisfies ActiveModelSelection);
 
+    // The capability run for this turn: the same gate the belt is wrapped in,
+    // this context, and the singletons the tool constructors take today. Every
+    // capability a host must supply itself goes in `capabilities` — `run_node`
+    // carries a closure only this package can build. The codeact session below
+    // mounts it, so an action can import
+    // `@nodetool-ai/sandbox-nodetool/<namespace>` and land on `run.invoke`.
+    this.chatCapabilityRun = createCapabilityRun({
+      context: ctx,
+      gate: chatGate,
+      nodeRegistry: this.nodeRegistry,
+      providers: chatProviders,
+      subAgent: subAgentRuntime,
+      ...mcpToolHostDeps(),
+      capabilities: [capabilityFromTool(runNodeTool)]
+    });
+
     // CodeAct session for this turn. Created here so its prompt section is in
     // place before the system message is materialized below. The tool router
     // (`executeTool`, defined further down) is late-bound through a ref; it is
@@ -5544,7 +5576,8 @@ export class UnifiedWebSocketRunner {
         ],
         context: ctx,
         signal,
-        clock: codeactClock
+        clock: codeactClock,
+        capabilityRun: this.chatCapabilityRun ?? undefined
       });
       providerToolSchemas.push(codeactSession.providerTool);
       providerToolSchemas.push(...directSchemas);

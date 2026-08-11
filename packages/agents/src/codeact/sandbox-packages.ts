@@ -75,14 +75,22 @@ export type ActionModuleMount =
 export function mountActionModules(
   code: string,
   allowed: readonly string[],
-  catalog: SandboxModuleCatalog | null | undefined
+  catalog: SandboxModuleCatalog | null | undefined,
+  /**
+   * Specifiers the host mounted itself — NodeTool's own capability modules.
+   * They are not pack code and never went through consent, so they are neither
+   * checked against the allowlist nor resolved through the catalog.
+   */
+  hostMounted: ReadonlySet<string> = new Set()
 ): ActionModuleMount {
   const parsed = parseCodeBody(code);
   // A body that does not parse has no imports to serve; the sandbox reports the
   // syntax error itself, where the position still points at the model's code.
   if ("error" in parsed) return { ok: true };
 
-  const specifiers = [...new Set(staticImportSpecifiers(parsed.statements))];
+  const specifiers = [
+    ...new Set(staticImportSpecifiers(parsed.statements))
+  ].filter((specifier) => !hostMounted.has(specifier));
   if (specifiers.length === 0) return { ok: true };
 
   const allowSet = new Set(allowed);

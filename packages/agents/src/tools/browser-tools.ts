@@ -1,237 +1,33 @@
 /**
  * Browser interaction tools.
  *
- * Port of src/nodetool/agents/tools/browser_tools.py (BrowserTool & ScreenshotTool)
+ * @deprecated Ported to the `web` capability module
+ * (`../capabilities/web.ts`). These survive as thin subclasses so existing
+ * constructors keep working; there is one implementation behind both.
+ * `htmlToText` moved with them and is re-exported here for its callers.
  */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { safeFetch } from "@nodetool-ai/runtime";
-import { Tool } from "./base-tool.js";
-import { requestSignal } from "./http-tools.js";
+import { CapabilityTool, ungatedCapabilityRun } from "../capabilities/index.js";
+import { browser, takeScreenshot } from "../capabilities/web.js";
 
-const ENTITY_MAP: Record<string, string> = {
-  "&amp;": "&",
-  "&lt;": "<",
-  "&gt;": ">",
-  "&quot;": '"',
-  "&#39;": "'",
-  "&apos;": "'",
-  "&nbsp;": " "
-};
-
-const ENTITY_RE = new RegExp(Object.keys(ENTITY_MAP).join("|"), "gi");
-
-// Numeric character references: &#123; or &#x1a;
-const NUMERIC_ENTITY_RE = /&#(?:x([0-9a-fA-F]+)|(\d+));/g;
+export { htmlToText } from "../capabilities/web.js";
 
 /**
- * Convert raw HTML to readable plain text.
- *
- * - Strips `<script>` and `<style>` blocks
- * - Removes remaining HTML tags
- * - Decodes common HTML entities and numeric character references
- * - Collapses whitespace
- * - Truncates to `maxLength` characters
+ * @deprecated Ported to the `web` capability module. Kept as a thin subclass
+ * so existing constructors keep working.
  */
-export function htmlToText(html: string, maxLength = 50_000): string {
-  let text = html;
-
-  text = text.replace(/<script[\s\S]*?<\/script>/gi, "");
-  text = text.replace(/<style[\s\S]*?<\/style>/gi, "");
-
-  // Turn block boundaries into newlines before stripping tags.
-  text = text.replace(/<(?:br|\/p|\/div|\/li|\/tr|\/h[1-6])\s*\/?>/gi, "\n");
-
-  text = text.replace(/<[^>]+>/g, "");
-
-  text = text.replace(
-    ENTITY_RE,
-    (match) => ENTITY_MAP[match.toLowerCase()] ?? match
-  );
-
-  text = text.replace(NUMERIC_ENTITY_RE, (match, hex, dec) => {
-    const code = hex ? parseInt(hex, 16) : parseInt(dec, 10);
-    if (
-      !Number.isFinite(code) ||
-      code < 0 ||
-      code > 0x10ffff ||
-      (code >= 0xd800 && code <= 0xdfff)
-    ) {
-      return match;
-    }
-    return String.fromCodePoint(code);
-  });
-
-  // Collapse runs of non-newline whitespace, preserving line breaks.
-  text = text.replace(/[^\S\n]+/g, " ");
-  text = text.replace(/\n{3,}/g, "\n\n");
-  text = text.trim();
-
-  if (text.length > maxLength) {
-    text = text.slice(0, maxLength);
-  }
-
-  return text;
-}
-
-// Search-engine hosts whose result pages are blocked from direct browsing.
-const SEARCH_ENGINE_HOSTS = [
-  "google.",
-  "bing.",
-  "search.yahoo",
-  "duckduckgo",
-  "yandex",
-  "baidu",
-  "ask.",
-  "jina.ai"
-];
-
-function isSearchEngine(hostname: string): boolean {
-  const lower = hostname.toLowerCase();
-  return SEARCH_ENGINE_HOSTS.some((h) => lower.includes(h));
-}
-
-export class BrowserTool extends Tool {
-  readonly name = "browser";
-  readonly description =
-    "Fetches a web page and returns its readable text content (HTML " +
-    "stripped). Returns plain text. Errors include a short reason. Search " +
-    "engine result pages are blocked — use `google_search` instead.";
-  readonly jsonSchema: Record<string, unknown> = {
-    type: "object",
-    properties: {
-      url: {
-        type: "string",
-        description: "URL to fetch."
-      }
-    },
-    required: ["url"]
-  };
-
-  userMessage(params: Record<string, unknown>): string {
-    const url = (params.url as string) ?? "a specific URL";
-    const msg = `Fetching ${url}`;
-    return msg.length > 160 ? "Fetching a URL" : msg;
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const url = params.url as string | undefined;
-    if (!url) {
-      return "Error: url is required";
-    }
-
-    try {
-      const hostname = new URL(url).hostname;
-      if (isSearchEngine(hostname)) {
-        return "Error: Direct browsing of search engine result pages is disabled. Use google_search instead.";
-      }
-    } catch {
-      return `Error: Invalid URL: ${url}`;
-    }
-
-    try {
-      // The URL comes from the model and is therefore attacker-influenceable
-      // via prompt injection. safeFetch gates it and every redirect hop against
-      // SSRF, exactly as the HTTP tools do — a plain fetch here reached the
-      // host's metadata service and internal APIs.
-      const response = await safeFetch(url, {
-        headers: {
-          "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36",
-          Accept:
-            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-          "Accept-Language": "en-US,en;q=0.5"
-        },
-        signal: requestSignal(context, 30_000)
-      });
-
-      if (!response.ok) {
-        return `Error: HTTP ${response.status} ${response.statusText} fetching ${url}`;
-      }
-
-      const html = await response.text();
-      return htmlToText(html);
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      return `Error: ${message}`;
-    }
+export class BrowserTool extends CapabilityTool {
+  constructor() {
+    super(browser.spec, browser.impl, ungatedCapabilityRun);
   }
 }
 
-export class ScreenshotTool extends Tool {
-  readonly name = "take_screenshot";
-  readonly description =
-    "Take a screenshot of a web page. Requires a remote browser service (BROWSER_URL).";
-  readonly jsonSchema: Record<string, unknown> = {
-    type: "object",
-    properties: {
-      url: {
-        type: "string",
-        description: "URL to navigate to before taking screenshot"
-      },
-      output_file: {
-        type: "string",
-        description: "Workspace relative path to save the screenshot",
-        default: "screenshot.png"
-      }
-    },
-    required: ["url", "output_file"]
-  };
-
-  userMessage(params: Record<string, unknown>): string {
-    const url = (params.url as string) ?? "a page";
-    const output = (params.output_file as string) ?? "screenshot.png";
-    const msg = `Taking screenshot of ${url} and saving to ${output}.`;
-    return msg.length > 160
-      ? `Taking screenshot of a page and saving to ${output}.`
-      : msg;
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const url = params.url as string | undefined;
-    if (!url) {
-      return { error: "URL is required for taking a screenshot" };
-    }
-
-    const browserUrl = process.env.BROWSER_URL;
-    if (!browserUrl) {
-      return {
-        error:
-          "Screenshots require a remote browser service. Set the BROWSER_URL environment variable to the browser service endpoint.",
-        url
-      };
-    }
-
-    try {
-      const outputFile = (params.output_file as string) ?? "screenshot.png";
-      // BROWSER_URL is operator-configured, not model-controlled, so it stays a
-      // plain fetch (it is usually an internal service safeFetch would block) —
-      // but it still has to observe the run's cancellation.
-      const response = await fetch(browserUrl, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, output_file: outputFile }),
-        signal: requestSignal(context, 30_000)
-      });
-
-      if (!response.ok) {
-        return {
-          error: `Browser service returned HTTP ${response.status}: ${response.statusText}`,
-          url
-        };
-      }
-
-      const result = await response.json() as Record<string, unknown>;
-      return { success: true, ...result };
-    } catch (e: unknown) {
-      const message = e instanceof Error ? e.message : String(e);
-      return { error: `Error taking screenshot: ${message}` };
-    }
+/**
+ * @deprecated Ported to the `web` capability module. Kept as a thin subclass
+ * so existing constructors keep working.
+ */
+export class ScreenshotTool extends CapabilityTool {
+  constructor() {
+    super(takeScreenshot.spec, takeScreenshot.impl, ungatedCapabilityRun);
   }
 }

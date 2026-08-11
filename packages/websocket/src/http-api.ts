@@ -2203,10 +2203,7 @@ export async function handleWorkflowById(
 
 // ── Job types & helpers ───────────────────────────────────────────
 
-/**
- * Full job response — still exported here because `mcp-server.ts` consumes it
- * when serving job metadata over MCP. Consider relocating if MCP also migrates.
- */
+/** Full job response, shared by the REST routes that serve job metadata. */
 export function toJobResponse(job: Job): JsonObject {
   return {
     id: job.id,

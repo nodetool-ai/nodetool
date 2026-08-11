@@ -16,7 +16,6 @@
 import { Tool } from "./base-tool.js";
 import {
   SubAgentTool,
-  type ForwardMessage,
   type SubAgentToolRun,
   type SubAgentToolRuntime
 } from "../subagent.js";

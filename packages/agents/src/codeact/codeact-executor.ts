@@ -41,6 +41,8 @@ import type { Step, Task } from "../types.js";
 import { Tool } from "../tools/base-tool.js";
 import { getMemoryTools } from "../tools/memory-tools.js";
 import { runInSandbox, type SandboxClock } from "../js-sandbox.js";
+import type { CapabilityRun } from "../capabilities/types.js";
+import { mountCapabilityModules } from "./capability-modules.js";
 import { truncateToolResult } from "../constants.js";
 import {
   formatViolations,
@@ -278,6 +280,14 @@ export interface CodeActExecutorOptions {
    * is an empty list until a caller says otherwise.
    */
   sandboxPackages?: readonly string[];
+  /**
+   * The run whose capability modules this step's actions may import
+   * (`@nodetool-ai/sandbox-nodetool/<namespace>`). Optional because a step loop
+   * is constructed from a toolbelt, not from a run: the hosts that have one
+   * today are the chat surfaces. Without it nothing is mounted and such an
+   * import is refused by name — the belt is unaffected either way.
+   */
+  capabilityRun?: CapabilityRun;
 }
 
 /** Observation envelope returned to the model after each code action. */
@@ -322,6 +332,8 @@ export class CodeActExecutor {
   private readonly prelude: string;
   /** Specifiers this session's actions may import (flag-gated, may be empty). */
   private readonly sandboxPackages: string[];
+  /** The run whose capability modules an action may import, when a host has one. */
+  private readonly capabilityRun?: CapabilityRun;
   /** Persists across actions within the step (CaveAgent-style runtime state). */
   private readonly state: Record<string, unknown> = {};
   private result: unknown = null;
@@ -344,6 +356,7 @@ export class CodeActExecutor {
     this.clock = opts.clock;
     this.maxToolCallsPerAction = opts.maxToolCallsPerAction;
     this.sandboxPackages = sessionAllowedPackages(opts.sandboxPackages);
+    this.capabilityRun = opts.capabilityRun;
 
     // Memory tools ride in the toolbelt as functions like everything else.
     const existing = new Set(this.tools.map((t) => t.name));
@@ -596,10 +609,23 @@ export class CodeActExecutor {
           toolCalls: 0
         } satisfies ActionObservation);
       }
+      const platform = await mountCapabilityModules(
+        code,
+        this.capabilityRun,
+        this.signal === undefined ? {} : { signal: this.signal }
+      );
+      if (!platform.ok) {
+        return JSON.stringify({
+          ok: false,
+          error: platform.error,
+          toolCalls: 0
+        } satisfies ActionObservation);
+      }
       const mount = mountActionModules(
         code,
         this.sandboxPackages,
-        this.context.sandboxModuleCatalog
+        this.context.sandboxModuleCatalog,
+        new Set(platform.mount?.facades.keys() ?? [])
       );
       if (!mount.ok) {
         return JSON.stringify({
@@ -618,6 +644,7 @@ export class CodeActExecutor {
         signal: this.signal,
         clock: this.clock,
         modules: mount.modules,
+        capabilities: platform.mount,
         globals: {
           ...bridge.globals,
           __finish: finishBridge,
