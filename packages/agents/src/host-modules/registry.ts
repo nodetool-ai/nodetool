@@ -68,6 +68,34 @@ const LOADERS: Readonly<Record<string, Loader>> = {
   diff: async () => {
     const mod = await import("./diff.js");
     return { unified: mod.unified };
+  },
+  aws: async () => {
+    const mod = await import("./aws.js");
+    return { sigv4: mod.sigv4, presign: mod.presign };
+  },
+  notion: async () => {
+    const mod = await import("./notion.js");
+    return {
+      request: mod.request,
+      plainText: mod.plainText,
+      toMarkdown: mod.toMarkdown
+    };
+  },
+  supabase: async () => {
+    const mod = await import("./supabase.js");
+    return { from: mod.from, rpc: mod.rpc };
+  },
+  twilio: async () => {
+    const mod = await import("./twilio.js");
+    return { request: mod.request };
+  },
+  apify: async () => {
+    const mod = await import("./apify.js");
+    return {
+      startRun: mod.startRun,
+      runStatus: mod.runStatus,
+      datasetItems: mod.datasetItems
+    };
   }
 };
 

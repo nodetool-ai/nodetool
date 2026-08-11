@@ -244,7 +244,6 @@ describe("applyCloudNodePolicy", () => {
       "nodetool.data.",
       "nodetool.workspace.",
       "vector.",
-      "search.google.",
       "huggingface."
     ]) {
       expect(remaining.some((t) => t.startsWith(prefix))).toBe(false);

@@ -1,10 +1,9 @@
 /**
- * Coverage tests for lib-browser, lib-mail, lib-supabase, lib-markitdown.
+ * Coverage tests for lib-browser, lib-mail, lib-markitdown.
  *
  * Strategy:
  * - lib-browser: Real CDP against a local HTTP server for Screenshot.
- * - lib-mail: SendEmail with invalid config → error. Gmail stubs throw.
- * - lib-supabase: All nodes throw when no credentials provided.
+ * - lib-mail: Gmail stubs throw without credentials.
  * - lib-markitdown: Test HTML conversion, plain text pass-through, error on missing data/uri,
  *   file URI reading, and docx branch (error path).
  */
@@ -17,22 +16,12 @@ import os from "node:os";
 
 import {
   ScreenshotLibNode,
-  SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
-  SelectLibNode,
   ConvertToMarkdownLibNode
 } from "../../src/index.js";
 
-// Supabase nodes with qualified imports to avoid name collisions with sqlite
-import {
-  InsertLibNode as SupabaseInsertLibNode,
-  UpdateLibNode as SupabaseUpdateLibNode,
-  DeleteLibNode as SupabaseDeleteLibNode,
-  UpsertLibNode as SupabaseUpsertLibNode,
-  RPCLibNode as SupabaseRPCLibNode
-} from "../../src/nodes/lib-supabase.js";
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -128,46 +117,6 @@ describe.skip("lib.browser.Screenshot (cdp)", () => {
 
 // ---------------------------------------------------------------------------
 // lib-mail
-// ---------------------------------------------------------------------------
-
-describe("lib.mail.SendEmail", () => {
-  it("throws on missing recipient", async () => {
-    await expect(
-      (() => {
-        const _n = new SendEmailLibNode();
-        _n.assign({
-          smtp_server: "localhost",
-          smtp_port: 9999,
-          username: "",
-          password: "",
-          to_address: "",
-          subject: "test",
-          body: "test"
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Recipient email address is required");
-  });
-
-  it("throws on connection failure with invalid SMTP", async () => {
-    // Use a port that won't have an SMTP server
-    await expect(
-      (() => {
-        const _n = new SendEmailLibNode();
-        _n.assign({
-          smtp_server: "127.0.0.1",
-          smtp_port: 19999,
-          username: "",
-          password: "",
-          from_address: "test@test.com",
-          to_address: "recipient@test.com",
-          subject: "test",
-          body: "test body"
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow();
-  }, 15_000);
 });
 
 describe("lib.mail.GmailSearch (stub)", () => {
@@ -202,214 +151,6 @@ describe("lib.mail.MoveToArchive (stub)", () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// lib-supabase — all nodes should throw when no credentials
-// ---------------------------------------------------------------------------
-
-describe("lib.supabase (no credentials)", () => {
-  it("Select throws on missing table_name", async () => {
-    await expect(
-      (() => {
-        const _n = new SelectLibNode();
-        // Credentials are now read from _secrets, not node props
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("table_name cannot be empty");
-  });
-
-  it("Select throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SelectLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test"
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Insert throws on missing table_name", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseInsertLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("table_name cannot be empty");
-  });
-
-  it("Insert throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseInsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          records: [{ a: 1 }]
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Update throws on missing table_name", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpdateLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("table_name cannot be empty");
-  });
-
-  it("Update throws on empty values", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpdateLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        _n.assign({ table_name: "test", values: {} });
-        return _n.process();
-      })()
-    ).rejects.toThrow("values cannot be empty");
-  });
-
-  it("Update throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpdateLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          values: { x: 1 }
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Delete throws on missing table_name", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseDeleteLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("table_name cannot be empty");
-  });
-
-  it("Delete throws when no filters provided", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseDeleteLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        _n.assign({ table_name: "test", filters: [] });
-        return _n.process();
-      })()
-    ).rejects.toThrow("At least one filter is required");
-  });
-
-  it("Delete throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseDeleteLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          filters: [["id", "eq", 1]]
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Upsert throws on missing table_name", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpsertLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("table_name cannot be empty");
-  });
-
-  it("Upsert throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          records: [{ a: 1 }]
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("RPC throws on missing function name", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseRPCLibNode();
-        (_n as any).setDynamic("_secrets", { SUPABASE_URL: "https://x.supabase.co", SUPABASE_KEY: "key" });
-        return _n.process();
-      })()
-    ).rejects.toThrow("function cannot be empty");
-  });
-
-  it("RPC throws on missing credentials", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseRPCLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          function: "my_func"
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Insert handles single record (non-array) input", async () => {
-    // When records is a non-array object, it should be wrapped in an array.
-    // It will still throw on missing creds, but the wrapping logic is exercised.
-    await expect(
-      (() => {
-        const _n = new SupabaseInsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          records: { a: 1 }
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-
-  it("Upsert handles single record (non-array) input", async () => {
-    await expect(
-      (() => {
-        const _n = new SupabaseUpsertLibNode();
-        _n.assign({
-          supabase_url: "",
-          supabase_key: "",
-          table_name: "test",
-          records: { a: 1 }
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow("Supabase URL and key are required");
-  });
-});
 
 // ---------------------------------------------------------------------------
 // lib-markitdown
@@ -632,12 +373,6 @@ describe("defaults() methods", () => {
     expect(d).toHaveProperty("timeout");
   });
 
-  it("SendEmailLibNode defaults", () => {
-    const d = new SendEmailLibNode().serialize();
-    expect(d).toHaveProperty("smtp_server");
-    expect(d).toHaveProperty("to_address");
-  });
-
   it("GmailSearchLibNode defaults", () => {
     const d = new GmailSearchLibNode().serialize();
     expect(d).toHaveProperty("folder");
@@ -653,40 +388,6 @@ describe("defaults() methods", () => {
   it("MoveToArchiveLibNode defaults", () => {
     const d = new MoveToArchiveLibNode().serialize();
     expect(d).toHaveProperty("message_id");
-  });
-
-  it("SelectLibNode defaults", () => {
-    const d = new SelectLibNode().serialize();
-    expect(d).toHaveProperty("table_name");
-    expect(d).toHaveProperty("filters");
-  });
-
-  it("SupabaseInsertLibNode defaults", () => {
-    const d = new SupabaseInsertLibNode().serialize();
-    expect(d).toHaveProperty("records");
-    expect(d).toHaveProperty("return_rows");
-  });
-
-  it("SupabaseUpdateLibNode defaults", () => {
-    const d = new SupabaseUpdateLibNode().serialize();
-    expect(d).toHaveProperty("values");
-    expect(d).toHaveProperty("filters");
-  });
-
-  it("SupabaseDeleteLibNode defaults", () => {
-    const d = new SupabaseDeleteLibNode().serialize();
-    expect(d).toHaveProperty("filters");
-  });
-
-  it("SupabaseUpsertLibNode defaults", () => {
-    const d = new SupabaseUpsertLibNode().serialize();
-    expect(d).toHaveProperty("records");
-  });
-
-  it("SupabaseRPCLibNode defaults", () => {
-    const d = new SupabaseRPCLibNode().serialize();
-    expect(d).toHaveProperty("function");
-    expect(d).toHaveProperty("params");
   });
 
   it("ConvertToMarkdownLibNode defaults", () => {

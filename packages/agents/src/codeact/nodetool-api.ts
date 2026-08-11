@@ -253,6 +253,51 @@ const nodetool = (() => {
   }
 
   const api = {
+    /**
+     * Credentials, through the one bridge that has them.
+     *
+     * \`getSecret\` answers \`undefined\` for a secret nobody configured, which
+     * turns a missing key into a 401 three calls later. These throw at the
+     * point the credential was needed and name it.
+     */
+    secrets: {
+      /** A secret's value, or an error naming the one that is not set. */
+      async get(name) {
+        if (typeof name !== "string" || name === "") {
+          throw new Error("nodetool.secrets.get: a secret name is required");
+        }
+        if (typeof getSecret !== "function") {
+          throw new Error(
+            'nodetool.secrets.get("' + name + '"): this run has no secret store'
+          );
+        }
+        const value = await getSecret(name);
+        if (value === undefined || value === null || value === "") {
+          throw new Error(
+            'nodetool.secrets.get("' + name + '"): not set. Add it under ' +
+            "Settings > Secrets, or on the node's secret scope."
+          );
+        }
+        return value;
+      },
+      /** The value, or undefined — for a credential that is genuinely optional. */
+      async tryGet(name) {
+        if (typeof getSecret !== "function") return undefined;
+        const value = await getSecret(name);
+        return value === null || value === "" ? undefined : value;
+      },
+      /**
+       * The names this node declared, or null when it declared no scope and
+       * may read the whole store. Reading this is not the check: a name
+       * outside the scope is refused by the bridge, not by this list.
+       */
+      list() {
+        return typeof __secretScope === "undefined" || __secretScope === null
+          ? null
+          : __secretScope.slice();
+      }
+    },
+
     /** What this belt supports, namespace by namespace. */
     capabilities() {
       const caps = {};

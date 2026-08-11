@@ -22,6 +22,11 @@ guest globals are gone.
 | `@nodetool-ai/sandbox-zip` | fflate | host | the 50 MB inflation cap (below) |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host | WASM engine, workers, downloads its language data |
 | `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host | model weights outlive a run and outsize the guest heap |
+| `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host | signing chain the guest has no library for |
+| `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host | first-party, so a pack cannot bring it |
+| `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host | first-party |
+| `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host | first-party |
+| `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host | first-party |
 
 **Guest** means the M3 compiler bundles the library into the QuickJS guest and
 the pack ships that manifest entry (`{"kind": "js", "npm": "…"}`). **Host**
@@ -29,6 +34,20 @@ means the library runs where the sandbox itself runs and the guest reaches it
 through a generated ESM facade over a per-run dispatcher; the pack's manifest
 entry is `{"kind": "host", "host": "<id>"}` and the implementation lives in
 `packages/agents/src/host-modules/`.
+
+### The service packs build requests; they never send one
+
+The last five packs replace the S3, Notion, Supabase, Twilio and Apify nodes.
+They are not libraries: each is a pure function that turns a description of a
+request into `{url, method, headers, body}`, or in `-aws`'s case into signed
+headers. The guest passes that to its own `fetch`, so the run's fetch cap, its
+SSRF guard and its body limit still apply — moving the header math to the host
+must not move the network call with it.
+
+They run on the host for the reason `kind: "host"` exists at all: the code is
+NodeTool's, and a config-only pack cannot ship code. `-aws` has a second reason
+— SigV4 is an HMAC-SHA256 chain over a canonical form of the request, and the
+guest has no library that can build one.
 
 ### Why zip is a host pack
 

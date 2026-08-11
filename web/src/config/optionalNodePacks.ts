@@ -70,20 +70,20 @@ export const OPTIONAL_NODE_PACKS: readonly OptionalNodePack[] = [
   {
     id: "web",
     label: "Web & Scraping",
-    description: "Headless browser, media download, and Apify scraping.",
-    namespaces: ["lib.browser", "lib.video.download", "apify"]
+    description: "Headless browser and media download.",
+    namespaces: ["lib.browser", "lib.video.download"]
   },
   {
     id: "data_stores",
     label: "Files, Cloud & Databases",
-    description: "Local filesystem, S3, secrets, SQLite, and Supabase.",
-    namespaces: ["lib.os", "lib.s3", "lib.secret", "lib.sqlite", "lib.supabase"]
+    description: "Local filesystem, secrets, and SQLite.",
+    namespaces: ["lib.os", "lib.secret", "lib.sqlite"]
   },
   {
     id: "integrations",
     label: "Integrations & Messaging",
-    description: "Notion, Twilio, email, and Discord / Telegram messaging.",
-    namespaces: ["lib.notion", "lib.twilio", "lib.mail", "messaging"]
+    description: "Email and Discord / Telegram message triggers.",
+    namespaces: ["lib.mail", "messaging"]
   },
   {
     id: "text_data",

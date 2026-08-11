@@ -65,7 +65,6 @@ describe("isCloudNodeType", () => {
   it("rejects the nerdy / out-of-scope namespaces", () => {
     for (const nodeType of [
       "lib.sqlite.GetDatabasePath",
-      "lib.supabase.Select",
       "lib.pdf.ExtractText",
       "lib.docx.CreateDocument",
       "lib.nlp.Tokenize",
@@ -74,9 +73,7 @@ describe("isCloudNodeType", () => {
       "nodetool.workspace.ReadTextFile",
       "nodetool.triggers.WebhookTrigger",
       "vector.Collection",
-      "search.google.GoogleSearch",
-      "apify.scraping.ApifyWebScraper",
-      "messaging.discord.DiscordSendMessage",
+      "messaging.discord.DiscordBotTrigger",
       "huggingface.TextGeneration",
       "transformers.TextGeneration",
       "replicate.something",

@@ -87,7 +87,6 @@ When using `ui_add_node` or `ui_graph`, the `data` object supports:
 | `openai.*` | GPT, GPT-Image, embeddings, TTS |
 | `gemini.*` | Google Gemini models |
 | `mistral.*` | Mistral models |
-| `search.google.*` | Web search integrations |
 | `vector.*` | Vector store nodes (SQLite-vec default; Chroma/Pinecone/Supabase backends) |
 
 ## Data Types

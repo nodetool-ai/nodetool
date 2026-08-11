@@ -85,7 +85,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Code node reserved props and the object its declared inputs arrive on
   "code", "timeout", "state", "inputs",
   // Sandbox internals
-  "__maxIter"
+  "__maxIter", "__secretScope"
 ]);
 
 /**

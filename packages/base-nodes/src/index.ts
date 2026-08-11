@@ -399,19 +399,11 @@ export {
   LIB_BROWSER_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 export {
-  SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode,
   LIB_MAIL_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
-export {
-  TwilioSendSMSLibNode,
-  TwilioSendWhatsAppLibNode,
-  TwilioGetMessagesLibNode,
-  TwilioLookupLibNode,
-  LIB_TWILIO_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-twilio";
 export {
   ConvertToMarkdownLibNode,
   LIB_MARKITDOWN_NODES
@@ -432,24 +424,6 @@ export {
   LIB_SQLITE_NODES
 } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
 export {
-  SelectLibNode,
-  InsertLibNode as SupabaseInsertLibNode,
-  UpdateLibNode as SupabaseUpdateLibNode,
-  DeleteLibNode as SupabaseDeleteLibNode,
-  UpsertLibNode,
-  RPCLibNode,
-  LIB_SUPABASE_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-supabase";
-export {
-  NotionSearchLibNode,
-  NotionGetPageLibNode,
-  NotionGetPageContentLibNode,
-  NotionCreatePageLibNode,
-  NotionUpdatePageLibNode,
-  NotionQueryDatabaseLibNode,
-  LIB_NOTION_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-notion";
-export {
   GoogleDriveSearchLibNode,
   GoogleDriveReadFileLibNode,
   GoogleDriveCreateFileLibNode,
@@ -466,16 +440,6 @@ export {
   GoogleCalendarCreateEventLibNode,
   LIB_GOOGLE_NODES
 } from "@nodetool-ai/integration-nodes/nodes/lib-google";
-export {
-  S3ListBucketsLibNode,
-  S3ListObjectsLibNode,
-  S3GetObjectLibNode,
-  S3PutObjectLibNode,
-  S3DeleteObjectLibNode,
-  S3CopyObjectLibNode,
-  S3GetPresignedUrlLibNode,
-  LIB_S3_NODES
-} from "@nodetool-ai/integration-nodes/nodes/lib-s3";
 export {
   CreateDocumentLibNode,
   LoadWordDocumentLibNode,
@@ -547,7 +511,6 @@ export {
   VECTOR_NODES
 } from "@nodetool-ai/core-nodes/nodes/vector";
 export { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
-export { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
 export {
   ComfyWorkflowNode,
   ComfyWorkerWorkflowNode,
@@ -557,7 +520,6 @@ export { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging"
 export { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 export { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 export { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-export { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 export { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 export {
   ClaudeCodeAgentNode,
@@ -618,30 +580,24 @@ import { LIB_IMAGE_DRAW_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-d
 import { LIB_IMAGE_COLOR_GRADING_NODES } from "@nodetool-ai/image-nodes/nodes/lib-image-color-grading";
 import { LIB_AUDIO_DSP_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-dsp";
 import { LIB_SQLITE_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-sqlite";
-import { LIB_SUPABASE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-supabase";
-import { LIB_S3_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-s3";
 import { LIB_DOCX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-docx";
 import { LIB_BROWSER_NODES } from "@nodetool-ai/automation-nodes/nodes/lib-browser";
 import { LIB_MAIL_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-mail";
-import { LIB_TWILIO_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-twilio";
 import { LIB_MARKITDOWN_NODES } from "@nodetool-ai/document-nodes/nodes/lib-doc-convert";
 import { LIB_SEABORN_NODES } from "@nodetool-ai/data-nodes/nodes/lib-charts";
 import { LIB_PEDALBOARD_EXTRA_NODES } from "@nodetool-ai/audio-nodes/nodes/lib-audio-effects";
 import { LIB_PDF_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pdf";
 import { LIB_EPUB_NODES } from "@nodetool-ai/document-nodes/nodes/lib-epub";
 import { LIB_PPTX_NODES } from "@nodetool-ai/document-nodes/nodes/lib-pptx";
-import { LIB_NOTION_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-notion";
 import { LIB_GOOGLE_NODES } from "@nodetool-ai/integration-nodes/nodes/lib-google";
 import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
-import { APIFY_NODES } from "@nodetool-ai/integration-nodes/nodes/apify";
 import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
 import { XAI_NODES } from "@nodetool-ai/llm-nodes/nodes/xai";
-import { SEARCH_NODES } from "@nodetool-ai/integration-nodes/nodes/search";
 import { TOOL_AGENT_NODES } from "@nodetool-ai/code-nodes/nodes/tool-agents";
 import { CLAUDE_CODE_NODES } from "@nodetool-ai/code-nodes/nodes/claude-code-tmux";
 import { SANDBOX_NODES } from "@nodetool-ai/code-nodes/nodes/sandbox";
@@ -696,30 +652,24 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...LIB_IMAGE_COLOR_GRADING_NODES,
   ...LIB_AUDIO_DSP_NODES,
   ...LIB_SQLITE_NODES,
-  ...LIB_SUPABASE_NODES,
-  ...LIB_S3_NODES,
   ...LIB_DOCX_NODES,
   ...LIB_BROWSER_NODES,
   ...LIB_MAIL_NODES,
-  ...LIB_TWILIO_NODES,
   ...LIB_MARKITDOWN_NODES,
   ...LIB_SEABORN_NODES,
   ...LIB_PEDALBOARD_EXTRA_NODES,
   ...LIB_PDF_NODES,
   ...LIB_EPUB_NODES,
   ...LIB_PPTX_NODES,
-  ...LIB_NOTION_NODES,
   ...LIB_GOOGLE_NODES,
   ...KIE_DYNAMIC_NODES,
   ...VECTOR_NODES,
   ...GEMINI_NODES,
-  ...APIFY_NODES,
   ...COMFY_NODES,
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,
   ...XAI_NODES,
-  ...SEARCH_NODES,
   ...TOOL_AGENT_NODES,
   ...CLAUDE_CODE_NODES,
   ...SANDBOX_NODES,

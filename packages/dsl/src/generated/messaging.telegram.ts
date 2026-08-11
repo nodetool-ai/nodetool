@@ -31,22 +31,3 @@ export interface TelegramBotTriggerOutputs {
 export function telegramBotTrigger(inputs: TelegramBotTriggerInputs): DslNode<TelegramBotTriggerOutputs> {
   return createNode("messaging.telegram.TelegramBotTrigger", inputs as Record<string, unknown>, { outputNames: ["update_id", "update_type", "message_id", "text", "caption", "entities", "chat", "from_user", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }
-
-// Telegram Send Message — messaging.telegram.TelegramSendMessage
-export interface TelegramSendMessageInputs {
-  token?: Connectable<string>;
-  chat_id?: Connectable<number>;
-  text?: Connectable<string>;
-  parse_mode?: Connectable<string>;
-  disable_web_page_preview?: Connectable<boolean>;
-  disable_notification?: Connectable<boolean>;
-  reply_to_message_id?: Connectable<number>;
-}
-
-export interface TelegramSendMessageOutputs {
-  output: Record<string, unknown>;
-}
-
-export function telegramSendMessage(inputs: TelegramSendMessageInputs): DslNode<TelegramSendMessageOutputs, "output"> {
-  return createNode("messaging.telegram.TelegramSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}

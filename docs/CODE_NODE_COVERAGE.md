@@ -296,7 +296,8 @@ now covers this ground from inside a Code node. `ForEachRow` and
 | `nodetool.image.*` `nodetool.audio.*` `nodetool.video.*` `nodetool.model3d.*` `lib.image.*` `lib.audio.*` `lib.grid.*` `nodetool.sketch/timeline/script` | content cards and bespoke editors; sharp/canvas/ffmpeg |
 | `lib.nlp.*` (7) | compromise, AFINN, stemmers, TF-IDF — real libraries |
 | `lib.pdf` `lib.docx` `lib.epub` `lib.pptx` `lib.convert` `lib.charts` | native/binary document tooling |
-| `lib.s3` `lib.supabase` `lib.notion` `lib.mail` `lib.twilio` `lib.google` `lib.apple` `apify.*` `search.*` `messaging.*` | credential pickers and non-trivial protocol handling; `fetch()` alone is not the same offer |
+| `lib.mail` `lib.google` `lib.apple` `messaging.*` | IMAP/SMTP, an OAuth session, AppleScript, and long-lived bot connections — none of them a `fetch` call |
+| `lib.s3` `lib.supabase` `lib.notion` `lib.twilio` `apify.*` `search.*` `messaging.*.SendMessage` `lib.mail.SendEmail` | **Removed.** Each was one authenticated HTTP call, so each is a Code node now: `fetch`, `nodetool.secrets.get(name)`, and the auth-helper packs (`@nodetool-ai/sandbox-aws` for SigV4, `-notion`, `-supabase`, `-twilio`, `-apify`). `lib.mail.SendEmail` went with them and has no guest path — SMTP is not HTTP; a script sends mail through an HTTP email API. |
 | `lib.browser` `lib.sqlite` | CDP, and the database path a script needs |
 | all provider/model namespaces | model pickers, streamed output, cost tracking |
 

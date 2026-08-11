@@ -3,13 +3,9 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 601 NodeTool nodes across 83 namespaces.
+Complete reference documentation for all 560 NodeTool nodes across 77 namespaces.
 
 ## Namespaces
-
-### apify
-
-- **[apify.scraping](apify/scraping/)** - 7 node(s)
 
 ### elevenlabs
 
@@ -54,23 +50,19 @@ Complete reference documentation for all 601 NodeTool nodes across 83 namespaces
 - **[lib.image.keyer](lib/image/keyer/)** - 2 node(s)
 - **[lib.image.mask](lib/image/mask/)** - 3 node(s)
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
-- **[lib.mail](lib/mail/)** - 4 node(s)
+- **[lib.mail](lib/mail/)** - 3 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
-- **[lib.notion](lib/notion/)** - 6 node(s)
 - **[lib.pdf](lib/pdf/)** - 11 node(s)
 - **[lib.pptx](lib/pptx/)** - 2 node(s)
-- **[lib.s3](lib/s3/)** - 7 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
-- **[lib.supabase](lib/supabase/)** - 6 node(s)
 - **[lib.svg](lib/svg/)** - 14 node(s)
-- **[lib.twilio](lib/twilio/)** - 4 node(s)
 - **[lib.video.download](lib/video/download/)** - 1 node(s)
 
 ### messaging
 
-- **[messaging.discord](messaging/discord/)** - 2 node(s)
-- **[messaging.telegram](messaging/telegram/)** - 2 node(s)
+- **[messaging.discord](messaging/discord/)** - 1 node(s)
+- **[messaging.telegram](messaging/telegram/)** - 1 node(s)
 
 ### minimax
 
@@ -103,11 +95,11 @@ Complete reference documentation for all 601 NodeTool nodes across 83 namespaces
 - **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
 - **[nodetool.sketch](nodetool/sketch/)** - 3 node(s)
 - **[nodetool.test](nodetool/test/)** - 22 node(s)
-- **[nodetool.text](nodetool/text/)** - 52 node(s)
+- **[nodetool.text](nodetool/text/)** - 49 node(s)
 - **[nodetool.timeline](nodetool/timeline/)** - 3 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)
 - **[nodetool.variable](nodetool/variable/)** - 2 node(s)
-- **[nodetool.video](nodetool/video/)** - 32 node(s)
+- **[nodetool.video](nodetool/video/)** - 31 node(s)
 - **[nodetool.workflows.base_node](nodetool/workflows/base_node/)** - 1 node(s)
 - **[nodetool.workflows.subgraph](nodetool/workflows/subgraph/)** - 1 node(s)
 - **[nodetool.workflows.workflow_node](nodetool/workflows/workflow_node/)** - 1 node(s)
@@ -122,10 +114,6 @@ Complete reference documentation for all 601 NodeTool nodes across 83 namespaces
 ### reve
 
 - **[reve](reve/)** - 3 node(s)
-
-### search
-
-- **[search.google](search/google/)** - 8 node(s)
 
 ### transformers
 

@@ -1,0 +1,39 @@
+{
+  "name": "@nodetool-ai/sandbox-twilio",
+  "version": "0.7.0-rc.34",
+  "description": "Build authenticated Twilio API requests inside the NodeTool sandbox, from NodeTool's helper running on the host",
+  "license": "MIT",
+  "nodetool": {
+    "apiVersion": 1,
+    "recommended": true,
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "host",
+        "host": "twilio"
+      }
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-packs/sandbox-twilio"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "twilio",
+    "sms"
+  ]
+}

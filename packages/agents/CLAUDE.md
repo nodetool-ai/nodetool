@@ -108,6 +108,13 @@ QuickJS's memory limiter counts its own heap objects; string and typed-array
 payloads are not charged against it, so `memoryLimitBytes` bites on object
 allocation, not on `new Uint8Array(n)`.
 
+Secrets are scoped. `SandboxLimits.secretScope` (host-set, `null` for an
+unscoped run) is the list of names a run may read; the `getSecret` bridge
+refuses everything else, and `nodetool.secrets.get/tryGet/list` sit on top of
+that one check rather than beside it. `nodetool.code.Code` exposes the list as
+its `secrets` property, empty by default so a node written before scopes
+existed keeps the reach it had. Tests: `tests/sandbox-secrets.test.ts`.
+
 Exposed guest surface: `console`, `fetch`, `sleep`, `getSecret`,
 `crypto.{randomUUID,getRandomValues,digest,hmac}` (WebCrypto-backed — `digest`
 and `hmac` take SHA-1/256/384/512 and accept string or `Uint8Array` input, both
@@ -178,7 +185,11 @@ body; there is no `data.*` namespace any more. Two kinds:
   `-xlsx` (exceljs), `-zip` (fflate), `-diff` (diff), `-ocr` (tesseract.js),
   `-tfjs` (TensorFlow.js and its model zoo). These are the libraries the guest
   cannot hold — Node builtins, a DOM, a limit the guest could not enforce on
-  itself, or state that has to outlive a run.
+  itself, or state that has to outlive a run. Five more are NodeTool's own code
+  rather than a library: `-aws` (SigV4 signing), `-notion`, `-supabase`,
+  `-twilio` and `-apify` build an authenticated request and return it; the guest
+  sends it with its own `fetch`, so the fetch cap and the SSRF guard still
+  apply. They replace the S3/Notion/Supabase/Twilio/Apify nodes.
 
 ### Host modules (`src/host-modules/`)
 

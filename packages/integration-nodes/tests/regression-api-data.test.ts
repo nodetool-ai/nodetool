@@ -1,107 +1,13 @@
 /**
- * Regression tests for API, search, data, generator, constant, and vector node fixes.
+ * Regression tests for data, generator, constant, and vector node fixes.
  * Each test targets a specific bug that was previously present in the codebase.
  */
 import { describe, it, expect } from "vitest";
-import {
-  ApifyWebScraperNode,
-  ApifyGoogleSearchScraperNode,
-  ApifyInstagramScraperNode,
-  ApifyAmazonScraperNode,
-  ApifyYouTubeScraperNode,
-  ApifyTwitterScraperNode,
-  ApifyLinkedInScraperNode,
-  APIFY_NODES
-} from "@nodetool-ai/integration-nodes";
-import { GoogleSearchNode } from "@nodetool-ai/integration-nodes";
 import {
   ChartGeneratorNode,
   SVGGeneratorNode
 } from "@nodetool-ai/llm-nodes";
 import { ConstantDateTimeNode, GetDocumentsNode } from "@nodetool-ai/core-nodes";
-import { SelectLibNode } from "@nodetool-ai/integration-nodes";
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-// 1. Apify API key name - must use APIFY_API_TOKEN, not APIFY_API_KEY
-// ---------------------------------------------------------------------------
-describe("Apify API key name regression", () => {
-  const allApifyNodes = [
-    ApifyWebScraperNode,
-    ApifyGoogleSearchScraperNode,
-    ApifyInstagramScraperNode,
-    ApifyAmazonScraperNode,
-    ApifyYouTubeScraperNode,
-    ApifyTwitterScraperNode,
-    ApifyLinkedInScraperNode
-  ];
-
-  it("all 7 Apify nodes use APIFY_API_TOKEN in requiredSettings", () => {
-    expect(allApifyNodes).toHaveLength(7);
-    for (const NodeCls of allApifyNodes) {
-      expect(
-        (NodeCls as any).requiredSettings,
-        `${(NodeCls as any).nodeType} should have requiredSettings`
-      ).toBeDefined();
-      expect(
-        (NodeCls as any).requiredSettings,
-        `${(NodeCls as any).nodeType} should use APIFY_API_TOKEN`
-      ).toContain("APIFY_API_TOKEN");
-      expect(
-        (NodeCls as any).requiredSettings,
-        `${(NodeCls as any).nodeType} should NOT use APIFY_API_KEY`
-      ).not.toContain("APIFY_API_KEY");
-    }
-  });
-
-  it("APIFY_NODES export contains all 7 nodes", () => {
-    expect(APIFY_NODES).toHaveLength(7);
-    const types = APIFY_NODES.map((n) => (n as any).nodeType);
-    expect(types).toContain("apify.scraping.ApifyWebScraper");
-    expect(types).toContain("apify.scraping.ApifyGoogleSearchScraper");
-    expect(types).toContain("apify.scraping.ApifyInstagramScraper");
-    expect(types).toContain("apify.scraping.ApifyAmazonScraper");
-    expect(types).toContain("apify.scraping.ApifyYouTubeScraper");
-    expect(types).toContain("apify.scraping.ApifyTwitterScraper");
-    expect(types).toContain("apify.scraping.ApifyLinkedInScraper");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 2. GoogleSearchNode output includes both `results` and `text`
-// ---------------------------------------------------------------------------
-describe("GoogleSearchNode output structure regression", () => {
-  it("metadataOutputTypes has both results and text keys", () => {
-    const meta = (GoogleSearchNode as any).metadataOutputTypes;
-    expect(meta).toBeDefined();
-    expect(meta).toHaveProperty("results");
-    expect(meta).toHaveProperty("text");
-    // Old bug: only had "output" key
-    expect(meta).not.toHaveProperty("output");
-  });
-});
-
-// ---------------------------------------------------------------------------
-// 3. Supabase credentials from secrets/env - no crash on (this as any).supabase_url
-// ---------------------------------------------------------------------------
-describe("Supabase credentials regression", () => {
-  it("SelectLibNode reads credentials from secrets, not from instance properties", () => {
-    const node = new SelectLibNode();
-    // The old bug tried to read (this as any).supabase_url directly.
-    // The fix reads from _secrets via getSupabaseCredentials().
-    // Without credentials it should throw a clear error about SUPABASE_URL/KEY.
-    node.assign({ table_name: "test_table" });
-    node.setDynamic("_secrets", {});
-    expect(node.process()).rejects.toThrow(/supabase.*url.*key|url.*key.*required/i);
-  });
-
-  it("does not have supabase_url as an instance property", () => {
-    const node = new SelectLibNode();
-    // supabase_url should NOT be a declared property on the node
-    expect((node as any).supabase_url).toBeUndefined();
-  });
-});
 
 // ---------------------------------------------------------------------------
 // 7. ChartGenerator - uses LLM, not just hardcoded output

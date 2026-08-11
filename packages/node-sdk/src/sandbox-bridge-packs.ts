@@ -29,6 +29,18 @@ export interface BridgePack {
 
 export const BRIDGE_PACKS: readonly BridgePack[] = [
   {
+    specifier: "@nodetool-ai/sandbox-apify",
+    packName: "@nodetool-ai/sandbox-apify",
+    library: "NodeTool's Apify helper",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-aws",
+    packName: "@nodetool-ai/sandbox-aws",
+    library: "NodeTool's SigV4 signer",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-csv",
     packName: "@nodetool-ai/sandbox-csv",
     library: "papaparse",
@@ -59,15 +71,33 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "guest"
   },
   {
+    specifier: "@nodetool-ai/sandbox-notion",
+    packName: "@nodetool-ai/sandbox-notion",
+    library: "NodeTool's Notion helper",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-ocr",
     packName: "@nodetool-ai/sandbox-ocr",
     library: "tesseract.js",
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-supabase",
+    packName: "@nodetool-ai/sandbox-supabase",
+    library: "NodeTool's PostgREST helper",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-tfjs",
     packName: "@nodetool-ai/sandbox-tfjs",
     library: "@tensorflow/tfjs",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-twilio",
+    packName: "@nodetool-ai/sandbox-twilio",
+    library: "NodeTool's Twilio helper",
     runs: "host"
   },
   {
