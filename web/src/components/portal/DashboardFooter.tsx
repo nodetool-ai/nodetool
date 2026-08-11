@@ -18,7 +18,7 @@ const styles = (theme: Theme) =>
       flexWrap: "wrap",
       minHeight: 46,
       padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(10)}`, // was 10px 40px
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       [theme.breakpoints.down("sm")]: {
         padding: `${getSpacingPx(SPACING.lg)} ${getSpacingPx(SPACING.xl)}` // was 10px 18px

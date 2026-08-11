@@ -66,7 +66,7 @@ const styles = (theme: Theme, fullWidth: boolean) =>
       color: theme.vars.palette.text.secondary,
       maxWidth: 560,
       margin: `0 0 ${getSpacingPx(SPACING.xxxl)}`,
-      fontSize: 15,
+      fontSize: "var(--fontSizeNormal)",
       lineHeight: 1.45,
       animation: `${rise} ${MOTION.slow} ${240}ms backwards`
     },

@@ -99,13 +99,13 @@ const styles = (theme: Theme) =>
       transition: MOTION.all
     },
     ".rec-new-label": {
-      fontSize: 14,
+      fontSize: "var(--fontSizeNormal)",
       fontWeight: 500,
       color: theme.vars.palette.text.primary
     },
     ".rec-new-hint": {
       fontFamily: theme.fontFamily2,
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       marginTop: getSpacingPx(SPACING.micro)
     },
