@@ -11,16 +11,14 @@
  * is shared; only framing/transport differs per subclass.
  */
 
-import { importNodeBuiltin, safeProcessEnv } from "@nodetool-ai/config";
+import { getNodeBuiltinSync, safeProcessEnv } from "@nodetool-ai/config";
 
 // The base only needs crypto (request IDs) and events (EventEmitter).
 // Lazy-load so the module *graph* loads off-Node; instantiating a concrete
 // bridge there throws at construction. Notably the base does NOT require
 // child_process — that belongs to the stdio subclass only.
-const nodeCrypto =
-  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
-const nodeEvents =
-  await importNodeBuiltin<typeof import("node:events")>("node:events");
+const nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
+const nodeEvents = getNodeBuiltinSync<typeof import("node:events")>("node:events");
 
 function notOnNode(api: string): never {
   throw new Error(`${api} requires Node — PythonBridgeBase is Node-only`);

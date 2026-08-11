@@ -16,7 +16,7 @@
  * recorded and queryable via `getPackageAssetResolutions()` for diagnostics.
  */
 
-import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+import { IS_NODE, getNodeBuiltinSync } from "./node-import.js";
 import { createLogger } from "./logging.js";
 import {
   PACKAGE_RUNTIME_ASSETS,
@@ -26,13 +26,13 @@ import {
 
 const log = createLogger("nodetool.config.package-assets");
 
-const nodeModule = await importNodeBuiltin<typeof import("node:module")>(
+const nodeModule = getNodeBuiltinSync<typeof import("node:module")>(
   "node:module"
 );
-const nodeFs = await importNodeBuiltin<{
+const nodeFs = getNodeBuiltinSync<{
   existsSync: (path: string) => boolean;
 }>("node:fs");
-const nodeUrl = await importNodeBuiltin<{
+const nodeUrl = getNodeBuiltinSync<{
   fileURLToPath: (url: URL | string) => string;
 }>("node:url");
 

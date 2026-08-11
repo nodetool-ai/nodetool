@@ -1,8 +1,8 @@
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type { Chunk } from "@nodetool-ai/protocol";
 import { BaseProvider } from "./base-provider.js";
 
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
 );
 const randomUUID = (): string => {

@@ -4,7 +4,7 @@ import type {
   OutputCorrelation,
   Platform
 } from "@nodetool-ai/protocol";
-import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
+import { IS_NODE, getNodeBuiltinSync } from "@nodetool-ai/config";
 
 // `node:fs`/`path`/`crypto`/`os` are loaded lazily so this module loads
 // in browser / Edge runtimes. Python metadata loading is Node-only;
@@ -19,16 +19,16 @@ function asDefault<T>(mod: Ns<T> | null): T {
   return (mod as { default?: T }).default ?? (mod as T);
 }
 const fs = asDefault(
-  await importNodeBuiltin<Ns<typeof import("node:fs")>>("node:fs")
+  getNodeBuiltinSync<Ns<typeof import("node:fs")>>("node:fs")
 );
 const path = asDefault(
-  await importNodeBuiltin<Ns<typeof import("node:path")>>("node:path")
+  getNodeBuiltinSync<Ns<typeof import("node:path")>>("node:path")
 );
 const crypto = asDefault(
-  await importNodeBuiltin<Ns<typeof import("node:crypto")>>("node:crypto")
+  getNodeBuiltinSync<Ns<typeof import("node:crypto")>>("node:crypto")
 );
 const os = asDefault(
-  await importNodeBuiltin<Ns<typeof import("node:os")>>("node:os")
+  getNodeBuiltinSync<Ns<typeof import("node:os")>>("node:os")
 );
 
 export interface TypeMetadata {

@@ -13,7 +13,7 @@
  * video, audio, embeddings) delegates straight to the inner provider.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync, importNodeBuiltin } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
 import type { UsageInfo } from "./cost-calculator.js";
 import { createUsageSlot } from "../tracing-helpers.js";
@@ -25,7 +25,7 @@ import type {
   ProviderTool
 } from "./types.js";
 
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
 );
 

@@ -5,7 +5,7 @@ import type {
   ProgressEvent
 } from "./python-bridge-types.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
-import { createLogger, importNodeBuiltin } from "@nodetool-ai/config";
+import { createLogger, getNodeBuiltinSync } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.python-node-executor");
 
@@ -26,7 +26,7 @@ interface PythonBridgeLike {
     onProgress?: (event: ProgressEvent) => void
   ): AsyncGenerator<ExecuteResult>;
 }
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>(
+const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
 );
 const randomUUID = (): string =>

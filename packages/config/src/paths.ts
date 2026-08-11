@@ -11,7 +11,7 @@
  * (browser, Edge). All exported functions throw if invoked off-Node.
  */
 
-import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+import { IS_NODE, getNodeBuiltinSync } from "./node-import.js";
 
 type PathApi = {
   join: (...parts: string[]) => string;
@@ -19,9 +19,9 @@ type PathApi = {
 type OsApi = { homedir: () => string };
 type UrlApi = { fileURLToPath: (url: string | URL) => string };
 
-const pathLib = await importNodeBuiltin<PathApi>("node:path");
-const osLib = await importNodeBuiltin<OsApi>("node:os");
-const urlLib = await importNodeBuiltin<UrlApi>("node:url");
+const pathLib = getNodeBuiltinSync<PathApi>("node:path");
+const osLib = getNodeBuiltinSync<OsApi>("node:os");
+const urlLib = getNodeBuiltinSync<UrlApi>("node:url");
 
 function notOnNode(name: string): never {
   throw new Error(

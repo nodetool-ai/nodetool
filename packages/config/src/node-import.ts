@@ -76,6 +76,35 @@ export async function importNodeBuiltin<T>(name: string): Promise<T | null> {
 }
 
 /**
+ * Synchronous Node builtin loader for use in modules that must remain
+ * CJS-compatible (no top-level await). Uses `process.getBuiltinModule`
+ * where available (Node 18.19+, works in both ESM and CJS) and falls
+ * back to `globalThis.require` for CJS bundles. Returns `null` on
+ * non-Node runtimes or when the builtin cannot be resolved.
+ */
+export function getNodeBuiltinSync<T>(name: string): T | null {
+  if (!IS_NODE) return null;
+  try {
+    const proc = globalThis.process as unknown as {
+      getBuiltinModule?: (id: string) => unknown;
+    };
+    if (typeof proc?.getBuiltinModule === "function") {
+      return proc.getBuiltinModule(name) as T;
+    }
+    const g = globalThis as unknown as { require?: (id: string) => unknown };
+    if (typeof g.require === "function") {
+      return g.require(name) as T;
+    }
+  } catch {
+    // fall through to null
+  }
+  return null;
+}
+
+/** Alias for `getNodeBuiltinSync` — synchronous counterpart to `importNodeBuiltin`. */
+export const importNodeBuiltinSync = getNodeBuiltinSync;
+
+/**
  * Dynamic import of an arbitrary module specifier hidden from bundler
  * static analysis. Use for native/Node-only npm packages (e.g. `sharp`,
  * `better-sqlite3`) so a browser/edge bundle doesn't try to bundle them.

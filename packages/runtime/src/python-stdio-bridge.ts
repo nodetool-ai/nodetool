@@ -14,19 +14,17 @@
  */
 
 import { pack, unpack } from "msgpackr";
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
 // Python bridge is fundamentally Node-only (subprocess + raw FDs).
 // Lazy-load the builtins so the module *graph* loads off-Node;
 // instantiating PythonStdioBridge there throws at construction.
-const nodeCp =
-  await importNodeBuiltin<typeof import("node:child_process")>(
-    "node:child_process"
-  );
-const nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
-const nodeOs = await importNodeBuiltin<typeof import("node:os")>("node:os");
-const nodePath =
-  await importNodeBuiltin<typeof import("node:path")>("node:path");
+const nodeCp = getNodeBuiltinSync<typeof import("node:child_process")>(
+  "node:child_process"
+);
+const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
+const nodeOs = getNodeBuiltinSync<typeof import("node:os")>("node:os");
+const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
 
 function notOnNode(api: string): never {
   throw new Error(`${api} requires Node — PythonStdioBridge is Node-only`);

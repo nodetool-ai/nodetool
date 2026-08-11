@@ -9,17 +9,15 @@
  * file or stdout output gets identical fields.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
 // Trace-exporter file/stream APIs require Node — lazy-load so this
 // module loads on non-Node runtimes (where file exporters are unused).
-const nodeFs = await importNodeBuiltin<typeof import("node:fs")>("node:fs");
-const nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+const nodeFs = getNodeBuiltinSync<typeof import("node:fs")>("node:fs");
+const nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
   "node:fs/promises"
 );
-const nodePath = await importNodeBuiltin<typeof import("node:path")>(
-  "node:path"
-);
+const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
 
 type WriteStream = ReturnType<typeof import("node:fs").createWriteStream>;
 // The `!node*` guards below only fire in a non-Node runtime (browser/edge),

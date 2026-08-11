@@ -31,7 +31,7 @@ import {
   expandAssetReferences,
   inlineTextAssetRefs
 } from "./prompt-asset-refs.js";
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
 // `node:fs/promises`, `node:path`, `node:url`, `node:crypto` are loaded
 // lazily so this module loads in browser / Edge runtimes. The
@@ -58,15 +58,12 @@ export interface ActiveModelSelection {
   model: string;
 }
 
-const nodeCrypto =
-  await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
-const nodeFsP =
-  await importNodeBuiltin<typeof import("node:fs/promises")>(
-    "node:fs/promises"
-  );
-const nodePath =
-  await importNodeBuiltin<typeof import("node:path")>("node:path");
-const nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+const nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
+const nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
+  "node:fs/promises"
+);
+const nodePath = getNodeBuiltinSync<typeof import("node:path")>("node:path");
+const nodeUrl = getNodeBuiltinSync<typeof import("node:url")>("node:url");
 
 const randomUUID = nodeCrypto?.randomUUID
   ? nodeCrypto.randomUUID

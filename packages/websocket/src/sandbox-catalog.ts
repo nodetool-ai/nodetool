@@ -54,9 +54,15 @@ export function getSandboxCatalogDiagnostics(): readonly SandboxModuleStatus[] {
 async function compileAndDiscover(
   searchPaths: readonly string[] | undefined
 ): Promise<SandboxCatalogHost | undefined> {
-  let compileSandboxCatalog: typeof import("@nodetool-ai/sandbox-compiler").compileSandboxCatalog;
+  let compileSandboxCatalog: (options?: {
+    searchPaths?: readonly string[];
+  }) => Promise<SandboxCatalogHost>;
   try {
-    ({ compileSandboxCatalog } = await import("@nodetool-ai/sandbox-compiler"));
+    ({ compileSandboxCatalog } = (await import(
+      "@nodetool-ai/sandbox-compiler"
+    )) as {
+      compileSandboxCatalog: typeof compileSandboxCatalog;
+    });
   } catch (error) {
     compileFailure = {
       packName: "@nodetool-ai/sandbox-compiler",
