@@ -12,6 +12,7 @@ import {
   createCapabilityRun
 } from "../capabilities/index.js";
 import {
+  MEDIA_CAPABILITIES,
   animateImage,
   editImage,
   embedText,
@@ -21,6 +22,8 @@ import {
   transcribeAudio
 } from "../capabilities/media.js";
 import type { CapabilityExport } from "../capabilities/index.js";
+import { toolFromCapability } from "../capabilities/index.js";
+import type { Tool } from "./base-tool.js";
 
 /** A media capability as the `Tool` its callers still construct. */
 abstract class MediaTool extends CapabilityTool {
@@ -71,4 +74,18 @@ export class EmbedTextTool extends MediaTool {
   constructor() {
     super(embedText);
   }
+}
+
+/**
+ * Every media capability as a `Tool`, derived from {@link MEDIA_CAPABILITIES}
+ * rather than a hand-kept class list. The run is built per call from the
+ * `ProcessingContext`, so the tools work wherever a context exists — an
+ * AgentNode hydrating a saved belt does not need a providers map up front.
+ */
+export function getMediaTools(): Tool[] {
+  return MEDIA_CAPABILITIES.map((entry) =>
+    toolFromCapability(entry.spec, entry.impl, (context) =>
+      createCapabilityRun({ context, gate: UNGATED })
+    )
+  );
 }

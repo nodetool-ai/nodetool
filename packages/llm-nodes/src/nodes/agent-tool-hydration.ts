@@ -2,10 +2,10 @@
  * Builtin agent-tool registry + hydration.
  *
  * Tools can be referenced by name as bare stubs (`{ name }`) and hydrated into
- * real `Tool` instances on demand. The registry holds the always-available
- * STATIC_TOOL_CLASSES plus anything other modules append via
- * {@link registerBuiltinAgentToolClasses} at load time (e.g. `sandbox.ts`
- * registers the `browser_*` CDP tools).
+ * real `Tool` instances on demand. The registry is the default agent toolbelt
+ * (`getAgentToolbelt()` — no hand-maintained name list) plus anything other
+ * modules append via {@link registerBuiltinAgentToolClasses} at load time
+ * (e.g. `sandbox.ts` registers the `browser_*` CDP tools).
  *
  * CONTRACT: a name-stub is NOT executable until hydrated. `runAgentLoop` and
  * the AgentNode (`normalizeTools`) both hydrate their `tools` before use, so a
@@ -15,18 +15,7 @@
  * unhydrated stub has no `process`/`inputSchema` and silently can't be called.
  */
 
-import {
-  BrowserTool,
-  GenerateImageTool,
-  GenerateSpeechTool,
-  GoogleImagesTool,
-  GoogleNewsTool,
-  WebSearchTool,
-  HttpRequestTool,
-  ScreenshotTool,
-  SearchEmailTool,
-  Tool
-} from "@nodetool-ai/agents";
+import { getAgentToolbelt, getMediaTools, Tool } from "@nodetool-ai/agents";
 
 type ToolCtor = new () => Tool;
 
@@ -34,18 +23,6 @@ type MaybeTool = {
   name: string;
   process?: unknown;
 };
-
-const STATIC_TOOL_CLASSES: ToolCtor[] = [
-  WebSearchTool,
-  GoogleNewsTool,
-  GoogleImagesTool,
-  GenerateImageTool,
-  GenerateSpeechTool,
-  BrowserTool,
-  ScreenshotTool,
-  HttpRequestTool,
-  SearchEmailTool
-];
 
 /**
  * Names a saved workflow may still carry, mapped to what replaced them.
@@ -101,8 +78,11 @@ export function registerBuiltinAgentToolFactory(factory: () => ToolCtor[]): void
 export function resolveBuiltinAgentTool(name: string): Tool | null {
   if (!builtinAgentTools) {
     builtinAgentTools = new Map<string, Tool>();
+    for (const tool of [...getAgentToolbelt(), ...getMediaTools()]) {
+      builtinAgentTools.set(tool.name, tool);
+    }
     const dynamicClasses = toolFactories.flatMap((f) => f());
-    for (const ToolClass of [...STATIC_TOOL_CLASSES, ...extraToolClasses, ...dynamicClasses]) {
+    for (const ToolClass of [...extraToolClasses, ...dynamicClasses]) {
       const tool = new ToolClass();
       builtinAgentTools.set(tool.name, tool);
     }

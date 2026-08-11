@@ -221,7 +221,8 @@ export {
   AnimateImageTool,
   GenerateSpeechTool,
   TranscribeAudioTool,
-  EmbedTextTool
+  EmbedTextTool,
+  getMediaTools
 } from "./tools/media-tools.js";
 export {
   CritiqueImageTool,
