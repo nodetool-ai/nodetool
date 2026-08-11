@@ -4,7 +4,11 @@
  * the registry pulls in every node pack — while the validation logic itself is
  * unit-tested in node-sdk's graph-validation.test.ts.
  */
-import { validateGraph, type GraphValidationReport } from "@nodetool-ai/node-sdk";
+import {
+  validateGraph,
+  type GraphValidationReport,
+  type NodeRegistry
+} from "@nodetool-ai/node-sdk";
 import {
   listRegisteredProviderIds,
   listOfflineModelIds
@@ -22,12 +26,23 @@ export interface ValidateDeps {
   loadFromDb: (id: string) => Promise<{ graph: DebugGraph } | null>;
 }
 
+// Registering every node pack takes seconds and the result never changes
+// within a process. A one-shot `nodetool validate` pays it once either way;
+// a batch caller (scripts/validate-examples.mjs) validates hundreds of graphs
+// in one process and must not pay it per graph.
+let cachedRegistry: NodeRegistry | null = null;
+
+function sharedRegistry(): NodeRegistry {
+  cachedRegistry ??= buildFullRegistry();
+  return cachedRegistry;
+}
+
 export async function runValidate(
   ref: string,
   deps: ValidateDeps
 ): Promise<ValidateResult> {
   const resolved = await resolveTarget(ref, deps.loadFromDb);
-  const registry = buildFullRegistry();
+  const registry = sharedRegistry();
   // Supplied here rather than on NodeRegistry itself: the registry also runs in
   // the browser, which has no provider registry to reach and should not pull
   // the runtime into its bundle for this.

@@ -16,8 +16,14 @@
 // self-healing side — it re-validates on the same drift and opens a repair PR
 // via Claude. This script is the fast, blocking PR/push gate that catches
 // drift before it merges at all.
+//
+// Speed: the validator itself takes milliseconds per graph, but building the
+// node registry takes seconds — so spawning `nodetool validate` per file paid
+// that cost hundreds of times over. Instead this file doubles as a worker
+// (see `isMainThread` below): a pool of worker threads each builds the
+// registry once and then pulls graphs off a shared queue. Results are printed
+// in input order regardless of the order they finish in.
 
-import { execFileSync } from "node:child_process";
 import {
   mkdtempSync,
   readFileSync,
@@ -26,13 +32,57 @@ import {
   statSync,
   writeFileSync
 } from "node:fs";
-import { tmpdir } from "node:os";
+import { availableParallelism, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
+import { Worker, isMainThread, parentPort } from "node:worker_threads";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
-const cliEntry = join(repoRoot, "packages/cli/dist/nodetool.js");
+const cliValidate = join(repoRoot, "packages/cli/dist/validate/index.js");
+const cliRender = join(repoRoot, "packages/cli/dist/commands/validate.js");
+
+// ---------------------------------------------------------------------------
+// Worker: validate one graph file per request, reusing one registry.
+// ---------------------------------------------------------------------------
+
+if (!isMainThread) {
+  const { runValidate } = await import(pathToFileURL(cliValidate).href);
+  const { renderValidation } = await import(pathToFileURL(cliRender).href);
+
+  // Every target here is a JSON file, so the DB is never consulted.
+  const deps = {
+    loadFromDb: async () => {
+      throw new Error("example validation never resolves a workflow by id");
+    }
+  };
+
+  parentPort.on("message", async (job) => {
+    if (job === null) {
+      parentPort.close();
+      return;
+    }
+    let output = null;
+    try {
+      const { report } = await runValidate(job.path, deps);
+      if (!report.ok || report.counts.warnings > 0) {
+        output = renderValidation(report).join("\n");
+      }
+    } catch (err) {
+      output = err instanceof Error ? (err.stack ?? err.message) : String(err);
+    }
+    parentPort.postMessage({ index: job.index, output });
+  });
+
+  // Ready for the first job.
+  parentPort.postMessage({ ready: true });
+} else {
+  await main();
+}
+
+// ---------------------------------------------------------------------------
+// Main thread.
+// ---------------------------------------------------------------------------
 
 // Walk packages/**/examples/**/*.json — mirrors the `find packages -path
 // '*examples*' -name '*.json'` used by workflow-example-validation.yaml.
@@ -78,20 +128,6 @@ function expandBundle(file) {
   };
 }
 
-const examples = findExamples(join(repoRoot, "packages")).sort();
-const bundles = examples.filter((f) => f.endsWith(".app.json"));
-const workflowExamples = examples.filter((f) => !f.endsWith(".app.json"));
-
-if (workflowExamples.length === 0) {
-  console.error("No example JSON files found under packages/**/examples/ — check the search path.");
-  process.exit(1);
-}
-
-if (bundles.length === 0) {
-  console.error("No *.app.json bundles found under packages/**/examples/ — check the search path.");
-  process.exit(1);
-}
-
 function indent(text) {
   return text
     .split("\n")
@@ -99,87 +135,127 @@ function indent(text) {
     .join("\n");
 }
 
-// Validate one graph file with the built CLI. Returns null on success, or the
-// validator's output on failure.
-function validateFile(path) {
-  try {
-    execFileSync("node", [cliEntry, "validate", path, "--warnings-as-errors"], {
-      stdio: "pipe",
-      encoding: "utf8"
-    });
-    return null;
-  } catch (err) {
-    return [err.stdout, err.stderr].filter(Boolean).join("\n");
-  }
+// Hand the queue to a pool of workers, each of which builds the node registry
+// once. A worker asks for the next job as soon as it finishes the last one, so
+// a slow graph does not stall a shard. Resolves to one entry per job, in job
+// order.
+function runPool(jobs) {
+  const size = Math.max(1, Math.min(availableParallelism(), jobs.length));
+  const results = new Array(jobs.length).fill(null);
+  let next = 0;
+
+  return Promise.all(
+    Array.from({ length: size }, () => {
+      const worker = new Worker(fileURLToPath(import.meta.url));
+      return new Promise((resolveWorker, rejectWorker) => {
+        const send = () => {
+          if (next >= jobs.length) {
+            worker.postMessage(null);
+            return;
+          }
+          const index = next++;
+          worker.postMessage({ index, path: jobs[index].path });
+        };
+        worker.on("message", (msg) => {
+          if (!msg.ready) results[msg.index] = msg.output;
+          send();
+        });
+        worker.on("error", rejectWorker);
+        worker.on("exit", resolveWorker);
+      });
+    })
+  ).then(() => results);
 }
 
-console.log(
-  `Validating ${workflowExamples.length} example workflow(s) and ` +
-    `${bundles.length} app bundle(s)...\n`
-);
+async function main() {
+  const examples = findExamples(join(repoRoot, "packages")).sort();
+  const bundles = examples.filter((f) => f.endsWith(".app.json"));
+  const workflowExamples = examples.filter((f) => !f.endsWith(".app.json"));
 
-let failures = 0;
-let checked = 0;
-
-for (const file of workflowExamples) {
-  const rel = file.slice(repoRoot.length + 1);
-  checked += 1;
-  const output = validateFile(file);
-  if (output === null) {
-    console.log(`  ok    ${rel}`);
-  } else {
-    failures += 1;
-    console.log(`  FAIL  ${rel}`);
-    console.log(indent(output));
+  if (workflowExamples.length === 0) {
+    console.error(
+      "No example JSON files found under packages/**/examples/ — check the search path."
+    );
+    process.exit(1);
   }
-}
 
-// Each bundle's embedded workflows are written to a scratch file and run
-// through the same validator, so a bundle graph is held to exactly the standard
-// a standalone example graph is.
-const scratch = mkdtempSync(join(tmpdir(), "validate-app-bundles-"));
-for (const file of bundles) {
-  const rel = file.slice(repoRoot.length + 1);
-  const { parseError, workflows } = expandBundle(file);
-  if (parseError) {
-    checked += 1;
-    failures += 1;
-    console.log(`  FAIL  ${rel}`);
-    console.log(indent(parseError));
-    continue;
+  if (bundles.length === 0) {
+    console.error(
+      "No *.app.json bundles found under packages/**/examples/ — check the search path."
+    );
+    process.exit(1);
   }
-  for (const [i, wf] of workflows.entries()) {
-    checked += 1;
-    const label = `${rel} › ${wf.label}`;
-    if (!wf.graph) {
-      failures += 1;
-      console.log(`  FAIL  ${label}`);
-      console.log(indent("bundled workflow has no graph"));
+
+  console.log(
+    `Validating ${workflowExamples.length} example workflow(s) and ` +
+      `${bundles.length} app bundle(s)...\n`
+  );
+
+  // Each job is one graph to validate; `failure` short-circuits a job the
+  // main thread already knows is broken (an unparseable bundle, say).
+  const jobs = [];
+  for (const file of workflowExamples) {
+    jobs.push({ label: file.slice(repoRoot.length + 1), path: file });
+  }
+
+  // Each bundle's embedded workflows are written to a scratch file and run
+  // through the same validator, so a bundle graph is held to exactly the
+  // standard a standalone example graph is.
+  const scratch = mkdtempSync(join(tmpdir(), "validate-app-bundles-"));
+  for (const [b, file] of bundles.entries()) {
+    const rel = file.slice(repoRoot.length + 1);
+    const { parseError, workflows } = expandBundle(file);
+    if (parseError) {
+      jobs.push({ label: rel, failure: parseError });
       continue;
     }
-    const scratchFile = join(scratch, `${i}.json`);
-    writeFileSync(scratchFile, JSON.stringify({ name: wf.label, graph: wf.graph }));
-    const output = validateFile(scratchFile);
-    if (output === null) {
-      console.log(`  ok    ${label}`);
-    } else {
-      failures += 1;
-      console.log(`  FAIL  ${label}`);
-      console.log(indent(output.replaceAll(scratchFile, label)));
+    for (const [i, wf] of workflows.entries()) {
+      const label = `${rel} › ${wf.label}`;
+      if (!wf.graph) {
+        jobs.push({ label, failure: "bundled workflow has no graph" });
+        continue;
+      }
+      const scratchFile = join(scratch, `${b}-${i}.json`);
+      writeFileSync(
+        scratchFile,
+        JSON.stringify({ name: wf.label, graph: wf.graph })
+      );
+      jobs.push({ label, path: scratchFile, scrub: scratchFile });
     }
   }
-}
-rmSync(scratch, { recursive: true, force: true });
 
-console.log(`\n${checked - failures}/${checked} graphs validate cleanly.`);
+  const pending = jobs.filter((job) => job.path !== undefined);
+  const outputs = await runPool(pending);
+  for (const [i, job] of pending.entries()) job.output = outputs[i];
 
-if (failures > 0) {
-  console.error(
-    `\n${failures} graph(s) failed validation. Fix the graph to match the current node registry, or run:\n` +
-      `  npm run dev:nodetool -- validate "<path>" --json\n` +
-      `to see the full report for a single file.\n` +
-      `For a bundled app graph, the path is the *.app.json file; the failing\n` +
-      `workflow is named after the › in the line above.`
-  );
-  process.exit(1);
+  rmSync(scratch, { recursive: true, force: true });
+
+  let failures = 0;
+  for (const job of jobs) {
+    const output = job.failure ?? job.output;
+    if (!output) {
+      console.log(`  ok    ${job.label}`);
+      continue;
+    }
+    failures += 1;
+    console.log(`  FAIL  ${job.label}`);
+    // A bundle graph was validated through a scratch file; report it under the
+    // bundle path the reader can actually open.
+    console.log(
+      indent(job.scrub ? output.replaceAll(job.scrub, job.label) : output)
+    );
+  }
+
+  console.log(`\n${jobs.length - failures}/${jobs.length} graphs validate cleanly.`);
+
+  if (failures > 0) {
+    console.error(
+      `\n${failures} graph(s) failed validation. Fix the graph to match the current node registry, or run:\n` +
+        `  npm run dev:nodetool -- validate "<path>" --json\n` +
+        `to see the full report for a single file.\n` +
+        `For a bundled app graph, the path is the *.app.json file; the failing\n` +
+        `workflow is named after the › in the line above.`
+    );
+    process.exit(1);
+  }
 }
