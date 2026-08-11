@@ -45,32 +45,31 @@ export const SAMPLE_GRAPHS: SampleGraph[] = [
     }
   },
   {
-    id: "range-repeat",
-    label: "Range → Repeat Each",
+    id: "repeat-collect",
+    label: "Repeat Count → Collect",
     description:
-      "Build [0,1,2,3,4], then repeat each item twice. A two-node pipeline connected by a data edge.",
+      "Emit 5 sequential ticks, then collect them into a single list. A two-node pipeline connected by a data edge.",
     graph: {
       nodes: [
         {
-          id: "range",
-          type: "nodetool.list.Range",
-          name: "range",
-          properties: { start: 0, stop: 5, step: 1 }
+          id: "ticks",
+          type: "nodetool.control.RepeatCount",
+          name: "ticks",
+          properties: { count: 5 }
         },
         {
-          id: "repeat",
-          type: "nodetool.list.RepeatEach",
-          name: "repeated",
-          properties: { times: 2 }
+          id: "collect",
+          type: "nodetool.control.Collect",
+          name: "collected"
         }
       ],
       edges: [
         {
-          id: "range->repeat",
-          source: "range",
+          id: "ticks->collect",
+          source: "ticks",
           sourceHandle: "output",
-          target: "repeat",
-          targetHandle: "input_list",
+          target: "collect",
+          targetHandle: "input_item",
           edge_type: "data"
         }
       ]

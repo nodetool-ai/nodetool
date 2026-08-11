@@ -30,9 +30,9 @@ Applied in priority order, recorded per app as C1/C2/C3:
 | Photo Studio | Image Enhance, Photo Enhancement Suite | `enhance`, `batch` | ImageInput, 5 Sliders, Image, Table | C1 C2 C3 | none for `enhance`; FAL key for `batch` |
 | Meeting Room | Transcribe Audio, Meeting Transcript Summarizer, Private Assistant | `transcribe`, `summarize`, `ask` | AudioInput, Markdown, Table, TextInput | C1 C2 | FAL (Whisper) + OpenAI; `ask` needs Ollama |
 | Concept Studio | Concept Art Iteration Board, Pokemon Maker, Image Enhance | `concepts`, `creatures`, `polish` | Select, Slider, Image gallery, Button | C1 C2 | OpenAI + FAL; `polish` keyless |
-| Research Desk | Research Agent, Hacker News Agent, Summarize RSS | `brief`, `pulse`, `digest` | TextInput, Markdown ×3, Progress | C1 C2 | OpenAI (+ web search tool) |
+| Research Desk | Research Agent, Hacker News Agent | `brief`, `pulse` | TextInput, Markdown ×2, Progress | C1 C2 | OpenAI (+ web search tool) |
 | Ask Your Documents | Chat With Your Documents, Private Assistant | `ask`, `askLocal` | TextInput, Switch, Markdown ×2 | C1 C2 C3 | Ollama (embeddings, `askLocal`); OpenAI for `ask` |
-| Brand & Social | Brand Asset Generator, Hook & Thumbnail Factory, Social Media Calendar Filler | `kit`, `thumbnails`, `calendar` | ColorInput, Image, Table, Columns | C1 C2 | OpenAI + FAL |
+| Brand & Social | Brand Asset Generator, Hook & Thumbnail Factory | `kit`, `thumbnails` | ColorInput, Image, Columns | C1 C2 | OpenAI + FAL |
 | Product Launch Kit | Product Mockup Generator, Product Video Generator | `mockups`, `video` | ImageInput, Slider, Image, Video | C1 C2 C3 | OpenAI + FAL; Gemini (Veo) for `video`, cost note |
 | Film Studio | Script to Screen, Directed Film to Timeline, Movie Posters | `produce`, `cut`, `poster` | TextInput, Select, Progress, Video, Image | C1 C2 C3 | OpenAI + FAL + Gemini (Veo) + Replicate; cost note |
 | Study Buddy | Flashcard Generator, Prompt Template | `cards`, `explain` | NumberInput, Table, Markdown | C1 C2 | OpenAI |
@@ -103,7 +103,7 @@ Generate a gallery, pick one, polish it. The creative iteration loop.
 
 ### 4. Research Desk
 
-One topic, three sources, three streamed briefings side by side — the case
+One topic, two sources, two streamed briefings side by side — the case
 where a dashboard beats a chat box.
 
 - `brief` — Research Agent. Inputs `topic` (variable `topic`), `audience`
@@ -111,9 +111,7 @@ where a dashboard beats a chat box.
   streams as the agent works.
 - `pulse` — Hacker News Agent. Input `topic` from the same variable. Output
   `analysis` → Markdown.
-- `digest` — Summarize RSS. Input `feed_url` (TextInput with a shipped
-  default). Output `summary`† → Markdown.
-- All three run `parallel` from one Button, each into its own panel with its own
+- Both run `parallel` from one Button, each into its own panel with its own
   Progress label.
 
 ### 5. Ask Your Documents
@@ -134,7 +132,7 @@ RAG with a legible offline fallback.
 
 ### 6. Brand & Social
 
-The marketing dashboard: one brand identity drives three deliverables.
+The marketing dashboard: one brand identity drives two deliverables.
 
 - `kit` — Brand Asset Generator. Inputs `brand_name`, `brand_description`,
   `tagline` (TextInputs, written into variables), `primary_color`
@@ -142,10 +140,6 @@ The marketing dashboard: one brand identity drives three deliverables.
 - `thumbnails` — Hook & Thumbnail Factory. Inputs `Video Topic` (TextInput),
   `Target Audience` from variable `audience`, `Number of Hooks` (Slider 3–8).
   Output `thumbnail_gallery` → gallery.
-- `calendar` — Social Media Calendar Filler. Inputs `brand_name`,
-  `target_audience`, `brand_voice` from variables; `monthly_theme` TextInput;
-  `posts_per_week` Slider. Outputs `content_calendar` → Table (dataframe),
-  `post_images`† → gallery, `captions`† → Markdown.
 - Variables: `brandName`, `audience`, `voice` (user-scoped, `persist: true`) —
   fill them once, every operation reuses them across sessions.
 
@@ -213,11 +207,10 @@ unreadable on a canvas.
 
 ## Templates that stay workflow-only
 
-13 templates ship without an app:
+11 templates ship without an app:
 
 | Template | Reason |
 |---|---|
-| Ad Creative Factory | Terminal nodes are Previews, not Outputs — nothing for widgets to bind; the video matrix is also the most expensive run in the catalog. |
 | Audio To Image | One input, one image; the template card already tells the whole story. |
 | Cold Outreach Co-Pilot | Preview-only terminals, and the structured draft fields need an app-side email composer this spec does not define. |
 | Color Boost Video | Per-frame grading of an uploaded video is minutes long with one slider — a bad first-run experience; the sliders belong in the editor. |
@@ -227,7 +220,6 @@ unreadable on a canvas.
 | Movie Trailer Generator | Overlaps Film Studio's `produce` at higher cost and with a weaker output set. |
 | Music Video Visualizer | Strong candidate deferred: one upload, one long paid run, one video. Revisit once a Podcast/Audio app justifies the surface. |
 | Podcast Repurposing Studio | Preview-only terminals; needs Output nodes and structured quote-card output before an app can render it. |
-| Research Paper Summarizer | Overlaps Research Desk's `brief`; its 22-node fetch/filter chain is the interesting part and lives in the editor. |
 | SEO Content Engine | Preview-only terminals; the typed article fields want a per-article editor, not a results panel. |
 | Workflow As A Tool | Composition demo for graph authors. An app hides exactly what it teaches. |
 

@@ -3,13 +3,9 @@ layout: page
 title: "Node Reference"
 ---
 
-Complete reference documentation for all 662 NodeTool nodes across 89 namespaces.
+Complete reference documentation for all 528 NodeTool nodes across 72 namespaces.
 
 ## Namespaces
-
-### apify
-
-- **[apify.scraping](apify/scraping/)** - 7 node(s)
 
 ### elevenlabs
 
@@ -41,11 +37,6 @@ Complete reference documentation for all 662 NodeTool nodes across 89 namespaces
 - **[lib.browser](lib/browser/)** - 1 node(s)
 - **[lib.charts](lib/charts/)** - 1 node(s)
 - **[lib.comfy](lib/comfy/)** - 2 node(s)
-- **[lib.convert](lib/convert/)** - 1 node(s)
-- **[lib.convert.pandoc](lib/convert/pandoc/)** - 2 node(s)
-- **[lib.datetime](lib/datetime/)** - 5 node(s)
-- **[lib.docx](lib/docx/)** - 9 node(s)
-- **[lib.epub](lib/epub/)** - 4 node(s)
 - **[lib.grid](lib/grid/)** - 2 node(s)
 - **[lib.image.channel](lib/image/channel/)** - 2 node(s)
 - **[lib.image.color](lib/image/color/)** - 7 node(s)
@@ -55,25 +46,18 @@ Complete reference documentation for all 662 NodeTool nodes across 89 namespaces
 - **[lib.image.keyer](lib/image/keyer/)** - 2 node(s)
 - **[lib.image.mask](lib/image/mask/)** - 3 node(s)
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
-- **[lib.mail](lib/mail/)** - 4 node(s)
+- **[lib.mail](lib/mail/)** - 3 node(s)
 - **[lib.nlp](lib/nlp/)** - 7 node(s)
-- **[lib.notion](lib/notion/)** - 6 node(s)
-- **[lib.pdf](lib/pdf/)** - 11 node(s)
-- **[lib.pptx](lib/pptx/)** - 2 node(s)
-- **[lib.rss](lib/rss/)** - 2 node(s)
-- **[lib.s3](lib/s3/)** - 7 node(s)
+- **[lib.pdf](lib/pdf/)** - 2 node(s)
 - **[lib.secret](lib/secret/)** - 1 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
-- **[lib.supabase](lib/supabase/)** - 6 node(s)
 - **[lib.svg](lib/svg/)** - 14 node(s)
-- **[lib.twilio](lib/twilio/)** - 4 node(s)
-- **[lib.validate](lib/validate/)** - 5 node(s)
 - **[lib.video.download](lib/video/download/)** - 1 node(s)
 
 ### messaging
 
-- **[messaging.discord](messaging/discord/)** - 2 node(s)
-- **[messaging.telegram](messaging/telegram/)** - 2 node(s)
+- **[messaging.discord](messaging/discord/)** - 1 node(s)
+- **[messaging.telegram](messaging/telegram/)** - 1 node(s)
 
 ### minimax
 
@@ -95,23 +79,22 @@ Complete reference documentation for all 662 NodeTool nodes across 89 namespaces
 - **[nodetool.compare](nodetool/compare/)** - 1 node(s)
 - **[nodetool.constant](nodetool/constant/)** - 30 node(s)
 - **[nodetool.control](nodetool/control/)** - 22 node(s)
-- **[nodetool.data](nodetool/data/)** - 29 node(s)
-- **[nodetool.document](nodetool/document/)** - 8 node(s)
+- **[nodetool.data](nodetool/data/)** - 2 node(s)
+- **[nodetool.document](nodetool/document/)** - 3 node(s)
 - **[nodetool.fake](nodetool/fake/)** - 2 node(s)
 - **[nodetool.generators](nodetool/generators/)** - 5 node(s)
 - **[nodetool.image](nodetool/image/)** - 26 node(s)
 - **[nodetool.input](nodetool/input/)** - 33 node(s)
-- **[nodetool.list](nodetool/list/)** - 4 node(s)
 - **[nodetool.model3d](nodetool/model3d/)** - 17 node(s)
 - **[nodetool.output](nodetool/output/)** - 1 node(s)
 - **[nodetool.sandbox](nodetool/sandbox/)** - 2 node(s)
 - **[nodetool.sketch](nodetool/sketch/)** - 3 node(s)
 - **[nodetool.test](nodetool/test/)** - 22 node(s)
-- **[nodetool.text](nodetool/text/)** - 52 node(s)
+- **[nodetool.text](nodetool/text/)** - 49 node(s)
 - **[nodetool.timeline](nodetool/timeline/)** - 3 node(s)
 - **[nodetool.triggers](nodetool/triggers/)** - 5 node(s)
 - **[nodetool.variable](nodetool/variable/)** - 2 node(s)
-- **[nodetool.video](nodetool/video/)** - 32 node(s)
+- **[nodetool.video](nodetool/video/)** - 31 node(s)
 - **[nodetool.workflows.base_node](nodetool/workflows/base_node/)** - 1 node(s)
 - **[nodetool.workflows.subgraph](nodetool/workflows/subgraph/)** - 1 node(s)
 - **[nodetool.workflows.workflow_node](nodetool/workflows/workflow_node/)** - 1 node(s)
@@ -126,10 +109,6 @@ Complete reference documentation for all 662 NodeTool nodes across 89 namespaces
 ### reve
 
 - **[reve](reve/)** - 3 node(s)
-
-### search
-
-- **[search.google](search/google/)** - 8 node(s)
 
 ### transformers
 

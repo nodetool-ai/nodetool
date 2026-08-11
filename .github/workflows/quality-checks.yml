@@ -32,6 +32,46 @@ permissions:
   packages: read
 
 jobs:
+  # Which parts of the tree this push touched. The caller (test.yml) runs the
+  # gate on every PR with no `paths` filter, because a path-filtered REQUIRED
+  # check is left Pending forever when a push matches nothing. That decision is
+  # right for the required check and wrong for the expensive `docker` leg, so
+  # the paths are computed here instead and used to skip that one job.
+  #
+  # The event of the caller propagates into a reusable workflow, so on
+  # pull_request the filter diffs against the PR base and on push against the
+  # commit before the push — both out of the box. It fails open: the step is
+  # continue-on-error and the output falls back to "true", so a filter that
+  # cannot resolve a base builds the image rather than waving it through.
+  changes:
+    name: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      docker: ${{ steps.filter.outputs.docker || 'true' }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 1
+
+      - name: Detect docker-relevant changes
+        id: filter
+        continue-on-error: true
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            docker:
+              - 'Dockerfile'
+              - '.dockerignore'
+              - 'docker-compose.yml'
+              - 'packages/**'
+              - 'web/**'
+              - 'scripts/docker-smoke.mjs'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/quality-checks.yml'
+
   # Static checks that need no built packages. Kept independent of `build` so
   # the fastest signals (lint, dependency guards) are not delayed behind the
   # ~minutes-long package build. Each leg surfaces its own status check.
@@ -84,7 +124,7 @@ jobs:
   # Build the ~55 backend packages ONCE and publish their dist as an artifact.
   # The `built` legs below consume it instead of each rebuilding from scratch,
   # which on a fresh commit (cold per-SHA Turbo cache) means one build instead
-  # of four racing in parallel. setup-build also persists the per-SHA Turbo
+  # of five racing in parallel. setup-build also persists the per-SHA Turbo
   # cache here, so the test-packages leg's `turbo run test` restores `build`
   # as a cache hit rather than rebuilding its `^build` dependencies.
   build:
@@ -117,7 +157,7 @@ jobs:
       # separately so its own directory structure survives the round trip
       # (mixing it into `packages/*/dist` would change upload-artifact's
       # common-ancestor computation and break both globs' download paths).
-      # Only the `reliability` leg of the `built` job below downloads it.
+      # Only the `bundle` leg of the `built` job below downloads it.
       - name: Upload reliability harness dist
         uses: actions/upload-artifact@v7
         with:
@@ -131,6 +171,16 @@ jobs:
   # app legs (typecheck/test-app) and parity/base-nodes run plain tsc/jest/vitest
   # against the prebuilt dist; test-packages runs Turbo and rides the warm
   # per-SHA Turbo cache the `build` job populated.
+  #
+  # Five legs, not eight. Every leg pays ~1-2 min of checkout, install and
+  # artifact download before its real work, and the account-wide runner cap
+  # (~20 concurrent jobs) makes each extra leg queue time for the whole PR. The
+  # cheap checks are therefore chained inside one leg — `typecheck` runs
+  # typecheck + parity + examples, `bundle` runs the packaged-backend smoke +
+  # Ring 0 reliability — while the three long legs (test-packages, test-app,
+  # app-build) keep their own runner so the critical path stays short. Chained
+  # with `&&`, mirroring the `deps` leg: the first failure stops the chain, so
+  # a red leg names one problem at a time.
   built:
     name: ${{ matrix.check }}
     needs: build
@@ -140,20 +190,23 @@ jobs:
       fail-fast: ${{ inputs.fail-fast }}
       matrix:
         include:
+          # Three cheap checks in one leg:
+          #   1. `npm run typecheck` — web, electron, mobile.
+          #   2. The web design-token lint plus the base-nodes parity/contract
+          #      suite (Python-parity + example-workflow contracts). These
+          #      encode intentional behavior contracts (see the revert in
+          #      commit 2c0fd8fad), hence is-test:false — they stay a required
+          #      gate even when skip-tests drops the bulk test legs.
+          #   3. `npm run validate:examples` — rot detector for the shipped
+          #      example workflows: `nodetool validate` against the current node
+          #      registry (unknown node types, missing required properties,
+          #      unselected models, dangling/mis-typed edges).
+          #      --warnings-as-errors (set in the script) so a warning-level
+          #      drift fails the gate too. File targets need no DB, only the
+          #      built node registry from the `build` job's dist.
           - check: typecheck
-            command: npm run typecheck
+            command: npm run typecheck && npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples
             mobile-deps: "true"
-            extra-apt: ""
-            is-test: "false"
-            fetch-depth: "1"
-          # base-nodes parity/contract suite (Python-parity + example-workflow
-          # contracts) plus the web design-token lint. is-test:false keeps it
-          # non-skippable — these tests encode intentional behavior contracts
-          # (see the revert in commit 2c0fd8fad), so they stay a required gate
-          # even when skip-tests drops the bulk test legs.
-          - check: parity
-            command: npm run lint:design --workspace=web && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows
-            mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
             fetch-depth: "1"
@@ -178,42 +231,27 @@ jobs:
             extra-apt: ""
             is-test: "true"
             fetch-depth: "1"
-          # Rot detector for the shipped example workflows: `nodetool validate`
-          # against the current node registry (unknown node types, missing
-          # required properties, unselected models, dangling/mis-typed edges).
-          # --warnings-as-errors so a warning-level drift (e.g. an unselected
-          # model) fails the gate too, not just hard errors. File targets need
-          # no DB, only the built node registry from the `build` job's dist.
-          - check: examples
-            command: npm run validate:examples
-            mobile-deps: "false"
-            extra-apt: ""
-            is-test: "false"
-            fetch-depth: "1"
-          # Stage the packaged backend and boot it. Nothing outside the release
-          # workflow used to build the bundle, so a packaging regression only
-          # surfaced once a release was cut — and the release's smoke-launch
-          # spawns the Electron main process, which survives its backend child
-          # dying. v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
-          # that killed server.mjs on import with every other check green.
-          # is-test:false — this is a release gate, not a unit suite.
+          # Two release gates in one leg:
+          #   1. `npm run backend:smoke` stages the packaged backend and boots
+          #      it. Nothing outside the release workflow used to build the
+          #      bundle, so a packaging regression only surfaced once a release
+          #      was cut — and the release's smoke-launch spawns the Electron
+          #      main process, which survives its backend child dying.
+          #      v0.7.1-nightly.20260728.713 shipped a sharp/@img major skew
+          #      that killed server.mjs on import with every other check green.
+          #   2. `npm run reliability:ring0` (docs/RELIABILITY_TASKS.md Track F,
+          #      task F2; docs/RELIABILITY_ARCHITECTURE.md §11): the five
+          #      fastest golden journeys (linear-text-pipeline,
+          #      fan-out-fan-in-dag, error-in-one-branch, mid-run-cancel-node,
+          #      mid-run-cancel-streaming — journeys 1/3/6a/6b/13) on the kernel
+          #      surface, strict lifecycle mode always on
+          #      (reliability/harness/src/drivers/kernel.ts). No network, no
+          #      cross-surface diff — that's Ring 1.
+          # is-test:false — these are release gates, not unit suites, so they
+          # stay required even when skip-tests drops the bulk test legs
+          # (matching the Ring 0 flake budget of zero).
           - check: bundle
-            command: npm run backend:smoke
-            mobile-deps: "false"
-            extra-apt: ""
-            is-test: "false"
-            fetch-depth: "1"
-          # Ring 0 reliability leg (docs/RELIABILITY_TASKS.md Track F, task F2;
-          # docs/RELIABILITY_ARCHITECTURE.md §11): the five fastest golden
-          # journeys (linear-text-pipeline, fan-out-fan-in-dag,
-          # error-in-one-branch, mid-run-cancel-node, mid-run-cancel-streaming
-          # — journeys 1/3/6a/6b/13) on the kernel surface, strict lifecycle
-          # mode always on (reliability/harness/src/drivers/kernel.ts). No
-          # network, no cross-surface diff — that's Ring 1. is-test:false so
-          # this stays a required gate even when skip-tests drops the bulk
-          # test legs, matching the Ring 0 flake budget of zero.
-          - check: reliability
-            command: npm run reliability:ring0
+            command: npm run backend:smoke && npm run reliability:ring0
             mobile-deps: "false"
             extra-apt: ""
             is-test: "false"
@@ -253,11 +291,12 @@ jobs:
           name: packages-dist
           path: packages
 
-      # See the matching upload step in the `build` job above — the
-      # reliability leg needs @nodetool-ai/reliability-harness's dist (the CLI
-      # dynamic-imports it at run time) alongside the packages-dist download.
+      # See the matching upload step in the `build` job above — the Ring 0
+      # reliability run (the `bundle` leg's second command) needs
+      # @nodetool-ai/reliability-harness's dist (the CLI dynamic-imports it at
+      # run time) alongside the packages-dist download.
       - name: Download reliability harness dist
-        if: matrix.check == 'reliability'
+        if: matrix.check == 'bundle'
         uses: actions/download-artifact@v8
         with:
           name: reliability-harness-dist
@@ -298,9 +337,16 @@ jobs:
   # blocks through the existing required check rather than a new one.
   #
   # Independent of `build` — it builds its own image and shares no artifact, so
-  # it starts immediately instead of queueing behind the package build.
+  # it starts as soon as `changes` reports.
+  #
+  # Skipped when the push touches nothing the image contains. Building and
+  # booting a container costs a runner for ~10 minutes, and the account-wide
+  # concurrency cap makes that time other jobs spend queued. A skipped leg
+  # counts as a pass in the aggregate below, so the required check still lands.
   docker:
     name: docker
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -406,11 +452,16 @@ jobs:
 
   # Aggregating gate. Kept as job id `quality` (no custom name) so the surfaced
   # status check stays "Quality Gate (npm run check) / quality" — the existing
-  # REQUIRED check, so branch protection needs no change. Fails iff any leg or
-  # the build failed (or was skipped because an upstream job failed).
+  # REQUIRED check, so branch protection needs no change.
+  #
+  # `always()` so the gate reports even when a leg is skipped. A `skipped` job
+  # passes: `docker` is skipped by design when the diff cannot reach the image,
+  # and a leg skipped that way must not hold the required check red. Anything
+  # else — failure, cancelled, or a leg skipped because its own upstream failed
+  # — fails the gate.
   quality:
     name: quality
-    needs: [static, build, built, docker]
+    needs: [changes, static, build, built, docker]
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -420,17 +471,29 @@ jobs:
       - name: Aggregate check results
         id: gate
         run: |
-          static="${{ needs.static.result }}"
-          build="${{ needs.build.result }}"
-          built="${{ needs.built.result }}"
-          docker="${{ needs.docker.result }}"
+          failed=""
           echo "## Quality Gate" >> $GITHUB_STEP_SUMMARY
-          if [ "$static" == "success" ] && [ "$build" == "success" ] && [ "$built" == "success" ] && [ "$docker" == "success" ]; then
+          for leg in \
+            "changes:${{ needs.changes.result }}" \
+            "static:${{ needs.static.result }}" \
+            "build:${{ needs.build.result }}" \
+            "built:${{ needs.built.result }}" \
+            "docker:${{ needs.docker.result }}"; do
+            name="${leg%%:*}"
+            result="${leg#*:}"
+            echo "- \`$name\`: $result" >> $GITHUB_STEP_SUMMARY
+            case "$result" in
+              success|skipped) ;;
+              *) failed="$failed $name" ;;
+            esac
+          done
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -z "$failed" ]; then
             echo "all-passed=true" >> $GITHUB_OUTPUT
             echo "✅ **All quality checks passed.**" >> $GITHUB_STEP_SUMMARY
           else
             echo "all-passed=false" >> $GITHUB_OUTPUT
-            echo "❌ **One or more quality checks failed** (static: \`$static\`, build: \`$build\`, built: \`$built\`, docker: \`$docker\`)." >> $GITHUB_STEP_SUMMARY
+            echo "❌ **Quality checks failed:**$failed." >> $GITHUB_STEP_SUMMARY
             echo "" >> $GITHUB_STEP_SUMMARY
             echo "See the individual check legs above to find which one." >> $GITHUB_STEP_SUMMARY
             exit 1

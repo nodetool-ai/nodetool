@@ -92,7 +92,7 @@ const styles = (theme: Theme) =>
       justifyContent: "center",
       padding: `${getSpacingPx(10)} 0`, // was 40px 0
       color: theme.vars.palette.text.secondary,
-      fontSize: 14
+      fontSize: "var(--fontSizeNormal)"
     }
   });
 

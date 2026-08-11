@@ -3,7 +3,6 @@ import isEqual from "../../../utils/isEqual";
 import { useNodes } from "../../../contexts/NodeContext";
 import { extractDynamicIO } from "../WorkflowNode";
 import type { NodeData } from "../../../stores/NodeData";
-import type { Workflow } from "../../../stores/ApiTypes";
 
 interface SubgraphSyncProps {
   nodeId: string;
@@ -25,10 +24,9 @@ export const SubgraphSync = memo(({ nodeId, data }: SubgraphSyncProps) => {
 
   useEffect(() => {
     const nodes = Array.isArray(graph?.nodes) ? graph.nodes : [];
-    const edges = Array.isArray(graph?.edges) ? graph.edges : [];
 
     const { dynamic_inputs, dynamic_outputs, dynamic_properties } =
-      extractDynamicIO({ graph: { nodes, edges } } as unknown as Workflow);
+      extractDynamicIO({ graph: { nodes } });
 
     const nextDynamicInputs =
       Object.keys(dynamic_inputs).length > 0 ? dynamic_inputs : undefined;

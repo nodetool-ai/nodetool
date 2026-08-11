@@ -39,7 +39,7 @@ export function nodeMetadataUsesAiModel(
  * `num_frames` is deliberately excluded: it sets the length of a single video,
  * not a batch of separate outputs.
  */
-export const FAN_OUT_PROPERTY_NAMES = [
+const FAN_OUT_PROPERTY_NAMES = [
   "num_images",
   "num_outputs",
   "num_samples",

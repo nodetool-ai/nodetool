@@ -3,391 +3,6 @@
   "generated_at": "2026-07-14T12:51:45.566Z",
   "nodes": [
     {
-      "type": "apify.scraping.ApifyAmazonScraper",
-      "title": "Apify Amazon Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape Amazon product data including prices, ratings, seller information, and customer reviews.\n    apify, amazon, ecommerce, products, scraping, prices, reviews",
-      "inputs": [
-        {
-          "name": "search_queries",
-          "type": "list[str]",
-          "description": "List of search queries to execute on Amazon",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "product_urls",
-          "type": "list[str]",
-          "description": "List of Amazon product URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "country_code",
-          "type": "str",
-          "description": "Amazon country code (US, UK, DE, FR, ES, IT, etc.)",
-          "required": false,
-          "default": "US"
-        },
-        {
-          "name": "max_items",
-          "type": "int",
-          "description": "Maximum number of products to scrape per search",
-          "required": false,
-          "default": 20
-        },
-        {
-          "name": "scrape_reviews",
-          "type": "bool",
-          "description": "Whether to scrape product reviews",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 600
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyamazonscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyamazonscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyGoogleSearchScraper",
-      "title": "Apify Google Search Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape Google Search results using Apify — organic results, ads, related searches, and more.\n    apify, google, search, serp, scraping, seo",
-      "inputs": [
-        {
-          "name": "queries",
-          "type": "list[str]",
-          "description": "List of search queries to execute",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "country_code",
-          "type": "str",
-          "description": "Country code for Google search (e.g., 'us', 'uk', 'de')",
-          "required": false,
-          "default": "us"
-        },
-        {
-          "name": "language_code",
-          "type": "str",
-          "description": "Language code for results (e.g., 'en', 'es', 'fr')",
-          "required": false,
-          "default": "en"
-        },
-        {
-          "name": "max_pages",
-          "type": "int",
-          "description": "Maximum number of result pages per query",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "results_per_page",
-          "type": "int",
-          "description": "Number of results per page (10-100)",
-          "required": false,
-          "default": 100
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 300
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifygooglesearchscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifygooglesearchscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyInstagramScraper",
-      "title": "Apify Instagram Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape Instagram profiles, posts, comments, and hashtags — user data, post details, and engagement metrics.\n    apify, instagram, social, media, scraping, posts, profiles",
-      "inputs": [
-        {
-          "name": "usernames",
-          "type": "list[str]",
-          "description": "List of Instagram usernames to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "hashtags",
-          "type": "list[str]",
-          "description": "List of hashtags to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "results_limit",
-          "type": "int",
-          "description": "Maximum number of posts to scrape per profile/hashtag",
-          "required": false,
-          "default": 50
-        },
-        {
-          "name": "scrape_comments",
-          "type": "bool",
-          "description": "Whether to scrape comments on posts",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "scrape_likes",
-          "type": "bool",
-          "description": "Whether to scrape likes on posts",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 600
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyinstagramscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyinstagramscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyLinkedInScraper",
-      "title": "Apify Linked In Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape LinkedIn profiles, company pages, and job postings — professional info, connections, and company data.\n    apify, linkedin, professional, social, scraping, profiles, jobs",
-      "inputs": [
-        {
-          "name": "profile_urls",
-          "type": "list[str]",
-          "description": "List of LinkedIn profile URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "company_urls",
-          "type": "list[str]",
-          "description": "List of LinkedIn company page URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "job_search_urls",
-          "type": "list[str]",
-          "description": "List of LinkedIn job search URLs",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "max_results",
-          "type": "int",
-          "description": "Maximum number of results to scrape",
-          "required": false,
-          "default": 50
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 600
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifylinkedinscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifylinkedinscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyTwitterScraper",
-      "title": "Apify Twitter Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape Twitter/X posts, profiles, and followers — tweets, user information, and engagement metrics.\n    apify, twitter, x, social, media, scraping, tweets, posts",
-      "inputs": [
-        {
-          "name": "search_terms",
-          "type": "list[str]",
-          "description": "List of search terms to find tweets",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "usernames",
-          "type": "list[str]",
-          "description": "List of Twitter usernames to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "tweet_urls",
-          "type": "list[str]",
-          "description": "List of specific tweet URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "max_tweets",
-          "type": "int",
-          "description": "Maximum number of tweets to scrape",
-          "required": false,
-          "default": 100
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 600
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifytwitterscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifytwitterscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyWebScraper",
-      "title": "Apify Web Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape websites using Apify's Web Scraper actor, extracting data via CSS selectors or custom JavaScript.\n    apify, scraping, web, data, extraction, crawler",
-      "inputs": [
-        {
-          "name": "start_urls",
-          "type": "list[str]",
-          "description": "List of URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "link_selector",
-          "type": "str",
-          "description": "CSS selector for links to follow",
-          "required": false,
-          "default": "a[href]"
-        },
-        {
-          "name": "page_function",
-          "type": "str",
-          "description": "JavaScript function to execute on each page",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "max_pages",
-          "type": "int",
-          "description": "Maximum number of pages to scrape",
-          "required": false,
-          "default": 10
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 300
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifywebscraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifywebscraper.md"
-    },
-    {
-      "type": "apify.scraping.ApifyYouTubeScraper",
-      "title": "Apify You Tube Scraper",
-      "namespace": "apify.scraping",
-      "description": "Scrape YouTube videos, channels, and playlists — metadata, comments, channel info, and statistics.\n    apify, youtube, video, scraping, social, media, channels",
-      "inputs": [
-        {
-          "name": "search_queries",
-          "type": "list[str]",
-          "description": "List of search queries to execute on YouTube",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "video_urls",
-          "type": "list[str]",
-          "description": "List of YouTube video URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "channel_urls",
-          "type": "list[str]",
-          "description": "List of YouTube channel URLs to scrape",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "max_results",
-          "type": "int",
-          "description": "Maximum number of videos to scrape",
-          "required": false,
-          "default": 50
-        },
-        {
-          "name": "scrape_comments",
-          "type": "bool",
-          "description": "Whether to scrape video comments",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "wait_for_finish",
-          "type": "int",
-          "description": "Maximum time to wait for scraping to complete (seconds)",
-          "required": false,
-          "default": 600
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict[str, any]]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyyoutubescraper",
-      "markdown_url": "https://docs.nodetool.ai/nodes/apify/scraping/apifyyoutubescraper.md"
-    },
-    {
       "type": "elevenlabs.RealtimeSpeechToText",
       "title": "Realtime Speech to Text",
       "namespace": "elevenlabs",
@@ -3542,776 +3157,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/comfy/runcomfyuiworkflowworker.md"
     },
     {
-      "type": "lib.convert.ConvertToMarkdown",
-      "title": "Convert To Markdown",
-      "namespace": "lib.convert",
-      "description": "Converts PDF, DOCX, or HTML to markdown text.\n    markdown, convert, document, pdf, docx, html, bytes\n\n    Connect one input — document ref, raw bytes, or HTML string.",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "A document ref (PDF, DOCX, or text file)",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "bytes",
-          "type": "bytes",
-          "description": "Raw PDF or DOCX bytes (e.g. from HTTP GET Bytes)",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "html",
-          "type": "str",
-          "description": "HTML string to convert to markdown",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/convert/converttomarkdown",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/convert/converttomarkdown.md"
-    },
-    {
-      "type": "lib.convert.pandoc.ConvertFile",
-      "title": "Convert File",
-      "namespace": "lib.convert.pandoc",
-      "description": "Converts between different document formats using pandoc.\n    convert, document, format, pandoc\n\n    Use cases:\n    - Convert between various document formats (Markdown, HTML, LaTeX, etc.)\n    - Generate documentation in different formats\n    - Create publication-ready documents",
-      "inputs": [
-        {
-          "name": "input_path",
-          "type": "file_path",
-          "description": "Path to the input file",
-          "required": false,
-          "default": {
-            "type": "file_path",
-            "path": ""
-          }
-        },
-        {
-          "name": "input_format",
-          "type": "enum",
-          "description": "Input format",
-          "required": false,
-          "default": "markdown"
-        },
-        {
-          "name": "output_format",
-          "type": "enum",
-          "description": "Output format",
-          "required": false,
-          "default": "pdf"
-        },
-        {
-          "name": "extra_args",
-          "type": "list[str]",
-          "description": "Additional pandoc arguments",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/convert/pandoc/convertfile",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/convert/pandoc/convertfile.md"
-    },
-    {
-      "type": "lib.convert.pandoc.ConvertText",
-      "title": "Convert Text",
-      "namespace": "lib.convert.pandoc",
-      "description": "Converts text content between different document formats using pandoc.\n    convert, text, format, pandoc\n\n    Use cases:\n    - Convert text content between various formats (Markdown, HTML, LaTeX, etc.)\n    - Transform content without saving to disk\n    - Process text snippets in different formats",
-      "inputs": [
-        {
-          "name": "content",
-          "type": "str",
-          "description": "Text content to convert",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "input_format",
-          "type": "enum",
-          "description": "Input format",
-          "required": false,
-          "default": "markdown"
-        },
-        {
-          "name": "output_format",
-          "type": "enum",
-          "description": "Output format",
-          "required": false,
-          "default": "docx"
-        },
-        {
-          "name": "extra_args",
-          "type": "list[str]",
-          "description": "Additional pandoc arguments",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/convert/pandoc/converttext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/convert/pandoc/converttext.md"
-    },
-    {
-      "type": "lib.datetime.Add",
-      "title": "Add / Subtract Time",
-      "namespace": "lib.datetime",
-      "description": "Add (or subtract, when amount is negative) a number of time units to a date.\n    date, add, subtract, shift, offset",
-      "inputs": [
-        {
-          "name": "date",
-          "type": "any",
-          "description": "Input date.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "amount",
-          "type": "int",
-          "description": "Amount to add (use negative to subtract).",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "unit",
-          "type": "enum",
-          "description": "Unit of time.",
-          "required": false,
-          "default": "day"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "iso",
-          "type": "str"
-        },
-        {
-          "name": "epoch_ms",
-          "type": "int"
-        },
-        {
-          "name": "date",
-          "type": "datetime"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/datetime/addsubtracttime",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/datetime/addsubtracttime.md"
-    },
-    {
-      "type": "lib.datetime.Diff",
-      "title": "Date Difference",
-      "namespace": "lib.datetime",
-      "description": "Difference between two dates (date_a − date_b) expressed in the given unit.\n    date, diff, difference, between, duration",
-      "inputs": [
-        {
-          "name": "date_a",
-          "type": "any",
-          "description": "",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "date_b",
-          "type": "any",
-          "description": "",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "unit",
-          "type": "enum",
-          "description": "Unit for the returned diff.",
-          "required": false,
-          "default": "day"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "diff",
-          "type": "int"
-        },
-        {
-          "name": "is_before",
-          "type": "bool"
-        },
-        {
-          "name": "is_after",
-          "type": "bool"
-        },
-        {
-          "name": "is_same",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/datetime/datedifference",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/datetime/datedifference.md"
-    },
-    {
-      "type": "lib.datetime.Format",
-      "title": "Format Date",
-      "namespace": "lib.datetime",
-      "description": "Parse a date string/number/Date and format it. Supports tokens YYYY, MM, DD, HH, mm, ss, SSS, Z. Use [brackets] for literals.\n    date, format, parse, strftime",
-      "inputs": [
-        {
-          "name": "date",
-          "type": "any",
-          "description": "Date string, number (epoch ms), or Date.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "pattern",
-          "type": "str",
-          "description": "Format pattern (YYYY, MM, DD, HH, mm, ss, SSS, Z).",
-          "required": false,
-          "default": "YYYY-MM-DD HH:mm:ss"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "formatted",
-          "type": "str"
-        },
-        {
-          "name": "iso",
-          "type": "str"
-        },
-        {
-          "name": "epoch_ms",
-          "type": "int"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/datetime/formatdate",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/datetime/formatdate.md"
-    },
-    {
-      "type": "lib.datetime.Now",
-      "title": "Now",
-      "namespace": "lib.datetime",
-      "description": "Return the current date as ISO string, epoch ms, and a Date value.\n    date, time, now, current",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "iso",
-          "type": "str"
-        },
-        {
-          "name": "epoch_ms",
-          "type": "int"
-        },
-        {
-          "name": "date",
-          "type": "datetime"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/datetime/now",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/datetime/now.md"
-    },
-    {
-      "type": "lib.datetime.StartEnd",
-      "title": "Start / End of Period",
-      "namespace": "lib.datetime",
-      "description": "Return the start and end of the given period (day, week, month, year).\n    date, start, end, period, boundary",
-      "inputs": [
-        {
-          "name": "date",
-          "type": "any",
-          "description": "",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "unit",
-          "type": "enum",
-          "description": "",
-          "required": false,
-          "default": "day"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "start_iso",
-          "type": "str"
-        },
-        {
-          "name": "end_iso",
-          "type": "str"
-        },
-        {
-          "name": "start",
-          "type": "datetime"
-        },
-        {
-          "name": "end",
-          "type": "datetime"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/datetime/startendofperiod",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/datetime/startendofperiod.md"
-    },
-    {
-      "type": "lib.docx.AddHeading",
-      "title": "Add Heading",
-      "namespace": "lib.docx",
-      "description": "Adds a heading to the document\n    document, docx, heading, format",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to add the heading to",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "text",
-          "type": "str",
-          "description": "The heading text",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "level",
-          "type": "int",
-          "description": "Heading level (1-9)",
-          "required": false,
-          "default": 1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/addheading",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/addheading.md"
-    },
-    {
-      "type": "lib.docx.AddImage",
-      "title": "Add Image",
-      "namespace": "lib.docx",
-      "description": "Adds an image to the document\n    document, docx, image, format",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to add the image to",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "image",
-          "type": "image",
-          "description": "The image to add",
-          "required": false,
-          "default": {
-            "type": "image",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "width",
-          "type": "float",
-          "description": "Image width in inches",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "height",
-          "type": "float",
-          "description": "Image height in inches",
-          "required": false,
-          "default": 0
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/addimage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/addimage.md"
-    },
-    {
-      "type": "lib.docx.AddPageBreak",
-      "title": "Add Page Break",
-      "namespace": "lib.docx",
-      "description": "Adds a page break to the document\n    document, docx, format, layout",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to add the page break to",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/addpagebreak",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/addpagebreak.md"
-    },
-    {
-      "type": "lib.docx.AddParagraph",
-      "title": "Add Paragraph",
-      "namespace": "lib.docx",
-      "description": "Adds a paragraph of text to the document\n    document, docx, text, format",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to add the paragraph to",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "text",
-          "type": "str",
-          "description": "The paragraph text",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "alignment",
-          "type": "enum",
-          "description": "Text alignment",
-          "required": false,
-          "default": "LEFT"
-        },
-        {
-          "name": "bold",
-          "type": "bool",
-          "description": "Make text bold",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "italic",
-          "type": "bool",
-          "description": "Make text italic",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "font_size",
-          "type": "int",
-          "description": "Font size in points",
-          "required": false,
-          "default": 12
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/addparagraph",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/addparagraph.md"
-    },
-    {
-      "type": "lib.docx.AddTable",
-      "title": "Add Table",
-      "namespace": "lib.docx",
-      "description": "Adds a table to the document\n    document, docx, table, format",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to add the table to",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "data",
-          "type": "dataframe",
-          "description": "The data to add to the table",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/addtable",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/addtable.md"
-    },
-    {
-      "type": "lib.docx.CreateDocument",
-      "title": "Create Document",
-      "namespace": "lib.docx",
-      "description": "Creates a new Word document\n    document, docx, file, create",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/createdocument",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/createdocument.md"
-    },
-    {
-      "type": "lib.docx.LoadWordDocument",
-      "title": "Load Word Document",
-      "namespace": "lib.docx",
-      "description": "Loads a Word document from disk\n    document, docx, file, load, input",
-      "inputs": [
-        {
-          "name": "path",
-          "type": "str",
-          "description": "Path to the document to load",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/loadworddocument",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/loadworddocument.md"
-    },
-    {
-      "type": "lib.docx.SaveDocument",
-      "title": "Save Document",
-      "namespace": "lib.docx",
-      "description": "Writes the document to a file\n    document, docx, file, save, output",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to write",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "path",
-          "type": "file_path",
-          "description": "The folder to write the document to.",
-          "required": false,
-          "default": {
-            "type": "file_path",
-            "path": ""
-          }
-        },
-        {
-          "name": "filename",
-          "type": "str",
-          "description": "\n        The filename to write the document to.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/savedocument",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/savedocument.md"
-    },
-    {
-      "type": "lib.docx.SetDocumentProperties",
-      "title": "Set Document Properties",
-      "namespace": "lib.docx",
-      "description": "Sets document metadata properties\n    document, docx, metadata, properties",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "The document to modify",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "title",
-          "type": "str",
-          "description": "Document title",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "author",
-          "type": "str",
-          "description": "Document author",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "subject",
-          "type": "str",
-          "description": "Document subject",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "keywords",
-          "type": "str",
-          "description": "Document keywords",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "document"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/docx/setdocumentproperties",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/docx/setdocumentproperties.md"
-    },
-    {
-      "type": "lib.epub.ExtractChapters",
-      "title": "EPUB Extract Chapters",
-      "namespace": "lib.epub",
-      "description": "Extract each chapter as a separate text item with its title.\n    epub, ebook, chapters, split, text",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/epub/epubextractchapters",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/epub/epubextractchapters.md"
-    },
-    {
-      "type": "lib.epub.ExtractText",
-      "title": "EPUB Extract Text",
-      "namespace": "lib.epub",
-      "description": "Extract plain text from an EPUB file by concatenating all chapters.\n    epub, ebook, text, extract, content",
-      "inputs": [
-        {
-          "name": "chapter_separator",
-          "type": "str",
-          "description": "String inserted between chapters in the output",
-          "required": false,
-          "default": "\n\n"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/epub/epubextracttext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/epub/epubextracttext.md"
-    },
-    {
-      "type": "lib.epub.Metadata",
-      "title": "EPUB Metadata",
-      "namespace": "lib.epub",
-      "description": "Read metadata (title, author, language, publisher, etc.) from an EPUB file.\n    epub, ebook, metadata, title, author",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/epub/epubmetadata",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/epub/epubmetadata.md"
-    },
-    {
-      "type": "lib.epub.TableOfContents",
-      "title": "EPUB Table of Contents",
-      "namespace": "lib.epub",
-      "description": "Get the table of contents (chapter titles, ids, hrefs) from an EPUB file.\n    epub, ebook, toc, chapters, contents",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/epub/epubtableofcontents",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/epub/epubtableofcontents.md"
-    },
-    {
       "type": "lib.grid.CombineImageGrid",
       "title": "Combine Image Grid",
       "namespace": "lib.grid",
@@ -4598,7 +3443,7 @@
       "type": "lib.image.effects.Add",
       "title": "Add Blend",
       "namespace": "lib.image.effects",
-      "description": "Additive composite of two images: out = source + over × gain.\n    image, add, blend, composite",
+      "description": "Additive composite of two images: out = source + over \u00d7 gain.\n    image, add, blend, composite",
       "inputs": [],
       "outputs": [
         {
@@ -4688,7 +3533,7 @@
       "type": "lib.image.filter.Pixelate",
       "title": "Pixelate",
       "namespace": "lib.image.filter",
-      "description": "Average each N×N block to a single colour.\n    image, pixelate, mosaic, filter",
+      "description": "Average each N\u00d7N block to a single colour.\n    image, pixelate, mosaic, filter",
       "inputs": [],
       "outputs": [
         {
@@ -4703,7 +3548,7 @@
       "type": "lib.image.filter.Threshold",
       "title": "Threshold",
       "namespace": "lib.image.filter",
-      "description": "Smoothstep luminance threshold — keeps pixels above the cutoff, fades around it.\n    image, threshold, brightpass, filter",
+      "description": "Smoothstep luminance threshold \u2014 keeps pixels above the cutoff, fades around it.\n    image, threshold, brightpass, filter",
       "inputs": [],
       "outputs": [
         {
@@ -4808,7 +3653,7 @@
       "type": "lib.image.mask.Invert",
       "title": "Invert Mask",
       "namespace": "lib.image.mask",
-      "description": "Invert mask alpha (coverage → 1 − coverage).\n    image, mask, invert, alpha",
+      "description": "Invert mask alpha (coverage \u2192 1 \u2212 coverage).\n    image, mask, invert, alpha",
       "inputs": [],
       "outputs": [
         {
@@ -4823,7 +3668,7 @@
       "type": "lib.image.warp.Affine",
       "title": "Affine",
       "namespace": "lib.image.warp",
-      "description": "Apply an inverse 2×3 affine matrix. Each output UV maps to source (m00·u + m01·v + tx, m10·u + m11·v + ty).\n    image, affine, transform, matrix, warp",
+      "description": "Apply an inverse 2\u00d73 affine matrix. Each output UV maps to source (m00\u00b7u + m01\u00b7v + tx, m10\u00b7u + m11\u00b7v + ty).\n    image, affine, transform, matrix, warp",
       "inputs": [],
       "outputs": [
         {
@@ -4838,7 +3683,7 @@
       "type": "lib.image.warp.CornerPin",
       "title": "Corner Pin",
       "namespace": "lib.image.warp",
-      "description": "Perspective warp via an inverse 3×3 homography (H22 fixed at 1).\n    image, perspective, corner pin, homography, warp",
+      "description": "Perspective warp via an inverse 3\u00d73 homography (H22 fixed at 1).\n    image, perspective, corner pin, homography, warp",
       "inputs": [],
       "outputs": [
         {
@@ -4898,7 +3743,7 @@
       "type": "lib.image.warp.PolarRemap",
       "title": "Polar Remap",
       "namespace": "lib.image.warp",
-      "description": "Convert between rectangular and polar UV space. 0 rect→polar / 1 polar→rect.\n    image, polar, warp, kaleidoscope",
+      "description": "Convert between rectangular and polar UV space. 0 rect\u2192polar / 1 polar\u2192rect.\n    image, polar, warp, kaleidoscope",
       "inputs": [],
       "outputs": [
         {
@@ -4928,7 +3773,7 @@
       "type": "lib.image.warp.Tile",
       "title": "Tile",
       "namespace": "lib.image.warp",
-      "description": "Tile the source N × M times across the same-sized canvas.\n    image, tile, repeat, pattern",
+      "description": "Tile the source N \u00d7 M times across the same-sized canvas.\n    image, tile, repeat, pattern",
       "inputs": [],
       "outputs": [
         {
@@ -5098,78 +3943,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/movetoarchive",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/movetoarchive.md"
-    },
-    {
-      "type": "lib.mail.SendEmail",
-      "title": "Send Email",
-      "namespace": "lib.mail",
-      "description": "Send a plain text email via SMTP.\n    email, smtp, send\n\n    Use cases:\n    - Send simple notification messages\n    - Automate email reports",
-      "inputs": [
-        {
-          "name": "smtp_server",
-          "type": "str",
-          "description": "SMTP server hostname",
-          "required": false,
-          "default": "smtp.gmail.com"
-        },
-        {
-          "name": "smtp_port",
-          "type": "int",
-          "description": "SMTP server port",
-          "required": false,
-          "default": 587
-        },
-        {
-          "name": "username",
-          "type": "str",
-          "description": "SMTP username",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "password",
-          "type": "str",
-          "description": "SMTP password",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "from_address",
-          "type": "str",
-          "description": "Sender email address",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "to_address",
-          "type": "str",
-          "description": "Recipient email address",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "subject",
-          "type": "str",
-          "description": "Email subject",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "body",
-          "type": "str",
-          "description": "Email body",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/mail/sendemail.md"
     },
     {
       "type": "lib.nlp.ClassifyText",
@@ -5423,500 +4196,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/nlp/tokenize.md"
     },
     {
-      "type": "lib.notion.CreatePage",
-      "title": "Notion Create Page",
-      "namespace": "lib.notion",
-      "description": "Create a new page in a Notion database or as a child of another page.\n    notion, page, create, add, api",
-      "inputs": [
-        {
-          "name": "parent_id",
-          "type": "str",
-          "description": "The ID of the parent database or page",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "parent_type",
-          "type": "str",
-          "description": "Type of parent: \"database_id\" or \"page_id\"",
-          "required": false,
-          "default": "database_id"
-        },
-        {
-          "name": "title",
-          "type": "str",
-          "description": "Title of the new page",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "title_property",
-          "type": "str",
-          "description": "Name of the database title column (default: Name). Only used for database parents.",
-          "required": false,
-          "default": "Name"
-        },
-        {
-          "name": "properties_json",
-          "type": "str",
-          "description": "Optional extra properties as a JSON object (merged with title)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "content_json",
-          "type": "str",
-          "description": "Optional children blocks as a JSON array",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notioncreatepage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notioncreatepage.md"
-    },
-    {
-      "type": "lib.notion.GetPage",
-      "title": "Notion Get Page",
-      "namespace": "lib.notion",
-      "description": "Retrieve a Notion page and its properties.\n    notion, page, get, read, api",
-      "inputs": [
-        {
-          "name": "page_id",
-          "type": "str",
-          "description": "The ID of the Notion page to retrieve",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notiongetpage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notiongetpage.md"
-    },
-    {
-      "type": "lib.notion.GetPageContent",
-      "title": "Notion Get Page Content",
-      "namespace": "lib.notion",
-      "description": "Retrieve all blocks (content) of a Notion page.\n    notion, page, content, blocks, read, api",
-      "inputs": [
-        {
-          "name": "page_id",
-          "type": "str",
-          "description": "The ID of the Notion page",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "page_size",
-          "type": "int",
-          "description": "Number of blocks to retrieve (max 100)",
-          "required": false,
-          "default": 100
-        }
-      ],
-      "outputs": [
-        {
-          "name": "block",
-          "type": "dict"
-        },
-        {
-          "name": "blocks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notiongetpagecontent",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notiongetpagecontent.md"
-    },
-    {
-      "type": "lib.notion.QueryDatabase",
-      "title": "Notion Query Database",
-      "namespace": "lib.notion",
-      "description": "Query a Notion database with optional filter and sort.\n    notion, database, query, filter, sort, api",
-      "inputs": [
-        {
-          "name": "database_id",
-          "type": "str",
-          "description": "The ID of the Notion database to query",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "filter_json",
-          "type": "str",
-          "description": "Optional Notion filter object as JSON",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "sort_json",
-          "type": "str",
-          "description": "Optional Notion sorts array as JSON (array of sort objects)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "page_size",
-          "type": "int",
-          "description": "Number of results to return (max 100)",
-          "required": false,
-          "default": 100
-        }
-      ],
-      "outputs": [
-        {
-          "name": "result",
-          "type": "dict"
-        },
-        {
-          "name": "results",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notionquerydatabase",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notionquerydatabase.md"
-    },
-    {
-      "type": "lib.notion.Search",
-      "title": "Notion Search",
-      "namespace": "lib.notion",
-      "description": "Search across all pages and databases the Notion integration has access to.\n    notion, search, pages, databases, api",
-      "inputs": [
-        {
-          "name": "query",
-          "type": "str",
-          "description": "Search query string",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "filter_type",
-          "type": "str",
-          "description": "Filter by object type: \"page\", \"database\", or empty for all",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "sort_direction",
-          "type": "str",
-          "description": "Sort direction: \"ascending\" or \"descending\"",
-          "required": false,
-          "default": "descending"
-        },
-        {
-          "name": "page_size",
-          "type": "int",
-          "description": "Number of results to return (max 100)",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "result",
-          "type": "dict"
-        },
-        {
-          "name": "results",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notionsearch",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notionsearch.md"
-    },
-    {
-      "type": "lib.notion.UpdatePage",
-      "title": "Notion Update Page",
-      "namespace": "lib.notion",
-      "description": "Update properties of an existing Notion page.\n    notion, page, update, edit, modify, api",
-      "inputs": [
-        {
-          "name": "page_id",
-          "type": "str",
-          "description": "The ID of the page to update",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "properties_json",
-          "type": "str",
-          "description": "JSON object of properties to update",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "archived",
-          "type": "bool",
-          "description": "Set to true to archive (soft-delete) the page",
-          "required": false,
-          "default": false
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/notion/notionupdatepage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/notion/notionupdatepage.md"
-    },
-    {
-      "type": "lib.pdf.ExtractMarkdown",
-      "title": "PDF to Markdown",
-      "namespace": "lib.pdf",
-      "description": "Convert PDF to Markdown, inferring headings from font size.\n    pdf, markdown, convert, headings, structure",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdftomarkdown",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdftomarkdown.md"
-    },
-    {
-      "type": "lib.pdf.ExtractOcr",
-      "title": "PDF Extract Text (OCR)",
-      "namespace": "lib.pdf",
-      "description": "Extract text from a PDF using OCR, suitable for scanned documents and image-based PDFs.\n    pdf, ocr, scan, text, extract, image-based",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        },
-        {
-          "name": "ocr_language",
-          "type": "str",
-          "description": "ISO 639-1 language code for OCR (e.g. en, fr, de, es)",
-          "required": false,
-          "default": "en"
-        },
-        {
-          "name": "dpi",
-          "type": "int",
-          "description": "Rendering DPI for OCR — higher values improve accuracy on small text",
-          "required": false,
-          "default": 150
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextocr",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextocr.md"
-    },
-    {
-      "type": "lib.pdf.ExtractStyledText",
-      "title": "PDF Extract Styled Text",
-      "namespace": "lib.pdf",
-      "description": "Extract text spans with font name, size, bounding box, and color (always null; liteparse does not expose per-span color).\n    pdf, text, style, font, size, formatting, color",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextractstyledtext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextractstyledtext.md"
-    },
-    {
-      "type": "lib.pdf.ExtractTables",
-      "title": "PDF Extract Tables",
-      "namespace": "lib.pdf",
-      "description": "Detect and extract tables from a PDF by analysing text layout.\n    pdf, tables, extract, data, rows, columns",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        },
-        {
-          "name": "y_tolerance",
-          "type": "int",
-          "description": "Pixel tolerance for grouping text into rows",
-          "required": false,
-          "default": 3
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttables",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttables.md"
-    },
-    {
-      "type": "lib.pdf.ExtractText",
-      "title": "PDF Extract Text",
-      "namespace": "lib.pdf",
-      "description": "Extract plain text from a PDF, preserving line breaks based on layout position.\n    pdf, text, extract, read, content",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttext.md"
-    },
-    {
-      "type": "lib.pdf.ExtractTextBlocks",
-      "title": "PDF Extract Text Blocks",
-      "namespace": "lib.pdf",
-      "description": "Extract text blocks with bounding boxes, useful for layout analysis.\n    pdf, text, blocks, layout, bbox, position",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextblocks",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfextracttextblocks.md"
-    },
-    {
-      "type": "lib.pdf.PageCount",
-      "title": "PDF Page Count",
-      "namespace": "lib.pdf",
-      "description": "Get the total number of pages in a PDF document.\n    pdf, pages, count, length",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "int"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfpagecount",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfpagecount.md"
-    },
-    {
-      "type": "lib.pdf.PageMetadata",
-      "title": "PDF Page Metadata",
-      "namespace": "lib.pdf",
-      "description": "Get dimensions and bounding box for each page.\n    pdf, metadata, pages, size, dimensions",
-      "inputs": [
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfpagemetadata",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfpagemetadata.md"
-    },
-    {
       "type": "lib.pdf.Pdftoppm",
       "title": "PDF Rasterize (pdftoppm)",
       "namespace": "lib.pdf",
@@ -6005,449 +4284,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfpagescreenshot.md"
     },
     {
-      "type": "lib.pdf.SearchText",
-      "title": "PDF Search Text",
-      "namespace": "lib.pdf",
-      "description": "Search a PDF for a phrase and return each match with its page number and bounding box.\n    pdf, search, find, phrase, text, location, bbox",
-      "inputs": [
-        {
-          "name": "phrase",
-          "type": "str",
-          "description": "Text phrase to search for",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "case_sensitive",
-          "type": "bool",
-          "description": "Whether the search is case-sensitive",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "start_page",
-          "type": "int",
-          "description": "First page to search (0-based)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_page",
-          "type": "int",
-          "description": "Last page to search (-1 for all)",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfsearchtext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfsearchtext.md"
-    },
-    {
-      "type": "lib.pptx.ExtractSlides",
-      "title": "PPTX Extract Slides",
-      "namespace": "lib.pptx",
-      "description": "Extract text from each slide of a PowerPoint (.pptx) file as a list, preserving slide order.\n    pptx, powerpoint, slides, list, text",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pptx/pptxextractslides",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pptx/pptxextractslides.md"
-    },
-    {
-      "type": "lib.pptx.ExtractText",
-      "title": "PPTX Extract Text",
-      "namespace": "lib.pptx",
-      "description": "Extract plain text from a PowerPoint (.pptx) file.\n    pptx, powerpoint, slides, text, extract",
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pptx/pptxextracttext",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pptx/pptxextracttext.md"
-    },
-    {
-      "type": "lib.rss.ExtractFeedMetadata",
-      "title": "Extract Feed Metadata",
-      "namespace": "lib.rss",
-      "description": "Extracts metadata from an RSS feed.\n    rss, metadata, feed\n\n    Use cases:\n    - Get feed information\n    - Validate feed details\n    - Extract feed metadata",
-      "inputs": [
-        {
-          "name": "url",
-          "type": "str",
-          "description": "URL of the RSS feed",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/rss/extractfeedmetadata",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/rss/extractfeedmetadata.md"
-    },
-    {
-      "type": "lib.rss.FetchRSSFeed",
-      "title": "Fetch RSS Feed",
-      "namespace": "lib.rss",
-      "description": "Fetches and parses an RSS feed from a URL.\n    rss, feed, network\n\n    Use cases:\n    - Monitor news feeds\n    - Aggregate content from multiple sources\n    - Process blog updates",
-      "inputs": [
-        {
-          "name": "url",
-          "type": "str",
-          "description": "URL of the RSS feed to fetch",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "title",
-          "type": "str"
-        },
-        {
-          "name": "link",
-          "type": "str"
-        },
-        {
-          "name": "published",
-          "type": "datetime"
-        },
-        {
-          "name": "summary",
-          "type": "str"
-        },
-        {
-          "name": "author",
-          "type": "str"
-        },
-        {
-          "name": "items",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/rss/fetchrssfeed",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/rss/fetchrssfeed.md"
-    },
-    {
-      "type": "lib.s3.CopyObject",
-      "title": "S3 Copy Object",
-      "namespace": "lib.s3",
-      "description": "Copies an object within or between S3 buckets.\n    aws, s3, copy, duplicate, cloud, storage",
-      "inputs": [
-        {
-          "name": "source_bucket",
-          "type": "str",
-          "description": "Source S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "source_key",
-          "type": "str",
-          "description": "Source object key (path)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "dest_bucket",
-          "type": "str",
-          "description": "Destination S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "dest_key",
-          "type": "str",
-          "description": "Destination object key (path)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3copyobject",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3copyobject.md"
-    },
-    {
-      "type": "lib.s3.DeleteObject",
-      "title": "S3 Delete Object",
-      "namespace": "lib.s3",
-      "description": "Deletes an object from an S3 bucket.\n    aws, s3, delete, remove, cloud, storage",
-      "inputs": [
-        {
-          "name": "bucket",
-          "type": "str",
-          "description": "S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "key",
-          "type": "str",
-          "description": "Object key (path) to delete",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3deleteobject",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3deleteobject.md"
-    },
-    {
-      "type": "lib.s3.GetObject",
-      "title": "S3 Get Object",
-      "namespace": "lib.s3",
-      "description": "Downloads an object's content as text from S3.\n    aws, s3, get, download, read, cloud, storage",
-      "inputs": [
-        {
-          "name": "bucket",
-          "type": "str",
-          "description": "S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "key",
-          "type": "str",
-          "description": "Object key (path) in the bucket",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        },
-        {
-          "name": "content_type",
-          "type": "str"
-        },
-        {
-          "name": "size",
-          "type": "int"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3getobject",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3getobject.md"
-    },
-    {
-      "type": "lib.s3.GetPresignedUrl",
-      "title": "S3 Get Presigned URL",
-      "namespace": "lib.s3",
-      "description": "Generates a presigned URL for temporary access to an S3 object.\n    aws, s3, presigned, url, share, cloud, storage",
-      "inputs": [
-        {
-          "name": "bucket",
-          "type": "str",
-          "description": "S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "key",
-          "type": "str",
-          "description": "Object key (path) in the bucket",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "expires_in",
-          "type": "int",
-          "description": "Expiry time in seconds",
-          "required": false,
-          "default": 3600
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3getpresignedurl",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3getpresignedurl.md"
-    },
-    {
-      "type": "lib.s3.ListBuckets",
-      "title": "S3 List Buckets",
-      "namespace": "lib.s3",
-      "description": "Lists all S3 buckets in the AWS account.\n    aws, s3, buckets, list, cloud, storage",
-      "inputs": [
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3listbuckets",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3listbuckets.md"
-    },
-    {
-      "type": "lib.s3.ListObjects",
-      "title": "S3 List Objects",
-      "namespace": "lib.s3",
-      "description": "Lists objects in an S3 bucket with optional prefix filter.\n    aws, s3, objects, list, cloud, storage, browse",
-      "inputs": [
-        {
-          "name": "bucket",
-          "type": "str",
-          "description": "S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "prefix",
-          "type": "str",
-          "description": "Optional key prefix to filter objects",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "max_keys",
-          "type": "int",
-          "description": "Maximum number of objects to return",
-          "required": false,
-          "default": 100
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "object",
-          "type": "dict"
-        },
-        {
-          "name": "objects",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3listobjects",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3listobjects.md"
-    },
-    {
-      "type": "lib.s3.PutObject",
-      "title": "S3 Put Object",
-      "namespace": "lib.s3",
-      "description": "Uploads text content to an S3 object.\n    aws, s3, put, upload, write, cloud, storage",
-      "inputs": [
-        {
-          "name": "bucket",
-          "type": "str",
-          "description": "S3 bucket name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "key",
-          "type": "str",
-          "description": "Object key (path) in the bucket",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "body",
-          "type": "str",
-          "description": "Text content to upload",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "content_type",
-          "type": "str",
-          "description": "MIME type of the content",
-          "required": false,
-          "default": "text/plain"
-        },
-        {
-          "name": "region",
-          "type": "str",
-          "description": "AWS region",
-          "required": false,
-          "default": "us-east-1"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        },
-        {
-          "name": "etag",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/s3/s3putobject",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/s3/s3putobject.md"
-    },
-    {
       "type": "lib.secret.GetSecret",
       "title": "Get Secret",
       "namespace": "lib.secret",
@@ -6499,259 +4335,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/lib/sqlite/getdatabasepath",
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/sqlite/getdatabasepath.md"
-    },
-    {
-      "type": "lib.supabase.Delete",
-      "title": "Delete",
-      "namespace": "lib.supabase",
-      "description": "Delete records from a Supabase table.\n    supabase, database, delete, remove",
-      "inputs": [
-        {
-          "name": "table_name",
-          "type": "str",
-          "description": "Table to delete from",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "filters",
-          "type": "list[tuple[str, enum, any]]",
-          "description": "Filters to select rows to delete (required for safety)",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict[str, any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/delete",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/delete.md"
-    },
-    {
-      "type": "lib.supabase.Insert",
-      "title": "Insert",
-      "namespace": "lib.supabase",
-      "description": "Insert record(s) into a Supabase table.\n    supabase, database, insert, add, record",
-      "inputs": [
-        {
-          "name": "table_name",
-          "type": "str",
-          "description": "Table to insert into",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "records",
-          "type": "union[list[dict[str, any]], dict[str, any]]",
-          "description": "One or multiple rows to insert",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "return_rows",
-          "type": "bool",
-          "description": "Return inserted rows (uses select('*'))",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/insert",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/insert.md"
-    },
-    {
-      "type": "lib.supabase.RPC",
-      "title": "RPC",
-      "namespace": "lib.supabase",
-      "description": "Call a PostgreSQL function via Supabase RPC.\n    supabase, database, rpc, function",
-      "inputs": [
-        {
-          "name": "function",
-          "type": "str",
-          "description": "RPC function name",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "params",
-          "type": "dict[str, any]",
-          "description": "Function params",
-          "required": false,
-          "default": {}
-        },
-        {
-          "name": "to_dataframe",
-          "type": "bool",
-          "description": "Return DataframeRef if result is a list of records",
-          "required": false,
-          "default": false
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/rpc",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/rpc.md"
-    },
-    {
-      "type": "lib.supabase.Select",
-      "title": "Select",
-      "namespace": "lib.supabase",
-      "description": "Query records from a Supabase table.\n    supabase, database, query, select",
-      "inputs": [
-        {
-          "name": "table_name",
-          "type": "str",
-          "description": "Table to query",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "columns",
-          "type": "record_type",
-          "description": "Columns to select",
-          "required": false,
-          "default": {
-            "type": "record_type",
-            "columns": []
-          }
-        },
-        {
-          "name": "filters",
-          "type": "list[tuple[str, enum, any]]",
-          "description": "List of typed filters to apply",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "order_by",
-          "type": "str",
-          "description": "Column to order by",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "descending",
-          "type": "bool",
-          "description": "Order direction",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "limit",
-          "type": "int",
-          "description": "Max rows to return (0 = no limit)",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "to_dataframe",
-          "type": "bool",
-          "description": "Return a DataframeRef instead of list of dicts",
-          "required": false,
-          "default": false
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/select",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/select.md"
-    },
-    {
-      "type": "lib.supabase.Update",
-      "title": "Update",
-      "namespace": "lib.supabase",
-      "description": "Update records in a Supabase table.\n    supabase, database, update, modify, change",
-      "inputs": [
-        {
-          "name": "table_name",
-          "type": "str",
-          "description": "Table to update",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "values",
-          "type": "dict[str, any]",
-          "description": "New values",
-          "required": false,
-          "default": {}
-        },
-        {
-          "name": "filters",
-          "type": "list[tuple[str, enum, any]]",
-          "description": "Filters to select rows to update",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "return_rows",
-          "type": "bool",
-          "description": "Return updated rows (uses select('*'))",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/update",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/update.md"
-    },
-    {
-      "type": "lib.supabase.Upsert",
-      "title": "Upsert",
-      "namespace": "lib.supabase",
-      "description": "Insert or update (upsert) records in a Supabase table.\n    supabase, database, upsert, merge",
-      "inputs": [
-        {
-          "name": "table_name",
-          "type": "str",
-          "description": "Table to upsert into",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "records",
-          "type": "union[list[dict[str, any]], dict[str, any]]",
-          "description": "One or multiple rows to upsert",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "return_rows",
-          "type": "bool",
-          "description": "Return upserted rows (uses select('*'))",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/supabase/upsert",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/supabase/upsert.md"
     },
     {
       "type": "lib.svg.Circle",
@@ -7531,362 +5114,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/svg/transform.md"
     },
     {
-      "type": "lib.twilio.GetMessages",
-      "title": "Get Messages",
-      "namespace": "lib.twilio",
-      "description": "List recent SMS/MMS messages from a Twilio account.\n    twilio, sms, messages, list, history\n\n    Use cases:\n    - Retrieve message history\n    - Monitor incoming messages\n    - Audit sent messages",
-      "inputs": [
-        {
-          "name": "limit",
-          "type": "int",
-          "description": "Maximum number of messages to return (1-1000)",
-          "required": false,
-          "default": 20
-        },
-        {
-          "name": "to",
-          "type": "str",
-          "description": "Filter by recipient phone number",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "from_number",
-          "type": "str",
-          "description": "Filter by sender phone number",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "date_sent",
-          "type": "str",
-          "description": "Filter by date sent (YYYY-MM-DD)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "account_sid",
-          "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "auth_token",
-          "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "message",
-          "type": "dict"
-        },
-        {
-          "name": "messages",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/twilio/getmessages",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/twilio/getmessages.md"
-    },
-    {
-      "type": "lib.twilio.Lookup",
-      "title": "Lookup Phone Number",
-      "namespace": "lib.twilio",
-      "description": "Look up phone number information using the Twilio Lookup API.\n    twilio, phone, lookup, carrier, number\n\n    Use cases:\n    - Validate phone numbers\n    - Get carrier information\n    - Determine phone number type (mobile, landline)",
-      "inputs": [
-        {
-          "name": "phone_number",
-          "type": "str",
-          "description": "Phone number to look up in E.164 format (e.g. +15551234567)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "account_sid",
-          "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "auth_token",
-          "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/twilio/lookupphonenumber",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/twilio/lookupphonenumber.md"
-    },
-    {
-      "type": "lib.twilio.SendSMS",
-      "title": "Send SMS",
-      "namespace": "lib.twilio",
-      "description": "Send an SMS message via the Twilio REST API.\n    twilio, sms, text, send, message\n\n    Use cases:\n    - Send notification texts\n    - Automate SMS alerts\n    - Send verification codes",
-      "inputs": [
-        {
-          "name": "to",
-          "type": "str",
-          "description": "Recipient phone number in E.164 format (e.g. +15551234567)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "from_number",
-          "type": "str",
-          "description": "Twilio phone number to send from in E.164 format (e.g. +15559876543)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "body",
-          "type": "str",
-          "description": "The text content of the SMS message",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "account_sid",
-          "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "auth_token",
-          "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/twilio/sendsms",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/twilio/sendsms.md"
-    },
-    {
-      "type": "lib.twilio.SendWhatsApp",
-      "title": "Send WhatsApp",
-      "namespace": "lib.twilio",
-      "description": "Send a WhatsApp message via the Twilio REST API.\n    twilio, whatsapp, message, send\n\n    Use cases:\n    - Send WhatsApp notifications\n    - Automate WhatsApp customer messages\n    - Send rich media via WhatsApp",
-      "inputs": [
-        {
-          "name": "to",
-          "type": "str",
-          "description": "Recipient phone number in E.164 format (e.g. +15551234567)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "from_number",
-          "type": "str",
-          "description": "Twilio WhatsApp-enabled phone number in E.164 format (e.g. +15559876543)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "body",
-          "type": "str",
-          "description": "The text content of the WhatsApp message",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "account_sid",
-          "type": "str",
-          "description": "Twilio Account SID (optional — falls back to TWILIO_ACCOUNT_SID secret)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "auth_token",
-          "type": "str",
-          "description": "Twilio Auth Token (optional — falls back to TWILIO_AUTH_TOKEN secret)",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/twilio/sendwhatsapp",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/twilio/sendwhatsapp.md"
-    },
-    {
-      "type": "lib.validate.Email",
-      "title": "Validate Email",
-      "namespace": "lib.validate",
-      "description": "Check whether a value is a syntactically valid email address.\n    validate, email, check",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/validate/validateemail",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/validate/validateemail.md"
-    },
-    {
-      "type": "lib.validate.IP",
-      "title": "Validate IP Address",
-      "namespace": "lib.validate",
-      "description": "Check whether a value is a valid IPv4 or IPv6 address.\n    validate, ip, ipv4, ipv6, address, network",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "is_ip",
-          "type": "bool"
-        },
-        {
-          "name": "is_ipv4",
-          "type": "bool"
-        },
-        {
-          "name": "is_ipv6",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/validate/validateipaddress",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/validate/validateipaddress.md"
-    },
-    {
-      "type": "lib.validate.Sanitize",
-      "title": "Sanitize String",
-      "namespace": "lib.validate",
-      "description": "HTML-escape, trim, and lowercase/normalise a string. Also emits the normalised email when applicable.\n    sanitize, escape, html, xss, clean, trim",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "escaped",
-          "type": "str"
-        },
-        {
-          "name": "trimmed",
-          "type": "str"
-        },
-        {
-          "name": "normalized_email",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/validate/sanitizestring",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/validate/sanitizestring.md"
-    },
-    {
-      "type": "lib.validate.String",
-      "title": "Validate String",
-      "namespace": "lib.validate",
-      "description": "Run several common string checks at once and return one bool per check.\n    validate, check, email, url, uuid, json, number",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "is_email",
-          "type": "bool"
-        },
-        {
-          "name": "is_url",
-          "type": "bool"
-        },
-        {
-          "name": "is_uuid",
-          "type": "bool"
-        },
-        {
-          "name": "is_json",
-          "type": "bool"
-        },
-        {
-          "name": "is_numeric",
-          "type": "bool"
-        },
-        {
-          "name": "is_alpha",
-          "type": "bool"
-        },
-        {
-          "name": "is_alphanumeric",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/validate/validatestring",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/validate/validatestring.md"
-    },
-    {
-      "type": "lib.validate.URL",
-      "title": "Validate URL",
-      "namespace": "lib.validate",
-      "description": "Check whether a value is a syntactically valid absolute URL.\n    validate, url, link, check",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "bool"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/validate/validateurl",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/validate/validateurl.md"
-    },
-    {
       "type": "lib.video.download.YtDlpDownload",
       "title": "YouTube Downloader",
       "namespace": "lib.video.download",
@@ -8058,57 +5285,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/messaging/discord/discordbottrigger.md"
     },
     {
-      "type": "messaging.discord.DiscordSendMessage",
-      "title": "Discord Send Message",
-      "namespace": "messaging.discord",
-      "description": "Send a message to a Discord channel using a bot token.\n    discord, send, message, bot, channel, chat, notify",
-      "inputs": [
-        {
-          "name": "token",
-          "type": "str",
-          "description": "Discord bot token",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "channel_id",
-          "type": "str",
-          "description": "Target channel ID",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "content",
-          "type": "str",
-          "description": "Message content",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "tts",
-          "type": "bool",
-          "description": "Send as text-to-speech",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "embeds",
-          "type": "list[dict[str, any]]",
-          "description": "Embeds as Discord embed dictionaries",
-          "required": false,
-          "default": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict[str, any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/messaging/discord/discordsendmessage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/messaging/discord/discordsendmessage.md"
-    },
-    {
       "type": "messaging.telegram.TelegramBotTrigger",
       "title": "Telegram Bot Trigger",
       "namespace": "messaging.telegram",
@@ -8216,71 +5392,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/messaging/telegram/telegrambottrigger",
       "markdown_url": "https://docs.nodetool.ai/nodes/messaging/telegram/telegrambottrigger.md"
-    },
-    {
-      "type": "messaging.telegram.TelegramSendMessage",
-      "title": "Telegram Send Message",
-      "namespace": "messaging.telegram",
-      "description": "Send a message to a Telegram chat using a bot token.\n    telegram, send, message, bot, chat, notify",
-      "inputs": [
-        {
-          "name": "token",
-          "type": "str",
-          "description": "Telegram bot token",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "chat_id",
-          "type": "int",
-          "description": "Target chat ID",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "text",
-          "type": "str",
-          "description": "Message text",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "parse_mode",
-          "type": "str",
-          "description": "Optional parse mode (MarkdownV2 or HTML)",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "disable_web_page_preview",
-          "type": "bool",
-          "description": "Disable link previews",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "disable_notification",
-          "type": "bool",
-          "description": "Send silently",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "reply_to_message_id",
-          "type": "int",
-          "description": "Reply to a specific message ID",
-          "required": false,
-          "default": null
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dict[str, any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/messaging/telegram/telegramsendmessage",
-      "markdown_url": "https://docs.nodetool.ai/nodes/messaging/telegram/telegramsendmessage.md"
     },
     {
       "type": "minimax.ImageToVideo",
@@ -8825,21 +5936,21 @@
         {
           "name": "mode",
           "type": "enum",
-          "description": "How the agent runs.\n\n• loop: standard tool‑calling loop — the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool‑using tasks.\n• plan: the LLM first drafts a multi‑step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub‑tasks.",
+          "description": "How the agent runs.\n\n\u2022 loop: standard tool\u2011calling loop \u2014 the LLM responds to the prompt and may iteratively call the connected tools until it produces a final answer. Use this for chat, Q&A, and most tool\u2011using tasks.\n\u2022 plan: the LLM first drafts a multi\u2011step task plan from the objective, then executes the steps in dependency order (independent steps run in parallel). Best for longer, structured jobs with clear sub\u2011tasks.",
           "required": false,
           "default": "loop"
         },
         {
           "name": "system",
           "type": "str",
-          "description": "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per‑run task.",
+          "description": "Instructions that define the agent's persona, role, tone, and global behaviour. Sent to the model as the system message at the start of every run, before any history or user prompt. Use it for things that should always hold (e.g. \"You are a senior Python reviewer. Reply in Markdown.\"). Leave the prompt itself for the per\u2011run task.",
           "required": false,
           "default": "You are a friendly assistant"
         },
         {
           "name": "prompt",
           "type": "str",
-          "description": "The user message for this run — the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning.",
+          "description": "The user message for this run \u2014 the actual question, task, or content the agent should act on. Appended after the system prompt and conversation history as the latest user turn. Any connected Image or Audio inputs are attached to this message. In plan and multi-agent modes this is treated as the objective for planning.",
           "required": false,
           "default": ""
         },
@@ -8867,27 +5978,27 @@
         {
           "name": "history",
           "type": "list[message]",
-          "description": "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad‑hoc context — for example, few‑shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt.",
+          "description": "Prior conversation turns to include before the current prompt, in chronological order (oldest first). Each item is a Message with a role (user/assistant/tool) and content. Use this to supply ad\u2011hoc context \u2014 for example, few\u2011shot examples, a previous chat transcript piped in from another node, or the messages output of an upstream Agent. Inserted between the system prompt and the new user prompt. If a Thread ID is also set, history loaded from the thread comes first, then this list, then the current prompt.",
           "required": false,
           "default": []
         },
         {
           "name": "thread_id",
           "type": "str",
-          "description": "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it — giving the agent long‑term memory across runs and across nodes that share the same ID. Leave empty for a stateless one‑shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation.",
+          "description": "Identifier for a persistent conversation thread. When set, the agent loads all earlier messages stored under this ID before this turn and saves the new user message, assistant reply, and any tool messages back to it \u2014 giving the agent long\u2011term memory across runs and across nodes that share the same ID. Leave empty for a stateless one\u2011shot call. Use the Create Thread node to mint a fresh ID, or wire in the same string from upstream to continue an existing conversation.",
           "required": false,
           "default": ""
         },
         {
           "name": "max_tokens",
           "type": "int",
-          "description": "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192–16384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
+          "description": "Upper bound on generated tokens per response, including visible output and any reasoning/thinking tokens used by reasoning models. Higher values allow longer answers and more thinking headroom but cost more and take longer; very low values may truncate reasoning or the final answer. Typical values: 1024 for short answers, 8192\u201316384 for normal agent use, 32k+ for long-form or heavy reasoning. Must be within the chosen model's context window.",
           "required": true
         },
         {
           "name": "max_turns",
           "type": "int",
-          "description": "Upper bound on agentic turns — one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
+          "description": "Upper bound on agentic turns \u2014 one turn is a model call plus any tool execution it triggers. Caps both the AgentNode tool-loop iteration count and the provider's internal multi-turn budget (e.g. Claude Agent SDK). Raise for long sandbox sessions; lower to fail fast on runaway loops.",
           "required": false,
           "default": 100
         }
@@ -8975,7 +6086,7 @@
           "type": "str",
           "description": "The system prompt for the classifier",
           "required": false,
-          "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" ≠ spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n"
+          "default": "\nYou are a precise classifier.\n\nGoal\n- Select exactly one category from the list provided by the user.\n\nOutput format (MANDATORY)\n- Return ONLY a single JSON object with this exact schema and nothing else:\n  {\"category\": \"<one-of-the-allowed-categories>\"}\n- No prose, no Markdown, no code fences, no explanations, no extra keys.\n\nSelection criteria\n- Choose the single best category that captures the main intent of the text.\n- If multiple categories seem plausible, pick the most probable one; do not return multiple.\n- If none fit perfectly, choose the closest allowed category. If the list includes \"Other\" or \"Unknown\", prefer it when appropriate.\n- Be robust to casing, punctuation, emojis, and minor typos. Handle negation correctly (e.g., \"not spam\" \u2260 spam).\n- Never invent categories that are not in the provided list.\n\nBehavior\n- Be deterministic for the same input.\n- Do not ask clarifying questions; make the best choice with what's given.\n"
         },
         {
           "name": "model",
@@ -10502,7 +7613,7 @@
       "type": "nodetool.audio.AudioMixer",
       "title": "Audio Mixer",
       "namespace": "nodetool.audio",
-      "description": "Mix multiple audio tracks together. Add tracks dynamically with the “add audio input” button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay",
+      "description": "Mix multiple audio tracks together. Add tracks dynamically with the \u201cadd audio input\u201d button; wire a Gain node upstream of any track that needs a different level.\n    audio, mix, combine, blend, layer, add, overlay",
       "inputs": [],
       "outputs": [
         {
@@ -10550,7 +7661,7 @@
       "type": "nodetool.audio.Concat",
       "title": "Concatenate Audio",
       "namespace": "nodetool.audio",
-      "description": "Concatenates audio files together. Add inputs dynamically with the “add audio input” button, or wire a list of audio into a single input.\n    audio, edit, join, +",
+      "description": "Concatenates audio files together. Add inputs dynamically with the \u201cadd audio input\u201d button, or wire a list of audio into a single input.\n    audio, edit, join, +",
       "inputs": [],
       "outputs": [
         {
@@ -10947,7 +8058,7 @@
       "type": "nodetool.audio.realtime.AudioOutput",
       "title": "Audio Out",
       "namespace": "nodetool.audio.realtime",
-      "description": "Plays a realtime audio chunk stream — the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
+      "description": "Plays a realtime audio chunk stream \u2014 the patch's speaker.\n    audio, stream, chunk, realtime, output, speaker, monitor\n\n    Passes every chunk through verbatim; the editor picks the chunks up from the live stream and plays them as they arrive. Terminate any synth patch or streaming effect chain here to hear it.\n\n    Use cases:\n    - Monitor a live modular synth patch\n    - Hear streaming TTS or effects output as it renders\n    - Audition a chain before recording it with ChunksToAudio",
       "inputs": [
         {
           "name": "chunk",
@@ -11445,7 +8556,7 @@
         {
           "name": "gate",
           "type": "cv",
-          "description": "Gate CV stream — values ≥ 0.5 count as gate-high.",
+          "description": "Gate CV stream \u2014 values \u2265 0.5 count as gate-high.",
           "required": true
         },
         {
@@ -11465,7 +8576,7 @@
         {
           "name": "sustain",
           "type": "float",
-          "description": "Sustain level (0–1).",
+          "description": "Sustain level (0\u20131).",
           "required": false,
           "default": 0.7
         },
@@ -11490,7 +8601,7 @@
       "type": "nodetool.audio.synth.Attenuverter",
       "title": "Attenuverter",
       "namespace": "nodetool.audio.synth",
-      "description": "Scales and offsets a CV (or audio) stream: out = in * scale + offset.\n    cv, synthesis, utility, attenuverter, modular\n\n    Negative scale inverts the signal. The Swiss-army CV utility — adapt an LFO's range to a pitch input, invert an envelope, add a constant bias.\n\n    Use cases:\n    - Reduce LFO depth before a pitch input\n    - Invert an envelope for ducking\n    - Add a DC offset to centre a modulation",
+      "description": "Scales and offsets a CV (or audio) stream: out = in * scale + offset.\n    cv, synthesis, utility, attenuverter, modular\n\n    Negative scale inverts the signal. The Swiss-army CV utility \u2014 adapt an LFO's range to a pitch input, invert an envelope, add a constant bias.\n\n    Use cases:\n    - Reduce LFO depth before a pitch input\n    - Invert an envelope for ducking\n    - Add a DC offset to centre a modulation",
       "inputs": [
         {
           "name": "signal",
@@ -11526,7 +8637,7 @@
       "type": "nodetool.audio.synth.Gate",
       "title": "Gate",
       "namespace": "nodetool.audio.synth",
-      "description": "Generates a repeating on/off gate CV pattern — the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
+      "description": "Generates a repeating on/off gate CV pattern \u2014 the patch's master clock.\n    cv, synthesis, gate, trigger, clock, modular\n\n    Emits `amplitude` for on_duration seconds, 0 for off_duration, cycling wall-clock paced until the run is stopped. Drive an ADSR with it; every node downstream is sample-aligned to it by construction and paced with it.\n\n    Use cases:\n    - Trigger envelopes rhythmically\n    - Master clock for clocked LFOs and sample & hold\n    - Heartbeat of a live patch",
       "inputs": [
         {
           "name": "on_duration",
@@ -11625,7 +8736,7 @@
       "type": "nodetool.audio.synth.Mixer",
       "title": "Mixer",
       "namespace": "nodetool.audio.synth",
-      "description": "Sums up to four audio streams with per-input levels.\n    audio, synthesis, mixer, modular\n\n    Output = Σ level_i * in_i, emitted as soon as every still-open input can cover the frames; inputs that have ended contribute silence. The stream ends when all connected inputs end. Assumes matching sample rates and channel counts (no resampling).\n\n    Use cases:\n    - Combine oscillators into a richer voice\n    - Mix a dry signal with a filtered copy\n    - Sub-mix several synth voices",
+      "description": "Sums up to four audio streams with per-input levels.\n    audio, synthesis, mixer, modular\n\n    Output = \u03a3 level_i * in_i, emitted as soon as every still-open input can cover the frames; inputs that have ended contribute silence. The stream ends when all connected inputs end. Assumes matching sample rates and channel counts (no resampling).\n\n    Use cases:\n    - Combine oscillators into a richer voice\n    - Mix a dry signal with a filtered copy\n    - Sub-mix several synth voices",
       "inputs": [
         {
           "name": "in1",
@@ -11693,7 +8804,7 @@
       "type": "nodetool.audio.synth.Oscillator",
       "title": "Oscillator",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms — saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
+      "description": "Voltage-controlled oscillator generating sine, saw, square, triangle or noise audio.\n    audio, synthesis, oscillator, vco, modular\n\n    Pitch CV is volts/octave: freq = frequency * 2^cv (cv in octaves). With pitch_cv or fm patched, output follows that stream's chunk cadence (sample-aligned); otherwise it free-runs wall-clock paced until the run is stopped. Naive waveforms \u2014 saw/square alias at high frequencies.\n\n    Use cases:\n    - Sound source for a modular synth voice\n    - FM/vibrato via the fm input driven by an LFO\n    - Melodic sequences via a pitch CV stream",
       "inputs": [
         {
           "name": "pitch_cv",
@@ -11762,7 +8873,7 @@
       "type": "nodetool.audio.synth.SampleHold",
       "title": "Sample & Hold",
       "namespace": "nodetool.audio.synth",
-      "description": "Samples the signal input on each trigger rising edge and holds it.\n    cv, synthesis, sample-hold, modular\n\n    On a trigger rising edge (≥ 0.5) at sample k, the held value becomes signal[k]; the output is the held value every sample. The signal input drives chunk cadence; the trigger is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic random-stepped CV (noise → signal, clock → trigger)\n    - Quantize an LFO into steps\n    - Freeze a modulation value on demand",
+      "description": "Samples the signal input on each trigger rising edge and holds it.\n    cv, synthesis, sample-hold, modular\n\n    On a trigger rising edge (\u2265 0.5) at sample k, the held value becomes signal[k]; the output is the held value every sample. The signal input drives chunk cadence; the trigger is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic random-stepped CV (noise \u2192 signal, clock \u2192 trigger)\n    - Quantize an LFO into steps\n    - Freeze a modulation value on demand",
       "inputs": [
         {
           "name": "signal",
@@ -11773,7 +8884,7 @@
         {
           "name": "trigger",
           "type": "cv",
-          "description": "Sampling clock — samples on each rising edge (≥ 0.5).",
+          "description": "Sampling clock \u2014 samples on each rising edge (\u2265 0.5).",
           "required": true
         }
       ],
@@ -11790,7 +8901,7 @@
       "type": "nodetool.audio.synth.VCA",
       "title": "VCA",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n    audio, cv, synthesis, vca, amplifier, modular\n\n    Output = audio * gain * max(0, cv) per sample (negative CV is clamped — a VCA doesn't invert). The audio input drives chunk cadence; the CV is frame-aligned with hold-last when it lags or ends. With nothing patched into cv, acts as a plain gain.\n\n    Use cases:\n    - Shape a note with an ADSR envelope\n    - Tremolo via an LFO\n    - Sidechain-style ducking from any CV source",
+      "description": "Voltage-controlled amplifier: multiplies an audio stream by a CV stream.\n    audio, cv, synthesis, vca, amplifier, modular\n\n    Output = audio * gain * max(0, cv) per sample (negative CV is clamped \u2014 a VCA doesn't invert). The audio input drives chunk cadence; the CV is frame-aligned with hold-last when it lags or ends. With nothing patched into cv, acts as a plain gain.\n\n    Use cases:\n    - Shape a note with an ADSR envelope\n    - Tremolo via an LFO\n    - Sidechain-style ducking from any CV source",
       "inputs": [
         {
           "name": "audio",
@@ -11825,7 +8936,7 @@
       "type": "nodetool.audio.synth.VCF",
       "title": "VCF",
       "namespace": "nodetool.audio.synth",
-      "description": "Voltage-controlled filter: a biquad whose cutoff is modulated by a CV stream.\n    audio, cv, synthesis, vcf, filter, modular\n\n    Cutoff = cutoff_hz * 2^(cv * cv_amount) (volts/octave), recomputed every 64 samples (control rate); filter state persists across chunks so chunked output equals a single pass. The audio input drives chunk cadence; CV is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic envelope filter sweeps (ADSR → cutoff_cv)\n    - Wah/auto-filter via an LFO\n    - Static tone shaping with nothing patched into cutoff_cv",
+      "description": "Voltage-controlled filter: a biquad whose cutoff is modulated by a CV stream.\n    audio, cv, synthesis, vcf, filter, modular\n\n    Cutoff = cutoff_hz * 2^(cv * cv_amount) (volts/octave), recomputed every 64 samples (control rate); filter state persists across chunks so chunked output equals a single pass. The audio input drives chunk cadence; CV is frame-aligned with hold-last.\n\n    Use cases:\n    - Classic envelope filter sweeps (ADSR \u2192 cutoff_cv)\n    - Wah/auto-filter via an LFO\n    - Static tone shaping with nothing patched into cutoff_cv",
       "inputs": [
         {
           "name": "audio",
@@ -13000,7 +10111,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items are buffered into batches of size N.",
+          "description": "Streaming input \u2014 items are buffered into batches of size N.",
           "required": false,
           "default": null
         },
@@ -13084,7 +10195,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items are counted but not forwarded.",
+          "description": "Streaming input \u2014 items are counted but not forwarded.",
           "required": false,
           "default": null
         }
@@ -13148,7 +10259,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — duplicate items are dropped.",
+          "description": "Streaming input \u2014 duplicate items are dropped.",
           "required": false,
           "default": null
         },
@@ -13178,7 +10289,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items after the first N are forwarded.",
+          "description": "Streaming input \u2014 items after the first N are forwarded.",
           "required": false,
           "default": null
         },
@@ -13242,7 +10353,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — each item is tested against the predicate.",
+          "description": "Streaming input \u2014 each item is tested against the predicate.",
           "required": false,
           "default": null
         },
@@ -13272,7 +10383,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — items pass through if they equal the target value.",
+          "description": "Streaming input \u2014 items pass through if they equal the target value.",
           "required": false,
           "default": null
         },
@@ -13377,7 +10488,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — only the final value is forwarded.",
+          "description": "Streaming input \u2014 only the final value is forwarded.",
           "required": false,
           "default": null
         }
@@ -13529,7 +10640,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — each item is forwarded until the limit is reached.",
+          "description": "Streaming input \u2014 each item is forwarded until the limit is reached.",
           "required": false,
           "default": null
         },
@@ -13593,7 +10704,7 @@
         {
           "name": "input_item",
           "type": "any",
-          "description": "Streaming input — forwarded unchanged after logging.",
+          "description": "Streaming input \u2014 forwarded unchanged after logging.",
           "required": false,
           "default": null
         },
@@ -13675,7 +10786,7 @@
         {
           "name": "max_unmatched_pairs",
           "type": "int",
-          "description": "Maximum number of unmatched items to buffer before failing. §7.",
+          "description": "Maximum number of unmatched items to buffer before failing. \u00a77.",
           "required": false,
           "default": 1024
         }
@@ -13696,408 +10807,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/control/zip",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/control/zip.md"
-    },
-    {
-      "type": "nodetool.data.AddColumn",
-      "title": "Add Column",
-      "namespace": "nodetool.data",
-      "description": "Add list of values as new column to dataframe.\n    dataframe, column, list\n\n    Use cases:\n    - Incorporate external data into existing dataframe\n    - Add calculated results as new column\n    - Augment dataframe with additional features",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "Dataframe object to add a new column to.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "column_name",
-          "type": "str",
-          "description": "The name of the new column to be added to the dataframe.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "values",
-          "type": "list[any]",
-          "description": "A list of any type of elements which will be the new column's values.",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/addcolumn",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/addcolumn.md"
-    },
-    {
-      "type": "nodetool.data.Aggregate",
-      "title": "Aggregate",
-      "namespace": "nodetool.data",
-      "description": "Aggregate dataframe by one or more columns.\n    aggregate, groupby, group, sum, mean, count, min, max, std, var, median, first, last\n\n    Use cases:\n    - Prepare data for aggregation operations\n    - Analyze data by categories\n    - Create summary statistics by groups",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The DataFrame to group.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "columns",
-          "type": "str",
-          "description": "Comma-separated column names to group by.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "aggregation",
-          "type": "str",
-          "description": "Aggregation function: sum, mean, count, min, max, std, var, median, first, last",
-          "required": false,
-          "default": "sum"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/aggregate",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/aggregate.md"
-    },
-    {
-      "type": "nodetool.data.Append",
-      "title": "Append",
-      "namespace": "nodetool.data",
-      "description": "Append two dataframes along rows.\n    append, concat, rows\n\n    Use cases:\n    - Combine data from multiple time periods\n    - Merge datasets with same structure\n    - Aggregate data from different sources",
-      "inputs": [
-        {
-          "name": "dataframe_a",
-          "type": "dataframe",
-          "description": "First DataFrame to be appended.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "dataframe_b",
-          "type": "dataframe",
-          "description": "Second DataFrame to be appended.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/append",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/append.md"
-    },
-    {
-      "type": "nodetool.data.Describe",
-      "title": "Describe",
-      "namespace": "nodetool.data",
-      "description": "Compute summary statistics for each numeric column: count, mean, std, min, 25%, 50%, 75%, max.\n    dataframe, statistics, describe, summary, stats, mean, std, min, max, quartile",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The dataframe to describe.",
-          "required": false,
-          "default": {
-            "rows": []
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/describe",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/describe.md"
-    },
-    {
-      "type": "nodetool.data.DropDuplicates",
-      "title": "Drop Duplicates",
-      "namespace": "nodetool.data",
-      "description": "Remove duplicate rows from dataframe.\n    duplicates, unique, clean\n\n    Use cases:\n    - Clean dataset by removing redundant entries\n    - Ensure data integrity in analysis\n    - Prepare data for unique value operations",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "The input DataFrame.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/dropduplicates",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/dropduplicates.md"
-    },
-    {
-      "type": "nodetool.data.DropNA",
-      "title": "Drop NA",
-      "namespace": "nodetool.data",
-      "description": "Remove rows with NA values from dataframe.\n    na, missing, clean\n\n    Use cases:\n    - Clean dataset by removing incomplete entries\n    - Prepare data for analysis requiring complete cases\n    - Improve data quality for modeling",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "The input DataFrame.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/dropna",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/dropna.md"
-    },
-    {
-      "type": "nodetool.data.ExtractColumn",
-      "title": "Extract Column",
-      "namespace": "nodetool.data",
-      "description": "Convert dataframe column to list.\n    dataframe, column, list\n\n    Use cases:\n    - Extract data for use in other processing steps\n    - Prepare column data for plotting or analysis\n    - Convert categorical data to list for encoding",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The input dataframe.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "column_name",
-          "type": "str",
-          "description": "The name of the column to be converted to a list.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/extractcolumn",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/extractcolumn.md"
-    },
-    {
-      "type": "nodetool.data.FillNA",
-      "title": "Fill NA",
-      "namespace": "nodetool.data",
-      "description": "Fill missing values in dataframe.\n    fillna, missing, impute\n\n    Use cases:\n    - Handle missing data\n    - Prepare data for analysis\n    - Improve data quality",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The DataFrame with missing values.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "value",
-          "type": "any",
-          "description": "Value to use for filling missing values.",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "method",
-          "type": "str",
-          "description": "Method for filling: value, forward, backward, mean, median",
-          "required": false,
-          "default": "value"
-        },
-        {
-          "name": "columns",
-          "type": "str",
-          "description": "Comma-separated column names to fill. Leave empty for all columns.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/fillna",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/fillna.md"
-    },
-    {
-      "type": "nodetool.data.Filter",
-      "title": "Filter",
-      "namespace": "nodetool.data",
-      "description": "Filter dataframe based on condition.\n    filter, query, condition\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Extract subset of data meeting specific criteria\n    - Remove outliers or invalid data points\n    - Focus analysis on relevant data segments",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "The DataFrame to filter.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "condition",
-          "type": "str",
-          "description": "The filtering condition to be applied to the DataFrame, e.g. column_name > 5.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/filter",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/filter.md"
-    },
-    {
-      "type": "nodetool.data.FilterNone",
-      "title": "Filter None",
-      "namespace": "nodetool.data",
-      "description": "Filters out None values from a stream.\n    filter, none, null, stream\n\n    Use cases:\n    - Clean data by removing null values\n    - Get only valid entries\n    - Remove placeholder values",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "any",
-          "description": "Input stream",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "any"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/filternone",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/filternone.md"
-    },
-    {
-      "type": "nodetool.data.FindRow",
-      "title": "Find Row",
-      "namespace": "nodetool.data",
-      "description": "Find the first row in a dataframe that matches a given condition.\n    filter, query, condition, single row\n\n    Example conditions:\n    age > 30\n    age > 30 and salary < 50000\n    name == 'John Doe'\n    100 <= price <= 200\n    status in ['Active', 'Pending']\n    not (age < 18)\n\n    Use cases:\n    - Retrieve specific record based on criteria\n    - Find first occurrence of a particular condition\n    - Extract single data point for further analysis",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "The DataFrame to search.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "condition",
-          "type": "str",
-          "description": "The condition to filter the DataFrame, e.g. 'column_name == value'.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/findrow",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/findrow.md"
     },
     {
       "type": "nodetool.data.ForEachRow",
@@ -14132,126 +10841,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/foreachrow",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/foreachrow.md"
-    },
-    {
-      "type": "nodetool.data.FromList",
-      "title": "From List",
-      "namespace": "nodetool.data",
-      "description": "Convert list of dicts to dataframe.\n    list, dataframe, convert\n\n    Use cases:\n    - Transform list data into structured dataframe\n    - Prepare list data for analysis or visualization\n    - Convert API responses to dataframe format",
-      "inputs": [
-        {
-          "name": "values",
-          "type": "list[any]",
-          "description": "List of values to be converted, each value will be a row.",
-          "required": false,
-          "default": []
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/fromlist",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/fromlist.md"
-    },
-    {
-      "type": "nodetool.data.ImportCSV",
-      "title": "Import CSV",
-      "namespace": "nodetool.data",
-      "description": "Convert CSV string to dataframe.\n    csv, dataframe, import\n\n    Use cases:\n    - Import CSV data from string input\n    - Convert CSV responses from APIs to dataframe",
-      "inputs": [
-        {
-          "name": "csv_data",
-          "type": "str",
-          "description": "String input of CSV formatted text.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/importcsv",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/importcsv.md"
-    },
-    {
-      "type": "nodetool.data.Join",
-      "title": "Join",
-      "namespace": "nodetool.data",
-      "description": "Join two dataframes on specified column.\n    join, merge, column\n\n    Use cases:\n    - Combine data from related tables\n    - Enrich dataset with additional information\n    - Link data based on common identifiers",
-      "inputs": [
-        {
-          "name": "dataframe_a",
-          "type": "dataframe",
-          "description": "First DataFrame to be merged.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "dataframe_b",
-          "type": "dataframe",
-          "description": "Second DataFrame to be merged.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "join_on",
-          "type": "str",
-          "description": "The column name on which to join the two dataframes.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/join",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/join.md"
-    },
-    {
-      "type": "nodetool.data.JSONToDataframe",
-      "title": "Convert JSON to DataFrame",
-      "namespace": "nodetool.data",
-      "description": "Transforms a JSON string into a pandas DataFrame.\n    json, dataframe, conversion\n\n    Use cases:\n    - Converting API responses to tabular format\n    - Preparing JSON data for analysis or visualization\n    - Structuring unstructured JSON data for further processing",
-      "inputs": [
-        {
-          "name": "text",
-          "type": "str",
-          "description": "",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/convertjsontodataframe",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/convertjsontodataframe.md"
     },
     {
       "type": "nodetool.data.LoadCSVAssets",
@@ -14293,459 +10882,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvassets",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvassets.md"
-    },
-    {
-      "type": "nodetool.data.LoadCSVFile",
-      "title": "Load CSVFile",
-      "namespace": "nodetool.data",
-      "description": "Load CSV file from file path.\n    csv, dataframe, import",
-      "inputs": [
-        {
-          "name": "file_path",
-          "type": "str",
-          "description": "The path to the CSV file to load.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvfile",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvfile.md"
-    },
-    {
-      "type": "nodetool.data.LoadCSVURL",
-      "title": "Load CSVURL",
-      "namespace": "nodetool.data",
-      "description": "Load CSV file from URL.\n    csv, dataframe, import",
-      "inputs": [
-        {
-          "name": "url",
-          "type": "str",
-          "description": "The URL of the CSV file to load.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvurl",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/loadcsvurl.md"
-    },
-    {
-      "type": "nodetool.data.Merge",
-      "title": "Merge",
-      "namespace": "nodetool.data",
-      "description": "Merge two dataframes along columns.\n    merge, concat, columns\n\n    Use cases:\n    - Combine data from multiple sources\n    - Add new features to existing dataframe\n    - Merge time series data from different periods",
-      "inputs": [
-        {
-          "name": "dataframe_a",
-          "type": "dataframe",
-          "description": "First DataFrame to be merged.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "dataframe_b",
-          "type": "dataframe",
-          "description": "Second DataFrame to be merged.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/merge",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/merge.md"
-    },
-    {
-      "type": "nodetool.data.Pivot",
-      "title": "Pivot",
-      "namespace": "nodetool.data",
-      "description": "Pivot dataframe to reshape data.\n    pivot, reshape, transform\n\n    Use cases:\n    - Transform long data to wide format\n    - Create cross-tabulation tables\n    - Reorganize data for visualization",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The DataFrame to pivot.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "index",
-          "type": "str",
-          "description": "Column name to use as index (rows).",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "columns",
-          "type": "str",
-          "description": "Column name to use as columns.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "values",
-          "type": "str",
-          "description": "Column name to use as values.",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "aggfunc",
-          "type": "str",
-          "description": "Aggregation function: sum, mean, count, min, max, first, last",
-          "required": false,
-          "default": "sum"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/pivot",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/pivot.md"
-    },
-    {
-      "type": "nodetool.data.Rename",
-      "title": "Rename",
-      "namespace": "nodetool.data",
-      "description": "Rename columns in dataframe.\n    rename, columns, names\n\n    Use cases:\n    - Standardize column names\n    - Make column names more descriptive\n    - Prepare data for specific requirements",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The DataFrame to rename columns.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "rename_map",
-          "type": "str",
-          "description": "Column rename mapping in format: old1:new1,old2:new2",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/rename",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/rename.md"
-    },
-    {
-      "type": "nodetool.data.SaveCSVDataframeFile",
-      "title": "Save CSVDataframe File",
-      "namespace": "nodetool.data",
-      "description": "Write a pandas DataFrame to a CSV file.\n    files, csv, write, output, save, file\n\n    The filename can include time and date variables:\n    %Y - Year, %m - Month, %d - Day\n    %H - Hour, %M - Minute, %S - Second",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "DataFrame to write to CSV",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "folder",
-          "type": "str",
-          "description": "Folder where the file will be saved",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "filename",
-          "type": "str",
-          "description": "Name of the CSV file to save. Supports strftime format codes.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/savecsvdataframefile",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/savecsvdataframefile.md"
-    },
-    {
-      "type": "nodetool.data.SaveDataframe",
-      "title": "Save Dataframe",
-      "namespace": "nodetool.data",
-      "description": "Save dataframe in specified folder.\n    csv, folder, save\n\n    Use cases:\n    - Export processed data for external use\n    - Create backups of dataframes",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "folder",
-          "type": "folder",
-          "description": "Name of the output folder.",
-          "required": false,
-          "default": {
-            "type": "folder",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "name",
-          "type": "str",
-          "description": "\n        Name of the output file.\n        You can use time and date variables to create unique names:\n        %Y - Year\n        %m - Month\n        %d - Day\n        %H - Hour\n        %M - Minute\n        %S - Second\n        ",
-          "required": false,
-          "default": "output.csv"
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/savedataframe",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/savedataframe.md"
-    },
-    {
-      "type": "nodetool.data.Schema",
-      "title": "Schema",
-      "namespace": "nodetool.data",
-      "description": "Define a schema for a dataframe.\n    schema, dataframe, create",
-      "inputs": [
-        {
-          "name": "columns",
-          "type": "record_type",
-          "description": "The columns to use in the dataframe.",
-          "required": false,
-          "default": {
-            "type": "record_type",
-            "columns": []
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "record_type"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/schema",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/schema.md"
-    },
-    {
-      "type": "nodetool.data.SelectColumn",
-      "title": "Select Column",
-      "namespace": "nodetool.data",
-      "description": "Select specific columns from dataframe.\n    dataframe, columns, filter\n\n    Use cases:\n    - Extract relevant features for analysis\n    - Reduce dataframe size by removing unnecessary columns\n    - Prepare data for specific visualizations or models",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "a dataframe from which columns are to be selected",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "columns",
-          "type": "str",
-          "description": "comma separated list of column names",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/selectcolumn",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/selectcolumn.md"
-    },
-    {
-      "type": "nodetool.data.Slice",
-      "title": "Slice",
-      "namespace": "nodetool.data",
-      "description": "Slice a dataframe by rows using start and end indices.\n    slice, subset, rows\n\n    Use cases:\n    - Extract a specific range of rows from a large dataset\n    - Create training and testing subsets for machine learning\n    - Analyze data in smaller chunks",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The input dataframe to be sliced.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "start_index",
-          "type": "int",
-          "description": "The starting index of the slice (inclusive).",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "end_index",
-          "type": "int",
-          "description": "The ending index of the slice (exclusive). Use -1 to slice through the end; other negative values count back from the end (e.g. -2 drops the last two rows).",
-          "required": false,
-          "default": -1
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/slice",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/slice.md"
-    },
-    {
-      "type": "nodetool.data.SortByColumn",
-      "title": "Sort By Column",
-      "namespace": "nodetool.data",
-      "description": "Sort dataframe by specified column.\n    sort, order, column\n\n    Use cases:\n    - Arrange data in ascending or descending order\n    - Identify top or bottom values in dataset\n    - Prepare data for rank-based analysis",
-      "inputs": [
-        {
-          "name": "df",
-          "type": "dataframe",
-          "description": "",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        },
-        {
-          "name": "column",
-          "type": "str",
-          "description": "The column to sort the DataFrame by.",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "dataframe"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/sortbycolumn",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/sortbycolumn.md"
-    },
-    {
-      "type": "nodetool.data.ToList",
-      "title": "To List",
-      "namespace": "nodetool.data",
-      "description": "Convert dataframe to list of dictionaries.\n    dataframe, list, convert\n\n    Use cases:\n    - Convert dataframe data for API consumption\n    - Transform data for JSON serialization\n    - Prepare data for document-based storage",
-      "inputs": [
-        {
-          "name": "dataframe",
-          "type": "dataframe",
-          "description": "The input dataframe to convert.",
-          "required": false,
-          "default": {
-            "type": "dataframe",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null,
-            "columns": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[dict]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/data/tolist",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/data/tolist.md"
     },
     {
       "type": "nodetool.document.ListDocuments",
@@ -14848,326 +10984,6 @@
       "outputs": [],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/savedocumentfile",
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/savedocumentfile.md"
-    },
-    {
-      "type": "nodetool.document.SplitDocument",
-      "title": "Split Document",
-      "namespace": "nodetool.document",
-      "description": "Split text semantically.\n    chroma, embedding, collection, RAG, index, text, markdown, semantic",
-      "inputs": [
-        {
-          "name": "embed_model",
-          "type": "language_model",
-          "description": "Embedding model to use",
-          "required": false,
-          "default": {
-            "type": "language_model",
-            "provider": "ollama",
-            "id": "embeddinggemma",
-            "name": "",
-            "path": null,
-            "supported_tasks": []
-          }
-        },
-        {
-          "name": "document",
-          "type": "document",
-          "description": "Document ID to associate with the text content",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "buffer_size",
-          "type": "int",
-          "description": "Buffer size for semantic splitting",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "threshold",
-          "type": "int",
-          "description": "Breakpoint percentile threshold for semantic splitting",
-          "required": false,
-          "default": 95
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "source_id",
-          "type": "str"
-        },
-        {
-          "name": "start_index",
-          "type": "int"
-        },
-        {
-          "name": "chunks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitdocument",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitdocument.md"
-    },
-    {
-      "type": "nodetool.document.SplitHTML",
-      "title": "Split HTML",
-      "namespace": "nodetool.document",
-      "description": "Split HTML content into semantic chunks based on HTML tags.\n    html, text, semantic, tags, parsing",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "Document ID to associate with the HTML content",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "source_id",
-          "type": "str"
-        },
-        {
-          "name": "start_index",
-          "type": "int"
-        },
-        {
-          "name": "chunks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/splithtml",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/splithtml.md"
-    },
-    {
-      "type": "nodetool.document.SplitJSON",
-      "title": "Split JSON",
-      "namespace": "nodetool.document",
-      "description": "Split JSON content into semantic chunks.\n    json, parsing, semantic, structured",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "Document ID to associate with the JSON content",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "include_metadata",
-          "type": "bool",
-          "description": "Whether to include metadata in nodes",
-          "required": false,
-          "default": true
-        },
-        {
-          "name": "include_prev_next_rel",
-          "type": "bool",
-          "description": "Whether to include prev/next relationships",
-          "required": false,
-          "default": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "source_id",
-          "type": "str"
-        },
-        {
-          "name": "start_index",
-          "type": "int"
-        },
-        {
-          "name": "chunks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitjson",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitjson.md"
-    },
-    {
-      "type": "nodetool.document.SplitMarkdown",
-      "title": "Split Markdown",
-      "namespace": "nodetool.document",
-      "description": "Splits markdown text by headers while preserving header hierarchy in metadata.\n    markdown, split, headers\n\n    Use cases:\n    - Splitting markdown documentation while preserving structure\n    - Processing markdown files for semantic search\n    - Creating context-aware chunks from markdown content",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "headers_to_split_on",
-          "type": "list[tuple[str, str]]",
-          "description": "List of tuples containing (header_symbol, header_name)",
-          "required": false,
-          "default": [
-            [
-              "#",
-              "Header 1"
-            ],
-            [
-              "##",
-              "Header 2"
-            ],
-            [
-              "###",
-              "Header 3"
-            ]
-          ]
-        },
-        {
-          "name": "strip_headers",
-          "type": "bool",
-          "description": "Whether to remove headers from the output content",
-          "required": false,
-          "default": true
-        },
-        {
-          "name": "return_each_line",
-          "type": "bool",
-          "description": "Whether to split into individual lines instead of header sections",
-          "required": false,
-          "default": false
-        },
-        {
-          "name": "chunk_size",
-          "type": "int",
-          "description": "Optional maximum chunk size for further splitting",
-          "required": false,
-          "default": 1000
-        },
-        {
-          "name": "chunk_overlap",
-          "type": "int",
-          "description": "Overlap size when using chunk_size",
-          "required": false,
-          "default": 30
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "source_id",
-          "type": "str"
-        },
-        {
-          "name": "start_index",
-          "type": "int"
-        },
-        {
-          "name": "chunks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitmarkdown",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitmarkdown.md"
-    },
-    {
-      "type": "nodetool.document.SplitRecursively",
-      "title": "Split Recursively",
-      "namespace": "nodetool.document",
-      "description": "Splits text recursively using LangChain's RecursiveCharacterTextSplitter.\n    text, split, chunks\n\n    Use cases:\n    - Splitting documents while preserving semantic relationships\n    - Creating chunks for language model processing\n    - Handling text in languages with/without word boundaries",
-      "inputs": [
-        {
-          "name": "document",
-          "type": "document",
-          "description": "",
-          "required": false,
-          "default": {
-            "type": "document",
-            "uri": "",
-            "asset_id": null,
-            "data": null,
-            "metadata": null
-          }
-        },
-        {
-          "name": "chunk_size",
-          "type": "int",
-          "description": "Maximum size of each chunk in characters",
-          "required": false,
-          "default": 1000
-        },
-        {
-          "name": "chunk_overlap",
-          "type": "int",
-          "description": "Number of characters to overlap between chunks",
-          "required": false,
-          "default": 200
-        },
-        {
-          "name": "separators",
-          "type": "list[str]",
-          "description": "List of separators to use for splitting, in order of preference",
-          "required": false,
-          "default": [
-            "\n\n",
-            "\n",
-            "."
-          ]
-        }
-      ],
-      "outputs": [
-        {
-          "name": "text",
-          "type": "str"
-        },
-        {
-          "name": "source_id",
-          "type": "str"
-        },
-        {
-          "name": "start_index",
-          "type": "int"
-        },
-        {
-          "name": "chunks",
-          "type": "list"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitrecursively",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/document/splitrecursively.md"
     },
     {
       "type": "nodetool.fake.ColorGrade",
@@ -15593,7 +11409,7 @@
       "type": "nodetool.image.Blur",
       "title": "Blur",
       "namespace": "nodetool.image",
-      "description": "Blur an image — Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter",
+      "description": "Blur an image \u2014 Box, Gaussian, or horizontal Motion variants.\n    image, blur, gaussian, box, motion, filter",
       "inputs": [
         {
           "name": "image",
@@ -15776,14 +11592,14 @@
         {
           "name": "canvas_width",
           "type": "int",
-          "description": "Composite canvas width in pixels. 0 → use the first visible layer's width.",
+          "description": "Composite canvas width in pixels. 0 \u2192 use the first visible layer's width.",
           "required": false,
           "default": 0
         },
         {
           "name": "canvas_height",
           "type": "int",
-          "description": "Composite canvas height in pixels. 0 → use the first visible layer's height.",
+          "description": "Composite canvas height in pixels. 0 \u2192 use the first visible layer's height.",
           "required": false,
           "default": 0
         }
@@ -16058,63 +11874,63 @@
         {
           "name": "r_black",
           "type": "int",
-          "description": "Red channel input black point (0–255).",
+          "description": "Red channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "r_gamma",
           "type": "float",
-          "description": "Red channel gamma (0.01–10).",
+          "description": "Red channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "r_white",
           "type": "int",
-          "description": "Red channel input white point (0–255).",
+          "description": "Red channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         },
         {
           "name": "g_black",
           "type": "int",
-          "description": "Green channel input black point (0–255).",
+          "description": "Green channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "g_gamma",
           "type": "float",
-          "description": "Green channel gamma (0.01–10).",
+          "description": "Green channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "g_white",
           "type": "int",
-          "description": "Green channel input white point (0–255).",
+          "description": "Green channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         },
         {
           "name": "b_black",
           "type": "int",
-          "description": "Blue channel input black point (0–255).",
+          "description": "Blue channel input black point (0\u2013255).",
           "required": false,
           "default": 0
         },
         {
           "name": "b_gamma",
           "type": "float",
-          "description": "Blue channel gamma (0.01–10).",
+          "description": "Blue channel gamma (0.01\u201310).",
           "required": false,
           "default": 1
         },
         {
           "name": "b_white",
           "type": "int",
-          "description": "Blue channel input white point (0–255).",
+          "description": "Blue channel input white point (0\u2013255).",
           "required": false,
           "default": 255
         }
@@ -18285,164 +14101,6 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/input/videomodelinput.md"
     },
     {
-      "type": "nodetool.list.Range",
-      "title": "Range",
-      "namespace": "nodetool.list",
-      "description": "Build a list of integers like Python range(start, stop, step).\n    list, range, sequence, numbers, index, enumerate\n\n    Use cases:\n    - Generate [0, 1, ..., N-1] for iteration with For Each\n    - Produce numbered indices for batch naming or sequencing\n    - Create arithmetic sequences with custom start, stop, and step",
-      "inputs": [
-        {
-          "name": "start",
-          "type": "int",
-          "description": "First value (inclusive).",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "stop",
-          "type": "int",
-          "description": "Exclusive end. When -1 (default), uses Count instead to produce [0, 1, ..., count-1].",
-          "required": false,
-          "default": -1
-        },
-        {
-          "name": "count",
-          "type": "int",
-          "description": "Used when Stop is -1. Produces [0, 1, ..., count-1].",
-          "required": false,
-          "default": 10
-        },
-        {
-          "name": "step",
-          "type": "int",
-          "description": "Increment between values.",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "max_output_length",
-          "type": "int",
-          "description": "Maximum number of integers to produce.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[int]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/list/range",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/list/range.md"
-    },
-    {
-      "type": "nodetool.list.RepeatEach",
-      "title": "Repeat Each",
-      "namespace": "nodetool.list",
-      "description": "Repeat each list item consecutively N times.\n    list, repeat, duplicate, interleave, expand\n\n    Use cases:\n    - Generate multiple variants per input item\n    - [A, B, C] × 2 → [A, A, B, B, C, C]\n    - Feed expanded lists into For Each",
-      "inputs": [
-        {
-          "name": "input_list",
-          "type": "list[any]",
-          "description": "List whose items are repeated individually.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "times",
-          "type": "int",
-          "description": "How many times to repeat each item.",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "max_output_length",
-          "type": "int",
-          "description": "Maximum number of items in the output list.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/list/repeateach",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/list/repeateach.md"
-    },
-    {
-      "type": "nodetool.list.RepeatValue",
-      "title": "Repeat Value",
-      "namespace": "nodetool.list",
-      "description": "Duplicate a single value into a list N times.\n    list, repeat, duplicate, fill, scalar, constant\n\n    Use cases:\n    - Build [v, v, v] from one prompt or parameter before For Each\n    - Expand a scalar into a list for list-typed inputs\n    - v × 3 → [v, v, v]",
-      "inputs": [
-        {
-          "name": "value",
-          "type": "any",
-          "description": "Single value to repeat.",
-          "required": false,
-          "default": null
-        },
-        {
-          "name": "times",
-          "type": "int",
-          "description": "How many copies to produce.",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "max_output_length",
-          "type": "int",
-          "description": "Maximum number of items in the output list.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/list/repeatvalue",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/list/repeatvalue.md"
-    },
-    {
-      "type": "nodetool.list.Tile",
-      "title": "Tile List",
-      "namespace": "nodetool.list",
-      "description": "Repeat an entire list end-to-end N times.\n    list, repeat, tile, cycle, loop, concatenate\n\n    Use cases:\n    - Run the same item sequence multiple times before For Each\n    - Duplicate a prompt list for batch generation\n    - [A, B, C] × 3 → [A, B, C, A, B, C, A, B, C]",
-      "inputs": [
-        {
-          "name": "input_list",
-          "type": "list[any]",
-          "description": "List to repeat.",
-          "required": false,
-          "default": []
-        },
-        {
-          "name": "times",
-          "type": "int",
-          "description": "How many times to repeat the full list.",
-          "required": false,
-          "default": 1
-        },
-        {
-          "name": "max_output_length",
-          "type": "int",
-          "description": "Maximum number of items in the output list.",
-          "required": true
-        }
-      ],
-      "outputs": [
-        {
-          "name": "output",
-          "type": "list[any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/list/tilelist",
-      "markdown_url": "https://docs.nodetool.ai/nodes/nodetool/list/tilelist.md"
-    },
-    {
       "type": "nodetool.model3d.Boolean3D",
       "title": "Boolean 3D",
       "namespace": "nodetool.model3d",
@@ -18590,7 +14248,7 @@
       "type": "nodetool.model3d.FormatConverter",
       "title": "Format Converter",
       "namespace": "nodetool.model3d",
-      "description": "Convert a 3D model between supported formats.\n    3d, mesh, model, convert, format, glb, gltf, export\n\n    Currently supported conversions: glb → gltf. Other targets are not yet implemented.\n\n    Use cases:\n    - Convert GLB to textual glTF for inspection\n    - Export models as glTF for tool compatibility",
+      "description": "Convert a 3D model between supported formats.\n    3d, mesh, model, convert, format, glb, gltf, export\n\n    Currently supported conversions: glb \u2192 gltf. Other targets are not yet implemented.\n\n    Use cases:\n    - Convert GLB to textual glTF for inspection\n    - Export models as glTF for tool compatibility",
       "inputs": [
         {
           "name": "model",
@@ -18601,7 +14259,7 @@
         {
           "name": "output_format",
           "type": "enum",
-          "description": "Target format for conversion. Currently only glb → gltf is supported.",
+          "description": "Target format for conversion. Currently only glb \u2192 gltf is supported.",
           "required": false,
           "default": "glb"
         }
@@ -19704,7 +15362,7 @@
       "type": "nodetool.test.StreamingInputProcessor",
       "title": "Streaming Input Processor",
       "namespace": "nodetool.test",
-      "description": "Streaming input node – called once with empty inputs",
+      "description": "Streaming input node \u2013 called once with empty inputs",
       "inputs": [],
       "outputs": [],
       "documentation_url": "https://docs.nodetool.ai/nodes/nodetool/test/streaminginputprocessor",
@@ -20044,7 +15702,7 @@
       "type": "nodetool.text.Concat",
       "title": "Concat",
       "namespace": "nodetool.text",
-      "description": "Concatenates text inputs into a single output. Add inputs dynamically with the “add text input” button, or wire a list of strings into a single input.\n    +, text, combine, add, concatenate, merge, join, append",
+      "description": "Concatenates text inputs into a single output. Add inputs dynamically with the \u201cadd text input\u201d button, or wire a list of strings into a single input.\n    +, text, combine, add, concatenate, merge, join, append",
       "inputs": [],
       "outputs": [
         {
@@ -22254,7 +17912,7 @@
       "type": "nodetool.video.ChromaKey",
       "title": "Chroma Key",
       "namespace": "nodetool.video",
-      "description": "Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black — composite it over a background with the Overlay node.\n    video, chroma key, green screen, compositing",
+      "description": "Apply chroma key (green screen) effect to a video. The MP4 output has no alpha channel, so the keyed-out area renders black \u2014 composite it over a background with the Overlay node.\n    video, chroma key, green screen, compositing",
       "inputs": [
         {
           "name": "video",
@@ -22361,7 +18019,7 @@
       "type": "nodetool.video.Concat",
       "title": "Concatenate Video",
       "namespace": "nodetool.video",
-      "description": "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the “add video input” button, or wire a list of videos into a single input.\n    video, concat, merge, combine, audio, +",
+      "description": "Concatenate multiple video files into a single video, including audio when available. Add inputs dynamically with the \u201cadd video input\u201d button, or wire a list of videos into a single input.\n    video, concat, merge, combine, audio, +",
       "inputs": [],
       "outputs": [
         {
@@ -23661,7 +19319,7 @@
         {
           "name": "speed",
           "type": "float",
-          "description": "The speed of the model’s spoken response",
+          "description": "The speed of the model\u2019s spoken response",
           "required": false,
           "default": 1
         },
@@ -24032,7 +19690,7 @@
       "type": "openai.image.ImageVariation",
       "title": "Image Variation",
       "namespace": "openai.image",
-      "description": "Generate variations of an input image using OpenAI's image variations API.\n    image, variation, remix, generate, alternative, dall-e\n\n    Takes a square PNG image and produces a new image that is a variation of it.\n    No text prompt is used — the model riffs on the source image directly.",
+      "description": "Generate variations of an input image using OpenAI's image variations API.\n    image, variation, remix, generate, alternative, dall-e\n\n    Takes a square PNG image and produces a new image that is a variation of it.\n    No text prompt is used \u2014 the model riffs on the source image directly.",
       "inputs": [
         {
           "name": "image",
@@ -24334,310 +19992,6 @@
       ],
       "documentation_url": "https://docs.nodetool.ai/nodes/reve/remiximage",
       "markdown_url": "https://docs.nodetool.ai/nodes/reve/remiximage.md"
-    },
-    {
-      "type": "search.google.GoogleFinance",
-      "title": "Google Finance",
-      "namespace": "search.google",
-      "description": "Retrieve financial market data and stock information from Google Finance.\n    google, finance, stocks, market, serp, trading",
-      "inputs": [
-        {
-          "name": "query",
-          "type": "str",
-          "description": "Stock symbol or company name to search for",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "window",
-          "type": "str",
-          "description": "Time window for financial data (e.g., '1d', '5d', '1m', '3m', '6m', '1y', '5y')",
-          "required": false,
-          "default": ""
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "dict[str, any]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlefinance",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlefinance.md"
-    },
-    {
-      "type": "search.google.GoogleImages",
-      "title": "Google Images",
-      "namespace": "search.google",
-      "description": "Search Google Images to find visual content or perform reverse image search.\n    google, images, serp, visual, reverse, search",
-      "inputs": [
-        {
-          "name": "keyword",
-          "type": "str",
-          "description": "Search query or keyword for images",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "image_url",
-          "type": "str",
-          "description": "URL of image for reverse image search",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of image results to return",
-          "required": false,
-          "default": 20
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[image]"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googleimages",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googleimages.md"
-    },
-    {
-      "type": "search.google.GoogleJobs",
-      "title": "Google Jobs",
-      "namespace": "search.google",
-      "description": "Search Google Jobs for employment opportunities and job listings.\n    google, jobs, employment, careers, serp, hiring",
-      "inputs": [
-        {
-          "name": "query",
-          "type": "str",
-          "description": "Job title, skills, or company name to search for",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "location",
-          "type": "str",
-          "description": "Geographic location for job search",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of job results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[job_result]"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlejobs",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlejobs.md"
-    },
-    {
-      "type": "search.google.GoogleLens",
-      "title": "Google Lens",
-      "namespace": "search.google",
-      "description": "Analyze images using Google Lens to find visual matches and related content.\n    google, lens, visual, image, search, serp, identify",
-      "inputs": [
-        {
-          "name": "image_url",
-          "type": "str",
-          "description": "URL of the image to analyze with Google Lens",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of visual search results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlelens",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlelens.md"
-    },
-    {
-      "type": "search.google.GoogleMaps",
-      "title": "Google Maps",
-      "namespace": "search.google",
-      "description": "Search Google Maps for places, businesses, and get location details.\n    google, maps, places, locations, serp, geography",
-      "inputs": [
-        {
-          "name": "query",
-          "type": "str",
-          "description": "Place name, address, or location query",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of map results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[local_result]"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlemaps",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlemaps.md"
-    },
-    {
-      "type": "search.google.GoogleNews",
-      "title": "Google News",
-      "namespace": "search.google",
-      "description": "Search Google News to retrieve current news articles and headlines.\n    google, news, serp, articles, journalism",
-      "inputs": [
-        {
-          "name": "keyword",
-          "type": "str",
-          "description": "Search query or keyword for news articles",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of news results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[news_result]"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlenews",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlenews.md"
-    },
-    {
-      "type": "search.google.GoogleSearch",
-      "title": "Google Search",
-      "namespace": "search.google",
-      "description": "Search Google to retrieve organic search results from the web.\n    google, search, serp, web, query",
-      "inputs": [
-        {
-          "name": "keyword",
-          "type": "str",
-          "description": "Search query or keyword to search for",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[organic_result]"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googlesearch",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googlesearch.md"
-    },
-    {
-      "type": "search.google.GoogleShopping",
-      "title": "Google Shopping",
-      "namespace": "search.google",
-      "description": "Search Google Shopping for products with filters and pricing information.\n    google, shopping, products, ecommerce, serp, prices",
-      "inputs": [
-        {
-          "name": "query",
-          "type": "str",
-          "description": "Product name or description to search for",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "country",
-          "type": "str",
-          "description": "Country code for shopping search (e.g., 'us', 'uk', 'ca')",
-          "required": false,
-          "default": "us"
-        },
-        {
-          "name": "min_price",
-          "type": "int",
-          "description": "Minimum price filter for products",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "max_price",
-          "type": "int",
-          "description": "Maximum price filter for products",
-          "required": false,
-          "default": 0
-        },
-        {
-          "name": "condition",
-          "type": "str",
-          "description": "Product condition filter (e.g., 'new', 'used', 'refurbished')",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "sort_by",
-          "type": "str",
-          "description": "Sort order for results (e.g., 'price_low_to_high', 'price_high_to_low', 'review_score')",
-          "required": false,
-          "default": ""
-        },
-        {
-          "name": "num_results",
-          "type": "int",
-          "description": "Maximum number of shopping results to return",
-          "required": false,
-          "default": 10
-        }
-      ],
-      "outputs": [
-        {
-          "name": "results",
-          "type": "list[shopping_result]"
-        },
-        {
-          "name": "text",
-          "type": "str"
-        }
-      ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/search/google/googleshopping",
-      "markdown_url": "https://docs.nodetool.ai/nodes/search/google/googleshopping.md"
     },
     {
       "type": "transformers.AudioClassification",

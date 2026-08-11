@@ -23,7 +23,7 @@ export const useWorkflowVersions = (
         id: workflowId as string,
         limit
       });
-      return data as unknown as WorkflowVersionList;
+      return data as WorkflowVersionList;
     },
     enabled: !!workflowId,
     staleTime: 30 * 1000

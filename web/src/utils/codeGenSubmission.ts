@@ -10,6 +10,7 @@ import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
 import type { TypeMetadata } from "../stores/ApiTypes";
 import type { DynamicSlotDeclaration, NodeData } from "../stores/NodeData";
+import { toCodeGenType } from "./codeGenEntryPoints";
 import {
   defaultValueForType,
   normalizeTypeMetadata
@@ -88,7 +89,7 @@ export function nodeInputsToCodeGenPorts(
     .filter(([name]) => identifier.test(name))
     .map(([name, slot]) => ({
       name,
-      type: slot.type as unknown as codeGen.CodeGenTypeMetadata,
+      type: toCodeGenType(slot.type),
       ...(slot.description ? { description: slot.description } : {}),
       ...(slot.required !== undefined ? { required: slot.required } : {})
     }));

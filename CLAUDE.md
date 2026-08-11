@@ -2,7 +2,7 @@
 
 Visual AI workflow platform. TypeScript monorepo with React frontend, Electron desktop app, and Node.js backend.
 
-> _Last updated: 2026-07-11._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
+> _Last updated: 2026-08-10._ When the architecture, commands, or rules below drift from the codebase, update this file in the same PR.
 
 ## Communication Style
 
@@ -959,7 +959,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships eleven packs in
+global — the `data.*` namespace is gone. NodeTool ships twenty packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
 installed like any third-party pack and never a workspace:
 
@@ -976,11 +976,28 @@ installed like any third-party pack and never a workspace:
 | `@nodetool-ai/sandbox-zip` | fflate | host |
 | `@nodetool-ai/sandbox-ocr` | tesseract.js | host |
 | `@nodetool-ai/sandbox-tfjs` | TensorFlow.js + model zoo | host |
+| `@nodetool-ai/sandbox-docx` | docx | host |
+| `@nodetool-ai/sandbox-mammoth` | mammoth | host |
+| `@nodetool-ai/sandbox-epub` | epub2 | host |
+| `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
+| `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |
+| `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
+| `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |
+| `@nodetool-ai/sandbox-twilio` | NodeTool's Twilio helper | host |
+| `@nodetool-ai/sandbox-apify` | NodeTool's Apify helper | host |
 
 **guest** means the compiler bundles the library into QuickJS. **host** means it
 runs where the sandbox runs — needed when the library wants Node builtins or a
-DOM, or when it carries a limit the guest could not enforce on itself (zip's
-50 MB inflation cap). A host pack's manifest entry is
+DOM, when it carries a limit the guest could not enforce on itself (zip's
+50 MB inflation cap), or when the code is NodeTool's own and a config-only pack
+therefore cannot ship it.
+
+The last five are that case: they replace the S3, Notion, Supabase, Twilio and
+Apify nodes. Each builds an authenticated request — `-aws` signs one with
+SigV4 — and **none of them sends it**. The guest passes what comes back to its
+own `fetch`, so the run's fetch cap and SSRF guard still apply. Credentials
+come from `nodetool.secrets.get(name)`, which a Code node can narrow to the
+names it declares in its `secrets` property. A host pack's manifest entry is
 `{"kind": "host", "host": "<id>"}`, and the id resolves only through NodeTool's
 own `SANDBOX_HOST_MODULES` table, which pins the one package allowed to declare
 it — a third-party pack can never bring host code. The implementations live in

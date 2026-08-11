@@ -25,20 +25,3 @@ export interface DiscordBotTriggerOutputs {
 export function discordBotTrigger(inputs: DiscordBotTriggerInputs): DslNode<DiscordBotTriggerOutputs> {
   return createNode("messaging.discord.DiscordBotTrigger", inputs as Record<string, unknown>, { outputNames: ["message_id", "content", "author", "channel", "guild", "attachments", "timestamp", "source", "event_type"], streaming: true });
 }
-
-// Discord Send Message — messaging.discord.DiscordSendMessage
-export interface DiscordSendMessageInputs {
-  token?: Connectable<string>;
-  channel_id?: Connectable<string>;
-  content?: Connectable<string>;
-  tts?: Connectable<boolean>;
-  embeds?: Connectable<Record<string, unknown>[]>;
-}
-
-export interface DiscordSendMessageOutputs {
-  output: Record<string, unknown>;
-}
-
-export function discordSendMessage(inputs: DiscordSendMessageInputs): DslNode<DiscordSendMessageOutputs, "output"> {
-  return createNode("messaging.discord.DiscordSendMessage", inputs as Record<string, unknown>, { outputNames: ["output"], defaultOutput: "output" });
-}

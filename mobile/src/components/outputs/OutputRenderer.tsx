@@ -11,10 +11,9 @@ import {
 } from "react-native";
 import { MediaPlayerView } from "../media/MediaPlayerView";
 import SyntaxHighlighter from "react-native-syntax-highlighter";
-import {
-  atomDark,
-  tomorrow,
-} from "react-syntax-highlighter/dist/esm/styles/prism";
+// Deep imports: the `styles/prism` barrel pulls all 47 themes into the bundle.
+import atomDark from "react-syntax-highlighter/dist/esm/styles/prism/atom-dark";
+import tomorrow from "react-syntax-highlighter/dist/esm/styles/prism/tomorrow";
 import MarkdownRenderer from "../../utils/MarkdownRenderer";
 import { useTheme } from "../../hooks/useTheme";
 import type { ThemeColors } from "../../utils/theme";
@@ -104,7 +103,12 @@ const formatDatetime = (dt: {
   return date.toLocaleString();
 };
 
-export const OutputRenderer = ({ value }: OutputRendererProps) => {
+// Memoized on `value`: the hosts repaint far more often than the value changes
+// (a running ChainNodeCard ticks an elapsed timer every second, and every
+// app-runtime widget re-renders on each progress update), and each repaint
+// re-walked the value tree — Prism-tokenizing a JSON dump, or rebuilding the
+// 50-row table matrix.
+export const OutputRenderer = React.memo(({ value }: OutputRendererProps) => {
   const type = useMemo(() => typeFor(value), [value]);
   const { colors, mode } = useTheme();
   const codeTheme = mode === "dark" ? atomDark : tomorrow;
@@ -762,7 +766,9 @@ export const OutputRenderer = ({ value }: OutputRendererProps) => {
         </Text>
       );
   }
-};
+});
+
+OutputRenderer.displayName = "OutputRenderer";
 
 /**
  * Render a value as syntax-highlighted JSON.

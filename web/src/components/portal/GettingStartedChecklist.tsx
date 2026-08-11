@@ -19,13 +19,13 @@ const styles = (theme: Theme, inline: boolean) =>
       justifyContent: inline ? "center" : "flex-start",
       display: "flex",
       alignItems: "center",
-      gap: 10,
+      gap: getSpacingPx(SPACING.lg),
       flexWrap: "wrap",
       padding: `${getSpacingPx(SPACING.lg)} 0` // was 10px 0
     },
     ".checklist-label": {
       fontFamily: theme.fontFamily2,
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       textTransform: "uppercase" as const,
       letterSpacing: "0.08em",
       color: theme.vars.palette.text.disabled,
@@ -34,14 +34,14 @@ const styles = (theme: Theme, inline: boolean) =>
     ".checklist-step": {
       display: "inline-flex",
       alignItems: "center",
-      gap: 7,
+      gap: getSpacingPx(SPACING.sm),
       height: 30,
       padding: `0 ${getSpacingPx(SPACING.lg)}`,
       borderRadius: BORDER_RADIUS.pill,
       border: `1px solid ${theme.vars.palette.divider}`,
       background: "transparent",
       color: theme.vars.palette.text.secondary,
-      fontSize: 13,
+      fontSize: "var(--fontSizeSmall)",
       cursor: "pointer",
       transition: `border-color ${MOTION.fast}, color ${MOTION.fast}`,
       "&:hover": {
@@ -76,7 +76,7 @@ const styles = (theme: Theme, inline: boolean) =>
       border: "none",
       padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
       borderRadius: BORDER_RADIUS.md,
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       cursor: "pointer",
       "&:hover": {

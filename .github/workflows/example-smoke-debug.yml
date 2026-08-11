@@ -3,7 +3,7 @@ name: Example Smoke Debug
 # Ring 2 real-provider nightly (docs/RELIABILITY_ARCHITECTURE.md §11;
 # docs/RELIABILITY_TASKS.md F2) plus on-demand execution smoke tier for
 # shipped examples (docs/plans/examples-revamp.md, Phase 0). `nodetool
-# validate` (the "examples" leg of quality-checks.yml) is static and runs on
+# validate` (part of the "typecheck" leg of quality-checks.yml) is static and runs on
 # every PR; this job actually executes a curated list of examples on the
 # kernel runner (`nodetool debug`, server surface only) to catch runtime
 # drift static validation can't see.

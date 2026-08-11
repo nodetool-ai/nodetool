@@ -8,23 +8,11 @@ import {
   ForEachNode,
   RerouteNode,
   CollectNode,
-  SplitTextNode,
-  ExtractTextNode,
-  ChunkTextNode,
-  ExtractJSONNode,
   CountTokensNode,
   SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
   EmbeddingTextNode,
-  RegexReplaceNode,
-  CompareTextNode,
-  ContainsTextNode,
-  TrimWhitespaceNode,
-  SlugifyNode,
-  PadTextNode,
-  LengthTextNode,
-  SurroundWithTextNode,
   FilterStringNode,
   FilterRegexStringNode,
   ConstantIntegerNode,
@@ -38,15 +26,8 @@ import {
   OutputNode,
   PreviewNode,
   CompareImagesNode,
-  SplitJSONNode,
   SaveDocumentFileNode,
   LoadDocumentFileNode,
-  ImportCSVNode,
-  SelectColumnNode,
-  AggregateNode,
-  RenameNode,
-  FillNANode,
-  FilterNoneNode,
   WaitNode,
   CreateSilenceNode,
   ConcatAudioNode,
@@ -74,10 +55,6 @@ describe("base node registration", () => {
     expect(registry.has(IfNode.nodeType)).toBe(true);
     expect(registry.has("nodetool.control.RepeatCount")).toBe(true);
     expect(registry.has("nodetool.control.RepeatValue")).toBe(true);
-    expect(registry.has("nodetool.list.Range")).toBe(true);
-    expect(registry.has("nodetool.list.Tile")).toBe(true);
-    expect(registry.has("nodetool.list.RepeatEach")).toBe(true);
-    expect(registry.has("nodetool.list.RepeatValue")).toBe(true);
     expect(registry.has("nodetool.input.StringInput")).toBe(true);
     expect(registry.has("nodetool.output.Output")).toBe(true);
     expect(registry.has("nodetool.workflows.base_node.Preview")).toBe(true);
@@ -85,9 +62,9 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
     expect(registry.has("nodetool.constant.Sketch")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
-    expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
+    expect(registry.has("nodetool.document.LoadDocumentFile")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
-    expect(registry.has("nodetool.data.Aggregate")).toBe(true);
+    expect(registry.has("nodetool.data.ForEachRow")).toBe(true);
     expect(registry.has("nodetool.code.Code")).toBe(true);
     expect(registry.has("nodetool.audio.TextToSpeech")).toBe(true);
     expect(registry.has("nodetool.triggers.Wait")).toBe(true);
@@ -302,7 +279,7 @@ describe("input/output nodes", () => {
     expect(result.equal).toBe(true);
   });
 
-  it("document save/load and split json nodes work", async () => {
+  it("document save/load nodes work", async () => {
     const file = `/tmp/nodetool-doc-${Date.now()}.json`;
     const save = new SaveDocumentFileNode();
     save.assign({
@@ -317,52 +294,6 @@ describe("input/output nodes", () => {
     load.assign({ path: file });
     const loaded = await load.process();
     expect((loaded.output as { data: string }).data).toBeTruthy();
-
-    const split = new SplitJSONNode();
-    split.assign({
-      document: { uri: `file://${file}` },
-      chunk_size: 8,
-      chunk_overlap: 2
-    });
-    const out: Array<string> = [];
-    for await (const chunk of split.genProcess()) {
-      out.push(String(chunk.chunk));
-    }
-    expect(out.length).toBeGreaterThan(0);
-  });
-
-  it("data nodes import/select/aggregate/rename/fill work", async () => {
-    const _imp = new ImportCSVNode();
-    _imp.assign({ csv_data: "team,score\nA,10\nA,20\nB,5" });
-    const imported = await _imp.process();
-    const _sel = new SelectColumnNode();
-    _sel.assign({ dataframe: imported.output, columns: "team,score" });
-    const selected = await _sel.process();
-    const _agg = new AggregateNode();
-    _agg.assign({
-      dataframe: selected.output,
-      columns: "team",
-      aggregation: "sum"
-    });
-    const aggregated = await _agg.process();
-    const _ren = new RenameNode();
-    _ren.assign({ dataframe: aggregated.output, rename_map: "score:total" });
-    const renamed = await _ren.process();
-    const _fill = new FillNANode();
-    _fill.assign({ dataframe: renamed.output, method: "value", value: 0 });
-    const filled = await _fill.process();
-
-    expect(
-      (filled.output as { rows: Array<Record<string, unknown>> }).rows.length
-    ).toBe(2);
-  });
-
-  it("FilterNoneNode omits null and forwards non-null", async () => {
-    const _fn1 = new FilterNoneNode();
-    await expect(_fn1.process()).resolves.toEqual({ output: [] });
-    const _fn2 = new FilterNoneNode();
-    _fn2.assign({ value: "ok" });
-    await expect(_fn2.process()).resolves.toEqual({ output: "ok" });
   });
 
   it("WaitNode returns wait metadata", async () => {
@@ -556,65 +487,6 @@ describe("control nodes", () => {
 });
 
 describe("text nodes", () => {
-  it("basic text transform nodes work", async () => {
-    const _sp = new SplitTextNode();
-    _sp.assign({ text: "a,b,c", delimiter: "," });
-    await expect(_sp.process()).resolves.toEqual({ output: ["a", "b", "c"] });
-    const _ex = new ExtractTextNode();
-    _ex.assign({ text: "abcdef", start: 1, end: 4 });
-    await expect(_ex.process()).resolves.toEqual({ output: "bcd" });
-    const _ch = new ChunkTextNode();
-    _ch.assign({ text: "a b c d", length: 2, overlap: 1, separator: " " });
-    await expect(_ch.process()).resolves.toEqual({
-      output: ["a b", "b c", "c d", "d"]
-    });
-  });
-
-  it("regex/text comparison helpers work", async () => {
-    const _rr = new RegexReplaceNode();
-    _rr.assign({ text: "abc-123-def", pattern: "\\d+", replacement: "X" });
-    await expect(_rr.process()).resolves.toEqual({ output: "abc-X-def" });
-
-    const _ct = new CompareTextNode();
-    _ct.assign({ text_a: "Alpha", text_b: "alpha", case_sensitive: false });
-    await expect(_ct.process()).resolves.toEqual({ output: "equal" });
-  });
-
-  it("contains/trim/slugify/pad/length/surround helpers work", async () => {
-    const _cn = new ContainsTextNode();
-    _cn.assign({
-      text: "hello world",
-      search_values: ["hello", "world"],
-      match_mode: "all"
-    });
-    await expect(_cn.process()).resolves.toEqual({ output: true });
-
-    const _tw = new TrimWhitespaceNode();
-    _tw.assign({ text: "  hi  ", trim_start: true, trim_end: false });
-    await expect(_tw.process()).resolves.toEqual({ output: "hi  " });
-
-    const _sl = new SlugifyNode();
-    _sl.assign({ text: "Hello, World!", separator: "-", lowercase: true });
-    await expect(_sl.process()).resolves.toEqual({ output: "hello-world" });
-
-    const _pd = new PadTextNode();
-    _pd.assign({ text: "x", length: 3, pad_character: ".", direction: "both" });
-    await expect(_pd.process()).resolves.toEqual({ output: ".x." });
-
-    const _lt = new LengthTextNode();
-    _lt.assign({ text: "a b c", measure: "words" });
-    await expect(_lt.process()).resolves.toEqual({ output: 3 });
-
-    const _sw = new SurroundWithTextNode();
-    _sw.assign({
-      text: "value",
-      prefix: "[",
-      suffix: "]",
-      skip_if_wrapped: true
-    });
-    await expect(_sw.process()).resolves.toEqual({ output: "[value]" });
-  });
-
   it("stream-style text filters keep state", async () => {
     const filter = new FilterStringNode();
     filter.assign({ filter_type: "contains", criteria: "ok" });
@@ -637,15 +509,7 @@ describe("text nodes", () => {
     await expect(regexFilter.process()).resolves.toEqual({});
   });
 
-  it("extract json / token count", async () => {
-    const _ej = new ExtractJSONNode();
-    _ej.assign({
-      text: '{"a":{"b":[1,2]}}',
-      json_path: "$.a.b[1]",
-      find_all: false
-    });
-    await expect(_ej.process()).resolves.toEqual({ output: 2 });
-
+  it("token count", async () => {
     const _ct = new CountTokensNode();
     _ct.assign({ text: "hello, world!" });
     await expect(_ct.process()).resolves.toEqual({ output: 4 });

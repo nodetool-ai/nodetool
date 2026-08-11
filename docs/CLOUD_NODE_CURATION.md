@@ -146,15 +146,12 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 ## Namespaces dropped (the "nerdy" set)
 
 - **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
-  `lib.docx`, `lib.epub`, `lib.pptx`, `lib.convert`,
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`, `nodetool.sandbox`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`
-- **Databases/cloud/integrations:** `lib.sqlite`, `lib.supabase`, `lib.notion`,
-  `lib.s3`, `lib.http`, `lib.graphql`, `lib.mail`, `lib.twilio`, `lib.rss`,
-  `lib.secret`, `lib.comfy`
-- **Search/scraping/messaging:** `search.google`, `apify.scraping`,
-  `messaging.discord`, `messaging.telegram`
+- **Databases/cloud/integrations:** `lib.sqlite`, `lib.http`, `lib.graphql`,
+  `lib.mail`, `lib.secret`, `lib.comfy`
+- **Messaging:** `messaging.discord`, `messaging.telegram`
 - **NLP/ML utility:** `lib.nlp`, `vector` (RAG),
   `lib.validate`, `lib.datetime`
 - **Out-of-scope providers:** `huggingface`, `transformers`, `minimax`, `reve`,

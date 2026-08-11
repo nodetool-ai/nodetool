@@ -40,6 +40,8 @@
     "acorn": "^8.16.0",
     "cheerio": "^1.2.0",
     "diff": "^5.2.0",
+    "docx": "^9.6.0",
+    "epub2": "^3.0.2",
     "exceljs": "^4.4.0",
     "fast-xml-parser": "^5.7.3",
     "fflate": "^0.8.2",
@@ -47,6 +49,8 @@
     "js-tiktoken": "^1.0.18",
     "js-yaml": "^4.3.1",
     "mailparser": "^3.9.3",
+    "mammoth": "^1.11.0",
+    "office-text-extractor": "^4.0.0",
     "papaparse": "^5.5.3",
     "tesseract.js": "^7.0.0",
     "turndown": "^7.2.2"

@@ -230,6 +230,36 @@ default used. Assistant and tool messages are persisted independently of the
 buffer, so an expired or truncated replay costs only unpersisted stream chunks —
 the client refetches thread history over REST.
 
+## Job Run Replay
+
+A workflow run outlives the WebSocket connection that started it, the same way
+a chat turn does. Every frame the run emits is stamped with an increasing
+`job_seq` and appended to a bounded buffer; a client that reconnects sends
+`{command: "reconnect_job", data: {job_id, last_seq}}` and gets the missed tail
+replayed, followed by live frames if the run is still going. Three variables
+size that machinery:
+
+- `NODETOOL_JOB_DETACH_GRACE_MS` — a running job nobody is attached to is
+  cancelled after this long (default 10 minutes), so an abandoned client cannot
+  leave a workflow burning provider spend forever.
+- `NODETOOL_JOB_REPLAY_RETENTION_MS` — a finished session is kept this long so a
+  client reconnecting just after the run ended still gets the tail (default 5
+  minutes).
+- `NODETOOL_JOB_REPLAY_BUFFER_EVENTS` — frames buffered per run (default 2000).
+
+```bash
+NODETOOL_JOB_DETACH_GRACE_MS=1800000 nodetool serve
+```
+
+Each is read as a positive integer; a value that is not one is ignored and the
+default used. Terminal state is persisted to the `jobs` table independently of
+the buffer, so an expired or truncated replay degrades to `reconnect_job`'s
+persisted-row fallback — the run's real status, just without its events.
+
+These size one process's buffer. Getting a reconnect to the process that *holds*
+the run is a separate concern; see
+[Multi-instance deployments](websocket-api.md#multi-instance-deployments).
+
 ## Environment Variables Index
 
 ![API Settings](assets/screenshots/settings-api-keys.png)
@@ -273,8 +303,11 @@ the client refetches thread history over REST.
 | `NODETOOL_EXTENSION_DIST` | Directory holding the built Chrome extension served by `/api/extension/download` | no | Set by the desktop app to its bundled copy. When unset (or pointing at a directory with no `manifest.json`), the server walks up from its own directory and the working directory looking for `chrome-extension/dist`. See [Chrome Extension](chrome-extension.md#downloading-a-prebuilt-copy) |
 | `NODETOOL_ENABLE_EXTENSION_BRIDGE` | Keep the `/ws/extension` CDP bridge open when `NODETOOL_ENV=production` | no | Off in production unless set to exactly `1`; on everywhere else. The bridge is unauthenticated and single-connection — whoever connects becomes *the* extension socket and can proxy CDP through the server — so enable it only on a deployment that actually drives the browser extension. When disabled the server logs that at startup and the route is not registered |
 | `NODETOOL_BROWSER_HEADLESS` | Whether browser-automation nodes launch Chrome headless | no | Server-side browser tools are headless unless this is exactly `false`. Inside a sandbox container the default follows `DISPLAY` instead — visible when an X display is attached so you can watch over noVNC — and `true`/`false` here overrides that either way |
+| `NODETOOL_SHELL_VNC` | Whether a sandbox shell opens a visible `xterm` alongside its tmux session | no | On whenever `DISPLAY` is set, so anyone watching the sandbox over noVNC sees the agent's keystrokes live; `NODETOOL_SHELL_VNC=0` disables it. With no `DISPLAY` attached nothing is spawned either way. The xterm exits on its own when the shell is killed |
 | `NODETOOL_GPU_VALIDATE` | Escape hatch for the WGSL linearity validator | no | `off` disables it. The validator rejects a shader module whose WGSL contradicts its declared premultiplied-alpha contract, at module load. Use it to ship a hotfix while the shader is corrected, not as a standing setting; read once per process |
 | `NODETOOL_GPU_DEBUG` | Comma-separated GPU debug passes to enable | no | `premul` scans every premultiplied output texture after dispatch and logs texels that break the invariant (`rgb ≤ a`, `rgb ≥ 0`, no NaN): `NODETOOL_GPU_DEBUG=premul`. Off by default and zero cost when off — the pass is never encoded. Read once per process |
+| `NODETOOL_CACHE_DIR` | Per-user cache root for derived artifacts NodeTool can always rebuild | no | Everything under it is safe to delete — it is deliberately separate from the data directory. Unset, it is `%LOCALAPPDATA%\nodetool\cache` on Windows and `$XDG_CACHE_HOME/nodetool` (falling back to `~/.cache/nodetool`) elsewhere. The compiled sandbox guest modules live in `sandbox-modules/` under it, cached by content digest; see [Sandbox package design](sandbox-package-design.md) |
+| `NODETOOL_PACKAGE_ASSETS_DIR` | Directory `package://<pkg>/<file>` refs are resolved from on disk | no | Set by the server at startup to the first package-assets root it finds, so in-process workflow execution reads the bytes directly instead of an HTTP round-trip to its own `/api/assets/packages/…` route. Set it yourself only when embedding the runtime with no server in the process. Refs are confined to the root — a path escaping it is refused |
 | `NODETOOL_BASE_EXAMPLES_DIR` | Directory the shipped example workflows are read from | no | Overrides detection when it exists on disk; a path that does not exist is ignored rather than fatal. Unset, the server looks beside its own entry point (the packaged layout), then at `packages/base-nodes/nodetool/examples/nodetool-base` (the monorepo layout). With none found it logs `Examples directory not found` and template workflows are unavailable. The resolved path is logged at startup |
 | `NODETOOL_PYTHON` | Python interpreter the Python bridge spawns | no | An absolute path to the executable. When unset, an active `CONDA_PREFIX` that looks like a NodeTool env is tried, then NodeTool's own managed env. See [Python Nodes](#python-nodes) |
 | `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION` | Let the Python bridge connect when `NODETOOL_ENV=production` | no | Off unless set to exactly `1`. Otherwise a production server refuses to spawn the worker: Python nodes are a local-only feature |
@@ -292,6 +325,9 @@ the client refetches thread history over REST.
 | `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |
 | `NODETOOL_CHAT_REPLAY_RETENTION_MS` | How long a finished turn is kept for a late reconnect | no | Default `300000` (5 minutes) |
 | `NODETOOL_CHAT_REPLAY_BUFFER_EVENTS` | Frames buffered per turn for replay | no | Default `2000`. A client whose `last_seq` predates the buffer is told the replay is incomplete and refetches thread history over REST |
+| `NODETOOL_JOB_DETACH_GRACE_MS` | How long a running workflow job survives with no client attached | no | Default `600000` (10 minutes), then the run is cancelled so an abandoned client cannot leave a workflow spending forever. See [Job run replay](#job-run-replay) |
+| `NODETOOL_JOB_REPLAY_RETENTION_MS` | How long a finished run is kept for a late reconnect | no | Default `300000` (5 minutes) |
+| `NODETOOL_JOB_REPLAY_BUFFER_EVENTS` | Frames buffered per run for replay | no | Default `2000`. Beyond the buffer, `reconnect_job` falls back to the persisted `jobs` row — the run's status without its events |
 | `LOG_LEVEL` / `NODETOOL_LOG_LEVEL` | Logging level | no | Defaults to `info` (`NODETOOL_LOG_LEVEL` takes precedence) |
 | `SECRETS_MASTER_KEY` | Master key for secret encryption | yes | See [Secret Storage and Master Key](#secret-storage-and-master-key) |
 | `RUNPOD_API_KEY` | RunPod deployments | yes | Used by CLI and providers |

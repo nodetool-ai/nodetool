@@ -38,9 +38,10 @@
       },
       {
         "id": "sp",
-        "type": "nodetool.text.Split",
+        "type": "nodetool.code.Code",
         "data": {
-          "delimiter": ", "
+          "code": "return { output: inputs.text.split(inputs.delimiter ?? \",\") };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -52,8 +53,16 @@
           "selectable": true,
           "title": "2  Split"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "delimiter": ", "
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "jn",

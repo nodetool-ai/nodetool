@@ -88,10 +88,16 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn(),
 }));
 
-// Mock react-syntax-highlighter
-jest.mock('react-syntax-highlighter/dist/esm/styles/prism', () => ({
-  atomDark: {},
-  tomorrow: {},
+// Mock react-syntax-highlighter. The app deep-imports the two themes it uses
+// so the 47-theme barrel stays out of the bundle; mock the same paths.
+jest.mock('react-syntax-highlighter/dist/esm/styles/prism/atom-dark', () => ({
+  __esModule: true,
+  default: {},
+}));
+
+jest.mock('react-syntax-highlighter/dist/esm/styles/prism/tomorrow', () => ({
+  __esModule: true,
+  default: {},
 }));
 
 jest.mock('react-native-syntax-highlighter', () => {

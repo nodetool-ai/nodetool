@@ -2,107 +2,6 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { InputMode, OutputCorrelation } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
-export class SendEmailLibNode extends BaseNode {
-  static readonly nodeType = "lib.mail.SendEmail";
-  static readonly title = "Send Email";
-  static readonly description =
-    "Send a plain text email via SMTP.\n    email, smtp, send\n\n    Use cases:\n    - Send simple notification messages\n    - Automate email reports";
-  static readonly metadataOutputTypes = {
-    output: "bool"
-  };
-  static readonly inlineFields = ["to_address", "subject"];
-  static readonly inputFields = ["body"];
-
-  @prop({
-    type: "str",
-    default: "smtp.gmail.com",
-    title: "Smtp Server",
-    description: "SMTP server hostname"
-  })
-  declare smtp_server: any;
-
-  @prop({
-    type: "int",
-    default: 587,
-    title: "Smtp Port",
-    description: "SMTP server port"
-  })
-  declare smtp_port: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Username",
-    description: "SMTP username"
-  })
-  declare username: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Password",
-    description: "SMTP password"
-  })
-  declare password: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "From Address",
-    description: "Sender email address"
-  })
-  declare from_address: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "To Address",
-    description: "Recipient email address"
-  })
-  declare to_address: any;
-
-  @prop({
-    type: "str",
-    default: "",
-    title: "Subject",
-    description: "Email subject"
-  })
-  declare subject: any;
-
-  @prop({ type: "str", default: "", title: "Body", description: "Email body" })
-  declare body: any;
-
-  async process(): Promise<Record<string, unknown>> {
-    const smtpServer = String(this.smtp_server ?? "smtp.gmail.com");
-    const smtpPort = Number(this.smtp_port ?? 587);
-    const username = String(this.username ?? "");
-    const password = String(this.password ?? "");
-    const fromAddress = String(this.from_address ?? "");
-    const toAddress = String(this.to_address ?? "");
-    const subject = String(this.subject ?? "");
-    const body = String(this.body ?? "");
-
-    if (!toAddress) throw new Error("Recipient email address is required");
-
-    const nodemailer = (await import("nodemailer")).default;
-    const transporter = nodemailer.createTransport({
-      host: smtpServer,
-      port: smtpPort,
-      secure: false,
-      auth: username ? { user: username, pass: password } : undefined
-    });
-
-    await transporter.sendMail({
-      from: fromAddress || username,
-      to: toAddress,
-      subject,
-      text: body
-    });
-
-    return { output: true };
-  }
-}
-
 /**
  * Create an ImapFlow client connected to Gmail using app password.
  */
@@ -505,7 +404,6 @@ export class MoveToArchiveLibNode extends BaseNode {
 }
 
 export const LIB_MAIL_NODES = tagAsServer([
-  SendEmailLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
   MoveToArchiveLibNode

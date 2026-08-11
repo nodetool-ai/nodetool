@@ -2,9 +2,15 @@
 
 External-API integration nodes for [NodeTool](https://nodetool.ai).
 
-Connect visual AI workflows to the outside world: HTTP and GraphQL requests, AWS
-S3, Supabase, Notion, Twilio, email, Discord and Telegram, Google search via
-SerpApi, Apify web scrapers, and ComfyUI workflows.
+Connect visual AI workflows to the outside world: Google Workspace, email,
+Discord and Telegram triggers, and ComfyUI workflows.
+
+Services that are one authenticated HTTP call — S3, Supabase, Notion, Twilio,
+Apify, SerpApi, Discord and Telegram sends — no longer ship as nodes. They are
+written as scripts in a `nodetool.code.Code` node, with `fetch`,
+`nodetool.secrets.get(name)`, and the auth-helper sandbox packs
+(`@nodetool-ai/sandbox-aws`, `-notion`, `-supabase`, `-twilio`, `-apify`). See
+[packages/sandbox-packs](../sandbox-packs/README.md).
 
 ## Install
 
@@ -14,20 +20,7 @@ npm install @nodetool-ai/integration-nodes
 
 ## Nodes
 
-**S3** (`lib.s3.*`) — `ListBuckets`, `ListObjects`, `GetObject`, `PutObject`,
-`DeleteObject`, `CopyObject`, `GetPresignedUrl`.
-
-**Supabase** (`lib.supabase.*`) — `Select`, `Insert`, `Update`, `Delete`,
-`Upsert`, `RPC`.
-
-**Notion** (`lib.notion.*`) — `Search`, `GetPage`, `GetPageContent`,
-`CreatePage`, `UpdatePage`, `QueryDatabase`.
-
-**Twilio** (`lib.twilio.*`) — `SendSMS`, `SendWhatsApp`, `GetMessages`,
-`Lookup`.
-
-**Mail** (`lib.mail.*`) — `SendEmail`, `GmailSearch`, `AddLabel`,
-`MoveToArchive`.
+**Mail** (`lib.mail.*`) — `GmailSearch`, `AddLabel`, `MoveToArchive`.
 
 **Google Workspace** (`lib.google.*`) — `DriveSearch`, `DriveReadFile`,
 `DriveCreateFile`, `GmailSearch`, `GmailSend`, `GmailModifyLabels`, `DocsRead`,
@@ -36,17 +29,10 @@ npm install @nodetool-ai/integration-nodes
 the access token from the user's Google sign-in, so they appear only on servers
 that have a login (see Configuration below).
 
-**Messaging** (`messaging.*`) — Discord and Telegram bot triggers and senders:
-`discord.DiscordBotTrigger`, `discord.DiscordSendMessage`,
-`telegram.TelegramBotTrigger`, `telegram.TelegramSendMessage`.
-
-**Search** (`search.google.*`) — SerpApi-backed Google search:
-`GoogleSearch`, `GoogleNews`, `GoogleImages`, `GoogleFinance`, `GoogleJobs`,
-`GoogleLens`, `GoogleMaps`, `GoogleShopping`.
-
-**Apify** (`apify.scraping.*`) — `ApifyWebScraper`,
-`ApifyGoogleSearchScraper`, `ApifyInstagramScraper`, `ApifyAmazonScraper`,
-`ApifyYouTubeScraper`, `ApifyTwitterScraper`, `ApifyLinkedInScraper`.
+**Messaging** (`messaging.*`) — Discord and Telegram bot triggers:
+`discord.DiscordBotTrigger`, `telegram.TelegramBotTrigger`. A trigger holds a
+long-lived connection, which is what a script cannot do; sending a message is a
+`fetch` call and is one.
 
 **ComfyUI** (`lib.comfy.*`) — `RunWorkflow` runs an API-format ComfyUI workflow
 against any reachable ComfyUI server, streaming each output file as its save node
@@ -63,13 +49,7 @@ messages. Both derive typed inputs from `Load*` nodes and typed outputs from
 Set the keys for the services you use in NodeTool's secret store (Settings → API
 Keys) or as environment variables:
 
-- S3: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`
-- Supabase: `SUPABASE_URL`, `SUPABASE_KEY`
-- Notion: `NOTION_API_KEY`
-- Twilio: `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`
 - Mail: `GOOGLE_APP_PASSWORD`
-- Search: `SERPAPI_API_KEY`
-- Apify: `APIFY_API_TOKEN`
 - KIE: `KIE_API_KEY`
 - Discord: `DISCORD_BOT_TOKEN`
 - Telegram: `TELEGRAM_BOT_TOKEN`

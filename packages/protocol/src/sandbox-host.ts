@@ -112,6 +112,69 @@ export const SANDBOX_HOST_MODULES: Readonly<Record<string, SandboxHostModuleSpec
     library: "diff",
     description: "Unified diff of two texts.",
     exports: ["unified"]
+  },
+  aws: {
+    id: "aws",
+    packName: "@nodetool-ai/sandbox-aws",
+    library: "NodeTool's SigV4 signer",
+    description: "Sign an AWS request (S3 and friends) with Signature V4.",
+    exports: ["sigv4", "presign"]
+  },
+  notion: {
+    id: "notion",
+    packName: "@nodetool-ai/sandbox-notion",
+    library: "NodeTool's Notion helper",
+    description: "Build a Notion API request, and read its rich text and blocks.",
+    exports: ["request", "plainText", "toMarkdown"]
+  },
+  supabase: {
+    id: "supabase",
+    packName: "@nodetool-ai/sandbox-supabase",
+    library: "NodeTool's PostgREST helper",
+    description: "Build a Supabase REST or RPC request.",
+    exports: ["from", "rpc"]
+  },
+  twilio: {
+    id: "twilio",
+    packName: "@nodetool-ai/sandbox-twilio",
+    library: "NodeTool's Twilio helper",
+    description: "Build an authenticated Twilio API request.",
+    exports: ["request"]
+  },
+  apify: {
+    id: "apify",
+    packName: "@nodetool-ai/sandbox-apify",
+    library: "NodeTool's Apify helper",
+    description: "Build the start, poll, and dataset requests of an Apify run.",
+    exports: ["startRun", "runStatus", "datasetItems"]
+  },
+  docx: {
+    id: "docx",
+    packName: "@nodetool-ai/sandbox-docx",
+    library: "docx",
+    description: "Build a Word document from headings, paragraphs, tables, and images.",
+    exports: ["build"]
+  },
+  mammoth: {
+    id: "mammoth",
+    packName: "@nodetool-ai/sandbox-mammoth",
+    library: "mammoth",
+    description: "Read a Word document as plain text or HTML.",
+    exports: ["extractRawText", "convertToHtml"]
+  },
+  epub: {
+    id: "epub",
+    packName: "@nodetool-ai/sandbox-epub",
+    library: "epub2",
+    description: "Read an EPUB's metadata, table of contents, and chapter text.",
+    exports: ["metadata", "tableOfContents", "extractText", "extractChapters"]
+  },
+  pptx: {
+    id: "pptx",
+    packName: "@nodetool-ai/sandbox-pptx",
+    library: "office-text-extractor",
+    description: "Extract text from a PowerPoint file, whole or per slide.",
+    exports: ["extractText", "extractSlides"]
   }
 } as const;
 

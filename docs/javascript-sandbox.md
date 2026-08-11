@@ -67,7 +67,8 @@ libraries are imports.**
 | `console.*` | Log lines land in the run's `logs` array |
 | `fetch(url, options?)` | HTTP, returning `{ok, status, headers, body, json, text(), arrayBuffer(), bytes()}`. A `Uint8Array` body is sent as raw bytes |
 | `workspace.*` | `read`, `write`, `list`, `readBytes`, `writeBytes`, `stat`, `root`, `copy`, `move`, `mkdir`, `remove`. Needs a `ProcessingContext` |
-| `getSecret(name)` | The run's secret store |
+| `getSecret(name)` | The run's secret store, limited to the run's declared secret scope |
+| `nodetool.secrets.*` | `get` (throws when unset), `tryGet`, `list` — over the same bridge |
 | `sleep(ms)` | The only timer |
 | `crypto.*` | `randomUUID`, `getRandomValues`, `digest`, `hmac` (WebCrypto-backed; SHA-1/256/384/512) |
 | `format.*` | `number`, `date`, `relativeTime`, `list` — host `Intl`, which QuickJS does not ship. All four are async |
@@ -97,15 +98,18 @@ const config = yaml.load(inputs.text);
 return { config };
 ```
 
-NodeTool ships eleven (`packages/sandbox-packs/`): `-dates` (date-fns),
+NodeTool ships twenty (`packages/sandbox-packs/`): `-dates` (date-fns),
 `-yaml` (js-yaml) and `-markdown` (marked) run inside the guest; `-csv`
 (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser), `-xlsx`
 (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js) and `-tfjs`
 (TensorFlow.js and its model zoo) run on the host behind a generated facade,
-because they need Node builtins or a
-DOM, or carry a limit the guest could not enforce on itself (zip's 50 MB
-inflation cap), or hold state no run can keep alive (the tfjs weights).
-Third-party packs install the same way. See
+because they need Node builtins or a DOM, or carry a limit the guest could not
+enforce on itself (zip's 50 MB inflation cap), or hold state no run can keep
+alive (the tfjs weights). Five more carry NodeTool's own code rather than a
+library — `-aws` signs a request with SigV4, and `-notion`, `-supabase`,
+`-twilio` and `-apify` build an authenticated one — and none of them sends it:
+the guest passes what comes back to its own `fetch`, under the run's fetch cap
+and SSRF guard. Third-party packs install the same way. See
 [Sandbox packages](sandbox-package-design.md) and
 `packages/sandbox-packs/README.md`.
 
@@ -193,6 +197,12 @@ one the host granted.
   *normalizer*, not the loader, because QuickJS serves an already-cached module
   without consulting the loader — that is what keeps `node:buffer` and the rest
   of the wrapper's compat preamble out of reach after bootstrap.
+- **Scoped secrets.** A run may declare the secret names it needs
+  (`limits.secretScope`, host-set). The `getSecret` bridge refuses every other
+  name, so a node that talks to one service cannot read another's credentials —
+  and because the check is at the bridge, `nodetool.secrets.get` cannot route
+  around it. An absent scope is unscoped, which is what a Code node authored
+  before scopes existed still gets; an empty declared scope denies everything.
 - **SSRF guard.** `fetch` refuses loopback, link-local and private ranges,
   including IPv6 forms and IPv4-mapped addresses, and re-checks on every
   redirect. `limits.allowPrivateNetwork` lifts it; it is host-set only, so guest
@@ -283,8 +293,8 @@ return { kept, count: kept.length };
 
 Node props map onto sandbox policy: `timeout` (seconds, 0 for none),
 `max_response_mb`, `allow_local_network` → `limits.allowPrivateNetwork`,
-`allow_host_filesystem` → `limits.filesystemAccess`, and `packages` → the
-declared module resolution. An undeclared or unserveable package fails the node
+`allow_host_filesystem` → `limits.filesystemAccess`, `secrets` →
+`limits.secretScope`, and `packages` → the declared module resolution. An undeclared or unserveable package fails the node
 before the guest starts rather than surfacing as a resolve error inside it;
 version or digest drift only warns on the node's log.
 

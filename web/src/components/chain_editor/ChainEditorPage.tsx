@@ -29,7 +29,7 @@ const ChainEditorPage: React.FC = () => {
             setError("Workflow not found");
             return;
           }
-          loadWorkflow(data as unknown as Workflow);
+          loadWorkflow(data as Workflow);
         } else {
           newWorkflow();
         }

@@ -212,13 +212,14 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
   getSecret: {
     name: "getSecret",
     kind: "function",
-    description: "Read a configured secret by name.",
+    description:
+      "Read a configured secret by name. Prefer nodetool.secrets.get(name), which throws when the secret is unset instead of returning undefined.",
     members: [
       {
         name: "getSecret",
         signature: "await getSecret(name) -> string | undefined",
         description:
-          "Returns undefined when the secret is unset or the node runs without a context.",
+          "Returns undefined when the secret is unset or the node runs without a context. A node that declares a secret scope may read only the names it declared.",
         async: true
       }
     ]
@@ -510,6 +511,14 @@ const BRIDGE_DOCS: { [K in ExposedBridgeName]: SandboxBridgeDoc } = {
     description: "Loop-guard budget injected by the runtime.",
     internal: true,
     members: []
+  },
+  __secretScope: {
+    name: "__secretScope",
+    kind: "function",
+    description:
+      "The run's declared secret scope, behind nodetool.secrets.list().",
+    internal: true,
+    members: []
   }
 };
 
@@ -574,12 +583,12 @@ function overridableLimits(): SandboxLimitDoc[] {
     fetchTimeoutMs: HUGE
   });
   // Numeric limits only. The capability switches (`allowPrivateNetwork`,
-  // `userAgent`) are deliberately absent: they are host-set, have no ceiling
-  // to clamp against, and must not be advertised in the guest-facing manifest
-  // as something authored code can ask for.
+  // `userAgent`, `secretScope`) are deliberately absent: they are host-set,
+  // have no ceiling to clamp against, and must not be advertised in the
+  // guest-facing manifest as something authored code can ask for.
   type NumericLimitKey = Exclude<
     keyof typeof defaults,
-    "allowPrivateNetwork" | "userAgent" | "filesystemAccess"
+    "allowPrivateNetwork" | "userAgent" | "filesystemAccess" | "secretScope"
   >;
   const described: Record<
     NumericLimitKey,

@@ -5,7 +5,7 @@
   "updated_at": "2026-07-30T12:00:00.000Z",
   "name": "Redact Email Addresses",
   "tool_name": null,
-  "description": "A regex replace standing in for the everyday cleanup step \u2014 strip personal data out of text before it reaches a model or a log.",
+  "description": "A regex replace standing in for the everyday cleanup step — strip personal data out of text before it reaches a model or a log.",
   "tags": [
     "text",
     "example"
@@ -35,12 +35,10 @@
       },
       {
         "id": "rr",
-        "type": "nodetool.text.RegexReplace",
+        "type": "nodetool.code.Code",
         "data": {
-          "text": "",
-          "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
-          "replacement": "[redacted]",
-          "count": 0
+          "code": "const text = String(inputs.text ?? \"\");\nconst pattern = new RegExp(inputs.pattern, \"g\");\nconst replacement = String(inputs.replacement ?? \"\");\nconst count = Number(inputs.count ?? 0);\nif (count <= 0) {\n  return { output: text.replace(pattern, replacement) };\n}\nlet remaining = count;\nconst output = text.replace(pattern, (matched) => {\n  if (remaining <= 0) return matched;\n  remaining--;\n  return matched.replace(new RegExp(inputs.pattern), replacement);\n});\nreturn { output };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -52,8 +50,19 @@
           "selectable": true,
           "title": "2  Redact"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "text": "",
+          "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
+          "replacement": "[redacted]",
+          "count": 0
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "out",

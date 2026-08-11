@@ -36,8 +36,6 @@ const ALLOWED_NODE_TYPES = new Set([
   "nodetool.generators.ListGenerator",
   "nodetool.generators.DataGenerator",
   "nodetool.generators.ChartGenerator",
-  "nodetool.data.ImportCSV",
-  "nodetool.data.Filter",
   "lib.image.filter.UnsharpMask",
   "lib.image.enhance.AutoContrast",
   "lib.mail.GmailSearch",

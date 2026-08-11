@@ -188,9 +188,39 @@ export interface SandboxLimits {
    * stays confined.
    */
   filesystemAccess?: "workspace" | "host";
+  /**
+   * The secret names this run may read, or `null`/absent for every secret the
+   * store holds.
+   *
+   * A script that talks to an external service needs one credential, and
+   * nothing about `getSecret` used to say so: a node written to send a Slack
+   * message could read the AWS keys. Declaring the scope makes the credential
+   * a node reaches part of the node, visible in the graph and refused at the
+   * bridge rather than trusted to the code.
+   *
+   * Host-set only, like {@link allowPrivateNetwork}. A run reads its own scope
+   * through `nodetool.secrets.list()` but cannot widen it, and an empty array
+   * means no secret at all — a stricter thing than an absent scope, not a
+   * looser one.
+   */
+  secretScope?: readonly string[] | null;
 }
 
 export type ResolvedSandboxLimits = Required<SandboxLimits>;
+
+/**
+ * Normalize a declared secret scope: a list of non-empty names, or `null` for
+ * an unscoped run. An empty declared list stays empty — it denies everything.
+ */
+function resolveSecretScope(
+  scope: readonly string[] | null | undefined
+): readonly string[] | null {
+  if (!Array.isArray(scope)) return null;
+  return scope
+    .filter((name): name is string => typeof name === "string" && name !== "")
+    .map((name) => name.trim())
+    .filter((name) => name !== "");
+}
 
 function clampLimit(
   value: number | undefined,
@@ -243,7 +273,8 @@ export function resolveSandboxLimits(
     allowPrivateNetwork: limits?.allowPrivateNetwork === true,
     userAgent: limits?.userAgent ?? "",
     filesystemAccess:
-      limits?.filesystemAccess === "host" ? "host" : "workspace"
+      limits?.filesystemAccess === "host" ? "host" : "workspace",
+    secretScope: resolveSecretScope(limits?.secretScope)
   };
 }
 
@@ -1135,11 +1166,34 @@ export function buildSandbox(
     }
   };
 
+  /**
+   * The one place a secret leaves the host.
+   *
+   * The scope check sits here rather than in the guest prelude because a
+   * prelude is guest code: it can be shadowed, and a check the guest could
+   * remove is documentation, not a boundary. `nodetool.secrets.get` and the
+   * bare `getSecret` global both land here, so there is no second route.
+   */
+  const secretScope = resolvedLimits.secretScope;
+  const assertSecretInScope = (name: string): void => {
+    if (secretScope === null) return;
+    if (secretScope.includes(name)) return;
+    throw new Error(
+      secretScope.length === 0
+        ? `getSecret("${name}"): this node declares no secrets, so it can read none`
+        : `getSecret("${name}"): this node may read only ${secretScope
+            .map((allowed) => `"${allowed}"`)
+            .join(", ")}`
+    );
+  };
+
   const getSecret = context
     ? async (name: string): Promise<string | undefined> => {
+        assertSecretInScope(name);
         return (await context.getSecret(name)) ?? undefined;
       }
-    : async (_name: string): Promise<string | undefined> => {
+    : async (name: string): Promise<string | undefined> => {
+        assertSecretInScope(name);
         return undefined;
       };
 
@@ -1574,7 +1628,10 @@ export function buildSandbox(
     format,
     image,
     canvas,
-    __maxIter: MAX_LOOP_ITERATIONS
+    __maxIter: MAX_LOOP_ITERATIONS,
+    // The run's declared secret scope, so `nodetool.secrets.list()` can answer
+    // without a host call. Reading it is not the check — `getSecret` is.
+    __secretScope: secretScope === null ? null : [...secretScope]
   };
 
   return { sandbox, getLogs: () => logs };
@@ -2109,7 +2166,8 @@ export const EXPOSED_BRIDGE_NAMES = [
   "format",
   "image",
   "canvas",
-  "__maxIter"
+  "__maxIter",
+  "__secretScope"
 ] as const;
 
 export type ExposedBridgeName = (typeof EXPOSED_BRIDGE_NAMES)[number];

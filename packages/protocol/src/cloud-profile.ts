@@ -71,7 +71,6 @@ export const CLOUD_NODE_NAMESPACES: readonly string[] = [
   "nodetool.output",
   "nodetool.constant",
   "nodetool.control",
-  "nodetool.list",
   "nodetool.compare",
   "nodetool.workflows", // workflow_node, subgraph, base_node (Preview)
   "nodetool.group", // editor Loop/Group containers

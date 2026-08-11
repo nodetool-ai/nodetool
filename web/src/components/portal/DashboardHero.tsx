@@ -66,7 +66,7 @@ const heroStyles = (theme: Theme) =>
     },
     ".hero-hint": {
       fontFamily: theme.fontFamily2,
-      fontSize: 12,
+      fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled
     },
     ".hero-hint button": {

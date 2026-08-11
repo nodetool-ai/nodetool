@@ -79,10 +79,10 @@ interface ScriptLineRowProps {
 }
 
 /** Width of the screenplay speaker gutter. */
-export const GUTTER = 104;
+const GUTTER = 104;
 
 /** Width of the hover-revealed drag handle rail left of the gutter. */
-export const DRAG_RAIL = 20;
+const DRAG_RAIL = 20;
 
 /**
  * Left offset (px) of the line's text column: drag rail + gutter and the two

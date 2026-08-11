@@ -26,7 +26,7 @@ describe("optionalNodePacks catalog", () => {
       expect(getOptionalNodePackForNamespace("lib.image.color")?.id).toBe(
         "imaging"
       );
-      expect(getOptionalNodePackForNamespace("lib.convert.pandoc")?.id).toBe(
+      expect(getOptionalNodePackForNamespace("lib.pdf.thumbnail")?.id).toBe(
         "documents"
       );
       expect(getOptionalNodePackForNamespace("messaging.discord")?.id).toBe(
@@ -53,7 +53,7 @@ describe("optionalNodePacks catalog", () => {
   describe("isOptionalNamespace", () => {
     it("classifies niche vs core namespaces", () => {
       expect(isOptionalNamespace("lib.os")).toBe(true);
-      expect(isOptionalNamespace("apify.scraping")).toBe(true);
+      expect(isOptionalNamespace("lib.browser")).toBe(true);
       expect(isOptionalNamespace("nodetool.audio")).toBe(false);
     });
   });

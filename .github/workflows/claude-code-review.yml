@@ -1,22 +1,22 @@
 name: Claude Code Review
 
+# One review per PR, not one per push. The review is an `npm ci` plus a long
+# Opus run, so `synchronize` held a runner slot on every push while the account
+# job cap was already saturated. Re-review on demand with `@claude review` in a
+# PR comment (claude.yml).
 on:
   pull_request:
-    types: [opened, synchronize, ready_for_review, reopened]
-    # Optional: Only run on specific file changes
-    # paths:
-    #   - "src/**/*.ts"
-    #   - "src/**/*.tsx"
-    #   - "src/**/*.js"
-    #   - "src/**/*.jsx"
+    types: [opened, ready_for_review]
+
+# A second `opened`/`ready_for_review` supersedes the review still running.
+concurrency:
+  group: claude-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 jobs:
   claude-review:
-    # Optional: Filter by PR author
-    # if: |
-    #   github.event.pull_request.user.login == 'external-contributor' ||
-    #   github.event.pull_request.user.login == 'new-developer' ||
-    #   github.event.pull_request.author_association == 'FIRST_TIME_CONTRIBUTOR'
+    # `opened` fires for drafts too; review them when they are marked ready.
+    if: ${{ !github.event.pull_request.draft }}
 
     runs-on: ubuntu-latest
     permissions:
@@ -44,7 +44,7 @@ jobs:
 
       - name: Run Claude Code Review
         id: claude-review
-        uses: anthropics/claude-code-action@v1.0.183
+        uses: anthropics/claude-code-action@v1.0.189
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'

@@ -11,6 +11,11 @@ on:
     paths:
       - .github/workflows/copilot-setup-steps.yml
 
+# Cancel superseded runs for the same branch/PR; the latest push is what matters.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   # The job MUST be called `copilot-setup-steps` or it will not be picked up by Copilot.
   copilot-setup-steps:

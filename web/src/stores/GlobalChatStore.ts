@@ -322,13 +322,6 @@ export interface GlobalChatState extends ChatPiSlice {
 
   // Message cache management
   addMessageToCache: (threadId: string, message: Message) => void;
-  clearMessageCache: (threadId: string) => void;
-
-  // Agent execution message grouping
-  getAgentExecutionMessages: (
-    threadId: string,
-    agentExecutionId: string
-  ) => Message[];
 }
 
 function buildDefaultLanguageModel(): LanguageModel {
@@ -1561,19 +1554,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         });
       },
 
-      clearMessageCache: (threadId: string) => {
-        set((state) => {
-          const { [threadId]: deleted, ...remainingCache } = state.messageCache;
-          const { [threadId]: deletedCursor, ...remainingCursors } =
-            state.messageCursors;
-
-          return {
-            messageCache: remainingCache,
-            messageCursors: remainingCursors
-          };
-        });
-      },
-
       stopGeneration: (threadId?: string) => {
         const { currentThreadId, loadMessagesTimeoutId } = get();
         const tid = threadId ?? currentThreadId;
@@ -1684,18 +1664,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
             })
           }));
         }
-      },
-
-      getAgentExecutionMessages: (
-        threadId: string,
-        agentExecutionId: string
-      ) => {
-        const messages = get().messageCache[threadId] || [];
-        return messages.filter(
-          (msg) =>
-            msg.role === "agent_execution" &&
-            msg.agent_execution_id === agentExecutionId
-        );
       }
     }),
     {

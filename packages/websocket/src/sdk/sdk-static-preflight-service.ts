@@ -365,7 +365,6 @@ function costSummary(
     "nodetool.constant.",
     "nodetool.math.",
     "nodetool.string.",
-    "nodetool.list.",
     "nodetool.dictionary."
   ];
   const nodes = (options.graph.nodes ?? [])

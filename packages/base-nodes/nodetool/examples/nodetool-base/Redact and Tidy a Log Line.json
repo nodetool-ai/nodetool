@@ -35,11 +35,10 @@
       },
       {
         "id": "mail",
-        "type": "nodetool.text.RegexReplace",
+        "type": "nodetool.code.Code",
         "data": {
-          "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
-          "replacement": "<email>",
-          "count": 0
+          "code": "const text = String(inputs.text ?? \"\");\nconst pattern = new RegExp(inputs.pattern, \"g\");\nconst replacement = String(inputs.replacement ?? \"\");\nconst count = Number(inputs.count ?? 0);\nif (count <= 0) {\n  return { output: text.replace(pattern, replacement) };\n}\nlet remaining = count;\nconst output = text.replace(pattern, (matched) => {\n  if (remaining <= 0) return matched;\n  remaining--;\n  return matched.replace(new RegExp(inputs.pattern), replacement);\n});\nreturn { output };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -51,16 +50,25 @@
           "selectable": true,
           "title": "2  Redact email"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "pattern": "[\\w.+-]+@[\\w-]+\\.[\\w.]+",
+          "replacement": "<email>",
+          "count": 0
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "ip",
-        "type": "nodetool.text.RegexReplace",
+        "type": "nodetool.code.Code",
         "data": {
-          "pattern": "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b",
-          "replacement": "<ip>",
-          "count": 0
+          "code": "const text = String(inputs.text ?? \"\");\nconst pattern = new RegExp(inputs.pattern, \"g\");\nconst replacement = String(inputs.replacement ?? \"\");\nconst count = Number(inputs.count ?? 0);\nif (count <= 0) {\n  return { output: text.replace(pattern, replacement) };\n}\nlet remaining = count;\nconst output = text.replace(pattern, (matched) => {\n  if (remaining <= 0) return matched;\n  remaining--;\n  return matched.replace(new RegExp(inputs.pattern), replacement);\n});\nreturn { output };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -72,16 +80,25 @@
           "selectable": true,
           "title": "3  Redact IP"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "pattern": "\\b(?:\\d{1,3}\\.){3}\\d{1,3}\\b",
+          "replacement": "<ip>",
+          "count": 0
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "tidy",
-        "type": "nodetool.text.CollapseWhitespace",
+        "type": "nodetool.code.Code",
         "data": {
-          "preserve_newlines": false,
-          "replacement": " ",
-          "trim_edges": true
+          "code": "const text = String(inputs.text ?? \"\");\nconst preserveNewlines = Boolean(inputs.preserve_newlines ?? false);\nconst replacement = String(inputs.replacement ?? \" \");\nconst trimEdges = inputs.trim_edges === undefined ? true : Boolean(inputs.trim_edges);\nconst value = trimEdges ? text.trim() : text;\nconst pattern = preserveNewlines ? /[^\\S\\r\\n]+/g : /\\s+/g;\nreturn { output: value.replace(pattern, replacement) };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -93,17 +110,25 @@
           "selectable": true,
           "title": "4  Collapse spaces"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "preserve_newlines": false,
+          "replacement": " ",
+          "trim_edges": true
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "nums",
-        "type": "nodetool.text.FindAllRegex",
+        "type": "nodetool.code.Code",
         "data": {
-          "regex": "\\d+",
-          "dotall": false,
-          "ignorecase": false,
-          "multiline": false
+          "code": "let flags = \"g\";\nif (inputs.ignorecase) flags += \"i\";\nif (inputs.multiline) flags += \"m\";\nif (inputs.dotall) flags += \"s\";\nconst matches = [...inputs.text.matchAll(new RegExp(inputs.pattern, flags))].map(m => m[0]);\nreturn { output: matches };",
+          "packages": []
         },
         "ui_properties": {
           "position": {
@@ -115,8 +140,19 @@
           "selectable": true,
           "title": "5  Every number"
         },
-        "dynamic_properties": {},
-        "dynamic_outputs": {}
+        "dynamic_properties": {
+          "pattern": "\\d+",
+          "dotall": false,
+          "ignorecase": false,
+          "multiline": false
+        },
+        "dynamic_outputs": {
+          "output": {
+            "type": "any",
+            "type_args": [],
+            "optional": false
+          }
+        }
       },
       {
         "id": "o1",

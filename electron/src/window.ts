@@ -215,10 +215,7 @@ function initializePermissionHandlers(): void {
         return;
       }
 
-      // Only log specific permission denials
-      if (!allowedPermissions.includes(permission)) {
-        logMessage(`Denying permission: ${permission}`);
-      }
+      logMessage(`Denying permission: ${permission}`);
       callback(false);
     }
   );

@@ -20,9 +20,6 @@ import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 import { CONSTANT_NODES } from "@nodetool-ai/core-nodes/nodes/constant";
 import { CONTROL_NODES } from "@nodetool-ai/core-nodes/nodes/control";
 import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
-import { LIB_DATETIME_NODES } from "@nodetool-ai/core-nodes/nodes/lib-datetime";
-import { LIB_VALIDATE_NODES } from "@nodetool-ai/core-nodes/nodes/lib-validate";
-import { LIST_NODES } from "@nodetool-ai/core-nodes/nodes/list";
 
 // OpenAI nodes (WebSearch, Moderation, Embedding, image/audio, …). Tagged
 // `tagAsServer` (node + workers + edge). Each declares its `requiredSettings`
@@ -40,12 +37,9 @@ import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/openai";
  */
 export const EDGE_SAFE_NODES: readonly NodeClass[] = [
   ...CONSTANT_NODES,
-  ...LIST_NODES,
   ...COMPARE_NODES,
   ...CONTROL_NODES,
-  ...INPUT_NODES,
-  ...LIB_VALIDATE_NODES,
-  ...LIB_DATETIME_NODES
+  ...INPUT_NODES
 ];
 
 export interface RegistryOptions {
