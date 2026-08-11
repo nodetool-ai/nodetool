@@ -198,35 +198,34 @@ category; none fit the ten that exist.
 **Tier 2 total: 51 nodes, 46 snippets.** Three `lib.os` pairs are the same
 operation and merged into one snippet each.
 
-### The HTTP exception — snippets yes, removal no
+### The HTTP exception — what the snippets do not carry over
 
 `lib.http` (7) and `lib.graphql` (4) got a **HTTP** category of 12 snippets,
-verified against live endpoints. They are still **not removable**, and this is
-the one place the paper audit was wrong rather than incomplete.
+verified against live endpoints, and the nodes were removed with them (#4644,
+`lib-http.ts` and `lib-graphql.ts` deleted). The snippets are not a like-for-like
+replacement, and this is the one place the paper audit was wrong rather than
+incomplete.
 
 The sandbox `fetch` is deliberately not the host `fetch`. Guest code is
 untrusted, so `assertFetchUrlAllowed` (`js-sandbox.ts`) blocks loopback,
 link-local and private ranges, bodies are capped at `MAX_RESPONSE_BODY_SIZE`
 (1 MB, appending `...[truncated]`), a run gets 20 fetch calls, and
-`FETCH_TIMEOUT_MS` is 15 s. `lib-http.ts` is trusted host code: raw `fetch`, no
+`FETCH_TIMEOUT_MS` is 15 s. `lib-http.ts` was trusted host code: raw `fetch`, no
 SSRF guard, no size or call limit, a 30 s timeout, and a hardcoded Chrome
 `User-Agent`.
 
 So a workflow pointing at `http://localhost:8000` or an internal `10.x` service
-runs today and would fail on a snippet; a `GetBytes` download over 1 MB would
-truncate silently. That is a behavioral regression, not a gap to close — the
-guard is the point.
-
-The outcome is both: the snippet is the convenient path for public APIs, the
-node stays for local services, large downloads, and slow endpoints. Same for
-`lib.secret.GetSecret`, whose value is the picker rather than the call.
+ran on the node and fails on a snippet; a `GetBytes` download over 1 MB
+truncates silently. That is a behavioral regression, not a gap to close — the
+guard is the point. `lib.secret.GetSecret` did stay a node, because its value is
+the picker rather than the call.
 
 Two loose ends worth a follow-up. `GetBytes` in the guest yields a real
 `Uint8Array` but serializes as a numeric-keyed object at the node boundary, so
 the Code node's bytes handle wants checking for a downstream type mismatch. And
 GraphQL batching could not be proven end-to-end — no reachable public endpoint
-accepts batched operations — which is also true of `lib.graphql.BatchQuery`
-itself.
+accepts batched operations — which was also true of the removed
+`lib.graphql.BatchQuery` itself.
 
 ### What the Path snippets could not reproduce
 

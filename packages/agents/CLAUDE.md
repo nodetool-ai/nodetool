@@ -171,7 +171,8 @@ sandbox package a node declares in `packages` and imports at the top of its
 body; there is no `data.*` namespace any more. Two kinds:
 
 - **Guest packs** — the M3 compiler bundles the library into QuickJS:
-  `@nodetool-ai/sandbox-yaml` (js-yaml), `-dates` (date-fns).
+  `@nodetool-ai/sandbox-yaml` (js-yaml), `-dates` (date-fns), `-markdown`
+  (marked).
 - **Host packs** (`src/host-modules/`) — the library runs where the sandbox
   runs, behind a generated ESM facade over a per-run dispatcher:
   `-csv` (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser),

@@ -1119,6 +1119,7 @@ The shipped set:
 |---|---|---|---|
 | `@nodetool-ai/sandbox-dates` | date-fns | guest | compiler admits it |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest | compiler admits it |
+| `@nodetool-ai/sandbox-markdown` | marked | guest | compiler admits it |
 | `@nodetool-ai/sandbox-csv` | papaparse | host | imports `node:stream` |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host | 25 Node builtins; turndown wants a DOM |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host | reads a bare `window` |

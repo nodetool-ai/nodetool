@@ -959,7 +959,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships ten packs in
+global — the `data.*` namespace is gone. NodeTool ships eleven packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md,
 installed like any third-party pack and never a workspace:
 
@@ -967,6 +967,7 @@ installed like any third-party pack and never a workspace:
 |---|---|---|
 | `@nodetool-ai/sandbox-dates` | date-fns | guest |
 | `@nodetool-ai/sandbox-yaml` | js-yaml | guest |
+| `@nodetool-ai/sandbox-markdown` | marked | guest |
 | `@nodetool-ai/sandbox-csv` | papaparse | host |
 | `@nodetool-ai/sandbox-html` | cheerio + turndown | host |
 | `@nodetool-ai/sandbox-xml` | fast-xml-parser | host |
@@ -987,8 +988,8 @@ it — a third-party pack can never bring host code. The implementations live in
 
 The last three replaced nodes rather than bridges. `lib.browser.WebFetch`,
 `DownloadFile`, `Browser` and `SpiderCrawl` are the `fetch` capability plus
-`-html`; `lib.excel.*` is `-xlsx`; the `lib.sqlite.*` CRUD nodes are `-sqlite`;
-`lib.ocr.*` is `-ocr`; and `lib.tensorflow.*` is `-tfjs`. Each was a chain of
+`-html`; `lib.excel.*` is `-xlsx`; `lib.ocr.*` is `-ocr`; and
+`lib.tensorflow.*` is `-tfjs`. Each was a chain of
 near-identical nodes that one script now expresses; only `lib.browser.Screenshot`
 (a real page over CDP) and `lib.sqlite.GetDatabasePath` stayed nodes.
 

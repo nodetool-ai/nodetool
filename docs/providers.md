@@ -195,11 +195,11 @@ Jina AI provides text embeddings only. Cloud only, keyed by `JINA_API_KEY`.
 
 ## Meshy AI
 
-Meshy generates textured 3D meshes from text or a reference image, through the generic `nodetool.3d.TextTo3D` / `ImageTo3D` nodes. Cloud only, keyed by `MESHY_API_KEY`.
+Meshy generates textured 3D meshes from text or a reference image, through the generic `nodetool.model3d.TextTo3D` / `ImageTo3D` nodes. Cloud only, keyed by `MESHY_API_KEY`.
 
 ## Rodin AI
 
-Rodin generates 3D assets from text or a reference image, through the generic `nodetool.3d.TextTo3D` / `ImageTo3D` nodes. Cloud only, keyed by `RODIN_API_KEY`.
+Rodin generates 3D assets from text or a reference image, through the generic `nodetool.model3d.TextTo3D` / `ImageTo3D` nodes. Cloud only, keyed by `RODIN_API_KEY`.
 
 ## Generic nodes: provider-agnostic workflows
 
@@ -212,7 +212,7 @@ Nodes in the `nodetool.*` namespace take a `model` property and route to whichev
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
 | `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
 | `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0 |
-| `nodetool.3d.TextTo3D` / `ImageTo3D` | Meshy AI, Rodin AI, plus HuggingFace 3D nodes (Hunyuan3D, Trellis, TripoSR, Shap-E, Point-E) |
+| `nodetool.model3d.TextTo3D` / `ImageTo3D` | Meshy AI, Rodin AI, plus HuggingFace 3D nodes (Hunyuan3D, Trellis, TripoSR, Shap-E, Point-E) |
 | `nodetool.audio.TextToSpeech` | OpenAI TTS, ElevenLabs, HuggingFace, local TTS |
 | `nodetool.text.AutomaticSpeechRecognition` | OpenAI Whisper, HuggingFace, local ASR |
 

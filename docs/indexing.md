@@ -36,7 +36,7 @@ See [Vector Storage](vector-storage.md) for backend-specific setup.
 ## CLI & API Integration
 
 - `POST /api/collections/:name/index` (see `@nodetool-ai/websocket` `packages/websocket/src/collection-api.ts`) triggers ingestion via HTTP (multipart/form-data file upload).
-- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes read-only collection tools — `get_collection`, `query_collection`, `list_collections`, `get_asset`, `list_assets` — for IDE plug-ins. It does **not** index assets.
+- The MCP server (`@nodetool-ai/websocket` `packages/websocket/src/mcp-server.ts`) exposes two tools, `execute_code` and `view_image`. An IDE plug-in reads collections from inside an action — `nodetool.collections.list()` and `nodetool.collections.query()`. It does **not** index assets.
 - Admin routes under `@nodetool-ai/deploy` `packages/deploy/src/admin-routes.ts` provide remote ingestion endpoints for deployed servers.
 
 ## Troubleshooting
