@@ -96,6 +96,27 @@ const LOADERS: Readonly<Record<string, Loader>> = {
       runStatus: mod.runStatus,
       datasetItems: mod.datasetItems
     };
+  },
+  docx: async () => {
+    const mod = await import("./docx.js");
+    return { build: mod.build };
+  },
+  mammoth: async () => {
+    const mod = await import("./mammoth.js");
+    return { extractRawText: mod.extractRawText, convertToHtml: mod.convertToHtml };
+  },
+  epub: async () => {
+    const mod = await import("./epub.js");
+    return {
+      metadata: mod.metadata,
+      tableOfContents: mod.tableOfContents,
+      extractText: mod.extractText,
+      extractChapters: mod.extractChapters
+    };
+  },
+  pptx: async () => {
+    const mod = await import("./pptx.js");
+    return { extractText: mod.extractText, extractSlides: mod.extractSlides };
   }
 };
 

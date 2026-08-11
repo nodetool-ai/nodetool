@@ -7,6 +7,7 @@
  */
 import { describe, it, expect } from "vitest";
 import { Workbook } from "exceljs";
+import { zipSync, strToU8 } from "fflate";
 import {
   SANDBOX_HOST_MODULES,
   type ResolvedSandboxModule,
@@ -644,6 +645,312 @@ describe("@nodetool-ai/sandbox-tfjs", () => {
     );
     expect(result.success).toBe(true);
     expect(result.result).toMatch(/passage must be a string/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// docx (write) + mammoth (read)
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-docx", () => {
+  it("builds a document with a heading, a paragraph, and a table", async () => {
+    const result = await run(
+      `import { build } from "@nodetool-ai/sandbox-docx";
+       const bytes = await build({
+         properties: { title: "Report" },
+         elements: [
+           { type: "heading", text: "Title", level: 1 },
+           { type: "paragraph", text: "Hello world", bold: true },
+           { type: "table", rows: [["a", "b"], ["c", "d"]] },
+           { type: "pageBreak" }
+         ]
+       });
+       return { isBytes: bytes instanceof Uint8Array, isZip: bytes[0] === 0x50 && bytes[1] === 0x4b };`,
+      "docx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toEqual({ isBytes: true, isZip: true });
+  });
+
+  it("round-trips text through mammoth", async () => {
+    const result = await run(
+      `import { build } from "@nodetool-ai/sandbox-docx";
+       import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
+       const bytes = await build({
+         elements: [{ type: "paragraph", text: "Round trip content" }]
+       });
+       return await extractRawText(bytes);`,
+      "docx",
+      "mammoth"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("Round trip content");
+  });
+
+  it("rejects a non-array elements value", async () => {
+    const result = await run(
+      `import { build } from "@nodetool-ai/sandbox-docx";
+       try { await build({ elements: [{ text: "no type" }] }); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "docx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/missing a "type"/);
+  });
+});
+
+describe("@nodetool-ai/sandbox-mammoth", () => {
+  async function docxBase64(): Promise<string> {
+    const { Document, Packer, Paragraph, TextRun } = await import("docx");
+    const doc = new Document({
+      sections: [
+        {
+          children: [
+            new Paragraph({ children: [new TextRun("Hello from DOCX")] })
+          ]
+        }
+      ]
+    });
+    const buffer = await Packer.toBuffer(doc);
+    return Buffer.from(buffer).toString("base64");
+  }
+
+  it("extracts raw text", async () => {
+    const b64 = await docxBase64();
+    const result = await run(
+      `import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
+       return await extractRawText(fromBase64("${b64}"));`,
+      "mammoth"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("Hello from DOCX");
+  });
+
+  it("converts to HTML", async () => {
+    const b64 = await docxBase64();
+    const result = await run(
+      `import { convertToHtml } from "@nodetool-ai/sandbox-mammoth";
+       return await convertToHtml(fromBase64("${b64}"));`,
+      "mammoth"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("Hello from DOCX");
+    expect(String(result.result)).toMatch(/<p>/);
+  });
+
+  it("rejects non-binary input", async () => {
+    const result = await run(
+      `import { extractRawText } from "@nodetool-ai/sandbox-mammoth";
+       try { await extractRawText("text"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "mammoth"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/must be a Uint8Array/);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// epub
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-epub", () => {
+  function epubBase64(): string {
+    const container = `<?xml version="1.0"?>
+<container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
+  <rootfiles>
+    <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
+  </rootfiles>
+</container>`;
+    const opf = `<?xml version="1.0" encoding="UTF-8"?>
+<package xmlns="http://www.idpf.org/2007/opf" unique-identifier="bookid" version="2.0">
+  <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
+    <dc:title>Test Book</dc:title>
+    <dc:creator>Test Author</dc:creator>
+    <dc:language>en</dc:language>
+    <dc:identifier id="bookid">test-id-123</dc:identifier>
+  </metadata>
+  <manifest>
+    <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
+    <item id="ch1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
+    <item id="ch2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
+  </manifest>
+  <spine toc="ncx">
+    <itemref idref="ch1"/>
+    <itemref idref="ch2"/>
+  </spine>
+</package>`;
+    const ncx = `<?xml version="1.0" encoding="UTF-8"?>
+<ncx xmlns="http://www.daisy.org/z3986/2005/ncx/" version="2005-1">
+  <head><meta name="dtb:uid" content="test-id-123"/></head>
+  <docTitle><text>Test Book</text></docTitle>
+  <navMap>
+    <navPoint id="ch1" playOrder="1"><navLabel><text>Chapter One</text></navLabel><content src="chapter1.xhtml"/></navPoint>
+    <navPoint id="ch2" playOrder="2"><navLabel><text>Chapter Two</text></navLabel><content src="chapter2.xhtml"/></navPoint>
+  </navMap>
+</ncx>`;
+    const ch1 = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 1</title></head>
+<body><h1>Chapter One</h1><p>This is the first chapter content.</p></body></html>`;
+    const ch2 = `<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>Chapter 2</title></head>
+<body><h1>Chapter Two</h1><p>The second chapter has different text.</p></body></html>`;
+
+    const archive = zipSync({
+      mimetype: [strToU8("application/epub+zip"), { level: 0 }],
+      "META-INF/container.xml": strToU8(container),
+      "OEBPS/content.opf": strToU8(opf),
+      "OEBPS/toc.ncx": strToU8(ncx),
+      "OEBPS/chapter1.xhtml": strToU8(ch1),
+      "OEBPS/chapter2.xhtml": strToU8(ch2)
+    });
+    return Buffer.from(archive).toString("base64");
+  }
+
+  it("reads metadata", async () => {
+    const b64 = epubBase64();
+    const result = await run(
+      `import { metadata } from "@nodetool-ai/sandbox-epub";
+       return await metadata(fromBase64("${b64}"));`,
+      "epub"
+    );
+    expect(result.success).toBe(true);
+    const meta = result.result as Record<string, unknown>;
+    expect(meta.title).toBe("Test Book");
+    expect(meta.creator).toBe("Test Author");
+  });
+
+  it("reads the table of contents in order", async () => {
+    const b64 = epubBase64();
+    const result = await run(
+      `import { tableOfContents } from "@nodetool-ai/sandbox-epub";
+       return await tableOfContents(fromBase64("${b64}"));`,
+      "epub"
+    );
+    expect(result.success).toBe(true);
+    const toc = result.result as Array<{ title: string }>;
+    expect(toc.map((t) => t.title)).toEqual(["Chapter One", "Chapter Two"]);
+  });
+
+  it("extracts concatenated chapter text", async () => {
+    const b64 = epubBase64();
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-epub";
+       return await extractText(fromBase64("${b64}"));`,
+      "epub"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toContain("first chapter content");
+    expect(result.result).toContain("second chapter has different text");
+  });
+
+  it("extracts each chapter as its own item", async () => {
+    const b64 = epubBase64();
+    const result = await run(
+      `import { extractChapters } from "@nodetool-ai/sandbox-epub";
+       return await extractChapters(fromBase64("${b64}"));`,
+      "epub"
+    );
+    expect(result.success).toBe(true);
+    const chapters = result.result as Array<{ title: string; text: string }>;
+    expect(chapters).toHaveLength(2);
+    expect(chapters[0].title).toBe("Chapter One");
+    expect(chapters[0].text).toContain("first chapter content");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// pptx
+// ---------------------------------------------------------------------------
+
+describe("@nodetool-ai/sandbox-pptx", () => {
+  function pptxBase64(): string {
+    const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Override PartName="/ppt/presentation.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"/>
+  <Override PartName="/ppt/slides/slide1.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+  <Override PartName="/ppt/slides/slide2.xml" ContentType="application/vnd.openxmlformats-officedocument.presentationml.slide+xml"/>
+</Types>`;
+    const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="ppt/presentation.xml"/>
+</Relationships>`;
+    const presentation = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:presentation xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main"
+  xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:sldIdLst>
+    <p:sldId id="256" r:id="rId1"/>
+    <p:sldId id="257" r:id="rId2"/>
+  </p:sldIdLst>
+</p:presentation>`;
+    const slide1 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+       xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld><p:spTree>
+    <p:sp><p:txBody><a:p><a:r><a:t>Welcome to slide one</a:t></a:r></a:p></p:txBody></p:sp>
+  </p:spTree></p:cSld>
+</p:sld>`;
+    const slide2 = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<p:sld xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+       xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main">
+  <p:cSld><p:spTree>
+    <p:sp><p:txBody><a:p><a:r><a:t>Slide two title</a:t></a:r><a:r><a:t>Bullet point</a:t></a:r></a:p></p:txBody></p:sp>
+  </p:spTree></p:cSld>
+</p:sld>`;
+
+    const archive = zipSync({
+      "[Content_Types].xml": strToU8(contentTypes),
+      "_rels/.rels": strToU8(rels),
+      "ppt/presentation.xml": strToU8(presentation),
+      "ppt/slides/slide1.xml": strToU8(slide1),
+      "ppt/slides/slide2.xml": strToU8(slide2)
+    });
+    return Buffer.from(archive).toString("base64");
+  }
+
+  it("extracts full text from all slides", async () => {
+    const b64 = pptxBase64();
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pptx";
+       return await extractText(fromBase64("${b64}"));`,
+      "pptx"
+    );
+    expect(result.success).toBe(true);
+    const text = String(result.result);
+    expect(text).toContain("Welcome to slide one");
+    expect(text).toContain("Slide two title");
+    expect(text).toContain("Bullet point");
+  });
+
+  it("extracts text per slide, preserving order", async () => {
+    const b64 = pptxBase64();
+    const result = await run(
+      `import { extractSlides } from "@nodetool-ai/sandbox-pptx";
+       return await extractSlides(fromBase64("${b64}"));`,
+      "pptx"
+    );
+    expect(result.success).toBe(true);
+    const slides = result.result as Array<{ slideNumber: number; text: string }>;
+    expect(slides).toHaveLength(2);
+    expect(slides[0].slideNumber).toBe(1);
+    expect(slides[0].text).toContain("Welcome to slide one");
+    expect(slides[1].slideNumber).toBe(2);
+    expect(slides[1].text).toContain("Slide two title");
+  });
+
+  it("rejects non-binary input", async () => {
+    const result = await run(
+      `import { extractText } from "@nodetool-ai/sandbox-pptx";
+       try { await extractText("text"); return "no throw"; }
+       catch (e) { return e.message; }`,
+      "pptx"
+    );
+    expect(result.success).toBe(true);
+    expect(result.result).toMatch(/must be a Uint8Array/);
   });
 });
 

@@ -1048,16 +1048,7 @@ describe("LoadTextFolderNode", () => {
 // 6. DOCUMENT — remaining uncovered lines
 // ============================================================================
 
-import {
-  LoadDocumentFileNode,
-  SaveDocumentFileNode,
-  ListDocumentsNode,
-  SplitDocumentNode,
-  SplitHTMLNode,
-  SplitJSONNode,
-  SplitRecursivelyNode,
-  SplitMarkdownNode
-} from "@nodetool-ai/document-nodes";
+import { ListDocumentsNode } from "@nodetool-ai/document-nodes";
 
 describe("document.ts uncovered lines", () => {
   let tmpDir: string;
@@ -1068,88 +1059,6 @@ describe("document.ts uncovered lines", () => {
 
   afterEach(async () => {
     await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => {});
-  });
-
-  it("readDocumentText with string path (line 37-38)", async () => {
-    await fs.writeFile(path.join(tmpDir, "test.txt"), "hello from file");
-    const node = new SplitDocumentNode();
-    const results: any[] = [];
-    node.assign({ document: path.join(tmpDir, "test.txt") });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results.length).toBeGreaterThan(0);
-    expect(results[0].chunk).toContain("hello from file");
-  });
-
-  it("readDocumentText with file:// uri (line 47-48)", async () => {
-    await fs.writeFile(path.join(tmpDir, "uri.txt"), "from uri");
-    const node = new SplitDocumentNode();
-    const results: any[] = [];
-    node.assign({
-      document: { uri: `file://${path.join(tmpDir, "uri.txt")}` }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results[0].chunk).toContain("from uri");
-  });
-
-  it("readDocumentText with data bytes (line 43-45)", async () => {
-    const node = new SplitDocumentNode();
-    const data = Buffer.from("binary doc text").toString("base64");
-    const results: any[] = [];
-    node.assign({
-      document: { data }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results[0].chunk).toContain("binary doc text");
-  });
-
-  it("readDocumentText with empty/unknown returns empty (line 51)", async () => {
-    const node = new SplitDocumentNode();
-    const results: any[] = [];
-    node.assign({ document: {} });
-    for await (const item of node.genProcess()) {
-      if ("chunks" in item) continue; // skip final list yield
-      results.push(item);
-    }
-    expect(results.length).toBe(0);
-  });
-
-  it("readDocumentText with non-object returns empty", async () => {
-    const node = new SplitDocumentNode();
-    const results: any[] = [];
-    node.assign({ document: 42 });
-    for await (const item of node.genProcess()) {
-      if ("chunks" in item) continue; // skip final list yield
-      results.push(item);
-    }
-    expect(results.length).toBe(0);
-  });
-
-  it("streaming node process() returns collected lists (lines 114, 153, 177, 202, 233, 259)", async () => {
-    const listDocsNode = new ListDocumentsNode();
-    listDocsNode.assign({ folder: tmpDir });
-    const listDocsResult = await listDocsNode.process();
-    expect(listDocsResult).toHaveProperty("documents");
-    const splitDocResult = await new SplitDocumentNode().process();
-    expect(splitDocResult).toHaveProperty("chunks");
-    expect(Array.isArray(splitDocResult.chunks)).toBe(true);
-    const splitHtmlResult = await new SplitHTMLNode().process();
-    expect(splitHtmlResult).toHaveProperty("chunks");
-    expect(Array.isArray(splitHtmlResult.chunks)).toBe(true);
-    const splitJsonResult = await new SplitJSONNode().process();
-    expect(splitJsonResult).toHaveProperty("chunks");
-    expect(Array.isArray(splitJsonResult.chunks)).toBe(true);
-    const splitRecResult = await new SplitRecursivelyNode().process();
-    expect(splitRecResult).toHaveProperty("chunks");
-    expect(Array.isArray(splitRecResult.chunks)).toBe(true);
-    const splitMdResult = await new SplitMarkdownNode().process();
-    expect(splitMdResult).toHaveProperty("chunks");
-    expect(Array.isArray(splitMdResult.chunks)).toBe(true);
   });
 
   it("ListDocumentsNode streams document files", async () => {
@@ -1178,68 +1087,6 @@ describe("document.ts uncovered lines", () => {
     expect(
       results.some((r) => (r.document?.uri as string)?.includes("deep.md"))
     ).toBe(true);
-  });
-
-  it("SplitHTMLNode strips tags", async () => {
-    const node = new SplitHTMLNode();
-    const results: any[] = [];
-    node.assign({
-      document: { text: "<p>Hello</p><p>World</p>" }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results[0].chunk).toContain("Hello");
-    expect(results[0].chunk).not.toContain("<p>");
-  });
-
-  it("SplitJSONNode with valid JSON", async () => {
-    const node = new SplitJSONNode();
-    const results: any[] = [];
-    node.assign({
-      document: { text: '{"key":"value"}' }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results[0].chunk).toContain("key");
-  });
-
-  it("SplitJSONNode with invalid JSON", async () => {
-    const node = new SplitJSONNode();
-    const results: any[] = [];
-    node.assign({
-      document: { text: "not json {" }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results[0].chunk).toContain("not json");
-  });
-
-  it("SplitRecursivelyNode", async () => {
-    const node = new SplitRecursivelyNode();
-    const results: any[] = [];
-    node.assign({
-      document: { text: "Para one.\n\nPara two.\n\nPara three." }
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results.length).toBeGreaterThan(0);
-  });
-
-  it("SplitMarkdownNode", async () => {
-    const node = new SplitMarkdownNode();
-    const results: any[] = [];
-    node.assign({
-      document: { text: "# Heading\nContent here\n# Another\nMore content" },
-      chunk_size: 20
-    });
-    for await (const item of node.genProcess()) {
-      results.push(item);
-    }
-    expect(results.length).toBeGreaterThan(0);
   });
 });
 

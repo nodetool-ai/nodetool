@@ -38,7 +38,6 @@ import {
   OutputNode,
   PreviewNode,
   CompareImagesNode,
-  SplitJSONNode,
   SaveDocumentFileNode,
   LoadDocumentFileNode,
   WaitNode,
@@ -75,7 +74,7 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.image.ImageToImage")).toBe(true);
     expect(registry.has("nodetool.constant.Sketch")).toBe(true);
     expect(registry.has("nodetool.video.TextToVideo")).toBe(true);
-    expect(registry.has("nodetool.document.SplitDocument")).toBe(true);
+    expect(registry.has("nodetool.document.LoadDocumentFile")).toBe(true);
     expect(registry.has("nodetool.compare.CompareImages")).toBe(true);
     expect(registry.has("nodetool.data.ForEachRow")).toBe(true);
     expect(registry.has("nodetool.code.Code")).toBe(true);
@@ -292,7 +291,7 @@ describe("input/output nodes", () => {
     expect(result.equal).toBe(true);
   });
 
-  it("document save/load and split json nodes work", async () => {
+  it("document save/load nodes work", async () => {
     const file = `/tmp/nodetool-doc-${Date.now()}.json`;
     const save = new SaveDocumentFileNode();
     save.assign({
@@ -307,18 +306,6 @@ describe("input/output nodes", () => {
     load.assign({ path: file });
     const loaded = await load.process();
     expect((loaded.output as { data: string }).data).toBeTruthy();
-
-    const split = new SplitJSONNode();
-    split.assign({
-      document: { uri: `file://${file}` },
-      chunk_size: 8,
-      chunk_overlap: 2
-    });
-    const out: Array<string> = [];
-    for await (const chunk of split.genProcess()) {
-      out.push(String(chunk.chunk));
-    }
-    expect(out.length).toBeGreaterThan(0);
   });
 
   it("WaitNode returns wait metadata", async () => {

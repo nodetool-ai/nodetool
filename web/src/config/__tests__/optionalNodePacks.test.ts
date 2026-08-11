@@ -26,7 +26,7 @@ describe("optionalNodePacks catalog", () => {
       expect(getOptionalNodePackForNamespace("lib.image.color")?.id).toBe(
         "imaging"
       );
-      expect(getOptionalNodePackForNamespace("lib.convert.pandoc")?.id).toBe(
+      expect(getOptionalNodePackForNamespace("lib.pdf.thumbnail")?.id).toBe(
         "documents"
       );
       expect(getOptionalNodePackForNamespace("messaging.discord")?.id).toBe(

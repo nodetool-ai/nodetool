@@ -146,7 +146,6 @@ Admitting it by name rather than whole-listing the namespace keeps any future
 ## Namespaces dropped (the "nerdy" set)
 
 - **Data/docs:** `nodetool.data` (dataframes), `nodetool.document`, `lib.pdf`,
-  `lib.docx`, `lib.epub`, `lib.pptx`, `lib.convert`,
   `lib.markdown`, `lib.html`, `lib.charts`
 - **System/automation:** `lib.os`, `nodetool.workspace`, `nodetool.sandbox`,
   `nodetool.triggers`, `lib.browser`, `lib.video.download`

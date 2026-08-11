@@ -1,25 +1,19 @@
 /**
- * Coverage tests for lib-browser, lib-mail, lib-markitdown.
+ * Coverage tests for lib-browser and lib-mail.
  *
  * Strategy:
  * - lib-browser: Real CDP against a local HTTP server for Screenshot.
  * - lib-mail: Gmail stubs throw without credentials.
- * - lib-markitdown: Test HTML conversion, plain text pass-through, error on missing data/uri,
- *   file URI reading, and docx branch (error path).
  */
 
 import { describe, expect, it, vi } from "vitest";
 import http from "node:http";
-import path from "node:path";
-import fs from "node:fs/promises";
-import os from "node:os";
 
 import {
   ScreenshotLibNode,
   GmailSearchLibNode,
   AddLabelLibNode,
-  MoveToArchiveLibNode,
-  ConvertToMarkdownLibNode
+  MoveToArchiveLibNode
 } from "../../src/index.js";
 
 
@@ -153,215 +147,6 @@ describe("lib.mail.MoveToArchive (stub)", () => {
 
 
 // ---------------------------------------------------------------------------
-// lib-markitdown
-// ---------------------------------------------------------------------------
-
-describe("lib.convert.ConvertToMarkdown", () => {
-  it("throws when no document URI or data", async () => {
-    await expect(
-      (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({ document: {} });
-        return _n.process();
-      })()
-    ).rejects.toThrow("A document URI or data is required");
-  });
-
-  it("converts HTML data to markdown", async () => {
-    const result = await (() => {
-      const _n = new ConvertToMarkdownLibNode();
-      _n.assign({
-        document: {
-          uri: "",
-          data: "<h1>Title</h1><p>Paragraph text</p>"
-        }
-      });
-      return _n.process();
-    })();
-    const output = result.output as { type: string; data: string };
-    expect(output.type).toBe("document");
-    expect(output.data).toContain("Title");
-    expect(output.data).toContain("Paragraph text");
-  });
-
-  it("passes plain text data through as-is", async () => {
-    const result = await (() => {
-      const _n = new ConvertToMarkdownLibNode();
-      _n.assign({
-        document: {
-          uri: "",
-          data: "Just plain text without any HTML tags"
-        }
-      });
-      return _n.process();
-    })();
-    const output = result.output as { type: string; data: string };
-    expect(output.data).toBe("Just plain text without any HTML tags");
-  });
-
-  it("reads HTML from a file URI", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "markitdown-"));
-    const filePath = path.join(tmpDir, "test.html");
-    await fs.writeFile(
-      filePath,
-      "<html><body><h2>From File</h2><p>File content</p></body></html>"
-    );
-
-    try {
-      const result = await (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: `file://${filePath}` }
-        });
-        return _n.process();
-      })();
-      const output = result.output as { type: string; data: string };
-      expect(output.data).toContain("From File");
-      expect(output.data).toContain("File content");
-    } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it("reads plain text file from URI", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "markitdown-"));
-    const filePath = path.join(tmpDir, "test.txt");
-    await fs.writeFile(filePath, "Plain file content no HTML");
-
-    try {
-      const result = await (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: `file://${filePath}` }
-        });
-        return _n.process();
-      })();
-      const output = result.output as { type: string; data: string };
-      expect(output.data).toBe("Plain file content no HTML");
-    } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it("reads from a raw file path (non file:// URI)", async () => {
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "markitdown-"));
-    const filePath = path.join(tmpDir, "raw.html");
-    await fs.writeFile(filePath, "<div><strong>Bold</strong> text</div>");
-
-    try {
-      const result = await (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: filePath }
-        });
-        return _n.process();
-      })();
-      const output = result.output as { type: string; data: string };
-      expect(output.data).toContain("Bold");
-    } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it("throws for .docx URI that does not exist", async () => {
-    await expect(
-      (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: "/nonexistent/file.docx" }
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow();
-  });
-
-  it("handles file:// prefix for .docx URI (error on missing file)", async () => {
-    await expect(
-      (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: "file:///nonexistent/file.docx" }
-        });
-        return _n.process();
-      })()
-    ).rejects.toThrow();
-  });
-
-  it("converts a real .docx file to markdown via mammoth", async () => {
-    // Create a minimal .docx file using the 'docx' package
-    const docx = await import("docx");
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "markitdown-docx-"));
-    const filePath = path.join(tmpDir, "test.docx");
-
-    const doc = new docx.Document({
-      sections: [
-        {
-          children: [
-            new docx.Paragraph({
-              children: [new docx.TextRun("Hello from DOCX")]
-            })
-          ]
-        }
-      ]
-    });
-
-    const buffer = await docx.Packer.toBuffer(doc);
-    await fs.writeFile(filePath, buffer);
-
-    try {
-      const result = await (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: filePath }
-        });
-        return _n.process();
-      })();
-      const output = result.output as { type: string; data: string };
-      expect(output.type).toBe("document");
-      expect(output.data).toContain("Hello from DOCX");
-    } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
-  });
-
-  it("converts a .docx file via file:// URI", async () => {
-    const docx = await import("docx");
-    const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "markitdown-docx-"));
-    const filePath = path.join(tmpDir, "test2.docx");
-
-    const doc = new docx.Document({
-      sections: [
-        {
-          children: [
-            new docx.Paragraph({
-              children: [new docx.TextRun("DOCX via file URI")]
-            })
-          ]
-        }
-      ]
-    });
-
-    const buffer = await docx.Packer.toBuffer(doc);
-    await fs.writeFile(filePath, buffer);
-
-    try {
-      const result = await (() => {
-        const _n = new ConvertToMarkdownLibNode();
-        _n.assign({
-          document: { uri: `file://${filePath}` }
-        });
-        return _n.process();
-      })();
-      const output = result.output as { type: string; data: string };
-      expect(output.type).toBe("document");
-      expect(output.data).toContain("DOCX via file URI");
-    } finally {
-      await fs.rm(tmpDir, { recursive: true, force: true });
-    }
-  });
-});
-
-// ---------------------------------------------------------------------------
 // defaults() coverage — exercise the defaults() method on each node class
 // ---------------------------------------------------------------------------
 
@@ -390,8 +175,4 @@ describe("defaults() methods", () => {
     expect(d).toHaveProperty("message_id");
   });
 
-  it("ConvertToMarkdownLibNode defaults", () => {
-    const d = new ConvertToMarkdownLibNode().serialize();
-    expect(d).toHaveProperty("document");
-  });
 });

@@ -65,11 +65,10 @@ describe("isCloudNodeType", () => {
   it("rejects the nerdy / out-of-scope namespaces", () => {
     for (const nodeType of [
       "lib.sqlite.GetDatabasePath",
-      "lib.pdf.ExtractText",
-      "lib.docx.CreateDocument",
+      "lib.pdf.Screenshot",
       "lib.nlp.Tokenize",
       "nodetool.data.Filter",
-      "nodetool.document.SplitDocument",
+      "nodetool.document.LoadDocumentFile",
       "nodetool.workspace.ReadTextFile",
       "nodetool.triggers.WebhookTrigger",
       "vector.Collection",

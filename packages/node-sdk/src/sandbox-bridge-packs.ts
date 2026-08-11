@@ -59,9 +59,27 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     runs: "host"
   },
   {
+    specifier: "@nodetool-ai/sandbox-docx",
+    packName: "@nodetool-ai/sandbox-docx",
+    library: "docx",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-epub",
+    packName: "@nodetool-ai/sandbox-epub",
+    library: "epub2",
+    runs: "host"
+  },
+  {
     specifier: "@nodetool-ai/sandbox-html",
     packName: "@nodetool-ai/sandbox-html",
     library: "cheerio + turndown",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-mammoth",
+    packName: "@nodetool-ai/sandbox-mammoth",
+    library: "mammoth",
     runs: "host"
   },
   {
@@ -80,6 +98,12 @@ export const BRIDGE_PACKS: readonly BridgePack[] = [
     specifier: "@nodetool-ai/sandbox-ocr",
     packName: "@nodetool-ai/sandbox-ocr",
     library: "tesseract.js",
+    runs: "host"
+  },
+  {
+    specifier: "@nodetool-ai/sandbox-pptx",
+    packName: "@nodetool-ai/sandbox-pptx",
+    library: "office-text-extractor",
     runs: "host"
   },
   {
