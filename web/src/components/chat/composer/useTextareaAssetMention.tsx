@@ -27,6 +27,8 @@ export interface MentionTrigger {
 
 const MAX_QUERY_LENGTH = 64;
 
+const NO_ENTITIES: Entity[] = [];
+
 /**
  * Find the `@`-mention being typed at `caret`, or `null` when none is active.
  *
@@ -129,8 +131,11 @@ export const useTextareaAssetMention = ({
     loadMoreSaved,
     handleRename
   } = useAssetMentionSearch(trigger ? trigger.query : null);
-  // Entities are only offered when the host can do something with one.
-  const entities = (onSelectEntity && matchedEntities) || [];
+  // Entities are only offered when the host can do something with one. The
+  // shared empty array keeps the identity stable when there is no handler; a
+  // fresh `[]` per render invalidated `selectIndex` and the portaled menu's
+  // memo on every keystroke.
+  const entities = (onSelectEntity && matchedEntities) || NO_ENTITIES;
 
   const measure = useCallback(() => {
     const el = textareaRef.current;

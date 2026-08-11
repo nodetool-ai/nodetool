@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { $createTextNode } from "lexical";
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
@@ -104,6 +104,30 @@ const AssetMentionPlugin: React.FC = () => {
     [editor, addRecentAsset]
   );
 
+  // Lexical hands `menuRenderFn` a fresh callback pair on every call. Routing
+  // the grid's handlers through a ref keeps their identity stable, which is
+  // what lets the tiles' memo hold while the highlight moves.
+  const menuControls = useRef<{
+    selectOption: (option: MentionTypeaheadOption) => void;
+    setHighlightedIndex: (index: number) => void;
+  } | null>(null);
+
+  const handleSelect = useCallback(
+    (index: number) => {
+      const controls = menuControls.current;
+      if (!controls) {
+        return;
+      }
+      controls.setHighlightedIndex(index);
+      controls.selectOption(options[index]);
+    },
+    [options]
+  );
+
+  const handleHighlight = useCallback((index: number) => {
+    menuControls.current?.setHighlightedIndex(index);
+  }, []);
+
   return (
     <LexicalTypeaheadMenuPlugin<MentionTypeaheadOption>
       options={options}
@@ -114,6 +138,10 @@ const AssetMentionPlugin: React.FC = () => {
         anchorElementRef,
         { selectedIndex, selectOptionAndCleanUp, setHighlightedIndex }
       ) => {
+        menuControls.current = {
+          selectOption: selectOptionAndCleanUp,
+          setHighlightedIndex
+        };
         if (anchorElementRef.current === null) {
           return null;
         }
@@ -127,11 +155,8 @@ const AssetMentionPlugin: React.FC = () => {
             entities={entities}
             assets={displayedAssets}
             selectedIndex={selectedIndex ?? 0}
-            onSelect={(index) => {
-              setHighlightedIndex(index);
-              selectOptionAndCleanUp(options[index]);
-            }}
-            onHighlight={setHighlightedIndex}
+            onSelect={handleSelect}
+            onHighlight={handleHighlight}
             onRename={handleRename}
             queryString={queryString}
             hasMore={hasMoreSaved}

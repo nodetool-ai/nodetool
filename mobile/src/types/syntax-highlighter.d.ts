@@ -22,7 +22,12 @@ declare module 'react-native-syntax-highlighter' {
   export default class SyntaxHighlighter extends Component<SyntaxHighlighterProps> {}
 }
 
-declare module 'react-syntax-highlighter/dist/esm/styles/prism' {
-  export const atomDark: Record<string, unknown>;
-  export const tomorrow: Record<string, unknown>;
+declare module 'react-syntax-highlighter/dist/esm/styles/prism/atom-dark' {
+  const style: Record<string, unknown>;
+  export default style;
+}
+
+declare module 'react-syntax-highlighter/dist/esm/styles/prism/tomorrow' {
+  const style: Record<string, unknown>;
+  export default style;
 }
