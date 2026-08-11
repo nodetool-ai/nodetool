@@ -16,7 +16,9 @@ import {
   TodoItem
 } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/Add";
+import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import {
+  FlexRow,
   SPACING,
   ToolbarIconButton,
   getSpacingPx,
@@ -27,6 +29,7 @@ import ChatInputSection, { type ChatComposerVariant } from "./ChatInputSection";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { ThreadMemorySidebar } from "../sidebar/ThreadMemorySidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import { useThreadMemoryPanelStore } from "../../../stores/ThreadMemoryPanelStore";
 import {
   buildUiContext,
   type BuildUiContextOptions
@@ -59,7 +62,7 @@ const styles = (theme: Theme) =>
       paddingRight: 8
     },
     // Floats over the thread rather than reserving a row of its own.
-    ".new-chat-overlay": {
+    ".chat-overlay-actions": {
       position: "absolute",
       top: getSpacingPx(SPACING.md),
       right: getSpacingPx(SPACING.lg),
@@ -277,18 +280,32 @@ const ChatView = ({
   // phones and narrow panels.
   const railsFit = useMediaQuery(theme.breakpoints.up("md"));
   const showTodoSidebar = railsFit && todos.length > 0;
+  const memoryPanelOpen = useThreadMemoryPanelStore((state) => state.isOpen);
+  const toggleMemoryPanel = useThreadMemoryPanelStore((state) => state.toggle);
+  const closeMemoryPanel = useThreadMemoryPanelStore((state) => state.setOpen);
+  const canShowMemorySidebar = railsFit && Boolean(effectiveThreadId);
 
   return (
     <div className="chat-view" css={cssStyles}>
       <div className="chat-main">
-        {showNewChatButton && onNewChat && (
-          <div className="new-chat-overlay">
-            <ToolbarIconButton
-              onClick={onNewChat}
-              tooltip="New chat"
-              icon={<AddIcon fontSize="small" />}
-            />
-          </div>
+        {(canShowMemorySidebar || (showNewChatButton && onNewChat)) && (
+          <FlexRow className="chat-overlay-actions" align="center" gap={2}>
+            {canShowMemorySidebar && (
+              <ToolbarIconButton
+                onClick={toggleMemoryPanel}
+                tooltip={memoryPanelOpen ? "Hide memory" : "Show memory"}
+                active={memoryPanelOpen}
+                icon={<PsychologyOutlinedIcon fontSize="small" />}
+              />
+            )}
+            {showNewChatButton && onNewChat && (
+              <ToolbarIconButton
+                onClick={onNewChat}
+                tooltip="New chat"
+                icon={<AddIcon fontSize="small" />}
+              />
+            )}
+          </FlexRow>
         )}
         <div className="chat-thread-container">
           {messages.length > 0 ? (
@@ -331,8 +348,11 @@ const ChatView = ({
         />
       </div>
       {showTodoSidebar && <TodoSidebar todos={todos} />}
-      {railsFit && effectiveThreadId && (
-        <ThreadMemorySidebar threadId={effectiveThreadId} />
+      {canShowMemorySidebar && memoryPanelOpen && effectiveThreadId && (
+        <ThreadMemorySidebar
+          threadId={effectiveThreadId}
+          onClose={() => closeMemoryPanel(false)}
+        />
       )}
     </div>
   );
