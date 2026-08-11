@@ -7,8 +7,10 @@
  *   - General tab (editor / appearance / default models)
  *   - About tab
  *
- * Settings is a routed page (not a modal). Tabs are MUI Tab elements labelled
- * "General", "API Keys", "Integrations", "About".
+ * Settings opens as a workspace tab, so these captures include the workspace
+ * shell around it. `/settings` still redirects there, which is what the tests
+ * navigate to. Tabs are MUI Tab elements labelled "General", "API Keys",
+ * "Integrations", "About".
  */
 
 import { test, expect, type Page } from "@playwright/test";
