@@ -111,7 +111,7 @@ describe.skip("lib.browser.Screenshot (cdp)", () => {
 
 // ---------------------------------------------------------------------------
 // lib-mail
-});
+// ---------------------------------------------------------------------------
 
 describe("lib.mail.GmailSearch (stub)", () => {
   it("throws credentials error", async () => {

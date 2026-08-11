@@ -4,7 +4,6 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { tmpdir } from "node:os";
-import { mkdtempSync } from "node:fs";
 import { join } from "node:path";
 
 import {

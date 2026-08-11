@@ -5,14 +5,11 @@
  * - SVGToImage must produce PNG output, not raw SVG
  * - KIE manifest model IDs must be correct
  */
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-import {
-  SVGToImageLibNode,
-  DocumentLibNode
-} from "@nodetool-ai/text-nodes";
+import { SVGToImageLibNode } from "@nodetool-ai/text-nodes";
 
 
 // ---------------------------------------------------------------------------
