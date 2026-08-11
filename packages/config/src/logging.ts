@@ -8,7 +8,7 @@
  *   log.debug("Node executing", { nodeId, type });
  */
 
-import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+import { IS_NODE, getNodeBuiltinSync } from "./node-import.js";
 
 /**
  * Minimal sync-fs surface, loaded lazily on Node only — outside Node
@@ -18,7 +18,7 @@ type FsSync = {
   openSync: (path: string, flags: string) => number;
   writeSync: (fd: number, data: string) => number;
 };
-const fsSync = await importNodeBuiltin<FsSync>("node:fs");
+const fsSync = getNodeBuiltinSync<FsSync>("node:fs");
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 

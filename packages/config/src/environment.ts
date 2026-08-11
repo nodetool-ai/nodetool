@@ -9,15 +9,15 @@
  * outside Node.
  */
 import { loadEnvFile } from "./env-file.js";
-import { IS_NODE, importNodeBuiltin } from "./node-import.js";
+import { IS_NODE, getNodeBuiltinSync } from "./node-import.js";
 
 type FsApi = {
   existsSync: (path: string) => boolean;
   readFileSync: (path: string, encoding: "utf8") => string;
 };
 type PathApi = { resolve: (...parts: string[]) => string };
-const fsSync = await importNodeBuiltin<FsApi>("node:fs");
-const pathSync = await importNodeBuiltin<PathApi>("node:path");
+const fsSync = getNodeBuiltinSync<FsApi>("node:fs");
+const pathSync = getNodeBuiltinSync<PathApi>("node:path");
 
 let loaded = false;
 const envStore = new Map<string, string>();

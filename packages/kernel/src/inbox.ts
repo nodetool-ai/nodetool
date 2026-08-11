@@ -11,15 +11,15 @@
  *   - MessageEnvelope wrapping for metadata propagation.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type {
   CorrelationLineage,
   LineageDone,
   LineageScopeClosed
 } from "@nodetool-ai/protocol";
 
-// Stryker disable next-line StringLiteral: module name; on failure importNodeBuiltin returns null and randomUUID falls back, so the literal is not behaviourally observable
-const _nodeCrypto = await importNodeBuiltin<typeof import("node:crypto")>("node:crypto");
+// Stryker disable next-line StringLiteral: module name; on failure getNodeBuiltinSync returns null and randomUUID falls back, so the literal is not behaviourally observable
+const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>("node:crypto");
 
 /**
  * RFC4122 v4 UUID derived from a `[0, 1)` random source. This is the fallback

@@ -3,6 +3,8 @@ export {
   safeProcessEnv,
   safeProcessPlatform,
   importNodeBuiltin,
+  getNodeBuiltinSync,
+  importNodeBuiltinSync,
   importHidden
 } from "./node-import.js";
 

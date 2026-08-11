@@ -1,12 +1,12 @@
 import { isPackageAssetUri, isRawRgbaImage } from "@nodetool-ai/protocol";
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import type { ProcessingContext } from "./context.js";
 import { encodeRawRgbaToPng } from "./image-codec.js";
 
-const _nodeFsP = await importNodeBuiltin<typeof import("node:fs/promises")>(
+const _nodeFsP = getNodeBuiltinSync<typeof import("node:fs/promises")>(
   "node:fs/promises"
 );
-const _nodeUrl = await importNodeBuiltin<typeof import("node:url")>("node:url");
+const _nodeUrl = getNodeBuiltinSync<typeof import("node:url")>("node:url");
 const readFile = (
   ...args: Parameters<typeof import("node:fs/promises").readFile>
 ): Promise<Buffer> =>

@@ -7,12 +7,11 @@
  * that depends on per-async-context isolation must say what that costs it.
  */
 
-import { importNodeBuiltin } from "@nodetool-ai/config";
+import { getNodeBuiltinSync } from "@nodetool-ai/config";
 
-const _asyncHooks =
-  await importNodeBuiltin<typeof import("node:async_hooks")>(
-    "node:async_hooks"
-  );
+const _asyncHooks = getNodeBuiltinSync<typeof import("node:async_hooks")>(
+  "node:async_hooks"
+);
 
 class FallbackStore<T> {
   private _value: T | undefined;
