@@ -187,3 +187,204 @@ describe("checkExpectations", () => {
     expect(byName["no-provider-nodes"]).toBe(false);
   });
 });
+
+const CODE_NODE_TYPE = "nodetool.code.Code";
+
+/**
+ * One Code node fed by an input, whose `total` handle reaches an output node.
+ * `packages` and the second consumer vary per test.
+ */
+function codeGraph(options: {
+  packages?: unknown[];
+  outputHandle?: string;
+  consumerType?: string;
+  extraCodeNode?: boolean;
+}) {
+  const handle = options.outputHandle ?? "total";
+  const consumer = options.consumerType ?? "nodetool.output.Output";
+  const nodes = [
+    {
+      id: "rows",
+      type: "nodetool.input.StringInput",
+      name: "rows",
+      properties: { name: "rows" }
+    },
+    {
+      id: "code",
+      type: CODE_NODE_TYPE,
+      name: "code",
+      properties: {
+        code: "return { total: 1 };",
+        ...(options.packages ? { packages: options.packages } : {})
+      }
+    },
+    {
+      id: "consumer",
+      type: consumer,
+      name: "consumer",
+      properties: { name: "total" }
+    }
+  ];
+  const edges = [
+    {
+      id: "e1",
+      source: "rows",
+      sourceHandle: "output",
+      target: "code",
+      targetHandle: "rows"
+    },
+    {
+      id: "e2",
+      source: "code",
+      sourceHandle: handle,
+      target: "consumer",
+      targetHandle: "value"
+    }
+  ];
+  if (options.extraCodeNode) {
+    nodes.push({
+      id: "code2",
+      type: CODE_NODE_TYPE,
+      name: "code2",
+      properties: { code: "return { out: 2 };" }
+    });
+  }
+  return { nodes, edges };
+}
+
+describe("checkExpectations — Code node checks", () => {
+  const pass = (checks: ReturnType<typeof checkExpectations>, name: string) =>
+    checks.find((c) => c.name === name)?.pass;
+
+  it("counts Code nodes against the minimum and the maximum", () => {
+    const one = checkExpectations(codeGraph({}), {
+      minCodeNodes: 1,
+      maxCodeNodes: 1
+    });
+    expect(pass(one, "codeNodes>=1")).toBe(true);
+    expect(pass(one, "codeNodes<=1")).toBe(true);
+
+    const two = checkExpectations(codeGraph({ extraCodeNode: true }), {
+      minCodeNodes: 3,
+      maxCodeNodes: 1
+    });
+    expect(pass(two, "codeNodes>=3")).toBe(false);
+    expect(pass(two, "codeNodes<=1")).toBe(false);
+  });
+
+  it("reads output handles off declarations and outgoing edges", () => {
+    const wired = checkExpectations(codeGraph({ outputHandle: "total" }), {
+      requiredCodeOutputHandles: ["total"],
+      requireCodeOutputs: true
+    });
+    expect(pass(wired, "codeOutput:total")).toBe(true);
+    expect(pass(wired, "codeOutputs")).toBe(true);
+
+    const wrong = checkExpectations(codeGraph({ outputHandle: "output" }), {
+      requiredCodeOutputHandles: ["total"]
+    });
+    expect(pass(wrong, "codeOutput:total")).toBe(false);
+
+    const declaredOnly = {
+      nodes: [
+        {
+          id: "code",
+          type: CODE_NODE_TYPE,
+          name: "code",
+          properties: {},
+          dynamic_outputs: { total: { type: "float", type_args: [] } }
+        }
+      ],
+      edges: []
+    };
+    expect(
+      pass(
+        checkExpectations(declaredOnly, {
+          requiredCodeOutputHandles: ["total"]
+        }),
+        "codeOutput:total"
+      )
+    ).toBe(true);
+  });
+
+  it("flags a Code node that exposes no output handle at all", () => {
+    const inert = {
+      nodes: [
+        { id: "code", type: CODE_NODE_TYPE, name: "code", properties: {} }
+      ],
+      edges: []
+    };
+    const checks = checkExpectations(inert, { requireCodeOutputs: true });
+    expect(pass(checks, "codeOutputs")).toBe(false);
+    expect(checks.find((c) => c.name === "codeOutputs")?.detail).toContain(
+      "code"
+    );
+  });
+
+  it("forbids any declared sandbox package", () => {
+    expect(
+      pass(
+        checkExpectations(codeGraph({}), { forbidCodePackages: true }),
+        "codePackages:none"
+      )
+    ).toBe(true);
+    expect(
+      pass(
+        checkExpectations(codeGraph({ packages: ["@nodetool-ai/sandbox-csv"] }), {
+          forbidCodePackages: true
+        }),
+        "codePackages:none"
+      )
+    ).toBe(false);
+  });
+
+  it("allows only the listed specifiers, in either declaration shape", () => {
+    const allowed = ["@nodetool-ai/sandbox-csv"];
+    expect(
+      pass(
+        checkExpectations(codeGraph({ packages: allowed }), {
+          allowedCodePackages: allowed
+        }),
+        "codePackages:allowed"
+      )
+    ).toBe(true);
+    expect(
+      pass(
+        checkExpectations(
+          codeGraph({ packages: [{ specifier: "@nodetool-ai/sandbox-csv" }] }),
+          { allowedCodePackages: allowed }
+        ),
+        "codePackages:allowed"
+      )
+    ).toBe(true);
+
+    const hallucinated = checkExpectations(
+      codeGraph({ packages: ["papaparse"] }),
+      { allowedCodePackages: allowed }
+    );
+    expect(pass(hallucinated, "codePackages:allowed")).toBe(false);
+    expect(
+      hallucinated.find((c) => c.name === "codePackages:allowed")?.detail
+    ).toContain("papaparse");
+  });
+
+  it("checks what a Code node feeds", () => {
+    const pattern = "^nodetool\\.agents\\.Agent$";
+    expect(
+      pass(
+        checkExpectations(codeGraph({ consumerType: AGENT_NODE_TYPE }), {
+          codeFeedsNodeTypePatterns: [pattern]
+        }),
+        `codeFeeds:${pattern}`
+      )
+    ).toBe(true);
+    expect(
+      pass(
+        checkExpectations(codeGraph({}), {
+          codeFeedsNodeTypePatterns: [pattern]
+        }),
+        `codeFeeds:${pattern}`
+      )
+    ).toBe(false);
+  });
+});

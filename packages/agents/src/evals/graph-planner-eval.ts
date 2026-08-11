@@ -11,7 +11,8 @@
 
 import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { GraphData } from "@nodetool-ai/protocol";
+import { isJsCodeNodeType } from "@nodetool-ai/node-sdk";
+import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import { GraphPlanner } from "../graph-planner.js";
 import { AGENT_NODE_TYPE } from "../graph-builder.js";
 import { PROVIDER_NAMESPACES } from "../prompts/graph-planner-prompt.js";
@@ -36,6 +37,33 @@ export interface GraphPlannerEvalExpectations {
    * wired — they run, validate clean, and do nothing.
    */
   requireConnected?: boolean;
+  /** Minimum number of `nodetool.code.Code` nodes. */
+  minCodeNodes?: number;
+  /**
+   * Maximum number of `nodetool.code.Code` nodes. One Code node covers a whole
+   * data-shaping step, so a low cap is what catches a chain of them.
+   */
+  maxCodeNodes?: number;
+  /**
+   * Output handle names the Code nodes must expose between them. A handle is
+   * exposed when the node declares it in `dynamic_outputs` or an outgoing edge
+   * reads it — a body returning a key nothing exposes leaves the node inert.
+   */
+  requiredCodeOutputHandles?: string[];
+  /** Every Code node must expose at least one output handle. */
+  requireCodeOutputs?: boolean;
+  /** No Code node may declare a sandbox package in `packages`. */
+  forbidCodePackages?: boolean;
+  /**
+   * Sandbox specifiers the Code nodes may declare. A specifier outside the
+   * list fails the check — that is a pack the machine does not install.
+   */
+  allowedCodePackages?: string[];
+  /**
+   * Regex sources; each must match the type of a node fed by a Code node.
+   * Pins the boundary between deterministic prep and the step it feeds.
+   */
+  codeFeedsNodeTypePatterns?: string[];
   /** Minimum number of `nodetool.output.*` nodes. */
   minOutputNodes?: number;
   /** At least one `nodetool.output.*` node. */
@@ -132,6 +160,42 @@ function totalToolCalls(byName: Record<string, number>): number {
   return Object.values(byName).reduce((a, b) => a + b, 0);
 }
 
+function asRecord(value: unknown): Record<string, unknown> | undefined {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : undefined;
+}
+
+/**
+ * Output handles a Code node exposes: the ones it declares plus the ones an
+ * outgoing edge reads. The DSL has no syntax for `dynamic_outputs`, so a
+ * planner-written Code node exposes its handles through its edges.
+ */
+function codeOutputHandles(graph: GraphData, node: NodeDescriptor): string[] {
+  const declared =
+    asRecord(node.dynamic_outputs) ??
+    asRecord(node.properties?.["dynamic_outputs"]) ??
+    {};
+  const handles = new Set(Object.keys(declared));
+  for (const edge of graph.edges) {
+    if (edge.source === node.id && edge.sourceHandle) {
+      handles.add(edge.sourceHandle);
+    }
+  }
+  return [...handles];
+}
+
+/** Sandbox specifiers a Code node declares in `packages`. */
+function codePackageSpecifiers(node: NodeDescriptor): string[] {
+  const declared = node.properties?.["packages"];
+  if (!Array.isArray(declared)) return [];
+  return declared.map((entry) => {
+    if (typeof entry === "string") return entry;
+    const specifier = asRecord(entry)?.["specifier"];
+    return typeof specifier === "string" ? specifier : String(entry);
+  });
+}
+
 /** Score an accepted graph against the case expectations. */
 export function checkExpectations(
   graph: GraphData,
@@ -223,6 +287,98 @@ export function checkExpectations(
     });
   }
 
+  const codeNodes = graph.nodes.filter((n) => isJsCodeNodeType(n.type));
+
+  if (expect.minCodeNodes !== undefined) {
+    checks.push({
+      name: `codeNodes>=${expect.minCodeNodes}`,
+      pass: codeNodes.length >= expect.minCodeNodes,
+      detail: `found ${codeNodes.length}`
+    });
+  }
+  if (expect.maxCodeNodes !== undefined) {
+    checks.push({
+      name: `codeNodes<=${expect.maxCodeNodes}`,
+      pass: codeNodes.length <= expect.maxCodeNodes,
+      detail: `found ${codeNodes.length}`
+    });
+  }
+
+  if (expect.requiredCodeOutputHandles) {
+    const exposed = new Set(
+      codeNodes.flatMap((n) => codeOutputHandles(graph, n))
+    );
+    for (const handle of expect.requiredCodeOutputHandles) {
+      const found = exposed.has(handle);
+      checks.push({
+        name: `codeOutput:${handle}`,
+        pass: found,
+        detail: found
+          ? undefined
+          : `no Code node exposes an output handle "${handle}"`
+      });
+    }
+  }
+
+  if (expect.requireCodeOutputs) {
+    const inert = codeNodes
+      .filter((n) => codeOutputHandles(graph, n).length === 0)
+      .map((n) => n.id);
+    checks.push({
+      name: "codeOutputs",
+      pass: inert.length === 0,
+      detail:
+        inert.length === 0
+          ? undefined
+          : `Code nodes with no output handle: ${inert.join(", ")}`
+    });
+  }
+
+  if (expect.forbidCodePackages) {
+    const offenders = codeNodes.flatMap((n) =>
+      codePackageSpecifiers(n).map((s) => `${n.id}:${s}`)
+    );
+    checks.push({
+      name: "codePackages:none",
+      pass: offenders.length === 0,
+      detail:
+        offenders.length === 0
+          ? undefined
+          : `declared sandbox packages: ${offenders.join(", ")}`
+    });
+  }
+
+  if (expect.allowedCodePackages) {
+    const allowed = new Set(expect.allowedCodePackages);
+    const offenders = codeNodes.flatMap((n) =>
+      codePackageSpecifiers(n)
+        .filter((s) => !allowed.has(s))
+        .map((s) => `${n.id}:${s}`)
+    );
+    checks.push({
+      name: "codePackages:allowed",
+      pass: offenders.length === 0,
+      detail:
+        offenders.length === 0
+          ? undefined
+          : `sandbox packages outside the allowed list: ${offenders.join(", ")}`
+    });
+  }
+
+  for (const pattern of expect.codeFeedsNodeTypePatterns ?? []) {
+    const re = new RegExp(pattern);
+    const codeIds = new Set(codeNodes.map((n) => n.id));
+    const byId = new Map(graph.nodes.map((n) => [n.id, n.type]));
+    const found = graph.edges.some(
+      (e) => codeIds.has(e.source) && re.test(byId.get(e.target) ?? "")
+    );
+    checks.push({
+      name: `codeFeeds:${pattern}`,
+      pass: found,
+      detail: found ? undefined : `no Code node feeds a node matching /${pattern}/`
+    });
+  }
+
   const outputCount = types.filter((t) =>
     t.startsWith("nodetool.output.")
   ).length;
@@ -287,7 +443,11 @@ async function runCase(
     inputs: evalCase.inputs,
     outputSchema: evalCase.outputSchema,
     maxRetries: opts.maxRetries,
-    signal: opts.signal
+    signal: opts.signal,
+    // This suite scores the planner's own submission. Refinement re-authors
+    // Code bodies afterwards, so leaving it on would measure two loops and
+    // charge for both.
+    refineCodeNodes: false
   });
 
   let graph: GraphData | null = null;

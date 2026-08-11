@@ -89,7 +89,11 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
     inputs: { first: "Hello, ", second: "world" },
     expect: {
       requiredInputNames: ["first", "second"],
-      requiredNodeTypePatterns: ["^nodetool\\.text\\."],
+      // Either deterministic route passes. `nodetool.text.Concat` still ships,
+      // and a `nodetool.code.Code` body is what the planner prompt now steers
+      // string mechanics toward. The case is about not reaching for an LLM,
+      // so pinning one of the two would fail the answer the prompt asks for.
+      requiredNodeTypePatterns: ["^nodetool\\.(text|code)\\."],
       forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
       requireConnected: true,
       requireOutputNode: true
@@ -124,6 +128,120 @@ export const GRAPH_PLANNER_EVAL_CASES: readonly GraphPlannerEvalCase[] = [
       ],
       requireConnected: true,
       requireOutputNode: true
+    }
+  },
+  {
+    id: "code-single-transform",
+    description: "Parse-and-format work belongs in one Code node, not a chain",
+    objective:
+      'The input order_json is a JSON string of the form {"customer":"Ada","total":42.5,"currency":"EUR"}. Parse it and produce the single line "Ada owes 42.50 EUR" — the customer name, the word "owes", the total with exactly two decimals, and the currency. Do this in one Code node and name its output handle "line". Output that line.',
+    inputs: {
+      order_json: '{"customer":"Ada","total":42.5,"currency":"EUR"}'
+    },
+    expect: {
+      requiredInputNames: ["order_json"],
+      minCodeNodes: 1,
+      maxCodeNodes: 1,
+      requiredCodeOutputHandles: ["line"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
+      requireOutputNode: true,
+      maxNodes: 4
+    }
+  },
+  {
+    id: "code-aggregation",
+    description: "Arithmetic over structured input, both results on named handles",
+    objective:
+      'The input rows is a JSON string holding an array of objects, each with a numeric amount field. Compute the sum of amount and the average of amount in one Code node. Name the output handles "total" and "average". Output both numbers. This is arithmetic — no reasoning is involved.',
+    inputs: { rows: '[{"amount":10},{"amount":20},{"amount":30}]' },
+    expect: {
+      requiredInputNames: ["rows"],
+      minCodeNodes: 1,
+      maxCodeNodes: 1,
+      requiredCodeOutputHandles: ["total", "average"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
+      minOutputNodes: 2,
+      maxNodes: 5
+    }
+  },
+  {
+    id: "code-no-packages",
+    description: "String work needs no library — no pack specifier may be declared",
+    objective:
+      'Turn the input title into a URL slug with one Code node: lowercase it, replace every run of characters that are not letters or digits with a single hyphen, and strip leading and trailing hyphens. Name the output handle "slug" and output it. Plain JavaScript does all of this.',
+    inputs: { title: "Hello, World! A First Post" },
+    expect: {
+      requiredInputNames: ["title"],
+      minCodeNodes: 1,
+      maxCodeNodes: 1,
+      requiredCodeOutputHandles: ["slug"],
+      forbidCodePackages: true,
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
+      requireOutputNode: true,
+      maxNodes: 4
+    }
+  },
+  {
+    id: "code-csv-package",
+    description: "A CSV body may declare the shipped CSV pack and nothing else",
+    objective:
+      'The input csv is a CSV document with a header row and a numeric amount column. Sum the amount column in one Code node, name the output handle "total", and output the total.',
+    inputs: { csv: "name,amount\nAda,10\nGrace,20\n" },
+    expect: {
+      requiredInputNames: ["csv"],
+      minCodeNodes: 1,
+      maxCodeNodes: 1,
+      requiredCodeOutputHandles: ["total"],
+      // The body may parse the CSV by hand or with the shipped pack. Any other
+      // specifier is a pack this machine does not install, which fails
+      // validation at run time.
+      allowedCodePackages: ["@nodetool-ai/sandbox-csv"],
+      forbiddenNodeTypePatterns: ["^nodetool\\.agents\\."],
+      requireConnected: true,
+      requireOutputNode: true,
+      maxNodes: 4
+    }
+  },
+  {
+    id: "agent-over-code",
+    description: "Judgement about tone is an LLM step, never a Code body",
+    objective:
+      "Read the input complaint — a customer's message about a problem with an order — and write a short, empathetic reply that names the specific problem the customer describes and says what will be done about it. Output the reply. This needs judgement about tone and wording.",
+    inputs: {
+      complaint: "My order arrived two weeks late and the box was crushed."
+    },
+    expect: {
+      requiredInputNames: ["complaint"],
+      minAgentSteps: 1,
+      forbiddenNodeTypePatterns: ["^nodetool\\.code\\."],
+      requireConnected: true,
+      requireOutputNode: true,
+      maxNodes: 5
+    }
+  },
+  {
+    id: "code-feeds-agent",
+    description: "Deterministic prep in a Code node, wired into an LLM step",
+    objective:
+      'The input log_json is a JSON string holding an array of log entries, each with a level and a message field. First, in one Code node, keep only the entries whose level is "error" and join their message values into one newline-separated string on an output handle named "errors". Then have an LLM step read that string and write a short paragraph explaining what went wrong. Output the paragraph.',
+    inputs: {
+      log_json:
+        '[{"level":"info","message":"started"},{"level":"error","message":"disk full"}]'
+    },
+    expect: {
+      requiredInputNames: ["log_json"],
+      minCodeNodes: 1,
+      maxCodeNodes: 1,
+      requiredCodeOutputHandles: ["errors"],
+      requireCodeOutputs: true,
+      codeFeedsNodeTypePatterns: ["^nodetool\\.agents\\.Agent$"],
+      minAgentSteps: 1,
+      requireConnected: true,
+      requireOutputNode: true,
+      minEdges: 3
     }
   }
 ];

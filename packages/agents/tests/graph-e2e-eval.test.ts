@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import {
+  GRAPH_E2E_EVAL_CASES,
   runGraphE2eEval,
   formatGraphE2eReport,
   checkRunOutputs,
@@ -279,6 +280,41 @@ describe("runGraphE2eEval", () => {
     expect(report.cases[0].score).toBe(1);
   });
 
+  it("fails a judge-free case whose pinned output is wrong, without judging", async () => {
+    let judged = 0;
+    const provider = createScriptedProvider(PLAN_SCRIPT, ["{}"]);
+    const spied = new Proxy(provider, {
+      get(target, prop, receiver) {
+        if (prop === "generateMessageTraced") judged++;
+        return Reflect.get(target, prop, receiver);
+      }
+    });
+
+    const report = await runGraphE2eEval({
+      provider: spied,
+      model: "m",
+      registry: stubRegistry,
+      runGraph: okRunner({ outputs: [{ name: "total", value: 44.8 }] }),
+      cases: [
+        {
+          id: "code-aggregate",
+          description: "exact arithmetic",
+          objective: "Total the line items.",
+          goal: "total is 44.85.",
+          skipJudge: true,
+          expect: { expectedOutputs: { total: 44.85 } }
+        }
+      ]
+    });
+
+    expect(judged).toBe(0);
+    expect(report.cases[0].executed).toBe(true);
+    expect(report.cases[0].goalAchieved).toBe(false);
+    expect(report.cases[0].checks.find((c) => c.name === "equals:total")?.pass).toBe(
+      false
+    );
+  });
+
   it("skips model-dependent cases without configured providers", async () => {
     const provider = createScriptedProvider([]);
     const report = await runGraphE2eEval({
@@ -333,6 +369,70 @@ describe("checkRunOutputs", () => {
     expect(checks.every((c) => c.pass)).toBe(true);
   });
 
+  it("pins an output character for character, case included", () => {
+    const expect_ = {
+      expectedOutputs: {
+        roster: "3 attendees: June Okafor; Omar Haddad; Priya Sharma"
+      }
+    };
+    expect(
+      checkRunOutputs(
+        run([
+          {
+            name: "roster",
+            value: "3 attendees: June Okafor; Omar Haddad; Priya Sharma"
+          }
+        ]),
+        expect_
+      )[0].pass
+    ).toBe(true);
+    // `requiredOutputPatterns` matches case-insensitively, so only this check
+    // can tell a formatting result from a nearly-right one.
+    const wrongCase = checkRunOutputs(
+      run([
+        {
+          name: "roster",
+          value: "3 attendees: june okafor; Omar Haddad; Priya Sharma"
+        }
+      ]),
+      expect_
+    )[0];
+    expect(wrongCase.pass).toBe(false);
+    expect(wrongCase.detail).toContain("june okafor");
+  });
+
+  it("reports a pinned output the run never produced", () => {
+    const check = checkRunOutputs(run([{ name: "other", value: "x" }]), {
+      expectedOutputs: { total: 44.85 }
+    })[0];
+    expect(check.pass).toBe(false);
+    expect(check.detail).toContain("no such output");
+  });
+
+  it("accepts a pinned number that arrives as its decimal string", () => {
+    const checks = checkRunOutputs(
+      run([
+        { name: "total", value: "44.85" },
+        { name: "item_count", value: 3 }
+      ]),
+      { expectedOutputs: { total: 44.85, item_count: 3 } }
+    );
+    expect(checks.every((c) => c.pass)).toBe(true);
+    expect(
+      checkRunOutputs(run([{ name: "total", value: "44.8" }]), {
+        expectedOutputs: { total: 44.85 }
+      })[0].pass
+    ).toBe(false);
+  });
+
+  it("compares a pinned structured output by value", () => {
+    expect(
+      checkRunOutputs(run([{ name: "row", value: { id: "A-4417", items: 3 } }]), {
+        expectedOutputs: { row: { id: "A-4417", items: 3 } }
+      })[0].pass
+    ).toBe(true);
+  });
+
   it("keeps the last value when one output name is reported twice", () => {
     expect(
       outputsByName([
@@ -340,6 +440,58 @@ describe("checkRunOutputs", () => {
         { name: "summary", value: "final" }
       ])
     ).toEqual({ summary: "final" });
+  });
+});
+
+describe("GRAPH_E2E_EVAL_CASES", () => {
+  const byId = (id: string): GraphE2eEvalCase => {
+    const found = GRAPH_E2E_EVAL_CASES.find((c) => c.id === id);
+    if (!found) throw new Error(`case ${id} is gone`);
+    return found;
+  };
+
+  it("keeps the Code-node cases runnable without a model provider", () => {
+    // A Code node is deterministic, so these cost nothing beyond the plan and
+    // are the suite's cheap coverage. Marking one `needsModelProviders` would
+    // silently drop it from a keyless run.
+    for (const id of ["code-parse-json", "code-aggregate", "code-format"]) {
+      const evalCase = byId(id);
+      expect(evalCase.needsModelProviders).toBeUndefined();
+      expect(evalCase.skipJudge).toBe(true);
+      expect(Object.keys(evalCase.expect.expectedOutputs ?? {}).length).toBeGreaterThan(0);
+      expect(evalCase.expectGraph?.forbiddenNodeTypePatterns).toContain(
+        "^nodetool\\.agents\\."
+      );
+    }
+  });
+
+  it("declares a model provider for every case that plans an Agent step", () => {
+    for (const evalCase of GRAPH_E2E_EVAL_CASES) {
+      const wantsAgent =
+        (evalCase.expectGraph?.minAgentSteps ?? 0) > 0 ||
+        (evalCase.expectGraph?.requiredNodeTypePatterns ?? []).some((p) =>
+          p.includes("agents")
+        );
+      if (wantsAgent) expect(evalCase.needsModelProviders).toBe(true);
+    }
+  });
+
+  it("judges the mixed case and pins only its deterministic half", () => {
+    const mixed = byId("code-then-agent");
+    expect(mixed.skipJudge).toBeUndefined();
+    expect(Object.keys(mixed.expect.expectedOutputs ?? {})).toEqual([
+      "complaints"
+    ]);
+    expect(mixed.expect.requiredOutputNames).toContain("summary");
+  });
+
+  it("declares every case's run params as inputs the planner is given", () => {
+    for (const evalCase of GRAPH_E2E_EVAL_CASES) {
+      if (evalCase.params) continue;
+      for (const name of evalCase.expectGraph?.requiredInputNames ?? []) {
+        expect(Object.keys(evalCase.inputs ?? {})).toContain(name);
+      }
+    }
   });
 });
 
