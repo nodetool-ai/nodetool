@@ -335,7 +335,9 @@ tool calls already execute server-side.
 
 ### What stays schema-shaped, and where it lives
 
-Two provider tools survive, and neither needs the class:
+Three kinds survive, and none of them needs the class.
+
+The first two are the product surface's own:
 
 - `execute_code` is already constants, not a `Tool`: `EXECUTE_CODE_TOOL_NAME` and
   `EXECUTE_CODE_INPUT_SCHEMA` (`packages/agents/src/codeact/codeact-executor.ts:110`,
@@ -348,6 +350,39 @@ Two provider tools survive, and neither needs the class:
   the runner strips image payloads from sandbox results and hands pixels only through
   the direct path (`chat-codeact.ts:277-281`, `unified-websocket-runner.ts:5738-5762`,
   `mcp-agent-tools.ts:456-459`). That rule is unchanged.
+
+The third kind is **loop-protocol tools**, and they are exempt from this migration
+by kind rather than by schedule. A loop-protocol tool is the structured-output or
+feedback channel of a provider-driven loop. Three properties identify one, and all
+three must hold:
+
+- Its state is **loop-instance state read back by the code that constructed it**.
+  `GraphPlanner` builds a `SubmitGraphTool` per attempt (`graph-planner.ts:420`),
+  aborts the provider loop from inside the tool's own execute on acceptance
+  (`:486`), then reads `_graph` / `lastCode` / `lastErrors` off the instance
+  (`submit-graph-tool.ts:57`). `PlanBuilder` plus its three tools is the same shape
+  (`task-planner.ts:423`).
+- It is **never gated**. `GraphPlanner` passes `{} as ProcessingContext`
+  (`graph-planner.ts:463`); there is no context, no gate, and `invoke` could not run
+  it.
+- It is **never belt-assembled** and never sandbox-reachable, so
+  `capabilities-coverage.test.ts` does not and should not see it.
+
+Named instances: `submit_graph`, `submit_code`, `add_task` / `remove_task` /
+`finish_plan`, `create_task`, `finish_step`, the per-edge `control_*` tools, and the
+eval fakes.
+
+Schema-per-tool is the mechanism here, not an artifact of the old design, because
+**the provider owns the loop** — the comment at `graph-planner.ts:441` records that
+this is what makes the flow work on backends running their own agent loop (the
+Claude Agent SDK). Nor is "let the planner act via sandbox code" a unification:
+`SubmitGraphTool` already evaluates the submitted DSL program in QuickJS itself
+(`submit-graph-tool.ts:82`). Routing it through a CodeAct session would add a
+sandbox hop and forfeit SDK-loop compatibility.
+
+Their end form is the same as `execute_code`'s — plain `{name, description,
+inputSchema, execute}` records, which is already the shape `GraphPlanner` flattens
+them into at `:503`. That conversion is cosmetic and buys nothing on its own.
 
 `CapabilitySpec` also feeds everything else that consumes schemas today: prompt
 signature rendering (`toolSignature`, `tool-api.ts:351`), in-sandbox `nodetool.searchTools()`
@@ -516,6 +551,11 @@ argument is now `run.examples`, built by the same host code that builds it today
 | `/ui` | `ui_*` schemas (`toolSchemas.ts:185`) + graph model prelude | `client` |
 | `/files` *(or none)* | the ten unwrapped: file set stays `workspace.*`; `todo_write` stays a direct tool; fold `asset_list` into `/assets`, `export_workflow_digraph` into `/workflows` | — |
 
+The table maps one inventory: what `getBuiltinTools()` and `getAllMcpTools({})`
+assemble. The planner- and executor-constructed tools are **not** in it and are not
+migration debt — they are exempt by kind, for the reasons in
+[What stays schema-shaped](#what-stays-schema-shaped-and-where-it-lives).
+
 ### PR order
 
 Each step merges and reverts independently.
@@ -564,8 +604,9 @@ imports. `codeact-prompt-drift.test.ts` and the `codeact` eval cases are the
 regression net for the prompt change.
 
 **PR 12 — deletion.** The `nodetool` global shim, `base-tool.ts`, the tool registry
-and `llm-nodes` hydration shims, `capabilityFromTool`. `extends Tool` count reaches
-zero.
+and `llm-nodes` hydration shims, `capabilityFromTool`. The **capability-shaped**
+`extends Tool` count reaches zero; the loop-protocol tools stay, and `base-tool.ts`
+stays with them.
 
 ## What breaks, and what each costs
 
@@ -753,3 +794,45 @@ are pinned by name with a reason — the eight workflow-document `ui_*` schemas,
 which route to a renderer or a direct registry write rather than to a host
 function, and the nine provider-specific duplicates in
 `AGENT_TOOLBELT_EXCLUDED`, each of which a routed capability already covers.
+
+### Two counters, not one (2026-08-11)
+
+The single number above understated the work by counting one inventory and
+implying it was the whole set. Split it:
+
+- **Capability-shaped subclasses** — anything `getBuiltinTools()` or
+  `getAllMcpTools({})` assembles. Target: zero. Defended by
+  `capabilities-coverage.test.ts` plus its seventeen pinned exceptions.
+- **Loop-protocol subclasses** — planner- and executor-constructed, enumerated by
+  name in [What stays schema-shaped](#what-stays-schema-shaped-and-where-it-lives).
+  Allowed. No target.
+
+Neither the mapping table nor the coverage test ever saw the second group, because
+a planner constructs its tools inside its own loop and never assembles a belt. That
+is correct behavior, but it meant roughly twenty subclasses in
+`packages/agents/src/tools/` were tracked nowhere.
+
+Two decisions taken while writing this down:
+
+**The pre-`submit_graph` incremental family is deleted.** `add_node`, `add_edge`,
+`remove_node`, `remove_edge`, `finish_graph` and `create_plan` were the tool-call-per-
+node flow the one-shot DSL replaced. No planner constructed any of them; the only
+references left were the `src/index.ts` re-exports and their own tests. The two live
+helpers in `finish-graph-tool.ts` moved to `tools/graph-validation-registry.ts`,
+which is what `submit_graph` and the Code-node refiner actually import.
+
+**The run-scoped memory tools are a real gap, and stay open.** `list_shared` /
+`read_shared` / `share_result` (renamed from `memory_list` / `memory_read` /
+`memory_write`) are not loop-protocol tools: they are prompt-documented,
+permission-classified, and the model calls them from inside the sandbox as
+`tools.read_shared(...)` — the CodeAct executor's own prompt instructs exactly that
+(`codeact-executor.ts:884`). "Executor-internal" in `capabilities/memory.ts:10`
+means *mounted by the executor rather than the host*, not *not model-facing*. They
+belong in a `shared` capability module — not folded into `memory`, which is thread
+memory and a different lifetime — with the executors still mounting them, since that
+is mount policy.
+
+The port waits on the sync-belt problem PR 12 named: executors attach these in
+constructors, synchronously, while capability modules load through `import()`. Doing
+it before the async-belt PR would fork a third pattern beside the sixteen ported
+namespaces and the deprecated `CapabilityTool` subclasses.
