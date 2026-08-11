@@ -9,6 +9,7 @@ import {
   Text,
   Chip,
   ScrollArea,
+  CloseButton,
   DeleteButton,
   MOTION,
   BORDER_RADIUS,
@@ -30,6 +31,8 @@ type Resource = Memory["resources"][number];
 
 interface ThreadMemorySidebarProps {
   threadId: string;
+  /** Hides the rail. Omit when the surface has no way to reopen it. */
+  onClose?: () => void;
 }
 
 const styles = (theme: Theme) =>
@@ -46,7 +49,7 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(4, 4, 3),
       borderBottom: `1px solid rgb(${theme.vars.palette.common.whiteChannel} / 0.06)`,
       display: "flex",
-      alignItems: "baseline",
+      alignItems: "center",
       justifyContent: "space-between",
       gap: getSpacingPx(SPACING.md)
     },
@@ -182,7 +185,7 @@ MemoryCard.displayName = "MemoryCard";
  * view of project notes and the assets/workflows/resources referenced.
  */
 export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
-  ({ threadId }) => {
+  ({ threadId, onClose }) => {
     const theme = useTheme();
     const cssStyles = useMemo(() => styles(theme), [theme]);
     const utils = trpc.useUtils();
@@ -216,7 +219,7 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
 
     return (
       <aside className="thread-memory-sidebar" css={cssStyles}>
-        <FlexRow className="memory-header" align="baseline" justify="space-between">
+        <FlexRow className="memory-header" align="center" justify="space-between">
           <Text
             size="small"
             weight={600}
@@ -224,11 +227,14 @@ export const ThreadMemorySidebar: React.FC<ThreadMemorySidebarProps> = memo(
           >
             Memory
           </Text>
-          {memories.length > 0 && (
-            <Text size="smaller" sx={{ opacity: 0.6 }}>
-              {memories.length}
-            </Text>
-          )}
+          <FlexRow align="center" gap={2}>
+            {memories.length > 0 && (
+              <Text size="smaller" sx={{ opacity: 0.6 }}>
+                {memories.length}
+              </Text>
+            )}
+            {onClose && <CloseButton onClick={onClose} tooltip="Hide memory" />}
+          </FlexRow>
         </FlexRow>
         <ScrollArea className="memory-list">
           {memories.length === 0 ? (
