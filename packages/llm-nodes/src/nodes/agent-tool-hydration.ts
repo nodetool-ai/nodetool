@@ -17,18 +17,12 @@
 
 import {
   BrowserTool,
-  DataForSEOImagesTool,
-  DataForSEONewsTool,
-  DataForSEOSearchTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
+  GenerateImageTool,
+  GenerateSpeechTool,
   GoogleImagesTool,
   GoogleNewsTool,
   WebSearchTool,
   HttpRequestTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
-  OpenAIWebSearchTool,
   ScreenshotTool,
   SearchEmailTool,
   Tool
@@ -45,19 +39,35 @@ const STATIC_TOOL_CLASSES: ToolCtor[] = [
   WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool,
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
+  GenerateImageTool,
+  GenerateSpeechTool,
   BrowserTool,
   ScreenshotTool,
   HttpRequestTool,
-  SearchEmailTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
+  SearchEmailTool
 ];
+
+/**
+ * Names a saved workflow may still carry, mapped to what replaced them.
+ *
+ * The provider-specific search and media tools were retired: `web_search`,
+ * `google_news` and `google_images` now choose a backend host-side, and
+ * `generate_image` / `generate_speech` are provider-agnostic. An AgentNode
+ * saved before that stores the old name as a bare stub, and a stub that
+ * resolves to nothing is silently uncallable — so resolve it to the tool that
+ * took over instead.
+ */
+const RETIRED_TOOL_NAMES: Readonly<Record<string, string>> = {
+  openai_web_search: "web_search",
+  google_grounded_search: "web_search",
+  dataforseo_search: "web_search",
+  dataforseo_news: "google_news",
+  dataforseo_images: "google_images",
+  image_generation: "generate_image",
+  openai_image_generation: "generate_image",
+  google_image_generation: "generate_image",
+  openai_text_to_speech: "generate_speech"
+};
 
 const extraToolClasses: ToolCtor[] = [];
 const toolFactories: (() => ToolCtor[])[] = [];
@@ -97,7 +107,10 @@ export function resolveBuiltinAgentTool(name: string): Tool | null {
       builtinAgentTools.set(tool.name, tool);
     }
   }
-  return builtinAgentTools.get(name) ?? null;
+  const direct = builtinAgentTools.get(name);
+  if (direct) return direct;
+  const replacement = RETIRED_TOOL_NAMES[name];
+  return replacement ? (builtinAgentTools.get(replacement) ?? null) : null;
 }
 
 /**

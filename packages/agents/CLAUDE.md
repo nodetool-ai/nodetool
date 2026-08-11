@@ -850,19 +850,18 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `unit_conversion`) were deleted outright, MCP included, and so were the code
   tools `run_code` and `js` — `execute_code` is the code surface, and a second
   one only invited the model to run code without the sandbox's `nodetool.*` API
-  and `state`. `getAgentToolbelt()`
-  (`src/tools/builtin-tools.ts`) additionally drops the provider-specific
-  duplicates: the media tools `image_generation`, `openai_image_generation`,
-  `google_image_generation` and `openai_text_to_speech` — `nodetool.media`
-  covers them through the provider-agnostic `generate_image` /
-  `generate_speech` — and the search backends `openai_web_search`,
-  `google_grounded_search`, `dataforseo_search`, `dataforseo_news` and
-  `dataforseo_images`, which `web_search`/`google_news`/`google_images` reach
-  by routing across the configured backends host-side (`backend` pins one).
-  `getBuiltinTools()` still returns them all as the full inventory for
-  registration and audits. Every surface a model reasons over — chat turns,
-  agent steps, and the MCP server — assembles its belt from
-  `getAgentToolbelt()`, because all three have the object model.
+  and `state`. The nine provider-specific duplicates went next. The media four
+  — `image_generation`, `openai_image_generation`, `google_image_generation`,
+  `openai_text_to_speech` — were deleted, because `nodetool.media` covers them
+  through the provider-agnostic `generate_image` / `generate_speech`. The
+  search five — `openai_web_search`, `google_grounded_search`,
+  `dataforseo_search`, `dataforseo_news`, `dataforseo_images` — were never
+  duplicates at all: they are the backends `web_search` / `google_news` /
+  `google_images` route to, so they became plain functions with no wire name
+  (`backend` still pins one). `getAgentToolbelt()`
+  (`src/tools/builtin-tools.ts`) therefore returns what `getBuiltinTools()`
+  returns; a saved AgentNode naming a retired tool resolves to its replacement
+  through `RETIRED_TOOL_NAMES` in `@nodetool-ai/llm-nodes`.
 - Authoring a graph is a **package**, not a builder. `nodetool.graph()` — a
   builder taking every node type as a free-form string — is gone; a session
   authors with `@nodetool-ai/sandbox-dsl`, which ships one generated function

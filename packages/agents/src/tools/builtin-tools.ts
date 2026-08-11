@@ -25,21 +25,6 @@ import { registerTool } from "./tool-registry.js";
 import { BrowserTool, ScreenshotTool } from "./browser-tools.js";
 import { DownloadFileTool, HttpRequestTool } from "./http-tools.js";
 import {
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool
-} from "./openai-tools.js";
-import {
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool
-} from "./google-tools.js";
-import { ImageGenerationTool } from "./image-generation-tool.js";
-import {
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-} from "./dataseo-tools.js";
-import {
   WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool
@@ -187,11 +172,6 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   WebSearchTool,
   GoogleNewsTool,
   GoogleImagesTool,
-  GoogleGroundedSearchTool,
-  OpenAIWebSearchTool,
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool,
 
   // Creative critique (VLM judging + taste memory)
   CritiqueImageTool,
@@ -199,12 +179,6 @@ export const BUILTIN_TOOL_CLASSES: ReadonlyArray<new () => Tool> = [
   ScoreImageAdherenceTool,
   RecordStylePreferenceTool,
   GetStyleProfileTool,
-
-  // Generation
-  ImageGenerationTool,
-  GoogleImageGenerationTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool,
 
   // Web
   BrowserTool,
@@ -234,38 +208,14 @@ export function getBuiltinTools(): Tool[] {
 }
 
 /**
- * Built-ins an agent's toolbelt leaves out. Every one is a provider-specific
- * duplicate of a capability a routed tool already covers: the media tools
- * through the provider-agnostic `generate_image` / `generate_speech` (the
- * `nodetool.media.*` object model), and the search backends through
- * `web_search` / `google_news` / `google_images`, which route across the
- * configured backends host-side (`backend` pins one). Offering the duplicates
- * makes the model choose a provider before it has chosen a backend. They all
- * stay in {@link getBuiltinTools}, so MCP clients — which have no object model
- * and no routing habit — keep them.
- */
-export const AGENT_TOOLBELT_EXCLUDED: ReadonlySet<string> = new Set([
-  "image_generation",
-  "openai_image_generation",
-  "google_image_generation",
-  "openai_text_to_speech",
-  "openai_web_search",
-  "google_grounded_search",
-  "dataforseo_search",
-  "dataforseo_news",
-  "dataforseo_images"
-]);
-
-/**
- * The built-ins an agent gets: {@link getBuiltinTools} minus
- * {@link AGENT_TOOLBELT_EXCLUDED}. Use this wherever a toolbelt is assembled
- * for a model to reason over; use `getBuiltinTools` for the full inventory
- * (MCP, registration, audits).
+ * The built-ins an agent gets. The nine provider-specific duplicates this set
+ * used to subtract are gone: the media four were deleted, and the five search
+ * backends became plain functions `web_search` / `google_news` /
+ * `google_images` route to host-side. Every host therefore assembles the same
+ * belt, and there is nothing left to exclude.
  */
 export function getAgentToolbelt(): Tool[] {
-  return getBuiltinTools().filter(
-    (tool) => !AGENT_TOOLBELT_EXCLUDED.has(tool.name)
-  );
+  return getBuiltinTools();
 }
 
 let registeredNames: string[] | null = null;

@@ -16,7 +16,6 @@ import type {
   SearchResult
 } from "../../src/tools/serp-providers/index.js";
 import { WebSearchTool } from "../../src/tools/search-tools.js";
-import { DataForSEOSearchTool } from "../../src/tools/dataseo-tools.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { Buffer } from "buffer";
 
@@ -273,24 +272,6 @@ describe("WebSearchTool with SerpProvider", () => {
 
     const result = await tool.process(ctx, {});
     expect(result).toBe("Error: query is required");
-  });
-});
-
-/* ------------------------------------------------------------------ */
-/*  DataForSEOSearchTool with injected provider                       */
-/* ------------------------------------------------------------------ */
-
-describe("DataForSEOSearchTool with SerpProvider", () => {
-  it("accepts optional provider in constructor", () => {
-    const provider = createMockProvider();
-    const tool = new DataForSEOSearchTool(provider);
-    expect(tool.name).toBe("dataforseo_search");
-  });
-
-  it("preserves tool name and description", () => {
-    const tool = new DataForSEOSearchTool();
-    expect(tool.name).toBe("dataforseo_search");
-    expect(tool.description).toContain("DataForSEO");
   });
 });
 
@@ -641,17 +622,18 @@ describe("GoogleImagesTool", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  DataForSEONewsTool                                                 */
+/*  dataForSeoNews                                                     */
 /* ------------------------------------------------------------------ */
 
-describe("DataForSEONewsTool", () => {
+describe("dataForSeoNews", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it("extracts news results with mock context credentials", async () => {
-    const { DataForSEONewsTool } =
-      await import("../../src/tools/dataseo-tools.js");
+    const { dataForSeoNews } = await import(
+      "../../src/tools/dataseo-tools.js"
+    );
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
@@ -692,12 +674,11 @@ describe("DataForSEONewsTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new DataForSEONewsTool();
       const ctx = makeContext({
         DATA_FOR_SEO_LOGIN: "testlogin",
         DATA_FOR_SEO_PASSWORD: "testpass"
       });
-      const result = (await tool.process(ctx, { keyword: "tech news" })) as {
+      const result = (await dataForSeoNews(ctx, { keyword: "tech news" })) as {
         success: boolean;
         results: Array<Record<string, unknown>>;
       };
@@ -714,17 +695,18 @@ describe("DataForSEONewsTool", () => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  DataForSEOImagesTool                                               */
+/*  dataForSeoImages                                                   */
 /* ------------------------------------------------------------------ */
 
-describe("DataForSEOImagesTool", () => {
+describe("dataForSeoImages", () => {
   beforeEach(() => {
     vi.restoreAllMocks();
   });
 
   it("extracts image results from DataForSEO response", async () => {
-    const { DataForSEOImagesTool } =
-      await import("../../src/tools/dataseo-tools.js");
+    const { dataForSeoImages } = await import(
+      "../../src/tools/dataseo-tools.js"
+    );
     const rawResponse = {
       status_code: 20000,
       status_message: "Ok.",
@@ -757,12 +739,13 @@ describe("DataForSEOImagesTool", () => {
     const originalFetch = globalThis.fetch;
     globalThis.fetch = mockFetch(rawResponse);
     try {
-      const tool = new DataForSEOImagesTool();
       const ctx = makeContext({
         DATA_FOR_SEO_LOGIN: "testlogin",
         DATA_FOR_SEO_PASSWORD: "testpass"
       });
-      const result = (await tool.process(ctx, { keyword: "cute animals" })) as {
+      const result = (await dataForSeoImages(ctx, {
+        keyword: "cute animals"
+      })) as {
         success: boolean;
         results: Array<Record<string, unknown>>;
       };

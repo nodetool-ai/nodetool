@@ -23,11 +23,6 @@ export {
 export type { ToolSearchEntry } from "./tools/tool-search.js";
 export { FinishStepTool } from "./tools/finish-step-tool.js";
 export {
-  OpenAIWebSearchTool,
-  OpenAIImageGenerationTool,
-  OpenAITextToSpeechTool
-} from "./tools/openai-tools.js";
-export {
   ReadFileTool,
   WriteFileTool,
   ListDirectoryTool
@@ -55,15 +50,6 @@ export {
   GoogleNewsTool,
   GoogleImagesTool
 } from "./tools/search-tools.js";
-export {
-  GoogleGroundedSearchTool,
-  GoogleImageGenerationTool
-} from "./tools/google-tools.js";
-export {
-  DataForSEOSearchTool,
-  DataForSEONewsTool,
-  DataForSEOImagesTool
-} from "./tools/dataseo-tools.js";
 export type {
   SerpProvider,
   SearchResult,
@@ -214,7 +200,6 @@ export {
 } from "./tools/tool-registry.js";
 export {
   BUILTIN_TOOL_CLASSES,
-  AGENT_TOOLBELT_EXCLUDED,
   getBuiltinTools,
   getAgentToolbelt,
   registerBuiltinTools,
@@ -238,7 +223,6 @@ export {
   TranscribeAudioTool,
   EmbedTextTool
 } from "./tools/media-tools.js";
-export { ImageGenerationTool } from "./tools/image-generation-tool.js";
 export {
   CritiqueImageTool,
   CompareImagesTool,

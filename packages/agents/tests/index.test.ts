@@ -8,9 +8,6 @@ describe("agents index exports", () => {
     // Tools
     expect(mod.Tool).toBeDefined();
     expect(mod.FinishStepTool).toBeDefined();
-    expect(mod.OpenAIWebSearchTool).toBeDefined();
-    expect(mod.OpenAIImageGenerationTool).toBeDefined();
-    expect(mod.OpenAITextToSpeechTool).toBeDefined();
     expect(mod.ReadFileTool).toBeDefined();
     expect(mod.WriteFileTool).toBeDefined();
     expect(mod.ListDirectoryTool).toBeDefined();
@@ -19,8 +16,6 @@ describe("agents index exports", () => {
     expect(mod.WebSearchTool).toBeDefined();
     expect(mod.GoogleNewsTool).toBeDefined();
     expect(mod.GoogleImagesTool).toBeDefined();
-    expect(mod.GoogleGroundedSearchTool).toBeDefined();
-    expect(mod.GoogleImageGenerationTool).toBeDefined();
     expect(mod.BrowserTool).toBeDefined();
     expect(mod.ScreenshotTool).toBeDefined();
     expect(mod.htmlToText).toBeDefined();

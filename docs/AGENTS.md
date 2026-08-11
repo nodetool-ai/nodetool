@@ -175,8 +175,6 @@ abstract class Tool {
 | **Web** | `BrowserTool`, `ScreenshotTool` | `browser-tools.ts` |
 | **HTTP** | `HttpRequestTool`, `DownloadFileTool` | `http-tools.ts` |
 | **Search** | `WebSearchTool`, `GoogleNewsTool`, `GoogleImagesTool` | `search-tools.ts` |
-| **OpenAI** | `OpenAIWebSearchTool`, `OpenAIImageGenerationTool`, `OpenAITextToSpeechTool` | `openai-tools.ts` |
-| **Google** | `GoogleGroundedSearchTool`, `GoogleImageGenerationTool` | `google-tools.ts` |
 | **Vector DB** | `VecTextSearchTool`, `VecIndexTool`, `VecHybridSearchTool`, and more | `vector-tools.ts` |
 | **PDF** | `ExtractPDFTextTool`, `ConvertPDFToMarkdownTool`, and more | `pdf-tools.ts` |
 | **Email** | `SearchEmailTool`, `ArchiveEmailTool`, `AddLabelToEmailTool` | `email-tools.ts` |

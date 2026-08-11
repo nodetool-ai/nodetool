@@ -132,16 +132,16 @@ describe("the CodeAct surface", () => {
       expect(names.has(core)).toBe(true);
     }
 
-    // The belt is the agent's, not the full inventory: the provider-specific
-    // duplicates stay off it, because `nodetool.media` and the routed search
-    // tools cover them and this surface has the object model.
-    for (const excluded of [
+    // The provider-specific duplicates are gone, not merely filtered: the
+    // media tools were deleted for `generate_image` / `generate_speech`, and
+    // the search backends became functions the routed tools call host-side.
+    for (const retired of [
       "image_generation",
       "openai_image_generation",
       "openai_web_search",
       "dataforseo_search"
     ]) {
-      expect(names.has(excluded)).toBe(false);
+      expect(names.has(retired)).toBe(false);
     }
   });
 

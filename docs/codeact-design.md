@@ -265,13 +265,14 @@ Two shrinks keep the belt to capabilities a model cannot write itself:
   a model can do by writing code is not a tool. The code tools `run_code` and
   `js` went with them: `execute_code` is the code path, and a second one only
   offered the model a sandbox without the `nodetool.*` API or `state`.
-- `getAgentToolbelt()` (`src/tools/builtin-tools.ts`) drops the
-  provider-specific media duplicates — `image_generation`,
+- The provider-specific media duplicates — `image_generation`,
   `openai_image_generation`, `google_image_generation`,
-  `openai_text_to_speech` — because `nodetool.media` already covers them
-  through the provider-agnostic `generate_image` / `generate_speech`. They stay
-  in `getBuiltinTools()` as the full inventory for registration and audits;
-  no surface a model reasons over offers them.
+  `openai_text_to_speech` — are deleted, because `nodetool.media` already
+  covers them through the provider-agnostic `generate_image` /
+  `generate_speech`. The provider-specific search names went the same way,
+  but their implementations stayed: they are the backends `web_search` /
+  `google_news` / `google_images` route to, now plain functions rather than
+  tools.
 
 ## Evaluation
 

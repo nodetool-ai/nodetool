@@ -15,10 +15,7 @@
 
 import { describe, expect, it } from "vitest";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
-import {
-  AGENT_TOOLBELT_EXCLUDED,
-  getBuiltinTools
-} from "../src/tools/builtin-tools.js";
+import { getBuiltinTools } from "../src/tools/builtin-tools.js";
 import { getAllMcpTools } from "../src/tools/mcp-tools.js";
 import { findCapability } from "../src/capabilities/registry.js";
 import type { Tool } from "../src/tools/base-tool.js";
@@ -42,23 +39,7 @@ const PINNED_EXCEPTIONS: Readonly<Record<string, string>> = {
   ui_get_graph: "workflow document schema, routed to a renderer/registry",
   ui_move_node: "workflow document schema, routed to a renderer/registry",
   ui_set_node_title: "workflow document schema, routed to a renderer/registry",
-  ui_update_node_data:
-    "workflow document schema, routed to a renderer/registry",
-
-  // The nine provider-specific duplicates in `AGENT_TOOLBELT_EXCLUDED`. A
-  // routed capability already covers each one (`generate_image`,
-  // `generate_speech`, `web_search`, `google_news`, `google_images`), so they
-  // exist only for MCP clients that have no object model. Porting them would
-  // add a second name for one implementation.
-  image_generation: "provider-specific duplicate of generate_image",
-  openai_image_generation: "provider-specific duplicate of generate_image",
-  google_image_generation: "provider-specific duplicate of generate_image",
-  openai_text_to_speech: "provider-specific duplicate of generate_speech",
-  openai_web_search: "provider-specific duplicate of web_search",
-  google_grounded_search: "provider-specific duplicate of web_search",
-  dataforseo_search: "provider-specific duplicate of web_search",
-  dataforseo_news: "provider-specific duplicate of google_news",
-  dataforseo_images: "provider-specific duplicate of google_images"
+  ui_update_node_data: "workflow document schema, routed to a renderer/registry"
 };
 
 function assembleBelt(): Map<string, Tool> {
@@ -99,12 +80,9 @@ describe("capability coverage", () => {
     expect(stale).toEqual([]);
   });
 
-  it("pins what the exceptions are: document schemas and the excluded nine", () => {
+  it("pins what the exceptions are: the workflow document schemas, nothing else", () => {
     const pinned = new Set(Object.keys(PINNED_EXCEPTIONS));
-    const expected = new Set<string>([
-      ...WORKFLOW_DOCUMENT_TOOL_NAMES,
-      ...AGENT_TOOLBELT_EXCLUDED
-    ]);
+    const expected = new Set<string>(WORKFLOW_DOCUMENT_TOOL_NAMES);
     expect([...pinned].sort()).toEqual([...expected].sort());
   });
 

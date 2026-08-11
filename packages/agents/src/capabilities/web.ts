@@ -8,10 +8,10 @@
  * unchanged; the classes survive as thin subclasses over these
  * implementations.
  *
- * The provider-specific backends — `openai_web_search`,
- * `google_grounded_search`, `dataforseo_*` — stay `Tool` classes: they are off
- * the agent belt and reachable only through `getBuiltinTools`. `web_search`
- * still routes to them, host-side, the way it always did.
+ * The provider-specific backends are plain functions, not tools. They have no
+ * wire name of their own: `web_search`, `google_news` and `google_images`
+ * choose one host-side, so a model picks a capability and the host picks the
+ * provider behind it.
  *
  * `htmlToText` and `requestSignal` live here rather than in the tool files
  * they came from, because those files now import *from* this module; the old
@@ -345,12 +345,9 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return openAiSearchConfigured(ctx);
         },
         run: async (ctx) => {
-          const { OpenAIWebSearchTool } =
-            await import("../tools/openai-tools.js");
+          const { openAiWebSearch } = await import("../tools/openai-tools.js");
           const result = unwrapBackendResult(
-            await new OpenAIWebSearchTool().process(ctx, {
-              query: effectiveQuery
-            })
+            await openAiWebSearch(ctx, { query: effectiveQuery })
           );
           return String(result.results ?? "");
         }
@@ -364,12 +361,10 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return geminiSearchConfigured(ctx);
         },
         run: async (ctx) => {
-          const { GoogleGroundedSearchTool } =
+          const { googleGroundedSearch } =
             await import("../tools/google-tools.js");
           const result = unwrapBackendResult(
-            await new GoogleGroundedSearchTool().process(ctx, {
-              query: effectiveQuery
-            })
+            await googleGroundedSearch(ctx, { query: effectiveQuery })
           );
           const text = Array.isArray(result.results)
             ? result.results.join("\n\n")
@@ -393,10 +388,9 @@ export function webSearchImpl(provider?: SerpProvider): CapabilityImpl {
           return dataForSeoConfigured(ctx);
         },
         run: async (ctx) => {
-          const { DataForSEOSearchTool } =
-            await import("../tools/dataseo-tools.js");
+          const { dataForSeoSearch } = await import("../tools/dataseo-tools.js");
           const result = unwrapBackendResult(
-            await new DataForSEOSearchTool().process(ctx, {
+            await dataForSeoSearch(ctx, {
               keyword: effectiveQuery,
               num_results: numResults
             })
@@ -528,10 +522,9 @@ const googleNews: CapabilityExport = {
           return dataForSeoConfigured(ctx);
         },
         run: async (ctx) => {
-          const { DataForSEONewsTool } =
-            await import("../tools/dataseo-tools.js");
+          const { dataForSeoNews } = await import("../tools/dataseo-tools.js");
           const result = unwrapBackendResult(
-            await new DataForSEONewsTool().process(ctx, {
+            await dataForSeoNews(ctx, {
               keyword,
               num_results: numResults
             })
@@ -639,10 +632,9 @@ const googleImages: CapabilityExport = {
           return dataForSeoConfigured(ctx);
         },
         run: async (ctx) => {
-          const { DataForSEOImagesTool } =
-            await import("../tools/dataseo-tools.js");
+          const { dataForSeoImages } = await import("../tools/dataseo-tools.js");
           const result = unwrapBackendResult(
-            await new DataForSEOImagesTool().process(ctx, {
+            await dataForSeoImages(ctx, {
               keyword,
               num_results: numResults
             })

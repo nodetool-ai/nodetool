@@ -1118,7 +1118,7 @@ describe("StepExecutor", () => {
         if (callCount === 1) {
           yield {
             id: "tc_img",
-            name: "openai_image_generation",
+            name: "generate_image",
             args: { prompt: "cat" }
           };
           return;
@@ -1128,7 +1128,7 @@ describe("StepExecutor", () => {
     } as unknown as BaseProvider;
 
     const imageTool = {
-      name: "openai_image_generation",
+      name: "generate_image",
       description: "Generate image",
       inputSchema: { type: "object" as const, properties: {}, required: [] },
       process: vi.fn().mockResolvedValue({
@@ -1137,7 +1137,7 @@ describe("StepExecutor", () => {
       }),
       userMessage: () => "Generating image",
       toProviderTool: () => ({
-        name: "openai_image_generation",
+        name: "generate_image",
         description: "Generate image",
         inputSchema: { type: "object", properties: {}, required: [] }
       })

@@ -802,7 +802,8 @@ implying it was the whole set. Split it:
 
 - **Capability-shaped subclasses** — anything `getBuiltinTools()` or
   `getAllMcpTools({})` assembles. Target: zero. Defended by
-  `capabilities-coverage.test.ts` plus its seventeen pinned exceptions.
+  `capabilities-coverage.test.ts` plus its pinned exceptions (seventeen when
+  this was written, eight after the deletions below).
 - **Loop-protocol subclasses** — planner- and executor-constructed, enumerated by
   name in [What stays schema-shaped](#what-stays-schema-shaped-and-where-it-lives).
   Allowed. No target.
@@ -836,3 +837,44 @@ The port waits on the sync-belt problem PR 12 named: executors attach these in
 constructors, synchronously, while capability modules load through `import()`. Doing
 it before the async-belt PR would fork a third pattern beside the sixteen ported
 namespaces and the deprecated `CapabilityTool` subclasses.
+
+#### Fifteen deleted (2026-08-11)
+
+Two commits took `extends Tool` from **71 across 35 files** to **56 across 28**
+(source only — `packages/**`, no `dist/`, no tests).
+
+The dead cluster, six classes, deleted outright: `workspace_read` /
+`workspace_write` / `workspace_list` (the sandbox's in-process `workspace.*` API
+is the live path), `ltm_recall` / `ltm_remember` (`Agent` calls
+`LongTermMemory` directly — the feature stays, the wrappers were mounted
+nowhere), and `ToolSearchTool` (constructed only by its own test; discovery runs
+through the `__searchTools` bridge). The per-user LTM registry moved into
+`long-term-memory.ts`; `searchTools` and the two formatters stayed where they
+were.
+
+The nine `AGENT_TOOLBELT_EXCLUDED` names, all nine gone from the belt — but not
+in one way, because **the pinned reason was wrong for five of them**. "A routed
+capability already covers each" held for the media four (`image_generation`,
+`openai_image_generation`, `google_image_generation`, `openai_text_to_speech`),
+which `generate_image` / `generate_speech` cover and which were deleted. It did
+not hold for `openai_web_search`, `google_grounded_search` and the three
+`dataforseo_*`: `capabilities/web.ts` constructed those very classes as the
+openai, gemini and dataforseo backends of `web_search` / `google_news` /
+`google_images`. They were not duplicates of the routed capability, they were
+the inside of it, and deleting them would have deleted three search backends.
+They became plain async functions the capability calls — one wire name fewer,
+one implementation unchanged. Read a pinned exception's reason as a claim to
+check, not a finding.
+
+Both counters move: the capability-shaped counter loses nine and
+`AGENT_TOOLBELT_EXCLUDED` is gone with them, so `getAgentToolbelt()` now returns
+what `getBuiltinTools()` returns and `capabilities-coverage.test.ts` pins only
+the eight workflow-document `ui_*` schemas. The loop-protocol counter loses the
+six dead ones.
+
+One thing a deletion could have broken quietly: an AgentNode saves its tools as
+bare name stubs and `resolveBuiltinAgentTool` hydrates them by wire name, so a
+workflow naming a retired tool would have hydrated to nothing and been
+uncallable without an error. `RETIRED_TOOL_NAMES`
+(`packages/llm-nodes/src/nodes/agent-tool-hydration.ts`) maps all nine onto
+their replacements.

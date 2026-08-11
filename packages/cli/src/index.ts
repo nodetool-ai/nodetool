@@ -210,11 +210,11 @@ await Promise.all([
     "google_images"
   ]),
   autoEnable("OPENAI_API_KEY", [
-    "openai_web_search",
-    "openai_image_generation",
-    "openai_text_to_speech"
+    "web_search",
+    "generate_image",
+    "generate_speech"
   ]),
-  autoEnable("DATA_FOR_SEO_LOGIN", ["dataforseo_search", "dataforseo_news"]),
+  autoEnable("DATA_FOR_SEO_LOGIN", ["web_search", "google_news"]),
   autoEnable("IMAP_USERNAME", ["search_email", "archive_email"])
 ]);
 
