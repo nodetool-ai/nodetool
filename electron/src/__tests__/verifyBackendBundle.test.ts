@@ -42,6 +42,49 @@ function writeValidBundle(dir: string): void {
     optionalDependencies: { "@img/sharp-libvips-linux-x64": "1.3.2" },
   });
   writeStagedPackage(dir, "@img/sharp-libvips-linux-x64", { version: "1.3.2" });
+  writeShippedSandboxPacks(dir);
+}
+
+const SANDBOX_PACKS_DIR = path.join(
+  __dirname,
+  "..",
+  "..",
+  "..",
+  "packages",
+  "sandbox-packs"
+);
+
+/**
+ * Stage every pack the repo ships, each declaring one module.
+ *
+ * The script cross-checks the staged set against `packages/sandbox-packs/`
+ * whenever it runs inside a checkout, so a fixture staging none of them is an
+ * incomplete bundle rather than a minimal one. The stub carries one module and
+ * its file rather than each pack's real contents: completeness is read from the
+ * STAGED manifest, and a pack missing a declared file has its own test.
+ */
+function writeShippedSandboxPacks(dir: string): void {
+  for (const entry of fs.readdirSync(SANDBOX_PACKS_DIR)) {
+    const manifest = path.join(SANDBOX_PACKS_DIR, entry, "package.json");
+    if (!fs.existsSync(manifest)) continue;
+    const pkg = JSON.parse(fs.readFileSync(manifest, "utf8")) as {
+      name?: string;
+      nodetool?: { sandboxModules?: unknown };
+    };
+    if (!pkg.name || !Array.isArray(pkg.nodetool?.sandboxModules)) continue;
+    const packDir = path.join(dir, "_sandbox", ...pkg.name.split("/"));
+    fs.mkdirSync(path.join(packDir, "sandbox"), { recursive: true });
+    fs.writeFileSync(
+      path.join(packDir, "package.json"),
+      JSON.stringify({
+        name: pkg.name,
+        nodetool: {
+          sandboxModules: [{ name: ".", kind: "js", file: "sandbox/index.js" }],
+        },
+      })
+    );
+    fs.writeFileSync(path.join(packDir, "sandbox", "index.js"), "export default 1;");
+  }
 }
 
 function writeStagedPackage(
@@ -176,17 +219,25 @@ describe("verify-backend-bundle", () => {
     expect(output).toContain("mismatched libvips");
   });
 
-  it("passes when no builtin pack stages sandbox modules", () => {
+  it("names a shipped pack the bundle failed to stage", () => {
+    // A bundle missing one offers a library the product documents and a Code
+    // node cannot import, so this is an error rather than a quiet omission.
+    fs.rmSync(path.join(tempDir, "_sandbox", "@nodetool-ai", "sandbox-csv"), {
+      recursive: true,
+    });
     const { status, output } = runVerify(tempDir);
-    expect(status).toBe(0);
-    expect(output).not.toContain("sandbox pack");
+    expect(status).toBe(1);
+    expect(output).toContain("@nodetool-ai/sandbox-csv");
+    expect(output).toContain("not staged under _sandbox/");
   });
 
   it("accepts a complete staged sandbox pack, scoped name and all", () => {
     writeSandboxPack(tempDir, { helper: true });
     const { status, output } = runVerify(tempDir);
     expect(status).toBe(0);
-    expect(output).toContain("sandbox pack @acme/geo staged with 2 file(s)");
+    expect(output).toContain(
+      "sandbox pack @acme/geo staged: 1 module(s), 2 declared file(s)"
+    );
   });
 
   it("fails when a staged sandbox pack is missing a declared file", () => {
