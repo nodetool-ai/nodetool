@@ -3,6 +3,7 @@ import { Property } from "../../stores/ApiTypes";
 import reduceUnionType from "../../hooks/reduceUnionType";
 import StringProperty from "../properties/StringProperty";
 import TextProperty from "../properties/TextProperty";
+import CodeProperty from "../properties/CodeProperty";
 import ImageProperty from "../properties/ImageProperty";
 import AudioProperty from "../properties/AudioProperty";
 import VideoProperty from "../properties/VideoProperty";
@@ -51,10 +52,20 @@ import {
 } from "../properties/MediaPickerProperties";
 import { InputProperty } from "./InputProperty";
 import type { PropertyProps } from "./PropertyInput.types";
+import useMetadataStore from "../../stores/MetadataStore";
+import { hasCodeProperty } from "./codeNodeUi";
 
 export function getComponentForProperty(
-  property: Property
+  property: Property,
+  nodeType?: string
 ): ComponentType<PropertyProps> {
+  // A node's inline `code` string gets the Monaco editor the node body uses,
+  // so the same value is edited the same way on the canvas and in the
+  // inspector.
+  if (isCodePropertyOf(property, nodeType)) {
+    return CodeProperty;
+  }
+
   // Dynamic schemas (e.g. FalAI) may attach `values` or `enum` directly to the
   // property object rather than inside `property.type`.
   const propertyWithExtras = property as Property & {
@@ -97,6 +108,20 @@ export function getComponentForProperty(
     default:
       return componentForType(property.type.type);
   }
+}
+
+/**
+ * True for the inline `code` string of a node that declares one (the same
+ * nodes `CodeBody` gives a Monaco body on the canvas).
+ */
+function isCodePropertyOf(
+  property: Property,
+  nodeType: string | undefined
+): boolean {
+  if (property.name !== "code" || property.type.type !== "str" || !nodeType) {
+    return false;
+  }
+  return hasCodeProperty(useMetadataStore.getState().getMetadata(nodeType));
 }
 
 function customComponentForType(

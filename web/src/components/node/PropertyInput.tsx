@@ -25,6 +25,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { useNodes } from "../../contexts/NodeContext";
 import JSONProperty from "../properties/JSONProperty";
+import CodeProperty from "../properties/CodeProperty";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useDynamicProperty } from "../../hooks/nodes/useDynamicProperty";
 import { NodeData } from "../../stores/NodeData";
@@ -172,9 +173,10 @@ function isImageInputType(property: Property): boolean {
 }
 
 function componentFor(
-  property: Property
+  property: Property,
+  nodeType: string
 ): React.ComponentType<PropertyProps> | null {
-  return getComponentForProperty(property);
+  return getComponentForProperty(property, nodeType);
 }
 
 export type PropertyInputProps = {
@@ -440,7 +442,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
     [handleUpdatePropertyName, property.name, editedName]
   );
 
-  const componentType = componentFor(property);
+  const componentType = componentFor(property, nodeType);
 
   const handleNameChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setEditedName(e.target.value);
@@ -518,6 +520,7 @@ const PropertyInput: React.FC<PropertyInputProps> = ({
   const hasTopRightPropertyActions =
     componentType === StringProperty ||
     componentType === JSONProperty ||
+    componentType === CodeProperty ||
     componentType === DataframeProperty;
 
   const canvasResetButton =
