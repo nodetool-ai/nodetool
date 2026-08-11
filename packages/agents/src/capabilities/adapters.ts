@@ -9,6 +9,7 @@
  */
 
 import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type { ZodType } from "zod";
 import { Tool } from "../tools/base-tool.js";
 import { permissionCategoryFor } from "../tools/tool-permissions.js";
 import type {
@@ -63,6 +64,15 @@ export class CapabilityTool extends Tool {
 
   override get inputSchema(): JsonSchema {
     return this.spec.inputSchema;
+  }
+
+  /**
+   * The Zod schema for the capabilities whose identity is one, exactly as
+   * {@link toolFromLazyCapability} exposes it: `Tool.execute` then validates on
+   * the way in, where the class this replaces validated.
+   */
+  override get schema(): ZodType | undefined {
+    return this.spec.zodSchema;
   }
 
   override userMessage(params: Record<string, unknown>): string {

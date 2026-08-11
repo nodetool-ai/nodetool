@@ -313,17 +313,17 @@ export {
 export type { CodeActExecutorOptions } from "./codeact/codeact-executor.js";
 export { buildCodeActSystemPrompt } from "./codeact/prompt.js";
 export {
-  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
-  SandboxPackageDocsTool,
   sandboxPackageSkills,
   wrapUntrustedPackageDocs
 } from "./codeact/sandbox-package-docs.js";
-export type { SandboxPackageDocs } from "./codeact/sandbox-package-docs.js";
 export {
+  SANDBOX_PACKAGE_DOCS_TOOL_NAME,
   SANDBOX_PACKAGE_LIST_TOOL_NAME,
-  SandboxPackageListTool,
-  scanModuleExports
-} from "./codeact/sandbox-package-listing.js";
+  sandboxPackageDocsTool,
+  sandboxPackageListTool
+} from "./capabilities/packs.js";
+export type { SandboxPackageDocs } from "./capabilities/packs.js";
+export { scanModuleExports } from "./codeact/sandbox-package-listing.js";
 export type {
   SandboxModuleExports,
   SandboxPackageEntry,

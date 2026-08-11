@@ -179,6 +179,9 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   revise_storyboard_clip: "write",
   assemble_storyboard_timeline: "write",
   edit_storyboard: "write",
+  // packs — sandbox package discovery, mounted per CodeAct session.
+  get_sandbox_package_docs: "read",
+  list_sandbox_packages: "read",
   // code (Code-node authoring harness)
   validate_code: "read",
   run_code: "execute",

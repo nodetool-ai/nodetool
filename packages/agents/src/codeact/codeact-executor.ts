@@ -68,12 +68,10 @@ import {
 } from "./sandbox-packages.js";
 import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
-  SandboxPackageDocsTool
-} from "./sandbox-package-docs.js";
-import {
   SANDBOX_PACKAGE_LIST_TOOL_NAME,
-  SandboxPackageListTool
-} from "./sandbox-package-listing.js";
+  sandboxPackageDocsTool,
+  sandboxPackageListTool
+} from "../capabilities/packs.js";
 import {
   GRAPH_DSL_PACKAGE,
   withGraphDslPackage
@@ -387,7 +385,7 @@ export class CodeActExecutor {
     // A session that allows packages can read what they document. The prompt
     // carries one line per package; the body is fetched, never injected.
     if (this.sandboxPackages.length > 0) {
-      const docsTool = new SandboxPackageDocsTool(
+      const docsTool = sandboxPackageDocsTool(
         this.sandboxPackages,
         this.context.sandboxModuleCatalog
       );
@@ -404,7 +402,7 @@ export class CodeActExecutor {
       this.sandboxPackages.length > 0 ||
       (this.context.sandboxModuleCatalog?.summaries().length ?? 0) > 0
     ) {
-      const listTool = new SandboxPackageListTool(
+      const listTool = sandboxPackageListTool(
         this.sandboxPackages,
         this.context.sandboxModuleCatalog,
         this.capabilityRun !== undefined

@@ -233,7 +233,7 @@ and `require` never resolve. The browser runner fetches those modules over
 rules hold client-side.
 
 A session that allows packages also carries **`get_sandbox_package_docs`**
-(`codeact/sandbox-package-docs.ts`): it serves one pack's SKILL.md, refuses a
+(`capabilities/packs.ts`): it serves one pack's SKILL.md, refuses a
 specifier off the session allowlist, and wraps the body of a pack the operator
 has not put on the pack-loader allowlist in `<untrusted-package-docs>` — read
 as reference, never as instructions. A trusted pack's skill instead registers
@@ -801,7 +801,7 @@ follows (CodeAct, ICML 2024): docs/codeact-design.md.
   `docs(specifier)` the pack's SKILL.md. A pack installed but off the allowlist
   is listed as `allowed: false` rather than hidden — hiding it teaches the model
   the pack does not exist. The data reaches the guest as a tool
-  (`list_sandbox_packages`, `codeact/sandbox-package-listing.ts`), which is the
+  (`list_sandbox_packages`, `capabilities/packs.ts`), which is the
   only path the object model has: it owns no host bridge. Exports are exact for
   host modules (`SANDBOX_HOST_MODULES`), WASM modules (the manifest contract)
   and platform modules (the capability registry); for a guest JS module they are

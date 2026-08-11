@@ -12,10 +12,8 @@ import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 
 import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { CodeActExecutor } from "../src/codeact/codeact-executor.js";
-import {
-  SANDBOX_PACKAGE_LIST_TOOL_NAME,
-  scanModuleExports
-} from "../src/codeact/sandbox-package-listing.js";
+import { scanModuleExports } from "../src/codeact/sandbox-package-listing.js";
+import { SANDBOX_PACKAGE_LIST_TOOL_NAME } from "../src/capabilities/packs.specs.js";
 import type { CapabilityRun } from "../src/capabilities/types.js";
 import type { Step, Task } from "../src/types.js";
 import { createMockContext } from "./_helpers/mock-context.js";

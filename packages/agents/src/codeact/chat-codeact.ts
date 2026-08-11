@@ -37,12 +37,10 @@ import {
 } from "./sandbox-packages.js";
 import {
   SANDBOX_PACKAGE_DOCS_TOOL_NAME,
-  SandboxPackageDocsTool
-} from "./sandbox-package-docs.js";
-import {
   SANDBOX_PACKAGE_LIST_TOOL_NAME,
-  SandboxPackageListTool
-} from "./sandbox-package-listing.js";
+  sandboxPackageDocsTool,
+  sandboxPackageListTool
+} from "../capabilities/packs.js";
 import {
   GRAPH_DSL_PACKAGE,
   withGraphDslPackage
@@ -225,7 +223,7 @@ export function createChatCodeActSession(
   const docsTool =
     sandboxPackages.length > 0 &&
     !options.tools.some((t) => t.name === SANDBOX_PACKAGE_DOCS_TOOL_NAME)
-      ? new SandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
+      ? sandboxPackageDocsTool(sandboxPackages, sandboxModuleCatalog)
       : null;
   // Discovery covers what the allowlist does not: a pack installed here but not
   // allowed is listed as such, so the model reports it instead of writing an
@@ -234,7 +232,7 @@ export function createChatCodeActSession(
     (sandboxPackages.length > 0 ||
       (sandboxModuleCatalog?.summaries().length ?? 0) > 0) &&
     !options.tools.some((t) => t.name === SANDBOX_PACKAGE_LIST_TOOL_NAME)
-      ? new SandboxPackageListTool(
+      ? sandboxPackageListTool(
           sandboxPackages,
           sandboxModuleCatalog,
           options.capabilityRun !== undefined
