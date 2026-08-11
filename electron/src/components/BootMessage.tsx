@@ -89,6 +89,12 @@ const PROVIDERS: Provider[] = [
     capabilities: ["Fast Inference", "Chat", "Text Generation"],
   },
   {
+    name: "Meta AI",
+    description: "Meta's Muse Spark models with a 1M-token context window for agentic and coding work.",
+    signupUrl: "https://dev.meta.ai/",
+    capabilities: ["Chat", "Tool Use", "Vision", "Long Context"],
+  },
+  {
     name: "Gemini",
     description: "Google's multimodal AI models for text, image, audio, and video understanding.",
     signupUrl: "https://ai.google.dev/",

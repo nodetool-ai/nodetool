@@ -703,6 +703,41 @@ const llmProviders: ProviderEntry[] = [
     ],
   }),
   direct("llm", {
+    slug: "meta",
+    providerId: "meta",
+    name: "Meta AI",
+    url: "https://dev.meta.ai",
+    byokEnv: "META_API_KEY",
+    accent: "blue",
+    tagline:
+      "Run Meta's Muse Spark models in NodeTool for agentic and coding work, called with your own Meta key.",
+    blurb: [
+      "Meta's model API serves Muse Spark, built for agents and code: parallel tool calls, reasoning that carries across turns, and a 1M-token context window. In NodeTool it drives chat, agent, and text blocks.",
+      "Muse Spark is multimodal on the way in — text, image, video, and PDF — and writes text back out. The API is OpenAI-compatible, so the same nodes work with no extra setup.",
+      "Meta AI is bring-your-own-key: set `META_API_KEY` and NodeTool calls Meta directly at list price.",
+    ],
+    strengths: ["1M-token context", "Agent and code work"],
+    capabilities: ["Chat", "Tool use", "Streaming", "Vision"],
+    highlights: [
+      { name: "Muse Spark 1.2", desc: "Meta's current model for agent steps and coding.", kind: "Chat" },
+      { name: "Muse Spark 1.1", desc: "The earlier release, same context window.", kind: "Chat" },
+    ],
+    faq: [
+      {
+        q: "Why use Meta AI in NodeTool?",
+        a: "Long context and agent-shaped primitives: parallel tool calls and reasoning that survives across turns.",
+      },
+      {
+        q: "How do I connect Meta AI?",
+        a: "Add `META_API_KEY` in settings and pick a Muse Spark model on a chat or agent node.",
+      },
+      {
+        q: "What does Meta AI cost in NodeTool?",
+        a: "Meta's list price — NodeTool adds no fee. The contributor tier is cheaper in exchange for letting Meta train on your prompts.",
+      },
+    ],
+  }),
+  direct("llm", {
     slug: "cerebras",
     providerId: "cerebras",
     name: "Cerebras",

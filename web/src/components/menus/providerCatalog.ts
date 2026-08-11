@@ -37,6 +37,7 @@ import jinaIcon from "../../icons/providers/jina.svg";
 import voyageColorIcon from "../../icons/providers/voyage-color.svg";
 import evolinkIcon from "../../icons/evolink.svg";
 import gmiIcon from "../../icons/gmi.svg";
+import metaColorIcon from "../../icons/providers/meta-color.svg";
 
 
 export interface ProviderMeta {
@@ -156,6 +157,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.x.ai/",
     icon: xaiIcon,
     mono: true
+  },
+  {
+    key: "META_API_KEY",
+    name: "Meta AI",
+    description: "Meta's Muse Spark models for agentic and coding work.",
+    section: "language",
+    docsUrl: "https://dev.meta.ai/docs/overview",
+    icon: metaColorIcon
   },
   {
     key: "CEREBRAS_API_KEY",

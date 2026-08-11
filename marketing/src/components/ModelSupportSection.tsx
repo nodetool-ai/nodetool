@@ -34,6 +34,7 @@ const cloudProviders = [
     { title: "Mistral", url: "https://mistral.ai", LogoComponent: null, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
     { title: "Groq", url: "https://groq.com", LogoComponent: null, icon: Zap, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
     { title: "DeepSeek", url: "https://deepseek.com", LogoComponent: null, icon: Bot, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+    { title: "Meta AI", url: "https://dev.meta.ai", LogoComponent: null, icon: Zap, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
     { title: "Cerebras", url: "https://cerebras.ai", LogoComponent: null, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
     { title: "GMI Cloud", url: "https://gmicloud.ai", LogoComponent: null, icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
     { title: "Together", url: "https://together.ai", LogoComponent: null, icon: Layers, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },

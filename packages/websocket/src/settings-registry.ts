@@ -265,6 +265,11 @@ sec(
   "GMI Cloud API key for accessing open-weight LLMs through GMI's OpenAI-compatible inference API. Get yours at https://console.gmicloud.ai/"
 );
 sec(
+  "META_API_KEY",
+  "Meta AI",
+  "Meta AI API key for accessing the Muse Spark models through Meta's OpenAI-compatible API. Get yours at https://dev.meta.ai/"
+);
+sec(
   "TOGETHER_API_KEY",
   "Together",
   "Together AI API key for accessing open-source LLMs through Together's inference API. Get yours at https://api.together.ai/settings/api-keys"
