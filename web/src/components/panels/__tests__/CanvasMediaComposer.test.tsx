@@ -51,7 +51,13 @@ jest.mock("../../../contexts/NodeContext", () => {
     // the auto-add-to-canvas hook, resolves to "no canvas" instead of crashing.
     NodeContext: actualReact.createContext(null),
     useNodes: (selector: (s: { workflow: { id: string } }) => unknown) =>
-      selector({ workflow: { id: "canvas-doc-id" } })
+      selector({ workflow: { id: "canvas-doc-id" } }),
+    useNodeStoreRef: () => ({
+      getState: () => ({
+        workflow: { id: "canvas-doc-id", name: "My Graph" },
+        getSelectedNodes: () => [{ id: "node-1" }, { id: "node-2" }]
+      })
+    })
   };
 });
 
@@ -98,5 +104,34 @@ describe("CanvasMediaComposer", () => {
     expect(sendMessage).toHaveBeenCalledTimes(1);
     const outgoing = sendMessage.mock.calls[0][0] as { workflow_id?: unknown };
     expect(outgoing.workflow_id ?? null).toBeNull();
+  });
+
+  it("tells the agent which workflow the canvas is showing", () => {
+    render(<CanvasMediaComposer />);
+    capturedProps!.onSendMessage(
+      [{ type: "text", text: "add a node" }] as MessageContent[],
+      "add a node",
+      { mode: "chat" } as MediaGenerationRequest
+    );
+
+    const outgoing = sendMessage.mock.calls[0][0] as {
+      ui_context?: {
+        focused?: { type: string; id: string; title?: string | null } | null;
+        open?: { type: string; id: string }[] | null;
+        selection?: { node_ids?: string[] | null } | null;
+      } | null;
+    };
+    expect(outgoing.ui_context?.focused).toEqual({
+      type: "workflow",
+      id: "canvas-doc-id",
+      title: "My Graph"
+    });
+    expect(outgoing.ui_context?.open).toContainEqual(
+      expect.objectContaining({ type: "workflow", id: "canvas-doc-id" })
+    );
+    expect(outgoing.ui_context?.selection?.node_ids).toEqual([
+      "node-1",
+      "node-2"
+    ]);
   });
 });

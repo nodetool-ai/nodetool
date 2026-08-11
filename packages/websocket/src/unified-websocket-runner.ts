@@ -1469,21 +1469,51 @@ export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
  * `system_prompt` on the chat message — it is layered after the base prompt as
  * a context-specific addendum, never a replacement.
  */
-function buildChatAgentSystemPrompt(
+export function buildChatAgentSystemPrompt(
   mode: PermissionMode,
   extraSystemPrompt?: string | null,
-  uiContext?: UiContext | null
+  uiContext?: UiContext | null,
+  workflowId?: string | null
 ): string {
   const extra =
     typeof extraSystemPrompt === "string" && extraSystemPrompt.trim()
       ? `\n\n${extraSystemPrompt.trim()}\n`
       : "";
+  const uiBlock = formatUiContext(uiContext);
   return (
     CHAT_AGENT_SYSTEM_PROMPT +
     PERMISSION_MODE_PROMPTS[mode] +
-    formatUiContext(uiContext) +
+    uiBlock +
+    formatBoundWorkflow(uiContext, workflowId, uiBlock !== "") +
     extra
   );
+}
+
+/**
+ * Backstop for clients that bind a workflow to the turn (`workflow_id`) without
+ * naming it in `ui_context` — the canvas composer and every headless client.
+ * The graph `ui_*` tools take that id, so a turn carrying one and saying
+ * nothing about it leaves the agent guessing. Skipped when `ui_context` already
+ * names the workflow: that block says it better.
+ */
+function formatBoundWorkflow(
+  uiContext: UiContext | null | undefined,
+  workflowId: string | null | undefined,
+  hasUiBlock: boolean
+): string {
+  if (!workflowId) return "";
+  const named =
+    uiContext?.focused?.type === "workflow" &&
+    uiContext.focused.id === workflowId;
+  const listed = (uiContext?.open ?? []).some(
+    (ref) => ref.type === "workflow" && ref.id === workflowId
+  );
+  if (named || listed) return "";
+  const line = `The user has workflow \`${workflowId}\` open. Pass that id as \`workflow_id\` to the \`ui_*\` graph tools and to the workflow tools unless the user points at another workflow.`;
+  // Fold into the existing section rather than opening a second one.
+  return hasUiBlock
+    ? `\n${line}`
+    : `\n\n## What the user is looking at\n\n${line}`;
 }
 
 const UI_SURFACE_LABELS: Record<UiSurfaceType, string> = {
@@ -5208,7 +5238,8 @@ export class UnifiedWebSocketRunner {
       const base = buildChatAgentSystemPrompt(
         permissionMode,
         extraSystemPrompt,
-        uiContext
+        uiContext,
+        workflowId
       );
       return codeactPromptSection
         ? `${base}\n\n${codeactPromptSection}`
