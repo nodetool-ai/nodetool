@@ -1,7 +1,6 @@
 /** @jsxImportSource @emotion/react */
 // Full-page settings (formerly a Dialog).
 import React, { memo, useMemo } from "react";
-import { useSearchParams } from "react-router-dom";
 import {
   useMediaQuery
 } from "@mui/material";
@@ -50,6 +49,10 @@ import { useState, useCallback, useEffect, useRef } from "react";
 import SettingsSidebar from "./SettingsSidebar";
 import useSecretsStore from "../../stores/SecretsStore";
 import { settingsStyles } from "./settingsMenuStyles";
+import {
+  useSettingsPageStore,
+  type SettingsSection
+} from "../../stores/SettingsPageStore";
 
 // Tab indices. Models, Collections, Workspaces, and the Package Manager now
 // live as standalone full-screen pages reachable from the logo menu.
@@ -57,6 +60,21 @@ const TAB_GENERAL = 0;
 const TAB_API_KEYS = 1;
 const TAB_INTEGRATIONS = 2;
 const aboutTabIndex = 3;
+
+// Section names are the public handle — `openSettingsTab("providers")` — so a
+// caller never depends on the tab order.
+const SECTION_TO_TAB: Record<SettingsSection, number> = {
+  general: TAB_GENERAL,
+  providers: TAB_API_KEYS,
+  integrations: TAB_INTEGRATIONS,
+  about: aboutTabIndex
+};
+const TAB_TO_SECTION: SettingsSection[] = [
+  "general",
+  "providers",
+  "integrations",
+  "about"
+];
 
 const settingsDocsTopic = (tab: number): DocsTopic =>
   tab === TAB_API_KEYS ? "providers" : "configuration";
@@ -162,7 +180,8 @@ const SearchItem = React.memo(function SearchItem({
 });
 
 function SettingsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const section = useSettingsPageStore((state) => state.section);
+  const setSection = useSettingsPageStore((state) => state.setSection);
   const session = useAuth((state) => state.session);
 
   const tabSubtitle = (tab: number): string => {
@@ -178,11 +197,7 @@ function SettingsPage() {
     }
   };
 
-  const settingsTab = useMemo(() => {
-    const raw = Number(searchParams.get("tab") ?? 0);
-    if (Number.isNaN(raw)) return 0;
-    return Math.min(aboutTabIndex, Math.max(0, raw));
-  }, [searchParams]);
+  const settingsTab = SECTION_TO_TAB[section];
 
   const setGridSnap = useSettingsStore((state) => state.setGridSnap);
   const setConnectionSnap = useSettingsStore(
@@ -339,13 +354,11 @@ function SettingsPage() {
 
   const handleTabChange = useCallback(
     (_event: React.SyntheticEvent, newValue: number) => {
-      const next = new URLSearchParams(searchParams);
-      next.set("tab", String(newValue));
-      setSearchParams(next, { replace: true });
+      setSection(TAB_TO_SECTION[newValue] ?? "general");
       setApiSearchTerm("");
       setGeneralSearchTerm("");
     },
-    [searchParams, setSearchParams]
+    [setSection]
   );
 
   // Memoized handlers for settings controls to prevent re-renders

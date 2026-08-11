@@ -32,7 +32,7 @@ import type { UnifiedModel } from "../../stores/ApiTypes";
 
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { useModelAvailability } from "../../hooks/useModelAvailability";
-import { useNavigate } from "react-router-dom";
+import { openSettingsTab } from "../workspace/openPageTab";
 
 import type { Theme } from "@mui/material/styles";
 
@@ -181,12 +181,11 @@ function ModelList<TModel extends ModelSelectorModel>({
   const isFavorite = useModelPreferencesStore((s) => s.isFavorite);
   const getAvailability = useModelAvailability();
   const theme = useTheme();
-  const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleOpenSettings = useCallback(() => {
-    navigate("/settings?tab=1");
-  }, [navigate]);
+    openSettingsTab("providers");
+  }, []);
 
   const badgeStyle = useMemo<React.CSSProperties>(() => ({
     flex: "0 0 auto",

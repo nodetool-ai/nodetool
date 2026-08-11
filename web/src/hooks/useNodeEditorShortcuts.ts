@@ -14,6 +14,7 @@ import useNodeMenuStore from "../stores/NodeMenuStore";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 import { useNavigate } from "react-router-dom";
+import { openSettingsTab } from "../components/workspace/openPageTab";
 import { useFitView } from "./useFitView";
 import { useMenuHandler } from "./useIpcRenderer";
 import { useReactFlow } from "@xyflow/react";
@@ -502,7 +503,7 @@ export const useNodeEditorShortcuts = (
       toggleWorkflowSettings: { callback: handleWorkflowSettingsToggle },
       showKeyboardShortcuts: { callback: handleShowKeyboardShortcuts },
       openSettings: {
-        callback: () => navigate("/settings")
+        callback: () => openSettingsTab()
       },
       saveWorkflow: { callback: handleSave },
       saveExample: { callback: handleSaveExample },
