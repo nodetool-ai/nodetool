@@ -38,7 +38,7 @@ npm run lint  --workspace=packages/protocol   # tsc --noEmit
 ```
 
 Imports use `@nodetool-ai/<package>`; never import from `dist/`. See the root
-[CLAUDE.md](../../CLAUDE.md) for the monorepo build order.
+[AGENTS.md](../../AGENTS.md) for the monorepo build order.
 
 ## Generated processing-messages JSON Schema
 

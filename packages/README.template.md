@@ -29,4 +29,4 @@ npm run lint  --workspace=packages/<package-name>   # tsc --noEmit
 > Imports use `@nodetool-ai/<package>`; never import from `dist/`. Packages that
 > use decorators (node-sdk, *-nodes) load from `dist/` — run
 > `npm run build:packages` after changing them. See the root
-> [CLAUDE.md](../../CLAUDE.md) for build order and conventions.
+> [AGENTS.md](../../AGENTS.md) for build order and conventions.

@@ -93,7 +93,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db", "gated"],
     agentTool: "validate_workflow",
-    docs: "CLAUDE.md § nodetool validate",
+    docs: "AGENTS.md § nodetool validate",
     selfcheck: { command: "npm run validate:examples", cost: "cheap" }
   },
   {
@@ -103,7 +103,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "watch", "supervise", "browser", "gated"],
     agentTool: "debug_workflow",
-    docs: "CLAUDE.md § nodetool debug"
+    docs: "AGENTS.md § nodetool debug"
   },
   {
     id: "reliability-ring0",
@@ -120,7 +120,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool node run <type> --props '{...}' [--no-secrets]",
     kind: "execution",
     capabilities: ["json", "no-db"],
-    docs: "CLAUDE.md § nodetool node run",
+    docs: "AGENTS.md § nodetool node run",
     selfcheck: {
       command:
         "npm run dev:nodetool -- node run nodetool.text.Concat --props '{\"a\":\"harness-\",\"b\":\"gate\"}' --no-secrets",
@@ -133,7 +133,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "CLAUDE.md § nodetool app debug",
+    docs: "AGENTS.md § nodetool app debug",
     selfcheck: {
       command:
         "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ask-your-documents.app.json --no-run",
@@ -147,7 +147,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json", "watch", "supervise", "gated"],
     agentTool: "build_app",
-    docs: "CLAUDE.md § nodetool app build",
+    docs: "AGENTS.md § nodetool app build",
     selfcheck: {
       // The suite's two deterministic cases: scripted author, real kernel,
       // provider constructed but never called — the same invocation the
@@ -164,7 +164,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_timeline",
-    docs: "CLAUDE.md § nodetool timeline validate / debug"
+    docs: "AGENTS.md § nodetool timeline validate / debug"
   },
   {
     id: "timeline-debug",
@@ -172,7 +172,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool timeline debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "CLAUDE.md § nodetool timeline validate / debug"
+    docs: "AGENTS.md § nodetool timeline validate / debug"
   },
   {
     id: "timeline-versions",
@@ -182,7 +182,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_timeline_version",
-    docs: "CLAUDE.md § nodetool timeline versions"
+    docs: "AGENTS.md § nodetool timeline versions"
   },
   {
     id: "sketch-validate",
@@ -191,7 +191,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "static",
     capabilities: ["json", "no-db"],
     agentTool: "validate_sketch",
-    docs: "CLAUDE.md § nodetool sketch validate / debug"
+    docs: "AGENTS.md § nodetool sketch validate / debug"
   },
   {
     id: "sketch-debug",
@@ -199,7 +199,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool sketch debug <id|file.json> --interact '[...]'",
     kind: "execution",
     capabilities: ["json", "interact", "no-db"],
-    docs: "CLAUDE.md § nodetool sketch validate / debug"
+    docs: "AGENTS.md § nodetool sketch validate / debug"
   },
   {
     id: "sketch-versions",
@@ -209,7 +209,7 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     agentTool: "restore_sketch_version",
-    docs: "CLAUDE.md § nodetool sketch versions"
+    docs: "AGENTS.md § nodetool sketch versions"
   },
   {
     id: "eval",
@@ -218,7 +218,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool eval <suite> -p <provider> -m <model> [--min-success N]",
     kind: "eval",
     capabilities: ["json", "gated"],
-    docs: "packages/agents/CLAUDE.md"
+    docs: "packages/agents/AGENTS.md"
   },
   {
     id: "chat-stdin",
@@ -226,7 +226,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: 'echo "<prompt>" | nodetool-chat -p <provider> -m <model>',
     kind: "execution",
     capabilities: [],
-    docs: "CLAUDE.md § nodetool chat"
+    docs: "AGENTS.md § nodetool chat"
   },
   {
     id: "backend-smoke",
@@ -234,7 +234,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "npm run backend:smoke",
     kind: "meta",
     capabilities: ["gated"],
-    docs: "CLAUDE.md § Common Pitfalls (bundle-backend)",
+    docs: "AGENTS.md § Common Pitfalls (bundle-backend)",
     selfcheck: { command: "npm run backend:smoke", cost: "expensive" }
   },
   {
@@ -243,7 +243,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "node scripts/docker-smoke.mjs http://localhost:7777",
     kind: "meta",
     capabilities: ["browser", "gated"],
-    docs: "CLAUDE.md § Common Pitfalls (deploy)"
+    docs: "AGENTS.md § Common Pitfalls (deploy)"
   },
   {
     id: "affected",
@@ -251,7 +251,7 @@ export const HARNESSES: HarnessEntry[] = [
     command: "nodetool affected [--base main]",
     kind: "meta",
     capabilities: ["json", "no-db"],
-    docs: "CLAUDE.md § nodetool affected"
+    docs: "AGENTS.md § nodetool affected"
   },
   {
     id: "packs-compile",

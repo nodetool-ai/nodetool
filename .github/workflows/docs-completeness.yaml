@@ -50,7 +50,7 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p docs-facts
-          DOCS="docs README.md AGENTS.md CLAUDE.md"
+          DOCS="docs README.md AGENTS.md"
 
           mentioned() {
             grep -rqI -- "$1" $DOCS 2>/dev/null
@@ -146,7 +146,7 @@ jobs:
             ## Where things belong
             Read the existing page first and extend it in its own structure rather
             than starting a new page:
-            - CLI commands → `docs/cli.md`, and the CLI section of `CLAUDE.md`
+            - CLI commands → `docs/cli.md`, and the CLI section of `AGENTS.md`
             - HTTP routes → `docs/api-reference.md` / `docs/api.md`
             - Env vars → `docs/configuration.md`
             - A package's own behavior → that package's `README.md`

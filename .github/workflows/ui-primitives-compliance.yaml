@@ -1,6 +1,6 @@
 name: UI Primitives & Design Tokens
 
-# Enforces the two MANDATORY frontend rules from CLAUDE.md that no generic
+# Enforces the two MANDATORY frontend rules from AGENTS.md that no generic
 # linter covers:
 #   1. Never import raw MUI components outside ui_primitives/ or editor_ui/
 #      (use the primitives in web/src/components/ui_primitives/ instead).

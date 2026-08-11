@@ -51,7 +51,7 @@ Ships standalone value: kills silent last-write-wins data loss and adds presence
 
 ### PR-3: Presence UI (~4 days) ∥ after PR-2's protocol types merge
 
-- `web/src/lib/collab/PresenceChannel.ts`: thin client over `globalWebSocketManager` (`web/src/lib/websocket/GlobalWebSocketManager.ts` — singleton, per CLAUDE.md never a new socket): join on workflow open (hook into `WorkflowManagerStore` open/close lifecycle), throttle outgoing cursor/selection to ~15 Hz, resend state on reconnect (subscribe to the manager's reconnect event).
+- `web/src/lib/collab/PresenceChannel.ts`: thin client over `globalWebSocketManager` (`web/src/lib/websocket/GlobalWebSocketManager.ts` — singleton, per AGENTS.md never a new socket): join on workflow open (hook into `WorkflowManagerStore` open/close lifecycle), throttle outgoing cursor/selection to ~15 Hz, resend state on reconnect (subscribe to the manager's reconnect event).
 - `web/src/stores/CollabPresenceStore.ts`: Zustand store keyed by workflow id → member list with cursor/selection; selectors per member to keep re-renders scoped.
 - UI (all ui_primitives + design tokens):
   - **Roster**: avatar row in the editor header; stable per-user color derived from user id hash.

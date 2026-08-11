@@ -7,7 +7,7 @@ description: "Canonical development standards for NodeTool — enforceable rules
 
 # NodeTool Development Standards
 
-**Navigation**: [Root AGENTS.md](../AGENTS.md) | [CLAUDE.md](../CLAUDE.md) → **Development Standards**
+**Navigation**: [Root AGENTS.md](../AGENTS.md) → **Development Standards**
 
 This is the single canonical source for the engineering standards we enforce. Every other AGENTS.md file links here for area-specific rules. Standards are written as **enforceable rules** ("must", "never") with the underlying **principle** when non-obvious. Aspirational targets (north-stars we have not yet reached everywhere) are marked **target**.
 
@@ -457,7 +457,7 @@ We follow the **OWASP Top 10** as the baseline. See [OWASP Top 10:2021](https://
 
 ## 17. Observability
 
-We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run` → `node.process` → `agent.execute` → `llm.chat`). See CLAUDE.md §"Observing Agent Execution" for sinks.
+We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run` → `node.process` → `agent.execute` → `llm.chat`). See AGENTS.md §"Observing Agent Execution" for sinks.
 
 ### Rules
 
@@ -581,7 +581,6 @@ If a rule is not yet enforced by tooling, it is enforced by review. Reviewers sh
 - [docs/AGENTS.md](AGENTS.md) — Agent system architecture
 - [web/src/components/ui_primitives/STRATEGY.md](../web/src/components/ui_primitives/STRATEGY.md) — Primitives-first details
 - [web/TESTING.md](../web/TESTING.md) — Web testing guide
-- [CLAUDE.md](../CLAUDE.md) — Repo-level instructions for Claude Code sessions
 
 ## External References
 
