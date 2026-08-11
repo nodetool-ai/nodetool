@@ -3,7 +3,9 @@ import { useShallow } from "zustand/react/shallow";
 
 import MediaChatComposer from "../chat/composer/MediaChatComposer";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
+import { useNodeStoreRef } from "../../contexts/NodeContext";
 import { useAutoAddGeneratedMediaToCanvas } from "../../hooks/handlers/useAutoAddGeneratedMediaToCanvas";
+import { buildUiContext } from "../../lib/chat/uiContext";
 import type { MessageContent } from "../../stores/ApiTypes";
 import type {
   ChatOutgoingMessage,
@@ -55,6 +57,10 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
   // Drop each finished generation onto the canvas automatically.
   useAutoAddGeneratedMediaToCanvas();
 
+  // The open graph, read at send time rather than subscribed: the selection
+  // changes on every canvas click and this composer must not re-render with it.
+  const nodeStore = useNodeStoreRef();
+
   // Establish the chat connection lazily so generation works even when the
   // chat panel was never opened. Skip if it's already wired up by the panel.
   useEffect(() => {
@@ -71,6 +77,24 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
       mediaGeneration?: MediaGenerationRequest
     ) => {
       const isMedia = !!mediaGeneration && mediaGeneration.mode !== "chat";
+      const { workflow, getSelectedNodes } = nodeStore.getState();
+      // Tell the agent which graph it is looking at. The `ui_*` graph tools
+      // take a workflow id, and the canvas is the one surface that knows it
+      // without going through the tab store.
+      const selectedNodeIds = getSelectedNodes().map((node) => node.id);
+      const uiContext = workflow?.id
+        ? buildUiContext({
+            focused: {
+              type: "workflow",
+              id: workflow.id,
+              title: workflow.name
+            },
+            selection:
+              selectedNodeIds.length > 0
+                ? { node_ids: selectedNodeIds }
+                : undefined
+          })
+        : null;
       const outgoing: ChatOutgoingMessage = {
         type: "message",
         name: "",
@@ -82,14 +106,16 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
           ? mediaGeneration?.model ?? selectedModel?.id
           : selectedModel?.id,
         content,
-        // Intentionally no workflow_id: the canvas document is being edited,
-        // not run as a chat-responder. Setting it routes the backend into
-        // handleWorkflowMessage, which fails with "Workflow <id> not found".
+        ui_context: uiContext,
+        // Intentionally no workflow_target: the canvas document is being
+        // edited, not run as a chat-responder. Setting it routes the backend
+        // into handleWorkflowMessage, which runs the graph as the responder.
+        // The store still attaches the bound `workflow_id` as ambient context.
         media_generation: isMedia ? mediaGeneration : null
       } as ChatOutgoingMessage;
       void sendMessage(outgoing);
     },
-    [selectedModel, sendMessage]
+    [selectedModel, sendMessage, nodeStore]
   );
 
   return (
