@@ -32,7 +32,7 @@ export interface AsrConfig {
   model: string;
 }
 
-export const DEFAULT_ASR_CONFIG: AsrConfig = {
+const DEFAULT_ASR_CONFIG: AsrConfig = {
   provider: "openai",
   model: "whisper-1"
 };

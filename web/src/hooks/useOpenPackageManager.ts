@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 /** Route of the in-app Package Manager. */
-export const PACKAGE_MANAGER_PATH = "/packages";
+const PACKAGE_MANAGER_PATH = "/packages";
 
 /**
  * Navigate to the in-app Package Manager — the unified install surface for

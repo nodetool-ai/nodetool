@@ -92,7 +92,7 @@ function str(value: unknown): string | null {
  * subscription. This is the same message contract, reduced to what the screen
  * renders.
  */
-export function foldJobMessage(
+function foldJobMessage(
   state: LiveState,
   message: Record<string, unknown>,
 ): LiveState {

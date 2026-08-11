@@ -16,7 +16,7 @@ import type { codeGen } from "@nodetool-ai/protocol/api-schemas";
 
 import { trpcClient } from "../trpc/client";
 
-export const codeGenMutationKey = ["code-gen", "generate"] as const;
+const codeGenMutationKey = ["code-gen", "generate"] as const;
 
 /** Failures the client adds to the server's `CodeGenError` union. */
 export type CodeGenClientErrorCode = "offline" | "unauthorized";

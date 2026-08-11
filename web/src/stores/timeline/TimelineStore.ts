@@ -403,9 +403,6 @@ export interface TimelineStoreState {
   /** Append a timeline marker (e.g. a scene boundary) at the given time. */
   addMarker: (timeMs: number, label?: string) => void;
 
-  /** Remove the marker with the given id. */
-  removeMarker: (id: string) => void;
-
   /**
    * Merge clip halves that were split at `timeMs` back into single clips — the
    * inverse of {@link splitClipAtTime}. Per track, a left clip ending at `timeMs`
@@ -1711,11 +1708,6 @@ export const createTimelineStore = (
                 label: label ?? ""
               })
             ]
-          })),
-
-        removeMarker: (id) =>
-          set((state) => ({
-            markers: state.markers.filter((m) => m.id !== id)
           })),
 
         mergeClipsAt: (timeMs) =>

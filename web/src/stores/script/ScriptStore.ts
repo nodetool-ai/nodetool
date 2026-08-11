@@ -212,7 +212,7 @@ let counter = 0;
 const uid = (prefix: string): string =>
   `${prefix}_${Date.now().toString(36)}_${(counter++).toString(36)}`;
 
-export const emptyScript = (id: string): ScriptDraft => ({
+const emptyScript = (id: string): ScriptDraft => ({
   id,
   title: "",
   cast: [],
