@@ -9,6 +9,7 @@ import React, {
   useState
 } from "react";
 import { useTheme } from "@mui/material/styles";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import AccessTimeIcon from "@mui/icons-material/AccessTime";
 import AspectRatioIcon from "@mui/icons-material/CropOriginal";
 import AppsIcon from "@mui/icons-material/Apps";
@@ -94,6 +95,11 @@ import { StopGenerationButton } from "./StopGenerationButton";
 import PermissionSelector from "./PermissionSelector";
 import { useElapsedTime } from "../../../hooks/useElapsedTime";
 import { useAutoFocusEnabled } from "../../../hooks/useAutoFocusEnabled";
+
+/** Textarea growth caps. The mobile one matches the composer stylesheet — on a
+ *  phone the keyboard already owns most of the screen. */
+const TEXTAREA_MAX_HEIGHT = 220;
+const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
 
 function formatElapsed(seconds: number): string {
   if (seconds < 5) return "Starting…";
@@ -185,6 +191,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   threadId
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const styles = useMemo(() => createMediaComposerStyles(theme), [theme]);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const autoFocusEnabled = useAutoFocusEnabled();
@@ -327,11 +334,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (!el) {
       return;
     }
+    const max = isMobile
+      ? MOBILE_TEXTAREA_MAX_HEIGHT
+      : TEXTAREA_MAX_HEIGHT;
     el.style.height = "auto";
-    const next = Math.min(el.scrollHeight, 220);
-    el.style.height = `${next}px`;
-    el.style.overflowY = el.scrollHeight > 220 ? "auto" : "hidden";
-  }, []);
+    el.style.height = `${Math.min(el.scrollHeight, max)}px`;
+    el.style.overflowY = el.scrollHeight > max ? "auto" : "hidden";
+  }, [isMobile]);
 
   useLayoutEffect(() => {
     adjustHeight();
@@ -494,19 +503,29 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       return placeholderOverride;
     }
     if (isPi) {
-      return "Message the Pi agent — it works in your workspace…";
+      return isMobile
+        ? "Message the Pi agent…"
+        : "Message the Pi agent — it works in your workspace…";
     }
     if (mode === "image") {
-      return "Describe the image you want to generate…";
+      return isMobile
+        ? "Describe an image…"
+        : "Describe the image you want to generate…";
     }
     if (mode === "image_edit") {
-      return "Describe the edits to apply to the dropped image…";
+      return isMobile
+        ? "Describe the edits…"
+        : "Describe the edits to apply to the dropped image…";
     }
     if (mode === "video") {
-      return "Describe your video… like a man drinking a cup of coffee…";
+      return isMobile
+        ? "Describe a video…"
+        : "Describe your video… like a man drinking a cup of coffee…";
     }
     if (mode === "image_to_video") {
-      return "Describe how the dropped image should animate…";
+      return isMobile
+        ? "Describe the animation…"
+        : "Describe how the dropped image should animate…";
     }
     if (mode === "audio") {
       return "Type the text you want spoken…";
@@ -523,8 +542,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     if (mode === "motion_control") {
       return "Describe the motion…";
     }
-    return "Continue the thread — or type @ to add an asset…";
-  }, [mode, isPi, placeholderOverride]);
+    return isMobile
+      ? "Message… or @ to add an asset"
+      : "Continue the thread — or type @ to add an asset…";
+  }, [mode, isPi, isMobile, placeholderOverride]);
 
   const isMediaMode =
     mode === "image" ||
