@@ -203,8 +203,16 @@ describe("every node type the DSL offers", () => {
     // The pack claims 474 wrappers; a regex that matched half of them would
     // make the assertion below vacuous.
     expect(wrappers.length).toBe(474);
+    // The pack ships one artifact for every platform, but base-nodes
+    // registers `lib.apple.*` only on darwin (base-nodes/src/index.ts) —
+    // off a Mac those wrappers are expected to miss, and nothing else is.
+    const platformGated = (type: string) =>
+      process.platform !== "darwin" && type.startsWith("lib.apple.");
     const unknown = wrappers
-      .filter((wrapper) => !registry.has(wrapper.nodeType))
+      .filter(
+        (wrapper) =>
+          !registry.has(wrapper.nodeType) && !platformGated(wrapper.nodeType)
+      )
       .map((wrapper) => `${wrapper.file}: ${wrapper.nodeType}`);
     expect(unknown).toEqual([]);
   });
@@ -222,6 +230,9 @@ describe("every node type the DSL offers", () => {
   it("names only output slots the node really has", () => {
     const registry = liveRegistry();
     for (const wrapper of shippedWrappers()) {
+      // A type the registry lacks is judged by the totality test above,
+      // which knows which misses are platform-gated.
+      if (!registry.has(wrapper.nodeType)) continue;
       const slots = (registry.getMetadata(wrapper.nodeType)?.outputs ?? []).map(
         (output) => output.name
       );
