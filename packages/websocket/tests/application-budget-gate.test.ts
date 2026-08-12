@@ -444,10 +444,20 @@ describe("application invocation settlement", () => {
  * refuse a run.
  */
 describe("pre-run cost estimate", () => {
+  // A price billed in "units" or "credits" has no fixed USD value and the
+  // estimator refuses to sum it, so the gate can only be checked against an
+  // entry billed in something concrete.
   const firstFalPriced = (): { id: string; unitPrice: number } => {
     for (const [id, entry] of Object.entries(falUnitPricingCatalog.prices ?? {})) {
-      const price = (entry as { unit_price?: unknown }).unit_price;
-      if (typeof price === "number" && price > 0) return { id, unitPrice: price };
+      const { unit_price: price, billing_unit: unit } = entry as {
+        unit_price?: unknown;
+        billing_unit?: unknown;
+      };
+      if (typeof price !== "number" || price <= 0) continue;
+      if (typeof unit === "string" && /\bunits?\b|\bcredits?\b/i.test(unit)) {
+        continue;
+      }
+      return { id, unitPrice: price };
     }
     throw new Error("FAL pricing catalog has no priced entry");
   };

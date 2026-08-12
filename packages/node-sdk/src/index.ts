@@ -3,6 +3,7 @@ export * from "./class-name-to-title.js";
 export * from "./content-card.js";
 export * from "./pricing-bundle.js";
 export * from "./cost-estimate.js";
+export * from "./pricing-params.js";
 export * from "./field-classification.js";
 export * from "./registry.js";
 export * from "./metadata.js";

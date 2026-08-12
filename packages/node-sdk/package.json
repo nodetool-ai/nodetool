@@ -42,6 +42,11 @@
       "import": "./dist/cost-estimate.js",
       "default": "./dist/cost-estimate.js"
     },
+    "./pricing-params": {
+      "types": "./dist/pricing-params.d.ts",
+      "import": "./dist/pricing-params.js",
+      "default": "./dist/pricing-params.js"
+    },
     "./sandbox-pack-discovery": {
       "nodetool-dev": "./src/sandbox-pack-discovery.ts",
       "types": "./dist/sandbox-pack-discovery.d.ts",
