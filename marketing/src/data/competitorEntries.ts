@@ -146,13 +146,13 @@ export const competitors: Competitor[] = [
         "The studio around the node editor — every medium, every provider.",
     },
     heroParagraph:
-      "ComfyUI will hand you the sampler, the VAE, and the latents — if your project ends at a diffusion image, nothing goes deeper. Most projects don't end there. The still becomes a clip, the clip needs a voice, the voice needs music, and suddenly you're out of the graph and back in the tab-switching business. NodeTool is the studio for that whole arc: image, video, music, and words on one canvas, every major provider on your own keys at provider prices, and an agent that can wire the graph for you. Both are open source.",
+      "Ask around the ComfyUI community and the same complaints keep coming back: a workflow that ran fine yesterday throws \"missing custom nodes\" after an update, an extension's pinned PyTorch version quietly breaks a different extension, and a graph that took an afternoon to build turns into a wall of red, disconnected boxes the moment you open it on another machine. That fragility is the tax on ComfyUI's real strength — an open plugin system with deep, node-by-node control over every sampler and VAE. NodeTool ships its editing tools as maintained, first-party nodes instead: image, video, music, and words on one canvas, every major provider on your own keys at provider prices, and an agent that can wire the graph for you. Both are open source.",
     competitorTagline: "Node editor for diffusion images",
     competitorBullets: [
       "Deep control over Stable Diffusion pipelines",
       "Engineer-first, graph-based UX",
       "Local model focused",
-      "Open source community",
+      "Hundreds of community custom nodes — quality and maintenance vary",
     ],
     nodetoolTagline: "The studio around the canvas",
     nodetoolBullets: [
@@ -170,10 +170,12 @@ export const competitors: Competitor[] = [
       { label: "Local models", competitor: true, nodetool: true },
       { label: "Desktop + browser", competitor: false, nodetool: true },
       { label: "Open source", competitor: true, nodetool: true },
+      { label: "Custom-node stability", competitor: "Third-party, versions can conflict", nodetool: "Built-in, one maintained codebase" },
+      { label: "Workflow portability across machines", competitor: "Can fail on missing custom nodes", nodetool: "Opens the same way everywhere" },
     ],
     explainerHeading: "One canvas for everything, not just images",
     explainerParagraph:
-      "If your work starts and ends with Stable Diffusion images, ComfyUI gives you fine-grained control, and nothing here will pry it from your hands. But most creative projects span more than one medium: image into video, voice and music into a cut, words into everything. NodeTool keeps all of it on one visual canvas with masks, inpaint, outpaint, relight, upscale, layers, and compositing built in. And you don't have to place every node yourself — NodeTool is agent-first, so you can describe the pipeline and an agent authors the graph, picks the models, and repairs what fails, leaving behind a workflow you can inspect and rerun. You call every major model with your own keys at provider prices, and run locally via Ollama, MLX, and llama.cpp.",
+      "If your work starts and ends with Stable Diffusion images, ComfyUI gives you fine-grained control, and nothing here will pry it from your hands. But the same plugin architecture that makes it powerful is what makes it brittle: custom nodes pin their own PyTorch versions and step on each other, an update to the core app or its frontend can turn a working graph into a wall of red error nodes overnight, and a workflow built on one machine often won't open on another until you've tracked down every missing custom node by hand. Big graphs also mean big VRAM bills — spill past what your card holds and ComfyUI falls back to slow system-memory swapping or an out-of-memory crash mid-render. NodeTool keeps every editing tool — masks, inpaint, outpaint, relight, upscale, layers, compositing — as a first-party node maintained in one codebase, so a workflow that runs today keeps running, and one you share opens the same way on any machine. You don't have to place every node yourself either — NodeTool is agent-first, so you can describe the pipeline and an agent authors the graph, picks the models, and repairs what fails, leaving behind a workflow you can inspect and rerun. You call every major model with your own keys at provider prices, and run locally via Ollama, MLX, and llama.cpp.",
     ctaHeading: "Open, complete, and yours.",
     ctaParagraph:
       "Download Studio and build across image, video, audio, and text in one place.",
@@ -182,6 +184,11 @@ export const competitors: Competitor[] = [
         question: "What is the difference between NodeTool and ComfyUI?",
         answer:
           "ComfyUI is a node editor focused on Stable Diffusion and diffusion image generation with an interface built for engineers. NodeTool is the studio around it: image, video, music, and text on one visual canvas, a much wider list of models across providers and media types, and editing tools creatives actually use — called with your own keys at provider prices. Both are open source, and both work by connecting blocks on a canvas.",
+      },
+      {
+        question: "Why do ComfyUI workflows break after sharing or updating?",
+        answer:
+          "Two separate things usually collide. Sharing: a workflow file references custom nodes by name, and if the machine opening it doesn't have that exact extension installed, ComfyUI shows \"missing custom nodes\" errors and won't load the graph until you track each one down — ComfyUI Manager's \"Install Missing Nodes\" automates the search, but it's a fix per workflow, not a guarantee it stays fixed. Updating: the core app, its frontend, and every third-party extension version independently, so a core update can outrun a node that hasn't caught up, and a node update can pin a PyTorch version that breaks a different extension. NodeTool ships its editing tools as first-party nodes in one maintained codebase, so there's no extension compatibility matrix to manage.",
       },
       {
         question: "Is NodeTool open source like ComfyUI?",
@@ -200,7 +207,7 @@ export const competitors: Competitor[] = [
       },
     ],
     limitation:
-      "ComfyUI is centered on Stable Diffusion, so anything past diffusion images — video, audio, agents — means leaving the graph.",
+      "ComfyUI's open plugin system is also its biggest liability: custom nodes conflict on dependencies, workflows break after updates or when a required custom node goes missing on another machine, and anything past a diffusion image means leaving the graph.",
   },
   {
     slug: "weavy",
