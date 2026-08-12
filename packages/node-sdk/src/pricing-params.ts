@@ -75,7 +75,10 @@ function readSeconds(value: unknown): number | undefined {
     return Number.isFinite(value) && value > 0 ? value : undefined;
   }
   if (typeof value !== "string") return undefined;
-  const match = /^\s*(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds)?\s*$/i.exec(value);
+  // Trim and collapse runs before matching: adjacent unbounded whitespace
+  // quantifiers around an optional group backtrack polynomially (CodeQL).
+  const compact = value.trim().replace(/\s+/g, " ");
+  const match = /^(\d+(?:\.\d+)?) ?(?:s|secs?|seconds)?$/i.exec(compact);
   if (!match) return undefined;
   const parsed = Number(match[1]);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;

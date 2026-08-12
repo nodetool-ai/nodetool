@@ -88,7 +88,13 @@ const RESOLUTION_TIERS: Record<string, string> = {
 /** Normalize a resolution to a tier, or null when it names none we know. */
 export function normalizeResolution(value: unknown): string | null {
   if (typeof value !== "string") return null;
-  const key = value.trim().toLowerCase().replace(/\s*[x*×]\s*/g, "x");
+  // Collapse whitespace runs before touching the separators: an unbounded
+  // `\s*` on both sides of the class backtracks polynomially (CodeQL).
+  const key = value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/ ?[x*×] ?/g, "x");
   if (!key) return null;
   return RESOLUTION_TIERS[key] ?? null;
 }
