@@ -124,6 +124,9 @@ jobs:
           exit 1
 
   deploy:
+    # The job name "Deploy server" is load-bearing: web-deploy.yml chains off
+    # this workflow's completion and releases the SPA only when a job with this
+    # exact name concluded `success` — renaming it silently parks the web deploy.
     name: Deploy server
     needs: [gate]
     runs-on: ubuntu-latest
