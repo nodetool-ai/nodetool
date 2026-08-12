@@ -330,7 +330,7 @@ export const settleCancelledShotJob = (shotId: string): void => {
   unsubscribeShotJob(job.jobId);
 };
 
-export const unsubscribeShotJob = (jobId: string): void => {
+const unsubscribeShotJob = (jobId: string): void => {
   const unsubscribe = jobSubscriptions.get(jobId);
   if (unsubscribe) {
     unsubscribe();

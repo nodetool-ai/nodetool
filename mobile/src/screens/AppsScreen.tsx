@@ -6,7 +6,7 @@
  * the same one-document-per-screen model the documents browser uses.
  */
 
-import React, { useCallback } from 'react';
+import { useCallback } from 'react';
 import {
   ActivityIndicator,
   FlatList,

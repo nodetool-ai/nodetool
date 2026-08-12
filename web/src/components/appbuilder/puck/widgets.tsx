@@ -73,7 +73,7 @@ export const resolveImageSrc = (value: unknown): string | null => {
 };
 
 /** Resolve a playable media source from a string, MediaRef, or data payload. */
-export const resolveMediaSrc = (value: unknown, mime: string): string | null => {
+const resolveMediaSrc = (value: unknown, mime: string): string | null => {
   const src = resolveImageSrc(value);
   if (!src) return null;
   // Raw base64 payloads (no scheme) become a data URI so <audio>/<video> play them.

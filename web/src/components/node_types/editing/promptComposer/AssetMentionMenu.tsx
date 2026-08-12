@@ -11,7 +11,7 @@ import { MentionAssetTile } from "./MentionAssetTile";
 import { MentionEntityTile } from "./MentionEntityTile";
 import type { MentionTab } from "./useAssetMentionSearch";
 
-export const assetMentionMenuStyles = (theme: Theme) =>
+const assetMentionMenuStyles = (theme: Theme) =>
   css({
     width: 380,
     maxHeight: 320,
