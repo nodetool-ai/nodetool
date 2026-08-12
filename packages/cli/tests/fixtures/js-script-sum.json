@@ -1,0 +1,34 @@
+{
+  "name": "Sum numbers",
+  "document": {
+    "schemaVersion": 1,
+    "description": "Sums a list of numbers, emitting each running total and setting the final sum.",
+    "code": "let total = 0;\nfor (const n of inputs.numbers) {\n  total += n;\n  await emit(\"running\", total);\n}\nawait output(\"total\", total);",
+    "inputs": [{ "name": "numbers", "type": "list[int]" }],
+    "outputs": [
+      { "name": "running", "type": "int" },
+      { "name": "total", "type": "int" }
+    ],
+    "packages": [],
+    "secrets": [],
+    "timeoutSeconds": 10,
+    "tests": [
+      {
+        "name": "sums three numbers",
+        "inputs": { "numbers": [1, 2, 3] },
+        "expect": { "total": 6 },
+        "expectedStreamed": [
+          { "name": "running", "value": 1 },
+          { "name": "running", "value": 3 },
+          { "name": "running", "value": 6 }
+        ]
+      },
+      {
+        "name": "sums an empty list to zero",
+        "inputs": { "numbers": [] },
+        "expect": { "total": 0 },
+        "expectedStreamed": []
+      }
+    ]
+  }
+}

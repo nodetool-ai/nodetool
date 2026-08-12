@@ -61,6 +61,12 @@
       "import": "./dist/service/index.js",
       "default": "./dist/service/index.js"
     },
+    "./js-script-debug": {
+      "nodetool-dev": "./src/js-script-debug/index.ts",
+      "types": "./dist/js-script-debug/index.d.ts",
+      "import": "./dist/js-script-debug/index.js",
+      "default": "./dist/js-script-debug/index.js"
+    },
     "./sketch-debug": {
       "nodetool-dev": "./src/sketch-debug/index.ts",
       "types": "./dist/sketch-debug/index.d.ts",

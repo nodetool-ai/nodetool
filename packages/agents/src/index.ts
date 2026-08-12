@@ -558,6 +558,24 @@ export type {
   ScriptBridgeInitialState
 } from "./evals/surfaces/script.js";
 export {
+  gradeCodeCases,
+  deepEqual as codeCaseDeepEqual
+} from "./capabilities/code-grading.js";
+export type {
+  CodeTestReport,
+  GradedCase,
+  TestCaseReport
+} from "./capabilities/code-grading.js";
+export {
+  createJsScriptToolBridge,
+  JS_SCRIPT_TOOL_LOOP_CASES
+} from "./evals/surfaces/js-script.js";
+export type {
+  JsScriptBridgeFinalState,
+  JsScriptBridgeInitialState,
+  JsScriptToolBridge
+} from "./evals/surfaces/js-script.js";
+export {
   createSketchToolBridge,
   getLastSketchToolBridge,
   SKETCH_TOOL_LOOP_CASES

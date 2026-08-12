@@ -29,6 +29,7 @@ import { emailSpecs } from "./email.specs.js";
 import { filesSpecs } from "./files.specs.js";
 import { googleSpecs } from "./google.specs.js";
 import { jobsSpecs } from "./jobs.specs.js";
+import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
 import { modelsSpecs } from "./models.specs.js";
@@ -70,6 +71,7 @@ const MODULES: Readonly<Record<string, Loader>> = {
   scripts: () => import("./scripts.js").then((m) => m.module),
   storyboards: () => import("./storyboards.js").then((m) => m.module),
   code: () => import("./code.js").then((m) => m.module),
+  "js-scripts": () => import("./js-scripts.js").then((m) => m.module),
   packs: () => import("./packs.js").then((m) => m.module),
   ui: () => import("./ui.js").then((m) => m.module)
 };
@@ -104,6 +106,7 @@ export const DECLARED_CAPABILITY_MODULES: readonly string[] = [
   "scripts",
   "storyboards",
   "code",
+  "js-scripts",
   "packs",
   "ui"
 ];
@@ -143,6 +146,7 @@ const MODULE_SPECS: Readonly<Record<string, readonly CapabilitySpec[]>> = {
   scripts: scriptsSpecs,
   storyboards: storyboardsSpecs,
   code: codeSpecs,
+  "js-scripts": jsScriptsSpecs,
   packs: packsSpecs,
   ui: uiSpecs
 };

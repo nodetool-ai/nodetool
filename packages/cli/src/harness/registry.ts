@@ -212,6 +212,58 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "AGENTS.md § nodetool sketch versions"
   },
   {
+    id: "jsscript-validate",
+    title: "JS script static check",
+    command: "nodetool jsscript validate <id|file.json>",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    agentTool: "validate_js_script",
+    docs: "AGENTS.md § nodetool jsscript"
+  },
+  {
+    id: "jsscript-run",
+    title: "JS script single run (QuickJS sandbox)",
+    command: "nodetool jsscript run <id|file.json> --inputs '{...}'",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    agentTool: "run_js_script",
+    docs: "AGENTS.md § nodetool jsscript"
+  },
+  {
+    id: "jsscript-test",
+    title: "JS script saved-case regression run",
+    command: "nodetool jsscript test <id|file.json>",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    agentTool: "test_js_script",
+    docs: "AGENTS.md § nodetool jsscript",
+    selfcheck: {
+      // A checked-in fixture with deterministic cases: no network, no secrets,
+      // no database — the script sums numbers and emits each running total.
+      command:
+        "npm run dev:nodetool -- jsscript test packages/cli/tests/fixtures/js-script-sum.json",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "jsscript-debug",
+    title: "JS script edit-session replay",
+    command: "nodetool jsscript debug <id|file.json> --interact '[...]'",
+    kind: "execution",
+    capabilities: ["json", "interact", "no-db"],
+    docs: "AGENTS.md § nodetool jsscript"
+  },
+  {
+    id: "jsscript-versions",
+    title:
+      "JS script version history (snapshot, restore, validate the restore)",
+    command:
+      "nodetool jsscript versions list|show|create|restore|delete <id> [<version>]",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "AGENTS.md § nodetool jsscript"
+  },
+  {
     id: "eval",
     title:
       "Agent evaluation suites (graph-planner, graph-e2e, code-gen, task-planner, subtask, codeact, tool-loop×8, app-build)",
@@ -341,6 +393,33 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/agents/src/tools/sketch-version-tools.ts",
       "packages/models/src/image-document-version.ts",
       "packages/websocket/src/trpc/routers/sketch.ts"
+    ]
+  },
+  {
+    id: "jsscript",
+    title: "JS scripts (documents, ui_jsscript_* tools, version history)",
+    harnesses: [
+      "jsscript-validate",
+      "jsscript-run",
+      "jsscript-test",
+      "jsscript-debug",
+      "jsscript-versions",
+      "eval"
+    ],
+    paths: [
+      "packages/execution/src/js-script-debug/",
+      "packages/cli/src/js-script-debug/",
+      "packages/cli/src/commands/js-script.ts",
+      "packages/cli/src/commands/js-script-versions.ts",
+      "packages/cli/src/commands/js-script-validation-output.ts",
+      "packages/agents/src/capabilities/js-scripts.ts",
+      "packages/agents/src/capabilities/js-scripts.specs.ts",
+      "packages/agents/src/evals/surfaces/js-script.ts",
+      "packages/models/src/js-script.ts",
+      "packages/models/src/js-script-version.ts",
+      "packages/protocol/src/api-schemas/js-scripts.ts",
+      "packages/websocket/src/trpc/routers/js-scripts.ts",
+      "packages/websocket/src/routes/js-scripts.ts"
     ]
   },
   {

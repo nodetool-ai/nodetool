@@ -1,0 +1,507 @@
+/**
+ * The `js-scripts` capability module — a JS script document as an agent
+ * surface.
+ *
+ * A JS script is a named, versioned script with declared ports, sandbox
+ * packages, secrets, a timeout, and saved test cases
+ * (docs/js-script-document-design.md). These six capabilities are how an agent
+ * — or a Code node body, or a CodeAct action, through the same belt — finds
+ * one, reads it, saves it, checks it, runs it, and regression-tests it:
+ *
+ *   list_js_scripts    — id, name, description, ports (the discovery surface)
+ *   get_js_script      — the full document
+ *   save_js_script     — create or update, validated first, CAS on update
+ *   validate_js_script — the static check, inline or by id
+ *   run_js_script      — execute with inputs
+ *   test_js_script     — run the document's own saved cases
+ *
+ * Execution goes through `runCodeBody`, the hermetic core `run_code` and
+ * `test_code` already share, so a script run, a Code-node authoring run, and
+ * the `POST /api/js-scripts/:id/run` endpoint are one execution path. What the
+ * guest gets is the script's own envelope and nothing else: its declared
+ * packages, its declared secrets narrowed by whatever allowance the invoking
+ * context carries, its own timeout, and no toolbelt. Grading is
+ * `gradeCodeCases`, shared with `test_code` rather than copied.
+ *
+ * Composition is bounded the way sub-agents are: the context carries a depth
+ * counter and the chain of script ids, and a script already on the chain fails
+ * the call with the cycle named.
+ */
+
+import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  JsScriptDocument,
+  JsScriptTestCase
+} from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { JsScript } from "@nodetool-ai/models";
+import type { JsScriptValidation } from "@nodetool-ai/execution/js-script-debug";
+import type {
+  CapabilityExport,
+  CapabilityModule,
+  CapabilityRun
+} from "./types.js";
+import { gradeCodeCases, type GradedCase } from "./code-grading.js";
+import { runCodeBody } from "./code.js";
+import {
+  listJsScriptsSpec,
+  getJsScriptSpec,
+  saveJsScriptSpec,
+  validateJsScriptSpec,
+  runJsScriptSpec,
+  testJsScriptSpec,
+  MAX_JS_SCRIPT_DEPTH,
+  MAX_JS_SCRIPT_TIMEOUT_SECONDS
+} from "./js-scripts.specs.js";
+
+export {
+  MAX_JS_SCRIPT_DEPTH,
+  MAX_JS_SCRIPT_TIMEOUT_SECONDS
+} from "./js-scripts.specs.js";
+
+/** Context variable carrying how many script invocations deep this run is. */
+export const JS_SCRIPT_DEPTH_KEY = "__js_script_depth";
+
+/** Context variable carrying the script ids already on the call chain. */
+export const JS_SCRIPT_CHAIN_KEY = "__js_script_chain";
+
+/**
+ * Context variable a host sets to narrow what secrets a script may read. A run
+ * gets the intersection of this list and the script's own declared secrets;
+ * absent, the script's declaration stands on its own. A caller can only ever
+ * narrow the envelope, never widen it.
+ */
+export const JS_SCRIPT_SECRET_ALLOWANCE_KEY = "__js_script_secret_allowance";
+
+type ToolError = { error: string };
+
+const isError = (value: unknown): value is ToolError =>
+  !!value &&
+  typeof value === "object" &&
+  typeof (value as ToolError).error === "string";
+
+const stringParam = (value: unknown): string | undefined =>
+  typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+
+function inputBag(value: unknown): Record<string, unknown> {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as Record<string, unknown>;
+  }
+  return {};
+}
+
+/**
+ * Find the script a call names: by id, else by name among the caller's own
+ * scripts. Another user's script reads as missing — the rule the tRPC router's
+ * ownership check applies.
+ */
+async function loadScript(
+  run: CapabilityRun,
+  params: Record<string, unknown>
+): Promise<JsScript | ToolError> {
+  const userId = run.context.userId;
+  if (!userId) return { error: "No user is bound to this session." };
+  const { JsScript } = await import("@nodetool-ai/models");
+
+  const id = stringParam(params["js_script_id"]);
+  if (id) {
+    const script = await JsScript.findById(id);
+    if (!script || script.user_id !== userId) {
+      return { error: `JS script ${id} was not found.` };
+    }
+    return script;
+  }
+
+  const name = stringParam(params["name"]);
+  if (!name) {
+    return {
+      error:
+        "js_script_id or name is required (use list_js_scripts to find one)."
+    };
+  }
+  const rows = await JsScript.listByUser(userId, 200);
+  const matching = rows.filter(
+    (row) => row.name.trim().toLowerCase() === name.toLowerCase()
+  );
+  if (matching.length === 0) {
+    return { error: `No JS script is named "${name}".` };
+  }
+  if (matching.length > 1) {
+    return {
+      error:
+        `${matching.length} JS scripts are named "${name}" ` +
+        `(${matching.map((row) => row.id).join(", ")}). Pass js_script_id.`
+    };
+  }
+  return matching[0];
+}
+
+/** The secret names this install carries, for the missing-secret warning. */
+async function knownSecretNames(userId: string): Promise<string[]> {
+  const { Secret } = await import("@nodetool-ai/models");
+  const [items] = await Secret.listForUser(userId, 500);
+  return items.map((secret) => secret.key);
+}
+
+async function validateDocument(
+  run: CapabilityRun,
+  document: unknown
+): Promise<JsScriptValidation> {
+  const { validateJsScriptDoc } = await import(
+    "@nodetool-ai/execution/js-script-debug"
+  );
+  const userId = run.context.userId;
+  return validateJsScriptDoc(document, {
+    ...(userId ? { knownSecrets: await knownSecretNames(userId) } : {}),
+    sandboxModuleCatalog: run.context.sandboxModuleCatalog ?? null
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Recursion accounting
+// ---------------------------------------------------------------------------
+
+interface ScriptDepthGate {
+  ok: boolean;
+  refusal?: Record<string, unknown>;
+  childContext?: ProcessingContext;
+}
+
+/**
+ * Enter one script invocation: refuse past the depth cap or on a cycle, else
+ * return a context copy carrying the deeper chain. Mirrors
+ * `enterSubAgentDepth` — the same gate, over this feature's own two keys.
+ */
+export function enterJsScript(
+  context: ProcessingContext,
+  scriptId: string,
+  maxDepth: number = MAX_JS_SCRIPT_DEPTH
+): ScriptDepthGate {
+  const depth = context.get<number>(JS_SCRIPT_DEPTH_KEY) ?? 0;
+  const chain = context.get<string[]>(JS_SCRIPT_CHAIN_KEY) ?? [];
+
+  if (chain.includes(scriptId)) {
+    return {
+      ok: false,
+      refusal: {
+        error: "js_script_cycle",
+        chain: [...chain, scriptId],
+        message:
+          `JS script ${scriptId} is already running in this call chain ` +
+          `(${[...chain, scriptId].join(" → ")}). A script cannot invoke ` +
+          "itself, directly or through another script."
+      }
+    };
+  }
+  if (depth >= maxDepth) {
+    return {
+      ok: false,
+      refusal: {
+        error: "max_js_script_depth_reached",
+        depth,
+        max_depth: maxDepth,
+        chain: [...chain],
+        message:
+          `Cannot run another JS script — the depth limit of ${maxDepth} is ` +
+          "reached. Finish the work at this level instead."
+      }
+    };
+  }
+
+  const childContext = context.copy();
+  childContext.set(JS_SCRIPT_DEPTH_KEY, depth + 1);
+  childContext.set(JS_SCRIPT_CHAIN_KEY, [...chain, scriptId]);
+  return { ok: true, childContext };
+}
+
+/**
+ * The secrets a run may read: what the document declares, intersected with the
+ * invoking context's allowance when it carries one.
+ */
+export function resolveSecretScope(
+  context: ProcessingContext,
+  declared: readonly string[]
+): string[] {
+  const allowance = context.get<string[]>(JS_SCRIPT_SECRET_ALLOWANCE_KEY);
+  if (!Array.isArray(allowance)) return [...declared];
+  const allowed = new Set(allowance);
+  return declared.filter((name) => allowed.has(name));
+}
+
+/** Run one script document's body. Shared by run_js_script and test_js_script. */
+async function runDocument(
+  context: ProcessingContext,
+  document: JsScriptDocument,
+  inputs: Record<string, unknown>
+) {
+  return runCodeBody(context, {
+    code: document.code,
+    inputs,
+    packages: document.packages.map((pack) => pack.specifier),
+    secrets: resolveSecretScope(context, document.secrets),
+    timeoutSeconds: Math.min(
+      document.timeoutSeconds,
+      MAX_JS_SCRIPT_TIMEOUT_SECONDS
+    )
+  });
+}
+
+/** A saved case in the shape the shared grader reads. */
+function toGradedCase(testCase: JsScriptTestCase, index: number): GradedCase {
+  return {
+    name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
+    inputs: testCase.inputs ?? {},
+    ...(testCase.expect ? { expect: testCase.expect } : {}),
+    ...(testCase.expectedStreamed
+      ? { expectedStreamed: testCase.expectedStreamed }
+      : {})
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Capabilities
+// ---------------------------------------------------------------------------
+
+const listJsScripts: CapabilityExport = {
+  spec: listJsScriptsSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+    const { JsScript } = await import("@nodetool-ai/models");
+
+    const limit = Math.max(1, Math.min(Number(params["limit"]) || 20, 100));
+    const query = (stringParam(params["query"]) ?? "").toLowerCase();
+    const rows = await JsScript.listByUser(userId, 200);
+
+    const items = rows.map((row) => {
+      const doc = row.toDocument();
+      return {
+        id: row.id,
+        name: row.name,
+        description: doc.description,
+        inputs: doc.inputs,
+        outputs: doc.outputs,
+        updated_at: row.updated_at
+      };
+    });
+    // Filter after the read: neither name nor description is indexed, and the
+    // per-user limit is what bounds the scan.
+    const matching = query
+      ? items.filter(
+          (item) =>
+            item.name.toLowerCase().includes(query) ||
+            item.description.toLowerCase().includes(query)
+        )
+      : items;
+
+    return { js_scripts: matching.slice(0, limit) };
+  }
+};
+
+const getJsScript: CapabilityExport = {
+  spec: getJsScriptSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+    return {
+      id: script.id,
+      name: script.name,
+      project_id: script.project_id,
+      updated_at: script.updated_at,
+      document: script.toDocument()
+    };
+  }
+};
+
+const saveJsScript: CapabilityExport = {
+  spec: saveJsScriptSpec,
+  impl: async (run, params) => {
+    const userId = run.context.userId;
+    if (!userId) return { error: "No user is bound to this session." };
+
+    const document = params["document"];
+    if (!document || typeof document !== "object" || Array.isArray(document)) {
+      return { error: "document is required and must be an object." };
+    }
+
+    const validation = await validateDocument(run, document);
+    if (!validation.ok) {
+      return {
+        ok: false,
+        saved: false,
+        error:
+          "The document has validation errors, so it was not saved: " +
+          validation.errors.map((issue) => issue.message).join("; "),
+        validation
+      };
+    }
+
+    const { JsScript } = await import("@nodetool-ai/models");
+    const id = stringParam(params["js_script_id"]);
+    const name = stringParam(params["name"]);
+    const serialized = JSON.stringify(document);
+
+    const existing = id ? await JsScript.findById(id) : null;
+    if (existing && existing.user_id !== userId) {
+      return { error: `JS script ${String(id)} was not found.` };
+    }
+
+    if (!existing) {
+      if (!name) {
+        return { error: "name is required when creating a JS script." };
+      }
+      const created = new JsScript({
+        ...(id ? { id } : {}),
+        user_id: userId,
+        name,
+        document: serialized
+      });
+      await created.save();
+      return {
+        ok: true,
+        saved: true,
+        created: true,
+        id: created.id,
+        name: created.name,
+        updated_at: created.updated_at,
+        validation
+      };
+    }
+
+    const expected = stringParam(params["base_updated_at"]);
+    if (expected && expected !== existing.updated_at) {
+      return {
+        error:
+          `JS script ${existing.id} was modified since it was read ` +
+          "(optimistic concurrency conflict); nothing was saved. Re-read it " +
+          "with get_js_script and retry."
+      };
+    }
+    const updated = await JsScript.updateFieldsIfUnchanged(
+      existing.id,
+      expected ?? existing.updated_at,
+      { document: serialized, ...(name ? { name } : {}) }
+    );
+    if (!updated) {
+      return {
+        error:
+          `JS script ${existing.id} was modified since it was read ` +
+          "(optimistic concurrency conflict); nothing was saved. Re-read it " +
+          "with get_js_script and retry."
+      };
+    }
+    return {
+      ok: true,
+      saved: true,
+      created: false,
+      id: updated.id,
+      name: updated.name,
+      updated_at: updated.updated_at,
+      validation
+    };
+  }
+};
+
+const validateJsScript: CapabilityExport = {
+  spec: validateJsScriptSpec,
+  impl: async (run, params) => {
+    const inline = params["document"];
+    let document = inline;
+    let scriptId: string | undefined;
+    let name: string | undefined;
+
+    if (document === undefined && params["js_script_id"] !== undefined) {
+      const script = await loadScript(run, params);
+      if (isError(script)) return script;
+      document = script.toDocument();
+      scriptId = script.id;
+      name = script.name;
+    }
+
+    if (document === undefined || document === null) {
+      return {
+        error:
+          "No script to validate — pass an inline `document` or a valid " +
+          "`js_script_id`."
+      };
+    }
+
+    const validation = await validateDocument(run, document);
+    return {
+      ...validation,
+      ...(scriptId ? { js_script_id: scriptId } : {}),
+      ...(name ? { name } : {}),
+      summary:
+        validation.errors.length === 0 && validation.warnings.length === 0
+          ? "No issues found."
+          : `${validation.errors.length} error(s), ${validation.warnings.length} warning(s)`
+    };
+  }
+};
+
+const runJsScript: CapabilityExport = {
+  spec: runJsScriptSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const gate = enterJsScript(run.context, script.id);
+    if (!gate.ok || !gate.childContext) return gate.refusal ?? { error: "" };
+
+    const result = await runDocument(
+      gate.childContext,
+      script.toDocument(),
+      inputBag(params["inputs"])
+    );
+    return { js_script_id: script.id, name: script.name, ...result };
+  }
+};
+
+const testJsScript: CapabilityExport = {
+  spec: testJsScriptSpec,
+  impl: async (run, params) => {
+    const script = await loadScript(run, params);
+    if (isError(script)) return script;
+
+    const document = script.toDocument();
+    if (document.tests.length === 0) {
+      return {
+        error:
+          `JS script ${script.id} has no saved test cases. Add some with ` +
+          "save_js_script before testing it."
+      };
+    }
+
+    const gate = enterJsScript(run.context, script.id);
+    if (!gate.ok || !gate.childContext) return gate.refusal ?? { error: "" };
+    const context = gate.childContext;
+
+    const report = await gradeCodeCases(
+      document.tests.map(toGradedCase),
+      (testCase) => runDocument(context, document, testCase.inputs)
+    );
+    return { js_script_id: script.id, name: script.name, ...report };
+  }
+};
+
+export const JS_SCRIPT_CAPABILITIES: readonly CapabilityExport[] = [
+  listJsScripts,
+  getJsScript,
+  saveJsScript,
+  validateJsScript,
+  runJsScript,
+  testJsScript
+];
+
+export const module: CapabilityModule = {
+  module: "js-scripts",
+  exports: JS_SCRIPT_CAPABILITIES
+};
+
+export {
+  listJsScripts,
+  getJsScript,
+  saveJsScript,
+  validateJsScript,
+  runJsScript,
+  testJsScript
+};

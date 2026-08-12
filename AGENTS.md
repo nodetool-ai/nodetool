@@ -999,6 +999,57 @@ schema, so what it used to pass is not what it passes now — a restore whose
 document no longer validates exits non-zero and prints the issues. Layer
 bitmaps stay opaque to that check.
 
+### nodetool jsscript (JS Script Harness)
+
+A JS script is a named, versioned script document — a body plus declared ports,
+sandbox packages, secrets, a timeout, and saved test cases
+([docs/js-script-document-design.md](docs/js-script-document-design.md)). The
+target of every command is a script JSON file (a bare `JsScriptDocument` or
+anything carrying one under `document`) or a `js_scripts` row id. A path that
+exists on disk wins over an id; file targets need no database.
+
+```bash
+npm run dev:nodetool -- jsscript validate <id|file.json> [--json] [--warnings-as-errors]
+npm run dev:nodetool -- jsscript run <id|file.json> --inputs '{"numbers":[1,2,3]}'
+npm run dev:nodetool -- jsscript test <id|file.json> --json
+npm run dev:nodetool -- jsscript debug <id|file.json> \
+  --interact '[{"tool":"set_code","input":{"code":"await output(\"n\", 1);"}}]'
+npm run dev:nodetool -- jsscript versions list|show|create|restore|delete <id>
+```
+
+`validate` reads what a headless check can decide: the body's syntax, imports
+against the declared packages, undefined names, undeclared `inputs.*` reads,
+outputs no `emit`/`output` call reaches, duplicate or non-identifier port names,
+and tests naming ports the script does not declare. A body that declares outputs
+and returns them instead of emitting them is an **error** — a script has no
+legacy return contract. Zero saved tests and a declared secret this install
+lacks are warnings.
+
+`run` executes the body once in the QuickJS sandbox; `test` runs the document's
+own saved cases, grades them the way `test_code` grades a case list, and exits
+non-zero on any failure — the keyless selfcheck the harness gate runs, against
+`packages/cli/tests/fixtures/js-script-sum.json`. `debug` replays each
+`--interact` step against the headless `ui_jsscript_*` bridge (tool names with
+or without the prefix; a failing step is recorded and the script continues),
+validates the document the session left behind, and writes
+`nodetool-debug/jsscript-<id>-<ts>/` with `report.json`, `report.md` and
+`jsscript.json`. `versions restore` snapshots the pre-restore state first and
+re-validates against today's schema, so a restore that no longer validates exits
+non-zero. Not simulated: the editor, persistence of a debug session, and secret
+values.
+
+Agents reach the same surface through the `js-scripts` capability module —
+**`list_js_scripts`** (id, name, description, ports: the discovery surface),
+**`get_js_script`**, **`save_js_script`** (validated first, CAS on update),
+**`validate_js_script`**, **`run_js_script`** and **`test_js_script`**. A script
+runs inside its own envelope: its declared packages, its declared secrets
+intersected with whatever allowance the invoking context carries, its own
+timeout, and no toolbelt. Composition is bounded like sub-agents: depth cap 4
+and a script id chain, so a cycle fails the call naming it. Validation and
+report rules live in `@nodetool-ai/execution/js-script-debug`; the CLI keeps
+target resolution, the interaction script, and the bundle. Eval suite:
+`nodetool eval jsscript-tools`.
+
 ### Script voicing tools (no workflow, no browser)
 
 An agent voices a script and cuts it without authoring a workflow:
