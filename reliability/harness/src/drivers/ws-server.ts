@@ -35,7 +35,7 @@ import {
 import { AnchorWaiter } from "./anchors.js";
 import { registerFixtureNodes } from "./fixture-nodes.js";
 import { journeyPythonBridgeFactory } from "./python-bridge.js";
-import { stripRelayOnlyFields } from "./relay-fields.js";
+import { isConnectionControlMessage, stripRelayOnlyFields } from "./relay-fields.js";
 import type { RunDriver } from "./types.js";
 import { maybeFrontWithProxy, type WsProxyFrontEnd } from "../faults/ws-proxy.js";
 
@@ -273,6 +273,9 @@ export class WsServerDriver implements RunDriver {
           ? unpackWebSocketMessage(data)
           : JSON.parse(data.toString("utf8"))
       ) as Record<string, unknown>;
+      // This surface runs the same relay as `packaged.ts`, so it receives the
+      // same connection-scoped control frames on the same wall-clock timers.
+      if (isConnectionControlMessage(raw)) return;
       const message = stripRelayOnlyFields(raw);
       waiter.notify(message);
       if (typeof message["job_id"] === "string") {
