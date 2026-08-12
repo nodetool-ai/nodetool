@@ -10,6 +10,7 @@
 import { memo, useCallback, useState } from "react";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import ScienceOutlinedIcon from "@mui/icons-material/ScienceOutlined";
+import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
 
 import {
   AlertBanner,
@@ -26,6 +27,7 @@ import {
   TYPOGRAPHY
 } from "../ui_primitives";
 import {
+  useJsScriptCode,
   useJsScriptLastRun,
   useJsScriptLastTest,
   useJsScriptPorts,
@@ -34,12 +36,14 @@ import {
   useJsScriptTests,
   type JsScriptTestCaseReport
 } from "../../stores/jsScript/JsScriptStore";
-import JsScriptRunDialog from "./JsScriptRunDialog";
+import JsScriptRunDialog, {
+  type JsScriptRunRequest
+} from "./JsScriptRunDialog";
 
 export interface JsScriptRunConsoleProps {
   scriptId: string;
   readOnly?: boolean;
-  onRun: (inputs: Record<string, unknown>) => void;
+  onRun: (request: JsScriptRunRequest) => void;
   onTest: () => void;
 }
 
@@ -102,6 +106,8 @@ const JsScriptRunConsole = ({
 }: JsScriptRunConsoleProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const { inputs } = useJsScriptPorts(scriptId);
+  const code = useJsScriptCode(scriptId);
+  const streaming = usesStreamInputContract(code);
   const tests = useJsScriptTests(scriptId);
   const lastRun = useJsScriptLastRun(scriptId);
   const lastTest = useJsScriptLastTest(scriptId);
@@ -109,8 +115,8 @@ const JsScriptRunConsole = ({
   const saveStatus = useJsScriptSaveStatus(scriptId);
 
   const handleRun = useCallback(
-    (bag: Record<string, unknown>) => {
-      onRun(bag);
+    (request: JsScriptRunRequest) => {
+      onRun(request);
     },
     [onRun]
   );
@@ -215,6 +221,7 @@ const JsScriptRunConsole = ({
       <JsScriptRunDialog
         open={dialogOpen}
         inputs={inputs}
+        streaming={streaming}
         onClose={() => setDialogOpen(false)}
         onRun={handleRun}
       />

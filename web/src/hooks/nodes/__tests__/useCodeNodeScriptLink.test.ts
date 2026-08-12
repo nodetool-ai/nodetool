@@ -130,6 +130,34 @@ describe("useCodeNodeScriptLink", () => {
     expect(Object.keys(update.dynamic_outputs)).toEqual(["shouted"]);
   });
 
+  it("writes the whole materialized body in one undoable update", async () => {
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data())
+    );
+
+    await act(async () => {
+      await result.current.linkScript("s1");
+    });
+
+    expect(mockUpdateNodeData).toHaveBeenCalledTimes(1);
+  });
+
+  it("re-copies the script on update to latest", async () => {
+    versionsList.mockResolvedValueOnce([{ version: 9 }]);
+    versionsGet.mockResolvedValueOnce({ document: scriptDocument });
+    const { result } = renderHook(() =>
+      useCodeNodeScriptLink("node-1", data({ script: { id: "s1", version: 2 } }))
+    );
+
+    await act(async () => {
+      await result.current.updateToLatest();
+    });
+
+    const update = mockUpdateNodeData.mock.calls[0][1];
+    expect(update.properties.script).toEqual({ id: "s1", version: 9 });
+    expect(update.properties.code).toBe(scriptDocument.code);
+  });
+
   it("reuses the newest snapshot when it already matches", async () => {
     versionsList.mockResolvedValueOnce([{ version: 4 }]);
     const { result } = renderHook(() =>

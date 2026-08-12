@@ -43,9 +43,7 @@ import {
   prop,
   CODE_INPUTS_GLOBAL,
   NodeRegistry,
-  missingScriptInputs,
   parseSandboxModuleDeclarations,
-  readJsScriptLink,
   hasReturnStatement,
   hasYieldStatement,
   wrapImplicitReturn,
@@ -368,10 +366,7 @@ class InputStreamBridge {
   }
 }
 
-/**
- * What one invocation executes: the node's own properties, or the pinned
- * script's document when the node is linked to one.
- */
+/** What one invocation executes: the node's own properties. */
 interface CodeEnvelope {
   code: string;
   packages: unknown[];
@@ -506,12 +501,12 @@ export class CodeNode extends BaseNode {
     // the empty object.
     json_schema_extra: { type: "js_script_link" },
     description:
-      "A JS script document this node runs instead of its inline code, as " +
-      '{"id": "<script id>", "version": <n>}. The version is pinned at link ' +
-      "time, so editing the script does not silently change this workflow. " +
-      "While linked the script supplies the body, packages, secrets and " +
-      "timeout, and its declared inputs must match the node's slots. Empty " +
-      "means the node runs its own `code`."
+      "Which JS script version this node's body was copied from, as " +
+      '{"id": "<script id>", "version": <n>}. Linking materializes the pinned ' +
+      "version: its code, packages, secrets and timeout become the node's own, " +
+      "so editing the script does not silently change this workflow and a run " +
+      "needs no script storage. \"Update to latest\" re-copies and re-pins. " +
+      "Empty means the node was never linked."
   })
   declare script: Record<string, unknown>;
 
@@ -704,64 +699,21 @@ export class CodeNode extends BaseNode {
   }
 
   /**
-   * What this invocation runs: the node's own properties, or the pinned
-   * script's document when the node is linked.
+   * What this invocation runs: the node's own properties, always.
    *
-   * A linked node that cannot resolve its script fails here rather than
-   * silently falling back to its inline body — the body is stale by
-   * construction, and running it would produce a plausible wrong answer.
+   * Linking a script *materializes* it — the pinned version's code, packages,
+   * secrets and timeout are copied onto the node when the link is made or
+   * updated, and the `script` property records only which version they came
+   * from. So execution needs no database, no resolver, and no await: the body
+   * a run executes is the body the graph carries, which is also the body
+   * hydration read to decide whether this node streams its inputs.
    */
-  private async envelope(
-    context: ProcessingContext | undefined
-  ): Promise<CodeEnvelope> {
-    const link = readJsScriptLink({ script: this.script });
-    if (!link) {
-      return {
-        code: String(this.code ?? "return {};"),
-        packages: Array.isArray(this.packages) ? this.packages : [],
-        secrets: Array.isArray(this.secrets) ? this.secrets : [],
-        timeoutSeconds: Number(this.timeout ?? 30)
-      };
-    }
-
-    const resolver = context?.jsScriptResolver;
-    if (!resolver) {
-      throw new Error(
-        `This node is linked to JS script ${link.id} v${link.version}, but ` +
-          "no script resolver is available in this process."
-      );
-    }
-    const resolved = await resolver.resolve(link, context?.userId);
-    if (!resolved) {
-      throw new Error(
-        `JS script ${link.id} v${link.version} was not found; the node's link ` +
-          "is dangling. Re-link the node or restore the script."
-      );
-    }
-
-    const nodeInputs = Object.keys(
-      extractDynamicInputs({
-        ...this.serialize(),
-        ...Object.fromEntries(this.dynamicProps)
-      })
-    );
-    const missing = missingScriptInputs(
-      resolved.document.inputs.map((port) => port.name),
-      nodeInputs
-    );
-    if (missing.length > 0) {
-      throw new Error(
-        `JS script "${resolved.name}" declares input${missing.length > 1 ? "s" : ""} ` +
-          `${missing.map((name) => `"${name}"`).join(", ")}, which this node has ` +
-          "no slot for."
-      );
-    }
-
+  private envelope(): CodeEnvelope {
     return {
-      code: resolved.document.code,
-      packages: resolved.document.packages,
-      secrets: resolved.document.secrets,
-      timeoutSeconds: resolved.document.timeoutSeconds
+      code: String(this.code ?? "return {};"),
+      packages: Array.isArray(this.packages) ? this.packages : [],
+      secrets: Array.isArray(this.secrets) ? this.secrets : [],
+      timeoutSeconds: Number(this.timeout ?? 30)
     };
   }
 
@@ -788,7 +740,7 @@ export class CodeNode extends BaseNode {
   }
 
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
-    const envelope = await this.envelope(context);
+    const envelope = this.envelope();
     const code = envelope.code;
     if (!usesEmitOutputContract(code)) {
       // The legacy return/yield contract runs unwarned: the deprecation
@@ -830,7 +782,7 @@ export class CodeNode extends BaseNode {
     outputs: StreamingOutputs,
     context?: ProcessingContext
   ): Promise<void> {
-    const envelope = await this.envelope(context);
+    const envelope = this.envelope();
     const code = envelope.code;
     if (!usesStreamInputContract(code)) {
       // The kernel only routes here when hydration said the body streams, and
@@ -906,7 +858,7 @@ export class CodeNode extends BaseNode {
   async *genProcess(
     context?: ProcessingContext
   ): AsyncGenerator<Record<string, unknown>> {
-    const envelope = await this.envelope(context);
+    const envelope = this.envelope();
 
     if (usesEmitOutputContract(envelope.code)) {
       yield* this.pumpEmitContract(envelope, context);

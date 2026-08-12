@@ -32,6 +32,7 @@ import JsScriptEditorPane from "../jsScript/JsScriptEditorPane";
 import JsScriptSettingsPanel from "../jsScript/JsScriptSettingsPanel";
 import JsScriptAgentPanel from "../jsScript/JsScriptAgentPanel";
 import JsScriptRunConsole from "../jsScript/JsScriptRunConsole";
+import type { JsScriptRunRequest } from "../jsScript/JsScriptRunDialog";
 
 interface JsScriptSurfaceProps {
   refId: string;
@@ -89,10 +90,10 @@ const JsScriptSurface = ({ refId, mode, active }: JsScriptSurfaceProps) => {
   // Run and test go through the same handler the agent tools use, so the
   // console and the assistant cannot execute a script two different ways.
   const handleRun = useCallback(
-    (inputs: Record<string, unknown>) => {
+    (request: JsScriptRunRequest) => {
       if (!hasJsScriptAgentHandler(refId)) return;
       void getJsScriptAgentHandler(refId)
-        .run(inputs)
+        .run(request.inputs, request.inputStreams)
         .catch((error: unknown) => {
           useJsScriptStore.getState().setLastRun(refId, {
             ok: false,

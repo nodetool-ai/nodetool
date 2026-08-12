@@ -5,7 +5,9 @@
  * body only ever executes in the server's QuickJS sandbox.
  *
  * The endpoint runs the *saved* document, so a caller has to let autosave land
- * before a run reflects the latest edit.
+ * before a run reflects the latest edit. A body that reads its inputs with
+ * `stream` takes staged items instead of values: they go in `input_streams`,
+ * one array per declared input.
  */
 
 import { restFetch } from "../../lib/rest-fetch";
@@ -17,14 +19,18 @@ interface ErrorBody {
 
 export async function runJsScript(
   scriptId: string,
-  inputs: Record<string, unknown>
+  inputs: Record<string, unknown>,
+  inputStreams?: Record<string, unknown[]>
 ): Promise<JsScriptRunOutcome> {
   const response = await restFetch(
     `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
     {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ inputs })
+      body: JSON.stringify({
+        inputs,
+        ...(inputStreams ? { input_streams: inputStreams } : {})
+      })
     }
   );
 

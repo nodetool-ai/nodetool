@@ -23,6 +23,10 @@ export default defineConfig({
         "../runtime/src/prompt-asset-refs.ts"
       ),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
+      "@nodetool-ai/node-sdk/code-body": resolve(
+        __dirname,
+        "../node-sdk/src/code-body.ts"
+      ),
       "@nodetool-ai/node-sdk": resolve(__dirname, "../node-sdk/src/index.ts"),
       "@nodetool-ai/base-nodes": resolve(__dirname, "../base-nodes/src/index.ts"),
       "@nodetool-ai/config": resolve(__dirname, "../config/src/index.ts"),

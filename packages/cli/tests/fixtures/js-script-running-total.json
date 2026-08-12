@@ -1,0 +1,36 @@
+{
+  "name": "Running total",
+  "document": {
+    "schemaVersion": 1,
+    "description": "Reads numbers as they arrive, emits each running total, and sets the final sum.",
+    "code": "let total = 0;\nfor await (const n of stream(\"numbers\")) {\n  total += n;\n  await emit(\"running\", total);\n}\nawait output(\"total\", total);",
+    "inputs": [{ "name": "numbers", "type": "int" }],
+    "outputs": [
+      { "name": "running", "type": "int" },
+      { "name": "total", "type": "int" }
+    ],
+    "packages": [],
+    "secrets": [],
+    "timeoutSeconds": 10,
+    "tests": [
+      {
+        "name": "sums the items as they arrive",
+        "inputs": {},
+        "inputStreams": { "numbers": [1, 2, 3] },
+        "expect": { "total": 6 },
+        "expectedStreamed": [
+          { "name": "running", "value": 1 },
+          { "name": "running", "value": 3 },
+          { "name": "running", "value": 6 }
+        ]
+      },
+      {
+        "name": "an empty stream sums to zero",
+        "inputs": {},
+        "inputStreams": { "numbers": [] },
+        "expect": { "total": 0 },
+        "expectedStreamed": []
+      }
+    ]
+  }
+}

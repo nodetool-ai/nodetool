@@ -1,15 +1,15 @@
 /**
  * Linking a Code node to a JS script document.
  *
- * A Code node either carries an inline body or runs one pinned version of a
- * script (`script: {id, version}`). This hook owns the four state transitions
- * the editor offers — link, update to latest, extract, detach — so the node
- * body only has to render buttons.
+ * A Code node always runs its own body; linking a script *materializes* one.
+ * This hook owns the four state transitions the editor offers — link, update to
+ * latest, extract, detach — so the node body only has to render buttons.
  *
- * The pinned version's code, packages, secrets, timeout and ports are mirrored
- * onto the node when it links. Nothing reads that mirror at run time — the
- * kernel resolves the pinned version itself — but it is what lets the node
- * render its linked body without a fetch, and what detach copies back inline.
+ * Link and update-to-latest copy the pinned version's code, packages, secrets,
+ * timeout and ports onto the node in one undoable update, and the `script`
+ * property records which version they came from. That copy is what executes: a
+ * run reads no script row, so a workflow stays runnable wherever it is opened.
+ * Detach only clears the provenance — the body is already inline.
  */
 import { useCallback, useMemo } from "react";
 import { shallow } from "zustand/shallow";
@@ -37,7 +37,7 @@ export interface CodeNodeScriptLinkState {
   linkedName: string | null;
   /** Pick a script and pin its current content as a version. */
   linkScript: (scriptId: string) => Promise<void>;
-  /** Re-pin to the script's current content and re-mirror it. */
+  /** Re-pin to the script's current content and re-copy it onto the node. */
   updateToLatest: () => Promise<void>;
   /** Lift the node's body, ports, packages and secrets into a new script. */
   extractToScript: (name: string) => Promise<string>;
@@ -92,11 +92,11 @@ const outputsToPorts = (
   }));
 
 /**
- * The part of a script document the node mirrors. Structural because the tRPC
+ * The part of a script document the node copies. Structural because the tRPC
  * client's document type is the schema's *output* type, which differs from the
  * protocol's inferred type in optionality no consumer here cares about.
  */
-interface MirroredScript {
+interface MaterializedScript {
   code: string;
   inputs: readonly JsScriptPort[];
   outputs: readonly JsScriptPort[];
@@ -164,8 +164,8 @@ export function useCodeNodeScriptLink(
     [createVersion, utils]
   );
 
-  const mirror = useCallback(
-    (scriptId: string, version: number, document: MirroredScript) => {
+  const materialize = useCallback(
+    (scriptId: string, version: number, document: MaterializedScript) => {
       updateNodeData(nodeId, {
         properties: {
           ...(findNode(nodeId)?.data?.properties ?? {}),
@@ -186,17 +186,17 @@ export function useCodeNodeScriptLink(
     async (scriptId: string) => {
       const script = await utils.jsScripts.get.fetch({ id: scriptId });
       const version = await pinCurrentVersion(scriptId, script.document);
-      mirror(scriptId, version, script.document);
+      materialize(scriptId, version, script.document);
     },
-    [mirror, pinCurrentVersion, utils]
+    [materialize, pinCurrentVersion, utils]
   );
 
   const updateToLatest = useCallback(async () => {
     if (!link) return;
     const script = await utils.jsScripts.get.fetch({ id: link.id });
     const version = await pinCurrentVersion(link.id, script.document);
-    mirror(link.id, version, script.document);
-  }, [link, mirror, pinCurrentVersion, utils]);
+    materialize(link.id, version, script.document);
+  }, [link, materialize, pinCurrentVersion, utils]);
 
   const extractToScript = useCallback(
     async (name: string): Promise<string> => {
@@ -218,11 +218,11 @@ export function useCodeNodeScriptLink(
       };
       const created = await createScript.mutateAsync({ name, document });
       const version = await pinCurrentVersion(created.id, created.document);
-      mirror(created.id, version, created.document);
+      materialize(created.id, version, created.document);
       void utils.jsScripts.list.invalidate();
       return created.id;
     },
-    [createScript, findNode, mirror, nodeId, pinCurrentVersion, utils]
+    [createScript, findNode, materialize, nodeId, pinCurrentVersion, utils]
   );
 
   const detach = useCallback(() => {

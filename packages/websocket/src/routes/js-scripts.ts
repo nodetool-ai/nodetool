@@ -76,6 +76,24 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       }
 
       const document = script.toDocument();
+      const staged = parsedBody.data.input_streams;
+      if (staged) {
+        const declared = new Set(document.inputs.map((port) => port.name));
+        const undeclared = Object.keys(staged).filter(
+          (handle) => !declared.has(handle)
+        );
+        if (undeclared.length > 0) {
+          return jsonResponse(
+            {
+              detail:
+                `input_streams names ${undeclared.join(", ")}, which this ` +
+                "script does not declare as inputs"
+            },
+            400
+          );
+        }
+      }
+
       const context = new ProcessingContext({
         jobId: `js-script-${script.id}-${Date.now()}`,
         userId,
@@ -85,6 +103,7 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
       const result = await runCodeBody(context, {
         code: document.code,
         inputs: parsedBody.data.inputs,
+        ...(staged ? { inputStreams: staged } : {}),
         packages: document.packages.map((pack) => pack.specifier),
         secrets: document.secrets,
         timeoutSeconds: Math.min(

@@ -227,15 +227,48 @@ export function resolveSecretScope(
   return declared.filter((name) => allowed.has(name));
 }
 
+/**
+ * `{handle: [items]}` staged for a body that reads `stream`, or undefined when
+ * the caller passed nothing usable. Entries that are not arrays are dropped.
+ */
+function inputStreamBag(
+  value: unknown
+): Record<string, unknown[]> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const staged: Record<string, unknown[]> = {};
+  for (const [handle, items] of Object.entries(
+    value as Record<string, unknown>
+  )) {
+    if (Array.isArray(items)) staged[handle] = [...items];
+  }
+  return Object.keys(staged).length > 0 ? staged : undefined;
+}
+
+/**
+ * Staged handles the script does not declare. A stream nothing declares yields
+ * nothing, so feeding one is a mistake worth naming rather than a silent no-op.
+ */
+export function undeclaredStreamHandles(
+  document: JsScriptDocument,
+  staged: Record<string, unknown[]>
+): string[] {
+  const declared = new Set(document.inputs.map((port) => port.name));
+  return Object.keys(staged).filter((handle) => !declared.has(handle));
+}
+
 /** Run one script document's body. Shared by run_js_script and test_js_script. */
 async function runDocument(
   context: ProcessingContext,
   document: JsScriptDocument,
-  inputs: Record<string, unknown>
+  inputs: Record<string, unknown>,
+  inputStreams?: Record<string, unknown[]>
 ) {
   return runCodeBody(context, {
     code: document.code,
     inputs,
+    ...(inputStreams ? { inputStreams } : {}),
     packages: document.packages.map((pack) => pack.specifier),
     secrets: resolveSecretScope(context, document.secrets),
     timeoutSeconds: Math.min(
@@ -250,6 +283,7 @@ function toGradedCase(testCase: JsScriptTestCase, index: number): GradedCase {
   return {
     name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
     inputs: testCase.inputs ?? {},
+    ...(testCase.inputStreams ? { inputStreams: testCase.inputStreams } : {}),
     ...(testCase.expect ? { expect: testCase.expect } : {}),
     ...(testCase.expectedStreamed
       ? { expectedStreamed: testCase.expectedStreamed }
@@ -444,13 +478,29 @@ const runJsScript: CapabilityExport = {
     const script = await loadScript(run, params);
     if (isError(script)) return script;
 
+    const document = script.toDocument();
+    const staged = inputStreamBag(params["input_streams"]);
+    if (staged) {
+      const undeclared = undeclaredStreamHandles(document, staged);
+      if (undeclared.length > 0) {
+        return {
+          error:
+            `input_streams names ${undeclared.map((name) => `"${name}"`).join(", ")}, ` +
+            `which ${undeclared.length > 1 ? "are not inputs" : "is not an input"} of ` +
+            `JS script "${script.name}". Declared inputs: ` +
+            `${document.inputs.map((port) => port.name).join(", ") || "(none)"}.`
+        };
+      }
+    }
+
     const gate = enterJsScript(run.context, script.id);
     if (!gate.ok || !gate.childContext) return gate.refusal ?? { error: "" };
 
     const result = await runDocument(
       gate.childContext,
-      script.toDocument(),
-      inputBag(params["inputs"])
+      document,
+      inputBag(params["inputs"]),
+      staged
     );
     return { js_script_id: script.id, name: script.name, ...result };
   }
@@ -477,7 +527,13 @@ const testJsScript: CapabilityExport = {
 
     const report = await gradeCodeCases(
       document.tests.map(toGradedCase),
-      (testCase) => runDocument(context, document, testCase.inputs)
+      (testCase) =>
+        runDocument(
+          context,
+          document,
+          testCase.inputs,
+          testCase.inputStreams
+        )
     );
     return { js_script_id: script.id, name: script.name, ...report };
   }

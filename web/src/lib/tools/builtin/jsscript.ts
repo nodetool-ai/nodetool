@@ -45,6 +45,12 @@ const testCaseParam = z.object({
   inputs: z
     .record(z.string(), z.unknown())
     .describe("Input bag, keyed by declared input port name."),
+  inputStreams: z
+    .record(z.string(), z.array(z.unknown()))
+    .optional()
+    .describe(
+      "Items staged per input handle for a body that reads `stream`, e.g. {\"numbers\": [1, 2, 3]}."
+    ),
   expect: z
     .record(z.string(), z.unknown())
     .optional()
@@ -182,16 +188,25 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_jsscript_run",
   description:
-    "Run the script server-side in the QuickJS sandbox with the given inputs and return its outputs, emitted stream, logs, error and duration. The run executes the SAVED document, so make edits and then run — an edit still riding the autosave debounce will not be reflected.",
+    "Run the script server-side in the QuickJS sandbox with the given inputs — or, for a body that reads `stream`, with items staged per handle in `input_streams` — and return its outputs, emitted stream, logs, error and duration. The run executes the SAVED document, so make edits and then run — an edit still riding the autosave debounce will not be reflected.",
   parameters: z.object({
     script_id: scriptIdParam,
     inputs: z
       .record(z.string(), z.unknown())
       .optional()
-      .describe("Input bag keyed by declared input port name.")
+      .describe("Input bag keyed by declared input port name."),
+    input_streams: z
+      .record(z.string(), z.array(z.unknown()))
+      .optional()
+      .describe(
+        "Items staged per input handle for a body that reads `stream`. The body runs once and pulls them; a buffered body uses `inputs` instead."
+      )
   }),
-  async execute({ script_id, inputs }) {
-    const outcome = await getJsScriptAgentHandler(script_id).run(inputs ?? {});
+  async execute({ script_id, inputs, input_streams }) {
+    const outcome = await getJsScriptAgentHandler(script_id).run(
+      inputs ?? {},
+      input_streams
+    );
     return { ok: true, run: outcome };
   }
 });

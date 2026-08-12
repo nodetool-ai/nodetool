@@ -126,6 +126,27 @@ describe("gradeJsScriptTests", () => {
     ]);
   });
 
+  it("hands a case's staged input streams to the runner", async () => {
+    const seen: (Record<string, unknown[]> | undefined)[] = [];
+    await gradeJsScriptTests(
+      [
+        testCase({
+          name: "streamed",
+          inputs: {},
+          inputStreams: { numbers: [1, 2] },
+          expect: { out: 3 }
+        }),
+        testCase({ name: "buffered", inputs: { a: 1 }, expect: { out: 2 } })
+      ],
+      async (_inputs, inputStreams) => {
+        seen.push(inputStreams);
+        return outcome({ outputs: { out: 3 } });
+      }
+    );
+
+    expect(seen).toEqual([{ numbers: [1, 2] }, undefined]);
+  });
+
   it("turns a transport failure into a failed case rather than throwing", async () => {
     const report = await gradeJsScriptTests([testCase()], async () => {
       throw new Error("network down");

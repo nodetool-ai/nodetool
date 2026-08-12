@@ -99,6 +99,55 @@ describe("run_js_script", () => {
     expect(result.logs.join("\n")).toContain("hi");
   });
 
+  // The running-total body from docs/code-node-input-streaming-design.md: one
+  // invocation that drains its inbox, emitting as it goes.
+  it("stages input_streams for a body that reads them with stream()", async () => {
+    const script = await makeScript({
+      code:
+        'let total = 0;\nfor await (const n of stream("numbers")) {\n' +
+        '  total += n;\n  await emit("running", total);\n}\n' +
+        'await output("total", total);',
+      inputs: [{ name: "numbers", type: "int" }],
+      outputs: [
+        { name: "running", type: "int" },
+        { name: "total", type: "int" }
+      ]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, input_streams: { numbers: [1, 2, 3] } }
+    )) as {
+      ok: boolean;
+      outputs: Record<string, unknown>;
+      streamed: unknown[];
+      error?: string;
+    };
+
+    expect(result.error).toBeUndefined();
+    expect(result.outputs).toEqual({ total: 6 });
+    expect(result.streamed).toEqual([
+      { name: "running", value: 1 },
+      { name: "running", value: 3 },
+      { name: "running", value: 6 }
+    ]);
+  });
+
+  it("refuses input_streams naming a handle the script does not declare", async () => {
+    const script = await makeScript({
+      code: 'for await (const n of stream("numbers")) { await emit("n", n); }',
+      inputs: [{ name: "numbers", type: "int" }],
+      outputs: [{ name: "n", type: "int" }]
+    });
+
+    const result = (await toolForCapabilityName("run_js_script").execute(
+      context(),
+      { js_script_id: script.id, input_streams: { nope: [1] } }
+    )) as { error?: string };
+
+    expect(result.error).toContain('"nope"');
+  });
+
   it("finds a script by name when the name is unambiguous", async () => {
     await makeScript(
       { code: 'await output("v", 1);', outputs: [{ name: "v", type: "int" }] },
@@ -261,6 +310,54 @@ describe("test_js_script", () => {
       expectedStreamed: [{ name: "step", value: 5 }]
     }
   ];
+
+  it("grades a case that stages input streams", async () => {
+    const script = await makeScript({
+      code:
+        'let total = 0;\nfor await (const n of stream("numbers")) {\n' +
+        '  total += n;\n  await emit("running", total);\n}\n' +
+        'await output("total", total);',
+      inputs: [{ name: "numbers", type: "int" }],
+      outputs: [
+        { name: "running", type: "int" },
+        { name: "total", type: "int" }
+      ],
+      tests: [
+        {
+          name: "sums what arrives",
+          inputs: {},
+          inputStreams: { numbers: [1, 2, 3] },
+          expect: { total: 6 },
+          expectedStreamed: [
+            { name: "running", value: 1 },
+            { name: "running", value: 3 },
+            { name: "running", value: 6 }
+          ]
+        },
+        {
+          // Fails on purpose: zero is what the body would report if the staged
+          // items never reached it, so a green run here would mean nothing.
+          name: "an unread stream would total zero",
+          inputs: {},
+          inputStreams: { numbers: [2, 2] },
+          expect: { total: 0 }
+        }
+      ]
+    });
+
+    const report = (await toolForCapabilityName("test_js_script").execute(
+      context(),
+      { js_script_id: script.id }
+    )) as {
+      passed: number;
+      failed: number;
+      results: { name: string; ok: boolean }[];
+    };
+
+    expect(report.passed).toBe(1);
+    expect(report.failed).toBe(1);
+    expect(report.results.find((c) => c.ok)?.name).toBe("sums what arrives");
+  });
 
   it("grades a document's saved cases exactly the way test_code grades them", async () => {
     const script = await makeScript({

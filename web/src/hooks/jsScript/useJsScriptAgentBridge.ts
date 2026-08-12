@@ -52,11 +52,12 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
     };
 
     const run = async (
-      inputs: Record<string, unknown>
+      inputs: Record<string, unknown>,
+      inputStreams?: Record<string, unknown[]>
     ): Promise<JsScriptRunOutcome> => {
       store().setRunning(scriptId, true);
       try {
-        const outcome = await runJsScript(scriptId, inputs);
+        const outcome = await runJsScript(scriptId, inputs, inputStreams);
         store().setLastRun(scriptId, outcome);
         return outcome;
       } finally {
@@ -100,8 +101,10 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
         const tests = requireEntry().document.tests;
         store().setRunning(scriptId, true);
         try {
-          const report = await gradeJsScriptTests(tests, (inputs) =>
-            runJsScript(scriptId, inputs)
+          const report = await gradeJsScriptTests(
+            tests,
+            (inputs, inputStreams) =>
+              runJsScript(scriptId, inputs, inputStreams)
           );
           store().setLastTest(scriptId, report);
           return report;

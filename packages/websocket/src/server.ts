@@ -46,7 +46,6 @@ import {
   WebsocketPythonBridge,
   SwappableBridge,
   logPythonWorkerStderr,
-  setProcessJsScriptResolver,
   type ModelDownloadUpdate,
   type PythonBridge
 } from "@nodetool-ai/runtime";
@@ -57,7 +56,6 @@ import {
   type WorkerConnection
 } from "@nodetool-ai/compute";
 import {
-  createJsScriptResolver,
   getWorkerProfile,
   initDb,
   initPostgresDb,
@@ -277,11 +275,6 @@ try {
     initDb(dbPath);
     log.info(`SQLite database ready [${startupMs()}]`, { path: dbPath });
   }
-
-  // A Code node linked to a JS script resolves the pinned version through
-  // this: installed once the database is up, so every context built later
-  // falls back to it.
-  setProcessJsScriptResolver(createJsScriptResolver());
 
   // Initialize master key from keychain before any secret access. Callers
   // that need provider credentials bind their own `(key) => getSecret(key,

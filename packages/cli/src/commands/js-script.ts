@@ -32,6 +32,7 @@ interface JsScriptValidateCliOptions {
 
 interface JsScriptRunCliOptions {
   inputs?: string;
+  inputStreams?: string;
   json?: boolean;
 }
 
@@ -70,6 +71,36 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
     throw new Error('--inputs must be a JSON object, e.g. \'{"a":1}\'');
   }
   return parsed as Record<string, unknown>;
+}
+
+/**
+ * `--input-streams` stages items per handle for a body that reads `stream`:
+ * a JSON object whose every value is an array.
+ */
+export function parseInputStreamsOption(
+  raw: string
+): Record<string, unknown[]> {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch (e) {
+    throw new Error(`--input-streams is not valid JSON: ${(e as Error).message}`);
+  }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new Error(
+      '--input-streams must be a JSON object of arrays, e.g. \'{"nums":[1,2,3]}\''
+    );
+  }
+  const staged: Record<string, unknown[]> = {};
+  for (const [handle, items] of Object.entries(
+    parsed as Record<string, unknown>
+  )) {
+    if (!Array.isArray(items)) {
+      throw new Error(`--input-streams entry "${handle}" is not an array`);
+    }
+    staged[handle] = items;
+  }
+  return staged;
 }
 
 export function registerJsScriptCommands(program: Command): void {
@@ -118,15 +149,25 @@ export function registerJsScriptCommands(program: Command): void {
       "Run a JS script once in the QuickJS sandbox and print its outputs, streamed emits, logs and error"
     )
     .option("--inputs <json>", 'Input values, e.g. \'{"a":1}\'')
+    .option(
+      "--input-streams <json>",
+      'Items staged per handle for a body that reads `stream`, e.g. \'{"nums":[1,2,3]}\''
+    )
     .option("--json", "Print the run result as JSON")
     .action(async (ref: string, opts: JsScriptRunCliOptions) => {
       let ok = false;
       try {
         const { runJsScriptOnce } = await import("../js-script-debug/index.js");
         const inputs = opts.inputs ? parseInputsOption(opts.inputs) : {};
-        const { result } = await runJsScriptOnce(ref, inputs, {
-          loadScript: await scriptLoader()
-        });
+        const inputStreams = opts.inputStreams
+          ? parseInputStreamsOption(opts.inputStreams)
+          : undefined;
+        const { result } = await runJsScriptOnce(
+          ref,
+          inputs,
+          { loadScript: await scriptLoader() },
+          inputStreams
+        );
 
         if (opts.json) {
           console.log(JSON.stringify(result, null, 2));

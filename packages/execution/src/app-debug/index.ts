@@ -57,7 +57,8 @@ export type {
 export {
   jsScriptRunMessages,
   parseCarriedScriptDocument,
-  scriptAppIO
+  scriptAppIO,
+  scriptOperationInvocation
 } from "./script-operation.js";
 export type {
   JsScriptOperationLoader,

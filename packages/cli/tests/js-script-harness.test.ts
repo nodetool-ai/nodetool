@@ -162,8 +162,33 @@ describe("runJsScriptOnce", () => {
     expect(result.outputs).toEqual({ total: 2 });
     expect(execute).toHaveBeenCalledWith(
       expect.objectContaining({ code: document.code }),
-      { n: 1 }
+      { n: 1 },
+      undefined
     );
+  });
+
+  it("passes staged input streams through to the executor", async () => {
+    const execute = vi.fn(async () => ({
+      ok: true,
+      outputs: { total: 3 },
+      logs: [],
+      duration_ms: 1
+    }));
+    await runJsScriptOnce(
+      scriptFile(),
+      {},
+      { ...noLoader, execute },
+      { n: [1, 2] }
+    );
+    expect(execute.mock.calls[0][2]).toEqual({ n: [1, 2] });
+  });
+
+  it("refuses a staged handle the script does not declare", async () => {
+    const execute = vi.fn();
+    await expect(
+      runJsScriptOnce(scriptFile(), {}, { ...noLoader, execute }, { nope: [1] })
+    ).rejects.toThrow(/nope/);
+    expect(execute).not.toHaveBeenCalled();
   });
 });
 

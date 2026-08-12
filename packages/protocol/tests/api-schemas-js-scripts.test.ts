@@ -29,6 +29,31 @@ describe("jsScriptDocument schema", () => {
     );
   });
 
+  it("round-trips a case that stages input streams", () => {
+    const parsed = jsScriptDocument.parse({
+      schemaVersion: 1,
+      inputs: [{ name: "numbers", type: "int" }],
+      tests: [
+        {
+          name: "streams three",
+          inputs: {},
+          inputStreams: { numbers: [1, 2, 3] }
+        }
+      ]
+    });
+    expect(parsed.tests[0].inputStreams).toEqual({ numbers: [1, 2, 3] });
+    expect(jsScriptDocument.parse(parsed)).toEqual(parsed);
+  });
+
+  it("rejects staged items that are not an array", () => {
+    expect(
+      jsScriptDocument.safeParse({
+        schemaVersion: 1,
+        tests: [{ name: "c", inputs: {}, inputStreams: { numbers: 3 } }]
+      }).success
+    ).toBe(false);
+  });
+
   it("rejects a schemaVersion the code does not know", () => {
     const issues = validateJsScriptDocument({ schemaVersion: 2 });
     expect(issues.some((issue) => issue.code === "js_script_schema")).toBe(true);
@@ -102,6 +127,29 @@ describe("validateJsScriptDocument", () => {
     expect(
       issues.filter((issue) => issue.code === "js_script_test_output")
     ).toHaveLength(2);
+  });
+
+  it("rejects a test case staging a stream for an undeclared input", () => {
+    const issues = validateJsScriptDocument(
+      doc({
+        inputs: [{ name: "numbers", type: "int" }],
+        tests: [
+          {
+            name: "c",
+            inputs: {},
+            inputStreams: { numbers: [1], nope: [2] }
+          }
+        ]
+      })
+    );
+    const staged = issues.filter(
+      (issue) =>
+        issue.code === "js_script_test_input" && issue.message.includes("nope")
+    );
+    expect(staged).toHaveLength(1);
+    expect(
+      issues.some((issue) => issue.message.includes('"numbers"'))
+    ).toBe(false);
   });
 
   it("rejects two test cases sharing a name", () => {

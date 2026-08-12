@@ -59,6 +59,7 @@ interface JsScriptDocument {
 interface JsScriptTestCase {
   name: string;
   inputs: Record<string, unknown>;
+  inputStreams?: Record<string, unknown[]>; // staged items, for a `stream` body
   expect?: Record<string, unknown>;         // per-handle structural compare
   expectedStreamed?: { name: string; value: unknown }[];
 }
@@ -110,7 +111,7 @@ full-featured reference for document types:
   version before overwriting, so a restore is itself undoable. Mounted as
   `jsScripts` in `trpc/router.ts`.
 - One run endpoint for non-tRPC callers (mini apps, harnesses):
-  `POST /api/js-scripts/:id/run {inputs, params?}` executes the script and
+  `POST /api/js-scripts/:id/run {inputs, input_streams?}` executes the script and
   streams the same message shapes a workflow run streams (`node_progress`
   for `progress()`, per-emit output messages, a final output bag), so the
   app-runtime fold consumes it unchanged.
@@ -227,38 +228,39 @@ path covers composition until then.
 
 ### From Code nodes
 
-A Code node can link a script instead of carrying an inline body. New optional
-prop `script` on `nodetool.code.Code`: `{ id, version }` — version pinned at
-link time, because a graph whose behavior changes when someone edits a shared
-script is a debugging trap. The editor offers:
+A Code node can link a script instead of writing a body by hand. Linking
+**materializes** the pinned version: its code, packages, secrets and timeout are
+copied onto the node in one undoable edit, and the optional `script` prop
+(`{ id, version }`) records where they came from. The editor offers:
 
-- **Link script** — pick a script; the node's code, ports, and packages
-  render read-only from the pinned version, with an "update to latest"
-  affordance that re-pins and re-validates.
+- **Link script** — pick a script; its body, ports, packages, secrets and
+  timeout are copied onto the node, whose code renders read-only while linked,
+  with an "update to latest" affordance that re-copies and re-pins.
 - **Extract to script** — lift the node's current body, ports, packages, and
   secrets into a new script document and link it. The inverse, **detach**,
-  copies the pinned body back inline.
+  clears the `script` prop; the body is already inline.
 
-At run time `CodeNode` resolves the pinned version's document and executes
-its body through the node's existing pump — the script's declared ports must
-match the node's connected slots, which `validateGraph` checks by resolving
-the reference (a dangling id or version is a graph error, same family as a
-model id the provider doesn't offer).
+At run time `CodeNode` executes its own properties — there is no resolution
+step, no database read, and no resolver on the `ProcessingContext`. A graph
+therefore runs wherever it is opened, and hydration answers the one question it
+has to answer *statically*: `resolveStreamingInput` reads `node.properties.code`
+to decide whether the node streams its inputs, which it can only do because the
+body is right there. Resolve-at-run would have made a linked streaming script
+hydrate buffered and fail on its first `stream` call.
 
-**Implementation note.** A node cannot reach the database, so resolution goes
-through a `JsScriptResolver` on the `ProcessingContext`, installed process-wide
-by the host that owns the database (`setProcessJsScriptResolver`, the seam
-`SandboxModuleCatalog` uses; the implementation is
-`createJsScriptResolver` in `@nodetool-ai/models`). `validateGraph` is
-synchronous, so it takes an injected `jsScriptLookup` instead: a caller
-prefetches every link with `collectJsScriptLinks` and passes a lookup over what
-it found. Without one, a linked node is a `js_script_unverified` **warning**,
-not an error — the fail-toward-silence rule the model checks follow. With one, a
-link it does not answer for is `js_script_missing`, an error. The port rule
-lives in `@nodetool-ai/node-sdk` (`js-script-link.ts`), shared by the validator
-and the node: the validator checks all four directions, the running node checks
-the one it can decide (a declared input it has no slot for), because a node
-instance does not carry its declared output handles.
+**Implementation note.** The link is checked, not resolved. `validateGraph` is
+synchronous, so it takes an injected `jsScriptLookup`: a caller prefetches every
+link with `collectJsScriptLinks` and passes a lookup over what it found. The
+materialized body is validated exactly like an inline one — streaming rules
+included — and the lookup only answers the freshness question, comparing the
+script's declared ports against the node's slots (`jsScriptPortMismatches` in
+`@nodetool-ai/node-sdk`, `js-script-link.ts`). A link nothing can answer for is a
+**warning** (`js_script_unverified` without a lookup, `js_script_missing` with
+one): execution no longer needs the row, so a script that moved or was deleted
+costs freshness, not the run. The models-layer resolver
+(`createJsScriptResolver`) survives for the surface that still resolves a pinned
+version — a mini-app script operation — and for the editor's link and
+update-to-latest, which read it over tRPC.
 
 ### From mini apps
 
@@ -326,13 +328,14 @@ names, undeclared `inputs.*` reads, unreachable output handles) is shared, not
 forked. On top of the body check, document-level rules:
 
 - duplicate or non-identifier port names; a port type the type system lacks
-- a test case referencing an undeclared input or expecting an undeclared
-  output
+- a test case referencing an undeclared input, staging a stream for one, or
+  expecting an undeclared output
 - declared outputs with no reachable `emit`/`output` call (from the body
   check), and a body using the legacy return contract (error, not warning)
 - zero saved tests (warning)
 - a declared secret name that does not exist in the secret store (warning —
   the store is per-install)
+- the streaming rules under [Input streaming](#input-streaming)
 
 The check runs at save time (`beforeSave`), in the editor (issues panel), in
 the `save_js_script` capability, and in the CLI harness.
@@ -344,7 +347,7 @@ Following the sketch/timeline pair, `packages/cli/src/commands/js-script.ts`
 
 ```bash
 nodetool jsscript validate <id|file.json> [--json] [--warnings-as-errors]
-nodetool jsscript run <id|file.json> --inputs '{"a":1}' [--json]
+nodetool jsscript run <id|file.json> --inputs '{"a":1}' [--input-streams '{"nums":[1,2]}'] [--json]
 nodetool jsscript test <id|file.json> [--json]          # saved cases
 nodetool jsscript debug <id|file.json> --interact '[{"tool":"set_code",...}]'
 nodetool jsscript versions list|show|create|restore|delete <id> [...]
@@ -365,6 +368,62 @@ Evals: a headless surface `packages/agents/src/evals/surfaces/js-script.ts`
 mirroring the tool names/shapes, wired as `nodetool eval jsscript-tools`,
 with cases covering authoring from a prompt, adding tests, and a repair loop
 (a failing case the model must fix).
+
+## Input streaming
+
+A body reads its inputs one of two ways, and the body says which. The rules are
+the Code node's — [code-node-input-streaming-design.md](code-node-input-streaming-design.md)
+— reused whole, because a body that runs in a script must run the same way in a
+node.
+
+A script whose body calls `stream(name)` / `stream.any()` / `stream.first()` /
+`stream.open()` is a streaming-input script, detected with
+`usesStreamInputContract`. There is no document flag: adding the call is what
+makes it one, and deleting it is what makes it buffered again.
+
+```js
+let total = 0;
+for await (const n of stream("numbers")) {
+  total += n;
+  await emit("running", total);
+}
+await output("total", total);
+```
+
+**Callers stage the items.** A script has no inbox of its own — nothing upstream
+produces into it — so whoever runs it supplies what the body will pull:
+
+| Surface | How |
+|---|---|
+| `run_js_script` | `input_streams: {handle: [item, …]}` |
+| `POST /api/js-scripts/:id/run` | `input_streams` in the body |
+| `nodetool jsscript run` | `--input-streams '{"numbers":[1,2,3]}'` |
+| The editor's Run dialog | one JSON array per declared input |
+| A saved test case | `inputStreams` on the case |
+
+Wire names are snake_case (`input_streams`) and the stored document field is
+camelCase (`inputStreams`), matching `expectedStreamed` beside it. A staged
+handle the script does not declare is refused by every surface rather than
+silently yielding nothing. Staged items reach the guest through the same
+pre-staged inbox `run_code` uses, so arrival order for `stream.any()` is
+round-robin by index across the handles in declaration order.
+
+**Validation** runs `validateCodeNodeBody` with every declared input passed as
+both available *and connected*: a script has no node-configured property values,
+so each declared input is fed by the caller, which is what the graph calls a
+connected handle. Saying so gives the script exactly the rules it should have —
+`stream("x")` on a declared input never warns that nothing feeds it, and reading
+a declared input through `inputs.x` in a streaming body is the error naming
+`stream("x")`. A streaming body on the return contract stays an error. Two rules
+are the document's own, both warnings: a case staging `inputStreams` for a body
+that never calls `stream`, and a streaming body whose cases stage nothing —
+each case then proves only that the body survives an empty inbox.
+
+**A mini-app operation stays buffered.** A widget holds one value per input, not
+a stream of them. When the operation's script streams, each mapped value is
+staged as a one-item stream and `inputs` is left empty
+(`scriptOperationInvocation`) — the split a graph run makes, where a connected
+handle is reachable through `stream` and never through `inputs`.
 
 ## Security
 

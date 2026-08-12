@@ -587,10 +587,9 @@ export interface GraphValidationOptions {
    * a caller that can reach the script store prefetches every link
    * ({@link collectJsScriptLinks}) and passes a lookup over what it found.
    *
-   * Without one, a linked node reports "cannot verify" as a warning rather
-   * than a false error — the same fail-toward-silence rule the model-catalog
-   * checks follow. With one, a link it does not answer for is dangling, and
-   * that is an error.
+   * A link the lookup cannot answer for is a warning either way: the node runs
+   * the body it copied at link time, so a script that moved or disappeared
+   * costs freshness, not the run.
    */
   jsScriptLookup?: JsScriptLinkLookup | null;
 }
@@ -800,31 +799,28 @@ export function validateGraph(
         ...connectedInputs
       ]);
 
-      // A linked node runs the pinned script's body, not its own `code`, so
-      // the script is what gets checked — against the node's slots.
+      // A linked node carries a *copy* of the pinned script's body, so the
+      // body below is checked exactly like an inline one. What the link adds
+      // is a freshness question: does the node's shape still match the script
+      // it came from? Nothing here blocks a run, because a run no longer reads
+      // the script row.
       const link = readJsScriptLink(props);
       if (link) {
         const lookup = options.jsScriptLookup;
         const resolved = lookup ? lookup(link) : undefined;
-        if (!lookup) {
+        if (!resolved) {
           issues.push({
             severity: "warning",
-            code: "js_script_unverified",
+            code: lookup ? "js_script_missing" : "js_script_unverified",
             nodeId: id,
             nodeType: type,
             message:
               `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
-              "which cannot be verified here — no script resolver is available."
-          });
-        } else if (!resolved) {
-          issues.push({
-            severity: "error",
-            code: "js_script_missing",
-            nodeId: id,
-            nodeType: type,
-            message:
-              `Node "${id}" is linked to JS script ${link.id} v${link.version}, ` +
-              "which does not exist. Re-link the node or restore the script."
+              (lookup
+                ? "which no longer exists, so the link's freshness cannot be " +
+                  "verified. The node runs the body it copied at link time."
+                : "whose freshness cannot be verified here — no script store is " +
+                  "available. The node runs the body it copied at link time.")
           });
         } else {
           const nodeInputs = [...availableInputs].filter(
@@ -845,24 +841,7 @@ export function validateGraph(
               message: `Node "${id}": ${mismatch}.`
             });
           }
-          for (const codeIssue of validateCodeNodeBody({
-            code: resolved.document.code,
-            availableInputs: resolved.document.inputs.map((port) => port.name),
-            declaredOutputs: resolved.document.outputs.map((port) => port.name),
-            connectedOutputs: [...(consumedByNode.get(id) ?? [])],
-            declaredPackages: resolved.document.packages,
-            sandboxModuleCatalog
-          })) {
-            issues.push({
-              severity: codeIssue.severity,
-              code: codeIssue.code,
-              nodeId: id,
-              nodeType: type,
-              message: `Node "${id}" (script "${resolved.name}"): ${codeIssue.message}`
-            });
-          }
         }
-        continue;
       }
 
       const { declarations, invalid } = parseSandboxModuleDeclarations(

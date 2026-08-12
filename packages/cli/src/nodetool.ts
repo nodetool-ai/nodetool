@@ -24,7 +24,6 @@ import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import type { Intervention } from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
-  createJsScriptResolver,
   initDb,
   Workflow,
   Job,
@@ -52,8 +51,7 @@ import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
 import {
   ProcessingContext,
   FileStorageAdapter,
-  initTelemetry,
-  setProcessJsScriptResolver
+  initTelemetry
 } from "@nodetool-ai/runtime";
 import type { AssetOutputMode } from "@nodetool-ai/runtime";
 import { mkdirSync } from "node:fs";
@@ -115,9 +113,6 @@ const LOCAL_USER_ID = "1";
 // a connection is open.
 function ensureDb(): void {
   initDb(getDefaultDbPath());
-  // A Code node or app operation linked to a JS script resolves its pinned
-  // version through this resolver.
-  setProcessJsScriptResolver(createJsScriptResolver());
 }
 
 async function setupDb(): Promise<void> {

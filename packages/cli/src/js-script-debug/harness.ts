@@ -76,7 +76,8 @@ export interface JsScriptDebugCore {
 /** Executes a script body in the sandbox. */
 export type JsScriptExecutor = (
   document: JsScriptDocument,
-  inputs: Record<string, unknown>
+  inputs: Record<string, unknown>,
+  inputStreams?: Record<string, unknown[]>
 ) => Promise<JsScriptRunResult>;
 
 /** The bridge surface this host drives — one tool per `ui_jsscript_*` name. */
@@ -148,7 +149,7 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
   );
 
   let seq = 0;
-  return async (document, inputs) => {
+  return async (document, inputs, inputStreams) => {
     let secretResolver;
     if (document.secrets.length > 0) {
       const { initDb, getSecret } = await import("@nodetool-ai/models");
@@ -164,6 +165,7 @@ async function loadExecutor(): Promise<JsScriptExecutor> {
     return runCodeBody(context, {
       code: document.code,
       inputs,
+      ...(inputStreams ? { inputStreams } : {}),
       packages: document.packages.map((pack) => pack.specifier),
       secrets: document.secrets,
       timeoutSeconds: Math.min(
@@ -183,13 +185,20 @@ async function loadGrader(): Promise<
       document.tests.map((testCase, index) => ({
         name: testCase.name.trim() !== "" ? testCase.name : `case ${index + 1}`,
         inputs: testCase.inputs ?? {},
+        ...(testCase.inputStreams
+          ? { inputStreams: testCase.inputStreams }
+          : {}),
         ...(testCase.expect ? { expect: testCase.expect } : {}),
         ...(testCase.expectedStreamed
           ? { expectedStreamed: testCase.expectedStreamed }
           : {})
       })),
       (testCase) =>
-        execute(document, testCase.inputs) as ReturnType<
+        execute(
+          document,
+          testCase.inputs,
+          testCase.inputStreams
+        ) as ReturnType<
           Parameters<typeof gradeCodeCases>[1]
         >
     );
@@ -256,12 +265,28 @@ export interface JsScriptRunOutcome {
 export async function runJsScriptOnce(
   ref: string,
   inputs: Record<string, unknown>,
-  deps: JsScriptDebugDeps
+  deps: JsScriptDebugDeps,
+  inputStreams?: Record<string, unknown[]>
 ): Promise<JsScriptRunOutcome> {
   const resolved = await resolveJsScriptTarget(ref, deps);
   const document = await asDocument(resolved.raw);
+  if (inputStreams) {
+    const declared = new Set(document.inputs.map((port) => port.name));
+    const undeclared = Object.keys(inputStreams).filter(
+      (handle) => !declared.has(handle)
+    );
+    if (undeclared.length > 0) {
+      throw new Error(
+        `--input-streams names ${undeclared.join(", ")}, which the script does ` +
+          `not declare as inputs (declared: ${[...declared].join(", ") || "none"}).`
+      );
+    }
+  }
   const execute = deps.execute ?? (await loadExecutor());
-  return { target: resolved.target, result: await execute(document, inputs) };
+  return {
+    target: resolved.target,
+    result: await execute(document, inputs, inputStreams)
+  };
 }
 
 export interface JsScriptTestOutcome {

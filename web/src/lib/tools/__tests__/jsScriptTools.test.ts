@@ -188,8 +188,23 @@ describe("ui_jsscript_* tools", () => {
       ctx
     )) as { ok: boolean; run: { outputs?: Record<string, unknown> } };
 
-    expect(handler.run).toHaveBeenCalledWith({ a: "x" });
+    expect(handler.run).toHaveBeenCalledWith({ a: "x" }, undefined);
     expect(result.run.outputs).toEqual({ out: "x" });
+  });
+
+  it("stages input_streams for a body that reads them with stream()", async () => {
+    const handler = createMockHandler();
+    handler.run.mockResolvedValue({ ok: true, logs: [], duration_ms: 1 });
+    setJsScriptAgentHandler(SCRIPT_ID, handler);
+
+    await FrontendToolRegistry.call(
+      "ui_jsscript_run",
+      { script_id: SCRIPT_ID, input_streams: { numbers: [1, 2, 3] } },
+      "tc-6b",
+      ctx
+    );
+
+    expect(handler.run).toHaveBeenCalledWith({}, { numbers: [1, 2, 3] });
   });
 
   it("runs with an empty bag when no inputs are given", async () => {
@@ -204,7 +219,7 @@ describe("ui_jsscript_* tools", () => {
       ctx
     );
 
-    expect(handler.run).toHaveBeenCalledWith({});
+    expect(handler.run).toHaveBeenCalledWith({}, undefined);
   });
 
   it("returns the graded report from the test tool", async () => {

@@ -1492,8 +1492,8 @@ describe("Code nodes linked to a JS script", () => {
         id: "c",
         type: CODE,
         properties: {
-          // Stale on purpose: a linked node's inline body is never what runs.
-          code: "this is not valid javascript ((",
+          // The body linking materialized onto the node — what a run executes.
+          code: 'await output("out", String(inputs.text).toUpperCase());',
           script: { id: "s1", version: 2 }
         },
         dynamic_inputs: { text: { type: { type: "str" } } },
@@ -1509,7 +1509,7 @@ describe("Code nodes linked to a JS script", () => {
 
   const lookup = (found: ReturnType<typeof script> | undefined) => () => found;
 
-  it("checks the resolved script's body, not the node's stale inline code", () => {
+  it("accepts a linked node whose materialized body matches the script", () => {
     const report = validateGraph(graph({}), registry, {
       sandboxModuleCatalog: null,
       jsScriptLookup: lookup(script())
@@ -1517,26 +1517,46 @@ describe("Code nodes linked to a JS script", () => {
     expect(report.counts.errors).toBe(0);
   });
 
-  it("reports a syntax error in the linked script's body", () => {
-    const report = validateGraph(graph({}), registry, {
-      sandboxModuleCatalog: null,
-      jsScriptLookup: lookup(script({ code: "const x = ((" }))
-    });
+  it("checks the materialized body like any inline one", () => {
+    const report = validateGraph(
+      graph({ properties: { code: "const x = ((", script: { id: "s1", version: 2 } } }),
+      registry,
+      { sandboxModuleCatalog: null, jsScriptLookup: lookup(script()) }
+    );
     expect(report.ok).toBe(false);
     expect(report.issues.some((i) => i.code === "code_syntax")).toBe(true);
   });
 
-  it("errors on a dangling link when a resolver is available", () => {
+  it("checks a materialized streaming body against the node's edges", () => {
+    const report = validateGraph(
+      graph({
+        properties: {
+          code: 'for await (const t of stream("text")) { await emit("out", t); }',
+          script: { id: "s1", version: 2 }
+        }
+      }),
+      registry,
+      { sandboxModuleCatalog: null, jsScriptLookup: lookup(script()) }
+    );
+    // Nothing feeds `text`, so the stream yields nothing — a warning, not an error.
+    expect(report.counts.errors).toBe(0);
+    expect(
+      report.issues.some((i) => i.code === "code_unconnected_stream")
+    ).toBe(true);
+  });
+
+  it("warns rather than errors on a dangling link — the body still runs", () => {
     const report = validateGraph(graph({}), registry, {
       sandboxModuleCatalog: null,
       jsScriptLookup: lookup(undefined)
     });
-    expect(report.ok).toBe(false);
+    expect(report.ok).toBe(true);
     const issue = report.issues.find((i) => i.code === "js_script_missing");
+    expect(issue?.severity).toBe("warning");
     expect(issue?.message).toContain("s1");
   });
 
-  it("warns rather than errors when no resolver can verify the link", () => {
+  it("warns when no lookup can verify the link", () => {
     const report = validateGraph(graph({}), registry, {
       sandboxModuleCatalog: null
     });

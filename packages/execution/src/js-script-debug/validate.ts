@@ -67,6 +67,46 @@ function legacyContractIssue(
 }
 
 /**
+ * Where the saved cases and the body disagree about how inputs arrive.
+ *
+ * A case stages items for a body that never calls `stream`: nothing pulls them,
+ * so the case tests less than it looks like it does. A streaming body whose
+ * cases stage nothing: every `stream` completes immediately, so the case proves
+ * only that the body survives an empty inbox.
+ */
+function testStreamIssues(
+  doc: JsScriptDocument,
+  streaming: boolean
+): JsScriptDebugIssue[] {
+  const staged = doc.tests.filter(
+    (testCase) => Object.keys(testCase.inputStreams ?? {}).length > 0
+  );
+  if (!streaming) {
+    return staged.map((testCase) => ({
+      severity: "warning" as const,
+      code: "js_script_test_streams_unused",
+      message:
+        `test "${testCase.name}" stages input streams, but the body never ` +
+        "calls stream() — the staged items are never read. Read them with " +
+        "`for await (const item of stream(name))`, or move them to `inputs`."
+    }));
+  }
+  if (doc.tests.length > 0 && staged.length === 0) {
+    return [
+      {
+        severity: "warning",
+        code: "js_script_tests_no_streams",
+        message:
+          "The body reads its inputs with stream(), but no saved test stages " +
+          "any items — every stream ends immediately. Give a case " +
+          "`inputStreams` so the cases exercise what the body does."
+      }
+    ];
+  }
+  return [];
+}
+
+/**
  * Check a JS script document without running it. Returns findings rather than
  * throwing: every caller renders them.
  */
@@ -90,13 +130,19 @@ export async function validateJsScriptDoc(
   }
   const doc = parsed.data;
 
-  const { validateCodeNodeBody, usesEmitOutputContract } = await import(
-    "@nodetool-ai/node-sdk"
-  );
+  const { validateCodeNodeBody, usesEmitOutputContract, usesStreamInputContract } =
+    await import("@nodetool-ai/node-sdk");
 
+  // A script has no node-configured property values: every declared input is
+  // fed by the caller, which is what the graph calls a connected handle. Saying
+  // so is what makes the streaming rules right here — `stream("x")` on a
+  // declared input never warns "nothing feeds it", and reading a declared input
+  // through `inputs.x` in a streaming body is the error it is in a graph.
+  const inputNames = doc.inputs.map((port) => port.name);
   const bodyIssues: JsScriptDebugIssue[] = validateCodeNodeBody({
     code: doc.code,
-    availableInputs: doc.inputs.map((port) => port.name),
+    availableInputs: inputNames,
+    connectedInputs: inputNames,
     declaredOutputs: doc.outputs.map((port) => port.name),
     declaredPackages: doc.packages,
     sandboxModuleCatalog: options.sandboxModuleCatalog ?? null
@@ -108,8 +154,15 @@ export async function validateJsScriptDoc(
 
   const issues = [...shapeIssues, ...bodyIssues];
 
-  const legacy = legacyContractIssue(doc, usesEmitOutputContract);
+  const streaming = usesStreamInputContract(doc.code);
+  // A streaming body on the return contract is already an error from the body
+  // check (`code_stream_return_contract`), which says the same thing.
+  const legacy = streaming
+    ? null
+    : legacyContractIssue(doc, usesEmitOutputContract);
   if (legacy) issues.push(legacy);
+
+  issues.push(...testStreamIssues(doc, streaming));
 
   if (options.knownSecrets !== undefined) {
     const known = new Set(options.knownSecrets);

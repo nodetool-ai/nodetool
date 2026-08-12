@@ -100,19 +100,23 @@ export function summarizeJsScriptTests(
 }
 
 /**
- * Run every saved case through `runCase` (the run endpoint) and grade it. Cases
+ * Run every saved case through `runCase` (the run endpoint) and grade it. A
+ * case staging `inputStreams` feeds them to a body that reads `stream`. Cases
  * run in order: a script may reach a rate-limited API, and a serial run keeps
  * the failure report readable.
  */
 export async function gradeJsScriptTests(
   tests: readonly JsScriptTestCase[],
-  runCase: (inputs: Record<string, unknown>) => Promise<JsScriptRunOutcome>
+  runCase: (
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ) => Promise<JsScriptRunOutcome>
 ): Promise<JsScriptTestReport> {
   const reports: JsScriptTestCaseReport[] = [];
   for (const testCase of tests) {
     let outcome: JsScriptRunOutcome;
     try {
-      outcome = await runCase(testCase.inputs);
+      outcome = await runCase(testCase.inputs, testCase.inputStreams);
     } catch (error) {
       outcome = {
         ok: false,

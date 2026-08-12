@@ -17,6 +17,7 @@ import {
   jsScriptDocument,
   type JsScriptDocument
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
 import type { AppIO } from "./types.js";
 
 /** What one script run returned — the shape `POST /api/js-scripts/:id/run` answers with. */
@@ -37,8 +38,37 @@ export type JsScriptOperationRunner = (input: {
   name: string;
   document: JsScriptDocument;
   inputs: Record<string, unknown>;
+  /** Items staged per handle for a body that reads `stream`. */
+  inputStreams?: Record<string, unknown[]>;
   timeoutMs?: number;
 }) => Promise<JsScriptRunResult>;
+
+/** How one invocation's mapped values reach the body. */
+export interface JsScriptInvocation {
+  inputs: Record<string, unknown>;
+  inputStreams?: Record<string, unknown[]>;
+}
+
+/**
+ * Split an operation's mapped values the way the body reads them.
+ *
+ * An app operation is one shot: a widget holds one value per input, not a
+ * stream of them. A body that reads `stream` still has to be fed through the
+ * inbox, so each mapped value is staged as a one-item stream and `inputs` stays
+ * empty — the split a graph run makes, where a connected handle is reachable
+ * through `stream` and never through `inputs`. A buffered body is untouched.
+ */
+export function scriptOperationInvocation(
+  document: JsScriptDocument,
+  inputs: Record<string, unknown>
+): JsScriptInvocation {
+  if (!usesStreamInputContract(document.code)) return { inputs };
+  const staged: Record<string, unknown[]> = {};
+  for (const [handle, value] of Object.entries(inputs)) {
+    staged[handle] = [value];
+  }
+  return { inputs: {}, inputStreams: staged };
+}
 
 /** Resolve a pinned script target to its document. */
 export type JsScriptOperationLoader = (

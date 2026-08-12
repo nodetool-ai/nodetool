@@ -60,8 +60,14 @@ export interface JsScriptAgentHandler {
   setPackages: (packages: SandboxModuleDeclaration[]) => JsScriptSnapshot;
   setMeta: (meta: JsScriptMetaInput) => JsScriptSnapshot;
   setTests: (tests: JsScriptTestCase[]) => JsScriptSnapshot;
-  /** Run the saved script server-side with the given inputs. */
-  run: (inputs: Record<string, unknown>) => Promise<JsScriptRunOutcome>;
+  /**
+   * Run the saved script server-side with the given inputs, or — for a body
+   * that reads `stream` — with items staged per input handle.
+   */
+  run: (
+    inputs: Record<string, unknown>,
+    inputStreams?: Record<string, unknown[]>
+  ) => Promise<JsScriptRunOutcome>;
   /** Run every saved case and grade it. */
   test: () => Promise<JsScriptTestReport>;
 }

@@ -41,8 +41,21 @@ const widgets = (binding: string) => [
   { type: "Text", props: { id: "Text-1", binding } }
 ];
 
+/** The same script, reading its one input off the inbox instead of `inputs`. */
+const streamingDocument = {
+  ...scriptDocument,
+  code:
+    'for await (const t of stream("text")) {\n' +
+    '  await emit("shouted", String(t).toUpperCase());\n}'
+};
+
 const bundle = (
-  options: { binding?: string; scriptKey?: string; carry?: boolean } = {}
+  options: {
+    binding?: string;
+    scriptKey?: string;
+    carry?: boolean;
+    document?: typeof scriptDocument;
+  } = {}
 ) => {
   const parsed = parseApplicationBundle({
     schemaVersion: 1,
@@ -81,7 +94,7 @@ const bundle = (
             {
               key: "shout-script",
               name: "Shout",
-              document: scriptDocument
+              document: options.document ?? scriptDocument
             }
           ]
   });
@@ -128,6 +141,43 @@ describe("app debug — script operations", () => {
     expect(report.verdict.ok).toBe(true);
     expect(runScript).toHaveBeenCalledTimes(1);
     expect(runScript.mock.calls[0][0].inputs).toEqual({ text: "hello" });
+    expect(
+      report.widgets.find((widget) => widget.id === "Text-1")?.value
+    ).toBe("HELLO");
+  });
+
+  // A widget holds one value, so a streaming body is fed a one-item stream —
+  // and reads nothing off `inputs`, the split a graph run makes.
+  it("stages the mapped input as a one-item stream for a streaming script", async () => {
+    const runScript = vi.fn<NonNullable<AppSimulationDeps["runScript"]>>(
+      async (input) => ({
+        ok: true,
+        streamed: (input.inputStreams?.text ?? []).map((item) => ({
+          name: "shouted",
+          value: String(item).toUpperCase()
+        })),
+        logs: [],
+        duration_ms: 1
+      })
+    );
+
+    const report = await simulateApp(
+      bundle({ document: streamingDocument }),
+      { params: { text: "hello" } },
+      {
+        loadFromDb: async () => null,
+        runOnServer: async () => {
+          throw new Error("no workflow operation in this app");
+        },
+        runScript
+      }
+    );
+
+    expect(report.verdict.issues).toEqual([]);
+    expect(runScript.mock.calls[0][0].inputStreams).toEqual({
+      text: ["hello"]
+    });
+    expect(runScript.mock.calls[0][0].inputs).toEqual({});
     expect(
       report.widgets.find((widget) => widget.id === "Text-1")?.value
     ).toBe("HELLO");

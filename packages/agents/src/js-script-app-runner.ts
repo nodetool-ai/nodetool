@@ -44,6 +44,7 @@ export function createJsScriptAppRunner(
     return runCodeBody(context, {
       code: input.document.code,
       inputs: input.inputs,
+      ...(input.inputStreams ? { inputStreams: input.inputStreams } : {}),
       packages: input.document.packages.map((pack) => pack.specifier),
       secrets: input.document.secrets,
       timeoutSeconds:

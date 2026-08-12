@@ -74,6 +74,54 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(typeof body.duration_ms).toBe("number");
   });
 
+  it("stages input_streams for a body that reads them with stream()", async () => {
+    const script = await seedScript({
+      code:
+        "let total = 0;\nfor await (const n of stream('numbers')) {\n" +
+        "  total += n;\n  await emit('running', total);\n}\n" +
+        "await output('total', total);",
+      inputs: [{ name: "numbers", type: "int" }],
+      outputs: [
+        { name: "running", type: "int" },
+        { name: "total", type: "int" }
+      ]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { input_streams: { numbers: [1, 2, 3] } }
+    });
+
+    expect(response.statusCode).toBe(200);
+    const body = response.json() as Record<string, unknown>;
+    expect(body.outputs).toEqual({ total: 6 });
+    expect(body.streamed).toEqual([
+      { name: "running", value: 1 },
+      { name: "running", value: 3 },
+      { name: "running", value: 6 }
+    ]);
+  });
+
+  it("refuses input_streams naming an undeclared handle", async () => {
+    const script = await seedScript({
+      code: "for await (const n of stream('numbers')) { await emit('n', n); }",
+      inputs: [{ name: "numbers", type: "int" }],
+      outputs: [{ name: "n", type: "int" }]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { input_streams: { nope: [1] } }
+    });
+
+    expect(response.statusCode).toBe(400);
+    expect(String(response.json().detail)).toContain("nope");
+  });
+
   it("reports a body that throws instead of failing the request", async () => {
     const script = await seedScript({
       code: "throw new Error('boom');",

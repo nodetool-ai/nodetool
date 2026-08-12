@@ -26,10 +26,6 @@ export {
   setProcessSandboxModuleCatalog
 } from "./sandbox-module-catalog.js";
 export {
-  getProcessJsScriptResolver,
-  setProcessJsScriptResolver
-} from "./js-script-resolver.js";
-export {
   AgentMemory,
   memoryKeys,
   type MemoryEntry,

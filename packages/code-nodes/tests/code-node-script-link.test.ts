@@ -1,36 +1,21 @@
 /**
- * A Code node linked to a JS script runs the pinned version's body.
+ * A Code node linked to a JS script runs the body the link materialized.
  *
- * The resolver is stubbed: what these check is the node's behavior around it —
- * that the script's envelope replaces the node's own, that a dangling link
- * fails instead of falling back to the stale inline body, and that a script
- * whose declared inputs the node cannot feed fails before it runs.
+ * Linking copies the pinned version's code, packages, secrets and timeout onto
+ * the node; the `script` property records only where they came from. So these
+ * check that execution reads the node and nothing else: no resolver on the
+ * context, no database, and the same hydration answer an inline body gets.
  */
 import { describe, it, expect } from "vitest";
 import { CodeNode } from "@nodetool-ai/code-nodes";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import {
-  emptyJsScriptDocument,
-  type JsScriptDocument,
-  type ResolvedJsScript
-} from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
-const scriptDocument = (
-  overrides: Partial<JsScriptDocument>
-): JsScriptDocument => ({ ...emptyJsScriptDocument(), ...overrides });
-
-/** A context whose resolver answers for exactly the links in `scripts`. */
-function contextWith(
-  scripts: Record<string, ResolvedJsScript>
-): ProcessingContext {
+/** A context with no script storage of any kind. */
+function bareContext(): ProcessingContext {
   return {
     workflowId: "wf-test",
     userId: "1",
-    postMessage: () => {},
-    jsScriptResolver: {
-      resolve: async (link: { id: string; version: number }) =>
-        scripts[`${link.id}@${link.version}`] ?? null
-    }
+    postMessage: () => {}
   } as unknown as ProcessingContext;
 }
 
@@ -44,103 +29,52 @@ async function collect(
 }
 
 describe("CodeNode — linked script", () => {
-  it("runs the pinned version's body and ignores the inline code", async () => {
-    const context = contextWith({
-      "s1@3": {
-        id: "s1",
-        name: "Doubler",
-        version: 3,
-        document: scriptDocument({
-          code: 'await output("doubled", inputs.value * 2);',
-          inputs: [{ name: "value", type: "int" }],
-          outputs: [{ name: "doubled", type: "int" }]
-        })
-      }
-    });
+  it("runs the materialized body with no resolver on the context", async () => {
     const node = new CodeNode({
-      code: 'await output("doubled", "the inline body ran");',
+      code: 'await output("doubled", inputs.value * 2);',
       script: { id: "s1", version: 3 },
       value: 21
     });
 
-    expect(await collect(node, context)).toEqual([{ doubled: 42 }]);
+    expect(await collect(node, bareContext())).toEqual([{ doubled: 42 }]);
   });
 
-  it("runs the pinned version, not whatever the script says now", async () => {
-    const context = contextWith({
-      "s1@1": {
-        id: "s1",
-        name: "Greeter",
-        version: 1,
-        document: scriptDocument({
-          code: 'await output("greeting", "v1");',
-          outputs: [{ name: "greeting", type: "str" }]
-        })
-      },
-      "s1@2": {
-        id: "s1",
-        name: "Greeter",
-        version: 2,
-        document: scriptDocument({
-          code: 'await output("greeting", "v2");',
-          outputs: [{ name: "greeting", type: "str" }]
-        })
-      }
-    });
-    const node = new CodeNode({ code: "", script: { id: "s1", version: 1 } });
-
-    expect(await collect(node, context)).toEqual([{ greeting: "v1" }]);
-  });
-
-  it("fails on a dangling link instead of running the inline body", async () => {
-    const context = contextWith({});
+  it("runs even when the linked script no longer exists", async () => {
     const node = new CodeNode({
-      code: 'await output("out", "inline");',
+      code: 'await output("out", "materialized");',
       script: { id: "gone", version: 2 }
     });
 
-    await expect(node.process(context)).rejects.toThrow(/was not found/);
-  });
-
-  it("fails when the script declares an input the node has no slot for", async () => {
-    const context = contextWith({
-      "s1@1": {
-        id: "s1",
-        name: "Needs two",
-        version: 1,
-        document: scriptDocument({
-          code: 'await output("sum", inputs.a + inputs.b);',
-          inputs: [
-            { name: "a", type: "int" },
-            { name: "b", type: "int" }
-          ],
-          outputs: [{ name: "sum", type: "int" }]
-        })
-      }
-    });
-    const node = new CodeNode({ code: "", script: { id: "s1", version: 1 }, a: 1 });
-
-    await expect(node.process(context)).rejects.toThrow(/"b"/);
-  });
-
-  it("fails when no resolver is installed in this process", async () => {
-    const context = {
-      workflowId: "wf-test",
-      postMessage: () => {},
-      jsScriptResolver: null
-    } as unknown as ProcessingContext;
-    const node = new CodeNode({ code: "", script: { id: "s1", version: 1 } });
-
-    await expect(node.process(context)).rejects.toThrow(/no script resolver/);
+    expect(await node.process(bareContext())).toEqual({ out: "materialized" });
   });
 
   it("runs its own body when the link is empty", async () => {
-    const context = contextWith({});
     const node = new CodeNode({
       code: 'await output("out", "inline");',
       script: {}
     });
 
-    expect(await node.process(context)).toEqual({ out: "inline" });
+    expect(await node.process(bareContext())).toEqual({ out: "inline" });
+  });
+
+  it("hydrates a linked streaming script into streaming-input mode", () => {
+    const streaming = CodeNode.resolveStreamingInput?.({
+      properties: {
+        script: { id: "s1", version: 1 },
+        code:
+          'let total = 0;\nfor await (const n of stream("numbers")) {\n' +
+          '  total += n;\n  await emit("running", total);\n}\n' +
+          'await output("total", total);'
+      }
+    });
+    const buffered = CodeNode.resolveStreamingInput?.({
+      properties: {
+        script: { id: "s1", version: 1 },
+        code: 'await output("total", inputs.numbers.length);'
+      }
+    });
+
+    expect(streaming).toBe(true);
+    expect(buffered).toBe(false);
   });
 });

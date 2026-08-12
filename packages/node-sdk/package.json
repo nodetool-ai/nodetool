@@ -37,6 +37,12 @@
       "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./code-body": {
+      "nodetool-dev": "./src/code-body.ts",
+      "types": "./dist/code-body.d.ts",
+      "import": "./dist/code-body.js",
+      "default": "./dist/code-body.js"
+    },
     "./cost-estimate": {
       "types": "./dist/cost-estimate.d.ts",
       "import": "./dist/cost-estimate.js",

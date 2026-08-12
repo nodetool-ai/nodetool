@@ -41,6 +41,12 @@ export type JsScriptPort = z.infer<typeof jsScriptPort>;
 export const jsScriptTestCase = z.object({
   name: z.string().min(1),
   inputs: z.record(z.string(), z.unknown()).default({}),
+  /**
+   * Items staged per input handle for a body that reads its inputs with
+   * `stream`. The body runs once and pulls them; a buffered body uses `inputs`
+   * instead.
+   */
+  inputStreams: z.record(z.string(), z.array(z.unknown())).optional(),
   /** Per-handle structural compare against the run's final outputs. */
   expect: z.record(z.string(), z.unknown()).optional(),
   /** The `emit` calls the run must make, in order. */
@@ -169,6 +175,15 @@ export function validateJsScriptDocument(
           severity: "error",
           code: "js_script_test_input",
           message: `test "${testCase.name}" sets undeclared input "${key}"`
+        });
+      }
+    }
+    for (const key of Object.keys(testCase.inputStreams ?? {})) {
+      if (!inputNames.has(key)) {
+        issues.push({
+          severity: "error",
+          code: "js_script_test_input",
+          message: `test "${testCase.name}" stages a stream for undeclared input "${key}"`
         });
       }
     }
@@ -389,7 +404,12 @@ export type RestoreJsScriptVersionResponse = z.infer<
 // ── Run endpoint (POST /api/js-scripts/:id/run) ─────────────────────────────
 
 export const runJsScriptRequest = z.object({
-  inputs: z.record(z.string(), z.unknown()).default({})
+  inputs: z.record(z.string(), z.unknown()).default({}),
+  /**
+   * Items staged per input handle for a body that reads `stream`. Wire names
+   * in this surface are snake_case, matching `run_code`'s own field.
+   */
+  input_streams: z.record(z.string(), z.array(z.unknown())).optional()
 });
 export type RunJsScriptRequest = z.infer<typeof runJsScriptRequest>;
 

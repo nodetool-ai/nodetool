@@ -139,6 +139,102 @@ describe("validateJsScriptDoc", () => {
   });
 });
 
+describe("validateJsScriptDoc — input streams", () => {
+  const STREAMING: Partial<JsScriptDocument> = {
+    code:
+      'let total = 0;\nfor await (const n of stream("numbers")) {\n' +
+      '  total += n;\n  await emit("running", total);\n}\n' +
+      'await output("total", total);',
+    inputs: [{ name: "numbers", type: "int" }],
+    outputs: [
+      { name: "running", type: "int" },
+      { name: "total", type: "int" }
+    ],
+    tests: [
+      {
+        name: "sums what arrives",
+        inputs: {},
+        inputStreams: { numbers: [1, 2] },
+        expect: { total: 3 }
+      }
+    ]
+  };
+  const streaming = (overrides: Partial<JsScriptDocument> = {}) =>
+    doc({ ...STREAMING, ...overrides });
+
+  it("passes a streaming script whose cases stage items", async () => {
+    const validation = await validateJsScriptDoc(streaming());
+    expect(codes(validation)).toEqual([]);
+  });
+
+  it("never warns that a declared input is unconnected", async () => {
+    const validation = await validateJsScriptDoc(streaming());
+    expect(codes(validation)).not.toContain("code_unconnected_stream");
+  });
+
+  it("errors on a stream name the document does not declare", async () => {
+    const validation = await validateJsScriptDoc(
+      streaming({
+        code: 'for await (const n of stream("nope")) { await emit("running", n); }\nawait output("total", 0);'
+      })
+    );
+    expect(validation.ok).toBe(false);
+    expect(codes(validation)).toContain("code_undefined_stream");
+  });
+
+  it("errors when a streaming body reads a declared input through `inputs`", async () => {
+    const validation = await validateJsScriptDoc(
+      streaming({
+        code:
+          'let total = inputs.numbers;\nfor await (const n of stream("numbers")) { total += n; }\n' +
+          'await emit("running", total);\nawait output("total", total);'
+      })
+    );
+    expect(validation.ok).toBe(false);
+    const issue = [...validation.errors].find(
+      (i) => i.code === "code_stream_input_read"
+    );
+    expect(issue?.message).toContain('stream("numbers")');
+  });
+
+  it("errors on a streaming body still returning its outputs", async () => {
+    const validation = await validateJsScriptDoc(
+      streaming({
+        code: 'let total = 0;\nfor await (const n of stream("numbers")) total += n;\nreturn { total };'
+      })
+    );
+    expect(validation.ok).toBe(false);
+    expect(codes(validation)).toContain("code_stream_return_contract");
+  });
+
+  it("warns when a case stages streams for a body that does not stream", async () => {
+    const validation = await validateJsScriptDoc(
+      doc({
+        tests: [
+          {
+            name: "adds one",
+            inputs: { n: 1 },
+            inputStreams: { n: [1] },
+            expect: { total: 2 }
+          }
+        ]
+      })
+    );
+    expect(validation.ok).toBe(true);
+    expect(codes(validation)).toContain("js_script_test_streams_unused");
+  });
+
+  it("warns when a streaming body's cases stage nothing", async () => {
+    const validation = await validateJsScriptDoc(
+      streaming({
+        tests: [{ name: "empty inbox", inputs: {}, expect: { total: 0 } }]
+      })
+    );
+    expect(validation.ok).toBe(true);
+    expect(codes(validation)).toContain("js_script_tests_no_streams");
+  });
+});
+
 describe("buildJsScriptDebugReport", () => {
   const target = { kind: "file" as const, ref: "script.json" };
 

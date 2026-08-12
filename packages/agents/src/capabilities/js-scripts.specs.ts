@@ -114,6 +114,18 @@ export const RUN_JS_SCRIPT_SCHEMA: JsonSchema = {
         "Values for the script's declared inputs, read inside the body off " +
         "the `inputs` object.",
       additionalProperties: true
+    },
+    input_streams: {
+      type: "object",
+      description:
+        "Items to feed a body that reads its inputs with `stream`, as " +
+        '{handle: [item, …]}, e.g. {"numbers": [1, 2, 3]}. Every handle must ' +
+        "be a declared input. The body runs once and pulls them: " +
+        "`stream(name)` yields one handle's items in order, `stream.any()` " +
+        "yields [handle, value] round-robin by index across the handles in " +
+        "declaration order. Omit it for a buffered body, whose values go in " +
+        "`inputs` instead.",
+      additionalProperties: { type: "array" }
     }
   }
 };

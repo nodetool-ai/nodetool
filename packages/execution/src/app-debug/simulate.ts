@@ -37,6 +37,7 @@ import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scri
 import {
   jsScriptRunMessages,
   scriptAppIO,
+  scriptOperationInvocation,
   type JsScriptOperationLoader,
   type JsScriptOperationRunner
 } from "./script-operation.js";
@@ -672,12 +673,18 @@ export async function simulateApp(
     ) => {
       log(`Running script operation "${operationId}"…`);
       const started = Date.now();
+      // A streaming body reads its inputs off the inbox, so the operation's
+      // one value per input is staged as a one-item stream instead.
+      const invocation = scriptOperationInvocation(script.document, inputs);
       const result = await deps.runScript!({
         scriptId: target.scriptId,
         scriptVersion: target.scriptVersion,
         name: script.name,
         document: script.document,
-        inputs,
+        inputs: invocation.inputs,
+        ...(invocation.inputStreams
+          ? { inputStreams: invocation.inputStreams }
+          : {}),
         ...(timeoutMs != null ? { timeoutMs } : {})
       });
       const messages = jsScriptRunMessages(result);

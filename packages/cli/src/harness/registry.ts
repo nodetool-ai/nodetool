@@ -238,10 +238,12 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "test_js_script",
     docs: "AGENTS.md § nodetool jsscript",
     selfcheck: {
-      // A checked-in fixture with deterministic cases: no network, no secrets,
-      // no database — the script sums numbers and emits each running total.
+      // Two checked-in fixtures with deterministic cases: no network, no
+      // secrets, no database. One sums a buffered list input; the other reads
+      // the numbers off `stream` from items the cases stage.
       command:
-        "npm run dev:nodetool -- jsscript test packages/cli/tests/fixtures/js-script-sum.json",
+        "npm run dev:nodetool -- jsscript test packages/cli/tests/fixtures/js-script-sum.json && " +
+        "npm run dev:nodetool -- jsscript test packages/cli/tests/fixtures/js-script-running-total.json",
       cost: "cheap"
     }
   },

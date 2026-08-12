@@ -1011,6 +1011,7 @@ exists on disk wins over an id; file targets need no database.
 ```bash
 npm run dev:nodetool -- jsscript validate <id|file.json> [--json] [--warnings-as-errors]
 npm run dev:nodetool -- jsscript run <id|file.json> --inputs '{"numbers":[1,2,3]}'
+npm run dev:nodetool -- jsscript run <id|file.json> --input-streams '{"numbers":[1,2,3]}'
 npm run dev:nodetool -- jsscript test <id|file.json> --json
 npm run dev:nodetool -- jsscript debug <id|file.json> \
   --interact '[{"tool":"set_code","input":{"code":"await output(\"n\", 1);"}}]'
@@ -1025,10 +1026,14 @@ and returns them instead of emitting them is an **error** — a script has no
 legacy return contract. Zero saved tests and a declared secret this install
 lacks are warnings.
 
-`run` executes the body once in the QuickJS sandbox; `test` runs the document's
-own saved cases, grades them the way `test_code` grades a case list, and exits
+`run` executes the body once in the QuickJS sandbox. A body that reads its
+inputs with `stream` is fed with `--input-streams '{handle: [item, …]}'` instead
+of `--inputs`; a staged handle the script does not declare is refused. `test`
+runs the document's own saved cases (which stage their own items in
+`inputStreams`), grades them the way `test_code` grades a case list, and exits
 non-zero on any failure — the keyless selfcheck the harness gate runs, against
-`packages/cli/tests/fixtures/js-script-sum.json`. `debug` replays each
+`packages/cli/tests/fixtures/js-script-sum.json` and
+`js-script-running-total.json`. `debug` replays each
 `--interact` step against the headless `ui_jsscript_*` bridge (tool names with
 or without the prefix; a failing step is recorded and the script continues),
 validates the document the session left behind, and writes
