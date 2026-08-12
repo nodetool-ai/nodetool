@@ -42,6 +42,7 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
+import { resolveUri } from "../../../utils/imageUtils";
 
 /** Edge length of a generated-media thumbnail tile (px). */
 const THUMBNAIL_SIZE = 120;
@@ -417,7 +418,10 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isVideoContent(c)) {
-            const src = c.video?.uri || "";
+            // Through `resolveUri` like the image tile above: a relative
+            // `/api/storage/…` needs the BASE_URL prefix when the API lives on
+            // another origin, and a signed cloud URL passes through unchanged.
+            const src = c.video?.uri ? resolveUri(c.video.uri) : "";
             const key = c.video?.asset_id || c.video?.uri || `media-${i}`;
             return (
               <div
@@ -447,7 +451,7 @@ const MediaOutputGroup: React.FC<MediaOutputGroupProps> = ({
             );
           }
           if (isAudioContent(c)) {
-            const src = c.audio?.uri || "";
+            const src = c.audio?.uri ? resolveUri(c.audio.uri) : "";
             const key = c.audio?.asset_id || c.audio?.uri || `media-${i}`;
             return (
               <div

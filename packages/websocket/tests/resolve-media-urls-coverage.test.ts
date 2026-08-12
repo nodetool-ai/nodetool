@@ -7,7 +7,8 @@ const fileUri = (name: string) => pathToFileURL(`/var/assets/${name}`).href;
 
 vi.mock("@nodetool-ai/config", () => ({
   buildAssetUrl: (name: string) => `https://assets.test/${name}`,
-  getAssetFilePath: (name: string) => `/var/assets/${name}`
+  getAssetFilePath: (name: string) => `/var/assets/${name}`,
+  loadAssetStorageConfig: () => ({ kind: "file" })
 }));
 
 import {
@@ -16,102 +17,107 @@ import {
 } from "../src/resolve-media-urls.js";
 
 describe("resolveContentUrls", () => {
-  it("returns non-array content unchanged (string)", () => {
-    expect(resolveContentUrls("hello")).toBe("hello");
+  it("returns non-array content unchanged (string)", async () => {
+    expect(await resolveContentUrls("hello")).toBe("hello");
   });
 
-  it("returns null unchanged", () => {
-    expect(resolveContentUrls(null)).toBeNull();
+  it("returns null unchanged", async () => {
+    expect(await resolveContentUrls(null)).toBeNull();
   });
 
-  it("returns a plain object (non-array) unchanged", () => {
+  it("returns a plain object (non-array) unchanged", async () => {
     const obj = { type: "text" };
-    expect(resolveContentUrls(obj)).toBe(obj);
+    expect(await resolveContentUrls(obj)).toBe(obj);
   });
 
-  it("passes through primitive and null blocks in an array", () => {
+  it("passes through primitive and null blocks in an array", async () => {
     const content = ["str", 42, null, true];
-    expect(resolveContentUrls(content)).toEqual(["str", 42, null, true]);
+    expect(await resolveContentUrls(content)).toEqual([
+      "str",
+      42,
+      null,
+      true
+    ]);
   });
 
-  it("resolves an image asset_id into an https asset url with mime->ext", () => {
+  it("resolves an image asset_id into an https asset url with mime->ext", async () => {
     const content = [
       { type: "image", image: { asset_id: "abc", mimeType: "image/jpeg" } }
     ];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("https://assets.test/abc.jpg");
   });
 
-  it("resolves image_url type the same as image", () => {
+  it("resolves image_url type the same as image", async () => {
     const content = [
       { type: "image_url", image: { asset_id: "xyz", mime_type: "image/png" } }
     ];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("https://assets.test/xyz.png");
   });
 
-  it("falls back to image/png ext when no mime present", () => {
+  it("falls back to image/png ext when no mime present", async () => {
     const content = [{ type: "image", image: { asset_id: "noext" } }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("https://assets.test/noext.png");
   });
 
-  it("uses content_type field when present", () => {
+  it("uses content_type field when present", async () => {
     const content = [
       { type: "image", image: { asset_id: "c", content_type: "image/webp" } }
     ];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("https://assets.test/c.webp");
   });
 
-  it("maps unknown mime to bin extension", () => {
+  it("maps unknown mime to bin extension", async () => {
     const content = [
       { type: "image", image: { asset_id: "u", mimeType: "application/x-weird" } }
     ];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("https://assets.test/u.bin");
   });
 
-  it("resolves video with video/mp4 fallback", () => {
+  it("resolves video with video/mp4 fallback", async () => {
     const content = [{ type: "video", video: { asset_id: "v1" } }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].video.uri).toBe("https://assets.test/v1.mp4");
   });
 
-  it("resolves audio with audio/wav fallback", () => {
+  it("resolves audio with audio/wav fallback", async () => {
     const content = [{ type: "audio", audio: { asset_id: "a1" } }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].audio.uri).toBe("https://assets.test/a1.wav");
   });
 
-  it("leaves a ref without asset_id untouched (no uri added)", () => {
+  it("leaves a ref without asset_id untouched (no uri added)", async () => {
     const content = [{ type: "image", image: { uri: "existing://x" } }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0].image.uri).toBe("existing://x");
   });
 
-  it("does not resolve when image field is missing", () => {
+  it("does not resolve when image field is missing", async () => {
     const content = [{ type: "image" }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0]).toEqual({ type: "image" });
   });
 
-  it("passes through a block with an unrecognized type", () => {
+  it("passes through a block with an unrecognized type", async () => {
     const content = [{ type: "text", text: "hi" }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0]).toEqual({ type: "text", text: "hi" });
   });
 
-  it("ignores non-object image field", () => {
+  it("ignores non-object image field", async () => {
     const content = [{ type: "image", image: "not-an-object" }];
-    const out = resolveContentUrls(content) as any[];
+    const out = (await resolveContentUrls(content)) as any[];
     expect(out[0]).toEqual({ type: "image", image: "not-an-object" });
   });
 
-  it("does not mutate the input ref object", () => {
+  it("does not mutate the input ref object", async () => {
     const image = { asset_id: "m", mimeType: "image/gif" };
     const content = [{ type: "image", image }];
-    resolveContentUrls(content);
+    await resolveContentUrls(content);
     expect(image).not.toHaveProperty("uri");
   });
 });

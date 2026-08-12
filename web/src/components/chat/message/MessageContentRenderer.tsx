@@ -18,6 +18,7 @@ import {
   type MediaContentBlock
 } from "../../../hooks/handlers/useGenerationToCanvas";
 import { serializeDragData } from "../../../lib/dragdrop";
+import { resolveUri } from "../../../utils/imageUtils";
 import {
   parseHarmonyContent,
   hasHarmonyTokens,
@@ -73,11 +74,14 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
   // Resolve the video source once, at the top level, so the blob URL below can
   // be memoized on the actual source (Uint8Array/string) identity. A byte
   // payload uses the inline `data`; otherwise the `uri` is used directly.
+  // A stored ref carries a `/api/storage/…` (or signed) URL: `resolveUri`
+  // prefixes BASE_URL for the relative form and passes an absolute one
+  // through, the same way the image branch resolves via `createImageUrl`.
   const videoSource: string | Uint8Array | undefined =
     content.type === "video"
-      ? content.video?.uri === ""
-        ? (content.video?.data as Uint8Array)
-        : content.video?.uri
+      ? content.video?.uri
+        ? resolveUri(content.video.uri)
+        : (content.video?.data as Uint8Array)
       : undefined;
 
   // Mint the blob URL only when the source actually changes. Doing this in the
@@ -198,9 +202,9 @@ export const MessageContentRenderer: React.FC<MessageContentRendererProps> = Rea
         <div css={wrapperStyles} {...dragProps}>
           <AudioPlayer
             source={
-              content.audio?.uri === ""
-                ? (content.audio?.data as Uint8Array)
-                : content.audio?.uri
+              content.audio?.uri
+                ? resolveUri(content.audio.uri)
+                : (content.audio?.data as Uint8Array)
             }
           />
           {addButton}

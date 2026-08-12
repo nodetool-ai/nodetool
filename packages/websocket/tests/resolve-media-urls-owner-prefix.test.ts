@@ -15,7 +15,8 @@ const fsMocks = vi.hoisted(() => ({ existing: new Set<string>() }));
 
 vi.mock("@nodetool-ai/config", () => ({
   buildAssetUrl: (key: string) => `/api/storage/${key}`,
-  getAssetFilePath: (key: string) => `/var/assets/${key}`
+  getAssetFilePath: (key: string) => `/var/assets/${key}`,
+  loadAssetStorageConfig: () => ({ kind: "file" })
 }));
 
 vi.mock("node:fs", async (orig) => {
@@ -34,30 +35,30 @@ import {
 type Block = { image: { uri: string } };
 
 describe("resolveContentUrls with a known owner", () => {
-  it("builds the owner-prefixed key the bytes were written under", () => {
+  it("builds the owner-prefixed key the bytes were written under", async () => {
     const content = [
       { type: "image", image: { asset_id: "abc", mimeType: "image/png" } }
     ];
-    const out = resolveContentUrls(content, "user-1") as Block[];
+    const out = (await resolveContentUrls(content, "user-1")) as Block[];
     expect(out[0].image.uri).toBe("/api/storage/user-1/abc.png");
   });
 
-  it("keeps the flat legacy key when no owner is known", () => {
+  it("keeps the flat legacy key when no owner is known", async () => {
     const content = [
       { type: "image", image: { asset_id: "abc", mimeType: "image/png" } }
     ];
-    const out = resolveContentUrls(content) as Block[];
+    const out = (await resolveContentUrls(content)) as Block[];
     expect(out[0].image.uri).toBe("/api/storage/abc.png");
   });
 
-  it("prefixes video and audio refs too", () => {
-    const out = resolveContentUrls(
+  it("prefixes video and audio refs too", async () => {
+    const out = (await resolveContentUrls(
       [
         { type: "video", video: { asset_id: "v" } },
         { type: "audio", audio: { asset_id: "a" } }
       ],
       "user-1"
-    ) as Array<{ video?: { uri: string }; audio?: { uri: string } }>;
+    )) as Array<{ video?: { uri: string }; audio?: { uri: string } }>;
     expect(out[0].video?.uri).toBe("/api/storage/user-1/v.mp4");
     expect(out[1].audio?.uri).toBe("/api/storage/user-1/a.wav");
   });

@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.asset`.
  */
 
-import { eq, and, like, desc, isNull, lt, inArray } from "drizzle-orm";
+import { eq, and, or, like, desc, isNull, lt, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
 import { assets } from "./schema/assets.js";
@@ -123,6 +123,16 @@ export class Asset extends DBModel {
     if (parentId !== undefined) {
       if (parentId === null) {
         conditions.push(isNull(assets.parent_id));
+      } else if (parentId === userId) {
+        // Home. A row with no parent lives here too — that is what
+        // `getFolderInfo` reports for it, and what the asset browser has to
+        // show or the asset is unreachable. Server-side writers (chat media
+        // generation, the generate-media RPC, workflow node outputs) filed
+        // their assets with a null parent, so an exact match on the home id
+        // hid every one of them from the browser.
+        conditions.push(
+          or(eq(assets.parent_id, parentId), isNull(assets.parent_id))!
+        );
       } else {
         conditions.push(eq(assets.parent_id, parentId));
       }

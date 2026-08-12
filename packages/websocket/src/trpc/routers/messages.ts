@@ -19,7 +19,9 @@ import {
   type MessageResponse
 } from "@nodetool-ai/protocol/api-schemas/messages.js";
 
-function toMessageResponse(msg: MessageModel): MessageResponse {
+async function toMessageResponse(
+  msg: MessageModel
+): Promise<MessageResponse> {
   return {
     type: "message" as const,
     id: msg.id,
@@ -27,7 +29,7 @@ function toMessageResponse(msg: MessageModel): MessageResponse {
     thread_id: msg.thread_id,
     role: msg.role,
     name: msg.name ?? null,
-    content: resolveContentUrls(
+    content: await resolveContentUrls(
       msg.content as string | unknown[] | Record<string, unknown> | null,
       msg.user_id
     ),
@@ -65,7 +67,7 @@ export const messagesRouter = router({
         }
       }
       return {
-        messages: msgs.map((m) => toMessageResponse(m)),
+        messages: await Promise.all(msgs.map((m) => toMessageResponse(m))),
         next: cursor || null
       };
     })
