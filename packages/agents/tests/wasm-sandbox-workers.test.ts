@@ -198,14 +198,16 @@ describe("the WASM worker pool over real threads", () => {
     // healthy until exactly here.
     const factory = new CountingFactory();
     const pool = new WasmWorkerPool(1, factory);
+    // The per-call timeout also covers spawning the replacement worker, so it
+    // needs headroom for a starved CI runner — 150 ms flaked there.
     const dispatcher = createSandboxWasmDispatcher(
-      [referenceWasmModule({ limits: { callTimeoutMs: 150 } })],
+      [referenceWasmModule({ limits: { callTimeoutMs: 2000 } })],
       { pool }
     );
     if (dispatcher === undefined) throw new Error("expected a dispatcher");
 
     await expect(dispatcher.call(REFERENCE_SPECIFIER, "spin", [])).rejects.toThrow(
-      /exceeded its 150 ms per-call timeout; the worker was terminated and replaced/
+      /exceeded its 2000 ms per-call timeout; the worker was terminated and replaced/
     );
     expect(pool.replacements).toBe(1);
     expect(factory.terminated).toBe(1);

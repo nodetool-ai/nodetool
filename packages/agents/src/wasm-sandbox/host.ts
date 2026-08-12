@@ -428,15 +428,24 @@ export function createSandboxWasmDispatcher(
       wallClockUsed += reserved;
 
       const startedAt = Date.now();
+      let cutAtTimeout = false;
       try {
         // The effective timeout is the reservation, so the call cannot outrun
         // what it was actually admitted for.
         return await pool.run(compiled, exported.wasmName, converted, reserved, signal);
+      } catch (error) {
+        cutAtTimeout =
+          error instanceof SandboxWasmError &&
+          error.message.includes("per-call timeout");
+        throw error;
       } finally {
         // Replace the reservation with what the call really cost: a fast call
-        // refunds the difference, one that ran to its timeout charges what it
-        // took. The budget stays the documented sum of call durations.
-        wallClockUsed += Date.now() - startedAt - reserved;
+        // refunds the difference. A call cut at its timeout keeps at least its
+        // full reservation — the kill can be measured a millisecond early, and
+        // refunding that sliver admits a next call the budget says is refused.
+        const elapsed = Date.now() - startedAt;
+        wallClockUsed +=
+          (cutAtTimeout ? Math.max(elapsed, reserved) : elapsed) - reserved;
         leave();
       }
     }
