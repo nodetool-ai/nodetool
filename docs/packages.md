@@ -82,7 +82,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
 }
 ```
 
-At startup, the runtime creates a `NodeRegistry` and calls each package's registration function. Workflows referencing `nodetool.list.Range` or `mypack.math.AddOffset` resolve through the registry without manual imports.
+At startup, the runtime creates a `NodeRegistry` and calls each package's registration function. Workflows referencing `nodetool.text.Concat` or `mypack.math.AddOffset` resolve through the registry without manual imports.
 
 ## Managing Packages via CLI
 

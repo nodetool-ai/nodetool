@@ -135,16 +135,18 @@ const config = yaml.load(inputs.text);
 return { config };
 ```
 
-NodeTool ships twenty (`packages/sandbox-packs/`): `-dates` (date-fns),
+NodeTool ships twenty-one (`packages/sandbox-packs/`): `-dates` (date-fns),
 `-yaml` (js-yaml) and `-markdown` (marked) run inside the guest; `-csv`
 (papaparse), `-html` (cheerio + turndown), `-xml` (fast-xml-parser), `-xlsx`
-(exceljs), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js) and `-tfjs`
-(TensorFlow.js and its model zoo) run on the host behind a generated facade,
-because they need Node builtins or a DOM, or carry a limit the guest could not
-enforce on itself (zip's 50 MB inflation cap), or hold state no run can keep
-alive (the tfjs weights). Five more carry NodeTool's own code rather than a
-library — `-aws` signs a request with SigV4, and `-notion`, `-supabase`,
-`-twilio` and `-apify` build an authenticated one — and none of them sends it:
+(exceljs), `-diff` (diff), `-zip` (fflate), `-ocr` (tesseract.js), `-tfjs`
+(TensorFlow.js and its model zoo), `-docx` (docx), `-mammoth` (mammoth),
+`-epub` (epub2), `-pptx` (office-text-extractor) and `-pdf` (pdf-parse) run on
+the host behind a generated facade, because they need Node builtins or a DOM,
+or carry a limit the guest could not enforce on itself (zip's 50 MB inflation
+cap), or hold state no run can keep alive (the tfjs weights). Five more carry
+NodeTool's own code rather than a library — `-aws` signs a request with SigV4,
+and `-notion`, `-supabase`, `-twilio` and `-apify` build an authenticated one —
+and none of them sends it:
 the guest passes what comes back to its own `fetch`, under the run's fetch cap
 and SSRF guard. Every shipped pack is available out of the box — a checkout, the
 desktop app and the server image each read them from where their own build put

@@ -10,7 +10,7 @@ description: "How to add new Together AI models and workflow nodes to NodeTool â
 
 1. Edit `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS`, or `ASR_MODELS` in `scripts/generate-manifest.mjs`.
 2. Run `npm run gen:manifest` â€” rewrites `src/together-manifest.json`.
-3. Run `npm run build` in the package, then `npm run typecheck && npm run test`.
+3. Run `npm run build` in the package, then `npm run lint && npm run test` (`lint` is `tsc --noEmit`).
 4. For TTS / ASR / embedding **provider-side** models only: also update the static arrays in `packages/runtime/src/providers/together-provider.ts`.
 5. Verify with `nodetool node run together.<module>.<ClassName>`.
 

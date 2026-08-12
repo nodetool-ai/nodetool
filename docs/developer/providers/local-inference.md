@@ -189,8 +189,8 @@ npm run lint
 
 # 3. Set the URL and run a single node against it
 export LLAMA_CPP_URL=http://127.0.0.1:8080
-npm run dev:nodetool -- node run nodetool.text.llm.LlamaAgent \
-  --props '{"prompt": "What is 2+2?", "model": {"provider": "llama_cpp", "model": "your-model-id"}}' 
+npm run dev:nodetool -- node run nodetool.agents.Agent \
+  --props '{"prompt": "What is 2+2?", "model": {"type": "language_model", "provider": "llama_cpp", "id": "your-model-id"}}' 
 
 # Or use the chat CLI
 npm run dev:chat -- --agent --provider llama_cpp --model your-model-id

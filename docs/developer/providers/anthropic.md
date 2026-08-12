@@ -163,6 +163,6 @@ With `ANTHROPIC_API_KEY` configured, inspect discovery and run a small request:
 
 ```bash
 npm run dev:nodetool -- info --json
-npm run dev:nodetool -- node run nodetool.llm.Claude \
-  --props '{"prompt":"hello","model":"claude-sonnet-5","max_tokens":50}'
+npm run dev:nodetool -- node run nodetool.agents.Agent \
+  --props '{"prompt":"hello","model":{"type":"language_model","provider":"anthropic","id":"claude-sonnet-5"},"max_tokens":50}'
 ```

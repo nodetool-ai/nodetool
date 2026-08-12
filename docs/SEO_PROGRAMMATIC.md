@@ -290,7 +290,7 @@ plumbing in `marketing/`:
 3. `/showcase/[slug]` route reading the generated showcase manifest.
 
 **Layer 2 — content production (NodeTool workflows in `marketing/seo/workflows/`, DSL `.ts`
-files, run via `nodetool run <file> --params`).** Four workflows:
+files, run via `nodetool workflows run <file> --params`).** Four workflows:
 
 - **Showcase Seeder** — inputs: template slug, model list, prompt count. An agent or
   `ListGenerator` writes prompt variants in the template's domain, each fans out through
