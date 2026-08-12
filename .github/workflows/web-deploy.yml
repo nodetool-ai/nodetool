@@ -1,14 +1,29 @@
 name: Web Deploy (Cloudflare Pages)
 
-# Deploys the web app (web/, a Vite SPA) to Cloudflare Pages from GitHub Actions
-# instead of Cloudflare's git integration, which built on every push with no
-# control over the toolchain or build state. This builds on the pinned Node
-# version and ships only after the build succeeds.
+# Deploys the web app (web/, a Vite SPA) to Cloudflare Pages — but only AFTER
+# the backend it talks to has actually been released.
+#
+# Why the chain: the SPA used to deploy on every push to main while the Fly
+# release ("Deploy to Fly") is gated on Docker + the reliability Ring 1 suite
+# ("User Journeys") being green for the same commit. Any Ring 1 red therefore
+# parked the backend while the frontend kept shipping, and a frontend built
+# against newer node metadata crashed on boot against the old API (17 h of
+# version skew on 2026-08-11). So this workflow now workflow_run-triggers on
+# "Deploy to Fly" completing, and the `gate` job releases the SPA only when
+# that run's "Deploy server" job really ran and succeeded — not when it was
+# skipped for a superseded commit (the newer commit's own chain ships both).
+# The remaining skew window is the few minutes where the backend is newer than
+# the SPA, which is the benign direction: the crash was a NEW frontend
+# hydrating OLD metadata, never the reverse.
+#
+# workflow_run has no path filtering, so the old paths-ignore list is gone:
+# every released backend commit also redeploys the SPA. Docker builds on every
+# push to main, so web-only changes still flow through; a docs-only commit now
+# costs one redundant, idempotent Pages upload.
 #
 # The web bundle inlines @nodetool-ai/* package SOURCE (the `nodetool-dev` Vite
 # resolve condition) and reads generated pricing JSONs produced by
-# `build:packages`, so package changes affect the bundle — hence this runs on
-# every push to main except changes that can't reach the bundle.
+# `build:packages`, so package changes affect the bundle.
 #
 # Required GitHub config (Settings → Secrets and variables → Actions):
 #   Secrets:
@@ -25,7 +40,7 @@ name: Web Deploy (Cloudflare Pages)
 #                                     hide it from this workflow, not from users.
 #     VITE_AUTH_REDIRECT_URL        — optional OAuth redirect URL
 #
-# This job runs in the `web-production` environment, so the secrets/variables
+# The deploy job runs in the `web-production` environment, so the secrets/variables
 # above must be visible to it: set them either at the repository level or on the
 # `web-production` environment itself (Settings → Environments → web-production).
 # An env-scoped secret defined only on a DIFFERENT environment (e.g. the
@@ -39,21 +54,20 @@ name: Web Deploy (Cloudflare Pages)
 # only deployed from here.
 
 on:
-  push:
-    branches:
-      - main
-    paths-ignore:
-      - "marketing/**"
-      - "docs/**"
-      - "mobile/**"
-      - "electron/**"
-      - "**/*.md"
+  workflow_run:
+    workflows: ["Deploy to Fly"]
+    types: [completed]
+    branches: [main]
+  # Manual deploy of the current ref, bypassing the backend-release gate —
+  # for emergencies and web-only hotfixes.
   workflow_dispatch:
 
-# Least-privilege token: the build only reads the repo; the Pages deploy
-# authenticates with its own Cloudflare API token, not GITHUB_TOKEN.
+# The build only reads the repo; the Pages deploy authenticates with its own
+# Cloudflare API token. `actions: read` lets the gate inspect the triggering
+# Fly run's jobs.
 permissions:
   contents: read
+  actions: read
 
 # One deploy at a time; let an in-flight upload finish rather than cancelling it.
 concurrency:
@@ -61,8 +75,52 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  # Confirms the triggering "Deploy to Fly" run actually released the backend:
+  # its "Deploy server" job must have concluded `success`. A `skipped`
+  # conclusion means Fly's gate declined the release (commit superseded on
+  # main, or Ring 1/Docker red) — shipping the SPA for that commit would
+  # recreate exactly the frontend-ahead-of-backend skew this chain exists to
+  # prevent, so we skip too and let the newer commit's chain deploy both.
+  gate:
+    name: Wait for backend release
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ github.event.workflow_run.head_sha }}
+      deploy: ${{ steps.check.outputs.deploy }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check the Fly run's deploy job conclusion
+        id: check
+        shell: bash
+        run: |
+          set -euo pipefail
+          repo="${{ github.repository }}"
+          run_id="${{ github.event.workflow_run.id }}"
+          sha="${{ github.event.workflow_run.head_sha }}"
+
+          conclusion="$(gh api "repos/${repo}/actions/runs/${run_id}/jobs?per_page=100" \
+            --jq '[.jobs[] | select(.name == "Deploy server")][0].conclusion // "missing"')"
+          echo "Fly run ${run_id} (commit ${sha}): 'Deploy server' concluded '${conclusion}'."
+
+          if [ "${conclusion}" = "success" ]; then
+            echo "deploy=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Backend was not released for ${sha} ('Deploy server' = '${conclusion}'); skipping the SPA deploy to keep frontend and backend in step."
+            echo "deploy=false" >> "$GITHUB_OUTPUT"
+          fi
+
   deploy:
     name: Build & deploy to Cloudflare Pages
+    needs: [gate]
+    # workflow_dispatch always runs (manual deploy of the current ref); on
+    # workflow_run the gate must have confirmed the backend release.
+    if: >
+      always() &&
+      (github.event_name == 'workflow_dispatch' ||
+       (needs.gate.result == 'success' && needs.gate.outputs.deploy == 'true'))
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -71,6 +129,9 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
+          # Build the SPA at the exact commit whose backend just went live
+          # (falls back to the dispatch ref for manual runs).
+          ref: ${{ needs.gate.outputs.sha || github.sha }}
           fetch-depth: 1
 
       # Fail fast with an actionable message if the Cloudflare credentials, the
