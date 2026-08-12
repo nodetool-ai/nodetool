@@ -79,6 +79,7 @@ async function runCodeBody(
     packages: readonly string[];
     secrets: readonly string[];
     timeoutSeconds: number;
+    inputStreams?: Record<string, unknown[]>;
   }
 ): Promise<HarnessRunResult> {
   const {
@@ -148,13 +149,21 @@ return __yielded;`
     state: {} as Record<string, unknown>
   };
 
+  // A body reading `stream` needs a source, or every verb throws. Only a call
+  // that staged items gets one — without `inputStreams` the harness behaves
+  // exactly as before.
+  const staged = params.inputStreams
+    ? stagedInputStreams(params.inputStreams)
+    : undefined;
+
   const result = await runInSandbox({
     code: body,
     context: run.context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,
     limits: { secretScope: [...params.secrets] },
-    ...(modules ? { modules } : {})
+    ...(modules ? { modules } : {}),
+    ...(staged ?? {})
   });
 
   const logs = result.logs ?? [];
@@ -189,9 +198,80 @@ return __yielded;`
   };
 }
 
+/**
+ * Feed pre-staged items to a body that reads its inputs with `stream`.
+ *
+ * The kernel answers a take out of a live inbox; here every item is known up
+ * front, so arrival order has to be defined rather than observed. It is
+ * round-robin by index across the handles in declaration order — item 0 of
+ * every handle, then item 1, and so on — which is what `stream.any()` yields.
+ * A named take pops that handle's own queue and drops its next slot from the
+ * arrival order, so a body mixing `stream("a")` with `stream.any()` never sees
+ * one item twice.
+ */
+function stagedInputStreams(streams: Record<string, unknown[]>): {
+  onTakeInput: (handle: string | null) => Promise<
+    { done: true } | { done: false; handle: string; value: unknown }
+  >;
+  onStreamOpen: (handle: string) => boolean;
+} {
+  const queues = new Map<string, unknown[]>(
+    Object.entries(streams).map(([handle, values]) => [
+      handle,
+      Array.isArray(values) ? [...values] : []
+    ])
+  );
+  const arrival: string[] = [];
+  const deepest = Math.max(
+    0,
+    ...[...queues.values()].map((queue) => queue.length)
+  );
+  for (let index = 0; index < deepest; index++) {
+    for (const [handle, queue] of queues) {
+      if (queue.length > index) arrival.push(handle);
+    }
+  }
+
+  const dropFromArrival = (handle: string): void => {
+    const at = arrival.indexOf(handle);
+    if (at >= 0) arrival.splice(at, 1);
+  };
+
+  return {
+    onTakeInput: async (handle) => {
+      const next = handle ?? arrival[0];
+      if (next === undefined) return { done: true };
+      const queue = queues.get(next);
+      if (!queue || queue.length === 0) return { done: true };
+      dropFromArrival(next);
+      return { done: false, handle: next, value: queue.shift() };
+    },
+    onStreamOpen: (handle) => (queues.get(handle)?.length ?? 0) > 0
+  };
+}
+
 function stringList(value: unknown): string[] {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
+}
+
+/**
+ * `{handle: [items]}` staged for a body that reads `stream`. Entries that are
+ * not arrays are dropped: a handle with nothing behind it reads as ended.
+ */
+function inputStreamBag(
+  value: unknown
+): Record<string, unknown[]> | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const staged: Record<string, unknown[]> = {};
+  for (const [handle, items] of Object.entries(
+    value as Record<string, unknown>
+  )) {
+    if (Array.isArray(items)) staged[handle] = [...items];
+  }
+  return Object.keys(staged).length > 0 ? staged : undefined;
 }
 
 function inputBag(value: unknown): Record<string, unknown> {
@@ -283,7 +363,10 @@ const runCode: CapabilityExport = {
       inputs: inputBag(params["inputs"]),
       packages: stringList(params["packages"]),
       secrets: stringList(params["secrets"]),
-      timeoutSeconds: timeoutSeconds(params["timeout_seconds"])
+      timeoutSeconds: timeoutSeconds(params["timeout_seconds"]),
+      ...(inputStreamBag(params["input_streams"]) !== undefined
+        ? { inputStreams: inputStreamBag(params["input_streams"])! }
+        : {})
     })
 };
 
@@ -366,12 +449,14 @@ const testCode: CapabilityExport = {
         ? (raw["expected_streamed"] as unknown[])
         : undefined;
 
+      const staged = inputStreamBag(raw["input_streams"]);
       const outcome = await runCodeBody(run, {
         code,
         inputs: inputBag(raw["inputs"]),
         packages,
         secrets,
-        timeoutSeconds: timeout
+        timeoutSeconds: timeout,
+        ...(staged !== undefined ? { inputStreams: staged } : {})
       });
 
       const mismatches: TestCaseReport["mismatches"] = [];

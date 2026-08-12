@@ -643,6 +643,14 @@ const GUEST_HELPER_DOCS: { [K in GuestHelperName]: SandboxMemberDoc } = {
       "Run an async function over items with at most `concurrency` in flight, preserving input order. The bounded form of Promise.all fan-out — the way to fetch many URLs in parallel. Rejects on the first failure; wrap fn in try/catch to collect errors instead.",
     async: true
   },
+  stream: {
+    name: "stream",
+    signature:
+      "for await (const item of stream(name)) // plus stream.any(), await stream.first(name), stream.open(name)",
+    description:
+      "Read an input handle as it arrives. stream(name) iterates one handle in order until end-of-stream, stream.any() interleaves every handle as [handle, value] pairs, stream.first(name) takes the next value (undefined at end-of-stream), and stream.open(name) answers synchronously whether more can arrive. Only a body the host runs in streaming-input mode has them; anywhere else every call throws.",
+    async: true
+  },
   createCanvas: {
     name: "createCanvas",
     signature:
@@ -867,6 +875,7 @@ export const GUEST_GLOBALS_SNAPSHOT: readonly string[] = [
   "queueMicrotask",
   "sandboxToAsset",
   "sleep",
+  "stream",
   "toBase64",
   "toHex",
   "undefined",

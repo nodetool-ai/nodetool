@@ -149,7 +149,21 @@ export const MAX_PROGRESS_MESSAGE_CHARS = 500;
  * run may stay suspended in total, so a prompt nobody ever answers still ends.
  */
 export const DEFAULT_SUSPEND_ALLOWANCE_MS = 30 * 60 * 1000;
-
+/**
+ * The engine's wall-clock abort is a `setTimeout`, and Node fires a delay past
+ * this immediately instead of never — so this is the practical "no backstop".
+ */
+const MAX_ENGINE_TIMEOUT_MS = 2_147_483_647;
+/**
+ * Suspension allowance a run with an input stream gets by default.
+ *
+ * Effectively unbounded, deliberately: a streaming body legitimately lives as
+ * long as its upstream produces, and the run's own cancellation is the lifetime
+ * bound. A stream that never ends is the upstream's bug, surfaced by the
+ * runner — not a reason to kill a correct consumer. A caller that wants a
+ * shorter leash passes {@link RunSandboxOptions.suspendAllowanceMs}.
+ */
+export const INPUT_STREAM_SUSPEND_ALLOWANCE_MS = MAX_ENGINE_TIMEOUT_MS;
 
 /** Host sink for guest `progress()` calls. */
 export type SandboxProgressCallback = (
@@ -171,6 +185,61 @@ export type SandboxEmitCallback = (
 export interface SandboxEmittedValue {
   name: string;
   value: unknown;
+}
+
+/**
+ * One answer to a guest take: the next value for a handle, or end-of-stream.
+ *
+ * `done: true` ends the iteration the guest is driving — for a named handle
+ * that upstream produced everything it will, for {@link SandboxTakeInputCallback}
+ * called with `null` that every handle has.
+ */
+export type SandboxInputTake =
+  | { done: true }
+  | { done: false; handle: string; value: unknown };
+
+/**
+ * Host source behind the guest's `stream` global.
+ *
+ * `handle` names one input handle, or is `null` for `stream.any()` — "the next
+ * value on any handle, in arrival order". The host keeps the iteration state
+ * (one inbox iterator per handle plus one for `any`); the sandbox only relays
+ * the call and marshals the answer. The returned `value` must already be
+ * JSON-safe: the sandbox tags bytes for the guest prelude to revive but does
+ * not deep-copy, exactly as with `globals`.
+ */
+export type SandboxTakeInputCallback = (
+  handle: string | null
+) => Promise<SandboxInputTake>;
+
+/**
+ * Host answer to `stream.open(name)`: could more arrive on this handle?
+ *
+ * Synchronous, because the guest call is — the value is inbox state the host
+ * already holds, and an awaitable answer would make `if (stream.open(h))` read
+ * true on a pending promise.
+ */
+export type SandboxStreamOpenCallback = (handle: string) => boolean;
+
+/**
+ * What the guest is told when it calls `stream` in a run that has no input
+ * stream behind it. Shared by the host bridge and the guest prelude so both
+ * paths say the same thing.
+ */
+export const NO_INPUT_STREAM_MESSAGE =
+  "stream() requires streaming-input mode; this run has no input stream";
+
+/** The input-side bridges {@link buildSandbox} wires behind the `stream` global. */
+export interface SandboxInputStreams {
+  /** Source of values. Without it every `stream` call throws. */
+  onTakeInput?: SandboxTakeInputCallback;
+  /** Answer to `stream.open(name)`. Without it every handle reads closed. */
+  onStreamOpen?: SandboxStreamOpenCallback;
+  /**
+   * Clock suspended while a take is parked. Waiting on upstream is not guest
+   * execution, so it must not be charged to the run's timeout.
+   */
+  clock?: SandboxClock;
 }
 
 /**
@@ -928,13 +997,17 @@ export interface SandboxResult {
  *                 guest function is a no-op.
  * @param onEmit   Optional sink for guest `emit()` calls. Without one the values
  *                 are collected and handed back through `getEmitted`.
+ * @param streams  Optional input bridges behind the guest `stream` global.
+ *                 Without an `onTakeInput` every `stream` call throws
+ *                 {@link NO_INPUT_STREAM_MESSAGE}.
  */
 export function buildSandbox(
   context?: ProcessingContext,
   signal?: AbortSignal,
   limits?: SandboxLimits,
   onProgress?: SandboxProgressCallback,
-  onEmit?: SandboxEmitCallback
+  onEmit?: SandboxEmitCallback,
+  streams?: SandboxInputStreams
 ): SandboxResult {
   const logs: string[] = [];
   const resolvedLimits = resolveSandboxLimits(limits);
@@ -1530,6 +1603,48 @@ export function buildSandbox(
     outputs.set(handle, serializeResult(value, resolvedLimits.maxOutputSize));
   };
 
+  // Input delivery, the mirror of `emit`: the guest pulls one value at a time
+  // and the host answers from the inbox it owns. Backpressure is free — an item
+  // nobody asked for stays upstream.
+  const takeInput = async (name: unknown): Promise<SandboxInputTake> => {
+    if (!streams?.onTakeInput) {
+      throw new Error(NO_INPUT_STREAM_MESSAGE);
+    }
+    if (name !== null && typeof name !== "string") {
+      throw new TypeError("stream: name must be a string");
+    }
+    // Waiting on upstream is not the guest executing, so it must not spend the
+    // guest's timeout budget. The clock stops until the value (or EOS) lands.
+    const resume = streams.clock?.suspend();
+    try {
+      const take = await streams.onTakeInput(name);
+      if (take.done) return { done: true };
+      return {
+        done: false,
+        handle: take.handle,
+        value: toGuestBytesDeep(take.value)
+      };
+    } finally {
+      resume?.();
+    }
+  };
+
+  // Synchronous and never throwing, which is what lets the guest read it as a
+  // plain boolean: an awaitable answer would make `if (stream.open(h))` true on
+  // a pending promise. `null` is the one non-answer — this run has no input
+  // stream at all — and the prelude turns it into the thrown error.
+  const streamOpen = (name: unknown): boolean | null => {
+    if (!streams?.onTakeInput) return null;
+    if (typeof name !== "string" || !streams.onStreamOpen) return false;
+    try {
+      return streams.onStreamOpen(name) === true;
+    } catch {
+      // A host probe that throws answers "closed" rather than taking the run
+      // down: the take itself is where a broken inbox must surface.
+      return false;
+    }
+  };
+
   // QuickJS ships no Intl, so locale-aware formatting has to come from the
   // host. Async + never-reject like the other bridges: a bad locale or option
   // surfaces in the guest as a thrown Error with Intl's own message.
@@ -1712,6 +1827,10 @@ export function buildSandbox(
     progress,
     emit,
     output,
+    // Behind the `stream` global the prelude builds; never reachable by name,
+    // which is why they are not in EXPOSED_BRIDGE_NAMES.
+    [SANDBOX_INPUT_TAKE_BINDING]: takeInput,
+    [SANDBOX_STREAM_OPEN_BINDING]: streamOpen,
     format,
     image,
     canvas,
@@ -1885,6 +2004,13 @@ const CAPABILITY_BRIDGE_MODULE_ID = `${GUEST_MODULE_PREFIX}capability-bridge`;
 
 /** Name the host parks the raw (never-rejecting) capability dispatcher on. */
 export const SANDBOX_CAPABILITY_BRIDGE_BINDING = "__capabilityCall";
+
+/**
+ * Names the host parks the input bridges on, which the prelude captures and
+ * then deletes — the guest reaches them only through `stream`.
+ */
+export const SANDBOX_INPUT_TAKE_BINDING = "__takeInput";
+export const SANDBOX_STREAM_OPEN_BINDING = "__streamOpen";
 
 /**
  * The platform modules one run mounts: guest specifier → generated facade
@@ -2184,6 +2310,27 @@ export interface RunSandboxOptions {
    */
   onEmit?: SandboxEmitCallback;
   /**
+   * Source behind the guest `stream` global: the host answers one take at a
+   * time, with `null` meaning "any handle, arrival order" (`stream.any()`).
+   * Without it the guest still has `stream`, and every call throws
+   * {@link NO_INPUT_STREAM_MESSAGE} — a body that streams must be run by a host
+   * that can feed it.
+   *
+   * A run with this set is metered differently: time parked on a take is
+   * clock-suspended, so the timeout bounds guest execution only, and the
+   * engine's own wall-clock backstop is widened to
+   * {@link INPUT_STREAM_SUSPEND_ALLOWANCE_MS} unless the caller names an
+   * allowance. A streaming body legitimately lives as long as its upstream;
+   * cancelling the run is what ends it.
+   */
+  onTakeInput?: SandboxTakeInputCallback;
+  /**
+   * Answer to `stream.open(name)`. Read synchronously, so the guest sees a
+   * boolean. Without it — even with {@link onTakeInput} set — every handle
+   * reads closed.
+   */
+  onStreamOpen?: SandboxStreamOpenCallback;
+  /**
    * Wall clock the host can stop while the guest waits on a round-trip it
    * cannot hurry (a permission prompt). Time suspended is added back to
    * {@link timeoutMs}, so the guest keeps its full execution budget across the
@@ -2289,14 +2436,20 @@ export const EXPOSED_BRIDGE_NAMES = [
 
 export type ExposedBridgeName = (typeof EXPOSED_BRIDGE_NAMES)[number];
 
-/** Pure helpers the guest prelude defines — no host call behind them. */
+/**
+ * Globals the guest prelude defines rather than the host marshals. All but
+ * `stream` are pure — no host call behind them; `stream` is built here because
+ * an async iterable cannot cross the bridge, so the prelude wraps the two
+ * private input bindings into one.
+ */
 export const GUEST_HELPER_NAMES = [
   "toBase64",
   "fromBase64",
   "toHex",
   "fromHex",
   "parallelMap",
-  "createCanvas"
+  "createCanvas",
+  "stream"
 ] as const;
 
 export type GuestHelperName = (typeof GUEST_HELPER_NAMES)[number];
@@ -2331,7 +2484,9 @@ export const RESERVED_SANDBOX_NAMES: ReadonlySet<string> = new Set<string>([
   SANDBOX_WASM_BRIDGE_BINDING,
   SANDBOX_WASM_DISPATCH_GLOBAL,
   SANDBOX_CAPABILITY_BRIDGE_BINDING,
-  SANDBOX_CAPABILITY_DISPATCH_GLOBAL
+  SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
+  SANDBOX_INPUT_TAKE_BINDING,
+  SANDBOX_STREAM_OPEN_BINDING
 ]);
 
 /**
@@ -2352,13 +2507,22 @@ export async function runInSandbox(
     limits,
     onProgress,
     onEmit,
+    onTakeInput,
+    onStreamOpen,
     clock,
-    suspendAllowanceMs = DEFAULT_SUSPEND_ALLOWANCE_MS,
     modules,
     capabilities,
     wasmPool
   } = options;
   const resolvedLimits = resolveSandboxLimits(limits);
+  // A streaming run needs a clock whether or not the caller brought one: the
+  // time it spends parked on upstream is not its own execution.
+  const activeClock = clock ?? (onTakeInput ? createSandboxClock() : undefined);
+  const suspendAllowanceMs =
+    options.suspendAllowanceMs ??
+    (onTakeInput
+      ? INPUT_STREAM_SUSPEND_ALLOWANCE_MS
+      : DEFAULT_SUSPEND_ALLOWANCE_MS);
 
   if (!code.trim()) {
     return { success: false, error: "No code provided", logs: [] };
@@ -2403,7 +2567,12 @@ export async function runInSandbox(
     signal,
     resolvedLimits,
     onProgress,
-    onEmit
+    onEmit,
+    {
+      ...(onTakeInput === undefined ? {} : { onTakeInput }),
+      ...(onStreamOpen === undefined ? {} : { onStreamOpen }),
+      ...(activeClock === undefined ? {} : { clock: activeClock })
+    }
   );
 
   // User-supplied globals (dynamic inputs from CodeNode etc.) layer on top of
@@ -2442,7 +2611,7 @@ export async function runInSandbox(
         ctx.runtime.setInterruptHandler(
           () =>
             signal?.aborted === true ||
-            Date.now() > deadline + (clock?.suspendedMs() ?? 0)
+            Date.now() > deadline + (activeClock?.suspendedMs() ?? 0)
         );
 
         const bridges: Record<string, unknown> = {};
@@ -2463,6 +2632,15 @@ export async function runInSandbox(
         bridges.sandboxToAsset = wrap(bridges.sandboxToAsset as never);
         bridges.emit = wrap(bridges.emit as never);
         bridges.output = wrap(bridges.output as never);
+        // The input bridges are not in EXPOSED_BRIDGE_NAMES — the prelude
+        // captures them, builds `stream` on top, and deletes them. The take is
+        // async like every other host call; the open probe is synchronous and
+        // never throws, so it stays unwrapped (the `crypto.randomUUID` rule).
+        bridges[SANDBOX_INPUT_TAKE_BINDING] = wrap(
+          sandbox[SANDBOX_INPUT_TAKE_BINDING] as never
+        );
+        bridges[SANDBOX_STREAM_OPEN_BINDING] =
+          sandbox[SANDBOX_STREAM_OPEN_BINDING];
         // Object bridges whose members are all async: wrap each member.
         const wrapAllMembers = (bridge: unknown): Record<string, unknown> => {
           const out: Record<string, unknown> = {};
@@ -2694,6 +2872,49 @@ for (const __m of ${JSON.stringify(MEDIA_REF_MEMBERS)}) {
   __mediaOut[__m] = __wrapDeep(__mediaBridge[__m]);
 }
 globalThis.media = __mediaOut;
+// The input side of emit. An async iterable cannot cross the bridge, so the
+// guest builds one over a take-one-value host call: the body pulls, and an item
+// it has not asked for stays in the host's inbox. The raw bindings are captured
+// and deleted, so \`stream\` is the only way to reach them.
+const __takeInput = __wrapDeep(globalThis.${SANDBOX_INPUT_TAKE_BINDING});
+const __streamOpen = globalThis.${SANDBOX_STREAM_OPEN_BINDING};
+delete globalThis.${SANDBOX_INPUT_TAKE_BINDING};
+delete globalThis.${SANDBOX_STREAM_OPEN_BINDING};
+const __streamName = (fn, name) => {
+  if (typeof name !== "string") {
+    throw new TypeError(fn + ": name must be a string");
+  }
+  return name;
+};
+// \`handle\` is null for stream.any(), which yields [handle, value] pairs.
+const __streamIterable = (handle) => ({
+  [Symbol.asyncIterator]: () => ({
+    next: async () => {
+      const take = await __takeInput(handle);
+      if (take.done) return { done: true, value: undefined };
+      return {
+        done: false,
+        value: handle === null ? [take.handle, take.value] : take.value
+      };
+    }
+  })
+});
+globalThis.stream = (name) => __streamIterable(__streamName("stream", name));
+globalThis.stream.any = () => __streamIterable(null);
+globalThis.stream.first = async (name) => {
+  const take = await __takeInput(__streamName("stream.first", name));
+  return take.done ? undefined : take.value;
+};
+globalThis.stream.open = (name) => {
+  const open = __streamOpen(__streamName("stream.open", name));
+  // null is the host saying this run has no input stream at all. Every other
+  // stream verb reports that by throwing; this one has to do it here, because
+  // a synchronous bridge cannot.
+  if (open === null) {
+    throw new Error(${JSON.stringify(NO_INPUT_STREAM_MESSAGE)});
+  }
+  return open;
+};
 const __canvasProps = ${JSON.stringify(CANVAS_PROPERTIES)};
 const __canvasMethods = ${JSON.stringify(CANVAS_METHODS)};
 const __canvasGradients = ${JSON.stringify(CANVAS_GRADIENT_FACTORIES)};
@@ -2873,8 +3094,11 @@ export default true;`,
         // starts — it cannot be paused. With a clock in play it becomes the
         // backstop for a run that stays suspended forever, while the interrupt
         // handler above keeps the exact bound on guest execution.
-        executionTimeout: clock
-          ? timeoutMs + Math.max(0, suspendAllowanceMs)
+        executionTimeout: activeClock
+          ? Math.min(
+              timeoutMs + Math.max(0, suspendAllowanceMs),
+              MAX_ENGINE_TIMEOUT_MS
+            )
           : timeoutMs,
         memoryLimit: resolvedLimits.memoryLimitBytes,
         maxStackSize: resolvedLimits.stackLimitBytes,

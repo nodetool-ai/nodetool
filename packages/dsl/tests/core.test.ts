@@ -36,6 +36,23 @@ describe("isOutputHandle", () => {
 });
 
 describe("createNode", () => {
+  test("stamps the Code node's streaming-input flag from its body", () => {
+    const streaming = createNode<SingleOutput<number>>("nodetool.code.Code", {
+      code: 'for await (const n of stream("numbers")) { await emit("n", n); }'
+    });
+    const buffered = createNode<SingleOutput<number>>("nodetool.code.Code", {
+      code: 'await output("n", inputs.numbers);'
+    });
+    // A DSL graph runs through `withExplicitNodeFlags`, so the flag on the
+    // descriptor is the only thing that puts the body in streaming mode.
+    const graph = workflow(streaming, buffered);
+    const flags = Object.fromEntries(
+      graph.nodes.map((node) => [node.id, node.streamingInput])
+    );
+    expect(flags[streaming.nodeId]).toBe(true);
+    expect(flags[buffered.nodeId]).toBe(false);
+  });
+
   test("returns frozen object with unique nodeId", () => {
     const node = createNode<SingleOutput<number>>("nodetool.math.Add", {
       lhs: 1,

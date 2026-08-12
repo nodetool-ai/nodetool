@@ -270,6 +270,114 @@ await output("total", inputs.items.length);`,
   });
 });
 
+describe("input streams", () => {
+  it("feeds a body that reads one handle with stream()", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: `let sum = 0;
+             for await (const n of stream("numbers")) {
+               sum += n;
+               await emit("running", sum);
+             }
+             await output("total", sum);`,
+      input_streams: { numbers: [1, 2, 3] }
+    })) as {
+      ok: boolean;
+      outputs: Record<string, unknown>;
+      streamed: { name: string; value: unknown }[];
+    };
+    expect(result.ok).toBe(true);
+    expect(result.streamed).toEqual([
+      { name: "running", value: 1 },
+      { name: "running", value: 3 },
+      { name: "running", value: 6 }
+    ]);
+    expect(result.outputs).toEqual({ total: 6 });
+  });
+
+  it("interleaves stream.any() round-robin by index", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: `for await (const [handle, value] of stream.any()) {
+               await emit("merged", handle + ":" + value);
+             }`,
+      input_streams: { left: ["l1", "l2"], right: ["r1"] }
+    })) as { ok: boolean; streamed: { value: unknown }[] };
+    expect(result.ok).toBe(true);
+    // Item 0 of each handle in declaration order, then item 1 — `right` has
+    // only one, so `left` finishes alone.
+    expect(result.streamed.map((entry) => entry.value)).toEqual([
+      "left:l1",
+      "right:r1",
+      "left:l2"
+    ]);
+  });
+
+  it("reports stream.first and stream.open over the staged items", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: `const first = await stream.first("config");
+             await output("first", first);
+             await output("open", stream.open("config"));
+             await output("second", (await stream.first("config")) ?? "eos");`,
+      input_streams: { config: [{ tone: "terse" }] }
+    })) as { ok: boolean; outputs: Record<string, unknown> };
+    expect(result.ok).toBe(true);
+    expect(result.outputs).toEqual({
+      first: { tone: "terse" },
+      open: false,
+      second: "eos"
+    });
+  });
+
+  it("tells a streaming body with no staged items that it has no stream", async () => {
+    const tool = toolForCapabilityName("run_code");
+    const result = (await tool.execute(context(), {
+      code: `for await (const n of stream("numbers")) { await emit("n", n); }`
+    })) as { ok: boolean; error: string };
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain("streaming-input mode");
+  });
+
+  it("grades a streaming body per case in test_code", async () => {
+    const tool = toolForCapabilityName("test_code");
+    const result = (await tool.execute(context(), {
+      code: `let count = 0;
+             for await (const item of stream("items")) {
+               count += 1;
+               await emit("item", item);
+             }
+             await output("count", count);`,
+      cases: [
+        {
+          name: "two items",
+          input_streams: { items: ["a", "b"] },
+          expect: { count: 2 },
+          expected_streamed: [
+            { name: "item", value: "a" },
+            { name: "item", value: "b" }
+          ]
+        },
+        {
+          name: "empty",
+          input_streams: { items: [] },
+          expect: { count: 1 }
+        }
+      ]
+    })) as {
+      ok: boolean;
+      passed: number;
+      failed: number;
+      results: { name: string; ok: boolean; mismatches: unknown[] }[];
+    };
+    expect(result.passed).toBe(1);
+    expect(result.failed).toBe(1);
+    expect(result.results[1]?.mismatches).toEqual([
+      { output: "count", expected: 1, actual: 0 }
+    ]);
+  });
+});
+
 describe("registration", () => {
   it("is on the builtin belt with the pinned categories", () => {
     expect(BUILTIN_TOOL_NAMES).toContain("validate_code");

@@ -1,5 +1,5 @@
 import { WorkflowRunner, withExplicitNodeFlags } from "@nodetool-ai/kernel";
-import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { NodeRegistry, usesStreamInputContract } from "@nodetool-ai/node-sdk";
 import {
   ProcessingContext,
   connectPythonBridgeForGraph,
@@ -11,6 +11,9 @@ import type {
   Edge,
   NodeUpdate
 } from "@nodetool-ai/protocol";
+
+/** The one node type whose streaming-input mode is decided per instance. */
+const CODE_NODE_TYPE = "nodetool.code.Code";
 
 export interface OutputHandle<T> {
   readonly __brand: "OutputHandle";
@@ -123,7 +126,15 @@ export function createNode<
 ): DslNode<TOutputs, TDefault> {
   const nodeId = crypto.randomUUID();
   const streaming = opts?.streaming ?? false;
-  const streamingInput = opts?.streamingInput ?? false;
+  // The generated helpers stamp `streamingInput` from per-type metadata, which
+  // cannot carry the Code node's answer: its mode is a property of the body.
+  // `run()` executes a DSL graph through `withExplicitNodeFlags`, never through
+  // registry hydration, so the probe has to run here or a streaming body would
+  // be invoked per item and never see its inputs.
+  const streamingInput =
+    opts?.streamingInput ??
+    (nodeType === CODE_NODE_TYPE &&
+      usesStreamInputContract(String(inputs?.["code"] ?? "")));
   const outputNames = opts?.outputNames
     ? [...opts.outputNames]
     : opts?.multiOutput

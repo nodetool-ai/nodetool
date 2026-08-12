@@ -62,6 +62,18 @@ export interface ResolvedNodeType {
   outputs?: Record<string, string>;
   supportsDynamicInputs?: boolean;
   descriptorDefaults?: Partial<NodeDescriptor>;
+  /**
+   * Flags only the individual node can answer, resolved from its saved
+   * properties. `descriptorDefaults` carries one value per node *type*, which
+   * cannot express a mode that lives in a node's own properties — a Code node
+   * streams its inputs when its body says so. When present, the answer takes
+   * the slot the matching `descriptorDefaults` flag holds, and the kernel stays
+   * registry-agnostic: it calls a function it was handed, as it already does
+   * for type resolution.
+   */
+  resolveInstanceFlags?: (node: {
+    properties?: Record<string, unknown>;
+  }) => { is_streaming_input?: boolean };
 }
 
 export type NodeTypeResolver =
@@ -399,6 +411,9 @@ export class Graph {
 
       const descriptorDefaults: Partial<NodeDescriptor> =
         resolved.descriptorDefaults ?? {};
+      // A per-instance answer, when the resolver has one for this type, is read
+      // from the node as saved — the same properties the node will run with.
+      const instanceFlags = resolved.resolveInstanceFlags?.(node) ?? {};
       const hydratedNode: HydratedNodeDescriptor = {
         ...descriptorDefaults,
         ...node,
@@ -425,7 +440,11 @@ export class Graph {
         // the flag (undefined), e.g. for unresolved/dynamic types. OR-ing here
         // would let a stale saved `true` survive a registry that migrated the
         // type to buffered/uncontrolled, silently running the wrong mode.
+        // A per-instance answer takes the slot the per-type default holds: it
+        // was resolved from this node's own properties, so it is the more
+        // specific registry opinion, not a saved claim.
         is_streaming_input:
+          instanceFlags.is_streaming_input ??
           descriptorDefaults.is_streaming_input ??
           node.is_streaming_input ??
           false,

@@ -352,6 +352,78 @@ export function outputCallNames(
   return { names: [...names], nonLiteral };
 }
 
+/** The global a body reads its input streams through. */
+export const CODE_STREAM_GLOBAL = "stream";
+
+/** Members of `stream` that take an input handle name as first argument. */
+const STREAM_NAMED_MEMBERS: readonly string[] = ["first", "open"];
+
+/** Input handles a body names through `stream` calls. */
+export interface StreamCallNames {
+  /** Literal handle names, in source order, deduplicated. */
+  names: string[];
+  /** A call whose first argument is not a string literal hides its handle. */
+  nonLiteral: boolean;
+  /** The body iterates every connected handle via `stream.any()`. */
+  usesAny: boolean;
+}
+
+/**
+ * Handles the body takes from via `stream(name)`, `stream.first(name)` and
+ * `stream.open(name)`, plus whether it also uses `stream.any()`.
+ *
+ * Presence in the AST is the whole rule, as for {@link outputCallNames}: a call
+ * inside a branch or a loop counts. `x.stream(…)` is a method on something else,
+ * and a body that binds `stream` itself reports nothing — the calls are that
+ * binding's, not the sandbox's.
+ */
+export function streamCallNames(
+  statements: readonly CodeBodyStatement[]
+): StreamCallNames {
+  if (collectBoundNamesFrom(statements).has(CODE_STREAM_GLOBAL)) {
+    return { names: [], nonLiteral: false, usesAny: false };
+  }
+  const names = new Set<string>();
+  let nonLiteral = false;
+  let usesAny = false;
+
+  walk(statements, (node) => {
+    if (node.type !== "CallExpression") return;
+    const callee = node.callee;
+
+    if (callee.type === "Identifier" && callee.name === CODE_STREAM_GLOBAL) {
+      addStreamName(node.arguments[0]);
+      return;
+    }
+    if (
+      callee.type !== "MemberExpression" ||
+      callee.computed ||
+      callee.object.type !== "Identifier" ||
+      callee.object.name !== CODE_STREAM_GLOBAL ||
+      callee.property.type !== "Identifier"
+    ) {
+      return;
+    }
+    if (callee.property.name === "any") {
+      usesAny = true;
+      return;
+    }
+    if (STREAM_NAMED_MEMBERS.includes(callee.property.name)) {
+      addStreamName(node.arguments[0]);
+    }
+  });
+
+  function addStreamName(first: acorn.AnyNode | null | undefined): void {
+    if (first?.type === "Literal" && typeof first.value === "string") {
+      names.add(first.value);
+      return;
+    }
+    nonLiteral = true;
+  }
+
+  return { names: [...names], nonLiteral, usesAny };
+}
+
 /** Names a binding pattern introduces (`const { a, b: [c] } = x`). */
 function patternNames(pattern: unknown, out: Set<string>): void {
   if (typeof pattern !== "object" || pattern === null) return;

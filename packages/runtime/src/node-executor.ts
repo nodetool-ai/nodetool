@@ -59,6 +59,15 @@ export interface StreamingInputs {
   hasStream(name: string): boolean;
 
   /**
+   * True if the handle has items already queued and not yet consumed.
+   * Optional: the kernel's `NodeInputs` implements it, hand-rolled test
+   * doubles need not. Together with {@link hasStream} it answers "could a
+   * take on this handle still produce a value?" — what the Code node's
+   * `stream.open(name)` reports to the guest.
+   */
+  hasBuffered?(name: string): boolean;
+
+  /**
    * Aborted when the run is cancelled. Producers that emit without waiting
    * on inputs (generators, wall-clock pacers) must observe it — inbox
    * closure only unblocks consumers, it does not stop a producing loop.

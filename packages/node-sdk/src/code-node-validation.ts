@@ -27,9 +27,13 @@ import {
   parseCodeBody,
   returnShapes,
   staticImportSpecifiers,
+  streamCallNames,
   typeofGuardedNames
 } from "./code-analysis.js";
-import { usesEmitOutputContract } from "./code-body.js";
+import {
+  usesEmitOutputContract,
+  usesStreamInputContract
+} from "./code-body.js";
 import { installHintFor } from "./sandbox-bridge-packs.js";
 
 /** Node types whose `code` property is a JavaScript sandbox body. */
@@ -70,7 +74,7 @@ export const SANDBOX_GLOBALS: ReadonlySet<string> = new Set([
   // Host bridges
   "console", "fetch", "crypto", "sleep", "getSecret", "workspace",
   "assetToSandbox", "sandboxToAsset", "progress", "emit", "output", "format",
-  "image", "canvas", "media",
+  "image", "canvas", "media", "stream",
   // Pure guest helpers defined by the sandbox prelude
   "toBase64", "fromBase64", "toHex", "fromHex",
   "parallelMap", "createCanvas",
@@ -116,7 +120,9 @@ export interface CodeNodeIssue {
    * "code_output_dynamic_name" | "code_return_ignored" |
    * "code_undefined_name" | "code_undefined_input" | "code_unused_input" |
    * "code_unused_package" | "code_package_unavailable" |
-   * "code_package_mismatch".
+   * "code_package_mismatch" | "code_undefined_stream" |
+   * "code_stream_dynamic_name" | "code_unconnected_stream" |
+   * "code_stream_input_read" | "code_stream_return_contract".
    */
   code: string;
   message: string;
@@ -130,6 +136,13 @@ export interface CodeNodeValidationInput {
    * property values, and handles fed by an incoming edge.
    */
   availableInputs: readonly string[];
+  /**
+   * Input handles an incoming edge feeds. A subset of `availableInputs`, and
+   * the only handles a streaming body can take from — a declared handle with
+   * no edge yields nothing, and a connected handle is unreadable through
+   * `inputs.<name>`.
+   */
+  connectedInputs?: readonly string[];
   /** Output handles the node declares (`dynamic_outputs` keys). */
   declaredOutputs: readonly string[];
   /** Output handles other nodes are wired to. A superset check on `keys`. */
@@ -336,17 +349,108 @@ export function validateCodeNodeBody(
     });
   }
 
+  // ── Input streams ────────────────────────────────────────────────────────
+  // A body that calls `stream` runs once and drains its inbox itself. Its
+  // handles are named the same way its outputs are, so they are checkable the
+  // same way — and the split between configured values (`inputs`) and edge data
+  // (`stream`) is the one footgun the contract creates, closed here.
+  const streaming = usesStreamInputContract(code);
+  const streams = streamCallNames(parsed.statements);
+  const connectedInputs = new Set(input.connectedInputs ?? []);
+
+  if (streaming) {
+    const unknownStreams = [
+      ...new Set(streams.names.filter((name) => !inScope.has(name)))
+    ].sort();
+    if (unknownStreams.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "code_undefined_stream",
+        message:
+          `The code takes from ${formatNames(unknownStreams)}, which ` +
+          `${unknownStreams.length > 1 ? "are not inputs" : "is not an input"} of this node — the stream never yields. ` +
+          `Declare ${unknownStreams.length > 1 ? "them" : "it"} as ${unknownStreams.length > 1 ? "dynamic inputs" : "a dynamic input"}, or fix the name.`
+      });
+    }
+
+    if (streams.nonLiteral) {
+      issues.push({
+        severity: "warning",
+        code: "code_stream_dynamic_name",
+        message:
+          "The code calls `stream` with a handle name that is not a string literal, " +
+          "so the stream names cannot be checked statically. Pass a literal name to " +
+          "have them checked."
+      });
+    }
+
+    const unconnectedStreams = [
+      ...new Set(
+        streams.names.filter(
+          (name) => inScope.has(name) && !connectedInputs.has(name)
+        )
+      )
+    ].sort();
+    if (unconnectedStreams.length > 0) {
+      issues.push({
+        severity: "warning",
+        code: "code_unconnected_stream",
+        message:
+          `The code takes from ${formatNames(unconnectedStreams)}, which no incoming edge feeds — ` +
+          `the stream completes immediately and yields nothing. Connect an upstream node, ` +
+          `or read the node's configured value with ${unconnectedStreams.map((n) => `\`${CODE_INPUTS_GLOBAL}.${n}\``).join(", ")}.`
+      });
+    }
+
+    const streamedThroughInputs = [
+      ...new Set(inputsRead.filter((name) => connectedInputs.has(name)))
+    ].sort();
+    if (streamedThroughInputs.length > 0) {
+      issues.push({
+        severity: "error",
+        code: "code_stream_input_read",
+        message:
+          `The code reads ${streamedThroughInputs.map((n) => `\`${CODE_INPUTS_GLOBAL}.${n}\``).join(", ")}, which ` +
+          `${streamedThroughInputs.length > 1 ? "incoming edges feed" : "an incoming edge feeds"} — in a streaming body ` +
+          `\`${CODE_INPUTS_GLOBAL}\` carries only the node's configured values, never edge data. Use ` +
+          `${streamedThroughInputs.map((n) => `\`stream("${n}")\``).join(", ")}.`
+      });
+    }
+  }
+
   // An unresolvable read (`inputs[key]`, a spread) could touch any slot, so
-  // nothing is provably unused.
-  const read = new Set([...inputsRead, ...bareInputReads]);
-  const declaredInputsUnused = inputsOpaque
-    ? []
-    : [...new Set(input.availableInputs.filter((name) => !read.has(name)))];
+  // nothing is provably unused. A streaming body reads its connected handles
+  // through `stream`, and `stream.any()` reads every one of them.
+  const read = new Set([
+    ...inputsRead,
+    ...bareInputReads,
+    ...(streaming ? streams.names : []),
+    ...(streaming && streams.usesAny ? connectedInputs : [])
+  ]);
+  const declaredInputsUnused =
+    inputsOpaque || (streaming && streams.nonLiteral)
+      ? []
+      : [...new Set(input.availableInputs.filter((name) => !read.has(name)))];
 
   // ── Outputs ──────────────────────────────────────────────────────────────
-  // Two contracts, one probe. A body that calls `emit`/`output` names its
-  // handles, so the return-path analysis below does not apply to it at all —
-  // its returns are control flow and carry nothing.
+  // Two contracts, one probe — three states with streaming. A streaming body
+  // runs once, so the legacy return contract cannot apply to it whatever the
+  // emit probe says: its outputs go through `emit`/`output` or nowhere.
+  if (streaming && !usesEmitOutputContract(code)) {
+    issues.push({
+      severity: "error",
+      code: "code_stream_return_contract",
+      message:
+        "The code calls `stream`, so it runs once and its return value is control " +
+        "flow, not outputs. Send every output through `output(name, value)` for a " +
+        "final value, or `emit(name, value)` to stream values as they are produced."
+    });
+    return withUnusedInputs(issues, declaredInputsUnused);
+  }
+
+  // A body that calls `emit`/`output` names its handles, so the return-path
+  // analysis below does not apply to it at all — its returns are control flow
+  // and carry nothing.
   if (usesEmitOutputContract(code)) {
     issues.push(...emitContractIssues(parsed.statements, declared, connected));
     return withUnusedInputs(issues, declaredInputsUnused);
