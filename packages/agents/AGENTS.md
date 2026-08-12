@@ -1061,12 +1061,19 @@ Tests: `tests/graph-dsl.test.ts`, `tests/graph-planner-coverage.test.ts`,
 
 ### Eval suite
 
-`src/evals/` carries a provider-agnostic evaluation harness for the planner:
-`GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations — input
-wiring, node-family patterns, branch handles, no provider-locked nodes) and
-`runGraphPlannerEval` (metrics per case: accepted, score, submit rounds,
-tool calls, attempts, duration, cost; aggregate: success rate, one-shot rate,
-averages). Run it against any registered provider:
+`src/evals/` carries a provider-agnostic evaluation harness for graph
+authoring: `GRAPH_PLANNER_EVAL_CASES` (objectives + structural expectations —
+input wiring, node-family patterns, branch handles, reachability, prompt text,
+no provider-locked nodes) and `runGraphPlannerEval`, which drives
+`authorGraph` (metrics per case: accepted, score, authoring rounds, tool
+calls, duration, cost; aggregate: success rate, one-shot rate, averages). Run it
+against any registered provider:
+
+Two metrics were mapped when the suite moved off `GraphPlanner`: **authoring
+rounds** replaces submit rounds and counts `execute_code` actions, so a
+one-shot is a graph delivered in the first action; **attempts** is gone,
+because `authorGraph` has no outer retry loop — a repair is another authoring
+round.
 
 ```bash
 npm run dev:nodetool -- eval graph-planner --list
@@ -1085,7 +1092,7 @@ nothing about whether the workflow does what was asked. `src/evals/graph-e2e-
 {cases,eval}.ts` closes that loop — every case runs three phases and only counts
 as a success when all three hold:
 
-1. **plan** — `GraphPlanner.plan()` produces a graph, scored structurally by the
+1. **plan** — `authorGraph()` produces a graph, scored structurally by the
    same `checkExpectations` the graph-planner suite uses.
 2. **execute** — `applyRunPolicy` stamps the run's provider/model onto the
    planner's Agent nodes (the planner leaves them model-less on purpose — the

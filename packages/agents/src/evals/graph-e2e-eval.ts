@@ -7,7 +7,7 @@
  * does what was asked. This suite closes that loop. Each case runs three
  * phases:
  *
- *   1. **plan** — `GraphPlanner.plan()` produces a graph (scored structurally,
+ *   1. **plan** — `authorGraph()` produces a graph (scored structurally,
  *      reusing `checkExpectations` from the graph-planner suite).
  *   2. **execute** — the run policy is stamped onto the planned graph (the
  *      planner leaves Agent nodes model-less on purpose; the run picks the
@@ -23,10 +23,13 @@
  * rate `--min-success` gates on — the claim the product actually makes.
  */
 
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import { randomUUID } from "node:crypto";
+import type { BaseProvider } from "@nodetool-ai/runtime";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { GraphData } from "@nodetool-ai/protocol";
-import { GraphPlanner } from "../graph-planner.js";
+import { authorGraph } from "../author-graph.js";
+import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import {
   checkExpectations,
   type EvalCheck,
@@ -143,7 +146,8 @@ export interface GraphE2eCaseResult {
    */
   graph?: GraphData;
   toolCalls: Record<string, number>;
-  submitRounds: number;
+  /** `execute_code` actions the authoring run spent (was `submit_graph` calls). */
+  authoringRounds: number;
   nodes: number;
   edges: number;
   planMs: number;
@@ -186,7 +190,7 @@ export interface RunGraphE2eEvalOptions {
   /** Configured providers for `find_model`; enables model-dependent cases. */
   providers?: Record<string, BaseProvider>;
   /**
-   * Provider/model stamped onto planner-authored Agent nodes before the run
+   * Provider/model stamped onto authored Agent nodes before the run
    * (see {@link applyRunPolicy}). Defaults to the planner's own.
    */
   executionProviderId?: string;
@@ -195,7 +199,8 @@ export interface RunGraphE2eEvalOptions {
   judgeProvider?: BaseProvider;
   judgeModel?: string;
   cases?: readonly GraphE2eEvalCase[];
-  maxRetries?: number;
+  /** Provider rounds one authoring run may spend; `authorGraph`'s default otherwise. */
+  maxIterations?: number;
   /** Default per-case execution timeout (ms). */
   timeoutMs?: number;
   signal?: AbortSignal;
@@ -359,7 +364,7 @@ function skippedResult(
     checks: [],
     outputs: {},
     toolCalls: {},
-    submitRounds: 0,
+    authoringRounds: 0,
     nodes: 0,
     edges: 0,
     planMs: 0,
@@ -378,20 +383,24 @@ async function runCase(
   const startedAt = Date.now();
 
   // ---- phase 1: plan -----------------------------------------------------
-  const planner = new GraphPlanner({
-    provider: opts.provider,
-    model: opts.model,
-    registry: opts.registry,
-    providers: opts.providers,
-    inputs: evalCase.inputs,
-    maxRetries: opts.maxRetries,
-    signal: opts.signal
+  const context = new ProcessingContext({
+    jobId: `graph-e2e-eval-${randomUUID()}`,
+    userId: "eval-user"
   });
 
   let graph: GraphData | null = null;
   let error: string | undefined;
   try {
-    const gen = planner.plan(evalCase.objective, {} as ProcessingContext);
+    const gen = authorGraph(evalCase.objective, {
+      context,
+      provider: opts.provider,
+      model: opts.model,
+      registry: opts.registry,
+      ...(opts.providers ? { providers: opts.providers } : {}),
+      ...(evalCase.inputs ? { inputs: evalCase.inputs } : {}),
+      ...(opts.maxIterations ? { maxIterations: opts.maxIterations } : {}),
+      ...(opts.signal ? { signal: opts.signal } : {})
+    });
     let res = await gen.next();
     while (!res.done) {
       const m = res.value as { type?: string } & Record<string, unknown>;
@@ -421,8 +430,8 @@ async function runCase(
   const runStartedAt = Date.now();
   if (graph) {
     opts.onEvent?.(`    [run] ${graph.nodes.length} nodes`);
-    // The planner deliberately leaves Agent nodes model-less — the run owns
-    // that choice — so a planned graph is only runnable once the run policy is
+    // Authoring deliberately leaves Agent nodes model-less — the run owns
+    // that choice — so an authored graph is only runnable once the run policy is
     // stamped on, exactly as `AgentWorkflowRunner` does before executing one.
     // Without this every LLM step dies on "Select a model".
     runnableGraph = applyRunPolicy(graph, {
@@ -513,7 +522,7 @@ async function runCase(
     ),
     graph: runnableGraph,
     toolCalls,
-    submitRounds: toolCalls["submit_graph"] ?? 0,
+    authoringRounds: toolCalls[EXECUTE_CODE_TOOL_NAME] ?? 0,
     nodes: graph?.nodes.length ?? 0,
     edges: graph?.edges.length ?? 0,
     planMs,

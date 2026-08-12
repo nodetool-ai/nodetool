@@ -118,11 +118,11 @@ function selectCases<T extends { id: string }>(
   return picked;
 }
 
-/** GraphPlanner one-shot DSL suite (`@nodetool-ai/agents`). */
+/** Graph authoring suite — `authorGraph` over the typed DSL pack. */
 const graphPlannerSuite: EvalSuite = {
   id: "graph-planner",
   description:
-    "Run the GraphPlanner (one-shot DSL) eval suite against a provider/model and report metrics",
+    "Run the graph authoring eval suite (authorGraph, typed DSL pack) against a provider/model and report metrics",
   async listCases() {
     const { GRAPH_PLANNER_EVAL_CASES } = await import("@nodetool-ai/agents");
     return GRAPH_PLANNER_EVAL_CASES.map((c) => ({
@@ -150,7 +150,7 @@ const graphPlannerSuite: EvalSuite = {
       registry: deps.registry,
       providers: deps.providers,
       cases,
-      maxRetries: deps.maxRetries,
+      ...(deps.maxIterations ? { maxIterations: deps.maxIterations } : {}),
       onEvent: deps.onEvent
     });
 
@@ -208,7 +208,7 @@ const graphE2eSuite: EvalSuite = {
       ...(deps.judge
         ? { judgeProvider: deps.judge.provider, judgeModel: deps.judge.model }
         : {}),
-      maxRetries: deps.maxRetries,
+      ...(deps.maxIterations ? { maxIterations: deps.maxIterations } : {}),
       timeoutMs: deps.timeoutMs,
       onEvent: deps.onEvent
     });
