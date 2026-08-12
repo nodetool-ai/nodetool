@@ -12,6 +12,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from "react";
 import type { Node } from "@xyflow/react";
 import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import type { WorkflowCostEstimate } from "@nodetool-ai/protocol";
 import { useWorkflowManager } from "../contexts/WorkflowManagerContext";
 import useMetadataStore from "../stores/MetadataStore";
@@ -23,6 +24,22 @@ import {
 import { getModelUnitPrice } from "../utils/modelUnitPricing";
 
 const EMPTY_NODES: Node<NodeData>[] = [];
+
+/**
+ * A node's property values. The editor stores them under `data.properties`
+ * (`../stores/NodeData`); graphs that arrive from the server carry them spread
+ * on `data`. Read both, the way the server preflight does — reading only the
+ * outer object priced every model-picker node as unknown.
+ */
+function propertyValues(
+  data: Record<string, unknown> | undefined
+): Record<string, unknown> | undefined {
+  if (!data) return undefined;
+  const nested = data.properties;
+  return nested && typeof nested === "object" && !Array.isArray(nested)
+    ? (nested as Record<string, unknown>)
+    : data;
+}
 
 export function useWorkflowCostEstimate(
   workflowId: string
@@ -55,17 +72,22 @@ export function useWorkflowCostEstimate(
     const quantities: Record<string, number> = Object.fromEntries(
       aiNodes.map((node) => [
         node.id,
-        nodeExpectedQuantity(node.data as Record<string, unknown> | undefined)
+        nodeExpectedQuantity(
+          propertyValues(node.data as Record<string, unknown> | undefined)
+        )
       ])
     );
     return estimateWorkflowCost({
       nodes: aiNodes.map((node) => ({
         id: node.id,
         type: node.type ?? "",
-        data: node.data as Record<string, unknown> | undefined
+        data: propertyValues(node.data as Record<string, unknown> | undefined)
       })),
       getMetadata: (nodeType) => getMetadata(nodeType),
       getModelPrice: getModelUnitPrice,
+      // What the node states about the job it will run (duration, resolution,
+      // audio), so a per-second model prices the clip and not one second.
+      getParams: (node) => extractPricingParams(node.data),
       quantities,
       currency: "USD"
     });

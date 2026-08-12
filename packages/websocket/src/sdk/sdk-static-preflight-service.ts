@@ -1,5 +1,6 @@
 import {
   estimateWorkflowCost,
+  extractPricingParams,
   validateGraph,
   type CostEstimateInput,
   type GraphValidationInput,
@@ -391,6 +392,9 @@ function costSummary(
     // registry even though simple test doubles often happen to work.
     getMetadata: (nodeType) => options.registry.getMetadata(nodeType),
     getModelPrice: options.getModelPrice,
+    // What each node states about its job — a per-second model prices the
+    // duration asked for instead of one second.
+    getParams: (node) => extractPricingParams(node.data),
     quantities: options.quantities ? { ...options.quantities } : undefined
   });
   const known = estimate.items.filter((item) => item.confidence !== "unknown");

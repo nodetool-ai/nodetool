@@ -57,21 +57,45 @@ const mockMetadata: Record<string, unknown> = {
   "nodetool.image.TextToImage": {
     properties: [{ name: "model", type: { type: "image_model" } }]
   },
+  "nodetool.video.TextToVideo": {
+    properties: [{ name: "model", type: { type: "video_model" } }]
+  },
   "nodetool.text.Concat": {
     properties: [{ name: "a", type: { type: "str" } }]
   }
 };
 
+/** Params the mocked lookup was called with, per model id. */
+const pricedWith: Array<{ id: string; params: unknown }> = [];
+
 jest.mock("../../utils/modelUnitPricing", () => ({
-  getModelUnitPrice: (model: { id: string }) =>
-    model.id === "fal-ai/flux/schnell"
-      ? {
-          unit_price: 0.003,
-          billing_unit: "images",
-          currency: "USD",
-          source: "bundle"
-        }
-      : null
+  getModelUnitPrice: (model: { id: string }, params?: unknown) => {
+    pricedWith.push({ id: model.id, params });
+    if (model.id === "fal-ai/flux/schnell") {
+      return {
+        unit_price: 0.003,
+        billing_unit: "images",
+        currency: "USD",
+        source: "bundle"
+      };
+    }
+    if (model.id === "video/per-second") {
+      // Stands in for a per-video-second catalog entry: the calculator returns
+      // the already-multiplied figure, so the duration has to reach it.
+      const seconds =
+        typeof (params as { seconds?: number } | undefined)?.seconds === "number"
+          ? (params as { seconds: number }).seconds
+          : 1;
+      return {
+        unit_price: 0.1 * seconds,
+        billing_unit: "video",
+        currency: "USD",
+        source: "bundle",
+        breakdown: `${seconds} s × $0.1/s`
+      };
+    }
+    return null;
+  }
 }));
 
 jest.mock("../../stores/MetadataStore", () => ({
@@ -87,6 +111,7 @@ import { useWorkflowCostEstimate } from "../useWorkflowCostEstimate";
 describe("useWorkflowCostEstimate", () => {
   beforeEach(() => {
     mockNodes = baseNodes;
+    pricedWith.length = 0;
   });
 
   it("estimates cost from AI-model nodes + metadata", () => {
@@ -135,6 +160,99 @@ describe("useWorkflowCostEstimate", () => {
     expect(item?.estimated_cost).toBeCloseTo(0.006, 5);
     expect(item?.confidence).toBe("estimate");
     expect(result.current!.unknown_count).toBe(0);
+  });
+
+  it("prices an editor node, whose values live under data.properties", () => {
+    // The real editor shape (web/src/stores/NodeData.ts): property values are
+    // nested under `properties`, not spread on `data`.
+    mockNodes = [
+      {
+        id: "t2i",
+        type: "nodetool.image.TextToImage",
+        data: {
+          properties: {
+            model: {
+              type: "image_model",
+              provider: "huggingface_fal_ai",
+              id: "fal-ai/flux/schnell"
+            },
+            num_images: 2
+          }
+        }
+      }
+    ];
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    const item = result.current!.items.find((i) => i.node_id === "t2i");
+    expect(item?.model).toBe("fal-ai/flux/schnell");
+    expect(item?.quantity).toBe(2);
+    expect(item?.estimated_cost).toBeCloseTo(0.006, 5);
+    expect(result.current!.unknown_count).toBe(0);
+  });
+
+  it("prices a per-second model at the duration the node states", () => {
+    mockNodes = [
+      {
+        id: "t2v",
+        type: "nodetool.video.TextToVideo",
+        data: {
+          properties: {
+            model: {
+              type: "video_model",
+              provider: "genspend_provider",
+              id: "video/per-second"
+            },
+            duration: 5,
+            resolution: "720p"
+          }
+        }
+      }
+    ];
+
+    const { result } = renderHook(() => useWorkflowCostEstimate("wf1"));
+
+    expect(pricedWith).toContainEqual({
+      id: "video/per-second",
+      params: { seconds: 5, resolution: "720p" }
+    });
+    const item = result.current!.items.find((i) => i.node_id === "t2v");
+    expect(item?.estimated_cost).toBeCloseTo(0.5, 5);
+    expect(item?.breakdown).toBe("5 s × $0.1/s");
+  });
+
+  it("re-prices when a duration property changes", () => {
+    const nodeWith = (duration: number): MockNode => ({
+      id: "t2v",
+      type: "nodetool.video.TextToVideo",
+      data: {
+        properties: {
+          model: {
+            type: "video_model",
+            provider: "genspend_provider",
+            id: "video/per-second"
+          },
+          duration
+        }
+      }
+    });
+    mockNodes = [nodeWith(2)];
+
+    const { result, rerender } = renderHook(() =>
+      useWorkflowCostEstimate("wf1")
+    );
+    expect(
+      result.current!.items.find((i) => i.node_id === "t2v")?.estimated_cost
+    ).toBeCloseTo(0.2, 5);
+
+    // A property edit replaces the node object in the store; the estimate
+    // follows it rather than staying pinned to the first duration.
+    mockNodes = [nodeWith(8)];
+    rerender();
+
+    expect(
+      result.current!.items.find((i) => i.node_id === "t2v")?.estimated_cost
+    ).toBeCloseTo(0.8, 5);
   });
 
   it("multiplies a node's cost by its fan-out output count", () => {

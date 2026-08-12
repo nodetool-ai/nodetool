@@ -15,6 +15,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { unpack } from "msgpackr";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
+import { genspendPricingCatalog } from "@nodetool-ai/model-pricing/genspend-catalog";
 import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   UnifiedWebSocketRunner,
@@ -530,5 +531,74 @@ describe("pre-run cost estimate", () => {
     expect(estimate([{ id: "n1", type: "nodetool.text.Concat", data: {} }])).toBe(
       0
     );
+  });
+
+  /**
+   * A per-video-second entry with a receipted clip envelope: the shortest
+   * length it publishes is what an unstated duration prices at, and a length
+   * outside the envelope is refused rather than extrapolated.
+   */
+  const firstPerSecondVideo = (): {
+    provider: string;
+    id: string;
+    unitPrice: number;
+    minSeconds: number;
+    maxSeconds: number;
+  } => {
+    for (const [key, entry] of Object.entries(genspendPricingCatalog.prices)) {
+      if (entry.unit_class !== "per-video-second") continue;
+      if ((entry.data_flags ?? []).some((f) => f.severity === "quote_wrong")) {
+        continue;
+      }
+      // A laddered grid prices off a variant row; this test is about the
+      // seconds axis, so take an entry that bills one flat per-second rate.
+      if ((entry.variants ?? []).length > 0) continue;
+      const clip = entry.clip_seconds;
+      if (!clip || typeof clip.min !== "number" || typeof clip.max !== "number") {
+        continue;
+      }
+      if (!(entry.unit_price > 0) || clip.max <= clip.min) continue;
+      const separator = key.indexOf(":");
+      return {
+        provider: key.slice(0, separator),
+        id: key.slice(separator + 1),
+        unitPrice: entry.unit_price,
+        minSeconds: clip.min,
+        maxSeconds: clip.max
+      };
+    }
+    throw new Error("GenSpend catalog has no per-video-second entry to price");
+  };
+
+  it("reserves more for a per-second model once the node states a duration", () => {
+    const { provider, id, unitPrice, minSeconds, maxSeconds } =
+      firstPerSecondVideo();
+    const node = (data: Record<string, unknown>) => [
+      { id: "n1", type: "nodetool.video.TextToVideo", data }
+    ];
+
+    const withoutDuration = estimate(node({ model: { id, provider } }));
+    const withDuration = estimate(
+      node({ model: { id, provider }, duration: maxSeconds })
+    );
+
+    // Unstated, the shortest receipted clip is the honest floor.
+    expect(withoutDuration).toBeCloseTo(unitPrice * minSeconds);
+    expect(withDuration).toBeCloseTo(unitPrice * maxSeconds);
+    expect(withDuration).toBeGreaterThan(withoutDuration);
+  });
+
+  it("reserves nothing for a duration the model publishes no price for", () => {
+    const { provider, id, maxSeconds } = firstPerSecondVideo();
+
+    expect(
+      estimate([
+        {
+          id: "n1",
+          type: "nodetool.video.TextToVideo",
+          data: { model: { id, provider }, duration: maxSeconds + 1 }
+        }
+      ])
+    ).toBe(0);
   });
 });

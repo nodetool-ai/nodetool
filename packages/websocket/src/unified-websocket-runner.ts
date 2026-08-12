@@ -72,6 +72,7 @@ import {
 import { getInstanceId } from "./lib/instance-id.js";
 import { requestRemoteJobCancel } from "./job-control.js";
 import { estimateWorkflowCost } from "@nodetool-ai/node-sdk/cost-estimate";
+import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { WORKFLOW_DOCUMENT_TOOL_NAMES } from "@nodetool-ai/node-sdk";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import type {
@@ -2914,7 +2915,10 @@ export class UnifiedWebSocketRunner {
         // Prices the model picked on a generic node (e.g. a FAL or kie model on
         // nodetool.image.TextToImage), which node-type metadata alone cannot.
         // Same lookup the editor's cost preview uses.
-        getModelPrice: getModelUnitPrice
+        getModelPrice: getModelUnitPrice,
+        // A per-second model bills the clip it is asked for, so the duration
+        // and resolution the node states have to reach the price lookup.
+        getParams: (node) => extractPricingParams(node.data)
       });
       return Number.isFinite(estimate.total) ? estimate.total : 0;
     } catch (err) {
@@ -2944,7 +2948,8 @@ export class UnifiedWebSocketRunner {
           data: (node.data ?? {}) as Record<string, unknown>
         })),
         getMetadata: (nodeType: string) => this.getNodeMetadata?.(nodeType),
-        getModelPrice: getModelUnitPrice
+        getModelPrice: getModelUnitPrice,
+        getParams: (node) => extractPricingParams(node.data)
       });
       const items = estimate.items.filter(
         (item) => item.provider === "nodetool"
