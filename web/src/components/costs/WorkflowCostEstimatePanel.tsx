@@ -14,6 +14,7 @@ import React, { memo } from "react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import HelpOutlineIcon from "@mui/icons-material/HelpOutline";
+import type { NodeCostEstimate } from "@nodetool-ai/protocol";
 import { Box, Caption, ExternalLink, Tooltip } from "../ui_primitives";
 import { genspendPricingCatalog } from "@nodetool-ai/model-pricing/genspend-catalog";
 import { useWorkflowCostEstimate } from "../../hooks/useWorkflowCostEstimate";
@@ -21,6 +22,52 @@ import { formatMoney } from "./costsData";
 
 /** Date the shipped GenSpend prices last moved, e.g. "2026-07-29". */
 const genspendUpdatedOn = genspendPricingCatalog.updatedAt.slice(0, 10);
+/** The upstream snapshot those prices were read from, when the catalog says. */
+const genspendSnapshotOn =
+  genspendPricingCatalog.catalogGeneratedAt?.slice(0, 10) ?? null;
+
+/** True when the figure leaves out a cost we know exists — "at least $X". */
+const isLowerBound = (item: NodeCostEstimate): boolean =>
+  item.confidence !== "unknown" && (item.warnings?.length ?? 0) > 0;
+
+/** A per-second row's duration, as the calculator wrote it ("5 s × $0.1/s"). */
+const secondsFromBreakdown = (breakdown: string | undefined): string | null => {
+  const match = breakdown ? /(\d+(?:\.\d+)?)\s*s\s*×/.exec(breakdown) : null;
+  return match ? match[1] : null;
+};
+
+/** The rung a row was priced at ("… at 720p"), when the price is laddered. */
+const resolutionFromBreakdown = (
+  breakdown: string | undefined
+): string | null => {
+  const match = breakdown ? /\bat ([\d][\dA-Za-z×x]*)/.exec(breakdown) : null;
+  return match ? match[1] : null;
+};
+
+/** "image" → "images" for a count that is not one. */
+const plural = (unit: string, count: number): string =>
+  count === 1 || unit.endsWith("s") ? unit : `${unit}s`;
+
+/**
+ * What a run of this node buys, in one phrase: fan-out, clip length and the
+ * resolution rung it was priced at — "2 × 5 s @ 720p", "4 images". Falls back
+ * to the bare count when the item carries nothing else.
+ */
+export function formatUnits(item: NodeCostEstimate): string {
+  const quantity = item.quantity;
+  const seconds = secondsFromBreakdown(item.breakdown);
+  const resolution = resolutionFromBreakdown(item.breakdown);
+
+  let units: string;
+  if (seconds) {
+    units = quantity === 1 ? `${seconds} s` : `${quantity} × ${seconds} s`;
+  } else if (item.billing_unit && !/\bunits?\b/i.test(item.billing_unit)) {
+    units = `${quantity} ${plural(item.billing_unit, quantity)}`;
+  } else {
+    units = String(quantity);
+  }
+  return resolution ? `${units} @ ${resolution}` : units;
+}
 
 export interface WorkflowCostEstimatePanelProps {
   workflowId: string;
@@ -55,14 +102,16 @@ const styles = (theme: Theme) =>
       display: "flex",
       flexDirection: "column"
     },
+    ".cost-item": {
+      borderBottom: `1px solid ${theme.vars.palette.divider}`,
+      "&:last-child": { borderBottom: "none" }
+    },
     ".cost-row": {
       display: "grid",
       gridTemplateColumns: "1.6fr 1.6fr auto auto",
       gap: theme.spacing(1),
       alignItems: "center",
-      padding: `${theme.spacing(1)} 0`,
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      "&:last-child": { borderBottom: "none" }
+      padding: `${theme.spacing(1)} 0`
     },
     ".cost-row.is-head": {
       borderBottom: `1px solid ${theme.vars.palette.divider}`
@@ -131,6 +180,12 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.text.primary,
       fontVariantNumeric: "tabular-nums"
     },
+    ".cost-assumption": {
+      display: "block",
+      fontSize: "var(--fontSizeSmaller)",
+      color: theme.vars.palette.text.disabled,
+      paddingBottom: theme.spacing(1)
+    },
     ".cost-note": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.warning.main
@@ -169,42 +224,74 @@ const WorkflowCostEstimatePanelInternal: React.FC<
               <span className="cost-col-head">Node</span>
               <span className="cost-col-head">Provider / model</span>
               <span className="cost-col-head" style={{ textAlign: "right" }}>
-                Qty
+                Units
               </span>
               <span className="cost-col-head" style={{ textAlign: "right" }}>
                 Cost
               </span>
             </div>
-            {estimate.items.map((item) => (
-              <div className="cost-row" key={item.node_id}>
-                <span className="cost-cell-node" title={item.node_type}>
-                  {item.node_type}
-                </span>
-                {item.confidence === "unknown" ? (
-                  <Tooltip title="Price unknown — excluded from the total" arrow>
-                    <span className="cost-unknown" aria-label="Price unknown">
-                      <HelpOutlineIcon fontSize="inherit" />
-                    </span>
-                  </Tooltip>
-                ) : (
-                  <span className="cost-cell-model">
-                    {item.provider}
-                    {item.model ? ` · ${item.model}` : ""}
+            {estimate.items.map((item) => {
+              const unknown = item.confidence === "unknown";
+              // A declined price carries its reason in `assumptions`; that is
+              // the actionable thing to say, not "unknown".
+              const unknownReason =
+                item.assumptions?.join(" ") ??
+                "Price unknown — excluded from the total";
+              const row = (
+                <div className="cost-row">
+                  <span className="cost-cell-node" title={item.node_type}>
+                    {item.node_type}
                   </span>
-                )}
-                <span className="cost-cell-num">{item.quantity}</span>
-                <span className="cost-cell-num">
-                  {item.confidence === "unknown"
-                    ? "—"
-                    : formatMoney(item.estimated_cost)}
-                </span>
-              </div>
-            ))}
+                  {unknown ? (
+                    <Tooltip title={unknownReason} arrow>
+                      <span className="cost-unknown" aria-label="Price unknown">
+                        <HelpOutlineIcon fontSize="inherit" />
+                      </span>
+                    </Tooltip>
+                  ) : (
+                    <span className="cost-cell-model">
+                      {item.provider}
+                      {item.model ? ` · ${item.model}` : ""}
+                    </span>
+                  )}
+                  <span className="cost-cell-num">{formatUnits(item)}</span>
+                  <span className="cost-cell-num">
+                    {unknown
+                      ? "—"
+                      : `${isLowerBound(item) ? "≥ " : ""}${formatMoney(
+                          item.estimated_cost
+                        )}`}
+                  </span>
+                </div>
+              );
+              return (
+                <div className="cost-item" key={item.node_id}>
+                  {item.breakdown ? (
+                    <Tooltip
+                      title={[item.breakdown, ...(item.warnings ?? [])].join(
+                        " — "
+                      )}
+                      arrow
+                    >
+                      {row}
+                    </Tooltip>
+                  ) : (
+                    row
+                  )}
+                  {!unknown && item.assumptions?.length ? (
+                    <span className="cost-assumption">
+                      {item.assumptions.join(" · ")}
+                    </span>
+                  ) : null}
+                </div>
+              );
+            })}
           </div>
 
           <div className="cost-total">
             <span className="cost-total-key">Total ({estimate.currency})</span>
             <span className="cost-total-value">
+              {estimate.items.some(isLowerBound) ? "≥ " : ""}
               {formatMoney(estimate.total)}
             </span>
           </div>
@@ -216,13 +303,22 @@ const WorkflowCostEstimatePanelInternal: React.FC<
               total.
             </span>
           )}
-          <span className="cost-credit">
-            List prices from provider catalogs and{" "}
-            <ExternalLink href="https://genspend.io" size="small">
-              genspend.io
-            </ExternalLink>
-            , last updated {genspendUpdatedOn}.
-          </span>
+          <Tooltip
+            title={
+              genspendSnapshotOn
+                ? `Prices read from the genspend.io catalog snapshot of ${genspendSnapshotOn}`
+                : "Prices ship with the app; a nightly sync moves them"
+            }
+            arrow
+          >
+            <span className="cost-credit">
+              List prices from provider catalogs and{" "}
+              <ExternalLink href="https://genspend.io" size="small">
+                genspend.io
+              </ExternalLink>
+              , last updated {genspendUpdatedOn}.
+            </span>
+          </Tooltip>
         </>
       )}
     </Box>

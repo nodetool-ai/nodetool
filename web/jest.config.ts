@@ -34,6 +34,8 @@ export default {
     // pull the heavy barrel (pack-loader, registry) into jsdom.
     "^@nodetool-ai/node-sdk/cost-estimate$":
       "<rootDir>/../packages/node-sdk/src/cost-estimate.ts",
+    "^@nodetool-ai/node-sdk/pricing-params$":
+      "<rootDir>/../packages/node-sdk/src/pricing-params.ts",
     // image-editor ships ESM-only dist; map to src so Jest transforms it
     // (used by useInpaintHere → SelectionActionBar). Mirrors protocol/gpu.
     "^@nodetool-ai/image-editor$":

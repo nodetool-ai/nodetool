@@ -22,6 +22,13 @@ import {
   buildCatalog,
   buildPriceIndex
 } from "../../../scripts/sync-genspend-pricing.mjs";
+import {
+  MIN_PRICED_CASES,
+  PARITY_CASES,
+  priceCase,
+  quoteRequest,
+  runComparison
+} from "../../../scripts/genspend/parity-check.mjs";
 
 const inventory = {
   fal_ai: {
@@ -532,6 +539,345 @@ describe("buildPriceIndex", () => {
   });
 });
 
+/**
+ * Schema 3 ships the provider's grid next to the scalar. Everything here is
+ * shaped like the `/api/v1/export` payload the sync now reads.
+ */
+describe("the shipped grid", () => {
+  const build = (models: unknown[]) => buildPriceIndex({ models, index, aliases: {} });
+  const key = "atlascloud:bytedance/seedance-2.0/text-to-video";
+
+  const ladder = [
+    {
+      spec: "480p · per second of output video",
+      unitClass: "per-video-second",
+      priceUsd: 0.12,
+      isBase: true,
+      resolution: "480p",
+      durationSeconds: null,
+      withAudio: null,
+      videoInput: null,
+      tier: null
+    },
+    {
+      spec: "720p · per second of output video",
+      unitClass: "per-video-second",
+      priceUsd: 0.24,
+      isBase: false,
+      resolution: "720p",
+      durationSeconds: null,
+      withAudio: null,
+      videoInput: null,
+      tier: null
+    }
+  ];
+
+  it("carries the variant ladder, its surcharges and the clip envelope", () => {
+    const { prices } = build([
+      model({
+        capabilities: { clipSeconds: { set: null, min: 4, max: 15 } },
+        offerings: [
+          offering({
+            variants: ladder,
+            surcharges: [
+              {
+                kind: "input_video_second",
+                spec: "720p",
+                unitPriceUsd: 0.15,
+                freeAllowance: 0,
+                note: "prose we do not ship",
+                sourceUrl: "https://example.test"
+              },
+              {
+                kind: "per_request",
+                spec: "prompt expansion",
+                unitPriceUsd: 0.0025,
+                freeAllowance: 0
+              }
+            ]
+          })
+        ]
+      })
+    ]);
+    expect(prices[key]).toMatchObject({
+      variants: [
+        { price_usd: 0.12, unit_class: "per-video-second", resolution: "480p", is_base: true },
+        { price_usd: 0.24, unit_class: "per-video-second", resolution: "720p", is_base: false }
+      ],
+      surcharges: [
+        { kind: "input_video_second", spec: "720p", unit_price_usd: 0.15, free_allowance: 0 },
+        { kind: "per_request", unit_price_usd: 0.0025, free_allowance: 0, label: "prompt expansion" }
+      ],
+      clip_seconds: { min: 4, max: 15 }
+    });
+    // The prose note is GenSpend's truth surface, not ours to re-render.
+    expect(JSON.stringify(prices[key])).not.toContain("prose we do not ship");
+  });
+
+  it("quotes the base-spec row, taking its unit class with it", () => {
+    // MiniMax bills Hailuo per generation while the headline quotes a
+    // per-second rate. Taking the price without the class would publish $0.28
+    // *per second* — an 6× overstatement on a six-second clip.
+    const { prices } = build([
+      model({
+        slug: "hailuo-02",
+        name: "MiniMax Hailuo 02",
+        offerings: [
+          offering({
+            provider: { slug: "minimax", name: "MiniMax" },
+            priceUsd: 0.047,
+            variants: [
+              {
+                spec: "768p · 6s",
+                unitClass: "per-generation",
+                priceUsd: 0.28,
+                isBase: true,
+                resolution: "768p",
+                durationSeconds: 6
+              },
+              {
+                spec: "768p · 10s",
+                unitClass: "per-generation",
+                priceUsd: 0.56,
+                isBase: false,
+                resolution: "768p",
+                durationSeconds: 10
+              }
+            ]
+          })
+        ]
+      })
+    ]);
+    expect(prices["minimax:MiniMax-Hailuo-02"]).toMatchObject({
+      unit_price: 0.28,
+      unit_class: "per-generation",
+      billing_unit: "generations"
+    });
+  });
+
+  it("drops variant rows that say nothing in facets", () => {
+    // AtlasCloud's `variants[]` is a list of sibling endpoint ids, which the
+    // matcher already turned into separate keys. Shipping them again as rows
+    // would double the file for nothing.
+    const { prices } = build([
+      model({
+        offerings: [
+          offering({
+            variants: [
+              {
+                spec: "bytedance/seedance-2.0/text-to-video",
+                unitClass: "per-video-second",
+                priceUsd: 0.112,
+                isBase: true,
+                resolution: null,
+                durationSeconds: null,
+                withAudio: null,
+                videoInput: null,
+                tier: null
+              }
+            ]
+          })
+        ]
+      })
+    ]);
+    expect(prices[key].variants).toBeUndefined();
+    // …and the scalar still comes from that base row.
+    expect(prices[key].unit_price).toBe(0.112);
+  });
+
+  it("leaves a flat offering looking exactly like it did under v2", () => {
+    const { prices } = build([model()]);
+    expect(Object.keys(prices[key])).toEqual([
+      "unit_price",
+      "billing_unit",
+      "unit_class",
+      "model_slug",
+      "match",
+      "live",
+      "source_url"
+    ]);
+  });
+
+  it("stores a quote_wrong flag rather than dropping the entry", () => {
+    // The calculator refuses to price a flagged entry; that decision needs the
+    // flag to survive the sync. Today this fires zero times.
+    const { prices } = build([
+      model({
+        offerings: [
+          offering({
+            dataFlags: [
+              {
+                kind: "surcharge",
+                severity: "quote_wrong",
+                confidence: "high",
+                summary: "the page moved",
+                sourceUrl: "https://example.test",
+                openedAt: "2026-08-01"
+              }
+            ]
+          })
+        ]
+      })
+    ]);
+    expect(prices[key].data_flags).toEqual([
+      { kind: "surcharge", severity: "quote_wrong" }
+    ]);
+  });
+
+  it("drops cosmetic flags, which are display text we do not render", () => {
+    const { prices } = build([
+      model({
+        offerings: [
+          offering({
+            dataFlags: [
+              { kind: "label", severity: "cosmetic", summary: "unit reads oddly" },
+              { kind: "missing_metric", severity: "spec_gap" }
+            ]
+          })
+        ]
+      })
+    ]);
+    expect(prices[key].data_flags).toEqual([
+      { kind: "missing_metric", severity: "spec_gap" }
+    ]);
+  });
+
+  it("keeps a null clip envelope as a refusal, not as an absence", () => {
+    const { prices } = build([
+      model({ capabilities: { clipSeconds: null }, offerings: [offering()] })
+    ]);
+    expect(prices[key].clip_seconds).toBeNull();
+    expect("clip_seconds" in prices[key]).toBe(true);
+  });
+
+  it("still produces no diff when nothing upstream moved", () => {
+    const withGrid = model({
+      capabilities: { clipSeconds: { set: null, min: 4, max: 15 } },
+      offerings: [offering({ variants: ladder })]
+    });
+    const first = buildCatalog({
+      models: [withGrid],
+      index,
+      aliases: {},
+      previous: null,
+      nowIso: "2026-01-01T00:00:00.000Z"
+    }).catalog;
+    const second = buildCatalog({
+      models: [withGrid],
+      index,
+      aliases: {},
+      previous: first,
+      nowIso: "2026-01-02T00:00:00.000Z"
+    }).catalog;
+    expect(JSON.stringify(second)).toBe(JSON.stringify(first));
+  });
+});
+
+/**
+ * The parity gate itself. Its network half runs in the nightly workflow only;
+ * what is tested here is the arithmetic and the verdict, both pure.
+ */
+describe("parity check", () => {
+  const entry = {
+    unit_price: 0.205,
+    billing_unit: "seconds",
+    unit_class: "per-video-second",
+    model_slug: "seedance-2",
+    match: "provider-id",
+    live: true,
+    source_url: "https://kie.ai/seedance-2-0",
+    variants: [
+      { price_usd: 0.095, unit_class: "per-video-second", resolution: "480p", is_base: false },
+      { price_usd: 0.205, unit_class: "per-video-second", resolution: "720p", is_base: true },
+      { price_usd: 0.51, unit_class: "per-video-second", resolution: "1080p", is_base: false }
+    ],
+    surcharges: [
+      { kind: "input_video_second", spec: "720p", unit_price_usd: 0.125, free_allowance: 0 }
+    ],
+    clip_seconds: { min: 4, max: 15 }
+  };
+
+  it("narrows the ladder to the stated resolution", () => {
+    expect(priceCase(entry, { seconds: 5, resolution: "1080p" })).toMatchObject({
+      costUsd: 2.55
+    });
+  });
+
+  it("declines a resolution the provider does not publish", () => {
+    expect(priceCase(entry, { seconds: 5, resolution: "2K" }).declined).toContain("2K");
+  });
+
+  it("declines outside the receipted clip envelope", () => {
+    expect(priceCase(entry, { seconds: 60, resolution: "720p" }).declined).toBeTruthy();
+  });
+
+  it("lets a reference video re-rate the whole job, not add to it", () => {
+    expect(
+      priceCase(entry, { seconds: 5, resolution: "720p", referenceVideoSeconds: 5 })
+    ).toMatchObject({ costUsd: 1.25 });
+  });
+
+  it("keeps the generation cost as a floor where no scoped rate exists", () => {
+    const result = priceCase(entry, {
+      seconds: 5,
+      resolution: "480p",
+      referenceVideoSeconds: 5
+    });
+    expect(result.costUsd).toBeCloseTo(0.475, 9);
+    expect(result.warnings).toEqual([expect.stringContaining("lower bound")]);
+  });
+
+  it("refuses to price an entry with a known quote discrepancy", () => {
+    expect(
+      priceCase(
+        { ...entry, data_flags: [{ kind: "surcharge", severity: "quote_wrong" }] },
+        { seconds: 5, resolution: "720p" }
+      ).declined
+    ).toBeTruthy();
+  });
+
+  it("cannot pass on a catalog it priced nothing from", () => {
+    // An audit that matches nothing is indistinguishable from one that
+    // examines nothing, so an empty catalog must fail rather than agree.
+    const verdict = runComparison({
+      catalog: { prices: {} },
+      quoteSteps: PARITY_CASES.map(() => ({ error: "unpriced" }))
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.vacuous).toBe(true);
+    expect(verdict.reason).toContain(String(MIN_PRICED_CASES));
+  });
+
+  it("fails a case whose local price moved away from the quote", () => {
+    const verdict = runComparison({
+      catalog: { prices: { "x:y": entry } },
+      cases: [
+        {
+          name: "moved",
+          key: "x:y",
+          model: "seedance-2",
+          provider: "kie",
+          params: { seconds: 5, resolution: "720p" }
+        }
+      ],
+      quoteSteps: [{ costUsd: 1.5 }]
+    });
+    expect(verdict.ok).toBe(false);
+    expect(verdict.failures[0].detail).toContain("1.5");
+  });
+
+  it("asks the quote endpoint for exactly the cases it checks", () => {
+    const { steps } = quoteRequest();
+    expect(steps).toHaveLength(PARITY_CASES.length);
+    expect(steps.every((step: { model: string; provider: string }) => step.provider)).toBe(
+      true
+    );
+    expect(PARITY_CASES.filter((c: { expect?: string }) => c.expect === "decline").length)
+      .toBeGreaterThan(0);
+    expect(PARITY_CASES.length - MIN_PRICED_CASES).toBeGreaterThanOrEqual(0);
+  });
+});
+
 describe("buildCatalog", () => {
   const build = (models: unknown[], previous: unknown, nowIso: string) =>
     buildCatalog({ models, index, aliases: {}, previous, nowIso });
@@ -616,7 +962,7 @@ describe("buildCatalog", () => {
       catalogModels: 1,
       catalogOfferings: 1,
       providers: ["atlascloud"],
-      source: "https://genspend.io/api/v1/models"
+      source: "https://genspend.io/api/v1/export"
     });
   });
 

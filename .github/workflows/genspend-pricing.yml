@@ -1,7 +1,7 @@
 name: GenSpend Pricing Sync
 
 # Nightly: pull generative-media prices from the GenSpend catalog
-# (https://genspend.io/api/v1/models) into
+# (https://genspend.io/api/v1/export) into
 # `packages/model-pricing/src/generated/genspend-pricing.json`, and open a PR
 # when a price moved.
 #
@@ -52,6 +52,15 @@ jobs:
 
       - name: Sync prices
         run: npm run sync:genspend -- --report genspend-coverage.json
+
+      - name: Check our arithmetic against GenSpend's calculator
+        # The catalog is a snapshot we price locally from, so the risk is that
+        # our port of the selection rules drifts from theirs. This re-prices
+        # fixed cases from the file just written and asserts each equals
+        # POST /api/v1/quote. It needs the network, which is why it lives here
+        # and not in the PR quality gate. A drift fails the job rather than
+        # opening a PR that ships a wrong number.
+        run: node scripts/genspend/parity-check.mjs
 
       - name: Upload coverage report
         if: always()

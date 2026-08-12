@@ -226,3 +226,135 @@ describe("estimateWorkflowCost", () => {
     expect(estimate.total).toBeCloseTo(0.02, 10);
   });
 });
+
+/**
+ * Parameters — what the node states about the job (duration, resolution) —
+ * reach the price lookup and its reasoning reaches the item.
+ */
+describe("estimateWorkflowCost with pricing parameters", () => {
+  const VIDEO_TYPE = "nodetool.video.TextToVideo";
+  const videoMetadata: Record<string, NodeMetadataLike> = {
+    ...metadataByType,
+    [VIDEO_TYPE]: {
+      properties: [{ name: "model", type: { type: "video_model" } }]
+    }
+  };
+  const getVideoMetadata = (type: string) => videoMetadata[type];
+
+  /** A per-second model: the price arrives already multiplied by duration. */
+  const getModelPriceWithParams: CostEstimateInput["getModelPrice"] = (
+    model,
+    params
+  ) => {
+    if (model.id !== "vendor/clip-2") return null;
+    if (params?.resolution === "4K") {
+      return {
+        unit_price: 0,
+        billing_unit: "",
+        currency: "USD",
+        source: "bundle" as const,
+        declined: "no published price at 4K"
+      };
+    }
+    const seconds = params?.seconds ?? 1;
+    return {
+      unit_price: 0.2 * seconds,
+      billing_unit: "seconds",
+      currency: "USD",
+      source: "bundle" as const,
+      breakdown: `${seconds} s × $0.2/s`,
+      ...(params?.seconds === undefined
+        ? { assumptions: ["duration not set on the node — priced at 1 s"] }
+        : {}),
+      ...(params?.referenceImages
+        ? { warnings: ["reference images are not priced here"] }
+        : {})
+    };
+  };
+
+  const videoNode = (data: Record<string, unknown>) => ({
+    id: "v1",
+    type: VIDEO_TYPE,
+    data: {
+      model: { type: "video_model", provider: "kie", id: "vendor/clip-2" },
+      ...data
+    }
+  });
+
+  it("threads node parameters into the model lookup and composes with fan-out", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({ duration: 5 })],
+      getMetadata: getVideoMetadata,
+      getModelPrice: getModelPriceWithParams,
+      getParams: (node) => ({
+        seconds: Number(node.data?.duration) || undefined
+      }),
+      quantities: { v1: 2 }
+    });
+
+    const item = estimate.items[0];
+    expect(item.unit_price).toBeCloseTo(1.0, 10);
+    expect(item.quantity).toBe(2);
+    expect(item.estimated_cost).toBeCloseTo(2.0, 10);
+    expect(estimate.total).toBeCloseTo(2.0, 10);
+  });
+
+  it("copies breakdown, assumptions, and warnings onto the item", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({})],
+      getMetadata: getVideoMetadata,
+      getModelPrice: getModelPriceWithParams,
+      getParams: () => ({ referenceImages: 2 })
+    });
+
+    const item = estimate.items[0];
+    expect(item.breakdown).toBe("1 s × $0.2/s");
+    expect(item.assumptions).toEqual([
+      "duration not set on the node — priced at 1 s"
+    ]);
+    expect(item.warnings).toEqual(["reference images are not priced here"]);
+  });
+
+  it("reports a declined price as unknown with the reason attached", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({ resolution: "4K" })],
+      getMetadata: getVideoMetadata,
+      getModelPrice: getModelPriceWithParams,
+      getParams: (node) => ({ resolution: String(node.data?.resolution) })
+    });
+
+    const item = estimate.items[0];
+    expect(item.confidence).toBe("unknown");
+    expect(item.estimated_cost).toBe(0);
+    expect(item.assumptions).toEqual(["no published price at 4K"]);
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.total).toBe(0);
+  });
+
+  it("treats a model price billed in vague units as unknown, never summed", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({})],
+      getMetadata: getVideoMetadata,
+      getModelPrice: () => ({
+        unit_price: 400,
+        billing_unit: "credits",
+        currency: "credits",
+        source: "bundle" as const
+      })
+    });
+
+    expect(estimate.total).toBe(0);
+    expect(estimate.unknown_count).toBe(1);
+    expect(estimate.items[0].confidence).toBe("unknown");
+  });
+
+  it("prices a generic node unchanged when no getParams is supplied", () => {
+    const estimate = estimateWorkflowCost({
+      nodes: [videoNode({ duration: 5 })],
+      getMetadata: getVideoMetadata,
+      getModelPrice: getModelPriceWithParams
+    });
+
+    expect(estimate.items[0].unit_price).toBeCloseTo(0.2, 10);
+  });
+});

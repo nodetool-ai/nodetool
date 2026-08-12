@@ -21,9 +21,11 @@
  */
 
 import type {
+  ModelPriceParams,
   ModelUnitPricingLike,
   SelectedModel
 } from "@nodetool-ai/node-sdk/cost-estimate";
+import { priceGenspendEntry, type ModelParamPrice } from "./genspend-calc.js";
 import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { getGenspendPrice, GENSPEND_CURRENCY } from "./genspend-catalog.js";
@@ -73,9 +75,16 @@ function kiePrice(modelId: string): ModelUnitPricingLike | null {
   };
 }
 
-function genspendPrice(model: SelectedModel): ModelUnitPricingLike | null {
+function genspendPrice(
+  model: SelectedModel,
+  params?: ModelPriceParams
+): ModelParamPrice | null {
   const entry = getGenspendPrice(model.provider, model.id);
   if (!entry) return null;
+  // With parameters in hand the catalog's grid decides the rung, the duration
+  // multiplication, and the surcharges. Without them the base-spec scalar is
+  // the answer, exactly as before.
+  if (params) return priceGenspendEntry(entry, params);
   return {
     unit_price: entry.unit_price,
     billing_unit: entry.billing_unit,
@@ -84,21 +93,36 @@ function genspendPrice(model: SelectedModel): ModelUnitPricingLike | null {
   };
 }
 
+/**
+ * The unit price for a selected model. With `params` — what the node states
+ * about the job (duration, resolution, audio) — a GenSpend-priced model is
+ * priced off its published grid and `unit_price` comes back as the whole
+ * per-run figure, with the reasoning attached. Without `params` the answer is
+ * byte-identical to what it has always been.
+ *
+ * The FAL and kie catalogs stay parameter-unaware for now: they carry the same
+ * per-second defect, from a different generator, and are a follow-up. They keep
+ * winning the lookup order, because those numbers come from the provider.
+ */
 export function getModelUnitPrice(
-  model: SelectedModel
-): ModelUnitPricingLike | null {
+  model: SelectedModel,
+  params?: ModelPriceParams
+): ModelParamPrice | null {
   // NodeTool's managed models price at their delegate's rate: translate the
   // curated id to the underlying provider+model before the catalog lookups,
   // so credit estimates for the metered provider are real numbers.
   if (model.provider === "nodetool") {
     const delegate = resolveNodetoolDelegate(model.id);
     if (!delegate) return null;
-    return getModelUnitPrice({
-      id: delegate.model,
-      provider: delegate.provider
-    });
+    return getModelUnitPrice(
+      { id: delegate.model, provider: delegate.provider },
+      params
+    );
   }
-  return falPrice(model.id) ?? kiePrice(model.id) ?? genspendPrice(model);
+  return falPrice(model.id) ?? kiePrice(model.id) ?? genspendPrice(model, params);
 }
+
+export { priceGenspendEntry, normalizeResolution } from "./genspend-calc.js";
+export type { ModelParamPrice } from "./genspend-calc.js";
 
 export default getModelUnitPrice;

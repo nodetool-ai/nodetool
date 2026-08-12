@@ -8,6 +8,7 @@ import falUnitPricingCatalog from "@nodetool-ai/fal-nodes/unit-pricing-catalog";
 import kieUnitPricingCatalog from "@nodetool-ai/kie-nodes/unit-pricing-catalog";
 import { genspendPricingCatalog } from "../src/genspend-catalog.js";
 import { getModelUnitPrice } from "../src/index.js";
+import { priceGenspendEntry } from "../src/genspend-calc.js";
 
 const firstEntry = (
   catalog: { prices?: Record<string, unknown> },
@@ -79,5 +80,33 @@ describe("getModelUnitPrice", () => {
     expect(
       getModelUnitPrice({ id: "nodetool/nope", provider: "nodetool" })
     ).toBeNull();
+  });
+
+  it("prices a GenSpend model through the calculator when params are given", () => {
+    // A key the FAL and kie catalogs miss, so the GenSpend tier is the one asked.
+    const entry = Object.entries(genspendPricingCatalog.prices).find(
+      ([key, price]) =>
+        (price.variants ?? []).some((v) => v.resolution) &&
+        !falUnitPricingCatalog.prices?.[key.split(":").slice(1).join(":")] &&
+        !kieUnitPricingCatalog.prices?.[key.split(":").slice(1).join(":")]
+    );
+    if (!entry) throw new Error("no laddered price in the GenSpend catalog");
+    const [key, price] = entry;
+    const [provider, ...rest] = key.split(":");
+    const model = { id: rest.join(":"), provider };
+    const params = { resolution: price.variants![0].resolution, seconds: 5 };
+
+    // Routed: the scalar path carries no reasoning, the calculator does.
+    expect(getModelUnitPrice(model, params)).toEqual(
+      priceGenspendEntry(price, params)
+    );
+    expect(getModelUnitPrice(model)?.unit_price).toBe(price.unit_price);
+  });
+
+  it("leaves the FAL tier parameter-unaware for now", () => {
+    const { id } = firstEntry(falUnitPricingCatalog, "unit_price");
+    expect(getModelUnitPrice({ id, provider: "fal_ai" }, { seconds: 10 })).toEqual(
+      getModelUnitPrice({ id, provider: "fal_ai" })
+    );
   });
 });

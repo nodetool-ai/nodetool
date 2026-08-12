@@ -230,9 +230,23 @@ export interface NodeCostEstimate {
   billing_unit?: string;
   /** How many times this node is expected to run (fan-out multiplies this). */
   quantity: number;
-  /** unit_price * quantity, in {@link WorkflowCostEstimate.currency}. */
+  /**
+   * unit_price * quantity, in {@link WorkflowCostEstimate.currency}.
+   * A **lower bound** whenever {@link NodeCostEstimate.warnings} is non-empty:
+   * a cost we know exists but cannot price is left out rather than guessed.
+   */
   estimated_cost: number;
   confidence: CostConfidence;
+  /** How the figure was reached — "5 s × $0.205/s at 720p". */
+  breakdown?: string;
+  /**
+   * What the estimate filled in because the node did not state it ("resolution
+   * not set — priced at the base spec 720p"). On an `unknown` item this carries
+   * the reason the catalog refused to price the step.
+   */
+  assumptions?: string[];
+  /** Costs known to be missing from `estimated_cost`, making it a lower bound. */
+  warnings?: string[];
 }
 
 /** Pre-run estimate for a whole workflow/timeline — the plan-before-spend view. */

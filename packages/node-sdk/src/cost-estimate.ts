@@ -64,6 +64,43 @@ export interface SelectedModel {
 }
 
 /**
+ * What a node states about the job it is about to run, in the vocabulary the
+ * price catalogs bill in. Every field is optional: a missing one is priced at
+ * the model's base spec and recorded as an assumption, never guessed.
+ * `extractPricingParams` (`./pricing-params.js`) reads these off node property
+ * values.
+ */
+export interface ModelPriceParams {
+  /** A resolution tier or a raw spelling of one ("720p", "1024x1024"). */
+  resolution?: string;
+  /** Output duration in seconds. */
+  seconds?: number;
+  withAudio?: boolean;
+  /** Quality tier when a provider sells several under one model id. */
+  tier?: string;
+  referenceImages?: number;
+  /** Duration of a video fed in, which some providers bill instead of output. */
+  referenceVideoSeconds?: number;
+  megapixels?: number;
+}
+
+/**
+ * A model price computed from {@link ModelPriceParams}. `unit_price` is the
+ * whole per-run figure (a per-second model comes back already multiplied by
+ * its duration), so `estimated_cost = unit_price × quantity` still composes.
+ */
+export interface ModelParamPricingLike extends ModelUnitPricingLike {
+  /** How the figure was reached: "5 s × $0.205/s at 720p". */
+  breakdown?: string;
+  /** What was filled in because the node did not state it. */
+  assumptions?: string[];
+  /** Known-missing costs — the figure is then a lower bound. */
+  warnings?: string[];
+  /** Set instead of a price when the catalog refuses to extrapolate. */
+  declined?: string;
+}
+
+/**
  * Property `type.type` values whose value is a provider-backed model selection
  * carrying a provider + model id. Kept in sync with the web `PROVIDER_MODEL_TYPES`
  * list. Local model types (`llama_model`, `hf.*`) are excluded — they aren't
@@ -88,8 +125,19 @@ export interface CostEstimateInput {
    * unknown. Without it, generic nodes stay "unknown".
    */
   getModelPrice?: (
-    model: SelectedModel
-  ) => ModelUnitPricingLike | null | undefined;
+    model: SelectedModel,
+    params?: ModelPriceParams
+  ) => ModelParamPricingLike | null | undefined;
+  /**
+   * Optional per-node read of what the node states about its job (duration,
+   * resolution, audio). Supplied by the caller so this stays hermetic; the
+   * result is handed to `getModelPrice`.
+   */
+  getParams?: (node: {
+    id: string;
+    type: string;
+    data?: Record<string, unknown>;
+  }) => ModelPriceParams | undefined;
   /** Optional per-node expected run count (fan-out). Defaults to 1. */
   quantities?: Record<string, number>;
   /**
@@ -123,6 +171,9 @@ interface ResolvedPrice {
   unitPrice: number;
   billingUnit: string;
   confidence: CostConfidence;
+  breakdown?: string;
+  assumptions?: string[];
+  warnings?: string[];
 }
 
 function isVagueBillingUnit(unit: string): boolean {
@@ -172,7 +223,8 @@ function selectedModel(
 function resolvePrice(
   metadata: NodeMetadataLike | undefined,
   data: Record<string, unknown> | undefined,
-  getModelPrice: CostEstimateInput["getModelPrice"]
+  getModelPrice: CostEstimateInput["getModelPrice"],
+  params?: ModelPriceParams
 ): ResolvedPrice | null {
   const fal = metadata?.fal_unit_pricing;
   if (fal && Number.isFinite(fal.unit_price)) {
@@ -208,14 +260,35 @@ function resolvePrice(
   if (getModelPrice) {
     const model = selectedModel(metadata, data);
     if (model) {
-      const price = getModelPrice(model);
-      if (price && Number.isFinite(price.unit_price)) {
+      const price = getModelPrice(model, params);
+      if (price?.declined) {
+        // A refusal to extrapolate is a reason, not a price: report it where a
+        // user can act on it instead of dropping the node into silent unknown.
+        return {
+          provider: model.provider ?? "model",
+          model: model.id,
+          unitPrice: 0,
+          billingUnit: "",
+          confidence: "unknown",
+          assumptions: [price.declined]
+        };
+      }
+      // A price billed in "units" or "credits" has no fixed currency value —
+      // summing it would corrupt the total, so the node stays unknown.
+      if (
+        price &&
+        Number.isFinite(price.unit_price) &&
+        !isVagueBillingUnit(price.billing_unit)
+      ) {
         return {
           provider: model.provider ?? "model",
           model: model.id,
           unitPrice: price.unit_price,
           billingUnit: price.billing_unit,
-          confidence: confidenceFromSource(price.source)
+          confidence: confidenceFromSource(price.source),
+          breakdown: price.breakdown,
+          assumptions: price.assumptions,
+          warnings: price.warnings
         };
       }
     }
@@ -240,18 +313,20 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
     const price = resolvePrice(
       input.getMetadata(node.type),
       node.data,
-      input.getModelPrice
+      input.getModelPrice,
+      input.getParams?.(node)
     );
 
-    if (!price) {
+    if (!price || price.confidence === "unknown") {
       items.push({
         node_id: node.id,
         node_type: node.type,
-        provider: null,
-        model: null,
+        provider: price?.provider ?? null,
+        model: price?.model ?? null,
         quantity,
         estimated_cost: 0,
-        confidence: "unknown"
+        confidence: "unknown",
+        ...(price?.assumptions ? { assumptions: price.assumptions } : {})
       });
       unknownCount += 1;
       continue;
@@ -268,7 +343,10 @@ export function estimateWorkflowCost(input: CostEstimateInput): WorkflowCostEsti
       billing_unit: price.billingUnit,
       quantity,
       estimated_cost: estimatedCost,
-      confidence: price.confidence
+      confidence: price.confidence,
+      ...(price.breakdown ? { breakdown: price.breakdown } : {}),
+      ...(price.assumptions ? { assumptions: price.assumptions } : {}),
+      ...(price.warnings ? { warnings: price.warnings } : {})
     });
   }
 
