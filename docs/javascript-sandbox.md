@@ -326,7 +326,9 @@ return { kept, count: kept.length };
 - **Media inputs** arrive as refs. Read one with `media.bytes` / `media.text`,
   and return one built by `media.toDocument` / `toImage` / `toAudio` / `toVideo`.
 - **Streaming.** Code containing `yield` runs through `genProcess`: the yields
-  are collected in the guest and emitted one message at a time.
+  are collected in the guest and emitted one message at a time. A live
+  `emit(name, value)` replacement is designed in
+  [code-node-emit-design.md](code-node-emit-design.md).
 - **`state`** is a plain object that survives across streaming invocations and
   resets at the start of each workflow run.
 - **`progress(percent, message)`** posts `node_progress` to the kernel — the
