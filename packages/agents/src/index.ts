@@ -178,6 +178,10 @@ export type {
   GenericNodeCapability,
   BuildPromptOptions
 } from "./prompts/graph-planner-prompt.js";
+export {
+  WORKFLOW_AUTHORING_KNOWLEDGE,
+  renderWorkflowAuthoringKnowledge
+} from "./prompts/workflow-authoring-knowledge.js";
 export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
 export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
 export { ControlNodeTool, sanitizeToolName } from "./tools/control-tool.js";

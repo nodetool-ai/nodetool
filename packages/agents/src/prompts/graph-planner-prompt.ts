@@ -8,123 +8,20 @@
 import type { NodeMetadata } from "@nodetool-ai/node-sdk";
 import { PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 import type { InstalledSandboxPack } from "./sandbox-pack-catalog.js";
+import type { GenericAINode } from "./workflow-authoring-knowledge.js";
+import {
+  GENERIC_AI_NODES,
+  CORE_BASELINE_NAMESPACES
+} from "./workflow-authoring-knowledge.js";
 
-export type GenericNodeCapability =
-  | "text_to_image"
-  | "image_to_image"
-  | "text_to_video"
-  | "image_to_video"
-  | "text_to_speech"
-  | "automatic_speech_recognition"
-  | "generate_embedding"
-  | "generate_message";
-
-export interface GenericAINode {
-  /** Fully-qualified node_type to use in the graph program. */
-  type: string;
-  /** Provider capability used to look up models via `find_model`. */
-  capability: GenericNodeCapability;
-  /** Human-readable task label used in the prompt table. */
-  task: string;
-  /** One-line description shown to the agent. */
-  summary: string;
-  /**
-   * Whether this node accepts a `model` property of the form `{provider, id}`.
-   * `false` for the Agent step, which inherits the run's configured model.
-   */
-  acceptsModel: boolean;
-}
-
-/**
- * Curated set of provider-agnostic nodes the agent must reach for FIRST when
- * the user asks for AI generation/transform of any kind.
- *
- * Verified to exist in `@nodetool-ai/base-nodes` as of writing.
- */
-export const GENERIC_AI_NODES: readonly GenericAINode[] = [
-  {
-    type: "nodetool.image.TextToImage",
-    capability: "text_to_image",
-    task: "Text → Image",
-    summary:
-      "Generate an image from a text prompt. Required: prompt, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.image.ImageToImage",
-    capability: "image_to_image",
-    task: "Image → Image",
-    summary:
-      "Transform a source image with a text prompt. Required: image, prompt, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.video.TextToVideo",
-    capability: "text_to_video",
-    task: "Text → Video",
-    summary:
-      "Generate a video from a text prompt. Required: prompt, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.video.ImageToVideo",
-    capability: "image_to_video",
-    task: "Image → Video",
-    summary:
-      "Animate a source image into a video. Required: image, prompt, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.audio.TextToSpeech",
-    capability: "text_to_speech",
-    task: "Text → Speech",
-    summary:
-      "Generate speech audio from text. Required: text, model. Optional: voice.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.text.AutomaticSpeechRecognition",
-    capability: "automatic_speech_recognition",
-    task: "Speech → Text",
-    summary:
-      "Transcribe audio to text. Required: audio, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.text.Embedding",
-    capability: "generate_embedding",
-    task: "Text → Embedding",
-    summary:
-      "Compute a text embedding vector. Required: text, model.",
-    acceptsModel: true
-  },
-  {
-    type: "nodetool.agents.Agent",
-    capability: "generate_message",
-    task: "LLM step (reasoning / generation)",
-    summary:
-      "LLM step: pass a prompt in, get text out on the `text` handle. Inherits the run's configured model — do NOT set a model property.",
-    acceptsModel: false
-  }
-];
-
-/** Deterministic baseline namespaces — search inside these for non-AI work. */
-export const CORE_BASELINE_NAMESPACES: readonly string[] = [
-  "nodetool.control",
-  "nodetool.text",
-  "nodetool.image",
-  "nodetool.video",
-  "nodetool.audio",
-  "nodetool.data",
-  "nodetool.code",
-  "nodetool.constant",
-  "nodetool.input",
-  "nodetool.output",
-  "lib.os",
-  "nodetool.document",
-  "nodetool.vector",
-  "nodetool.triggers"
-];
+export type {
+  GenericAINode,
+  GenericNodeCapability
+} from "./workflow-authoring-knowledge.js";
+export {
+  GENERIC_AI_NODES,
+  CORE_BASELINE_NAMESPACES
+} from "./workflow-authoring-knowledge.js";
 
 export { PROVIDER_NAMESPACES };
 

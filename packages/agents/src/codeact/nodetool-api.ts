@@ -458,6 +458,7 @@ const nodetool = (() => {
       /**
        * Search the node catalog. \`query\` takes a string or an array of
        * strings; \`opts\` passes n_results / input_type / output_type through.
+       * Answers { total, results }; a result's node type is on "type".
        */
       search: (query, opts) =>
         __need("search_nodes")(
@@ -995,7 +996,9 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "nodes",
     doc: `- \`nodetool.nodes\` — the graph author's discovery half. NEVER guess a node
   type: \`await search(["summarize text"], {n_results, input_type, output_type})\`
-  (a bare string works too) to find candidates, then
+  (a bare string works too) to find candidates — it returns
+  \`{total, results}\`, and each result carries its node type on \`type\`
+  (not \`node_type\`) — then
   \`await info("nodetool.text.Concat")\` for the exact properties, inputs and
   outputs before you import that node's namespace from the DSL package.
   \`list({namespace, limit})\`
