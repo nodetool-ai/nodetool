@@ -36,22 +36,30 @@ const registry = {
   validateNode: () => []
 } as unknown as NodeRegistry;
 
-/** A provider that replays one code action, the way `generateLoop` drives it. */
-function scriptedProvider(code: string): BaseProvider {
-  return {
+/**
+ * A provider that replays one code action, the way `generateLoop` drives it,
+ * and keeps the system prompt it was handed.
+ */
+function scriptedProvider(code: string): BaseProvider & { systemPrompt: string } {
+  const provider = {
     provider: "scripted",
+    systemPrompt: "",
     hasToolSupport: async () => true,
     getTotalCost: () => 0,
     async *generateLoop(args: {
+      messages?: Array<{ role: string; content?: unknown }>;
       tools?: ProviderTool[];
     }): AsyncGenerator<ProviderStreamItem> {
+      const system = (args.messages ?? []).find((m) => m.role === "system");
+      provider.systemPrompt = String(system?.content ?? "");
       const tool = (args.tools ?? []).find((t) => t.name === "execute_code");
       const call = { title: "Author the graph", code };
       yield { id: "call_1", name: "execute_code", args: call } as ProviderStreamItem;
       await tool?.execute?.(call, "call_1");
       yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
     }
-  } as unknown as BaseProvider;
+  };
+  return provider as unknown as BaseProvider & { systemPrompt: string };
 }
 
 /** A mock context carrying the catalog the guest loader will read. */
@@ -196,11 +204,12 @@ describe("authorGraph run", () => {
       "await finish(graph);"
     ].join("\n");
 
+    const provider = scriptedProvider(code);
     const { messages, value } = await drain(
       authorGraph(
         "Echo the topic",
         options({
-          provider: scriptedProvider(code),
+          provider,
           inputs: { topic: "otters" },
           context: contextWith(shippedPackCatalog())
         })
@@ -212,6 +221,15 @@ describe("authorGraph run", () => {
     expect(graph!.nodes).toHaveLength(2);
     expect(graph!.edges).toHaveLength(1);
     expect(planningUpdates(messages).at(-1)?.status).toBe("success");
+
+    // The belt lights up the workflows namespace and the pack is on the
+    // allowlist, so the CodeAct prompt renders the DSL mechanics — once.
+    const dslHeadings = provider.systemPrompt.match(
+      /# Authoring a workflow graph/g
+    );
+    expect(dslHeadings).toHaveLength(1);
+    expect(provider.systemPrompt).toContain("## Picking nodes");
+    expect(provider.systemPrompt).toContain(GRAPH_DSL_PACKAGE);
   }, 60_000);
 
   it("reports a run that never finished as a failure", async () => {

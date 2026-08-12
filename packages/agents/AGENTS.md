@@ -996,6 +996,38 @@ code is visible in the `execute_code` call. What is gone is the second sandbox
 API, the second planner prompt, and the second set of budget knobs
 (`maxAgentCalls`).
 
+## Authoring a graph (`src/author-graph.ts`)
+
+`authorGraph(objective, opts)` is the replacement for `GraphPlanner`, and what
+both graph callers use — `Agent`'s graph mode (`executeGraphPlan`) and the
+app-build plan stage (one call per operation). It streams `ProcessingMessage`s
+and returns the graph, the same generator contract `plan()` had.
+
+It runs no loop of its own. `runSubAgent` drives one CodeAct child whose
+allowlist carries `@nodetool-ai/sandbox-dsl`, so the child authors with the
+typed pack — one generated function per node type — instead of the untyped
+`node(type, props)` program `submit_graph` took. The belt is discovery
+(`search_nodes`, `get_node_info`, `list_nodes`), `validate_workflow`, the
+Code-body harness (`validate_code`, `run_code`, `test_code`) and `find_model`
+when providers are configured. The graph comes back through `finish()` against
+a `{nodes, edges}` output schema: the object is already in the sandbox, so
+handing it over costs no tokens.
+
+The prompt is assembled once. `renderWorkflowAuthoringKnowledge()`
+(`prompts/workflow-authoring-knowledge.ts`) is the preamble — which node to
+reach for, how `agent` steps and `if_` behave, what a Code node is — and the
+DSL mechanics are NOT repeated there: `CodeActExecutor` renders
+`GRAPH_DSL_PROMPT_SECTION` itself once the pack is on the allowlist.
+
+There is no post-hoc `refineCodeNodes` pass. A whole-graph one-shot had no way
+to iterate on a Code body it wrote as a string literal, which is what that pass
+existed to fix; a CodeAct child validates and re-runs a body inside the same
+loop. Without a catalog serving the pack the run fails immediately, naming the
+pack, rather than spending a provider turn on an import that cannot resolve.
+
+Tests: `tests/author-graph.test.ts` (brief, preamble, belt, plus one scripted
+provider driving a real sandbox action over the real shipped pack).
+
 ## Graph Mode (one-shot DSL planning)
 
 `GraphPlanner` builds a workflow graph by having the LLM write ONE graph DSL
