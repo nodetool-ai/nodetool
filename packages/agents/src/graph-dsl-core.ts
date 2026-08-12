@@ -1,10 +1,10 @@
 /**
  * Graph DSL core — the guest-side implementation of node/edge wiring behind
- * the GraphPlanner's `submit_graph` program (`src/graph-dsl.ts`), where the
- * model writes free `node(type, props)` calls. A CodeAct action authors graphs
- * the other way, through the generated wrappers in `@nodetool-ai/sandbox-dsl`;
- * both produce the same `{nodes, edges}` shape, and both refuse a handle
- * interpolated into a string.
+ * the free-form `node(type, props)` program `evaluateGraphDsl` runs
+ * (`src/graph-dsl.ts`). A CodeAct action authors graphs the other way, through
+ * the generated wrappers in `@nodetool-ai/sandbox-dsl`; both produce the same
+ * `{nodes, edges}` shape, and both refuse a handle interpolated into a
+ * string.
  *
  * `__graphDslBuilder()` returns an instance-based builder: `node(type, props,
  * {id})` registers a node and returns a ref whose `.output(slot?)` produces a

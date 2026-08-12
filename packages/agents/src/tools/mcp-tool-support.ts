@@ -205,14 +205,14 @@ function withAutoLayout(nodes: unknown, edges: unknown): unknown {
 /**
  * Normalize an agent-authored graph into the *stored* workflow shape.
  *
- * Two representations exist. The kernel (and `GraphPlanner`/`GraphBuilder`)
+ * Two representations exist. The kernel (and `GraphBuilder`)
  * puts a node's property bag under `properties`; the persisted/editor shape
  * puts it flat under `data`, with layout under `ui_properties`. Saving kernel
  * shape runs fine — `normalizeGraph` in the websocket runner maps `data` →
  * `properties` on the way to the kernel and leaves an existing `properties`
  * alone — but the editor reads `node.data`, so such a workflow opens with
- * every node blank. The planner emits no layout at all, so the nodes would
- * also pile at the origin.
+ * every node blank. An authored graph carries no layout at all, so the nodes
+ * would also pile at the origin.
  *
  * This is the boundary where both conversions happen — `create_workflow` is
  * the only tool that persists a graph, so it maps `properties` → `data` and

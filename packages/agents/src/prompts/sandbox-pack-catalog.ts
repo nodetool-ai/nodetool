@@ -3,10 +3,10 @@
  *
  * NodeTool ships twenty packs, but a pack becomes importable only once it is
  * installed, like any third-party pack. A prompt that lists all twenty on a
- * fresh machine makes the planner declare a specifier `submit_graph` then
- * rejects with "Sandbox module ... is not installed." So the list comes from
- * the live catalog, and each summary comes from the pack's own metadata —
- * never from a table written here.
+ * fresh machine sends the agent after an import that fails with "Sandbox
+ * module ... is not installed." So the list comes from the live catalog, and
+ * each summary comes from the pack's own metadata — never from a table
+ * written here.
  */
 
 import type { SandboxModuleCatalog } from "@nodetool-ai/runtime";

@@ -3,7 +3,7 @@
  *
  * These tools wrap `ProcessingContext.runProviderPrediction`/
  * `streamProviderPrediction` so the multi-task agent can generate media
- * inline without going through the GraphPlanner. The tests stub those
+ * inline without authoring a workflow. The tests stub those
  * context methods and verify each tool dispatches the right capability,
  * writes binary results to the workspace, and surfaces clear errors when
  * required arguments are missing.

@@ -5,10 +5,9 @@
  * Before this module, every spawn site hand-rolled the same machinery:
  * `run_subtask` and `run_search` each carried a depth guard, a context copy,
  * a single-step Task, a `CodeActExecutor`, event tagging, forwarding, and
- * result/error extraction; `plan_workflow_graph` re-implemented the streaming
- * half for a non-CodeAct producer. Three copies of one concept meant every fix
- * (the nested-`{error}` detection, the broken-forwarder guard) had to land
- * three times — or didn't.
+ * result/error extraction. Copies of one concept meant every fix (the
+ * nested-`{error}` detection, the broken-forwarder guard) had to land in each
+ * of them — or didn't.
  *
  * The concept, stated once: a sub-agent is an async generator of
  * `ProcessingMessage` events with a settled outcome as its return value.

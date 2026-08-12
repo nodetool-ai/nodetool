@@ -1,10 +1,10 @@
 /**
- * The registry adapter the graph planner validates through.
+ * The registry adapter an authored graph is validated through.
  *
  * It lived in `finish-graph-tool.ts` until that tool — the last of the
- * incremental `add_node`/`add_edge` family — was deleted; `submit_graph` is
- * the only planner surface now, and these two helpers were the file's only
- * live exports.
+ * incremental `add_node`/`add_edge` family — was deleted, and these two
+ * helpers were the file's only live exports. `validate_workflow` and the
+ * graph validator read them now.
  */
 
 import {

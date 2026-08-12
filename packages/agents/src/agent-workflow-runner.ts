@@ -1,8 +1,8 @@
 /**
  * AgentWorkflowRunner -- executes a graph plan via the kernel's WorkflowRunner.
  *
- * Takes a GraphData (produced by GraphPlanner) and runs it through the kernel.
- * Every node resolves through the provided NodeRegistry. Planner-authored
+ * Takes a GraphData (produced by `authorGraph`) and runs it through the
+ * kernel. Every node resolves through the provided NodeRegistry. Authored
  * Agent nodes carry no execution policy of their own; this runner stamps the
  * run's model, system prompt, and turn budget onto them and injects its live
  * tool set into the context, so they run like any hand-placed Agent node.
