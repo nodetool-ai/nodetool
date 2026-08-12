@@ -779,6 +779,8 @@ export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
 export { GraphPlanner } from "./graph-planner.js";
 export type { GraphPlannerOptions } from "./graph-planner.js";
+export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";
+export type { AuthorGraphOptions } from "./author-graph.js";
 export {
   AgentWorkflowRunner,
   applyRunPolicy

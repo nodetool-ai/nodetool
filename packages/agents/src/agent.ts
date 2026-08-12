@@ -269,7 +269,7 @@ export interface AgentOptions {
   /** Node registry required when {@link useGraphPlanner} is true. */
   registry?: NodeRegistry;
   /**
-   * Configured BaseProvider instances by id. When supplied, the GraphPlanner
+   * Configured BaseProvider instances by id. When supplied, the graph author
    * exposes a `find_model` tool so the agent can pick a real model+provider
    * for generic AI nodes (TextToImage, TextToVideo, etc.).
    */

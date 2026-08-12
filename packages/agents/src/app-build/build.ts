@@ -4,7 +4,7 @@
  * A plain loop, not an agent: spec → plan → author → check → run → judge, with
  * everything wrong at the end of a pass collected into one
  * {@link BuildComplaint} and handed back to the stage that can fix it. The
- * stages themselves are the existing machinery — `GraphPlanner` plans, the
+ * stages themselves are the existing machinery — `authorGraph` plans, the
  * `ui_app_*` bridge authors, the `@nodetool-ai/execution` simulator checks and
  * runs — so this module owns exactly three things: the order, the complaints,
  * and the bounds.
@@ -52,7 +52,7 @@ import {
   type AppWidgetState,
   type InteractionStep
 } from "@nodetool-ai/execution/app-debug";
-import { GraphPlanner } from "../graph-planner.js";
+import { authorGraph } from "../author-graph.js";
 import {
   runAuthorStage,
   DEFAULT_AUTHOR_TURNS,
@@ -412,7 +412,7 @@ interface PlanStageOptions {
  * A `workflowId` binds: the graph is loaded and checked, and a declared surface
  * the workflow does not have is a *spec* complaint — the spec named a workflow
  * it does not fit, which no amount of planning fixes. Everything else goes to
- * `GraphPlanner`, whose graph must cover the declared surface; one replan names
+ * `authorGraph`, whose graph must cover the declared surface; one replan names
  * the delta, and a second miss fails the build.
  */
 async function runPlanStage(

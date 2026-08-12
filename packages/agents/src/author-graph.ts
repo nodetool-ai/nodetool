@@ -259,7 +259,7 @@ export function buildAuthoringBelt(opts: AuthorGraphOptions): Tool[] {
     nodeRegistry: opts.registry,
     ...(opts.providers ? { providers: opts.providers } : {})
   });
-  const names = [...AUTHORING_CAPABILITIES];
+  const names: string[] = [...AUTHORING_CAPABILITIES];
   if (opts.providers && Object.keys(opts.providers).length > 0) {
     names.unshift("find_model");
   } else {
