@@ -54,11 +54,18 @@ function scriptedProvider(code: string): BaseProvider {
   } as unknown as BaseProvider;
 }
 
+/** A mock context carrying the catalog the guest loader will read. */
+function contextWith(catalog: SandboxModuleCatalog | null): ProcessingContext {
+  return Object.assign(createMockContext(), {
+    sandboxModuleCatalog: catalog
+  }) as unknown as ProcessingContext;
+}
+
 function options(
   overrides: Partial<AuthorGraphOptions> = {}
 ): AuthorGraphOptions {
   return {
-    context: createMockContext() as unknown as ProcessingContext,
+    context: contextWith(null),
     provider: scriptedProvider("await finish({ nodes: [], edges: [] });"),
     model: "m",
     registry,
@@ -164,11 +171,12 @@ describe("authorGraph run", () => {
       getTotalCost: () => 0,
       async *generateLoop(): AsyncGenerator<ProviderStreamItem> {
         turns += 1;
+        yield { type: "chunk", content: "", done: true } as ProviderStreamItem;
       }
     } as unknown as BaseProvider;
 
     const { messages, value } = await drain(
-      authorGraph("Anything", options({ provider, sandboxModuleCatalog: null }))
+      authorGraph("Anything", options({ provider }))
     );
 
     expect(value).toBeNull();
@@ -194,7 +202,7 @@ describe("authorGraph run", () => {
         options({
           provider: scriptedProvider(code),
           inputs: { topic: "otters" },
-          sandboxModuleCatalog: shippedPackCatalog()
+          context: contextWith(shippedPackCatalog())
         })
       )
     );
@@ -212,7 +220,7 @@ describe("authorGraph run", () => {
         "Do nothing",
         options({
           provider: scriptedProvider("1 + 1;"),
-          sandboxModuleCatalog: shippedPackCatalog()
+          context: contextWith(shippedPackCatalog())
         })
       )
     );

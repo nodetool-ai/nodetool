@@ -109,11 +109,6 @@ export interface AuthorGraphOptions {
   threadId?: string;
   /** Provider rounds. Defaults to {@link AUTHOR_GRAPH_MAX_ITERATIONS}. */
   maxIterations?: number;
-  /**
-   * The catalog that must serve the DSL pack. Omit it and the context's is
-   * used, then this process's — which is what a server or CLI run wants.
-   */
-  sandboxModuleCatalog?: SandboxModuleCatalog | null;
 }
 
 /**
@@ -143,7 +138,7 @@ async function* authorGraphImpl(
   objective: string,
   opts: AuthorGraphOptions
 ): AsyncGenerator<ProcessingMessage, GraphData | null> {
-  const catalog = resolveCatalog(opts);
+  const catalog = resolveCatalog(opts.context);
   if (!catalogServesGraphDsl(catalog)) {
     const content =
       `Cannot author a graph: this process serves no \`${GRAPH_DSL_PACKAGE}\` ` +
@@ -235,15 +230,16 @@ async function* authorGraphImpl(
 }
 
 /**
- * The catalog in force: the caller's option, else the context's, else this
- * process's. A caller that means "no packs" says so with `null`; only an
- * absent value falls through to the next source.
+ * The catalog the sub-agent's imports will resolve against. There is no option
+ * for it: the guest loader reads the one on the {@link ProcessingContext}, so
+ * anything else here would only describe a pack the action cannot import. A
+ * host that means "no packs" sets `null` on the context; a plain object with no
+ * catalog at all falls back to this process's.
  */
 function resolveCatalog(
-  opts: AuthorGraphOptions
+  context: ProcessingContext
 ): SandboxModuleCatalog | null {
-  if (opts.sandboxModuleCatalog !== undefined) return opts.sandboxModuleCatalog;
-  const fromContext = opts.context.sandboxModuleCatalog;
+  const fromContext = context.sandboxModuleCatalog;
   if (fromContext !== undefined) return fromContext;
   return getProcessSandboxModuleCatalog();
 }
