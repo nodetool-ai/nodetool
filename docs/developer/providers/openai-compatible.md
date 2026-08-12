@@ -251,8 +251,8 @@ npm run dev:chat -- --provider acme --model <model-id>
 **4. Single-node smoke test** (chat node via the provider).
 
 ```bash
-npm run dev:nodetool -- node run nodetool.text.TextGenerationNode \
-  --props '{"provider":"acme","model":"<model-id>","prompt":"hello"}'
+npm run dev:nodetool -- node run nodetool.agents.Agent \
+  --props '{"prompt":"hello","model":{"type":"language_model","provider":"acme","id":"<model-id>"}}'
 ```
 
 **5. Full suite.**

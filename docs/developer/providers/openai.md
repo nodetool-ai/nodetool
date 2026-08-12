@@ -219,8 +219,8 @@ npm run typecheck
 npm run dev:nodetool -- info
 
 # 3. Smoke-test a single image node (no secrets needed for type check)
-npm run dev:nodetool -- node run nodetool.image.generate.OpenAIImageNode \
-  --props '{"prompt": "a red circle", "model": {"id": "gpt-image-1", "provider": "openai"}}' \
+npm run dev:nodetool -- node run nodetool.image.TextToImage \
+  --props '{"prompt": "a red circle", "model": {"type": "image_model", "id": "gpt-image-1", "provider": "openai"}}' \
   --no-secrets
 
 # 4. Full check (typecheck + lint + tests)

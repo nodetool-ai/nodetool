@@ -228,7 +228,7 @@ export ANTHROPIC_API_KEY=sk-...
 ### Connection Issues
 Ensure DSL modules are properly generated:
 ```bash
-nodetool codegen
+npm run codegen --workspace=packages/dsl
 ```
 
 ## Contributing New Examples

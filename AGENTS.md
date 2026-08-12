@@ -1219,7 +1219,7 @@ command. Compiler: `packages/sandbox-compiler`. Design:
 modules from npm packages.
 
 **Every library the sandbox offers is an importable pack.** There is no library
-global — the `data.*` namespace is gone. NodeTool ships twenty packs in
+global — the `data.*` namespace is gone. NodeTool ships twenty-one packs in
 `packages/sandbox-packs/`, each a package.json manifest plus a SKILL.md, and
 every one of them is available out of the box:
 
@@ -1240,6 +1240,7 @@ every one of them is available out of the box:
 | `@nodetool-ai/sandbox-mammoth` | mammoth | host |
 | `@nodetool-ai/sandbox-epub` | epub2 | host |
 | `@nodetool-ai/sandbox-pptx` | office-text-extractor | host |
+| `@nodetool-ai/sandbox-pdf` | pdf-parse | host |
 | `@nodetool-ai/sandbox-aws` | NodeTool's SigV4 signer | host |
 | `@nodetool-ai/sandbox-notion` | NodeTool's Notion helper | host |
 | `@nodetool-ai/sandbox-supabase` | NodeTool's PostgREST helper | host |

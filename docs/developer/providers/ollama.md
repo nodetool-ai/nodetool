@@ -154,11 +154,11 @@ Change `OLLAMA_DEFAULT_URL` in `packages/runtime/src/providers/defaults.ts`. The
 curl http://127.0.0.1:11434/api/tags
 
 # 2. Type-check the provider package
-npm run typecheck --workspace=packages/runtime
+npm run lint --workspace=packages/runtime
 
 # 3. Run a single Ollama-backed node (replace model with one you have pulled)
-npm run dev:nodetool -- node run nodetool.text.Generate \
-  --props '{"prompt":"hello","provider":"ollama","model":"llama3.2:latest"}'
+npm run dev:nodetool -- node run nodetool.agents.Agent \
+  --props '{"prompt":"hello","model":{"type":"language_model","provider":"ollama","id":"llama3.2:latest"}}'
 
 # 4. Full suite
 npm run check

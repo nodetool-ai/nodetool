@@ -163,8 +163,8 @@ npm run lint
 npm run test
 
 # 4. Smoke-test a new image node (requires GEMINI_API_KEY in env or DB)
-npm run dev:nodetool -- node run nodetool.image.GenerateImage \
-  --props '{"prompt": "a red apple", "model": {"id": "gemini-3.1-flash-image", "provider": "gemini", "name": "Gemini 3.1 Flash Image"}}'
+npm run dev:nodetool -- node run nodetool.image.TextToImage \
+  --props '{"prompt": "a red apple", "model": {"type": "image_model", "id": "gemini-3.1-flash-image", "provider": "gemini", "name": "Gemini 3.1 Flash Image"}}'
 
 # 5. Smoke-test via chat agent (text model — auto-discovered, no list change needed)
 npm run dev:chat -- --provider gemini --model gemini-3.5-flash
