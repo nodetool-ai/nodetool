@@ -75,6 +75,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   debug_workflow: "execute",
   edit_image: "write",
   embed_text: "write",
+  read_media_bytes: "read",
   export_workflow_digraph: "read",
   find_model: "read",
   generate_image: "write",

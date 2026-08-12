@@ -31,6 +31,7 @@ import {
   type JsonSchema
 } from "@nodetool-ai/runtime";
 import type { Asset as AssetRow } from "@nodetool-ai/models";
+import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { userIdOf } from "../tools/mcp-tool-support.js";
 import type {
   CapabilityExport,
@@ -334,31 +335,58 @@ const readAsset: CapabilityExport = {
         };
       }
 
-      if (!context.storage) {
-        return { success: false, error: "No storage adapter configured" };
-      }
-
-      const key = `assets/${name}`;
-
-      // Try the URI schemes the storage adapter might have used to store it.
-      const schemes = [`memory://${key}`, `file://${key}`, `s3://${key}`];
-
       let data: Uint8Array | null = null;
       let matchedUri: string | null = null;
 
-      for (const uri of schemes) {
-        const result = await context.storage.retrieve(uri);
-        if (result) {
-          data = result;
-          matchedUri = uri;
-          break;
+      // The legacy shape: a bare file name stored under `assets/<name>`. Tried
+      // first so a name that means a storage key keeps meaning one.
+      const looksLikeUri = name.includes("://") || name.startsWith("/api/");
+      if (!looksLikeUri && context.storage) {
+        const key = `assets/${name}`;
+        for (const uri of [
+          `memory://${key}`,
+          `file://${key}`,
+          `s3://${key}`
+        ]) {
+          const result = await context.storage.retrieve(uri);
+          if (result) {
+            data = result;
+            matchedUri = uri;
+            break;
+          }
+        }
+      }
+
+      // Everything an agent actually holds: the `asset://<id>` URI a
+      // generation returns (with or without an extension), the bare id off
+      // `asset_id`, a `/api/storage/` key, a `package://` URI, a data URI.
+      // `loadMediaRefBytes` is the one resolver that knows all of them, so
+      // this tool and `read_media_bytes` cannot disagree about what a ref means.
+      if (!data) {
+        // A bare name is tried as an asset id in canonical form:
+        // `loadMediaRefBytes` reads `asset_id` only when there is no uri, so
+        // handing it both a raw name and the id would resolve neither.
+        const ref = looksLikeUri
+          ? { uri: name }
+          : { uri: `asset://${name}`, asset_id: name };
+        try {
+          data = await loadMediaRefBytes(ref, context);
+          if (data) matchedUri = name;
+        } catch {
+          // A context without an asset resolver or storage cannot answer this
+          // form. That is "not found" for the caller, not a different failure
+          // to report — the message below names the forms that do work.
         }
       }
 
       if (!data) {
         return {
           success: false,
-          error: `Asset not found: ${name}`
+          error:
+            `Asset not found: ${name}. Pass the asset:// URI a generation ` +
+            `returned (its asset_uri), the asset_id itself, or a ` +
+            `/api/storage/ key — and use list_assets or asset_search to find ` +
+            `one. For a workspace file use read_file instead.`
         };
       }
 

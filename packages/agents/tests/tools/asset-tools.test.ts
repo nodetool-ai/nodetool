@@ -186,7 +186,7 @@ describe("ReadAssetTool", () => {
 
   it("has correct name and description", () => {
     expect(tool.name).toBe("read_asset");
-    expect(tool.description).toBe("Read an asset file");
+    expect(tool.description).toContain("asset://");
   });
 
   it("reads a previously saved asset", async () => {
@@ -227,14 +227,18 @@ describe("ReadAssetTool", () => {
     expect(result.error).toMatch(/name/i);
   });
 
-  it("returns error when no storage adapter is configured", async () => {
+  it("reports not found, naming the forms that work, without storage", async () => {
+    // `read_asset` no longer requires a storage adapter: an `asset://` URI
+    // resolves through the context's asset resolver. With neither available
+    // the answer is "not found", and it names what to pass instead.
     const ctx = makeContext(null);
     const result = (await tool.process(ctx, {
       name: "test.txt"
     })) as Record<string, unknown>;
 
     expect(result.success).toBe(false);
-    expect(result.error).toMatch(/storage/i);
+    expect(result.error).toMatch(/not found/i);
+    expect(String(result.error)).toContain("asset://");
   });
 
   it("handles storage errors gracefully", async () => {

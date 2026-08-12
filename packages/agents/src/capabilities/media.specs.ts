@@ -319,6 +319,27 @@ export const transcribeAudioSpec: CapabilitySpec = {
     `Transcribing audio with ${String(params["provider"])}:${String(params["model"])}`
 };
 
+export const READ_MEDIA_BYTES_SCHEMA = {
+  type: "object",
+  properties: {
+    uri: {
+      type: "string",
+      description:
+        "The media to read: an asset:// URI (what generate_image returns as asset_uri), a bare asset id, a /api/storage/ key, a package:// URI, a data: URI, or an http(s) URL."
+    }
+  },
+  required: ["uri"] as string[]
+} as const;
+
+export const readMediaBytesSpec: CapabilitySpec = {
+  name: "read_media_bytes",
+  description:
+    "Read the bytes behind a media reference — the way to get at an image, audio or video you just generated. Returns `content_base64` (revive it with fromBase64), `mime_type` and `size`, so the bytes feed image.* or a sandbox pack directly. Takes an asset:// URI, a bare asset id, a /api/storage/ key, a package:// URI, a data: URI, or an http(s) URL. For a file in the workspace use read_file instead.",
+  inputSchema: READ_MEDIA_BYTES_SCHEMA,
+  category: "read",
+  userMessage: (params) => `Reading ${String(params["uri"])}`
+};
+
 export const embedTextSpec: CapabilitySpec = {
   name: "embed_text",
   description:
@@ -384,6 +405,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   generateSpeechSpec,
   transcribeAudioSpec,
   embedTextSpec,
+  readMediaBytesSpec,
   critiqueImageSpec,
   compareImagesSpec,
   scoreImageAdherenceSpec
