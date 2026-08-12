@@ -43,6 +43,7 @@ import "./timeline";
 import "./storyboard";
 import "./sketch";
 import "./script";
+import "./jsscript";
 import "./puck";
 import "./model3d";
 import "./code";

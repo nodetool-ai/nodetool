@@ -27,6 +27,7 @@ export type SyncedDocumentType =
   | "imagedocument"
   | "storyboard"
   | "script"
+  | "jsscript"
   | "application";
 
 /** Human name per type, used in the "changed elsewhere" message. */
@@ -35,6 +36,7 @@ const DOCUMENT_LABEL: Record<SyncedDocumentType, string> = {
   imagedocument: "sketch",
   storyboard: "storyboard",
   script: "script",
+  jsscript: "JS script",
   application: "app"
 };
 

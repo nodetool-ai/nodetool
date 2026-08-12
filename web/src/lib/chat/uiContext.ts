@@ -40,6 +40,7 @@ const TAB_TYPE_TO_SURFACE: Partial<Record<WorkspaceTabType, UiSurfaceType>> = {
   timeline: "timeline",
   storyboard: "storyboard",
   script: "script",
+  jsscript: "jsscript",
   chat: "chat"
 };
 

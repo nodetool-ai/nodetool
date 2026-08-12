@@ -1,0 +1,43 @@
+/**
+ * The one door the editor uses to execute a JS script:
+ * `POST /api/js-scripts/:id/run`, the non-tRPC endpoint the run console, the
+ * assistant tools, and the CLI harness share. Nothing runs in the browser — the
+ * body only ever executes in the server's QuickJS sandbox.
+ *
+ * The endpoint runs the *saved* document, so a caller has to let autosave land
+ * before a run reflects the latest edit.
+ */
+
+import { restFetch } from "../../lib/rest-fetch";
+import type { JsScriptRunOutcome } from "../../stores/jsScript/JsScriptStore";
+
+interface ErrorBody {
+  detail?: unknown;
+}
+
+export async function runJsScript(
+  scriptId: string,
+  inputs: Record<string, unknown>
+): Promise<JsScriptRunOutcome> {
+  const response = await restFetch(
+    `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ inputs })
+    }
+  );
+
+  const body: unknown = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    const detail = (body as ErrorBody | null)?.detail;
+    throw new Error(
+      typeof detail === "string"
+        ? detail
+        : `The script run failed (HTTP ${response.status}).`
+    );
+  }
+
+  return body as JsScriptRunOutcome;
+}

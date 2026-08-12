@@ -21,6 +21,8 @@ export type WorkspaceTabType =
   | "timeline"
   | "storyboard"
   | "script"
+  // JS script documents. `ref` is a js_scripts id (trpc.jsScripts.*).
+  | "jsscript"
   | "model3d"
   | "audio"
   | "text"

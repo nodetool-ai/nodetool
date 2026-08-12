@@ -8,6 +8,7 @@ import DashboardOutlinedIcon from "@mui/icons-material/DashboardOutlined";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import ForumOutlinedIcon from "@mui/icons-material/ForumOutlined";
+import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import RecordVoiceOverOutlinedIcon from "@mui/icons-material/RecordVoiceOverOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 
@@ -26,6 +27,7 @@ import { useCreateTimeline } from "../../hooks/useTimelineSequence";
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateApplication } from "../../hooks/useApplications";
 import { useCreateScript } from "../../hooks/script/useScripts";
+import { useCreateJsScript } from "../../hooks/jsScript/useJsScripts";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -162,6 +164,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
   const createStoryboard = useCreateStoryboard();
   const createApplication = useCreateApplication();
   const createScript = useCreateScript();
+  const createJsScript = useCreateJsScript();
   const { searchAssets } = useAssetSearch();
 
   const close = useCallback(() => {
@@ -311,6 +314,23 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         });
       }),
     [runCreate, createScript, openTab]
+  );
+
+  const handleNewJsScript = useCallback(
+    () =>
+      runCreate("JS script", async () => {
+        const created = await createJsScript.mutateAsync({
+          name: "Untitled JS script",
+          projectId: "default"
+        });
+        openTab({
+          type: "jsscript",
+          ref: created.id,
+          mode: "edit",
+          title: created.name
+        });
+      }),
+    [runCreate, createJsScript, openTab]
   );
 
   const handleNewChat = useCallback(
@@ -489,6 +509,12 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
               label="New script"
               icon={<RecordVoiceOverOutlinedIcon fontSize="small" />}
               onClick={() => void handleNewScript()}
+              disabled={creating !== null}
+            />
+            <MenuItemPrimitive
+              label="New JS script"
+              icon={<DataObjectOutlinedIcon fontSize="small" />}
+              onClick={() => void handleNewJsScript()}
               disabled={creating !== null}
             />
             <MenuItemPrimitive
