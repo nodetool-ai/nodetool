@@ -21,12 +21,8 @@
  * the call's own `secrets` list — authoring runs are hermetic by default.
  */
 
-import type { JsonSchema } from "@nodetool-ai/runtime";
-import type {
-  CapabilityExport,
-  CapabilityModule,
-  CapabilityRun
-} from "./types.js";
+import type { JsonSchema, ProcessingContext } from "@nodetool-ai/runtime";
+import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
   validateCodeSpec,
   runCodeSpec,
@@ -58,7 +54,7 @@ interface EmittedEntry {
  */
 type StreamedItems = EmittedEntry[] | Record<string, unknown>[];
 
-interface HarnessRunResult {
+export interface HarnessRunResult {
   ok: boolean;
   outputs?: Record<string, unknown>;
   streamed?: StreamedItems;
@@ -70,9 +66,13 @@ interface HarnessRunResult {
 /**
  * Run one Code-node body the way the node runs it, minus the toolbelt.
  * Returns rather than throws: a failing body is a result to report.
+ *
+ * Takes a `ProcessingContext` rather than a `CapabilityRun` because that is
+ * all it ever used, and the JS-script run endpoint reaches it from a host that
+ * has a context and no capability run.
  */
-async function runCodeBody(
-  run: CapabilityRun,
+export async function runCodeBody(
+  context: ProcessingContext,
   params: {
     code: string;
     inputs: Record<string, unknown>;
@@ -108,7 +108,7 @@ async function runCodeBody(
   }
   let modules;
   if (declarations.length > 0) {
-    const catalog = run.context.sandboxModuleCatalog;
+    const catalog = context.sandboxModuleCatalog;
     if (!catalog) {
       return fail(
         "Sandbox packages are not available in this process, so the declared " +
@@ -158,7 +158,7 @@ return __yielded;`
 
   const result = await runInSandbox({
     code: body,
-    context: run.context,
+    context,
     timeoutMs: params.timeoutSeconds * 1000,
     globals,
     limits: { secretScope: [...params.secrets] },
@@ -358,7 +358,7 @@ const validateCode: CapabilityExport = {
 const runCode: CapabilityExport = {
   spec: runCodeSpec,
   impl: async (run, params) =>
-    runCodeBody(run, {
+    runCodeBody(run.context, {
       code: String(params["code"] ?? ""),
       inputs: inputBag(params["inputs"]),
       packages: stringList(params["packages"]),
@@ -450,7 +450,7 @@ const testCode: CapabilityExport = {
         : undefined;
 
       const staged = inputStreamBag(raw["input_streams"]);
-      const outcome = await runCodeBody(run, {
+      const outcome = await runCodeBody(run.context, {
         code,
         inputs: inputBag(raw["inputs"]),
         packages,

@@ -8,6 +8,7 @@ export * as credits from "./credits.js";
 export * as files from "./files.js";
 export * as fonts from "./fonts.js";
 export * as jobs from "./jobs.js";
+export * as jsScripts from "./js-scripts.js";
 export * as mcpConfig from "./mcp-config.js";
 export * as messages from "./messages.js";
 export * as models from "./models.js";

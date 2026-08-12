@@ -867,3 +867,8 @@ export type {
   AppBuildDeps,
   AppBuildRequest
 } from "./app-build/build-service.js";
+
+// The hermetic Code-body executor `run_code`/`test_code` share, and what the
+// JS-script run endpoint executes a script document with.
+export { runCodeBody } from "./capabilities/code.js";
+export type { HarnessRunResult } from "./capabilities/code.js";

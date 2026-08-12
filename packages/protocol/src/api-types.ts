@@ -692,8 +692,9 @@ export interface UiDocumentRef {
   type: UiSurfaceType;
   /**
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
-   * for timeline, `storyboards.id`, `scripts.id`, `workflows.id` for
-   * `workflow`, and `applications.id` for `app`.
+   * for timeline, `storyboards.id`, `scripts.id`, `js_scripts.id` for
+   * `jsscript`, `workflows.id` for `workflow`, and `applications.id` for
+   * `app`.
    */
   id: string;
   title?: string | null;
@@ -705,6 +706,7 @@ export type UiSurfaceType =
   | "timeline"
   | "storyboard"
   | "script"
+  | "jsscript"
   | "app"
   | "chat";
 

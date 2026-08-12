@@ -1194,6 +1194,34 @@ function getCreateSchemaSql(): string {
     CREATE INDEX IF NOT EXISTS "idx_script_project" ON "scripts" ("project_id");
     CREATE INDEX IF NOT EXISTS "idx_script_updated" ON "scripts" ("updated_at");
 
+    CREATE TABLE IF NOT EXISTS "js_scripts" (
+      "id" text PRIMARY KEY NOT NULL,
+      "user_id" text NOT NULL,
+      "project_id" text NOT NULL,
+      "name" text NOT NULL,
+      "document" text NOT NULL,
+      "created_at" text NOT NULL,
+      "updated_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_js_script_user" ON "js_scripts" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_js_script_project" ON "js_scripts" ("project_id");
+    CREATE INDEX IF NOT EXISTS "idx_js_script_updated" ON "js_scripts" ("updated_at");
+
+    CREATE TABLE IF NOT EXISTS "js_script_versions" (
+      "id" text PRIMARY KEY NOT NULL,
+      "js_script_id" text NOT NULL REFERENCES "js_scripts" ("id") ON DELETE CASCADE,
+      "user_id" text NOT NULL,
+      "name" text,
+      "version" integer NOT NULL DEFAULT 1,
+      "save_type" text NOT NULL DEFAULT 'manual',
+      "document" text NOT NULL,
+      "created_at" text NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS "idx_jsv_script" ON "js_script_versions" ("js_script_id");
+    CREATE INDEX IF NOT EXISTS "idx_jsv_user" ON "js_script_versions" ("user_id");
+    CREATE INDEX IF NOT EXISTS "idx_jsv_script_save_type_created" ON "js_script_versions" ("js_script_id", "save_type", "created_at");
+    CREATE UNIQUE INDEX IF NOT EXISTS "idx_jsv_script_version" ON "js_script_versions" ("js_script_id", "version");
+
     CREATE TABLE IF NOT EXISTS "nodetool_thread_memories" (
       "id" text PRIMARY KEY NOT NULL,
       "user_id" text NOT NULL,

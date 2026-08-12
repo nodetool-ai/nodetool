@@ -26,6 +26,8 @@ export {
   applicationInvocations
 } from "./application-budgets.js";
 export { scripts } from "./scripts.js";
+export { jsScripts } from "./js-scripts.js";
+export { jsScriptVersions } from "./js-script-versions.js";
 export { workerProfiles, workerInstances } from "./workers.js";
 export { triggerInputs } from "./trigger-inputs.js";
 export { runInboxMessages } from "./run-inbox-messages.js";

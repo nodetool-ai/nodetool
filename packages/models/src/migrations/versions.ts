@@ -2615,6 +2615,91 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_credit_ledger_user");
       await db.execute("DROP TABLE IF EXISTS nodetool_credit_ledger");
     }
+  },
+
+  // ── Create js_scripts ───────────────────────────────────────────────
+  // A JS script document: a named, user-owned script with declared ports,
+  // sandbox packages, secrets and saved test cases. Distinct from `scripts`,
+  // which holds video/voiceover scripts.
+  {
+    version: "20260812_000000",
+    name: "create_js_scripts",
+    createsTables: ["js_scripts"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS js_scripts (
+          id TEXT PRIMARY KEY,
+          user_id TEXT NOT NULL,
+          project_id TEXT NOT NULL,
+          name TEXT NOT NULL,
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_js_script_user
+        ON js_scripts (user_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_js_script_project
+        ON js_scripts (project_id)
+      `);
+      await db.execute(`
+        CREATE INDEX IF NOT EXISTS idx_js_script_updated
+        ON js_scripts (updated_at)
+      `);
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_js_script_user");
+      await db.execute("DROP INDEX IF EXISTS idx_js_script_project");
+      await db.execute("DROP INDEX IF EXISTS idx_js_script_updated");
+      await db.execute("DROP TABLE IF EXISTS js_scripts");
+    }
+  },
+
+  // ── Create js_script_versions ───────────────────────────────────────
+  // Whole-document snapshot history for a JS script, mirroring
+  // image_document_versions.
+  {
+    version: "20260812_000001",
+    name: "create_js_script_versions",
+    createsTables: ["js_script_versions"],
+    modifiesTables: [],
+    async up(db) {
+      await db.execute(`
+        CREATE TABLE IF NOT EXISTS js_script_versions (
+          id TEXT PRIMARY KEY NOT NULL,
+          js_script_id TEXT NOT NULL REFERENCES js_scripts (id) ON DELETE CASCADE,
+          user_id TEXT NOT NULL,
+          name TEXT,
+          version INTEGER NOT NULL DEFAULT 1,
+          save_type TEXT NOT NULL DEFAULT 'manual',
+          document TEXT NOT NULL,
+          created_at TEXT NOT NULL
+        )
+      `);
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jsv_script ON js_script_versions (js_script_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jsv_user ON js_script_versions (user_id)"
+      );
+      await db.execute(
+        "CREATE INDEX IF NOT EXISTS idx_jsv_script_save_type_created ON js_script_versions (js_script_id, save_type, created_at)"
+      );
+      await db.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_jsv_script_version ON js_script_versions (js_script_id, version)"
+      );
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_jsv_script_version");
+      await db.execute("DROP INDEX IF EXISTS idx_jsv_script_save_type_created");
+      await db.execute("DROP INDEX IF EXISTS idx_jsv_user");
+      await db.execute("DROP INDEX IF EXISTS idx_jsv_script");
+      await db.execute("DROP TABLE IF EXISTS js_script_versions");
+    }
   }
 ];
 
