@@ -2,12 +2,16 @@ import { renderHook } from "@testing-library/react";
 import { useRequiredSettings } from "../useRequiredSettings";
 import useMetadataStore from "../../stores/MetadataStore";
 import useRemoteSettingsStore from "../../stores/RemoteSettingStore";
+import { selectFrom } from "../../__mocks__/fixtures";
 
 jest.mock("../../stores/MetadataStore");
 jest.mock("../../stores/RemoteSettingStore");
 
 const mockUseMetadataStore = useMetadataStore as jest.MockedFunction<typeof useMetadataStore>;
 const mockUseRemoteSettingsStore = useRemoteSettingsStore as jest.MockedFunction<typeof useRemoteSettingsStore>;
+
+type MetadataState = ReturnType<typeof useMetadataStore.getState>;
+type RemoteSettingsState = ReturnType<typeof useRemoteSettingsStore.getState>;
 
 describe("useRequiredSettings", () => {
   beforeEach(() => {
@@ -16,7 +20,7 @@ describe("useRequiredSettings", () => {
 
   describe("when node has no metadata", () => {
     it("returns empty array", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => undefined;
         }
@@ -30,12 +34,14 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [],
           settingsByGroup: new Map(),
           isLoading: false,
@@ -55,7 +61,7 @@ describe("useRequiredSettings", () => {
 
   describe("when node has no required settings", () => {
     it("returns empty array", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -84,7 +90,8 @@ describe("useRequiredSettings", () => {
             recommended_models: [],
             supports_dynamic_inputs: false,
             is_streaming_output: false,
-            supports_dynamic_outputs: false
+            supports_dynamic_outputs: false,
+            required_settings: []
           }),
           setMetadata: jest.fn(),
           recommendedModels: [],
@@ -93,12 +100,14 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [],
           settingsByGroup: new Map(),
           isLoading: false,
@@ -118,7 +127,7 @@ describe("useRequiredSettings", () => {
 
   describe("when node has required settings", () => {
     it("returns missing settings when none are configured", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -158,12 +167,14 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [],
           settingsByGroup: new Map(),
           isLoading: false,
@@ -181,7 +192,7 @@ describe("useRequiredSettings", () => {
     });
 
     it("returns empty array when all required settings are configured", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -221,26 +232,28 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [
             {
+              package_name: "nodetool-base",
               env_var: "API_KEY",
               value: "some-api-key",
               is_secret: true,
-              label: "API Key",
               description: "Test API Key",
               group: "test"
             },
             {
+              package_name: "nodetool-base",
               env_var: "SECRET_TOKEN",
               value: "some-token",
               is_secret: true,
-              label: "Secret Token",
               description: "Test Token",
               group: "test"
             }
@@ -261,7 +274,7 @@ describe("useRequiredSettings", () => {
     });
 
     it("returns only missing settings when some are configured", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -301,18 +314,20 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [
             {
+              package_name: "nodetool-base",
               env_var: "API_KEY",
               value: "some-api-key",
               is_secret: true,
-              label: "API Key",
               description: "Test API Key",
               group: "test"
             }
@@ -333,7 +348,7 @@ describe("useRequiredSettings", () => {
     });
 
     it("treats empty string values as missing", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -373,18 +388,20 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [
             {
+              package_name: "nodetool-base",
               env_var: "API_KEY",
               value: "  ",
               is_secret: true,
-              label: "API Key",
               description: "Test API Key",
               group: "test"
             }
@@ -407,7 +424,7 @@ describe("useRequiredSettings", () => {
 
   describe("loading state", () => {
     it("returns empty array while loading", () => {
-      mockUseMetadataStore.mockImplementation((selector: any) => {
+      mockUseMetadataStore.mockImplementation((selector: (state: MetadataState) => unknown) => {
         if (selector.name === "getMetadata") {
           return () => ({
             title: "Test Node",
@@ -447,12 +464,14 @@ describe("useRequiredSettings", () => {
           setModelPacks: jest.fn(),
           nodeTypes: {},
           setNodeTypes: jest.fn(),
-          addNodeType: jest.fn()
+          addNodeType: jest.fn(),
+          unknownNodeTypes: [],
+          addUnknownNodeTypes: jest.fn()
         });
       });
 
-      mockUseRemoteSettingsStore.mockImplementation((selector: any) =>
-        selector({
+      mockUseRemoteSettingsStore.mockImplementation(
+        selectFrom<RemoteSettingsState>({
           settings: [],
           settingsByGroup: new Map(),
           isLoading: true,

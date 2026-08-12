@@ -5,6 +5,8 @@ import { useNodes } from "../../contexts/NodeContext";
 import { useReactFlow } from "@xyflow/react";
 import { Node } from "@xyflow/react";
 import { NodeData } from "../../stores/NodeData";
+import type { NodeStoreState } from "../../stores/NodeStore";
+import { selectFrom } from "../../__mocks__/fixtures";
 
 jest.mock("../../contexts/NodeContext", () => ({
   useNodes: jest.fn()
@@ -54,6 +56,11 @@ describe("useFindInWorkflow", () => {
       data: { ...createMockNodeData(), properties: { name: "Another Text Node" } }
     }
   ];
+
+  const mockNodesState = selectFrom<NodeStoreState>({
+    nodes: mockNodes,
+    edges: []
+  });
 
   const mockReactFlowInstance = {
     viewportInitialized: true,
@@ -110,10 +117,7 @@ describe("useFindInWorkflow", () => {
 
   describe("store integration", () => {
     it("should return isOpen state from store", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -121,10 +125,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return searchTerm from store", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -132,10 +133,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return empty results initially", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -144,10 +142,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return openFind and closeFind functions", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -162,10 +157,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should perform immediate search without debouncing", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -179,10 +171,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should find nodes by node type", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -195,10 +184,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should find nodes by node ID", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -212,10 +198,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should be case insensitive", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -228,10 +211,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return empty results for no match", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -244,10 +224,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return empty results for whitespace only search", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -262,10 +239,7 @@ describe("useFindInWorkflow", () => {
 
   describe("node display name", () => {
     it("should return node name from properties", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -275,10 +249,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should fall back to node type for nodes without name property", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const nodeWithoutName: Node<NodeData> = {
@@ -295,10 +266,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should fall back to node id for nodes with unknown type", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const nodeNoType: Node<NodeData> = {
@@ -321,10 +289,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should navigate to next result", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -342,10 +307,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should navigate to previous result", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -367,10 +329,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should select node by index", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -388,10 +347,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should not select invalid index", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -414,10 +370,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should center the selected node at zoom 1 when result exists", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -442,10 +395,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should not call viewport functions when no results", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -463,10 +413,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should not call viewport functions when selectedIndex is out of bounds", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -489,10 +436,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should clear search results", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());
@@ -515,10 +459,7 @@ describe("useFindInWorkflow", () => {
 
   describe("cleanup", () => {
     it("should clear timeout on unmount", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { unmount } = renderHook(() => useFindInWorkflow());
@@ -533,10 +474,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should clear pending search timeout when unmounting", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { unmount } = renderHook(() => useFindInWorkflow());
@@ -559,10 +497,7 @@ describe("useFindInWorkflow", () => {
     });
 
     it("should return total count of results", () => {
-      mockUseNodes.mockImplementation((selector: any) => {
-        const state = { nodes: mockNodes, edges: [] };
-        return selector ? selector(state) : state;
-      });
+      mockUseNodes.mockImplementation(mockNodesState);
       mockUseReactFlow.mockReturnValue(mockReactFlowInstance);
 
       const { result } = renderHook(() => useFindInWorkflow());

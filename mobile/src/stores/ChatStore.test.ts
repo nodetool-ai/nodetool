@@ -26,8 +26,29 @@ jest.mock('../services/api', () => ({
   },
 }));
 
+/** Jest mocks that keep each method's real signature. */
+type MockedMethods<T, K extends keyof T> = {
+  [P in K]: T[P] extends (...args: infer A) => infer R ? jest.Mock<R, A> : T[P];
+};
+
+type MockWsManager = MockedMethods<
+  WebSocketManager,
+  | 'connect'
+  | 'disconnect'
+  | 'destroy'
+  | 'send'
+  | 'isConnected'
+  | 'setCallbacks'
+  | 'getState'
+>;
+
+/** Every callback the store registers, so tests can fire them unguarded. */
+type WebSocketCallbacks = Required<
+  Parameters<WebSocketManager['setCallbacks']>[0]
+>;
+
 describe('ChatStore', () => {
-  let mockWsManager: any;
+  let mockWsManager: MockWsManager;
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -110,10 +131,10 @@ describe('ChatStore', () => {
     });
 
     it('destroys existing connection before creating new one', async () => {
-      const oldManager = {
-        destroy: jest.fn(),
-      };
-      useChatStore.setState({ wsManager: oldManager as any });
+      const oldManager = { destroy: jest.fn() };
+      useChatStore.setState({
+        wsManager: oldManager as unknown as WebSocketManager,
+      });
       
       await useChatStore.getState().connect();
       
@@ -166,7 +187,7 @@ describe('ChatStore', () => {
 
     it('sends message via WebSocket', async () => {
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
@@ -179,7 +200,7 @@ describe('ChatStore', () => {
 
     it('adds message to cache optimistically', async () => {
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
@@ -190,7 +211,7 @@ describe('ChatStore', () => {
 
     it('sets status to loading', async () => {
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
@@ -201,7 +222,7 @@ describe('ChatStore', () => {
       useChatStore.setState({ currentThreadId: null });
       
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
@@ -212,7 +233,7 @@ describe('ChatStore', () => {
       mockWsManager.isConnected.mockReturnValue(false);
       
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       
@@ -223,7 +244,7 @@ describe('ChatStore', () => {
       const threadId = useChatStore.getState().currentThreadId!;
       
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello World Test' } as any],
+        [{ type: 'text', text: 'Hello World Test' }],
         'Hello World Test'
       );
       
@@ -239,7 +260,7 @@ describe('ChatStore', () => {
       const ELLIPSIS_LENGTH = 3;
       
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: longText } as any],
+        [{ type: 'text', text: longText }],
         longText
       );
       
@@ -254,7 +275,7 @@ describe('ChatStore', () => {
       
       await expect(
         useChatStore.getState().sendMessage(
-          [{ type: 'text', text: 'Hello' } as any],
+          [{ type: 'text', text: 'Hello' }],
           'Hello'
         )
       ).rejects.toThrow('Send failed');
@@ -361,7 +382,7 @@ describe('ChatStore', () => {
         type: 'message',
         role: 'user',
         content: 'Test',
-      } as any);
+      });
       
       expect(useChatStore.getState().messageCache[threadId]).toHaveLength(1);
     });
@@ -372,7 +393,7 @@ describe('ChatStore', () => {
         type: 'message',
         role: 'user',
         content: 'Test',
-      } as any);
+      });
       
       expect(useChatStore.getState().messageCache['new-thread']).toHaveLength(1);
     });
@@ -385,40 +406,43 @@ describe('ChatStore', () => {
         type: 'message',
         role: 'user',
         content: 'First',
-      } as any);
+      });
       
       useChatStore.getState().addMessageToCache(threadId, {
         id: 'msg-2',
         type: 'message',
         role: 'assistant',
         content: 'Second',
-      } as any);
+      });
       
       expect(useChatStore.getState().messageCache[threadId]).toHaveLength(2);
     });
   });
 
   describe('WebSocket callbacks', () => {
-    let callbacks: any;
+    let callbacks: WebSocketCallbacks;
 
     beforeEach(async () => {
       await useChatStore.getState().connect();
-      callbacks = mockWsManager.setCallbacks.mock.calls[0][0];
+      // `connect()` registers every callback in the set, so the tests below
+      // can fire them without a null check on each one.
+      callbacks = mockWsManager.setCallbacks.mock
+        .calls[0][0] as WebSocketCallbacks;
       await useChatStore.getState().createNewThread();
     });
 
     describe('onStateChange', () => {
       it('updates status on state change', () => {
-        callbacks.onStateChange('connecting');
-        
+        callbacks.onStateChange('connecting', 'disconnected');
+
         expect(useChatStore.getState().status).toBe('connecting');
       });
 
       it('does not override loading/streaming status when connected', () => {
         useChatStore.setState({ status: 'loading' });
         
-        callbacks.onStateChange('connected');
-        
+        callbacks.onStateChange('connected', 'connecting');
+
         expect(useChatStore.getState().status).toBe('loading');
       });
     });
@@ -474,7 +498,7 @@ describe('ChatStore', () => {
               type: 'message',
               role: 'assistant',
               content: 'Hello',
-            }] as any,
+            }],
           },
         });
         
@@ -633,7 +657,7 @@ describe('ChatStore', () => {
               type: 'message',
               role: 'assistant',
               content: 'Streaming...',
-            }] as any,
+            }],
           },
         });
         
@@ -704,7 +728,7 @@ describe('ChatStore', () => {
       await useChatStore.getState().createNewThread();
 
       await useChatStore.getState().sendMessage(
-        [{ type: 'text', text: 'Hello' } as any],
+        [{ type: 'text', text: 'Hello' }],
         'Hello'
       );
       expect(useChatStore.getState().status).toBe('loading');

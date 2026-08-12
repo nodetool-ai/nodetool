@@ -3,8 +3,18 @@ import { FrontendToolRegistry } from "../../tools/frontendTools";
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
 import { handleResourceChange } from "../../../stores/resourceChangeHandler";
 import { ResourceChangeUpdate } from "../../../stores/ApiTypes";
-(global as any).TextEncoder = TextEncoder;
-(global as any).TextDecoder = TextDecoder;
+import type { WebSocketMessage } from "../GlobalWebSocketManager";
+
+Object.assign(global, { TextEncoder, TextDecoder });
+
+/** The private routing surface these tests drive, named so it stays checked. */
+interface ManagerInternals {
+  ingestMessage(message: WebSocketMessage): void;
+  routeMessage(message: WebSocketMessage): void;
+}
+
+const internals = (): ManagerInternals =>
+  globalWebSocketManager as unknown as ManagerInternals;
 
 // Mock dependencies before imports
 jest.mock("../../../stores/BASE_URL", () => ({
@@ -62,37 +72,49 @@ describe("GlobalWebSocketManager", () => {
     it("routes messages by job_id", () => {
       const handler = jest.fn();
       const unsubscribe = globalWebSocketManager.subscribe("job-123", handler);
+      const message: WebSocketMessage = {
+        type: "node_update",
+        job_id: "job-123"
+      };
 
-      (globalWebSocketManager as any).routeMessage({ job_id: "job-123" });
+      internals().routeMessage(message);
 
-      expect(handler).toHaveBeenCalledWith({ job_id: "job-123" });
+      expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
     });
 
     it("routes messages by workflow_id", () => {
       const handler = jest.fn();
       const unsubscribe = globalWebSocketManager.subscribe("workflow-456", handler);
+      const message: WebSocketMessage = {
+        type: "node_update",
+        workflow_id: "workflow-456"
+      };
 
-      (globalWebSocketManager as any).routeMessage({ workflow_id: "workflow-456" });
+      internals().routeMessage(message);
 
-      expect(handler).toHaveBeenCalledWith({ workflow_id: "workflow-456" });
+      expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
     });
 
     it("routes messages by thread_id", () => {
       const handler = jest.fn();
       const unsubscribe = globalWebSocketManager.subscribe("thread-789", handler);
+      const message: WebSocketMessage = {
+        type: "chunk",
+        thread_id: "thread-789"
+      };
 
-      (globalWebSocketManager as any).routeMessage({ thread_id: "thread-789" });
+      internals().routeMessage(message);
 
-      expect(handler).toHaveBeenCalledWith({ thread_id: "thread-789" });
+      expect(handler).toHaveBeenCalledWith(message);
       unsubscribe();
     });
   });
 
   describe("resource change handling", () => {
     it("handles resource_change messages", () => {
-      const resourceChangeMessage: ResourceChangeUpdate = {
+      const resourceChangeMessage: ResourceChangeUpdate & WebSocketMessage = {
         type: "resource_change",
         event: "updated",
         resource_type: "workflow",
@@ -102,7 +124,7 @@ describe("GlobalWebSocketManager", () => {
         }
       };
 
-      (globalWebSocketManager as any).routeMessage(resourceChangeMessage);
+      internals().routeMessage(resourceChangeMessage);
 
       expect(handleResourceChange).toHaveBeenCalledWith(resourceChangeMessage);
     });
@@ -111,7 +133,7 @@ describe("GlobalWebSocketManager", () => {
       const handler = jest.fn();
       const unsubscribe = globalWebSocketManager.subscribe("workflow-123", handler);
 
-      const resourceChangeMessage: ResourceChangeUpdate = {
+      const resourceChangeMessage: ResourceChangeUpdate & WebSocketMessage = {
         type: "resource_change",
         event: "created",
         resource_type: "workflow",
@@ -121,7 +143,7 @@ describe("GlobalWebSocketManager", () => {
         }
       };
 
-      (globalWebSocketManager as any).routeMessage(resourceChangeMessage);
+      internals().routeMessage(resourceChangeMessage);
 
       // Regular handler should NOT be called for resource_change messages
       expect(handler).not.toHaveBeenCalled();
@@ -135,7 +157,7 @@ describe("GlobalWebSocketManager", () => {
       const events: Array<"created" | "updated" | "deleted"> = ["created", "updated", "deleted"];
 
       events.forEach((event) => {
-        const message: ResourceChangeUpdate = {
+        const message: ResourceChangeUpdate & WebSocketMessage = {
           type: "resource_change",
           event,
           resource_type: "asset",
@@ -145,7 +167,7 @@ describe("GlobalWebSocketManager", () => {
           }
         };
 
-        (globalWebSocketManager as any).routeMessage(message);
+        internals().routeMessage(message);
 
         expect(handleResourceChange).toHaveBeenCalledWith(message);
       });
@@ -176,7 +198,7 @@ describe("GlobalWebSocketManager", () => {
         job_id: "job-valid"
       };
 
-      (globalWebSocketManager as any).ingestMessage(validMessage);
+      internals().ingestMessage(validMessage);
 
       expect(handler).toHaveBeenCalledWith(validMessage);
       expect(consoleErrorSpy).not.toHaveBeenCalled();
@@ -195,7 +217,7 @@ describe("GlobalWebSocketManager", () => {
         job_id: "job-invalid"
       };
 
-      (globalWebSocketManager as any).ingestMessage(invalidMessage);
+      internals().ingestMessage(invalidMessage);
 
       // Observe-only: the message is still routed to subscribers.
       expect(handler).toHaveBeenCalledWith(invalidMessage);
@@ -211,7 +233,7 @@ describe("GlobalWebSocketManager", () => {
         anything: "goes"
       };
 
-      (globalWebSocketManager as any).ingestMessage(invalidButUnvalidated);
+      internals().ingestMessage(invalidButUnvalidated);
 
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
