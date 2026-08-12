@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -59,6 +60,106 @@ describe("WorkflowCostEstimatePanel", () => {
     expect(screen.queryByRole("link", { name: /genspend\.io/i })).toBeNull();
     expect(
       screen.getByText(/Add a node that uses an AI model/)
+    ).toBeInTheDocument();
+  });
+
+  it("names the catalog snapshot the prices came from", async () => {
+    mockHook.mockReturnValue(estimate as never);
+    renderPanel();
+
+    await userEvent.hover(screen.getByText(/List prices from provider/));
+    const snapshot = genspendPricingCatalog.catalogGeneratedAt?.slice(0, 10);
+    await waitFor(() => {
+      expect(
+        screen.getByRole("tooltip").textContent
+      ).toMatch(snapshot ? new RegExp(snapshot) : /nightly sync/);
+    });
+  });
+
+  it("reads fan-out, clip length and rung as one units phrase", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [
+        {
+          ...estimate.items[0],
+          quantity: 2,
+          breakdown: "5 s × $0.205/s at 720p"
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    expect(screen.getByText("2 × 5 s @ 720p")).toBeInTheDocument();
+  });
+
+  it("counts a fan-out in the unit the model bills in", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [{ ...estimate.items[0], quantity: 4, billing_unit: "image" }]
+    } as never);
+    renderPanel();
+
+    expect(screen.getByText("4 images")).toBeInTheDocument();
+  });
+
+  it("labels a cost that leaves out a known charge as a lower bound", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [
+        {
+          ...estimate.items[0],
+          warnings: ["reference images are not priced for this model"]
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    // Both the row and the total say "at least", never a false exact.
+    expect(screen.getAllByText(/≥/)).toHaveLength(2);
+  });
+
+  it("says why a declined price could not be quoted", async () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      total: 0,
+      unknown_count: 1,
+      items: [
+        {
+          node_id: "1",
+          node_type: "nodetool.video.TextToVideo",
+          provider: "atlascloud",
+          model: "some/video",
+          quantity: 1,
+          estimated_cost: 0,
+          confidence: "unknown",
+          assumptions: ["no published price at 1080p"]
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    await userEvent.hover(screen.getByLabelText("Price unknown"));
+    await waitFor(() => {
+      expect(screen.getByRole("tooltip")).toHaveTextContent(
+        "no published price at 1080p"
+      );
+    });
+  });
+
+  it("shows what the estimate filled in as a sub-line under the row", () => {
+    mockHook.mockReturnValue({
+      ...estimate,
+      items: [
+        {
+          ...estimate.items[0],
+          assumptions: ["resolution not set on the node — priced at 720p"]
+        }
+      ]
+    } as never);
+    renderPanel();
+
+    expect(
+      screen.getByText("resolution not set on the node — priced at 720p")
     ).toBeInTheDocument();
   });
 });
