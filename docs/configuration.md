@@ -209,6 +209,47 @@ Two settings exist for local development and are off unless set:
 NODETOOL_SEED_DEMO_COSTS=1 nodetool serve
 ```
 
+## Test Harness Settings
+
+These configure the harnesses, not the server. `nodetool debug --browser` sets
+the two `NODETOOL_DEBUG_*` variables below from its own flags; you set them by
+hand only when driving the Playwright spec directly.
+
+- `NODETOOL_DEBUG_STAGES` — `1` or `true` captures a canvas screenshot at every
+  stage of the run into `stages/` under the output directory, up to 16
+  intermediate frames plus the final one. This is what `nodetool debug
+  --stages` turns on, and it is off otherwise because each frame costs a
+  screenshot.
+- `NODETOOL_DEBUG_TIMEOUT` — per-run timeout in milliseconds for the in-page
+  run, which is how `nodetool debug --timeout` reaches the browser surface.
+  Read as a positive integer; anything else is ignored. The spec waits 30s
+  longer than the value, and never less than its 5-minute floor, so polling
+  outlives the run it is watching.
+- `NODETOOL_E2E_EXAMPLES_DIR` — the examples directory the e2e test server
+  serves at `/api/examples`. A path that does not exist is ignored rather than
+  fatal; the server then looks for
+  `packages/base-nodes/nodetool/examples/nodetool-base` and `examples/workflows`
+  under the repo root. The resolved path is printed in the server's readiness
+  line.
+
+The graph, output directory, and run params come from `NODETOOL_DEBUG_GRAPH`,
+`NODETOOL_DEBUG_OUT`, and `NODETOOL_DEBUG_PARAMS`:
+
+```bash
+cd web
+NODETOOL_DEBUG_GRAPH=/tmp/graph.json \
+NODETOOL_DEBUG_OUT=/tmp/debug-out \
+NODETOOL_DEBUG_STAGES=1 \
+NODETOOL_DEBUG_TIMEOUT=120000 \
+npm run test:debug-harness
+```
+
+The run writes `record.json`, `screenshot.png`, and — with stages on —
+`stages/` and `stages.json` into the output directory. It also starts its own
+hermetic backend on `127.0.0.1:7777`, so stop any server already on that port
+first; the harness refuses to run against one rather than exercise a real
+database with real providers.
+
 ## Chat Turn Replay
 
 A chat or agent turn outlives the WebSocket connection that started it. Every
@@ -320,6 +361,9 @@ the run is a separate concern; see
 | `NODETOOL_SEARCH_PROVIDER` | Web-search provider the sandbox agent's search tool uses | no | `tavily` (default), `brave`, or `serper`; an unrecognized value falls back to `tavily`. Each reads its own key — `TAVILY_API_KEY`, `BRAVE_API_KEY`, `SERPER_API_KEY` — and throws when it is missing. `mock` returns no results, for a sandbox that must not reach the network |
 | `NODETOOL_ENABLE_TEST_TOPUP` | Allow the credits top-up that mints credits with no payment | no | `1`/`true` only; off otherwise and the mutation is refused. Development servers only. See [Development-only settings](#development-only-settings) |
 | `NODETOOL_SEED_DEMO_COSTS` | Seed demo spend for the Costs dashboard at startup | no | `1` only. Idempotent — a marker row stops it re-running |
+| `NODETOOL_DEBUG_STAGES` | Capture a canvas screenshot at every stage of a browser debug run | no | `1` or `true`. Set by `nodetool debug --stages`; off otherwise. Up to 16 intermediate frames land in `stages/` under the output directory. See [Test harness settings](#test-harness-settings) |
+| `NODETOOL_DEBUG_TIMEOUT` | Per-run timeout (ms) for the in-page run of the browser debug harness | no | How `nodetool debug --timeout` reaches the browser surface. Read as a positive integer; anything else is ignored and the harness's 5-minute floor applies |
+| `NODETOOL_E2E_EXAMPLES_DIR` | Examples directory the e2e test server serves at `/api/examples` | no | A path that does not exist is ignored; the server then tries `packages/base-nodes/nodetool/examples/nodetool-base` and `examples/workflows` under the repo root |
 | `NODETOOL_PACK_SEARCH_PATHS` | Extra `node_modules` directories to load node packs from | no | Comma-, semicolon-, or `PATH`-separator-delimited (`:` is not a separator on Windows, so drive letters survive). Paths that do not exist are dropped. Searched before the walk up from the working directory. See [Node Packs](node-packs.md) |
 | `NODETOOL_OPTIONAL_NODE_MODULES` | A single extra `node_modules` directory for pack loading | no | The one-path form of `NODETOOL_PACK_SEARCH_PATHS`; both are read, and the desktop app uses this to point the loader at its bundled install root |
 | `NODETOOL_CHAT_DETACH_GRACE_MS` | How long a running chat turn survives with no client attached | no | Default `600000` (10 minutes), then the turn is aborted so an abandoned client cannot leave an agent working forever. See [Chat turn replay](#chat-turn-replay) |

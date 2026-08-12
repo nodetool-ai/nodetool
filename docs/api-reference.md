@@ -43,6 +43,9 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Examples  | `/api/workflows/examples/thumbnails/{filename}` | `GET` | none                                     | no                          | Example thumbnail; `.jpg` and `.png` only |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
+| Assets    | `/api/assets/packages`            | `GET`             | none                                           | no                          | Stub — always `{"assets": [], "next": null}`; there is no package listing |
+| Assets    | `/api/assets/packages/{package}`  | `GET`             | none                                           | no                          | Stub — same empty page. Fetch a package's files by name, not by listing |
+| Assets    | `/api/assets/download`            | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Bulk ZIP download; `501` on this server |
 | Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
 | Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
@@ -495,6 +498,46 @@ The file path may be nested (`audio/loop.mp3`); `..` segments and backslashes
 are rejected. Responses carry
 `cache-control: public, max-age=31536000, immutable` and an ETag, since a
 package's assets change only when the package version does.
+
+The two listing routes above that path are stubs. `GET /api/assets/packages`
+and `GET /api/assets/packages/{package}` both answer `200` with an empty page,
+whatever the package name:
+
+```bash
+curl "http://localhost:7777/api/assets/packages/nodetool-base"
+```
+
+```json
+{ "assets": [], "next": null }
+```
+
+The REST surface never grew a real listing, so address a package's files by the
+name the workflow's `package://` ref already carries. Agents that need to
+enumerate them call the `list_assets` tool with `source: "package"`, which walks
+the packages on disk and returns each file's `uri` and `url`.
+
+### Bulk Asset Download
+
+`POST /api/assets/download` is reserved for zipping the requested assets into
+one response, keeping the folder structure their `parent_id` relationships
+describe. This server does not implement it and answers `501`:
+
+```bash
+curl -X POST "http://localhost:7777/api/assets/download" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"asset_ids": ["b41f…", "c02a…"]}'
+```
+
+```json
+{
+  "code": "SERVICE_UNAVAILABLE",
+  "detail": "ZIP download not available in standalone mode"
+}
+```
+
+The status does not depend on the body — an unknown asset id returns the same
+`501`. Download assets one at a time through their `get_url` instead.
 
 ### Provider Credits
 
