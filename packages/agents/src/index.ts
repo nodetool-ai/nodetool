@@ -106,9 +106,6 @@ export {
   resolveCapabilityMessage,
   UNGATED
 } from "./capabilities/index.js";
-// `plan_workflow_graph` is served by a host that can build a `graphPlanner`
-// run — the chat runner — rather than by the belt every surface assembles.
-export { planWorkflowGraph } from "./capabilities/workflows.js";
 export type {
   CapabilitySpec,
   CapabilityImpl,
@@ -119,7 +116,6 @@ export type {
   CapabilityLoaders,
   ClientToolRouter,
   SubAgentRuntime,
-  GraphPlannerRuntime,
   CapabilityRunSource,
   CreateCapabilityRunOptions
 } from "./capabilities/index.js";
@@ -170,17 +166,15 @@ export {
 export {
   GENERIC_AI_NODES,
   CORE_BASELINE_NAMESPACES,
-  PROVIDER_NAMESPACES,
-  buildGraphPlannerSystemPrompt
-} from "./prompts/graph-planner-prompt.js";
+  WORKFLOW_AUTHORING_KNOWLEDGE,
+  renderWorkflowAuthoringKnowledge,
+  resolveAvailableGenericNodes
+} from "./prompts/workflow-authoring-knowledge.js";
 export type {
   GenericAINode,
   GenericNodeCapability,
-  BuildPromptOptions
-} from "./prompts/graph-planner-prompt.js";
-export {
-  WORKFLOW_AUTHORING_KNOWLEDGE,
-  renderWorkflowAuthoringKnowledge
+  GenericNodeAvailability,
+  GenericNodeLookup
 } from "./prompts/workflow-authoring-knowledge.js";
 export { installedSandboxPacks } from "./prompts/sandbox-pack-catalog.js";
 export type { InstalledSandboxPack } from "./prompts/sandbox-pack-catalog.js";
@@ -230,9 +224,6 @@ export {
   RemoveTaskTool,
   FinishPlanTool
 } from "./tools/plan-builder-tools.js";
-
-// Graph-native planner tools
-export { SubmitGraphTool } from "./tools/submit-graph-tool.js";
 
 // Shared JS sandbox engine
 export {
@@ -291,12 +282,6 @@ export { SubmitCodeTool } from "./tools/submit-code-tool.js";
 export type { SubmitCodeToolOptions } from "./tools/submit-code-tool.js";
 export { CodePlanner } from "./code-planner.js";
 export type { CodePlannerOptions } from "./code-planner.js";
-export { refineCodeNodes } from "./code-node-refine.js";
-export type {
-  CodeNodeRefinementOptions,
-  CodeNodeRefinementOutcome,
-  CodeNodeRefinementReport
-} from "./code-node-refine.js";
 
 // Constants
 export { MAX_TOOL_RESULT_CHARS, truncateToolResult } from "./constants.js";
@@ -777,8 +762,6 @@ export {
 } from "./dynamic-slots.js";
 export { normalizeModelProperties } from "./normalize-model-properties.js";
 export type { ModelPropertyRegistry } from "./normalize-model-properties.js";
-export { GraphPlanner } from "./graph-planner.js";
-export type { GraphPlannerOptions } from "./graph-planner.js";
 export { authorGraph, AUTHOR_GRAPH_MAX_ITERATIONS } from "./author-graph.js";
 export type { AuthorGraphOptions } from "./author-graph.js";
 export {

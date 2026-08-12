@@ -29,7 +29,6 @@ import type {
   CapabilityRun,
   CapabilitySpec,
   ClientToolRouter,
-  GraphPlannerRuntime,
   SubAgentRuntime
 } from "./types.js";
 import type {
@@ -68,7 +67,6 @@ export interface CreateCapabilityRunOptions {
   gate: CapabilityGate;
   client?: ClientToolRouter;
   subAgent?: SubAgentRuntime;
-  graphPlanner?: GraphPlannerRuntime;
   nodeRegistry?: NodeRegistry;
   providers?: Record<string, BaseProvider>;
   examples?: ExampleWorkflowCatalog;
@@ -103,7 +101,6 @@ export function createCapabilityRun(
     gate: options.gate,
     client: options.client,
     subAgent: options.subAgent,
-    graphPlanner: options.graphPlanner,
     nodeRegistry: options.nodeRegistry,
     providers: options.providers,
     examples: options.examples,

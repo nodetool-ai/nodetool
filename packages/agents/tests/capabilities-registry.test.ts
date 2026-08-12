@@ -192,10 +192,6 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   validate_code: "read",
   run_code: "execute",
   test_code: "execute",
-  // The graph planner. Unlisted in `TOOL_PERMISSION_CATEGORIES` under its own
-  // name would default it to `external`; the map classes it `read` because it
-  // builds and returns a graph, and `create_workflow` gates the save.
-  plan_workflow_graph: "read",
   // ui — the eight workflow-document schemas. Reading the graph is a read; the
   // seven mutators rewrite a stored workflow.
   ui_get_graph: "read",

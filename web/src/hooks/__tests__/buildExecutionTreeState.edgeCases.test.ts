@@ -2,8 +2,6 @@
  * @jest-environment node
  *
  * Covers buildExecutionTreeState branches not exercised by the sibling test:
- * - Graph planner synthetic task creation (tool_call_update with node_id "graph_planner")
- * - Graph planner task completion via planning_update phase="complete"
  * - toolCallsByStep overlay
  * - Double-JSON content normalization
  * - Error type variants in step_result (Error object, non-string error)
@@ -22,117 +20,6 @@ function makeMessage(
     content: content
   } as unknown as Message;
 }
-
-describe("buildExecutionTreeState — graph planner", () => {
-  it("creates a synthetic graph_planner task on first graph planner tool call", () => {
-    const messages = [
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-gp-1",
-        name: "search_nodes",
-        args: { query: "image generation" }
-      })
-    ];
-    const state = buildExecutionTreeState(messages);
-
-    expect(state.tasks).toHaveLength(1);
-    expect(state.tasks[0].id).toBe("graph_planner");
-    expect(state.tasks[0].name).toBe("Graph planner");
-    expect(state.tasks[0].status).toBe("running");
-    expect(state.tasks[0].steps).toHaveLength(1);
-    expect(state.tasks[0].steps[0].toolCalls).toHaveLength(1);
-    expect(state.tasks[0].steps[0].toolCalls[0].name).toBe("search_nodes");
-  });
-
-  it("accumulates multiple graph planner tool calls on the same step", () => {
-    const messages = [
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-1",
-        name: "search_nodes",
-        args: { query: "text" }
-      }),
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-2",
-        name: "add_node",
-        args: { node_type: "nodetool.text.Join" }
-      })
-    ];
-    const state = buildExecutionTreeState(messages);
-
-    expect(state.tasks[0].steps[0].toolCalls).toHaveLength(2);
-    expect(state.tasks[0].steps[0].toolCalls[0].name).toBe("search_nodes");
-    expect(state.tasks[0].steps[0].toolCalls[1].name).toBe("add_node");
-    expect(state.tasks[0].steps[0].toolName).toBe("add_node");
-  });
-
-  it("updates an existing graph planner tool call by id", () => {
-    const messages = [
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-1",
-        name: "search_nodes",
-        args: { query: "original" }
-      }),
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-1",
-        name: "search_nodes",
-        args: { query: "updated" },
-        message: "Found results"
-      })
-    ];
-    const state = buildExecutionTreeState(messages);
-
-    expect(state.tasks[0].steps[0].toolCalls).toHaveLength(1);
-    expect(state.tasks[0].steps[0].toolCalls[0].args).toEqual({
-      query: "updated"
-    });
-  });
-
-  it("marks graph planner task completed on planning_update phase=complete", () => {
-    const messages = [
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-1",
-        name: "add_node",
-        args: { type: "image" }
-      }),
-      makeMessage("planning_update", {
-        phase: "complete",
-        status: "Done",
-        content: "Graph built successfully"
-      })
-    ];
-    const state = buildExecutionTreeState(messages);
-
-    expect(state.tasks[0].status).toBe("completed");
-    expect(state.tasks[0].steps[0].status).toBe("completed");
-    expect(state.tasks[0].steps[0].output).toBe("Graph built successfully");
-  });
-
-  it("marks graph planner task failed on planning_update phase=complete status=Failed", () => {
-    const messages = [
-      makeMessage("tool_call_update", {
-        node_id: "graph_planner",
-        tool_call_id: "tc-1",
-        name: "search_nodes",
-        args: {}
-      }),
-      makeMessage("planning_update", {
-        phase: "complete",
-        status: "Failed",
-        content: "Could not build graph"
-      })
-    ];
-    const state = buildExecutionTreeState(messages);
-
-    expect(state.tasks[0].status).toBe("failed");
-    expect(state.tasks[0].steps[0].status).toBe("failed");
-    expect(state.phase).toBe("done");
-  });
-});
 
 describe("buildExecutionTreeState — toolCallsByStep overlay", () => {
   it("attaches last tool name from toolCallsByStep to matching steps", () => {

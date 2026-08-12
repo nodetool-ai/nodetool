@@ -15,6 +15,8 @@
  * is what stops the prompt from advertising a node that was renamed.
  */
 
+import type { NodeMetadata } from "@nodetool-ai/node-sdk";
+
 export type GenericNodeCapability =
   | "text_to_image"
   | "image_to_image"
@@ -125,6 +127,58 @@ export const CORE_BASELINE_NAMESPACES: readonly string[] = [
   "nodetool.vector",
   "nodetool.triggers"
 ];
+
+/**
+ * Minimal registry surface needed to check which generic AI nodes exist.
+ * Structural so stubs/mocks (and the real `NodeRegistry`) both satisfy it.
+ */
+export interface GenericNodeLookup {
+  getMetadata?: (nodeType: string) => NodeMetadata | undefined;
+  resolveMetadata?: (nodeType: string) => NodeMetadata | undefined;
+}
+
+export interface GenericNodeAvailability {
+  /** Catalog entries whose node_type resolves in the registry. */
+  available: GenericAINode[];
+  /** node_types from the catalog the registry doesn't know — drift to fix. */
+  missing: string[];
+}
+
+/**
+ * Partition {@link GENERIC_AI_NODES} into nodes the registry actually has and
+ * nodes it doesn't. The curated table is hand-maintained (capability → node
+ * isn't encoded in node metadata), so this keeps it honest at runtime: a node
+ * that gets renamed or removed shows up in `missing` instead of being silently
+ * advertised to the agent.
+ *
+ * When the registry can't be introspected (a stub) or knows none of the
+ * generic nodes (not yet populated with base-nodes / platform-filtered), the
+ * full catalog is returned with no `missing` — better a complete prompt than a
+ * blank one.
+ */
+export function resolveAvailableGenericNodes(
+  registry: GenericNodeLookup,
+  catalog: readonly GenericAINode[] = GENERIC_AI_NODES
+): GenericNodeAvailability {
+  const lookup =
+    typeof registry?.resolveMetadata === "function"
+      ? (type: string) => registry.resolveMetadata!(type)
+      : typeof registry?.getMetadata === "function"
+        ? (type: string) => registry.getMetadata!(type)
+        : null;
+
+  if (!lookup) return { available: [...catalog], missing: [] };
+
+  const available: GenericAINode[] = [];
+  const missing: string[] = [];
+  for (const node of catalog) {
+    if (lookup(node.type) != null) available.push(node);
+    else missing.push(node.type);
+  }
+
+  if (available.length === 0) return { available: [...catalog], missing: [] };
+  return { available, missing };
+}
 
 function renderGenericNodeTable(nodes: readonly GenericAINode[]): string {
   const rows = nodes.map(

@@ -1394,9 +1394,8 @@ export async function handleChatWebSocketMessage(
   } else if (data.type === "tool_call_update") {
     applyReducer(applyToolCallUpdate, data);
   } else if (data.type === "planning_update") {
-    // The server-side planner (plan_workflow_graph) forwards its progress as
-    // bare events rather than agent_execution messages, so drive the thread
-    // runtime directly.
+    // Planners forward their progress as bare planning_update events rather
+    // than agent_execution messages, so drive the thread runtime directly.
     if (tid) {
       set((state) => threadRuntimeUpdate(state, tid, { planningUpdate: data }));
     }

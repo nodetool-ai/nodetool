@@ -26,12 +26,11 @@ import { randomUUID } from "node:crypto";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { isJsCodeNodeType } from "@nodetool-ai/node-sdk";
+import { isJsCodeNodeType, PROVIDER_NAMESPACES } from "@nodetool-ai/node-sdk";
 import type { GraphData, NodeDescriptor } from "@nodetool-ai/protocol";
 import { authorGraph } from "../author-graph.js";
 import { EXECUTE_CODE_TOOL_NAME } from "../codeact/codeact-executor.js";
 import { AGENT_NODE_TYPE } from "../graph-builder.js";
-import { PROVIDER_NAMESPACES } from "../prompts/graph-planner-prompt.js";
 import { GRAPH_PLANNER_EVAL_CASES } from "./graph-planner-cases.js";
 
 export interface GraphPlannerEvalExpectations {

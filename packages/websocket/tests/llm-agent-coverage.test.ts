@@ -7,8 +7,7 @@
  *   - send() guards (closed, no transport, in-flight) and the error path
  *   - streaming callbacks (onChunk buffering + uuid, onToolCall reset)
  *   - the in-process tools passed to processChat: UiBridgeTool (success +
- *     failure) and GraphPlannerUiTool (invalid objective, unconfigured
- *     registry, and a full plan-and-apply run against a mocked GraphPlanner)
+ *     failure)
  *   - listModels aggregation + tool-support filtering
  *   - resume hydration of array-content / tool-call rows
  *   - listSessions summary fallback for non-string content
@@ -21,7 +20,7 @@ import { initTestDb, Thread, Message } from "@nodetool-ai/models";
 
 // ── Mocks ─────────────────────────────────────────────────────────────
 
-const { processChatSpy, graphPlannerCtl } = vi.hoisted(() => ({
+const { processChatSpy } = vi.hoisted(() => ({
   // Default: append a user + assistant turn, like message-processor.ts.
   processChatSpy: vi.fn(
     async (opts: { messages: any[]; userInput: string }) => {
@@ -30,13 +29,6 @@ const { processChatSpy, graphPlannerCtl } = vi.hoisted(() => ({
       return opts.messages;
     },
   ),
-  graphPlannerCtl: {
-    // Async-generator plan() body, reconfigurable per-test.
-    plan: undefined as unknown as (
-      objective: string,
-      ctx: unknown,
-    ) => AsyncGenerator<unknown, unknown, unknown>,
-  },
 }));
 
 vi.mock("@nodetool-ai/chat", () => ({
@@ -50,20 +42,12 @@ vi.mock("../src/agent/pi-agent.js", () => ({
   getPiSessionMessages: async () => [],
 }));
 
-// Keep the real Tool base and everything else; swap GraphPlanner for a
-// controllable stub and neutralize long-term memory.
+// Keep the real Tool base and everything else; neutralize long-term memory.
 vi.mock("@nodetool-ai/agents", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@nodetool-ai/agents")>();
   return {
     ...actual,
     createDefaultLongTermMemory: vi.fn(async () => null),
-    GraphPlanner: class {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      constructor(public opts: any) {}
-      plan(objective: string, ctx: unknown) {
-        return graphPlannerCtl.plan(objective, ctx);
-      }
-    },
   };
 });
 
@@ -85,10 +69,7 @@ vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
   };
 });
 
-import {
-  LlmAgentSdkProvider,
-  setLlmAgentGraphPlannerRegistry,
-} from "../src/agent/llm-agent.js";
+import { LlmAgentSdkProvider } from "../src/agent/llm-agent.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────
 
@@ -330,144 +311,6 @@ describe("UiBridgeTool via processChat tools", () => {
       type: "object",
       properties: {},
     });
-  });
-});
-
-// ── GraphPlannerUiTool ─────────────────────────────────────────────────
-
-async function captureGraphPlanner(): Promise<any> {
-  let captured: any[] = [];
-  processChatSpy.mockImplementationOnce(async (opts: { tools: any[] }) => {
-    captured = opts.tools;
-    return [];
-  });
-  const session = newSession();
-  await session.send("hi", makeTransport() as never, "sid", []);
-  return captured.find((t) => t.name === "plan_workflow_graph");
-}
-
-describe("GraphPlannerUiTool", () => {
-  it("rejects a blank objective", async () => {
-    const tool = await captureGraphPlanner();
-    expect(await tool.process({}, { objective: "   " })).toEqual({
-      isError: true,
-      error: "objective must be a non-empty string",
-    });
-  });
-
-  it("errors when the graph-planner registry is not configured", async () => {
-    // Registry is a module singleton; this test runs before we set it.
-    const tool = await captureGraphPlanner();
-    const res = await tool.process({}, { objective: "make a workflow" });
-    expect(res).toMatchObject({ isError: true });
-    expect((res as { error: string }).error).toMatch(/registry is not configured/);
-  });
-
-  it("plans a graph and applies it to the canvas", async () => {
-    setLlmAgentGraphPlannerRegistry({} as never);
-    graphPlannerCtl.plan = async function* () {
-      yield { type: "planning_update", phase: "start" };
-      yield { type: "planning_update", phase: "complete" }; // deferred
-      return {
-        nodes: [
-          { id: "n1", type: "nodetool.text.Concat", name: "n1", properties: {} },
-          { id: "n2", type: "nodetool.image.Blur", name: "Blur", properties: {} },
-        ],
-        edges: [
-          {
-            source: "n1",
-            target: "n2",
-            sourceHandle: "output",
-            targetHandle: "image",
-          },
-        ],
-      };
-    };
-
-    const transport = makeTransport();
-    let captured: any[] = [];
-    processChatSpy.mockImplementationOnce(async (opts: { tools: any[] }) => {
-      captured = opts.tools;
-      return [];
-    });
-    const session = newSession();
-    await session.send("hi", transport as never, "sid", []);
-    const tool = captured.find((t) => t.name === "plan_workflow_graph");
-
-    const res = (await tool.process({}, {
-      objective: "build it",
-      apply_to_canvas: true,
-    })) as Record<string, unknown>;
-
-    expect(res.status).toBe("graph_planned");
-    expect(res.nodes).toBe(2);
-    expect(res.edges).toBe(1);
-    expect(res.applied_to_canvas).toBe(true);
-    // The graph was pushed to the canvas via the ui_graph bulk tool.
-    expect(transport.executeTool).toHaveBeenCalledWith(
-      "sid",
-      expect.any(String),
-      "ui_graph",
-      expect.objectContaining({ nodes: expect.any(Array) }),
-    );
-  });
-
-  it("reports an apply failure without throwing", async () => {
-    setLlmAgentGraphPlannerRegistry({} as never);
-    graphPlannerCtl.plan = async function* () {
-      yield { type: "planning_update", phase: "start" };
-      return { nodes: [{ id: "n1", type: "t", name: "n1", properties: {} }], edges: [] };
-    };
-    const transport = makeTransport({
-      executeTool: async () => {
-        throw new Error("canvas offline");
-      },
-    });
-    let captured: any[] = [];
-    processChatSpy.mockImplementationOnce(async (opts: { tools: any[] }) => {
-      captured = opts.tools;
-      return [];
-    });
-    const session = newSession();
-    await session.send("hi", transport as never, "sid", []);
-    const tool = captured.find((t) => t.name === "plan_workflow_graph");
-
-    const res = (await tool.process({}, { objective: "x" })) as Record<
-      string,
-      unknown
-    >;
-    expect(res.applied_to_canvas).toBe(false);
-    expect(res.apply_error).toMatch(/canvas offline/);
-  });
-
-  it("returns an error when the planner yields no graph", async () => {
-    setLlmAgentGraphPlannerRegistry({} as never);
-    graphPlannerCtl.plan = async function* () {
-      yield { type: "planning_update", phase: "complete" };
-      return undefined;
-    };
-    let captured: any[] = [];
-    processChatSpy.mockImplementationOnce(async (opts: { tools: any[] }) => {
-      captured = opts.tools;
-      return [];
-    });
-    const session = newSession();
-    await session.send("hi", makeTransport() as never, "sid", []);
-    const tool = captured.find((t) => t.name === "plan_workflow_graph");
-    const res = (await tool.process({}, {
-      objective: "x",
-      apply_to_canvas: false,
-    })) as Record<string, unknown>;
-    expect(res).toMatchObject({ isError: true });
-    expect((res as { error: string }).error).toMatch(/failed to build a graph/);
-  });
-
-  it("userMessage summarizes the objective", async () => {
-    const tool = await captureGraphPlanner();
-    expect(tool.userMessage({ objective: "build me a thing" })).toMatch(
-      /Planning workflow graph: build me a thing/,
-    );
-    expect(tool.userMessage({})).toMatch(/Planning workflow graph: workflow/);
   });
 });
 

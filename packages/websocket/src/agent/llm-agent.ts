@@ -35,7 +35,6 @@ import { randomUUID } from "node:crypto";
 
 import { processChat } from "@nodetool-ai/chat";
 import {
-  GraphPlanner,
   Tool,
   createWorkflowDocumentTools,
   createDefaultLongTermMemory,
@@ -49,11 +48,6 @@ import {
   listRegisteredProviderIds
 } from "@nodetool-ai/runtime";
 import type { BaseProvider, Message, ToolCall } from "@nodetool-ai/runtime";
-import type {
-  GraphData,
-  NodeDescriptor,
-  ProcessingMessage
-} from "@nodetool-ai/protocol";
 import {
   Message as DbMessage,
   Thread as DbThread,
@@ -75,16 +69,15 @@ import {
   type AgentSdkProvider
 } from "./sdk-provider.js";
 import type { AgentTransport } from "./transport.js";
-import { getSandboxCatalog } from "../sandbox-catalog.js";
 
 const log = createLogger("nodetool.websocket.agent.llm");
 
 const MAX_AGGREGATED_MODELS = 200;
 
-let graphPlannerRegistry: NodeRegistry | null = null;
+let llmAgentNodeRegistry: NodeRegistry | null = null;
 
-export function setLlmAgentGraphPlannerRegistry(registry: NodeRegistry): void {
-  graphPlannerRegistry = registry;
+export function setLlmAgentNodeRegistry(registry: NodeRegistry): void {
+  llmAgentNodeRegistry = registry;
 }
 
 /**
@@ -151,233 +144,6 @@ class UiBridgeTool extends Tool {
       );
       return { isError: true, error: message };
     }
-  }
-}
-
-const PLAN_WORKFLOW_GRAPH_SCHEMA = {
-  type: "object" as const,
-  properties: {
-    objective: {
-      type: "string" as const,
-      description: "Natural-language description of the workflow to build."
-    },
-    apply_to_canvas: {
-      type: "boolean" as const,
-      description:
-        "When true, apply the planned graph to the current workflow canvas with one bulk UI call.",
-      default: true
-    }
-  },
-  required: ["objective"] as string[]
-};
-
-type ExecutionAgentMessage = AgentMessage & {
-  event?: unknown;
-  event_type?: string;
-  agent_execution_id?: string;
-};
-
-type EmitAgentMessage = (message: ExecutionAgentMessage) => void;
-
-function workflowGraphToUiGraph(graph: GraphData): {
-  nodes: Array<{
-    id: string;
-    type: string;
-    position: { x: number; y: number };
-    data: Record<string, unknown>;
-  }>;
-  edges: Array<{
-    id: string;
-    source: string;
-    target: string;
-    sourceHandle: string;
-    targetHandle: string;
-  }>;
-} {
-  const nodes = graph.nodes.map((node: NodeDescriptor, index: number) => ({
-    id: node.id,
-    type: node.type,
-    position: {
-      x: (index % 4) * 280,
-      y: Math.floor(index / 4) * 180
-    },
-    data: {
-      title: node.name === node.id ? undefined : node.name,
-      properties: node.properties ?? {}
-    }
-  }));
-
-  const edges = graph.edges.map((edge, index) => ({
-    id: `graph-planner-edge-${index}`,
-    source: edge.source,
-    target: edge.target,
-    sourceHandle: edge.sourceHandle,
-    targetHandle: edge.targetHandle
-  }));
-
-  return { nodes, edges };
-}
-
-class GraphPlannerUiTool extends Tool {
-  readonly name = "plan_workflow_graph";
-  readonly description =
-    "Build a complete NodeTool workflow graph from an objective using the backend GraphPlanner, stream planner updates to the UI, and optionally apply the final graph to the canvas in one bulk operation.";
-  protected readonly jsonSchema: Record<string, unknown> =
-    PLAN_WORKFLOW_GRAPH_SCHEMA;
-
-  constructor(
-    private readonly opts: {
-      provider: BaseProvider;
-      model: string;
-      transport: AgentTransport;
-      sessionId: string;
-      uiSessionId: string;
-      userId: string;
-      emit: EmitAgentMessage;
-      /** Session abort signal so interrupt()/close() can cancel planning. */
-      signal?: AbortSignal;
-    }
-  ) {
-    super();
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    const objective = params.objective;
-    if (typeof objective !== "string" || objective.trim().length === 0) {
-      return { isError: true, error: "objective must be a non-empty string" };
-    }
-    if (!graphPlannerRegistry) {
-      return {
-        isError: true,
-        error: "Graph planner registry is not configured on the server."
-      };
-    }
-
-    const executionId = `graph-planner-${randomUUID()}`;
-    const emitUpdate = (event: ProcessingMessage): void => {
-      this.opts.emit({
-        type: "stream_event",
-        uuid: randomUUID(),
-        session_id: this.opts.uiSessionId,
-        event,
-        event_type: event.type,
-        agent_execution_id: executionId
-      });
-    };
-
-    const providers = await getConfiguredProvidersForUser(
-      this.opts.userId,
-      this.opts.provider
-    );
-    const planner = new GraphPlanner({
-      provider: this.opts.provider,
-      model: this.opts.model,
-      registry: graphPlannerRegistry,
-      tools: [],
-      providers,
-      // The server's own catalog, so the prompt advertises the packs this
-      // machine installed rather than every pack NodeTool ships.
-      sandboxModuleCatalog: getSandboxCatalog()
-    });
-
-    let deferredComplete: ProcessingMessage | null = null;
-    const planGen = planner.plan(objective.trim(), context);
-    let next = await planGen.next();
-    while (!next.done) {
-      // Honor a session interrupt/close: stop driving the planner (which would
-      // otherwise run every remaining LLM call to completion, unresponsive to
-      // Stop and potentially applying a graph the user cancelled).
-      if (this.opts.signal?.aborted) {
-        await planGen.return(null);
-        return { isError: true, error: "Graph planning was cancelled." };
-      }
-      const event = next.value;
-      if (
-        event.type === "planning_update" &&
-        (event as { phase?: string }).phase === "complete"
-      ) {
-        deferredComplete = event;
-      } else {
-        emitUpdate(event);
-      }
-      next = await planGen.next();
-    }
-
-    // The loop can exit on its final non-aborted iteration with a graph in
-    // hand; re-check so a Stop that lands right as planning finishes doesn't
-    // still write the cancelled graph to the user's canvas.
-    if (this.opts.signal?.aborted) {
-      return { isError: true, error: "Graph planning was cancelled." };
-    }
-
-    const graph = next.value;
-    if (!graph) {
-      if (deferredComplete) emitUpdate(deferredComplete);
-      return { isError: true, error: "GraphPlanner failed to build a graph." };
-    }
-
-    const applyToCanvas = params.apply_to_canvas !== false;
-    let applied = false;
-    let applyError: string | null = null;
-    if (applyToCanvas && this.opts.signal?.aborted) {
-      return { isError: true, error: "Graph planning was cancelled." };
-    }
-    if (applyToCanvas) {
-      const uiGraph = workflowGraphToUiGraph(graph);
-      emitUpdate({
-        type: "log_update",
-        node_id: "graph_planner",
-        node_name: "Graph planner",
-        content: `Applying ${uiGraph.nodes.length} nodes and ${uiGraph.edges.length} edges to the canvas...`,
-        severity: "info"
-      });
-      try {
-        await this.opts.transport.executeTool(
-          this.opts.sessionId,
-          randomUUID(),
-          "ui_graph",
-          uiGraph
-        );
-        applied = true;
-        emitUpdate({
-          type: "log_update",
-          node_id: "graph_planner",
-          node_name: "Graph planner",
-          content: "Workflow graph applied to the canvas.",
-          severity: "info"
-        });
-      } catch (error) {
-        applyError = error instanceof Error ? error.message : String(error);
-        emitUpdate({
-          type: "log_update",
-          node_id: "graph_planner",
-          node_name: "Graph planner",
-          content: `Failed to apply graph to the canvas: ${applyError}`,
-          severity: "error"
-        });
-      }
-    }
-
-    if (deferredComplete) emitUpdate(deferredComplete);
-
-    return {
-      status: "graph_planned",
-      nodes: graph.nodes.length,
-      edges: graph.edges.length,
-      applied_to_canvas: applied,
-      apply_error: applyError
-    };
-  }
-
-  userMessage(params: Record<string, unknown>): string {
-    const objective =
-      typeof params.objective === "string"
-        ? params.objective.slice(0, 80)
-        : "workflow";
-    return `Planning workflow graph: ${objective}`;
   }
 }
 
@@ -605,21 +371,11 @@ class LlmAgentSession implements AgentQuerySession {
       );
       const manifestNames = new Set(manifest.map((tool) => tool.name));
       const tools = [
-        new GraphPlannerUiTool({
-          provider,
-          model: this.model,
-          transport,
-          sessionId,
-          uiSessionId: this.threadId,
-          userId: this.userId,
-          emit,
-          signal: this.abortController.signal
-        }),
         // Prefer the renderer adapter when it exists so commands see unsaved
         // canvas state. Missing document tools fall back to the persisted
         // server adapter, which is what makes an empty manifest headless-safe.
         ...createWorkflowDocumentTools(
-          graphPlannerRegistry ?? undefined
+          llmAgentNodeRegistry ?? undefined
         ).filter((tool) => !manifestNames.has(tool.name)),
         ...manifest.map((m) => new UiBridgeTool(transport, sessionId, m))
       ];
@@ -765,36 +521,6 @@ class LlmAgentSession implements AgentQuerySession {
     this.closed = true;
     this.abortController?.abort();
   }
-}
-
-async function getConfiguredProvidersForUser(
-  userId: string,
-  fallbackProvider: BaseProvider
-): Promise<Record<string, BaseProvider>> {
-  const providers: Record<string, BaseProvider> = {};
-  const getSecret = (key: string) =>
-    getStoredSecret(key, userId).then((v) => v ?? undefined);
-
-  await Promise.all(
-    listRegisteredProviderIds().map(async (providerId) => {
-      try {
-        if (await isProviderConfigured(providerId, getSecret)) {
-          providers[providerId] = await getRuntimeProvider(
-            providerId,
-            getSecret
-          );
-        }
-      } catch (error) {
-        log.debug("Skipping provider for graph-planner model lookup", {
-          provider: providerId,
-          error: error instanceof Error ? error.message : String(error)
-        });
-      }
-    })
-  );
-
-  providers[fallbackProvider.provider] = fallbackProvider;
-  return providers;
 }
 
 /**

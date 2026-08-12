@@ -158,13 +158,10 @@ import {
   gateTools,
   capabilityFromTool,
   createCapabilityRun,
-  toolFromCapability,
-  planWorkflowGraph,
   UNGATED,
   extractInjectableImages,
   PLAN_APPROVAL_CONTEXT_KEY,
   type CapabilityRun,
-  type GraphPlannerRuntime,
   type PermissionGateOptions,
   type SubAgentRuntime,
   type PermissionMode,
@@ -1454,9 +1451,6 @@ const PERMISSION_MODE_PROMPTS: Record<PermissionMode, string> = {
 export const RESIDENT_TOOL_NAMES: ReadonlySet<string> = new Set([
   // Delegation primitives with no `nodetool.*` form.
   "run_search",
-  // Being retired: the system prompt teaches authoring with the typed DSL
-  // pack instead. Kept resident until the tool itself goes.
-  "plan_workflow_graph",
   // Browser sessions only (it is in the manifest a connected UI registers):
   // opens a document as a tab so the editor `ui_*` tools can act on it.
   // Resident because it is the answer to "that document is not open", and
@@ -5364,45 +5358,6 @@ export class UnifiedWebSocketRunner {
       toolForCapabilityName("query_collection"),
       runNodeTool
     ];
-    // GraphPlanner as a chat tool: builds a workflow graph from an objective
-    // using the session's provider/model. Needs the in-process node registry.
-    let graphPlanner: GraphPlannerRuntime | undefined;
-    if (this.nodeRegistry) {
-      const graphPlannerRegistry = this.nodeRegistry;
-      graphPlanner = {
-        provider,
-        model,
-        signal: () => this.chatAbort?.signal,
-        forwardMessage: async (msg: ProcessingMessage) => {
-          const enriched: Record<string, unknown> = {
-            ...(msg as unknown as Record<string, unknown>)
-          };
-          if (enriched.thread_id == null) enriched.thread_id = threadId;
-          if (enriched.workflow_id == null) enriched.workflow_id = workflowId;
-          await this.sendMessage(enriched);
-          // The planner's discovery/submit tool calls arrive as transient
-          // tool_call_update events. Emit a persistent card so the chat UI
-          // shows what the planner is doing, nested under the parent
-          // plan_workflow_graph card.
-          await this.emitSyntheticToolCallCard(enriched);
-        }
-      };
-      const planning = graphPlanner;
-      rawToolbelt.push(
-        toolFromCapability(
-          planWorkflowGraph.spec,
-          planWorkflowGraph.impl,
-          (context) =>
-            createCapabilityRun({
-              context,
-              gate: UNGATED,
-              nodeRegistry: graphPlannerRegistry,
-              providers: chatProviders,
-              graphPlanner: planning
-            })
-        )
-      );
-    }
     // De-duplicate by name (builtins / mcp / extras may overlap); first wins.
     const dedupedToolbelt: Tool[] = [];
     const seenToolNames = new Set<string>();
@@ -5592,7 +5547,6 @@ export class UnifiedWebSocketRunner {
       nodeRegistry: this.nodeRegistry,
       providers: chatProviders,
       subAgent: subAgentRuntime,
-      graphPlanner,
       ...mcpToolHostDeps(),
       capabilities: [capabilityFromTool(runNodeTool)]
     });

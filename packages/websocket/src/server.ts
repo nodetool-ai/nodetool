@@ -135,7 +135,7 @@ import kieWebhookRoute from "./routes/kie-webhook.js";
 import {
   agentSocketRoute,
   getAgentRuntime,
-  setLlmAgentGraphPlannerRegistry
+  setLlmAgentNodeRegistry
 } from "./agent/index.js";
 
 // @llamaindex/liteparse bundles a webpack pdf.js whose `isNodeJS` heuristic
@@ -412,7 +412,7 @@ const registry = await bootstrapNodeRegistry({
   log
 });
 log.info(`Node registry ready [${startupMs()}]`);
-setLlmAgentGraphPlannerRegistry(registry);
+setLlmAgentNodeRegistry(registry);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
 }

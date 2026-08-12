@@ -8,9 +8,7 @@ import {
 
 describe("resident toolbelt", () => {
   it("keeps the tools with no `nodetool.*` form resident", () => {
-    for (const name of ["plan_workflow_graph", "run_search"]) {
-      expect(RESIDENT_TOOL_NAMES.has(name)).toBe(true);
-    }
+    expect(RESIDENT_TOOL_NAMES.has("run_search")).toBe(true);
   });
 
   it("lists nothing the object model already wraps", () => {
@@ -26,7 +24,6 @@ describe("resident toolbelt", () => {
 
   it("teaches the build-and-verify loop as `nodetool.*` code", () => {
     for (const call of [
-      "tools.plan_workflow_graph",
       "nodetool.workflows.validate",
       "nodetool.workflows.create",
       "nodetool.workflows.debug",

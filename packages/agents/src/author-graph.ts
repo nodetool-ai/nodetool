@@ -42,8 +42,10 @@ import {
   GRAPH_DSL_PACKAGE,
   catalogServesGraphDsl
 } from "./codeact/graph-dsl-package.js";
-import { renderWorkflowAuthoringKnowledge } from "./prompts/workflow-authoring-knowledge.js";
-import { resolveAvailableGenericNodes } from "./prompts/graph-planner-prompt.js";
+import {
+  renderWorkflowAuthoringKnowledge,
+  resolveAvailableGenericNodes
+} from "./prompts/workflow-authoring-knowledge.js";
 import { runSubAgent } from "./subagent.js";
 
 const log = createLogger("nodetool.agents.author-graph");
