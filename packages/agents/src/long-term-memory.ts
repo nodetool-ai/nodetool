@@ -214,7 +214,7 @@ const SECRET_PATTERNS: RegExp[] = [
   /\b(?:sk|pk)_(?:live|test)_[A-Za-z0-9]{16,128}\b/,
   /\bAKIA[0-9A-Z]{16}\b/,
   /\baws_secret_access_key\b[\s:=]{0,5}["']?[A-Za-z0-9/+=]{20,80}/i,
-  /\b(?:authorization|bearer)\s*[:=]?\s*["']?[A-Za-z0-9._\-+/=]{16,500}/i,
+  /\b(?:authorization|bearer)[\s:=]{0,6}["']?[A-Za-z0-9._\-+/=]{16,500}/i,
   /-----BEGIN[ A-Z]{0,40}PRIVATE KEY-----/,
   /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b/,
   /\b(?:api[_-]?key|access[_-]?token|secret(?:[_-]?key)?|password|passwd|pwd)\b\s*[:=]\s*["']?[^\s"']{8,500}/i,
