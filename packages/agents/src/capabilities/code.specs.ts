@@ -36,6 +36,19 @@ export const PACKAGES_FIELD: JsonSchema = {
     'property), e.g. ["@nodetool-ai/sandbox-yaml"].'
 };
 
+export const INPUT_STREAMS_FIELD: JsonSchema = {
+  type: "object",
+  description:
+    "Items to feed a body that reads its inputs with `stream`, as " +
+    '{handle: [item, …]}, e.g. {"numbers": [1, 2, 3]}. The body runs once ' +
+    "and pulls them: `stream(name)` yields one handle's items in order, " +
+    "`stream.any()` yields [handle, value] round-robin by index across the " +
+    "handles in declaration order, `stream.first(name)` takes one, and " +
+    "`stream.open(name)` reports whether items remain. Omit it for a " +
+    "buffered body, whose values go in `inputs` instead.",
+  additionalProperties: { type: "array" }
+};
+
 export const validateCodeSpec: CapabilitySpec = {
   name: "validate_code",
   description:
@@ -75,7 +88,9 @@ export const runCodeSpec: CapabilitySpec = {
     "`output(name, value)` come back as `outputs`; values passed to " +
     "`emit(name, value)` come back as `streamed`, an ordered list of " +
     "`{name, value}`. A legacy return/yield body reports its return bag as " +
-    "`outputs` and its yielded items as `streamed`. The run is hermetic: no " +
+    "`outputs` and its yielded items as `streamed`. A body that reads its " +
+    "inputs with `stream` runs once over the items staged in " +
+    "`input_streams`. The run is hermetic: no " +
     "node toolbelt, and only the secrets named in `secrets` are readable. " +
     "Use it to debug a body before saving it onto a node.",
   inputSchema: {
@@ -87,6 +102,7 @@ export const runCodeSpec: CapabilitySpec = {
         description: "Input values the body reads from the `inputs` object.",
         additionalProperties: true
       },
+      input_streams: INPUT_STREAMS_FIELD,
       packages: PACKAGES_FIELD,
       secrets: {
         type: "array",
@@ -109,7 +125,8 @@ export const testCodeSpec: CapabilitySpec = {
   name: "test_code",
   description:
     "Run a Code-node body against a list of test cases and grade each one. " +
-    "A case supplies `inputs` and optionally `expect` — expected final " +
+    "A case supplies `inputs` (or `input_streams`, for a body that reads " +
+    "`stream`) and optionally `expect` — expected final " +
     "values per output handle, compared structurally; outputs not named in " +
     "`expect` are ignored — and `expected_streamed`, the full ordered list " +
     "of `{name, value}` the body must emit. A case with neither passes when " +
@@ -131,6 +148,7 @@ export const testCodeSpec: CapabilitySpec = {
               description: "Input values for this case.",
               additionalProperties: true
             },
+            input_streams: INPUT_STREAMS_FIELD,
             expect: {
               type: "object",
               description:

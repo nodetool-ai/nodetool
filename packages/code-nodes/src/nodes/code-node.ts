@@ -29,6 +29,13 @@
  *   // streams { word: … } per word, then the final bag { sum: 15 }
  *
  * A body that calls neither runs the deprecated return/yield contract.
+ *
+ * Inputs arrive one of two ways. A body that never mentions `stream` runs once
+ * per incoming item with `inputs` holding that item's snapshot. A body that
+ * calls `stream` runs once for the whole stream and pulls values itself
+ * (`stream(name)`, `stream.any()`, `stream.first`, `stream.open`), executing
+ * through {@link CodeNode.run} — the kernel's streaming-input mode, which
+ * hydration selects per node from the body itself.
  */
 
 import {
@@ -41,15 +48,22 @@ import {
   hasYieldStatement,
   wrapImplicitReturn,
   normalizeCodeOutput,
-  usesEmitOutputContract
+  usesEmitOutputContract,
+  usesStreamInputContract
 } from "@nodetool-ai/node-sdk";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  ProcessingContext,
+  StreamingInputs,
+  StreamingOutputs
+} from "@nodetool-ai/runtime";
 import {
   runInSandbox,
   TOOLS_PRELUDE,
   NODETOOL_API_PRELUDE_FULL,
   type SandboxLimits,
-  type RunSandboxResult
+  type RunSandboxOptions,
+  type RunSandboxResult,
+  type SandboxInputTake
 } from "@nodetool-ai/agents/js-sandbox";
 import { importHidden } from "@nodetool-ai/config";
 import { ALL_PLATFORMS, type SandboxModuleResolution } from "@nodetool-ai/protocol";
@@ -267,6 +281,91 @@ class BoundedChannel<T> {
   }
 }
 
+/** Answer the guest gets for a take that never resolved into a value. */
+const END_OF_STREAM: SandboxInputTake = { done: true };
+
+/**
+ * The host side of the guest's `stream` global: one inbox iterator per handle
+ * (plus one `any()` iterator), created on first use and driven one take at a
+ * time.
+ *
+ * Two takes on the same handle cannot run concurrently — an async generator
+ * rejects a `next()` while another is pending — so calls are serialized on a
+ * per-key promise chain. Distinct handles keep their own chain and proceed in
+ * parallel, which is what lets a body await two streams at once.
+ */
+class InputStreamBridge {
+  private readonly perHandle = new Map<string, AsyncGenerator<unknown>>();
+  private anyIterator: AsyncGenerator<[string, unknown]> | undefined;
+  /** Per-key serialization: `null` is the `any()` iterator's own chain. */
+  private readonly chains = new Map<
+    string | null,
+    Promise<SandboxInputTake>
+  >();
+  private readonly cancelled: Promise<SandboxInputTake>;
+
+  constructor(private readonly inputs: StreamingInputs) {
+    // A cancelled run must not leave the guest parked on a take that can no
+    // longer be answered: every pending and future take resolves as EOS, the
+    // body unwinds, and the sandbox's own abort ends the run.
+    this.cancelled = new Promise<SandboxInputTake>((resolve) => {
+      const signal = inputs.signal;
+      if (signal.aborted) {
+        resolve(END_OF_STREAM);
+        return;
+      }
+      signal.addEventListener("abort", () => resolve(END_OF_STREAM), {
+        once: true
+      });
+    });
+  }
+
+  take(handle: string | null): Promise<SandboxInputTake> {
+    const previous = this.chains.get(handle);
+    const next = previous
+      ? previous.then(
+          () => this.pull(handle),
+          () => this.pull(handle)
+        )
+      : this.pull(handle);
+    this.chains.set(handle, next);
+    return next;
+  }
+
+  /** `stream.open(name)`: could this handle still produce a value? */
+  isOpen(handle: string): boolean {
+    return (
+      this.inputs.hasStream(handle) ||
+      this.inputs.hasBuffered?.(handle) === true
+    );
+  }
+
+  private async pull(handle: string | null): Promise<SandboxInputTake> {
+    if (this.inputs.signal.aborted) return END_OF_STREAM;
+    if (handle === null) {
+      const iterator = (this.anyIterator ??= this.inputs.any());
+      const result = await Promise.race([iterator.next(), this.cancelled]);
+      if ("done" in result && result.done === true) return END_OF_STREAM;
+      const [source, value] = (result as IteratorYieldResult<
+        [string, unknown]
+      >).value;
+      return { done: false, handle: source, value: jsonSafe(value) };
+    }
+    let iterator = this.perHandle.get(handle);
+    if (!iterator) {
+      iterator = this.inputs.stream(handle);
+      this.perHandle.set(handle, iterator);
+    }
+    const result = await Promise.race([iterator.next(), this.cancelled]);
+    if ("done" in result && result.done === true) return END_OF_STREAM;
+    return {
+      done: false,
+      handle,
+      value: jsonSafe((result as IteratorYieldResult<unknown>).value)
+    };
+  }
+}
+
 export class CodeNode extends BaseNode {
   static readonly nodeType = "nodetool.code.Code";
   static readonly platforms = ALL_PLATFORMS;
@@ -285,7 +384,10 @@ export class CodeNode extends BaseNode {
     "permission gating. " +
     "Dynamic inputs arrive on the `inputs` object; outputs leave through " +
     "await emit(name, value) to stream a value now and await output(name, value) " +
-    "to set a handle's final value. The return value carries no outputs." +
+    "to set a handle's final value. The return value carries no outputs. " +
+    "A body that calls stream(name), stream.any(), stream.first(name) or " +
+    "stream.open(name) runs once and reads its connected inputs as they " +
+    "arrive, instead of once per item." +
     "\n    code, javascript, script, function, dynamic, custom, logic, " +
     "parse, transform, convert, format, compute, calculate, filter, map, " +
     "merge, extract, json, csv, text, string, math, " +
@@ -294,6 +396,16 @@ export class CodeNode extends BaseNode {
   static readonly inputFields = [];
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
+  /**
+   * Whether this node streams its inputs is a property of its body, not of the
+   * type: a body that calls `stream` drains its own inbox in {@link run},
+   * every other body keeps the buffered per-item invocation. Both hydration
+   * paths re-read the body through this hook, so editing the last `stream`
+   * call out flips the mode back with no saved flag involved.
+   */
+  static readonly resolveStreamingInput = (node: {
+    properties?: Record<string, unknown>;
+  }): boolean => usesStreamInputContract(String(node?.properties?.code ?? ""));
 
   /** Persistent state across streaming invocations; reset each workflow run. */
   private _state: Record<string, unknown> = {};
@@ -329,8 +441,17 @@ export class CodeNode extends BaseNode {
       "`await output(name, value)` records that handle's final value, delivered " +
       "as one bag when the body ends. `return` is control flow only — the " +
       "returned value carries no outputs. " +
-      "Deprecated: a body that calls neither still runs the old contract, where " +
-      "a returned object's keys become output handles and yield(value) streams."
+      "Inputs: `for await (const item of stream(name))` reads a connected " +
+      "handle as values arrive, `stream.any()` yields [handle, value] across " +
+      "all handles in arrival order, `stream.first(name)` takes one value " +
+      "(undefined at end of stream), and `stream.open(name)` says whether more " +
+      "can still arrive. A body using any of them runs once for the whole " +
+      "stream — waiting on input does not spend the timeout — and `inputs.*` " +
+      "then carries only the values configured on the node. A body that never " +
+      "mentions `stream` runs once per incoming item, as before. " +
+      "Deprecated: a body that calls neither emit nor output still runs the old " +
+      "contract, where a returned object's keys become output handles and " +
+      "yield(value) streams."
   })
   declare code: string;
 
@@ -550,6 +671,27 @@ export class CodeNode extends BaseNode {
     return timeout > 0 ? timeout * 1000 : undefined;
   }
 
+  /**
+   * Everything a run of this node's body needs regardless of contract: the
+   * prelude, the node's own policy, its globals and its module resolution.
+   * Every execution path starts from this and adds only what its own contract
+   * needs (an emit sink, an input bridge, a cancellation signal).
+   */
+  private async sandboxOptions(
+    code: string,
+    context: ProcessingContext | undefined
+  ): Promise<RunSandboxOptions> {
+    return {
+      code: `${NODETOOL_PRELUDE}\n${code}`,
+      context,
+      timeoutMs: this.timeoutMs(),
+      globals: await this.sandboxGlobals(context),
+      limits: this.sandboxLimits(),
+      onProgress: this.progressSink(context),
+      modules: this.resolveModules(context)
+    };
+  }
+
   async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     const code = String(this.code ?? "return {};");
     if (!usesEmitOutputContract(code)) {
@@ -559,15 +701,9 @@ export class CodeNode extends BaseNode {
       return this.runLegacySingleShot(code, context);
     }
 
-    const result = await runInSandbox({
-      code: `${NODETOOL_PRELUDE}\n${code}`,
-      context,
-      timeoutMs: this.timeoutMs(),
-      globals: await this.sandboxGlobals(context),
-      limits: this.sandboxLimits(),
-      onProgress: this.progressSink(context),
-      modules: this.resolveModules(context)
-    });
+    const result = await runInSandbox(
+      await this.sandboxOptions(code, context)
+    );
 
     if (!result.success) {
       throw new Error(result.error ?? "Code execution failed");
@@ -583,21 +719,86 @@ export class CodeNode extends BaseNode {
     return { ...merged, ...(result.outputs ?? {}) };
   }
 
+  /**
+   * Streaming-input execution: one invocation that drains its own inbox.
+   *
+   * The kernel calls this instead of the per-item path when the hydrated
+   * `is_streaming_input` flag is true, which for this node means the body
+   * calls `stream` (see {@link CodeNode.resolveStreamingInput}). The body runs
+   * once; `stream(name)` / `stream.any()` pull values out of `inputs` one take
+   * at a time, `emit` routes live through `outputs.emit`, and the `output`
+   * finals post as one bag when the body ends.
+   */
+  async run(
+    inputs: StreamingInputs,
+    outputs: StreamingOutputs,
+    context?: ProcessingContext
+  ): Promise<void> {
+    const code = String(this.code ?? "return {};");
+    if (!usesStreamInputContract(code)) {
+      // The kernel only routes here when hydration said the body streams, and
+      // hydration re-reads the body every time. Reaching this means a stale
+      // saved flag was trusted (a graph built with `withExplicitNodeFlags` and
+      // never hydrated), and there is no safe recovery: this path never
+      // delivers per-item invocations, so a buffered body would silently see
+      // none of its connected inputs. Fail loudly instead.
+      throw new Error(
+        "Code node is flagged streaming-input but its body never calls " +
+          "stream(...). Hydrate the graph against the node registry, or add " +
+          "a stream(name) call to consume the connected inputs."
+      );
+    }
+
+    const bridge = new InputStreamBridge(inputs);
+    const abort = new AbortController();
+    const onCancel = () => abort.abort();
+    if (inputs.signal.aborted) {
+      abort.abort();
+    } else {
+      inputs.signal.addEventListener("abort", onCancel, { once: true });
+    }
+
+    try {
+      const result = await runInSandbox({
+        ...(await this.sandboxOptions(code, context)),
+        signal: abort.signal,
+        // Awaited, so a downstream inbox at its bound blocks the guest's
+        // `emit` — the same backpressure the buffered pump gets from its
+        // channel, one link earlier.
+        onEmit: async (name: string, value: unknown) => {
+          await outputs.emit(name, value);
+        },
+        onTakeInput: (handle) => bridge.take(handle),
+        onStreamOpen: (handle) => bridge.isOpen(handle)
+      });
+
+      // A cancelled run has nothing to report: the takes were unparked as
+      // end-of-stream and the body unwound on a signal it did not choose.
+      if (inputs.signal.aborted) return;
+      if (!result.success) {
+        throw new Error(result.error ?? "Code execution failed");
+      }
+      // One bag, one frame: the finals of a single invocation belong together,
+      // so sibling handles share lineage instead of arriving as N items.
+      const finals = result.outputs ?? {};
+      if (Object.keys(finals).length > 0) {
+        await outputs.emitGroup(finals);
+      }
+    } finally {
+      inputs.signal.removeEventListener("abort", onCancel);
+      abort.abort();
+    }
+  }
+
   /** The deprecated return-bag path: implicit return, normalized output. */
   private async runLegacySingleShot(
     code: string,
     context: ProcessingContext | undefined
   ): Promise<Record<string, unknown>> {
     const body = hasReturnStatement(code) ? code : wrapImplicitReturn(code);
-    const result = await runInSandbox({
-      code: `${NODETOOL_PRELUDE}\n${body}`,
-      context,
-      timeoutMs: this.timeoutMs(),
-      globals: await this.sandboxGlobals(context),
-      limits: this.sandboxLimits(),
-      onProgress: this.progressSink(context),
-      modules: this.resolveModules(context)
-    });
+    const result = await runInSandbox(
+      await this.sandboxOptions(body, context)
+    );
     if (!result.success) {
       throw new Error(result.error ?? "Code execution failed");
     }
@@ -645,13 +846,7 @@ export class CodeNode extends BaseNode {
     const run = (async () => {
       try {
         result = await runInSandbox({
-          code: `${NODETOOL_PRELUDE}\n${code}`,
-          context,
-          timeoutMs: this.timeoutMs(),
-          globals: await this.sandboxGlobals(context),
-          limits: this.sandboxLimits(),
-          onProgress: this.progressSink(context),
-          modules: this.resolveModules(context),
+          ...(await this.sandboxOptions(code, context)),
           signal: abort.signal,
           onEmit: (name: string, value: unknown) =>
             channel.push({ [name]: value })
@@ -707,13 +902,8 @@ export class CodeNode extends BaseNode {
     `;
 
     const result = await runInSandbox({
-      code: wrappedBody,
-      context,
-      timeoutMs: this.timeoutMs(),
-      globals: await this.sandboxGlobals(context),
-      limits: this.sandboxLimits(),
-      onProgress: this.progressSink(context),
-      modules: this.resolveModules(context)
+      ...(await this.sandboxOptions("", context)),
+      code: wrappedBody
     });
 
     if (!result.success) {
@@ -759,6 +949,21 @@ function extractDynamicInputs(
 }
 
 /**
+ * One value, deep-copied into JSON-safe form for the guest. The marshal rule
+ * for a streamed item is the buffered one: plain data crosses, anything that
+ * cannot be serialized becomes `null`. Media inputs are refs — plain objects —
+ * so they survive and stay readable through `media.*`.
+ */
+function jsonSafe(value: unknown): unknown {
+  if (value === null || value === undefined) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Deep-copy all input values to make them safe for the sandbox.
  * Strips functions, symbols, and other non-serializable types.
  */
@@ -767,15 +972,7 @@ function deepCopyInputs(
 ): Record<string, unknown> {
   const result: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(inputs)) {
-    if (value === null || value === undefined) {
-      result[key] = value;
-      continue;
-    }
-    try {
-      result[key] = JSON.parse(JSON.stringify(value));
-    } catch {
-      result[key] = null;
-    }
+    result[key] = jsonSafe(value);
   }
   return result;
 }

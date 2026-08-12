@@ -349,6 +349,66 @@ await output("count", kept.length);               // final, posted at the end
   same channel the Python worker uses — so a long snippet drives the node's
   progress bar.
 
+### Input streams
+
+`stream` is the input side of `emit`: four verbs that read the node's connected
+handles as values arrive, instead of once per item.
+
+```js
+for await (const item of stream(name))            // one handle, in order, until EOS
+for await (const [handle, item] of stream.any())  // every handle, arrival order
+const item = await stream.first(name)             // next value, undefined at EOS
+stream.open(name)                                 // could more still arrive?
+```
+
+`stream(name)` and `stream.any()` are async iterables that complete at
+end-of-stream; `stream.first` is for a value that arrives once; `stream.open` is
+synchronous and consumes nothing. Values are marshaled exactly like buffered
+inputs — JSON deep copy, media as refs readable through `media.*`.
+
+```js
+// Running total, live, with a summary at the end.
+let sum = 0;
+for await (const n of stream("numbers")) {
+  sum += n;
+  await emit("running", sum);
+}
+await output("total", sum);
+```
+
+**The body decides the mode.** A body that mentions `stream` runs **once** for
+the whole stream and pulls its own items; a body that never mentions it keeps
+today's contract — one invocation per incoming item, with `inputs` holding that
+item's snapshot. Nothing is configured: hydration re-reads the body each time
+(`usesStreamInputContract`), so deleting the last `stream` call flips the node
+back.
+
+The split has three consequences worth knowing:
+
+- **`inputs.<name>` in a streaming body carries the node's *configured*
+  property values**, never per-item edge data. A connected handle is reachable
+  only through `stream(name)`; reading one via `inputs.` is a validation error
+  naming the call to use.
+- **Outputs leave through `emit`/`output` only.** There is one invocation, so
+  its return value is control flow. `output` finals post as one bag when the
+  body ends; a body that throws mid-stream keeps what it already emitted and
+  drops the finals.
+- **`state` still exists and is pointless here.** One invocation means plain
+  local variables already survive across items.
+
+Waiting is not executing: time parked on a take is clock-suspended, so
+`timeout` meters the body's own work and a slow upstream cannot kill a correct
+consumer. What bounds the run is cancellation — a cancelled run unparks every
+take as end-of-stream and the body unwinds. Backpressure is free in the other
+direction too: the guest pulls, so an item the body has not asked for stays in
+the kernel's inbox.
+
+`run_code` and `test_code` take the same bodies: stage items with
+`input_streams: {handle: [...]}` and the harness answers takes from them,
+interleaving `stream.any()` round-robin by index across the handles you
+declared. Design:
+[code-node-input-streaming-design.md](code-node-input-streaming-design.md).
+
 Node props map onto sandbox policy: `timeout` (seconds, 0 for none),
 `max_response_mb`, `allow_local_network` → `limits.allowPrivateNetwork`,
 `allow_host_filesystem` → `limits.filesystemAccess`, `secrets` →

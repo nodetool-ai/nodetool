@@ -1,6 +1,6 @@
 # Code Node Input Streaming: `stream`
 
-Status: proposed. Owner: code-nodes / node-sdk / kernel. 2026-08-12.
+Status: implemented, 2026-08-12. Owner: code-nodes / node-sdk / kernel.
 Companion: [code-node-emit-design.md](code-node-emit-design.md) — the output
 side of the same contract, already implemented.
 
@@ -273,6 +273,31 @@ which most Code nodes are. `stream` is for the bodies that today need
   a windowed aggregate into a Preview runs under `nodetool debug` and shows
   per-item `emit` messages arriving while upstream is still producing; the
   same body passes `test_code` with `inputStreams`.
+
+## Deviations from the design as built
+
+- **Finals post through `outputs.emitGroup(finals)`**, not slot-by-slot
+  `emit`. One invocation's finals are one frame, so sibling handles share
+  minted lineage instead of arriving as N independent items.
+- **`run()` called for a body that does not stream throws.** It can only happen
+  when a stale saved flag was trusted without hydration, and the path never
+  delivers per-item invocations — a buffered body would silently see none of
+  its connected inputs, so failing names the misconfiguration instead.
+- **`stream.open` reads `hasBuffered` through an optional method.**
+  `StreamingInputs` (`packages/runtime/src/node-executor.ts`) gained
+  `hasBuffered?(name)`; the kernel's `NodeInputs` already had it, and a
+  hand-rolled test double need not.
+- **`run_code` / `test_code` name the field `input_streams`** (wire names in
+  this surface are snake_case) and define `stream.any()` order as round-robin
+  by index across the handles in declaration order — a live inbox is observed,
+  pre-staged items have to be ordered by rule.
+- **The DSL probe lives in `createNode`** (`packages/dsl/src/core.ts`), gated on
+  the Code node's type, rather than in the generated helper: `@nodetool-ai/dsl`
+  runs graphs through `withExplicitNodeFlags` with no registry hydration, and
+  the generator stamps flags per *type*. Every other surface — the server run
+  path, `Graph.loadFromDict`, `ExecutionSession` — hydrates against the
+  registry and needs nothing. `sandbox-dsl` likewise needs nothing: its graphs
+  reach execution through `create_workflow` / `run_workflow`, which hydrate.
 
 ## Out of scope
 
