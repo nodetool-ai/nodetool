@@ -530,13 +530,14 @@ async function runPlanStage(
   };
 }
 
-/** One `GraphPlanner` pass. Returns null when it produced no graph. */
+/** One {@link authorGraph} pass. Returns null when it produced no graph. */
 async function planGraph(
   opts: BuildAppOptions,
   operation: BuildSpec["operations"][number],
   objective: string
 ): Promise<BuildGraph | null> {
-  const planner = new GraphPlanner({
+  const generator = authorGraph(objective, {
+    context: opts.context,
     provider: opts.provider,
     model: opts.model,
     registry: opts.registry,
@@ -553,7 +554,6 @@ async function planGraph(
     ...(opts.turnBudget ? { turnBudget: opts.turnBudget } : {}),
     ...(opts.signal ? { signal: opts.signal } : {})
   });
-  const generator = planner.plan(objective, opts.context);
   let next = await generator.next();
   while (!next.done) next = await generator.next();
   const graph = next.value;

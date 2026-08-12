@@ -20,7 +20,8 @@ import type {
   Message,
   MessageContent,
   ProviderStreamItem,
-  ToolCall
+  ToolCall,
+  TurnBudget
 } from "@nodetool-ai/runtime";
 import {
   ACTIVE_MODEL_CONTEXT_KEY,
@@ -254,6 +255,11 @@ export interface CodeActExecutorOptions {
   systemPrompt?: string;
   maxIterations?: number;
   maxTokens?: number;
+  /**
+   * Spend admission, consulted before every provider turn. A refusal ends the
+   * loop, so a caller's cost cap bounds the step rather than being overrun.
+   */
+  turnBudget?: TurnBudget;
   useFinishTask?: boolean;
   threadId?: string;
   upstreamMemoryKeys?: string[];
@@ -324,6 +330,7 @@ export class CodeActExecutor {
   private readonly systemPrompt: string;
   private readonly maxIterations: number;
   private readonly maxTokens?: number;
+  private readonly turnBudget?: TurnBudget;
   private readonly useFinishTask: boolean;
   private readonly threadId?: string;
   private readonly upstreamMemoryKeys: string[];
@@ -356,6 +363,7 @@ export class CodeActExecutor {
     this.tools = opts.tools ? [...opts.tools] : [];
     this.maxIterations = opts.maxIterations ?? DEFAULT_CODEACT_MAX_ITERATIONS;
     this.maxTokens = opts.maxTokens;
+    this.turnBudget = opts.turnBudget;
     this.useFinishTask = opts.useFinishTask ?? false;
     this.threadId = opts.threadId;
     this.upstreamMemoryKeys = opts.upstreamMemoryKeys ?? [];
@@ -755,6 +763,7 @@ export class CodeActExecutor {
         threadId: this.threadId,
         maxIterations: this.maxIterations,
         maxTokens: this.maxTokens,
+        ...(this.turnBudget ? { turnBudget: this.turnBudget } : {}),
         sequentialTools: true,
         workspaceDir: this.context.workspaceDir ?? undefined,
         signal: abort.signal

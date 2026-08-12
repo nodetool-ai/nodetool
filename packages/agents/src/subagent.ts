@@ -36,7 +36,11 @@
  */
 
 import { randomUUID } from "node:crypto";
-import type { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
+import type {
+  BaseProvider,
+  ProcessingContext,
+  TurnBudget
+} from "@nodetool-ai/runtime";
 import type { ProcessingMessage, StepResult } from "@nodetool-ai/protocol";
 import { CodeActExecutor } from "./codeact/codeact-executor.js";
 import { Tool } from "./tools/base-tool.js";
@@ -77,6 +81,14 @@ export interface SubAgentRunOptions {
   systemPrompt?: string;
   maxIterations?: number;
   maxTokens?: number;
+  /** Spend admission, consulted before every provider turn of the child. */
+  turnBudget?: TurnBudget;
+  threadId?: string;
+  /**
+   * Sandbox package specifiers the child's actions may import. Defaults to
+   * none — a caller that authors with a pack (the graph DSL) names it here.
+   */
+  sandboxPackages?: readonly string[];
   signal?: AbortSignal;
 }
 
@@ -142,6 +154,9 @@ export async function* runSubAgent(
     systemPrompt: opts.systemPrompt,
     maxIterations: opts.maxIterations,
     maxTokens: opts.maxTokens,
+    turnBudget: opts.turnBudget,
+    threadId: opts.threadId,
+    sandboxPackages: opts.sandboxPackages,
     // Without the run's signal a cancelled parent leaves its children driving
     // provider calls to completion in the background.
     signal: opts.signal
