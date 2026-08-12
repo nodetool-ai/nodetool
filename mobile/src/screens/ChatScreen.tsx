@@ -3,7 +3,7 @@
  * Manages WebSocket connection and displays the chat interface.
  */
 
-import React, { useEffect, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import {
   View,
   StyleSheet,

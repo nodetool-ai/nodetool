@@ -35,7 +35,7 @@ export type EvaluateLayerEffectsFn = (
  * from the layer transform. When a matrix is available it is used directly;
  * otherwise falls back to decomposed values.
  */
-export function drawWithTransform(
+function drawWithTransform(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
   compositeOffset: { x: number; y: number },

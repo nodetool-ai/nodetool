@@ -6,7 +6,7 @@
  * summary plus the raw JSON — enough to confirm what the agent wrote.
  */
 
-import React, { useEffect, useLayoutEffect, useMemo } from 'react';
+import { useEffect, useLayoutEffect, useMemo } from 'react';
 import {
   ActivityIndicator,
   Platform,

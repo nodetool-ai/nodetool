@@ -12,7 +12,7 @@
  * no results — so once a run ends, its values are gone unless this screen was
  * watching. That case renders an explicit note rather than an empty panel.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,

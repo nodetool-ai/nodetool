@@ -15,16 +15,6 @@ export type CodeAuthoringModelSource =
   | "language_model_preference"
   | "application_default";
 
-export const CODE_AUTHORING_SOURCE_LABEL: Record<
-  CodeAuthoringModelSource,
-  string
-> = {
-  code_preference: "Code Generation default",
-  chat: "Chat model",
-  language_model_preference: "Language Model default",
-  application_default: "Application default"
-};
-
 export interface CodeAuthoringModel {
   provider: string;
   id: string;

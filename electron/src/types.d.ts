@@ -1,7 +1,5 @@
 import type {
   NodePackActionResult,
-  NodePackArtifactIdentity,
-  NodePackInstallMode,
   NodePackInstallStatus
 } from "@nodetool-ai/protocol/sandbox-package";
 
